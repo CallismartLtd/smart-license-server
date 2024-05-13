@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Smart license Server
-Description: license REST API server for SmartWoo plugin.
+Description: license REST API server for WordPress plugins.
 Version: 1.0
 Author: Callistus Nwachukwu
 */
