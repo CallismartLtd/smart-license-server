@@ -92,6 +92,17 @@ function smartwoo_handle_api_request( $request ) {
         return $response;
     }
 
+    if ( $license_data['expiry_date'] <= current_time( 'Y-m-d' ) ) {
+        $response_data = array(
+            'code'      => 'license_expired',
+            'message'   => 'License has expired, log into you account to renew your license'
+        );
+        $response = new WP_REST_Response( $response_data, 402 );
+        $response->header( 'Content-Type', 'application/json' );
+
+        return $response;
+    }
+
     $encoded_data   = json_encode( $license_data );
     $waiting_period = generate_wait_period();
     $local_duration = preg_replace( '/\D/', '', $waiting_period );
@@ -125,7 +136,7 @@ function get_license_data( $anything, $license_key ) {
         'license_key' => '1234567890',
         'service_id'   => 'CWS-6578nndjs',
         'item_id'   => 987654,
-        'expiry_date' => '2024-05-14',
+        'expiry_date' => '2024-05-16',
     );
 
     if ( $anything === $service_id  && $lkey === $license_key ) {
@@ -143,6 +154,3 @@ function generate_wait_period() {
 
     return $wait_duration;
 }
-
-
-//add_filter( 'rest_authentication_errors', '__return_true' ); // Allow unauthenticated REST API requests
