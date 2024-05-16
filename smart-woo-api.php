@@ -136,7 +136,7 @@ function get_license_data( $anything, $license_key ) {
         'license_key' => '1234567890',
         'service_id'   => 'CWS-6578nndjs',
         'item_id'   => 987654,
-        'expiry_date' => '2024-05-16',
+        'expiry_date' => '2024-05-17',
     );
 
     if ( $anything === $service_id  && $lkey === $license_key ) {
