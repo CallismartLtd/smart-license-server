@@ -19,6 +19,7 @@ class SmartWoo_License_Server{
         add_action( 'smartwoo_server_valid_license', array( $this, 'remote_validate' ) );
         add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
         add_action( 'init', array( $this, 'run_automation' ) );
+
     }
 
     public function register_cron( $schedules ) {
@@ -58,8 +59,8 @@ class SmartWoo_License_Server{
         $token = isset( $highest_priority_task['token'] ) ? $highest_priority_task['token'] : '';
         $data = isset( $highest_priority_task['data'] ) ? $highest_priority_task['data'] : '';
 
-        // Ensure task data is valid
-        if ( empty( $licence_key ) && empty( $token ) && empty( $data ) ) {
+        // Ensure task data is valid.
+        if ( empty( $licence_key ) || empty( $token ) || empty( $data ) ) {
 
             return;
         }
@@ -197,4 +198,4 @@ class SmartWoo_License_Server{
     }
 }
 
-
+SmartWoo_License_Server::instance();

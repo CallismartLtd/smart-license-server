@@ -1,0 +1,174 @@
+
+
+.smliser-partially-hidden-license-key-container,
+.smliser-visible-license-key {
+    margin-bottom: 10px;
+}
+
+.smliser-partially-hidden-license-key-container p {
+    font-size: 10px;
+    font-family: Aleo;
+    font-weight: bold;
+    background-color: rgba(197, 255, 192, 0.623);
+    color: #0716f567;
+    text-align: center;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.smliser-visible-license-key input[type="text"] {
+    font-size: 10px;
+    font-weight: bold;
+    border: 1px solid #070000;
+    background-color: rgb(238, 233, 232);
+    color: rgb(3, 3, 0);
+    border-radius: 9px;
+    width: 200px;
+    margin: 10px auto;
+}
+
+
+/* Table Styles */
+.smliser-table-wrapper {
+    overflow-x: auto;
+}
+
+.smliser-table {
+    width: 90%;
+    border-collapse: collapse;
+	border-radius: 9px;
+	margin: 20px auto;
+    background-color: #fff;
+	box-shadow: 0 10px 10px rgba(3, 1, 2, 0.2);
+    overflow: hidden;
+}
+
+.smliser-table th, .smliser-table td {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid #dddddd;
+}
+
+.smliser-table th {
+    background-color: #4928be;
+    color: #15ff00;
+	font-weight: bold;
+    height: 35px;
+    padding: 35px;
+}
+
+.smliser-table:hover {
+    background-color: #ffffff;
+	box-shadow: none;
+
+}
+
+.smliser-table-count {
+	text-align: right;
+	font-weight: bold;
+	margin-top: 10px;
+}
+
+/* Responsive Styles for mobile devices */
+@media only screen and (min-width: 320px) and (max-width: 720px) {
+
+    .smliser-table {
+        width: 90%;
+        max-width: 100%; /* Adjusted to take full width on small screens */
+        box-shadow: 0 10px 10px rgba(3, 1, 2, 0.2);
+        overflow-x: auto; /* Added to enable horizontal scrolling if needed */
+    }
+
+    .smliser-table thead,
+    .smliser-table tbody,
+    .smliser-table th,
+    .smliser-table td,
+    .smliser-table tr {
+        display: block;
+    }
+
+    .smliser-table tbody tr {
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .smliser-table tbody td {
+        text-align: left;
+        padding: 15px;
+        border-bottom: 1px solid #ddd;
+        width: 100%; /* Make the cells take full width */
+    }
+}
+
+/* Ensure the edit link is hidden by default */
+.smliser-edit-row .smliser-edit-link {
+    display: none;
+}
+
+/* Show the edit link when hovering over the table cell */
+.smliser-edit-row:hover .smliser-edit-link {
+    display: block;
+}
+
+/* Optionally, hide the <p> tag by default if you want to show it only on hover */
+.smliser-edit-row p {
+    display: none;
+}
+
+.smliser-edit-row:hover p {
+    display: block;
+    
+}.smliser-edit-row:hover p a {
+    text-decoration: none;    
+}
+
+.smliser-actions-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.smliser-bulk-actions {
+    display: flex;
+    align-items: center;
+}
+
+.smliser-search-box {
+    display: flex;
+    align-items: center;
+}
+
+.smliser-search-input {
+    padding: 5px;
+    margin-right: 30px;
+}
+
+.smliser-bulk-action-select,
+.smliser-bulk-action-button{
+    margin-right: 10px;
+}
+
+
+
+/********************** Data Not Found Container ***************/
+.smliser-not-found-container {
+    
+    margin: 20px auto;
+    background-color: #fff;
+    border-radius: 9px;
+    box-shadow:  0 10px 10px rgba(3, 1, 2, 0.2);
+    height: 200px;
+    width: 400px;
+}
+.smliser-not-found-container p {
+    text-align: center;
+    font-weight: bold;
+    padding: 60px;
+    width: 50%;
+    margin: 10px auto;
+}
+
