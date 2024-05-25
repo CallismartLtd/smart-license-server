@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-defined( 'ABSPATH' ) || exit; 
+defined( 'ABSPATH' ) || exit;
 
 class SmartLicense_config {
 
@@ -41,6 +41,8 @@ class SmartLicense_config {
         add_action( 'rest_api_init', array( $this, 'rest_load' ) );
         add_action( 'plugins_loaded', array( $this, 'include' ) );
         add_action( 'admin_post_smliser_bulk_action', array( 'Smliser_license', 'bulk_action') );
+        add_action( 'admin_post_smliser_license_new', array( 'Smliser_license', 'license_form_controller') );
+        add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller') );
 
     }
 
@@ -143,12 +145,24 @@ class SmartLicense_config {
         $item_id        = $request_params['item_id'];
         $callback_url   = $request_params['callback_url'];
         $token          = $this->get_auth_token( $request );
-        $license_data   = get_license_data( $service_id, $license_key, $item_id );
+        $smlicense      = Smliser_license::instance();
+        $license        = $smlicense->get_license_data( $service_id, $license_key );
         
-        if ( ! $license_data ) {
+        if ( ! $license ) {
             $response_data = array(
                 'code'      => 'license_error',
-                'message'   => 'Invalid License key or service ID'
+                'message'   => 'Invalid License key or service ID.'
+            );
+            $response = new WP_REST_Response( $response_data, 404 );
+            $response->header( 'Content-Type', 'application/json' );
+    
+            return $response;
+        }
+
+        if ( absint( $item_id ) !== absint( $license->get_item_id() ) ) {
+            $response_data = array(
+                'code'      => 'license_error',
+                'message'   => 'Invalid License key or service ID.'
             );
             $response = new WP_REST_Response( $response_data, 404 );
             $response->header( 'Content-Type', 'application/json' );
@@ -156,30 +170,76 @@ class SmartLicense_config {
             return $response;
         }
     
-        if ( $license_data['expiry_date'] < current_time( 'Y-m-d' ) ) {
+        if ( 'Expired' === $license->get_status() ) {
             $response_data = array(
                 'code'      => 'license_expired',
-                'message'   => 'License has expired, log into you account to renew your license'
+                'message'   => 'License has expired, log into you account to renew your license.'
             );
             $response = new WP_REST_Response( $response_data, 402 );
             $response->header( 'Content-Type', 'application/json' );
     
             return $response;
         }
+
+        if ( 'Suspended' === $license->get_status() ) {
+            $response_data = array(
+                'code'      => 'license_suspended',
+                'message'   => 'License has been suspended, log into you account to resolve issues.'
+            );
+            $response = new WP_REST_Response( $response_data, 403 );
+            $response->header( 'Content-Type', 'application/json' );
     
-        $encoded_data   = wp_json_encode( $license_data );
+            return $response;
+        }
+
+        if ( 'Revoked' === $license->get_status() ) {
+            $response_data = array(
+                'code'      => 'license_revoked',
+                'message'   => 'License is currently revoked, log into you account to resolve issues.'
+            );
+            $response = new WP_REST_Response( $response_data, 403 );
+            $response->header( 'Content-Type', 'application/json' );
+    
+            return $response;
+        }
+
+        if ( 'Deactivated' === $license->get_status() ) {
+            $response_data = array(
+                'code'      => 'license_deactivated',
+                'message'   => 'License has been deactivated, log into you account to regenrate or purchase new one.'
+            );
+            $response = new WP_REST_Response( $response_data, 403 );
+            $response->header( 'Content-Type', 'application/json' );
+    
+            return $response;
+        }
+    
+        $encoded_data   = $license->encode();
+
+        if ( is_wp_error( $encoded_data ) ) {
+            $response_data = array(
+                'code'      => 'license_server_busy',
+                'message'   => 'Server is currently busy please retry. Contact support if the issue persists.'
+            );
+
+            $response = new WP_REST_Response( $response_data, 503 );
+            $response->header( 'Content-Type', 'application/json' );
+    
+            return $response;
+        }
+
         $waiting_period = smliser_wait_period();
         $local_duration = preg_replace( '/\D/', '', $waiting_period );
         // add new task.
-       $license_server = new smartwoo_license_server();
+        $license_server = new Smliser_Server();
         $license_server->add_task_queue(
             $local_duration, array(
-                'licence_key'   => $license_key,
+                'license_key'   => $license_key,
                 'token'         => $token,
-                'expiry_date'   => $license_data['expiry_date'],
+                'expiry_date'   => $license->get_end_date(),
                 'callback_url'  => $callback_url,
                 'data'          => $encoded_data
-    
+
             )
         );
     
@@ -221,7 +281,8 @@ class SmartLicense_config {
      */
     public function include() {
         require_once SMLISER_PATH . 'includes/utils/smliser-functions.php';
-        require_once SMLISER_PATH . 'includes/class-smliser.php';
+        require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
+        require_once SMLISER_PATH . 'includes/class-smliser-server.php';
         require_once SMLISER_PATH . 'includes/class-smliser-menu.php';
         require_once SMLISER_PATH . 'includes/class-smliser-repository.php';
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
@@ -230,16 +291,7 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-        $result = new Smliser_license();
-$result->set_user_id( 1 );
-$result->set_service_id( 'Smwoopro-DE653y848' );
-$result->set_license_key( '', 'new' );
-$result->set_item_id( 34556 );
-$result->set_status( 'Active' );
-$result->set_start_date( '2024-02-24' );
-$result->set_end_date( '2024-05-24' );
-//$result->save();
-        
+  
     }
 
     /**
@@ -258,6 +310,4 @@ $result->set_end_date( '2024-05-24' );
     }
     
 }
-
-
 
