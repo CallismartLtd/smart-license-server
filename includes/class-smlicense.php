@@ -213,7 +213,7 @@ class Smliser_license {
      * 
      * @param int $number Number of allowed websites for a license.
      */
-    public function set_allowed_website( $number ) {
+    public function set_allowed_sites( $number ) {
         $this->allowed_sites = absint( $number );
     }
 
