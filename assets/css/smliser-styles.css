@@ -172,3 +172,65 @@
     margin: 10px auto;
 }
 
+/********************** Form *************************/
+.smliser-form-container {
+    background-color: #ffffff; /* Light gray background */
+    padding: 20px;
+    margin: 20px auto;
+    margin-right: 20px;
+    border-radius: 9px;
+
+  }
+  
+  .smliser-form-row {
+    display: flex;
+    margin-bottom: 15px;
+  }
+  
+  .smliser-form-label {
+    flex: 1; /* Label takes up some space */
+    font-weight: bold;
+    font-size: 16px;
+  }
+  
+  .smliser-form-description {
+    margin-right: 5px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #000;
+    width: 6px;
+    height: 16px;
+    border-radius: 50%;
+    padding: 4px;
+    cursor: help;
+  }
+
+/* Custom Tooltip Styles */
+.custom-tooltip {
+    position: absolute;
+    background-color: #333; /* Background color */
+    color: #fff; /* Text color */
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold; /* Font weight */
+    z-index: 9999;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none; /* Prevent mouse events */
+}
+
+.custom-tooltip.show {
+    opacity: 1;
+}
+
+.smliser-form-container .smliser-form-input {
+    border: 1px solid #2b0808;
+    border-radius: 3px;
+    width: 350px;
+  }
+  
+  .smliser-select-input {
+    width: 350px;
+}

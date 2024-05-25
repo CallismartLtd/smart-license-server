@@ -148,3 +148,44 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltips = document.querySelectorAll('.smliser-form-description');
+
+    tooltips.forEach(function(tooltip) {
+        tooltip.addEventListener('mouseenter', function() {
+            var title = this.getAttribute('title');
+            if (title) {
+                this.setAttribute('data-title', title);
+                this.removeAttribute('title');
+
+                var tooltipElement = document.createElement('div');
+                tooltipElement.className = 'custom-tooltip';
+                tooltipElement.innerText = title;
+                document.body.appendChild(tooltipElement);
+
+                var rect = this.getBoundingClientRect();
+                tooltipElement.style.top = rect.top + window.scrollY - tooltipElement.offsetHeight - 5 + 'px';
+                tooltipElement.style.left = rect.left + window.scrollX + (rect.width / 2) - (tooltipElement.offsetWidth / 2) + 'px';
+                
+                tooltipElement.classList.add('show');
+
+                this._tooltipElement = tooltipElement;
+            }
+        });
+
+        tooltip.addEventListener('mouseleave', function() {
+            var tooltipElement = this._tooltipElement;
+            if (tooltipElement) {
+                tooltipElement.classList.remove('show');
+                setTimeout(function() {
+                    document.body.removeChild(tooltipElement);
+                }, 300);
+                this.setAttribute('title', this.getAttribute('data-title'));
+                this.removeAttribute('data-title');
+                this._tooltipElement = null;
+            }
+        });
+    });
+});

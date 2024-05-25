@@ -56,6 +56,13 @@ class Smliser_license {
     private $end_date   = '';
 
     /**
+     * Allowed websites.
+     * 
+     * @var int $allowed_sites  Number of allowed website for a license
+     */
+    private $allowed_sites;
+
+    /**
      * Class constructor
      * @param string $service_id    The service ID associated with the license.
      * @param string $license_key   The license key.
@@ -201,6 +208,15 @@ class Smliser_license {
         $this->end_date = sanitize_text_field( $end_date );
     }
 
+    /**
+     * Set number of allowed websites for a license
+     * 
+     * @param int $number Number of allowed websites for a license.
+     */
+    public function set_allowed_website( $number ) {
+        $this->allowed_sites = absint( $number );
+    }
+
     /*
     |------------
     |Getters
@@ -319,6 +335,13 @@ class Smliser_license {
         return $this->end_date;
     }
 
+    /**
+     * Get number of allowed websites.
+     */
+    public function get_allowed_websites() {
+        return $this->allowed_sites;
+    }
+
     /*
     |-----------------
     |   CRUD METHODS
@@ -374,6 +397,31 @@ class Smliser_license {
     }
 
     /**
+     * Get a license by id.
+     * 
+     * @param int $id The ID.
+     */
+    public static function get_by_id( $id ) {
+        
+        if ( ! is_int( $id ) ) {
+            $id = absint( $id );
+        }
+
+        if ( empty( $id ) ) {
+            return false;
+        }
+
+        global $wpdb;
+        $query  = $wpdb->prepare( "SELECT * FROM " . SMLISER_LICENSE_TABLE . " WHERE `id` = %d ", absint( $id ) );
+        $result = $wpdb->get_row( $query, ARRAY_A );
+        if ( $result ) {
+            return self::return_db_results( $result );
+        }
+
+        return false;
+    }
+
+    /**
      * Convert and return associative array of DB result to object of this class
      * 
      * @param array $data   Associative array containing result from database
@@ -388,6 +436,7 @@ class Smliser_license {
         $result->set_status( ! empty( $data['status'] ) ? $data['status'] : '' );
         $result->set_start_date( ! empty( $data['start_date'] ) ? $data['start_date'] : '' );
         $result->set_end_date( ! empty( $data['end_date'] ) ? $data['end_date'] : '' );
+        $result->set_allowed_sites( ! empty( $data['allowed_sites'] ) ? $data['allowed_sites'] : '' );
         return $result;
     }
 
@@ -410,6 +459,7 @@ class Smliser_license {
             'license_key'   => $this->get_license_key(),
             'service_id'    => $this->get_service_id(),
             'item_id'       => $this->get_item_id(),
+            'allowed_sites' => $this->get_allowed_websites(),
             'status'        => ! empty( $this->get_status() ) ? $this->get_status() : '',
             'start_date'    => ! empty( $this->get_start_date() ) ? $this->get_start_date() : '',
             'end_date'      => ! empty( $this->get_end_date() ) ? $this->get_end_date() : '',
@@ -421,6 +471,7 @@ class Smliser_license {
             '%s', // License key
             '%s', // Service ID
             '%d', // Item ID
+            '%d', // Allowed sites
             '%s', // status
             '%s', // start Date
             '%s', // End date
@@ -428,6 +479,7 @@ class Smliser_license {
 
         // phpcs:disable
         $wpdb->insert( SMLISER_LICENSE_TABLE, $data, $data_format );
+        // phpcs:enable
         return $wpdb->insert_id;
     }
 

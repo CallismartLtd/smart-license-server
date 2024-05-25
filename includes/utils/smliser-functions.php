@@ -147,6 +147,7 @@ function smliser_allowed_html() {
             'method' => array(),
             'class' => array(),
             'style' => array(),
+            'id' => array(),
         ),
         'input' => array(
             'type' => array(),
@@ -156,6 +157,9 @@ function smliser_allowed_html() {
             'class' => array(),
             'style' => array(),
             'id' => array(),
+            'required' => array(),
+            'readonly' => array(),
+
         ),
         'button' => array(
             'type' => array(),
@@ -181,15 +185,42 @@ function smliser_allowed_html() {
             'style' => array(),
             'id' => array(),
         ),
-        // Add more tags and attributes as needed.
+        'span' => array(
+            'class' => array(),
+            'title' => array(),
+        ),
+        'label' => array(
+            'name' => array(),
+            'id' => array(),
+            'class' => array(),
+            'title' => array(),
+            'data-title' => array(),
+        ),    
+    
     );
 
-    // Get the output of the license_page method.
-    $output = license_page();
-
-    // Sanitize the output using wp_kses.
-    $sanitized_output = wp_kses( $output, $allowed_tags );
-
-    // Return the sanitized output.
-    return $sanitized_output;
+    return $allowed_tags;
 }
+
+/**
+ * Action url constructor for admin license page
+ * 
+ * @param string $action Action query variable for the page.
+ * @param int $license_id   The ID of the license. 
+ */
+function smliser_lisense_admin_action_page( $action = 'add-new', $license_id = '' ) {
+    if ( 'edit' === $action || 'view' === $action ) {
+        $url = add_query_arg( array(
+            'action'        => $action,
+            'license_id'    => $license_id,
+        ), smliser_license_page() );
+    } else {
+        $url = add_query_arg( array(
+            'action'    => $action,
+        ), smliser_license_page() );
+    }
+
+
+    return $url;
+}
+

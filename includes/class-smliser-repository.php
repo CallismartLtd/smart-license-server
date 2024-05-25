@@ -158,7 +158,7 @@ class Smliser_Repository {
             $message = '<div class="notice notice-warning"><p>
             Your server filesystem configuration requires authentication. In other to use Smart License Server, you will
             need to configure it to use FTP credentials.</p></div>';
-            echo wp_kses_post( $message );
+            //echo wp_kses_post( $message );
         }  );
     }
 
