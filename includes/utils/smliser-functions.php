@@ -84,3 +84,112 @@ function smliser_sub_menu_nav( $tabs, $title, $page_slug, $current_tab, $query_v
 
 	return $output;
 }
+
+
+function smliser_is_empty_date( $date_string ) {
+    // Trim the date string to remove any surrounding whitespace
+    $date_string = trim( $date_string );
+
+    // Check if the date string is empty or equals '0000-00-00'
+    return empty( $date_string ) || $date_string === '0000-00-00';
+}
+
+function smliser_allowed_html() {
+    // Define the allowed HTML tags and attributes.
+    $allowed_tags = array(
+        'div' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'table' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'thead' => array(),
+        'tbody' => array(),
+        'tr' => array(),
+        'th' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'td' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'h1' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'h2' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'h3' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'p' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'a' => array(
+            'href' => array(),
+            'title' => array(),
+            'class' => array(),
+            'style' => array(),
+        ),
+        'span' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'form' => array(
+            'action' => array(),
+            'method' => array(),
+            'class' => array(),
+            'style' => array(),
+        ),
+        'input' => array(
+            'type' => array(),
+            'name' => array(),
+            'value' => array(),
+            'placeholder' => array(),
+            'class' => array(),
+            'style' => array(),
+            'id' => array(),
+        ),
+        'button' => array(
+            'type' => array(),
+            'class' => array(),
+            'style' => array(),
+            'id' => array(),
+        ),
+        'select' => array(
+            'name' => array(),
+            'class' => array(),
+            'style' => array(),
+            'id' => array(),
+        ),
+        'option' => array(
+            'value' => array(),
+            'selected' => array(),
+        ),
+        'textarea' => array(
+            'name' => array(),
+            'rows' => array(),
+            'cols' => array(),
+            'class' => array(),
+            'style' => array(),
+            'id' => array(),
+        ),
+        // Add more tags and attributes as needed.
+    );
+
+    // Get the output of the license_page method.
+    $output = license_page();
+
+    // Sanitize the output using wp_kses.
+    $sanitized_output = wp_kses( $output, $allowed_tags );
+
+    // Return the sanitized output.
+    return $sanitized_output;
+}

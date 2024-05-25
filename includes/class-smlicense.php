@@ -274,11 +274,35 @@ class Smliser_license {
         return $this->item_id;
     }
 
-    /**
+   /**
      * Get license status
      */
-    public function get_status() {
-        return $this->status;
+    public function get_status( $context = 'view' ) {
+        if ( 'edit' === $context ) {
+            return $this->status;
+        }
+        
+        $start_date = $this->start_date;
+        $end_date   = $this->end_date;
+        $status     = $this->status;
+        $current_time = current_time( 'Y-m-d' );
+        /** Manual status will take precedence */
+        if ( ! empty( $status ) ) {
+            return $status;
+        }
+
+        /** If no end date is found, this maybe a lifetime license */
+        if ( smliser_is_empty_date( $end_date ) ) {
+            $status = 'Lifetime';
+        } elseif ( $start_date && smliser_is_empty_date( $end_date ) ) {
+            $status = 'Lifetime';
+        } elseif ( $end_date >= $current_time ) {
+            $status = 'Active';
+        } elseif ( $end_date < $current_time ) {
+            $status = 'Expired';
+        }
+
+        return $status;
     }
 
     /**

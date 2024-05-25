@@ -86,39 +86,49 @@ class Smliser_admin_menu {
      * License page controller
      */
     public function license_page_controller() {
-        $license_id = isset( $_GET['edit-license'] ) ? absint( $_GET['edit-license'] ) : 0;
-        
-        if ( $license_id ) {
-            $this->edit_license_page();
-            return;
+        $action = isset( $_GET['action'] ) ? $_GET['action'] : '';
+        $page = '';
+
+        if ( 'add-new' === $action ) {
+           $page = $this->add_license_page();
+        } elseif( 'edit' === $action ) {
+           $page = $this->edit_license_page();
+            
         } else {
-            $this->license_page();
+            $page = $this->license_page();
         }
+        add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
+        echo wp_kses_post( $page );
     }
     /**
      * License management page
      */
     public function license_page() {
         $obj = new Smliser_license();
-        $licenses = $obj->get_licenses();
-        $table_html   = '<div class="smliser-table-wrapper">';
-        $table_html  .= '<h1>Licenses</h1>';
+        $licenses    = $obj->get_licenses();
+        $table_html  = '<div class="smliser-table-wrapper">';
+        $table_html .= '<h1>Licenses</h1>';
+        $add_url     = smliser_lisense_admin_action_page( 'add-new' );
+        
+        $table_html .= '<a href="'. esc_url( $add_url ) . '" class="button action smliser-nav-btn">Add New License</a>';
     
         if ( empty( $licenses ) ) {
-            $table_html .= smliser_not_found_container( 'All Licences will appear here' );
+            $table_html .= smliser_not_found_container( 'All licenses will appear here' );
             $table_html .= '</div>';
     
-            echo wp_kses_post( $table_html );
-            return;
+            return $table_html;
+            
         }
     
         $table_html .= '<form id="smliser-bulk-action-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         
         $table_html .= '<div class="smliser-actions-wrapper">';
         $table_html .= '<div class="smliser-bulk-actions">';
-        $table_html .= '<select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select">';
+        $table_html .= '<select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>';
         $table_html .= '<option value="">' . esc_html__( 'Bulk Actions', 'smliser' ) . '</option>';
         $table_html .= '<option value="deactivate">' . esc_html__( 'Deactivate', 'smliser' ) . '</option>';
+        $table_html .= '<option value="suspend">' . esc_html__( 'Suspend', 'smliser' ) . '</option>';
+        $table_html .= '<option value="revoke">' . esc_html__( 'Revoke', 'smliser' ) . '</option>';
         $table_html .= '<option value="delete">' . esc_html__( 'Delete', 'smliser' ) . '</option>';
         $table_html .= '</select>';
         $table_html .= '<button type="submit" class="button action smliser-bulk-action-button">' . esc_html__( 'Apply', 'smliser' ) . '</button>';
@@ -147,17 +157,17 @@ class Smliser_admin_menu {
         foreach ( $licenses as $license ) {
             $user               = get_userdata( $license->get_user_id() );
             $client_full_name   = $user ? $user->first_name . ' ' . $user->last_name : 'Guest';
-            $license_url        = esc_url( add_query_arg( 
-                array( 
-                    'page' => 'licenses',
-                    'edit-license' => $license->get_id() 
-                ), admin_url( 'admin.php' ) ) );
+            if ( -1 === intval( $license->get_user_id() ) ) {
+                $client_full_name = 'N/L';
+            }
+            $license_edit_url   = smliser_lisense_admin_action_page( 'edit', $license->get_id() );
+            $license_view_url   = smliser_lisense_admin_action_page( 'view', $license->get_id() );
     
             $table_html .= '<tr>';
-            $table_html .= '<td><input type="checkbox" class="smliser-license-checkbox" name="licenses[]" value="' . esc_attr( $license->get_id() ) . '"></td>';
+            $table_html .= '<td><input type="checkbox" class="smliser-license-checkbox" name="licenses[]" value="' . esc_attr( $license->get_id() ) . '"> </td>';
             $table_html .= '<td class="smliser-edit-row">';
             $table_html .= esc_html( $license->get_id() );
-            $table_html .= '<div class="smliser-edit-link"><p><a href="' . esc_url( $license_url ) . '">edit</a></p></div>';
+            $table_html .= '<div class="smliser-edit-link"><p><a href="' . esc_url( $license_edit_url ) . '">edit</a> | <a href="' . esc_url( $license_view_url ) . '">view</a> </p></div>';
             $table_html .= '</td>';
     
             $table_html .= '<td>' . esc_html( $client_full_name ) . '</td>';
@@ -174,10 +184,48 @@ class Smliser_admin_menu {
         $table_html .= '</form>';
         $table_html .= '<p class="sw-table-count">' . count( $licenses ) . ' items</p>';
         $table_html .= '</div>';
-    
-        echo $table_html;
+        return $table_html;
     }
     
+    /**
+     * Add new License page
+     */
+    private function add_license_page() {
+        ob_start();
+        include_once SMLISER_PATH . 'templates/forms/license-add.php';
+        return ob_get_clean();
+    }
+
+    /**
+     * Edit license page
+     */
+    private function edit_license_page() {
+        $license_id = isset( $_GET['license_id'] ) ? absint( $_GET['license_id'] ) : 0;
+        
+        if ( empty( $license_id ) ) {
+            return wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) );
+        }
+        $license    = Smliser_license::get_by_id( $license_id );
+        if ( empty( $license ) ) {
+            return wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) );
+        }
+
+        $user_id    = ! empty( $license->get_user_id() ) ? $license->get_user_id() : 0;
+        ob_start();
+        include_once SMLISER_PATH . 'templates/forms/license-edit.php';
+        return ob_get_clean();
+    }
+
+    /**
+     * Task page.
+     */
+    public function task_page() {
+        $obj        = new Smliser_Server();
+        $all_tasks  = $obj->fetch_all_scheduled_tasks();
+        echo '<pre>';
+        var_dump( $all_tasks );
+        echo '<pre>';
+    }
 
     /**
      * Instanciate class.

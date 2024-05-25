@@ -10,13 +10,13 @@
 
 defined( 'ABSPATH'  ) || exit;
 
-class SmartWoo_License_Server{
+class Smliser_Server{
 
     private $tasks = array();
     private static $instance;
 
     public function __construct() {
-        add_action( 'smartwoo_server_valid_license', array( $this, 'remote_validate' ) );
+        add_action( 'smliser_dalidate_license', array( $this, 'remote_validate' ) );
         add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
         add_action( 'init', array( $this, 'run_automation' ) );
 
@@ -24,7 +24,7 @@ class SmartWoo_License_Server{
 
     public function register_cron( $schedules ) {
         /** Add a new cron schedule interval for every 5 minutes. */
-        $schedules['smartwoo_license_server_five_minutely'] = array(
+        $schedules['smliser_five_minutely'] = array(
             'interval' => 5 * MINUTE_IN_SECONDS,
             'display'  => 'Five Minutely',
         );
@@ -33,8 +33,8 @@ class SmartWoo_License_Server{
     
     public function run_automation() {
 
-        if ( ! wp_next_scheduled( 'smartwoo_server_valid_license' ) ) {
-			wp_schedule_event( current_time( 'timestamp' ), 'smartwoo_license_server_five_minutely', 'smartwoo_server_valid_license' );
+        if ( ! wp_next_scheduled( 'smliser_dalidate_license' ) ) {
+			wp_schedule_event( current_time( 'timestamp' ), 'smliser_five_minutely', 'smliser_dalidate_license' );
 		}
 
     }
@@ -50,17 +50,16 @@ class SmartWoo_License_Server{
         $highest_priority_task = $this->fetch_highest_priority_task();
 
         if ( empty( $highest_priority_task ) ) {
-
             return;
         }
         // Extract task data
         $callback_url   = isset( $highest_priority_task['callback_url'] ) ? $highest_priority_task['callback_url'] : '';
-        $licence_key = isset( $highest_priority_task['licence_key'] ) ? $highest_priority_task['licence_key'] : '';
-        $token = isset( $highest_priority_task['token'] ) ? $highest_priority_task['token'] : '';
-        $data = isset( $highest_priority_task['data'] ) ? $highest_priority_task['data'] : '';
+        $license_key    = isset( $highest_priority_task['license_key'] ) ? $highest_priority_task['license_key'] : '';
+        $token          = isset( $highest_priority_task['token'] ) ? $highest_priority_task['token'] : '';
+        $data           = isset( $highest_priority_task['data'] ) ? $highest_priority_task['data'] : '';
 
         // Ensure task data is valid.
-        if ( empty( $licence_key ) || empty( $token ) || empty( $data ) ) {
+        if ( empty( $license_key ) || empty( $token ) || empty( $data ) ) {
 
             return;
         }
@@ -69,7 +68,7 @@ class SmartWoo_License_Server{
         $request_body   = array(
             'action'        => 'verified_license',
             'last_updated'  => $expires_after, 
-            'licence_key'   => $licence_key,
+            'license_key'   => $license_key,
             'token'         => $token,
             'data'          => $data,
         );
@@ -81,7 +80,6 @@ class SmartWoo_License_Server{
 
         // Execute remote POST request using wp_remote_post()
         $response = wp_remote_post( $callback_url, $request_args );
-
         // Check if remote request was successful
         if ( is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) !== 200 ) {
 
@@ -99,17 +97,17 @@ class SmartWoo_License_Server{
 
         // Update 'completed_tasks' option
         update_option( 'completed_tasks', $completed_tasks );
-        delete_transient( 'smartwoo_server_doing_post' );
+        delete_transient( 'smliser_server_doing_post' );
 
         return true;
     }
 
     public function doing_post() {
-        set_transient( 'smartwoo_server_doing_post', true, MINUTE_IN_SECONDS );
+        set_transient( 'smliser_server_doing_post', true, 30 );
     }
 
     public function is_doing_post() {
-        return get_transient( 'smartwoo_server_doing_post', true );
+        return get_transient( 'smliser_server_doing_post', true );
     }
 
 
@@ -122,11 +120,11 @@ class SmartWoo_License_Server{
     public function add_task_queue( $duration, $value ) {
         // add the duration which is in seconds to the current timestamp to enable us calculate expiry later.
         $duration   = current_time( 'timestamp' ) + $duration;
-        $task_queue = get_option( 'smartwoo_task_queue', array() );
+        $task_queue = get_option( 'smliser_task_queue', array() );
         
         // Any existing duplicate key(which is rear though) should be overwriten.
         $task_queue[ $duration ] = array( $value );
-       return update_option( 'smartwoo_task_queue', $task_queue );
+       return update_option( 'smliser_task_queue', $task_queue );
    }
 
    /**
@@ -139,7 +137,7 @@ class SmartWoo_License_Server{
         $current_time = current_time( 'timestamp' );
 
         // Retrieve the task queue from the WordPress options
-        $task_queue = get_option( 'smartwoo_task_queue', array() );
+        $task_queue = get_option( 'smliser_task_queue', array() );
 
         // Initialize variables for the highest priority task and its expiration timestamp
         $highest_priority_task = null;
@@ -154,7 +152,7 @@ class SmartWoo_License_Server{
                 if ( $timestamp < $highest_priority_timestamp ) {
                     $highest_priority_task = reset( $tasks );
                     unset( $task_queue[ $timestamp ] );
-                    update_option( 'smartwoo_task_queue', $task_queue );
+                    update_option( 'smliser_task_queue', $task_queue );
                     $highest_priority_timestamp = $timestamp;
                 }
              
@@ -164,7 +162,7 @@ class SmartWoo_License_Server{
                 $this->move_to_missed_schedules( $timestamp, $tasks );
                 // Remove expired tasks from the task queue
                 unset( $task_queue[ $timestamp ] );
-                update_option( 'smartwoo_task_queue', $task_queue ); // Update the task queue after removal
+                update_option( 'smliser_task_queue', $task_queue ); // Update the task queue after removal
             }
         }
 
@@ -173,14 +171,14 @@ class SmartWoo_License_Server{
     }
 
     /**
-     * Move expired tasks from the task queue to the 'smartwoo_missed_schedules' option.
+     * Move expired tasks from the task queue to the 'smliser_missed_schedules' option.
      *
      * @return void
      */
     public function move_to_missed_schedules( $timestamp, $tasks ) {
         
         $missed_schedules[ $timestamp ] = $tasks;
-        update_option( 'smartwoo_missed_schedules', $missed_schedules );
+        update_option( 'smliser_missed_schedules', $missed_schedules );
     }
 
 
@@ -191,11 +189,11 @@ class SmartWoo_License_Server{
      */
     public function fetch_all_scheduled_tasks() {
         // Retrieve the task queue from the WordPress options
-        $task_queue = get_option( 'smartwoo_task_queue', array() );
+        $task_queue = get_option( 'smliser_task_queue', array() );
 
         // Return the entire task queue (tasks and their expiration timestamps)
         return $task_queue;
     }
 }
 
-SmartWoo_License_Server::instance();
+Smliser_Server::instance();

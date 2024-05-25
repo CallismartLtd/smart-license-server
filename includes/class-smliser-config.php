@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'ABSPATH' ) || exit; 
 
 class SmartLicense_config {
 
