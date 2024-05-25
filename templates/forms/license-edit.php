@@ -77,6 +77,6 @@ defined( 'ABSPATH' ) ||  exit;
             <input type="date" class="smliser-form-input" name="end_date" id="end_date" value="<?php echo esc_attr( $license->get_end_date() ); ?>">
         </div>
 
-        <input type="submit" name="smliser_license_update" value="Update">
+        <input type="submit" name="smliser_license_update" class="button action smliser-bulk-action-button" value="Update">
     </form>
 </div>

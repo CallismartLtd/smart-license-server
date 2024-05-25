@@ -1,8 +1,12 @@
 
 
-.smliser-partially-hidden-license-key-container,
+.smliser-partially-hidden-license-key-container{
+    margin-bottom: 10px;
+}
+
 .smliser-visible-license-key {
     margin-bottom: 10px;
+    display: none;
 }
 
 .smliser-partially-hidden-license-key-container p {
@@ -140,6 +144,7 @@
 .smliser-search-box {
     display: flex;
     align-items: center;
+    margin-top: 20px;
 }
 
 .smliser-search-input {
@@ -147,11 +152,15 @@
     margin-right: 30px;
 }
 
-.smliser-bulk-action-select,
 .smliser-bulk-action-button{
-    margin-right: 10px;
+    margin-right: 10px auto;
+    margin-bottom: 10px;
+    margin-top: 10px;
 }
 
+.smliser-bulk-action-select {
+    margin-right: 10px;    
+}
 
 
 /********************** Data Not Found Container ***************/
