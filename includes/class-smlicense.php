@@ -288,9 +288,9 @@ class Smliser_license {
 
         /** If no end date is found, this maybe a lifetime license */
         if ( smliser_is_empty_date( $end_date ) ) {
-            $status = 'Lifetime';
+            $status = 'Active';
         } elseif ( $start_date && smliser_is_empty_date( $end_date ) ) {
-            $status = 'Lifetime';
+            $status = 'Invalid';
         } elseif ( $end_date >= $current_time ) {
             $status = 'Active';
         } elseif ( $end_date < $current_time ) {
