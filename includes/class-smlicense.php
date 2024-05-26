@@ -445,7 +445,7 @@ class Smliser_license {
             'license_key'   => sanitize_text_field( $this->get_license_key() ),
             'service_id'    => ! empty( $this->service_id ) ? $this->get_service_id() : '',
             'item_id'       => ! empty( $this->item_id ) ? $this->get_item_id() : null,
-            'allowed_sites' => ! empty( $this->allowed_sites ) ? $this->get_allowed_websites() : 0,
+            'allowed_sites' => ! empty( $this->allowed_sites ) ? $this->get_allowed_sites() : 0,
             'status'        => ! empty( $this->get_status() ) ? $this->get_status() : '',
             'start_date'    => ! empty( $this->get_start_date() ) ? $this->get_start_date() : '',
             'end_date'      => ! empty( $this->get_end_date() ) ? $this->get_end_date() : '',
@@ -637,11 +637,11 @@ class Smliser_license {
             if ( $is_new ) {
                 $obj->set_license_key( '', 'new' );
                 $license_id = $obj->save();
-                set_transient( 'smliser_form_success', true, 10 );
+                set_transient( 'smliser_form_success', true, 4 );
                 wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
             } elseif ( $is_editing ) {
                 $obj->update();
-                set_transient( 'smliser_form_success', true, 10 );
+                set_transient( 'smliser_form_success', true, 4 );
                 wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
             }             
         }
