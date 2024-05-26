@@ -67,6 +67,7 @@ defined( 'ABSPATH' ) ||  exit;
                 <option value="" <?php selected( '', $license->get_status( 'edit' ) ); ?>><?php esc_html_e( 'Auto Calculate', 'smliser' ); ?></option>
                 <option value="Active" <?php selected( 'Active', $license->get_status( 'edit' ) ); ?>><?php esc_html_e( 'Active', 'smliser' ); ?></option>
                 <option value="Deactivated" <?php selected( 'Deactivated', $license->get_status( 'edit' ) ); ?>><?php esc_html_e( 'Deactivated', 'smliser' ); ?></option>
+                <option value="Revoked" <?php selected( 'Revoked', $license->get_status( 'edit' ) ); ?>><?php esc_html_e( 'Revoked', 'smliser' ); ?></option>
                 <option value="Expired" <?php selected( 'Expired', $license->get_status( 'edit' ) ); ?>><?php esc_html_e( 'Expired', 'smliser' ); ?></option>
                 <option value="Suspended" <?php selected( 'Suspended', $license->get_status( 'edit' ) ); ?>><?php esc_html_e( 'Suspended', 'smliser' ); ?></option>
             </select>
