@@ -63,6 +63,12 @@ class Smliser_license {
     private $allowed_sites;
 
     /**
+     * Instance of Smliser_license
+     * @var Smliser_license $instance    Instance of this class.
+     */
+    private static $instance = null;
+
+    /**
      * Class constructor
      * @param string $service_id    The service ID associated with the license.
      * @param string $license_key   The license key.
@@ -137,10 +143,10 @@ class Smliser_license {
     /** 
      * Set the user_id
      * 
-     * @param int $user_id  The IS of user associated with the license.
+     * @param int $user_id  The ID of user associated with the license.
      */
     public function set_user_id( ?int $user_id = 0 ) {
-        $this->user_id = absint( $user_id );
+        $this->user_id = intval( $user_id );
     }
 
     /** 
@@ -494,7 +500,7 @@ class Smliser_license {
         global $wpdb;
         // Prepare data.
         $data = array(
-            'user_id'       => ! empty( $this->user_id ) ? absint( $this->get_user_id() ) : -1,
+            'user_id'       => ! empty( $this->user_id ) ? intval( $this->get_user_id() ) : -1,
             'service_id'    => ! empty( $this->service_id ) ? sanitize_text_field( $this->get_service_id() ) : '',
             'item_id'       => ! empty( $this->item_id ) ? absint( $this->get_item_id() ) : null,
             'allowed_sites' => ! empty( $this->allowed_sites ) ? absint( $this->get_allowed_sites() ) : 0,
@@ -506,13 +512,12 @@ class Smliser_license {
         // Data format.
         $data_format = array(
             '%d', // User ID.
-            '%s', //License key.
             '%s', // Service ID.
             '%d', // Item ID.
             '%d', // Allowed Sites.
             '%s', // Status.
             '%s', // Start Date.
-            '%s' // End Date.
+            '%s', // End Date.
         );
 
         // Where?
@@ -573,7 +578,7 @@ class Smliser_license {
         if ( isset( $_POST['smliser_nonce_field'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_nonce_field'] ) ), 'smliser_nonce_field' ) ) {
             // Form fields.
             $license_id     = isset( $_POST['license_id'] ) ? absint( $_POST['license_id'] ): 0;
-            $user_id        = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ): 0;
+            $user_id        = isset( $_POST['user_id'] ) ? intval( $_POST['user_id'] ): -1;
             $item_id        = isset( $_POST['item_id'] ) ? absint( $_POST['item_id'] ): 0;
             $allowed_sites  = isset( $_POST['allowed_sites'] ) ? absint( $_POST['allowed_sites'] ): 0;
             $service_id     = isset( $_POST['service_id'] ) ? sanitize_text_field( $_POST['service_id'] ) : '';
@@ -591,19 +596,20 @@ class Smliser_license {
             $obj->set_service_id( $service_id );            
             $obj->set_status( $status );            
             $obj->set_start_date( $start_date );            
-            $obj->set_end_date( $license_id );            
+            $obj->set_end_date( $end_date );            
             
             if ( $is_new ) {
                 $obj->set_license_key( '', 'new' );
                 $license_id = $obj->save();
                 set_transient( 'smliser_form_success', true, 10 );
                 wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
-            } elseif ( $is_editing && $obj->update() ) {
+            } elseif ( $is_editing ) {
+                $obj->update();
                 set_transient( 'smliser_form_success', true, 10 );
                 wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
             }             
         }
-        wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
+       // wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
     }
 
     /**
@@ -630,6 +636,38 @@ class Smliser_license {
 			return $deleted;
 		}
         return true;
+    }
+
+    /**
+     * Instance of current class.
+     */
+    public static function instance() {
+
+        if ( is_null( self::$instance ) ) {
+            return self::$instance = new self();
+        }
+    }
+
+    /**
+    |-----------------
+    | Utility Methods
+    |-----------------
+    */
+
+    /**
+     * Encode data to json.
+     */
+    public function encode() {
+        if ( ! $this->id ) {
+            return new WP_Error( 'invalid_data', 'Invalid License' );
+        }
+        $data = array(
+            'license_key'   => $this->get_license_key(),
+            'service_id'    => $this->get_service_id(),
+            'item_id'       => $this->get_item_id(),
+            'expiry_date'   => $this->get_end_date(),
+        );
+        return wp_json_encode( $data );
     }
     
 }
