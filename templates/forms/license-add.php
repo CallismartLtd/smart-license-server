@@ -5,19 +5,10 @@
 
 defined( 'ABSPATH' ) ||  exit;
 ?>
-
-
-<?php if ( get_transient( 'smliser_form_success' ) ):?>
-    <div class="notice notice-success is-dismissible"><p>Updated!</p></div>
-<?php endif;?>
 <div class="smliser-form-container">
-    <h1>Edit License <span class="dashicons dashicons-edit"></span></h1>
-    <?php if ( get_transient( 'smliser_form_validation_message' ) ) :?>
-    <?php echo smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ;?>
-    <?php endif;?>
+    <h1>Add License <span class="dashicons dashicons-edit"></span></h1>
     <form id="smliserForm" class="smliser-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-    <input type="hidden" name="action" value="smliser_license_update">
-    <input type="hidden" name="license_id" value="<?php esc_attr_e( $license->get_id() ) ?>">
+        <input type="hidden" name="action" value="smliser_license_update">
         <?php wp_nonce_field( 'smliser_nonce_field', 'smliser_nonce_field' ); ?>
         
         <div class="smliser-form-row">
@@ -30,7 +21,7 @@ defined( 'ABSPATH' ) ||  exit;
                     'name'              => 'user_id',
                     'selected'          => $selected_user ? $selected_user->ID : '',
                     'show_option_none'  => esc_html__( 'Select a client', 'smliser' ),
-                    'option_none_value' => -1,
+                    'option_none_value' => 0,
                     'class'             => 'smliser-form-input',
                     'show'              => 'display_name_with_login',
                 )
@@ -56,7 +47,7 @@ defined( 'ABSPATH' ) ||  exit;
         <div class="smliser-form-row">
             <label for="allowed_sites" class="smliser-form-label">Allowed Websites</label>
             <span class="smliser-form-description" title="Item ID uniquely identifies a License key. It is required when accessing the license validation API endpoint">?</span>
-            <input type="number" class="smliser-form-input" name="allowed_sites" id="allowed_sites" value="<?php echo esc_attr( $license->get_allowed_sites() ); ?>">
+            <input type="number" class="smliser-form-input" name="allowed_sites" id="allowed_sites" value="<?php echo esc_attr( $license->get_allowed_websites() ); ?>">
         </div>
 
         <!-- Status -->
@@ -86,6 +77,6 @@ defined( 'ABSPATH' ) ||  exit;
             <input type="date" class="smliser-form-input" name="end_date" id="end_date" value="<?php echo esc_attr( $license->get_end_date() ); ?>">
         </div>
 
-        <input type="submit" name="smliser_license_edit" class="button action smliser-bulk-action-button" value="Update">
+        <input type="submit" name="smliser_license_update" class="button action smliser-bulk-action-button" value="Update">
     </form>
 </div>

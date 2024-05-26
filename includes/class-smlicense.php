@@ -338,7 +338,7 @@ class Smliser_license {
     /**
      * Get number of allowed websites.
      */
-    public function get_allowed_websites() {
+    public function get_allowed_sites() {
         return $this->allowed_sites;
     }
 
@@ -449,17 +449,17 @@ class Smliser_license {
         }
         define( __CLASS__ .'saving', true );
         global $wpdb;
-        if ( empty( $this->get_license_key() ) || empty( $this->get_service_id() ) || empty( $this->get_item_id() ) ) {
-            return new WP_Error( 'required_field_missing', __( 'Service ID, Item ID and License key are required', 'smliser' ) );
+        if ( empty( $this->license_key ) ) {
+            return new WP_Error( 'missing_license_key', __( 'License key is required', 'smliser' ) );
         }
 
         // Prepare data.
         $data = array(
-            'user_id'       => ! empty( $this->get_user_id() ) ? $this->get_user_id() : '',
-            'license_key'   => $this->get_license_key(),
-            'service_id'    => $this->get_service_id(),
-            'item_id'       => $this->get_item_id(),
-            'allowed_sites' => $this->get_allowed_websites(),
+            'user_id'       => ! empty( $this->user_id ) ? $this->get_user_id() : '',
+            'license_key'   => sanitize_text_field( $this->get_license_key() ),
+            'service_id'    => ! empty( $this->service_id ) ? $this->get_service_id() : '',
+            'item_id'       => ! empty( $this->item_id ) ? $this->get_item_id() : null,
+            'allowed_sites' => ! empty( $this->allowed_sites ) ? $this->get_allowed_websites() : 0,
             'status'        => ! empty( $this->get_status() ) ? $this->get_status() : '',
             'start_date'    => ! empty( $this->get_start_date() ) ? $this->get_start_date() : '',
             'end_date'      => ! empty( $this->get_end_date() ) ? $this->get_end_date() : '',
@@ -481,6 +481,56 @@ class Smliser_license {
         $wpdb->insert( SMLISER_LICENSE_TABLE, $data, $data_format );
         // phpcs:enable
         return $wpdb->insert_id;
+    }
+
+    /**
+     * Update method
+     */
+    public function update() {
+        if ( ! $this->id ) {
+            return new WP_Error( 'invalid_data', 'The license does not exist' );
+        }
+
+        global $wpdb;
+        // Prepare data.
+        $data = array(
+            'user_id'       => ! empty( $this->user_id ) ? absint( $this->get_user_id() ) : -1,
+            'service_id'    => ! empty( $this->service_id ) ? sanitize_text_field( $this->get_service_id() ) : '',
+            'item_id'       => ! empty( $this->item_id ) ? absint( $this->get_item_id() ) : null,
+            'allowed_sites' => ! empty( $this->allowed_sites ) ? absint( $this->get_allowed_sites() ) : 0,
+            'status'        => ! empty( $this->status ) ? sanitize_text_field( $this->get_status() ) : '',
+            'start_date'    => ! empty( $this->start_date ) ? sanitize_text_field( $this->get_start_date() ) : '',
+            'end_date'      => ! empty( $this->end_date ) ? sanitize_text_field( $this->get_end_date() ) : '',
+        );
+
+        // Data format.
+        $data_format = array(
+            '%d', // User ID.
+            '%s', //License key.
+            '%s', // Service ID.
+            '%d', // Item ID.
+            '%d', // Allowed Sites.
+            '%s', // Status.
+            '%s', // Start Date.
+            '%s' // End Date.
+        );
+
+        // Where?
+        $where = array(
+            'id'    => absint( $this->get_id() ),
+        );
+
+        // Where format.
+        $where_format = array(
+            '%d',
+        );
+
+        $result = $wpdb->update( SMLISER_LICENSE_TABLE, $data, $where, $data_format, $where_format );
+        if ( $result ) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -514,6 +564,46 @@ class Smliser_license {
         }
         wp_safe_redirect( smliser_license_page() );
         exit;
+    }
+
+    /**
+     * License form controller.
+     */
+    public static function license_form_controller() {
+        if ( isset( $_POST['smliser_nonce_field'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_nonce_field'] ) ), 'smliser_nonce_field' ) ) {
+            // Form fields.
+            $license_id     = isset( $_POST['license_id'] ) ? absint( $_POST['license_id'] ): 0;
+            $user_id        = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ): 0;
+            $item_id        = isset( $_POST['item_id'] ) ? absint( $_POST['item_id'] ): 0;
+            $allowed_sites  = isset( $_POST['allowed_sites'] ) ? absint( $_POST['allowed_sites'] ): 0;
+            $service_id     = isset( $_POST['service_id'] ) ? sanitize_text_field( $_POST['service_id'] ) : '';
+            $status         = isset( $_POST['status'] ) ? sanitize_text_field( $_POST['status'] ) : '';
+            $start_date     = isset( $_POST['start_date'] ) ? sanitize_text_field( $_POST['start_date'] ) : '';
+            $end_date       = isset( $_POST['end_date'] ) ? sanitize_text_field( $_POST['end_date'] ) : '';
+            $is_editing     = isset( $_POST['smliser_license_edit'] ) ? true : false;
+            $is_new         = isset( $_POST['smliser_license_new'] ) ? true : false;
+
+            $obj = new self();
+            $obj->set_id( $license_id );            
+            $obj->set_user_id( $user_id );            
+            $obj->set_item_id( $item_id );            
+            $obj->set_allowed_sites( $allowed_sites );            
+            $obj->set_service_id( $service_id );            
+            $obj->set_status( $status );            
+            $obj->set_start_date( $start_date );            
+            $obj->set_end_date( $license_id );            
+            
+            if ( $is_new ) {
+                $obj->set_license_key( '', 'new' );
+                $license_id = $obj->save();
+                set_transient( 'smliser_form_success', true, 10 );
+                wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
+            } elseif ( $is_editing && $obj->update() ) {
+                set_transient( 'smliser_form_success', true, 10 );
+                wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
+            }             
+        }
+        wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
     }
 
     /**

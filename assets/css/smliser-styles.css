@@ -243,3 +243,17 @@
   .smliser-select-input {
     width: 350px;
 }
+
+.smliser-form-notice-container {
+    background-color: rgba(236, 161, 49, 0.295);
+    width: 100%;
+    border-radius: 9px;
+    margin-bottom: 9px;
+}
+.smliser-form-notice-container p{
+    text-align: left;
+    font-weight: bolder;
+    color: #000;
+    padding-left: 9px;
+
+}

@@ -224,3 +224,27 @@ function smliser_lisense_admin_action_page( $action = 'add-new', $license_id = '
     return $url;
 }
 
+/**
+ * Form validation message intepreter.
+ * 
+ * @param mixed     $text   The message to show.
+ * @return string   $notice Formatted Notice to show 
+ */
+function smliser_form_message( $texts ) {
+    $notice = '<div class="smliser-form-notice-container">';
+
+    if ( is_array( $texts ) ) {
+        $count = 1;
+        foreach ( $texts as $text ) {
+            $notice .= '<p>' . $count . ' ' . $text . '</p>';
+            $count++;
+        }
+    } else {
+        $notice .= '<p>' . $texts . '</p>';
+
+    }
+    $notice .= '</div>';
+
+    return $notice;
+
+}
