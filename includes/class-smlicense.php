@@ -69,6 +69,13 @@ class Smliser_license {
     private static $instance = null;
 
     /**
+     * Action being executed.
+     * 
+     * @var string $action
+     */
+    private static $action = '';
+
+    /**
      * Class constructor
      * @param string $service_id    The service ID associated with the license.
      * @param string $license_key   The license key.
@@ -82,49 +89,6 @@ class Smliser_license {
 
     }
     
-    /**
-     * Generate a new license key with a prefix and hyphens at every 8-character interval.
-     *
-     * @param string $prefix The prefix to be added to the license key.
-     * @return string The generated license key.
-     */
-    public function generate_license_key( $prefix = '' ) {
-        $prefix = get_option( 'smart_license_prefix', 'SMALISER' );
-        // Generate UUID for uniqueness.
-        $uuid = '';
-
-        // Check if the uuid_create function is available.
-        if ( function_exists( 'uuid_create' ) ) {
-            $uuid = uuid_create( UUID_TYPE_RANDOM );
-        } else {
-            // Fallback to md5 and uniqid if uuid_create is not available.
-            $uuid = sha1( uniqid( '', true ) );
-        }
-
-        // Generate cryptographically secure random bytes.
-        $secure_bytes = random_bytes( 16 );
-
-        // Convert random bytes to a hexadecimal string.
-        $random_hex = bin2hex( $secure_bytes );
-
-        // Combine UUID and random hexadecimal string, and format the result as uppercase.
-        $combined_key = strtoupper( str_replace( '-', '', $uuid ) . $random_hex );
-
-        // Add prefix to the combined key.
-        $license_key = $prefix . $combined_key;
-
-        // Insert hyphens at every 8-character interval.
-        $formatted_license_key = '';
-        for ( $i = 0; $i < strlen( $license_key ); $i += 8 ) {
-            if ( $i > 0 ) {
-                $formatted_license_key .= '-';
-            }
-            $formatted_license_key .= substr( $license_key, $i, 8 );
-        }
-
-        return $formatted_license_key;
-    }
-
     /*
     |------------
     | Setters
@@ -221,6 +185,15 @@ class Smliser_license {
      */
     public function set_allowed_sites( $number ) {
         $this->allowed_sites = absint( $number );
+    }
+
+    /**
+     * Set an action on class.
+     * 
+     * @param string $action    Action to execute.
+     */
+    public function set_action( $action = '' ) {
+        self::$action = sanitize_text_field( $action );
     }
 
     /*
@@ -346,6 +319,13 @@ class Smliser_license {
      */
     public function get_allowed_sites() {
         return $this->allowed_sites;
+    }
+
+    /**
+     * Get an action to be executed.
+     */
+    public function get_action() {
+        return self::$action;
     }
 
     /*
@@ -558,10 +538,26 @@ class Smliser_license {
 
                 case 'deactivate':
                     foreach ( $licenses as $license_id ) {
-                        $obj = new self();
-                        $obj->deactivate( $license_id );
+                        $obj = self::get_by_id( $license_id );
+                        $obj->set_action( 'deactivate' );
+                        $obj->do_action();
                     }
                     break;
+                    case 'revoke':
+                        foreach ( $licenses as $license_id ) {
+                            $obj = self::get_by_id( $license_id );
+                            $obj->set_action( 'revoke' );
+                            $obj->do_action();
+                        }
+                        break;
+               case 'suspend':
+                    foreach ( $licenses as $license_id ) {
+                        $obj = self::get_by_id( $license_id );
+                        $obj->set_action( 'suspend' );
+                        $obj->do_action();
+                    }
+                    break;
+    
 
                 default:
                     break;
@@ -569,6 +565,46 @@ class Smliser_license {
         }
         wp_safe_redirect( smliser_license_page() );
         exit;
+    }
+
+    /**
+     * Perform an action based on the given parameter.
+     */
+    public function do_action() {
+        if ( ! $this->id ) {
+            return;
+        }
+
+        $action     = $this->get_action();
+        $new_status = '';
+
+        switch ( $action ) {
+
+            case 'deactivate':
+                $new_status = 'Deactivated';
+                break;
+
+            case 'revoke':
+                
+                $new_status = 'Revoked';
+                break;
+
+            case 'suspend':
+                $new_status = 'Suspended';
+
+                break;
+        }
+
+        if ( empty( $new_status ) ) {
+            return;
+        }
+
+        $data           = array( 'status' => $new_status, );
+        $data_format    = array( '%s' );
+        $where          = array( 'id' => absint( $this->id ), );
+        $where_format   = array( '%d' );
+        global $wpdb;
+        $result = $wpdb->update( SMLISER_LICENSE_TABLE, $data, $where, $data_format, $where_format );
     }
 
     /**
@@ -670,4 +706,32 @@ class Smliser_license {
         return wp_json_encode( $data );
     }
     
+    /**
+     * Generate a new license key.
+     *
+     * @param string $prefix The prefix to be added to the license key.
+     * @return string The generated license key.
+     */
+    public function generate_license_key( $prefix = '' ) {
+        if ( empty( $prefix ) ) {
+            $prefix = get_option( 'smliser_license_prefix', 'SMALISER' );
+        }
+
+        $uid            = sha1( uniqid( '', true ) );
+        $secure_bytes   = random_bytes( 16 );
+        $random_hex     = bin2hex( $secure_bytes );
+        $combined_key   = strtoupper( str_replace( '-', '', $uid ) . $random_hex );
+        $license_key    = $prefix . $combined_key;
+
+        // Insert hyphens at every 8-character interval.
+        $real_license_key = '';
+        for ( $i = 0; $i < strlen( $license_key ); $i += 8 ) {
+            if ( $i > 0 ) {
+                $real_license_key .= '-';
+            }
+            $real_license_key .= substr( $license_key, $i, 8 );
+        }
+
+        return $real_license_key;
+    }
 }
