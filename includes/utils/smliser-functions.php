@@ -172,6 +172,8 @@ function smliser_allowed_html() {
             'class' => array(),
             'style' => array(),
             'id' => array(),
+            'required' => array(),
+            'readonly' => array(),
         ),
         'option' => array(
             'value' => array(),
@@ -184,6 +186,8 @@ function smliser_allowed_html() {
             'class' => array(),
             'style' => array(),
             'id' => array(),
+            'required' => array(),
+            'readonly' => array(),
         ),
         'span' => array(
             'class' => array(),
