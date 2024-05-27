@@ -253,7 +253,7 @@ function smliser_form_message( $texts ) {
 
 }
 
-function get_client_ip() {
+function smliser_get_client_ip() {
     $ip_keys = array(
         'HTTP_CLIENT_IP',
         'HTTP_X_FORWARDED_FOR',

@@ -45,7 +45,7 @@ class Smliser_admin_menu {
             'Tasks',
             'manage_options',
             'tasks',
-            array( $this, 'task_page' )
+            array( $this, 'task_page_controller' )
         );
 
         // Add submenu "Settings".
@@ -217,12 +217,24 @@ class Smliser_admin_menu {
     }
 
     /**
+     * Task page controller
+     */
+    public function task_page_controller() {
+        $path = isset( $_GET['path'] );
+        $this->task_page();
+    }
+
+
+    /**
      * Task page.
      */
     public function task_page() {
         $obj        = new Smliser_Server();
         $all_tasks  = $obj->fetch_all_scheduled_tasks();
-        echo get_client_ip();
+        echo '<pre>';
+        var_dump( $all_tasks );
+        echo '<pre>';
+        
     }
 
     /**

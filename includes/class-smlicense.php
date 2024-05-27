@@ -736,6 +736,6 @@ class Smliser_license {
     }
 
     /**
-     * Check if we can allow further
+     * Check if we can allow further access to License Endpoints.
      */
 }

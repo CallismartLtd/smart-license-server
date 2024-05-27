@@ -235,9 +235,10 @@ class SmartLicense_config {
         $license_server = new Smliser_Server();
         $license_server->add_task_queue(
             $local_duration, array(
+                'license_id'    => $license->get_id(),
                 'license_key'   => $license_key,
                 'token'         => $token,
-                'expiry_date'   => $license->get_end_date(),
+                'end_date'      => $license->get_end_date(),
                 'callback_url'  => $callback_url,
                 'data'          => $encoded_data
 
@@ -292,7 +293,6 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-        echo get_client_ip();
     }
 
     /**

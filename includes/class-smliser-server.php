@@ -16,7 +16,7 @@ class Smliser_Server{
     private static $instance;
 
     public function __construct() {
-        add_action( 'smliser_dalidate_license', array( $this, 'remote_validate' ) );
+        add_action( 'smliser_validate_license', array( $this, 'remote_validate' ) );
         add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
         add_action( 'init', array( $this, 'run_automation' ) );
 
@@ -33,8 +33,8 @@ class Smliser_Server{
     
     public function run_automation() {
 
-        if ( ! wp_next_scheduled( 'smliser_dalidate_license' ) ) {
-			wp_schedule_event( current_time( 'timestamp' ), 'smliser_five_minutely', 'smliser_dalidate_license' );
+        if ( ! wp_next_scheduled( 'smliser_validate_license' ) ) {
+			wp_schedule_event( current_time( 'timestamp' ), 'smliser_five_minutely', 'smliser_validate_license' );
 		}
 
     }
@@ -53,19 +53,35 @@ class Smliser_Server{
             return;
         }
         // Extract task data
-        $callback_url   = isset( $highest_priority_task['callback_url'] ) ? $highest_priority_task['callback_url'] : '';
-        $license_key    = isset( $highest_priority_task['license_key'] ) ? $highest_priority_task['license_key'] : '';
-        $token          = isset( $highest_priority_task['token'] ) ? $highest_priority_task['token'] : '';
-        $data           = isset( $highest_priority_task['data'] ) ? $highest_priority_task['data'] : '';
-
+        $callback_url   = isset( $highest_priority_task['callback_url'] ) ? sanitize_text_field( $highest_priority_task['callback_url'] ) : '';
+        $license_key    = isset( $highest_priority_task['license_key'] ) ? sanitize_text_field( $highest_priority_task['license_key'] ) : '';
+        $license_id     = isset( $highest_priority_task['license_id'] ) ? absint( $highest_priority_task['license_id'] ) : 0;
+        $token          = isset( $highest_priority_task['token'] ) ? sanitize_text_field( $highest_priority_task['token'] ) : '';
+        $data           = isset( $highest_priority_task['data'] ) ? sanitize_text_field( $highest_priority_task['data'] ) : '';
+        $end_date       = isset( $highest_priority_task['end_date'] ) ? sanitize_text_field( $highest_priority_task['end_date'] ) : '' ;
+    
         // Ensure task data is valid.
         if ( empty( $license_key ) || empty( $token ) || empty( $data ) ) {
-
             return;
         }
+
+        // No matter the task, the license must be valid first.
+        $licence    = Smliser_license::get_by_id( absint( $license_id ) );
+        if ( ! $license ) {
+            return;
+        }
+
+        $expires_after  = strtotime( $end_date ) - current_time( 'timestamp' );
+
+        if ( smliser_is_empty_date( $end_date ) ) {
+            // Maybe it's a lifetime license.
+            $status = $license->get_status();
+            if ( 'Active' === $status ) {
+                $expires_after = MONTH_IN_SECONDS; // Will require routine checks though.
+            }
+        }
         
-        $expires_after  = strtotime( $highest_priority_task['expiry_date'] ) - current_time( 'timestamp' );
-        $request_body   = array(
+        $request_args   = array(
             'action'        => 'verified_license',
             'last_updated'  => $expires_after, 
             'license_key'   => $license_key,
@@ -73,13 +89,11 @@ class Smliser_Server{
             'data'          => $data,
         );
 
-        // Prepare request arguments for wp_remote_post()
-        $request_args = array(
-            'body' => $request_body,
+        $request_body = array(
+            'body' => $request_args,
         );
 
-        // Execute remote POST request using wp_remote_post()
-        $response = wp_remote_post( $callback_url, $request_args );
+        $response = wp_remote_post( $callback_url, $request_body );
         // Check if remote request was successful
         if ( is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) !== 200 ) {
 
