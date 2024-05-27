@@ -252,3 +252,29 @@ function smliser_form_message( $texts ) {
     return $notice;
 
 }
+
+function get_client_ip() {
+    $ip_keys = array(
+        'HTTP_CLIENT_IP',
+        'HTTP_X_FORWARDED_FOR',
+        'HTTP_X_FORWARDED',
+        'HTTP_X_CLUSTER_CLIENT_IP',
+        'HTTP_FORWARDED_FOR',
+        'HTTP_FORWARDED',
+        'REMOTE_ADDR'
+    );
+
+    foreach ( $ip_keys as $key ) {
+        if ( ! empty( $_SERVER[ $key ] ) ) {
+            // In case of multiple IPs, take the first one (usually the client IP)
+            $ip_list = explode( ',', $_SERVER[ $key ] );
+            foreach ( $ip_list as $ip ) {
+                $ip = trim( $ip ); // Remove any extra spaces
+                if ( false !== filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+                    return $ip;
+                }
+            }
+        }
+    }
+    return false; // Return false if no valid IP is found
+}

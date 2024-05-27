@@ -63,9 +63,13 @@ class Smliser_install {
             'license_key VARCHAR(300) NOT NULL UNIQUE',
             'service_id VARCHAR(300) NOT NULL',
             'item_id MEDIUMINT(9) NOT NULL',
+            'allowed_sites MEDIUMINT(9) DEFAULT NULL',
             'status VARCHAR(30) DEFAULT NULL',
             'start_date DATE DEFAULT NULL',
-            'end_date DATE DEFAULT NULL'
+            'end_date DATE DEFAULT NULL',
+            'INDEX service_id_index (service_id)',
+			'INDEX status_index (status)',
+			'INDEX user_id_index (user_id)',
         );
 
         self::run_db_delta( $license_details_table, $license_table_columns );

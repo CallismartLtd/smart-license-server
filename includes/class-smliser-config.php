@@ -33,6 +33,7 @@ class SmartLicense_config {
     public function __construct() {
         global $wpdb;
         define( 'SMLISER_LICENSE_TABLE', $wpdb->prefix.'smliser_licenses' );
+        define( 'SMLISER_LICENSE_STATS_TABLE', $wpdb->prefix . 'smliser_license_stats' );
         define( 'SMLISER_PRODUCT_TABLE', $wpdb->prefix.'smliser_products' );
         define( 'SMLISER_REPO_DIR', WP_CONTENT_DIR . '/premium-repository' );
         register_activation_hook( SMLISER_FILE, array( 'Smliser_install', 'install' ) );
@@ -291,7 +292,7 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-  
+        echo get_client_ip();
     }
 
     /**

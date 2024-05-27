@@ -734,4 +734,8 @@ class Smliser_license {
 
         return $real_license_key;
     }
+
+    /**
+     * Check if we can allow further
+     */
 }

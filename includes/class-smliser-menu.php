@@ -222,9 +222,7 @@ class Smliser_admin_menu {
     public function task_page() {
         $obj        = new Smliser_Server();
         $all_tasks  = $obj->fetch_all_scheduled_tasks();
-        echo '<pre>';
-        var_dump( $all_tasks );
-        echo '<pre>';
+        echo get_client_ip();
     }
 
     /**
