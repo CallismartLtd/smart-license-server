@@ -278,3 +278,53 @@ function smliser_get_client_ip() {
     }
     return false; // Return false if no valid IP is found
 }
+
+
+/**
+ * Extract the token from the authorization header.
+ * 
+ * @param WP_REST_Request $request The current request object.
+ * @return string|null The extracted token or null if not found.
+ */
+function smliser_get_auth_token( $request ) {
+    // Get the authorization header.
+    $headers = $request->get_headers();
+    
+    // Check if the authorization header is set
+    if ( isset( $headers['authorization'] ) ) {
+        $auth_header = $headers['authorization'][0];
+        
+        // Extract the token using a regex match for Bearer token.
+        if ( preg_match( '/Bearer\s(\S+)/', $auth_header, $matches ) ) {
+            return $matches[1]; // Return the token.
+        }
+    }
+    
+    // Return null if no valid token is found.
+    return null;
+}
+
+/**
+ * Generate Api key for license interaction.
+ * 
+ * @param string $service_id    The service ID associated with the license.
+ */
+function smliser_generate_api_key( $service_id ) {
+    $key  = bin2hex( random_bytes( 32 ) );
+    set_transient( 'smliser_API_KEY'. $key, $service_id, 10 * DAY_IN_SECONDS );
+    return $key;
+}
+
+/**
+ * Verify an API key.
+ * 
+ * @param string $api_key The API key.
+ * @param string $service_id    The service ID associated with the API key.
+ */
+function smliser_verify_api_key( $api_key, $service_id ) {
+    $key_service_id = get_transient( 'smliser_API_KEY'. $api_key );
+    if ( $key_service_id && $service_id === $key_service_id ) {
+        return true;
+    }
+    return false;
+}

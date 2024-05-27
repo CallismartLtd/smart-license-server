@@ -52,22 +52,22 @@ class SmartLicense_config {
         /** Register the license validator route */
         register_rest_route( $this->namespace, $this->activation_route, array(
             'methods'             => 'GET',
-            'callback'            =>  array( $this, 'validation_response' ),
-            'permission_callback' => array( $this, 'validation_permission'),
+            'callback'            =>  array( 'Smliser_Server', 'validation_response' ),
+            'permission_callback' => array( 'Smliser_Server', 'validation_permission'),
         ) );
 
         /** Register the license deactivation route */
         register_rest_route( $this->namespace, $this->deactivation_route, array(
             'methods'             => 'GET',
-            'callback'            => array( $this, 'deactivation_response' ),
-            'permission_callback' => array( $this, 'deactivation_permission' ),
+            'callback'            => array( 'Smliser_Server', 'deactivation_response' ),
+            'permission_callback' => array( 'Smliser_Server', 'deactivation_permission' ),
         ) );
 
         /** Register the software update route */
         register_rest_route( $this->namespace, $this->update_route, array(
             'methods'             => 'GET',
-            'callback'            => array( $this, 'update_response' ),
-            'permission_callback' => array( $this, 'update_permission' ),
+            'callback'            => array( 'Smliser_Server', 'update_response' ),
+            'permission_callback' => array( 'Smliser_Server', 'update_permission' ),
         ) );
 
 
@@ -80,202 +80,6 @@ class SmartLicense_config {
         if ( is_null( self::$instance ) ) {
             self::$instance = new self();
         }
-    }
-
-    /**
-     * Check license activation permission
-     */
-    public function validation_permission( $request ) {
-        // Get the Authorization header from the request.
-        $authorization_header = $request->get_header( 'authorization' );
-        $service_id     =  $request->get_param( 'service_id' );
-        $item_id        =  $request->get_param( 'item_id' );
-        $license_key    =  $request->get_param( 'license_key' );
-        $callback_url   =  $request->get_param( 'callback_url' );
-        
-        /**
-         * Authorization token in this regard is the token from the client
-         * server that they can use to validate our response in other to avoid CSRF and XSS.
-         * Basically, we ensure the security of both our server and the client's too.
-         */
-        if ( empty( $authorization_header ) ) {
-           return false;
-        }
-
-        $authorization_parts = explode( ' ', $authorization_header );
-
-        // Additional checks.
-        if ( count( $authorization_parts ) !== 2 && $authorization_parts[0] !== 'Bearer' ) {
-           return false;
-        }
-
-        // All required parameters must be met.
-        if ( 
-            empty( $service_id ) 
-            || empty( $item_id ) 
-            || empty( $license_key ) 
-            || empty( $callback_url ) 
-            ) {
-            return false;
-        }
-
-        // We need to ensure the param inputs are not ill-intended.
-         if ( 
-            $service_id !== sanitize_text_field( $service_id )
-            || $item_id !== sanitize_text_field( $item_id )
-            || $license_key !== sanitize_text_field( $license_key ) 
-            || ! filter_var( $callback_url, FILTER_VALIDATE_URL )
-        ) {
-            return false;
-        }
-        
-        /** 
-         * Since the basic requirement and validation convention is met,
-         * client can access this endpoint.
-         */
-        return true;
-    }
-
-    /**
-     * Handling immediate response to validation request.
-     */
-    public function validation_response( $request ) {
-        $request_params = $request->get_params();
-        $service_id     = $request_params['service_id'];
-        $license_key    = $request_params['license_key'];
-        $item_id        = $request_params['item_id'];
-        $callback_url   = $request_params['callback_url'];
-        $token          = $this->get_auth_token( $request );
-        $smlicense      = Smliser_license::instance();
-        $license        = $smlicense->get_license_data( $service_id, $license_key );
-        
-        if ( ! $license ) {
-            $response_data = array(
-                'code'      => 'license_error',
-                'message'   => 'Invalid License key or service ID.'
-            );
-            $response = new WP_REST_Response( $response_data, 404 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-
-        if ( absint( $item_id ) !== absint( $license->get_item_id() ) ) {
-            $response_data = array(
-                'code'      => 'license_error',
-                'message'   => 'Invalid License key or service ID.'
-            );
-            $response = new WP_REST_Response( $response_data, 404 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-    
-        if ( 'Expired' === $license->get_status() ) {
-            $response_data = array(
-                'code'      => 'license_expired',
-                'message'   => 'License has expired, log into you account to renew your license.'
-            );
-            $response = new WP_REST_Response( $response_data, 402 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-
-        if ( 'Suspended' === $license->get_status() ) {
-            $response_data = array(
-                'code'      => 'license_suspended',
-                'message'   => 'License has been suspended, log into you account to resolve issues.'
-            );
-            $response = new WP_REST_Response( $response_data, 403 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-
-        if ( 'Revoked' === $license->get_status() ) {
-            $response_data = array(
-                'code'      => 'license_revoked',
-                'message'   => 'License is currently revoked, log into you account to resolve issues.'
-            );
-            $response = new WP_REST_Response( $response_data, 403 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-
-        if ( 'Deactivated' === $license->get_status() ) {
-            $response_data = array(
-                'code'      => 'license_deactivated',
-                'message'   => 'License has been deactivated, log into you account to regenrate or purchase new one.'
-            );
-            $response = new WP_REST_Response( $response_data, 403 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-    
-        $encoded_data   = $license->encode();
-
-        if ( is_wp_error( $encoded_data ) ) {
-            $response_data = array(
-                'code'      => 'license_server_busy',
-                'message'   => 'Server is currently busy please retry. Contact support if the issue persists.'
-            );
-
-            $response = new WP_REST_Response( $response_data, 503 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-
-        $waiting_period = smliser_wait_period();
-        $local_duration = preg_replace( '/\D/', '', $waiting_period );
-        // add new task.
-        $license_server = new Smliser_Server();
-        $license_server->add_task_queue(
-            $local_duration, array(
-                'license_id'    => $license->get_id(),
-                'license_key'   => $license_key,
-                'token'         => $token,
-                'end_date'      => $license->get_end_date(),
-                'callback_url'  => $callback_url,
-                'data'          => $encoded_data
-
-            )
-        );
-    
-    
-        $response_data = array(
-            'waiting_period'    => $waiting_period,
-            'message'           => 'License is being validated',
-        );
-        $response = new WP_REST_Response( $response_data, 200 );
-        return $response;
-    }
-
-    /**
-     * Extract the token from the authorization header.
-     * 
-     * @param WP_REST_Request $request The current request object.
-     * @return string|null The extracted token or null if not found.
-     */
-    private function get_auth_token( $request ) {
-        // Get the authorization header.
-        $headers = $request->get_headers();
-        
-        // Check if the authorization header is set
-        if ( isset( $headers['authorization'] ) ) {
-            $auth_header = $headers['authorization'][0];
-            
-            // Extract the token using a regex match for Bearer token.
-            if ( preg_match( '/Bearer\s(\S+)/', $auth_header, $matches ) ) {
-                return $matches[1]; // Return the token
-            }
-        }
-        
-        // Return null if no valid token is found.
-        return null;
     }
 
     /**
