@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) ||  exit;
 <div class="smliser-form-container">
     <h1>Edit License <span class="dashicons dashicons-edit"></span></h1>
     <?php if ( get_transient( 'smliser_form_validation_message' ) ) :?>
-    <?php echo smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ;?>
+    <?php echo wp_kses_post( smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ) ;?>
     <?php endif;?>
     <form id="smliserForm" class="smliser-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
     <input type="hidden" name="action" value="smliser_license_update">

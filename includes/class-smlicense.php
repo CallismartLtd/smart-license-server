@@ -353,8 +353,9 @@ class Smliser_license {
             $license_key
         );
 
-        // Execute the query and retrieve the results
+        // phpcs:disable
         $result = $wpdb->get_row( $query, ARRAY_A );
+        // phpcs:enable
 
         if ( $result ) {
             return self::return_db_results( $result );
@@ -368,8 +369,10 @@ class Smliser_license {
      */
     public function get_licenses() {
         global $wpdb;
+        // phpcs:disable
         $query = "SELECT * FROM " . SMLISER_LICENSE_TABLE;
         $results = $wpdb->get_results( $query, ARRAY_A );
+        // phpcs:enable
         $all_licenses = array();
 
         if( ! $results ) {
@@ -398,8 +401,28 @@ class Smliser_license {
         }
 
         global $wpdb;
+        // phpcs:disable
         $query  = $wpdb->prepare( "SELECT * FROM " . SMLISER_LICENSE_TABLE . " WHERE `id` = %d ", absint( $id ) );
         $result = $wpdb->get_row( $query, ARRAY_A );
+        // phpcs:enable
+        if ( $result ) {
+            return self::return_db_results( $result );
+        }
+
+        return false;
+    }
+
+    /**
+     * Get a license by license key.
+     * 
+     * @param string $licence_key The license key.
+     */
+    public static function get_by_key( $license_key ) {
+        global $wpdb;
+        // phpcs:disable
+        $query  = $wpdb->prepare( "SELECT * FROM " . SMLISER_LICENSE_TABLE . " WHERE `license_key` = %s ", sanitize_text_field( $license_key ) );
+        $result = $wpdb->get_row( $query, ARRAY_A );
+        // phpcs:enable
         if ( $result ) {
             return self::return_db_results( $result );
         }
@@ -510,7 +533,9 @@ class Smliser_license {
             '%d',
         );
 
+        // phpcs:disable
         $result = $wpdb->update( SMLISER_LICENSE_TABLE, $data, $where, $data_format, $where_format );
+        // phpcs:enable
         if ( $result ) {
             return true;
         }
@@ -604,7 +629,9 @@ class Smliser_license {
         $where          = array( 'id' => absint( $this->id ), );
         $where_format   = array( '%d' );
         global $wpdb;
+        // phpcs:disable
         $result = $wpdb->update( SMLISER_LICENSE_TABLE, $data, $where, $data_format, $where_format );
+        // phpcs:enable
     }
 
     /**

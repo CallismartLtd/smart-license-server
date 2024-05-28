@@ -25,13 +25,27 @@ function smliser_wait_period() {
 
 /**
  * The License page url function
- * can be useful to get the url to the Liense page in all scenerio
+ * can be useful to get the url to the License page in all scenerio
  */
 function smliser_license_page() {
 
     if ( is_admin() ) {
         $url = add_query_arg( array(
             'page' => 'licenses',
+        ), admin_url( 'admin.php' ) );
+        return $url;
+    }
+}
+
+/**
+ * The Product page url function
+ * can be useful to get the url to the product page in all scenerio
+ */
+function smliser_product_page() {
+
+    if ( is_admin() ) {
+        $url = add_query_arg( array(
+            'page' => 'products',
         ), admin_url( 'admin.php' ) );
         return $url;
     }
@@ -94,118 +108,6 @@ function smliser_is_empty_date( $date_string ) {
     return empty( $date_string ) || $date_string === '0000-00-00';
 }
 
-function smliser_allowed_html() {
-    // Define the allowed HTML tags and attributes.
-    $allowed_tags = array(
-        'div' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'table' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'thead' => array(),
-        'tbody' => array(),
-        'tr' => array(),
-        'th' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'td' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'h1' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'h2' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'h3' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'p' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'a' => array(
-            'href' => array(),
-            'title' => array(),
-            'class' => array(),
-            'style' => array(),
-        ),
-        'span' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'form' => array(
-            'action' => array(),
-            'method' => array(),
-            'class' => array(),
-            'style' => array(),
-            'id' => array(),
-        ),
-        'input' => array(
-            'type' => array(),
-            'name' => array(),
-            'value' => array(),
-            'placeholder' => array(),
-            'class' => array(),
-            'style' => array(),
-            'id' => array(),
-            'required' => array(),
-            'readonly' => array(),
-
-        ),
-        'button' => array(
-            'type' => array(),
-            'class' => array(),
-            'style' => array(),
-            'id' => array(),
-        ),
-        'select' => array(
-            'name' => array(),
-            'class' => array(),
-            'style' => array(),
-            'id' => array(),
-            'required' => array(),
-            'readonly' => array(),
-        ),
-        'option' => array(
-            'value' => array(),
-            'selected' => array(),
-        ),
-        'textarea' => array(
-            'name' => array(),
-            'rows' => array(),
-            'cols' => array(),
-            'class' => array(),
-            'style' => array(),
-            'id' => array(),
-            'required' => array(),
-            'readonly' => array(),
-        ),
-        'span' => array(
-            'class' => array(),
-            'title' => array(),
-        ),
-        'label' => array(
-            'name' => array(),
-            'id' => array(),
-            'class' => array(),
-            'title' => array(),
-            'data-title' => array(),
-        ),    
-    
-    );
-
-    return $allowed_tags;
-}
-
 /**
  * Action url constructor for admin license page
  * 
@@ -223,8 +125,26 @@ function smliser_lisense_admin_action_page( $action = 'add-new', $license_id = '
             'action'    => $action,
         ), smliser_license_page() );
     }
+    return $url;
+}
 
-
+/**
+ * Action url constructor for admin product page
+ * 
+ * @param string $action Action query variable for the page.
+ * @param int $license_id   The ID of the license. 
+ */
+function smliser_product_admin_action_page( $action = 'add-new', $product_id = '' ) {
+    if ( 'edit' === $action || 'view' === $action ) {
+        $url = add_query_arg( array(
+            'action'        => $action,
+            'product_id'    => $prduct_id,
+        ), smliser_license_page() );
+    } else {
+        $url = add_query_arg( array(
+            'action'    => $action,
+        ), smliser_product_page() );
+    }
     return $url;
 }
 

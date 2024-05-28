@@ -123,3 +123,119 @@ function smliser_check_and_format( $dateString, $includeTime = false ) {
 	$format = $includeTime ? $locale->date_format . ' ' . $locale->time_format : $locale->date_format;
 	return ! empty( $dateString ) ? date_i18n( $format, strtotime( $dateString ) ) : 'N/A';
 }
+
+
+/**
+ * Filter callback function to allow our tags into wp_kses filter
+ */
+function smliser_allowed_html() {
+    // Define the allowed HTML tags and attributes.
+    $allowed_tags = array(
+        'div' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'table' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'thead' => array(),
+        'tbody' => array(),
+        'tr' => array(),
+        'th' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'td' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'h1' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'h2' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'h3' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'p' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'a' => array(
+            'href' => array(),
+            'title' => array(),
+            'class' => array(),
+            'style' => array(),
+        ),
+        'span' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'form' => array(
+            'action' => array(),
+            'method' => array(),
+            'class' => array(),
+            'style' => array(),
+            'id' => array(),
+        ),
+        'input' => array(
+            'type' => array(),
+            'name' => array(),
+            'value' => array(),
+            'placeholder' => array(),
+            'class' => array(),
+            'style' => array(),
+            'id' => array(),
+            'required' => array(),
+            'readonly' => array(),
+
+        ),
+        'button' => array(
+            'type' => array(),
+            'class' => array(),
+            'style' => array(),
+            'id' => array(),
+        ),
+        'select' => array(
+            'name' => array(),
+            'class' => array(),
+            'style' => array(),
+            'id' => array(),
+            'required' => array(),
+            'readonly' => array(),
+        ),
+        'option' => array(
+            'value' => array(),
+            'selected' => array(),
+        ),
+        'textarea' => array(
+            'name' => array(),
+            'rows' => array(),
+            'cols' => array(),
+            'class' => array(),
+            'style' => array(),
+            'id' => array(),
+            'required' => array(),
+            'readonly' => array(),
+        ),
+        'span' => array(
+            'class' => array(),
+            'title' => array(),
+        ),
+        'label' => array(
+            'name' => array(),
+            'id' => array(),
+            'class' => array(),
+            'title' => array(),
+            'data-title' => array(),
+        ),    
+    
+    );
+
+    return $allowed_tags;
+}

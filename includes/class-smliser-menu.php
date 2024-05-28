@@ -5,16 +5,40 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Class representation of the admin menu.
+ * 
+ * @author Callistus
+ * @since 1.0.0
+ * @package Smliser\classes
+ */
 class Smliser_admin_menu {
 
+    /**
+     * @var Smliser_admin_menu
+     */
     private static $instance = null;
 
-
+    /**
+     * Class constructor.
+     */
     public function __construct() {
         add_action( 'admin_menu', array( $this, 'menus') );
 
     }
 
+    /**
+     * Instanciate class.
+     */
+    public static function instance() {
+        if ( is_null( self::$instance ) ) {
+            self::$instance = new self();
+        }
+    }
+
+    /**
+     * Admin menus
+     */
     public function menus() {
         global $menu;
 	
@@ -36,6 +60,16 @@ class Smliser_admin_menu {
             'manage_options',
             'licenses',
             array( $this, 'license_page_controller' )
+        );
+
+         // Add submenu "Products".
+         $license_page = add_submenu_page(
+            'smliser-admin',
+            'Products',
+            'Products',
+            'manage_options',
+            'products',
+            array( $this, 'product_page_controller' )
         );
         
         // Add submenu "Tasks".
@@ -79,7 +113,7 @@ class Smliser_admin_menu {
         } else {
             $page_html .= 'Nothing was fetched';
         }
-        echo $page_html;
+        echo wp_kses_post( $page_html );
     }
 
     /**
@@ -100,6 +134,7 @@ class Smliser_admin_menu {
         add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
         echo wp_kses_post( $page );
     }
+
     /**
      * License management page
      */
@@ -109,7 +144,6 @@ class Smliser_admin_menu {
         $table_html  = '<div class="smliser-table-wrapper">';
         $table_html .= '<h1>Licenses</h1>';
         $add_url     = smliser_lisense_admin_action_page( 'add-new' );
-        
         $table_html .= '<a href="'. esc_url( $add_url ) . '" class="button action smliser-nav-btn">Add New License</a>';
     
         if ( empty( $licenses ) ) {
@@ -192,7 +226,7 @@ class Smliser_admin_menu {
      */
     private function add_license_page() {
         ob_start();
-        include_once SMLISER_PATH . 'templates/forms/license-add.php';
+        include_once SMLISER_PATH . 'templates/license/license-add.php';
         return ob_get_clean();
     }
 
@@ -212,7 +246,7 @@ class Smliser_admin_menu {
 
         $user_id    = ! empty( $license->get_user_id() ) ? $license->get_user_id() : 0;
         ob_start();
-        include_once SMLISER_PATH . 'templates/forms/license-edit.php';
+        include_once SMLISER_PATH . 'templates/license/license-edit.php';
         return ob_get_clean();
     }
 
@@ -238,13 +272,51 @@ class Smliser_admin_menu {
     }
 
     /**
-     * Instanciate class.
+     * Product page controller.
      */
-    public static function instance() {
-        if ( is_null( self::$instance ) ) {
-            self::$instance = new self();
+    public function product_page_controller() {
+        $action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : '';
+        $page = '';
+        switch( $action ) {
+            case 'add-new':
+                $page = $this->add_new_product_page();
+                break;
+            case 'edit':
+                $page = $this->edit_product_page();
+                break;
+            default:
+            if ( empty( $action ) ) {
+                $page = $this->product_dashboard();
+            } else {
+                do_action( 'smliser_product_page_' . $action .'_content' );
+            }
         }
+        add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
+        echo wp_kses_post( $page );
     }
+
+    /**
+     * Product dashboard.
+     */
+    private function product_dashboard() {
+        $table_html  = '<div class="smliser-table-wrapper">';
+        $table_html .= '<h1>Products</h1>';
+        $add_url     = smliser_product_admin_action_page( 'add-new' );
+        $table_html .= '<a href="'. esc_url( $add_url ) . '" class="button action smliser-nav-btn">Add New Product</a>';
+        $table_html .= '</div>';
+
+        return $table_html;
+    }
+
+    /**
+     * Add new product page template
+     */
+    private function add_new_product_page() {
+        ob_start();
+        include_once SMLISER_PATH . 'templates/product/product-add.php';
+        return ob_get_clean();
+    }
+
 }
 
 Smliser_admin_menu::instance();
