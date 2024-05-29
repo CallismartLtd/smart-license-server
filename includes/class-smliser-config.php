@@ -34,7 +34,7 @@ class SmartLicense_config {
         global $wpdb;
         define( 'SMLISER_LICENSE_TABLE', $wpdb->prefix.'smliser_licenses' );
         define( 'SMLISER_LICENSE_STATS_TABLE', $wpdb->prefix . 'smliser_license_stats' );
-        define( 'SMLISER_PRODUCT_TABLE', $wpdb->prefix.'smliser_products' );
+        define( 'SMLISER_PLUGIN_ITEM_TABLE', $wpdb->prefix.'smliser_products' );
         define( 'SMLISER_REPO_DIR', WP_CONTENT_DIR . '/premium-repository' );
         register_activation_hook( SMLISER_FILE, array( 'Smliser_install', 'install' ) );
 
@@ -91,6 +91,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/class-smliser-server.php';
         require_once SMLISER_PATH . 'includes/class-smliser-menu.php';
         require_once SMLISER_PATH . 'includes/class-smliser-repository.php';
+        require_once SMLISER_PATH . 'includes/class-smliser-plugin.php';
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
 
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );

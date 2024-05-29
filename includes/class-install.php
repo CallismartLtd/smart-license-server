@@ -34,7 +34,7 @@ class Smliser_install {
         global $wpdb;
         $tables = array(
             SMLISER_LICENSE_TABLE,
-            SMLISER_PRODUCT_TABLE,
+            SMLISER_PLUGIN_ITEM_TABLE,
         );
 
         foreach( $tables as $table ) {
@@ -77,7 +77,7 @@ class Smliser_install {
     /**
      * Product table
      */
-    $product_table_name = SMLISER_PRODUCT_TABLE;
+    $product_table_name = SMLISER_PLUGIN_ITEM_TABLE;
     $product_table_columns = array(
         'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
         'name VARCHAR(255) NOT NULL',

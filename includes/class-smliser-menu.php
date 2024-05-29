@@ -62,14 +62,14 @@ class Smliser_admin_menu {
             array( $this, 'license_page_controller' )
         );
 
-         // Add submenu "Products".
+         // Add submenu "Repository".
          $license_page = add_submenu_page(
             'smliser-admin',
-            'Products',
-            'Products',
+            'Repository',
+            'Repository',
             'manage_options',
-            'products',
-            array( $this, 'product_page_controller' )
+            'repository',
+            array( $this, 'repo_page_controller' )
         );
         
         // Add submenu "Tasks".
@@ -168,7 +168,7 @@ class Smliser_admin_menu {
         $table_html .= '<button type="submit" class="button action smliser-bulk-action-button">' . esc_html__( 'Apply', 'smliser' ) . '</button>';
         $table_html .= '</div>';
         $table_html .= '<div class="smliser-search-box">';
-        $table_html .= '<input type="text" id="smliser-search" class="smliser-search-input" placeholder="' . esc_attr__( 'Search Licenses', 'smliser' ) . '">';
+        $table_html .= '<input type="search" id="smliser-search" class="smliser-search-input" placeholder="' . esc_attr__( 'Search Licenses', 'smliser' ) . '">';
         $table_html .= '</div>';
         $table_html .= '</div>';
     
@@ -272,48 +272,48 @@ class Smliser_admin_menu {
     }
 
     /**
-     * Product page controller.
+     * Repository page controller.
      */
-    public function product_page_controller() {
+    public function repo_page_controller() {
         $action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : '';
         $page = '';
         switch( $action ) {
             case 'add-new':
-                $page = $this->add_new_product_page();
+                $page = $this->upload_plugin_page();
                 break;
             case 'edit':
-                $page = $this->edit_product_page();
+                $page = $this->edit_plugin_page();
                 break;
             default:
             if ( empty( $action ) ) {
-                $page = $this->product_dashboard();
+                $page = $this->repositor_dashboard();
             } else {
-                do_action( 'smliser_product_page_' . $action .'_content' );
+                do_action( 'smliser_repository_page_' . $action .'_content' );
             }
         }
         add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
-        echo wp_kses_post( $page );
+        echo $page;
     }
 
     /**
-     * Product dashboard.
+     * Repository dashboard.
      */
-    private function product_dashboard() {
+    private function repositor_dashboard() {
         $table_html  = '<div class="smliser-table-wrapper">';
-        $table_html .= '<h1>Products</h1>';
-        $add_url     = smliser_product_admin_action_page( 'add-new' );
-        $table_html .= '<a href="'. esc_url( $add_url ) . '" class="button action smliser-nav-btn">Add New Product</a>';
+        $table_html .= '<h1>Repository Dashboard</h1>';
+        $add_url     = smliser_repository_admin_action_page( 'add-new' );
+        $table_html .= '<a href="'. esc_url( $add_url ) . '" class="button action smliser-nav-btn">Upload New Plugin</a>';
         $table_html .= '</div>';
 
         return $table_html;
     }
 
     /**
-     * Add new product page template
+     * upload new plugin page template
      */
-    private function add_new_product_page() {
+    private function upload_plugin_page() {
         ob_start();
-        include_once SMLISER_PATH . 'templates/product/product-add.php';
+        include_once SMLISER_PATH . 'templates/repository/repo-add.php';
         return ob_get_clean();
     }
 

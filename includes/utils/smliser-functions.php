@@ -41,11 +41,11 @@ function smliser_license_page() {
  * The Product page url function
  * can be useful to get the url to the product page in all scenerio
  */
-function smliser_product_page() {
+function smliser_repo_page() {
 
     if ( is_admin() ) {
         $url = add_query_arg( array(
-            'page' => 'products',
+            'page' => 'repository',
         ), admin_url( 'admin.php' ) );
         return $url;
     }
@@ -134,7 +134,7 @@ function smliser_lisense_admin_action_page( $action = 'add-new', $license_id = '
  * @param string $action Action query variable for the page.
  * @param int $license_id   The ID of the license. 
  */
-function smliser_product_admin_action_page( $action = 'add-new', $product_id = '' ) {
+function smliser_repository_admin_action_page( $action = 'add-new', $product_id = '' ) {
     if ( 'edit' === $action || 'view' === $action ) {
         $url = add_query_arg( array(
             'action'        => $action,
@@ -143,7 +143,7 @@ function smliser_product_admin_action_page( $action = 'add-new', $product_id = '
     } else {
         $url = add_query_arg( array(
             'action'    => $action,
-        ), smliser_product_page() );
+        ), smliser_repo_page() );
     }
     return $url;
 }
@@ -247,4 +247,30 @@ function smliser_verify_api_key( $api_key, $service_id ) {
         return true;
     }
     return false;
+}
+
+/**
+ * Get the dropdown of license keys.
+ * 
+ * @param bool $selected    Selected License key.
+ * @param bool $required    Is the input field required?
+ * @param bool $echo        Whether to  echo or return.
+ */
+function smliser_license_key_dropdown( $selected = false, $required = false , $echo = false ) {
+    $obj        = new Smliser_license();
+    $licenses   = $obj->get_licenses();
+    $drop_down  = '<select class="smilier-license-key-dropdown" name="license_key" ' . esc_attr( $required ) .'>';
+	$drop_down .= '<option value="">Select License Key</option>';
+    foreach ( $licenses as $license ) {
+        $drop_down .= '<option value="'. esc_attr( $license->get_license_key() ) . '" ' . selected( $license->get_license_key(), $selected ) . '>' . esc_html( $license->get_license_key() ) . '</option>';
+    }
+    $drop_down .= '</select>';
+    add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
+
+    if ( $echo ) {
+        echo wp_kses_post( $drop_down );
+    } else {
+        return $drop_down;
+    }
+
 }
