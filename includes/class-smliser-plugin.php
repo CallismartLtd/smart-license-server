@@ -408,7 +408,10 @@ class Smliser_Plugin extends Smliser_Repository {
 
     public static function plugin_upload_controller () {
         if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
-            var_dump( $_FILES['smliser_plugin_file'] );
+            $obj = new parent();
+            $obj->upload_to_repository( $_FILES['smliser_plugin_file'] );
+            
+            //var_dump( $_FILES['smliser_plugin_file'] );
         } else{
             wp_die( 'Nothing posted' );
         }
