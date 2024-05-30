@@ -259,7 +259,7 @@ function smliser_verify_api_key( $api_key, $service_id ) {
 function smliser_license_key_dropdown( $selected = false, $required = false , $echo = false ) {
     $obj        = new Smliser_license();
     $licenses   = $obj->get_licenses();
-    $drop_down  = '<select class="smilier-license-key-dropdown" name="license_key" ' . esc_attr( $required ) .'>';
+    $drop_down  = '<select class="smliser-select-input" id="license_key" name="license_key" ' . esc_attr( $required ) .'>';
 	$drop_down .= '<option value="">Select License Key</option>';
     foreach ( $licenses as $license ) {
         $drop_down .= '<option value="'. esc_attr( $license->get_license_key() ) . '" ' . selected( $license->get_license_key(), $selected ) . '>' . esc_html( $license->get_license_key() ) . '</option>';

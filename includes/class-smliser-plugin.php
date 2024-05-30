@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class Smliser_Plugin {
+class Smliser_Plugin extends Smliser_Repository {
 
     /**
      * Item ID.
@@ -21,6 +21,13 @@ class Smliser_Plugin {
      * @var string $name The plugin's name.
      */
     private $name = '';
+        
+    /**
+     * License key for the plugin.
+     * 
+     * @var string $license_key
+     */
+    private $license_key = '';
 
     /**
      * Plugin slug.
@@ -105,11 +112,18 @@ class Smliser_Plugin {
     private $download_link = '#';
 
     /**
-     * Class constructor.
+     * Plugin zip file.
      * 
-     * @param mixed $data Product data or ID.
+     * @var string $file The plugin file.
      */
-    public function __construct() {}
+    private $file;
+
+    /**
+     * Class constructor.
+     */
+    public function __construct() {
+        parent::__construct();
+    }
 
     /*
     |---------------
@@ -133,6 +147,24 @@ class Smliser_Plugin {
      */
     public function set_name( $name ) {
         $this->name = sanitize_text_field( $name );
+    }
+
+    /**
+     * Set license key.
+     * 
+     * @param string $license_key
+     */
+    public function set_license_key( $license_key ) {
+        $this->license_key = sanitize_text_field( $license_key );
+    }
+
+    /**
+     * Get license key.
+     * 
+     * @return string
+     */
+    public function get_license_key() {
+        return $this->license_key;
     }
 
     /**
@@ -208,6 +240,179 @@ class Smliser_Plugin {
     }
 
     /**
-     * Set sections.
+     * Set Download link.
+     * 
+     * @param string $slug the download query vars
      */
+    public function set_download_link( $slug ) {
+        $this->download_link = sanitize_text_field( $slug );
+    }
+
+    /**
+     *  Set the file
+     * 
+     * @param array $file
+     */
+    public function set_file( $file ) {
+        $this->file = $file;
+    }
+
+    /*
+    |-------------
+    | Getters.
+    |-------------
+    */
+
+    /**
+     * Get Item ID
+     */
+    public function get_item_id() {
+        return $this->item_id;
+    }
+
+    /**
+     * Get plugin name
+     */
+    public function get_name() {
+        return $this->name;
+    }
+
+    /**
+     * Get Slug.
+     */
+    public function get_slug() {
+        return $this->slug;
+    }
+
+    /**
+     * Get version
+     */
+    public function get_version() {
+        return $this->version;
+    }
+
+    /**
+     * Get Author
+     */
+    public function get_author() {
+        return $this->author;
+    }
+
+    /**
+     * Get the author profile.
+     */
+    public function get_author_profile() {
+        return $this->author_profile;
+    }
+
+    /**
+     * Get WordPress required version for plugin.
+     */
+    public function get_required() {
+        return $this->requires;
+    }
+
+    /**
+     * Get WordPress version tested up to.
+     */
+    public function get_tested() {
+        return $this->tested ;
+    }
+
+    /**
+     * Get the required PHP version.
+     */
+    public function get_required_php() {
+        return $this->requires_php;
+    }
+
+    /**
+     * Get last updated
+     */
+    public function get_last_updated() {
+        return $this->last_updated;
+    }
+
+    /**
+     * Get Download link.
+     */
+    public function get_download_link() {
+        return $this->download_link;
+    }
+
+    /**
+     * Get the file
+     */
+    public function get_file() {
+        return $this->file;
+    }
+
+
+    /*
+    |--------------
+    | Crud Methods
+    |--------------
+    */
+
+    /**
+     * Save a plugin.
+     */
+    public function save() {
+        // Handle the plugin file first
+        if ( empty( $this->file ) ) {
+            return new WP_Error( 'missing_plugin', 'No plugin uploaded' );
+        }
+
+        $upload_to_repo = parent::upload_to_repository( $this->file );
+
+        if ( is_wp_error( $upload_to_repo ) ) {
+            return $upload_to_repo;
+        }
+
+        // Prepare plugin data
+        $plugin_data = array(
+            'name'          => sanitize_text_field( $this->get_name() ),
+            'slug'          => sanitize_text_field( $this->get_slug() ),
+            'version'       => sanitize_text_field( $this->get_version() ),
+            'author'        => sanitize_text_field( $this->get_author() ),
+            'author_profile'=> sanitize_url( $this->get_author_profile(), array( 'http', 'https' ) ),
+            'requires'      => sanitize_text_field( $this->get_required() ),
+            'tested'        => sanitize_text_field( $this->get_tested() ),
+            'requires_php'  => sanitize_text_field( $this->get_required_php() ),
+            'last_updated'  => sanitize_text_field( $this->get_last_updated() ),
+            'download_link' => esc_url_raw( $this->get_download_link() ),
+        );
+
+        // Database insertion
+        global $wpdb;
+        $result = $wpdb->insert( 
+            SMLISER_PLUGIN_ITEM_TABLE, 
+            $plugin_data, 
+            array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ) 
+        );
+
+        if ( $result ) {
+            $this->item_id = $wpdb->insert_id;
+            return $this->get_item_id();
+        }
+
+        return new WP_Error( 'db_insert_error', 'Failed to insert plugin data into the database.' );
+    }
+
+    /**
+     * Update Plugin
+     */
+    public function update() {
+
+    }
+
+    public static function plugin_upload_controller () {
+        if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
+            var_dump( $_FILES['smliser_plugin_file'] );
+        } else{
+            wp_die( 'Nothing posted' );
+        }
+
+    }
+
 }

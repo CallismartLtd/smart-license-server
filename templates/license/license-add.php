@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) ||  exit;
 <div class="smliser-form-container">
     <h1>Add License <span class="dashicons dashicons-edit"></span></h1>
     <form id="smliserForm" class="smliser-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-        <input type="hidden" name="action" value="smliser_license_update">
+        <input type="hidden" name="action" value="smliser_license_new">
         <?php wp_nonce_field( 'smliser_nonce_field', 'smliser_nonce_field' ); ?>
         
         <div class="smliser-form-row">

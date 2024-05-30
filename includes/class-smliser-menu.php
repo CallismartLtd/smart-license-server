@@ -299,12 +299,32 @@ class Smliser_admin_menu {
      * Repository dashboard.
      */
     private function repositor_dashboard() {
+        global $smliser_repo;
         $table_html  = '<div class="smliser-table-wrapper">';
         $table_html .= '<h1>Repository Dashboard</h1>';
         $add_url     = smliser_repository_admin_action_page( 'add-new' );
         $table_html .= '<a href="'. esc_url( $add_url ) . '" class="button action smliser-nav-btn">Upload New Plugin</a>';
+        $plugins     = $smliser_repo->get_all_plugin_files();
         $table_html .= '</div>';
+        
+        $table_html .= wp_nonce_field( 'smliser_table_nonce', 'smliser_table_nonce');
+        $table_html .= '<table class="smliser-table">';
+        $table_html .= '<thead>';
+        $table_html .= '<tr>';
+        $table_html .= '<th><input type="checkbox" id="smliser-select-all"></th>';
+        $table_html .= '<th>' . esc_html__( 'Plugin Name', 'smliser' ) . '</th>';
 
+        $table_html .= '</tr>';
+        $table_html .= '</thead>';
+        $table_html .= '<tbody>';
+        
+        foreach ( $plugins as $plugin ) {
+            $table_html .= '<tr>';
+            $table_html .= '<td><input type="checkbox" class="smliser-license-checkbox" name="licenses[]" value=""> </td>';
+            $table_html .= '<td>' . esc_html( $plugin ) . '</td>';
+            $table_html .= '</tr>';
+
+        }
         return $table_html;
     }
 

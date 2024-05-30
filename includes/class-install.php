@@ -75,22 +75,27 @@ class Smliser_install {
         self::run_db_delta( $license_details_table, $license_table_columns );
 
     /**
-     * Product table
+     * Plugin table
      */
-    $product_table_name = SMLISER_PLUGIN_ITEM_TABLE;
-    $product_table_columns = array(
+    $plugin_table_name = SMLISER_PLUGIN_ITEM_TABLE;
+    $plugin_table_columns = array(
         'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
         'name VARCHAR(255) NOT NULL',
-        'description TEXT',
-        'price DECIMAL(10, 2) NOT NULL',
-        'fee DECIMAL(10, 2) DEFAULT NULL',
         'license_key VARCHAR(300) DEFAULT NULL',
-        'plugin_basename VARCHAR(300) DEFAULT NULL',
+        'slug VARCHAR(300) DEFAULT NULL',
+        'version VARCHAR(300) DEFAULT NULL',
+        'author VARCHAR(255) DEFAULT NULL',
+        'author_profile VARCHAR(255) DEFAULT NULL',
+        'requires VARCHAR(9) DEFAULT NULL',
+        'tested VARCHAR(9) DEFAULT NULL',
+        'requires_php VARCHAR(9) DEFAULT NULL',
+        'download_link VARCHAR(9) DEFAULT NULL',
         'created_at DATETIME DEFAULT CURRENT_TIMESTAMP',
-        'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
+        'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+
     );
 
-    self::run_db_delta( $product_table_name, $product_table_columns );
+    self::run_db_delta( $plugin_table_name, $plugin_table_columns );
 
     }
     

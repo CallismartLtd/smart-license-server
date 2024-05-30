@@ -9,45 +9,58 @@ defined( 'ABSPATH' ) || exit;
 ?>
 
 <h1>Upload New Plugin <span class="dashicons dashicons-insert"></span></h1>
-<div class="smliser-product-form-container">
-    <form id="smliserProductForm" class="smliser-product-form" method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-        <div class="smliser-form-group">
-            <label for="product-name">Product Name</label>
-            <input type="text" id="product-name" name="product_name" class="smliser-input-field" required>
+<div class="smliser-form-container">
+    <form id="smliser-plugin-upload-form" class="smliser-form" method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ) ; ?>">
+
+        <input type="hidden" name="action" value="smliser_plugin_upload" />
+        <?php wp_nonce_field( 'smliser_plugin_form_nonce', 'smliser_plugin_form_nonce' ); ?>
+
+        <div class="smliser-form-row">
+            <label for="smliser-plugin-name" class="smliser-form-label">Plugin Name:</label>
+            <span class="smliser-form-description" title="Add the plugin name, name must match with the name on plugin file header">?</span>
+            <input type="text" name="smliser_plugin_name" id="smliser-plugin-name" class="smliser-form-input" required>
         </div>
 
-        <div class="smliser-form-group">
-            <label for="product-description">Product Description</label>
-            <textarea id="product-description" name="product_description" class="smliser-textarea-field" rows="4" required></textarea>
+        <div class="smliser-form-row">
+            <label for="smliser-plugin-file" class="smliser-form-label">Plugin File (.zip):</label>
+            <span class="smliser-form-description" title="Upload the plugin zip file">?</span>
+            <input type="file" name="smliser_plugin_file" id="smliser-plugin-file" class="smliser-form-file-input" accept=".zip" required>
         </div>
 
-        <div class="smliser-form-group">
-            <label for="plugin-upload">Upload Plugin</label>
-            <input type="file" id="plugin-upload" name="plugin_upload" class="smliser-plugin-upload-field" accept="dir" required>
+        <div class="smliser-form-row">
+            <label for="smliser-plugin-version" class="smliser-form-label">Version:</label>
+            <span class="smliser-form-description" title="Add the latest version of the plugin">?</span>
+            <input type="text" name="smliser_plugin_version" id="smliser-plugin-version" class="smliser-form-input">
+        </div>
+        <div class="smliser-form-row">
+            <label for="smliser-plugin-author" class="smliser-form-label">Author:</label>
+            <span class="smliser-form-description" title="Add plugin author">?</span>
+            <input type="text" name="smliser_plugin_author" id="smliser-plugin-author" class="smliser-form-input">
+        </div>
+        <div class="smliser-form-row">
+            <label for="smliser-plugin-author-profile" class="smliser-form-label">Author Profile:</label>
+            <span class="smliser-form-description" title="Author URL">?</span>
+            <input type="url" name="smliser_plugin_author_profile" id="smliser-plugin-author-profile" class="smliser-form-input">
         </div>
 
-        <div class="smliser-form-group">
-            <label for="product-price">Product Price</label>
-            <input type="number" step="0.01" id="product-price" name="product_price" class="smliser-input-field" required>
+        <div class="smliser-form-row">
+            <label for="smliser-plugin-requires" class="smliser-form-label">Requires WordPress Version:</label>
+            <span class="smliser-form-description" title="Minimum required WordPress version for the plugin">?</span>
+            <input type="text" name="smliser_plugin_requires" id="smliser-plugin-requires" class="smliser-form-input">
         </div>
 
-        <div class="smliser-form-group">
-            <label for="product-fee">Product Fee</label>
-            <input type="number" step="0.01" id="product-fee" name="product_fee" class="smliser-input-field">
+        <div class="smliser-form-row">
+            <label for="smliser-plugin-tested" class="smliser-form-label">Tested up to WordPress Version:</label>
+            <span class="smliser-form-description" title="The WordPres version tested with your plugin">?</span>
+            <input type="text" name="smliser_plugin_tested" id="smliser-plugin-tested" class="smliser-form-input">
+        </div>
+        <div class="smliser-form-row">
+            <label for="smliser-plugin-requires-php" class="smliser-form-label">Requires PHP Version:</label>
+            <span class="smliser-form-description" title="Minimum required PHP version">?</span>
+            <input type="text" name="smliser_plugin_requires_php" id="smliser-plugin-requires-php" class="smliser-form-input">
         </div>
 
-        <div class="smliser-form-group">
-            <label for="license-key">License Key</label>
-            <?php smliser_license_key_dropdown( false, false, true );?>
-        </div>
-
-        <div class="smliser-form-group">
-            <label for="plugin-basename">Plugin Basename</label>
-            <input type="text" id="plugin-basename" name="plugin_basename" class="smliser-input-field" required>
-        </div>
-
-        <div class="smliser-form-group">
-            <input type="submit" class="smliser-submit-button" value="Publish Product">
-        </div>
+        <button type="submit" class="smliser-button">Upload Plugin</button>
     </form>
+
 </div>

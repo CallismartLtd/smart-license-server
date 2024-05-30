@@ -34,7 +34,7 @@ class SmartLicense_config {
         global $wpdb;
         define( 'SMLISER_LICENSE_TABLE', $wpdb->prefix.'smliser_licenses' );
         define( 'SMLISER_LICENSE_STATS_TABLE', $wpdb->prefix . 'smliser_license_stats' );
-        define( 'SMLISER_PLUGIN_ITEM_TABLE', $wpdb->prefix.'smliser_products' );
+        define( 'SMLISER_PLUGIN_ITEM_TABLE', $wpdb->prefix.'smliser_plugins' );
         define( 'SMLISER_REPO_DIR', WP_CONTENT_DIR . '/premium-repository' );
         register_activation_hook( SMLISER_FILE, array( 'Smliser_install', 'install' ) );
 
@@ -43,7 +43,8 @@ class SmartLicense_config {
         add_action( 'plugins_loaded', array( $this, 'include' ) );
         add_action( 'admin_post_smliser_bulk_action', array( 'Smliser_license', 'bulk_action') );
         add_action( 'admin_post_smliser_license_new', array( 'Smliser_license', 'license_form_controller') );
-        add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller') );
+        add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller' ) );
+        add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
 
     }
 
@@ -98,6 +99,7 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
+
     }
 
     /**

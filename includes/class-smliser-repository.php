@@ -15,18 +15,22 @@ class Smliser_Repository {
     /**
      * @var bool Where WP can directly access thefilesystem.
      */
-    private $is_loaded = false;
+    protected $is_loaded = false;
 
     /**
      * @var string The directory for the repository.
      */
-    private $repo_dir;
+    protected $repo_dir;
+    
 
     /**
      * @var Smliser_Repository
      */
-    private static $instance = null;
+    protected static $instance = null;
 
+    /**
+     * Class constructor
+     */
     public function __construct() {
         $this->repo_dir = SMLISER_REPO_DIR;
         $this->initialize_filesystem();
@@ -46,7 +50,10 @@ class Smliser_Repository {
 
         if ( ! WP_Filesystem( $creds ) ) {
             $this->add_connection_notice();
+        } else {
+            $this->is_loaded = true;
         }
+
     }
 
     /**
@@ -54,7 +61,7 @@ class Smliser_Repository {
      *
      * @return array|WP_Error List of files or WP_Error on failure.
      */
-    public function get_all_files() {
+    public function get_all_plugin_files() {
         global $wp_filesystem;
 
         if ( ! $wp_filesystem->is_dir( $this->repo_dir ) ) {
@@ -81,7 +88,7 @@ class Smliser_Repository {
      * @param string $file_name Name of the file to read.
      * @return string|WP_Error File contents or WP_Error on failure.
      */
-    public function get_file( $file_name ) {
+    public function get_plugin( $file_name ) {
         global $wp_filesystem;
 
         $file_path = $this->repo_dir . '/' . $file_name;
@@ -123,7 +130,7 @@ class Smliser_Repository {
      * @param string $file_name Name of the file to delete.
      * @return true|WP_Error True on success or WP_Error on failure.
      */
-    public function delete_file( $file_name ) {
+    public function delete( $file_name ) {
         global $wp_filesystem;
 
         $file_path = $this->repo_dir . '/' . $file_name;
@@ -158,7 +165,7 @@ class Smliser_Repository {
             $message = '<div class="notice notice-warning"><p>
             Your server filesystem configuration requires authentication. In other to use Smart License Server, you will
             need to configure it to use FTP credentials.</p></div>';
-            //echo wp_kses_post( $message );
+            echo wp_kses_post( $message );
         }  );
     }
 
@@ -169,6 +176,33 @@ class Smliser_Repository {
         if ( is_null( self::$instance ) ) {
             return self::$instance = new self();
         }
+    }
+
+    /**
+     * Safely upload a plugin into the repository.
+     *
+     * @param array $file The uploaded file details.
+     * @return true|WP_Error True on success or WP_Error on failure.
+     */
+    protected function upload_to_repository( $file ) {
+        global $wp_filesystem;
+
+        $repo_dir       = $this->repo_dir;
+        $file_name      = $file['name'];
+        $tmp_name       = $file['tmp_name'];
+        $file_type_info = wp_check_filetype( $file_name );
+
+        if ( $file_type_info['ext'] !== 'zip' ) {
+            return new WP_Error( 'invalid_file_type', 'Invalid file type. Only ZIP files are allowed.' );
+        }
+
+        $destination = trailingslashit( $repo_dir ) . sanitize_file_name( $file_name );
+        
+        if ( ! move_uploaded_file( $tmp_name, $destination ) ) {
+            return new WP_Error( 'failure_to_move', 'Failed to move uploaded file to the repository' );
+        }
+
+        return true;
     }
 }
 
