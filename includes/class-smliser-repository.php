@@ -37,6 +37,13 @@ class Smliser_Repository {
     }
 
     /**
+     * Get Repository Directory
+     */
+    public function get_repo_dir() {
+        return $this->repo_dir;
+    }
+
+    /**
      * Initialize the WordPress filesystem.
      */
     private function initialize_filesystem() {
@@ -83,27 +90,35 @@ class Smliser_Repository {
 
 
     /**
-     * Get the contents of a file in the repository.
+     * Get a plugin from the repository.
      *
-     * @param string $file_name Name of the file to read.
-     * @return string|WP_Error File contents or WP_Error on failure.
+     * @param string $plugin_slug The slug of the plugin (e.g., plugin-folder/plugin-file.zip).
+     * @return string|WP_Error Absolute file path or WP_Error on failure.
      */
-    public function get_plugin( $file_name ) {
+    public function get_plugin( $plugin_slug ) {
+        // Validate and sanitize the plugin slug.
+        $slug_parts         = explode( '/', $plugin_slug );
+        $sanitized_parts    = array_map( 'sanitize_text_field', $slug_parts );
+        $sanitized_slug     = implode( '/', $sanitized_parts );
+
+        // Check for directory traversal attempts.
+        if ( strpos( $sanitized_slug, '..' ) !== false ) {
+            return new WP_Error( 'invalid_slug', __( 'Invalid plugin slug: ' . $sanitized_slug, 'smliser' ) );
+        }
+
         global $wp_filesystem;
 
-        $file_path = $this->repo_dir . '/' . $file_name;
+        // Construct the absolute file path
+        $file_path = trailingslashit( $this->repo_dir ) . $sanitized_slug;
 
+        // Check if the file exists in the repository
         if ( ! $wp_filesystem->exists( $file_path ) ) {
-            return new WP_Error( 'file_not_found', __( 'File not found', 'smliser' ) );
+            return new WP_Error( 'file_not_found', __( 'File not found: ' . $file_path, 'smliser' ) );
         }
 
-        $contents = $wp_filesystem->get_contents( $file_path );
-        if ( false !== $contents ) {
-            return $contents;
-        }
-
-        return new WP_Error( 'file_read_failed', __( 'Failed to read file', 'smliser' ) );
+        return $file_path;
     }
+
 
     /**
      * Write contents to a file in the repository.
@@ -184,7 +199,7 @@ class Smliser_Repository {
      * @param array $file The uploaded file details.
      * @return true|WP_Error True on success or WP_Error on failure.
      */
-    protected function upload_to_repository( $file ) {
+    public function upload_to_repository( $file ) {
         global $wp_filesystem;
 
         $repo_dir       = $this->repo_dir;
@@ -193,16 +208,26 @@ class Smliser_Repository {
         $file_type_info = wp_check_filetype( $file_name );
 
         if ( $file_type_info['ext'] !== 'zip' ) {
-            return new WP_Error( 'invalid_file_type', 'Invalid file type. Only ZIP files are allowed.' );
+            return new WP_Error( 'invalid_file_type', 'Invalid file type, the plugin must be in zip format.' );
         }
 
-        $destination = trailingslashit( $repo_dir ) . sanitize_file_name( $file_name );
+        // Create a base folder.
+        $folder_parts   = explode( '.', $file_name );
+        $base_name      = sanitize_file_name( $folder_parts[0] );
+        $base_folder    = trailingslashit( $repo_dir ) . $base_name;
+
+        if ( ! $wp_filesystem->is_dir( $base_folder ) ) {
+            $wp_filesystem->mkdir( $base_folder, 0755 );
+        }
+
+        $plugin_basename = trailingslashit( $base_folder ) . sanitize_file_name( $file_name );
         
-        if ( ! move_uploaded_file( $tmp_name, $destination ) ) {
+        if ( ! move_uploaded_file( $tmp_name, $plugin_basename ) ) {
             return new WP_Error( 'failure_to_move', 'Failed to move uploaded file to the repository' );
         }
 
-        return true;
+        // The plugin slug.
+        return untrailingslashit( $base_name . '/' . $file_name );
     }
 }
 

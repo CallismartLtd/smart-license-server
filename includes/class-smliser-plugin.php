@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class Smliser_Plugin extends Smliser_Repository {
+class Smliser_Plugin {
 
     /**
      * Item ID.
@@ -86,6 +86,13 @@ class Smliser_Plugin extends Smliser_Repository {
     private $last_updated = '';
 
     /**
+     * Date created
+     * 
+     * @var string $created_at When plugin was created.
+     */
+    private $created_at;
+
+    /**
      * An array of different sections of plugin information (e.g., description, installation, FAQ).
      * 
      * @var array $sections
@@ -121,9 +128,7 @@ class Smliser_Plugin extends Smliser_Repository {
     /**
      * Class constructor.
      */
-    public function __construct() {
-        parent::__construct();
-    }
+    public function __construct() {}
 
     /*
     |---------------
@@ -159,15 +164,6 @@ class Smliser_Plugin extends Smliser_Repository {
     }
 
     /**
-     * Get license key.
-     * 
-     * @return string
-     */
-    public function get_license_key() {
-        return $this->license_key;
-    }
-
-    /**
      * Set Slug.
      * 
      * @param string $slug Plugin slug from repository.
@@ -199,7 +195,7 @@ class Smliser_Plugin extends Smliser_Repository {
      * 
      * @param string $url   URL for the profile
      */
-    public function set_author__profile( $url ) {
+    public function set_author_profile( $url ) {
         $this->author_profile = sanitize_text_field( $url );
     }
 
@@ -237,6 +233,14 @@ class Smliser_Plugin extends Smliser_Repository {
      */
     public function set_last_updated( $date ) {
         $this->last_updated = sanitize_text_field( $date );
+    }
+    /**
+     * Set When created
+     * 
+     * @param $date
+     */
+    public function set_created_at( $date ) {
+        $this->created_at = sanitize_text_field( $date );
     }
 
     /**
@@ -332,6 +336,12 @@ class Smliser_Plugin extends Smliser_Repository {
     public function get_last_updated() {
         return $this->last_updated;
     }
+    /**
+     * Get when updated
+     */
+    public function get_date_created() {
+        return $this->last_updated;
+    }
 
     /**
      * Get Download link.
@@ -347,6 +357,14 @@ class Smliser_Plugin extends Smliser_Repository {
         return $this->file;
     }
 
+    /**
+     * Get license key.
+     * 
+     * @return string
+     */
+    public function get_license_key() {
+        return $this->license_key;
+    }
 
     /*
     |--------------
@@ -355,21 +373,68 @@ class Smliser_Plugin extends Smliser_Repository {
     */
 
     /**
+     * Get a Plugin data by a given column name
+     */
+    public function get_plugin_by( $column_name = '', $value = '' ) {
+
+        $allowed_columns = array( 
+            'name', 'license_key', 
+            'slug', 'version', 'author', 
+            'author_profile', 'requires', 
+            'tested', 'requires_php', 
+            'download_link', 'created_at', 'last_updated',
+        );
+
+        // Sanitize the column name.
+        $column_name = sanitize_key( $column_name );
+
+        // Validate the column name.
+        if ( ! in_array( $column_name, $allowed_columns, true ) ) {
+            return false; // Invalid column name.
+        }
+
+        // Sanitize the value.
+        $value = sanitize_text_field( $value );
+
+        // Check if the value is empty.
+        if ( empty( $value ) ) {
+            return false;
+        }
+
+        global $wpdb;
+        // Prepare and execute the query.
+        $query = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE {$column_name} = %s", $value );
+        $result = $wpdb->get_row( $query, ARRAY_A );
+         if ( $result ){
+            return $result;
+
+        }
+        return false;
+    }
+
+    /**
      * Save a plugin.
      */
     public function save() {
-        // Handle the plugin file first
-        if ( empty( $this->file ) ) {
+        // Handle the plugin file first.
+        $file = $this->file;
+
+        if ( empty( $file ) ) {
             return new WP_Error( 'missing_plugin', 'No plugin uploaded' );
         }
 
-        $upload_to_repo = parent::upload_to_repository( $this->file );
+        global $smliser_repo, $wpdb;
+        $slug = $smliser_repo->upload_to_repository( $file );
 
-        if ( is_wp_error( $upload_to_repo ) ) {
-            return $upload_to_repo;
+        if ( is_wp_error( $slug ) ) {
+            return $slug;
         }
 
-        // Prepare plugin data
+        $this->set_slug( $slug );
+        $this->set_download_link( site_url( '/plugin/'. $slug )  );
+
+
+        // Prepare plugin data.
         $plugin_data = array(
             'name'          => sanitize_text_field( $this->get_name() ),
             'slug'          => sanitize_text_field( $this->get_slug() ),
@@ -383,8 +448,7 @@ class Smliser_Plugin extends Smliser_Repository {
             'download_link' => esc_url_raw( $this->get_download_link() ),
         );
 
-        // Database insertion
-        global $wpdb;
+        // Database insertion.
         $result = $wpdb->insert( 
             SMLISER_PLUGIN_ITEM_TABLE, 
             $plugin_data, 
@@ -396,7 +460,7 @@ class Smliser_Plugin extends Smliser_Repository {
             return $this->get_item_id();
         }
 
-        return new WP_Error( 'db_insert_error', 'Failed to insert plugin data into the database.' );
+        return new WP_Error( 'db_insert_error', $wpdb->last_error );
     }
 
     /**
@@ -406,16 +470,53 @@ class Smliser_Plugin extends Smliser_Repository {
 
     }
 
+    /**
+     * Form controller.
+     */
     public static function plugin_upload_controller () {
         if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
-            $obj = new parent();
-            $obj->upload_to_repository( $_FILES['smliser_plugin_file'] );
-            
-            //var_dump( $_FILES['smliser_plugin_file'] );
-        } else{
-            wp_die( 'Nothing posted' );
-        }
+            global $smliser_repo;
+            $self = new self();
+            $file = $_FILES['smliser_plugin_file'];
 
+            $self->set_file( $file );
+            $self->set_name( isset( $_POST['smliser_plugin_name']  ) ? sanitize_text_field( $_POST['smliser_plugin_name'] ) : '' );
+            $self->set_author( isset( $_POST['smliser_plugin_author']  ) ? sanitize_text_field( $_POST['smliser_plugin_author'] ) : '' );
+            $self->set_author_profile( isset( $_POST['smliser_plugin_author_profile']  ) ? sanitize_text_field( $_POST['smliser_plugin_author_profile'] ) : '' );
+            $self->set_required( isset( $_POST['smliser_plugin_requires']  ) ? sanitize_text_field( $_POST['smliser_plugin_requires'] ) : '' );
+            $self->set_tested( isset( $_POST['smliser_plugin_tested']  ) ? sanitize_text_field( $_POST['smliser_plugin_tested'] ) : '' );
+            $self->set_required_php( isset( $_POST['smliser_plugin_requires_php']  ) ? sanitize_text_field( $_POST['smliser_plugin_requires_php'] ) : '' );
+            $is_new     = isset( $_POST['smliser_plugin_upload_new'] ) ? true : false;
+            $is_update  = isset( $_POST['smliser_plugin_upload_update'] ) ? true : false;
+
+            if ( $is_new ) {
+                $item_id = $self->save();
+                var_dump( $item_id );
+            }
+
+        }
+    }
+
+    /**
+     * convert database result to Smliser_plugin
+     */
+    private static function convert_db_result( $result ) {
+        $self = new self();
+        $self->set_name( $result['name'] );
+        $self->set_license_key( $result['license_key'] );
+        $self->set_slug( $result['slug'] );
+        $self->set_version( $result['version'] );
+        $self->set_author( $result['author'] );
+        $self->set_author_profile( $result['author_profile'] );
+        $self->set_required( $result['requires'] );
+        $self->set_tested( $result['tested'] );
+        $self->set_required_php( $result['requires_php'] );
+        $self->set_download_link( $result['download_link'] );
+        $self->set_created_at( $result['created_at'] );
+        $self->set_last_updated( $result['last_updated'] );
+        
+        
+        //$self->set_file( $result['tested'] );
     }
 
 }

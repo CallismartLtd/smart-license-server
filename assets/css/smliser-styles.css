@@ -195,7 +195,16 @@
     display: flex;
     margin-bottom: 15px;
   }
-  
+  .smliser-form-file-row{
+    display: inline-block;
+    margin-bottom: 15px;
+    width: 350px;
+    box-shadow: 0 10px 10px rgba(3, 1, 2, 0.2);
+    text-align: center;
+    border-radius: 9px;
+    font-weight: bold;
+
+}
   .smliser-form-label {
     flex: 1; /* Label takes up some space */
     font-weight: bold;
@@ -245,14 +254,7 @@
     
 }
 
-.smliser-form-file-input {
-    padding: 10px auto;
-    width: 350px;
-    height: 50px;
-    border: 1px solid #2b0808;
-    border-radius: 3px;
-    background-color: #f1f1f1;
-}
+
 
 
 .smliser-form-notice-container {

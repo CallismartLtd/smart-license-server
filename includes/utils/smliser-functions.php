@@ -229,7 +229,7 @@ function smliser_get_auth_token( $request ) {
  * 
  * @param string $service_id    The service ID associated with the license.
  */
-function smliser_generate_api_key( $service_id ) {
+function smliser_generate_api_key( $service_id = '' ) {
     $key  = bin2hex( random_bytes( 32 ) );
     set_transient( 'smliser_API_KEY'. $key, $service_id, 10 * DAY_IN_SECONDS );
     return $key;

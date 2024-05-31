@@ -6,10 +6,15 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+$max_upload_size_bytes = wp_max_upload_size();
+$max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 ?>
 
 <h1>Upload New Plugin <span class="dashicons dashicons-insert"></span></h1>
 <div class="smliser-form-container">
+    <?php if ( get_transient( 'smliser_form_validation_message' ) ) :?>
+        <?php echo wp_kses_post( smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ) ;?>
+    <?php endif;?>
     <form id="smliser-plugin-upload-form" class="smliser-form" method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ) ; ?>">
 
         <input type="hidden" name="action" value="smliser_plugin_upload" />
@@ -23,9 +28,13 @@ defined( 'ABSPATH' ) || exit;
 
         <div class="smliser-form-row">
             <label for="smliser-plugin-file" class="smliser-form-label">Plugin File (.zip):</label>
-            <span class="smliser-form-description" title="Upload the plugin zip file">?</span>
-            <input type="file" name="smliser_plugin_file" id="smliser-plugin-file" class="smliser-form-file-input" accept=".zip" required>
+            <span class="smliser-form-description" title="Upload the plugin zip file, Max Upload Size <?php echo $max_upload_size_mb . 'MB';?>">?</span>
+            <div class="smliser-form-file-row">
+            <input type="file" name="smliser_plugin_file" id="smliser-plugin-file" class="smliser-form-inpu" accept=".zip" required>
+            <p class="smliser-file-size"></p>
+            </div>
         </div>
+
 
         <div class="smliser-form-row">
             <label for="smliser-plugin-version" class="smliser-form-label">Version:</label>
@@ -60,7 +69,7 @@ defined( 'ABSPATH' ) || exit;
             <input type="text" name="smliser_plugin_requires_php" id="smliser-plugin-requires-php" class="smliser-form-input">
         </div>
 
-        <button type="submit" class="smliser-button">Upload Plugin</button>
+        <input type="submit" class="button action smliser-bulk-action-button" name="smliser_plugin_upload_new" value="Upload Plugin"/>
     </form>
 
 </div>

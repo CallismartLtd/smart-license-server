@@ -189,3 +189,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('smliser-plugin-file');
+    const fileSizeDisplay = document.querySelector('.smliser-file-size');
+
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const fileSizeMB = (file.size / 1024 / 1024).toFixed(2); // Convert size to MB and round to 2 decimal places
+            fileSizeDisplay.textContent = `File size: ${fileSizeMB} MB`;
+        } else {
+            fileSizeDisplay.textContent = '';
+        }
+    });
+});

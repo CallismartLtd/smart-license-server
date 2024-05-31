@@ -763,6 +763,39 @@ class Smliser_license {
     }
 
     /**
-     * Check if we can allow further access to License Endpoints.
+     * Check if we can serve license.
      */
+    public function can_serve_license( $item_id ) {
+        
+        if ( ! $this ) {
+            return new WP_Error( 'license_error', 'Invalid License key or service ID.' );    
+             
+        }
+
+        if ( absint( $item_id ) !== absint( $this->get_item_id() ) ) {
+            return new WP_Error( 'license_error', 'Invalid License key or service ID.' );    
+            
+        }
+    
+        if ( 'Expired' === $this->get_status() ) {
+            return new WP_Error( 'license_expired', 'License has expired, log into you account to renew your license.' );
+        }
+
+        if ( 'Suspended' === $this->get_status() ) {
+            return new WP_Error( 'license_suspended', 'License has been suspended, log into you account to resolve issues.' );
+        }
+
+        if ( 'Revoked' === $this->get_status() ) {
+            $response_data = array(
+                'code'      => 'license_revoked',
+                'message'   => 'License is currently revoked, log into you account to resolve issues.'
+            );
+            return new WP_Error( 'license_revoked', 'License is currently revoked, log into you account to resolve issues.' );
+        }
+
+        if ( 'Deactivated' === $this->get_status() ) {
+            return new WP_Error( 'license_deactivated', 'License has been deactivated, log into you account to regenrate or purchase new one.' );
+        }
+        return true;
+    }
 }

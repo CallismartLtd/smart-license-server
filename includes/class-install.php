@@ -89,9 +89,12 @@ class Smliser_install {
         'requires VARCHAR(9) DEFAULT NULL',
         'tested VARCHAR(9) DEFAULT NULL',
         'requires_php VARCHAR(9) DEFAULT NULL',
-        'download_link VARCHAR(9) DEFAULT NULL',
+        'download_link VARCHAR(400) DEFAULT NULL',
         'created_at DATETIME DEFAULT CURRENT_TIMESTAMP',
         'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+        'INDEX download_link_index (download_link)',
+        'INDEX slug_index (slug)',
+        'INDEX author_index (author)',
 
     );
 

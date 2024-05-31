@@ -31,31 +31,7 @@ class Smliser_Server{
      */
     public function __construct() {
         add_action( 'smliser_validate_license', array( $this, 'remote_validate' ) );
-        add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
-        add_action( 'init', array( $this, 'run_automation' ) );
-
-    }
-
-    /**
-     * Register cron.
-     */
-    public function register_cron( $schedules ) {
-        /** Add a new cron schedule interval for every 5 minutes. */
-        $schedules['smliser_five_minutely'] = array(
-            'interval' => 5 * MINUTE_IN_SECONDS,
-            'display'  => 'Five Minutely',
-        );
-        return $schedules;
-    }
-
-    /**
-     * Schedule event.
-     */
-    public function run_automation() {
-
-        if ( ! wp_next_scheduled( 'smliser_validate_license' ) ) {
-			wp_schedule_event( current_time( 'timestamp' ), 'smliser_five_minutely', 'smliser_validate_license' );
-		}
+        add_action( 'template_redirect', array( $this, 'serve_package_download' ) );
 
     }
 
@@ -462,14 +438,79 @@ class Smliser_Server{
      * Update permission checker.
      */
     public static function update_permission( $request ) {
+        $service_id = sanitize_text_field( $request->get_param( 'service_id' ) );
+        $api_key    = sanitize_text_field( smliser_get_auth_token( $request ) );
 
+        if ( ! smliser_verify_api_key( $api_key, $service_id ) ) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
      * Update response route handler
      */
     public static function update_response( $request ) {
+        $item_id        = absint( $request->get_param( 'item_id' ) );
+        $license_key    = sanitize_text_field( $request->get_param( 'license_key' ) );
+        $service_id     = sanitize_text_field( $request->get_param( 'service_id' ) );
+        $instance       = Smliser_license::instance();
+        $license        = $instance->get_license_data( $service_id, $license_key );
 
+        if ( empty( $license ) || is_wp_error( $license->can_serve_license( $item_id ) ) ) {
+            $response_data = array(
+                'code'      => 'license_error',
+                'message'   => 'You are not allowed to perform updates'
+            );
+            $response = new WP_REST_Response( $response_data, 401 );
+            $response->header( 'Content-Type', 'application/json' );
+    
+            return $response;
+        }
+
+        global $smliser_repo;
+        
+    }
+
+    /**
+     * Serve plugin Download.
+     */
+    public function serve_package_download() {
+        global $wp_query, $smliser_repo;
+
+        if ( isset( $wp_query->query_vars['plugin_slug'] ) && isset( $wp_query->query_vars['plugin_file'] ) ) {
+            $api_key        = sanitize_text_field( $wp_query->query_vars['api_key'] );
+            $plugin_slug    = sanitize_text_field( $wp_query->query_vars['plugin_slug'] );
+            $plugin_file    = sanitize_text_field( $wp_query->query_vars['plugin_file'] );
+
+
+            if ( ! smliser_verify_api_key( $api_key, $service_id ) ) {
+                wp_die( '', 401 );
+            }
+            
+            $slug           = trailingslashit( $plugin_slug ) . $plugin_file . '.zip';
+            $plugin_path    = $smliser_repo->get_repo_dir() . '/' . $slug;       
+            
+            if ( ! file_exists( $plugin_path ) ) {
+                wp_die('', 403 );
+            }
+    
+            // Serve the file for download
+            if ( is_readable( $plugin_path ) ) {
+                header( 'Content-Description: File Transfer' );
+                header( 'Content-Type: application/zip' );
+                header( 'Content-Disposition: attachment; filename="' . basename( $plugin_path ) . '"' );
+                header( 'Expires: 0' );
+                header( 'Cache-Control: must-revalidate' );
+                header( 'Pragma: public' );
+                header( 'Content-Length: ' . filesize( $plugin_path ) );
+                readfile( $plugin_path );
+                exit;
+            } else {
+                wp_die( 'Error: The file cannot be read.' );
+            }
+        }
     }
 }
 

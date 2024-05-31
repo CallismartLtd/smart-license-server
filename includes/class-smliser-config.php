@@ -41,10 +41,12 @@ class SmartLicense_config {
         // Register REST endpoints.
         add_action( 'rest_api_init', array( $this, 'rest_load' ) );
         add_action( 'plugins_loaded', array( $this, 'include' ) );
+        add_action( 'init', array( $this, 'init_hooks' ) );
         add_action( 'admin_post_smliser_bulk_action', array( 'Smliser_license', 'bulk_action') );
         add_action( 'admin_post_smliser_license_new', array( 'Smliser_license', 'license_form_controller') );
         add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller' ) );
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
+        add_filter( 'query_vars', array( $this, 'download_query_var') );
 
     }
 
@@ -70,8 +72,6 @@ class SmartLicense_config {
             'callback'            => array( 'Smliser_Server', 'update_response' ),
             'permission_callback' => array( 'Smliser_Server', 'update_permission' ),
         ) );
-
-
     }
 
     /**
@@ -99,7 +99,7 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-
+//echo smliser_generate_api_key( 'Smart48265fd99' );
     }
 
     /**
@@ -115,6 +115,53 @@ class SmartLicense_config {
      */
     public function load_styles() {
         wp_enqueue_style( 'smliser-styles', SMLISER_URL . 'assets/css/smliser-styles.css', array(), SMLISER_VER, 'all' );
+    }
+
+    /**
+     * Init hooks
+     */
+    public function init_hooks() {
+        add_rewrite_rule(
+            '^plugin/([^/]+)/([^/]+)/([^/]+)\.zip$',
+            'index.php?plugin_slug=$matches[1]&api_key=$matches[2]&plugin_file=$matches[3]',
+            'top'
+        );
+        add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
+        $this->run_automation();
+    }
+
+    /**
+     * Register cron.
+     */
+    public function register_cron( $schedules ) {
+        /** Add a new cron schedule interval for every 5 minutes. */
+        $schedules['smliser_five_minutely'] = array(
+            'interval' => 5 * MINUTE_IN_SECONDS,
+            'display'  => 'Five Minutely',
+        );
+        return $schedules;
+    }
+
+    /**
+     * Schedule event.
+     */
+    public function run_automation() {
+
+        if ( ! wp_next_scheduled( 'smliser_validate_license' ) ) {
+			wp_schedule_event( current_time( 'timestamp' ), 'smliser_five_minutely', 'smliser_validate_license' );
+		}
+
+    }
+
+    /**
+     * Plugin Download Query Variable
+     */
+    public function download_query_var( $vars ) {
+        $vars[] = 'plugin_slug';
+        $vars[] = 'api_key';
+        $vars[] = 'plugin_file';
+        
+        return $vars;
     }
     
 }
