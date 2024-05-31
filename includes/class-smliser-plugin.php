@@ -406,7 +406,7 @@ class Smliser_Plugin {
         $query = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE {$column_name} = %s", $value );
         $result = $wpdb->get_row( $query, ARRAY_A );
          if ( $result ){
-            return $result;
+            return self::convert_db_result( $result );
 
         }
         return false;
@@ -502,6 +502,7 @@ class Smliser_Plugin {
      */
     private static function convert_db_result( $result ) {
         $self = new self();
+        $self->set_item_id( $result['id'] );
         $self->set_name( $result['name'] );
         $self->set_license_key( $result['license_key'] );
         $self->set_slug( $result['slug'] );
@@ -515,8 +516,15 @@ class Smliser_Plugin {
         $self->set_created_at( $result['created_at'] );
         $self->set_last_updated( $result['last_updated'] );
         
-        
-        //$self->set_file( $result['tested'] );
+        global $smliser_repo;
+        $plugin_file_path   = $smliser_repo->get_plugin( $self->get_slug() );
+        if ( ! is_wp_error( $plugin_file_path ) ) {
+            $self->set_file( $plugin_file_path );
+        } else {
+            $self->set_file( null );
+        }
+
+        return $self;
     }
 
 }

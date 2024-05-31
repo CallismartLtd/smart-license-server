@@ -108,7 +108,7 @@ class Smliser_Repository {
 
         global $wp_filesystem;
 
-        // Construct the absolute file path
+        // Construct the absolute file path.
         $file_path = trailingslashit( $this->repo_dir ) . $sanitized_slug;
 
         // Check if the file exists in the repository

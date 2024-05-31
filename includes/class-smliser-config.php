@@ -99,7 +99,13 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-//echo smliser_generate_api_key( 'Smart48265fd99' );
+
+        $obj = new Smliser_Plugin();
+        $plugin = $obj->get_plugin_by( 'slug', 'woocommerce-subscriptions/woocommerce-subscriptions.zip' );
+        echo '<pre>';
+        var_dump( $plugin );
+        echo '<pre>';
+
     }
 
     /**
