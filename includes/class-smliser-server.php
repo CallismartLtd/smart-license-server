@@ -470,7 +470,25 @@ class Smliser_Server{
         }
 
         global $smliser_repo;
+        $plugin_id  = $license->get_item_id();
+        $pl_obj = new Smliser_Plugin();
+        $the_plugin = $pl_obj->get_plugin( $plugin_id );
+
+        if ( ! $the_plugin ){
+            $response_data = array(
+                'code'      => 'plugin_not_found',
+                'message'   => 'The plugin was not found'
+            );
+            $response = new WP_REST_Response( $response_data, 404 );
+            $response->header( 'Content-Type', 'application/json' );
+    
+            return $response;
+        }
         
+        $response = new WP_REST_Response( $the_plugin->encode(), 200 );
+        $response->header( 'Content-Type', 'application/json' );
+        return $response;
+
     }
 
     /**

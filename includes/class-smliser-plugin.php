@@ -97,19 +97,36 @@ class Smliser_Plugin {
      * 
      * @var array $sections
      */
-    private $sections = array();
+    private $sections = array(
+        'description'   => '',
+        'installation'  => '',
+        'changelog'     => '',
+    );
+
+    /**
+     * An array of different plugin screenshots.
+     * 
+     * @var array $screenshots
+     */
+    private $screenshots = array();
 
     /**
      * An array of banner images for the plugin..
      * 
      * @var array $banners
      */
-    private $banners = array();
+    private $banners = array(
+        '2x'    => '',
+        '1x'    => '',
+    );
 
     /**
      * Icons
      */
-    private $icons = array();
+    private $icons = array(
+        '2x'    => '',
+        '1x'    => '',
+    );
 
     /**
      * Download link.
@@ -366,6 +383,17 @@ class Smliser_Plugin {
         return $this->license_key;
     }
 
+    /**
+     * Get the URL to view the plugin.
+     */
+    public function get_url() {
+        $slug       = $this->get_slug();
+        $slug_parts = explode( '/', $slug );
+        $url        = site_url( 'plugins/'. $slug_parts[0] );
+        return esc_url_raw( $url );
+
+    }
+
     /*
     |--------------
     | Crud Methods
@@ -409,6 +437,29 @@ class Smliser_Plugin {
             return self::convert_db_result( $result );
 
         }
+        return false;
+    }
+
+    /**
+     * Get a plugin by it's ID.
+     * 
+     * @param int $id The plugin ID
+     */
+    public function get_plugin( $id = 0 ) {
+        $id = absint( $id );
+        if ( empty( $id ) ) {
+            return false;
+        }
+
+        // phpcs:disable
+        global $wpdb;
+        $query  = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE `id` = %d", $id );
+        $result = $wpdb->get_row( $query, ARRAY_A );
+        
+        if ( $result ) {
+            return self::convert_db_result( $result );
+        }
+
         return false;
     }
 
@@ -525,6 +576,44 @@ class Smliser_Plugin {
         }
 
         return $self;
+    }
+
+    /**
+     * Encode class data.
+     */
+    public function encode() {
+        
+        $data = array(
+            'name'      => $this->get_name(),
+            'id'        => $this->get_url(),
+            'slug'      => $this->get_slug(),
+            'plugin'    => $this->get_slug(),
+            'version'   => $this->get_version(),
+            'author'    => $this->get_author(),
+            'author_profile' => $this->get_author_profile(),
+            'url'       => $this->get_url(),
+            'package'   => $this->get_download_link(),
+            'icons'     => array(
+                '2x'        => '',
+                '1x'        => '',
+            ),
+            'banners'   => array(
+                '2x'        => '',
+                '1x'        => '',
+            ),
+            'requires'      => $this->get_required(),
+            'tested'        => $this->get_tested(),
+            'requires_php'  => $this->get_required_php(),
+            'requires_plugins'  => '',
+            'last_updated'  => $this->get_last_updated(),
+            'sections'      => array(
+                'description'   => '',
+                'installation'  => '',
+                'changelog'     => '',
+            ),
+        );
+
+        return $data;
     }
 
 }
