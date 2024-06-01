@@ -452,6 +452,7 @@ class Smliser_Server{
      * Update response route handler
      */
     public static function update_response( $request ) {
+        error_log( 'Update Endpoint has been accessed' );
         $item_id        = absint( $request->get_param( 'item_id' ) );
         $license_key    = sanitize_text_field( $request->get_param( 'license_key' ) );
         $service_id     = sanitize_text_field( $request->get_param( 'service_id' ) );
