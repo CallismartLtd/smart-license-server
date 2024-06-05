@@ -134,12 +134,12 @@ function smliser_lisense_admin_action_page( $action = 'add-new', $license_id = '
  * @param string $action Action query variable for the page.
  * @param int $license_id   The ID of the license. 
  */
-function smliser_repository_admin_action_page( $action = 'add-new', $product_id = '' ) {
+function smliser_repository_admin_action_page( $action = 'add-new', $item_id = '' ) {
     if ( 'edit' === $action || 'view' === $action ) {
         $url = add_query_arg( array(
             'action'        => $action,
-            'product_id'    => $prduct_id,
-        ), smliser_license_page() );
+            'item_id'       => $item_id,
+        ), smliser_repo_page() );
     } else {
         $url = add_query_arg( array(
             'action'    => $action,
@@ -273,4 +273,44 @@ function smliser_license_key_dropdown( $selected = false, $required = false , $e
         return $drop_down;
     }
 
+}
+
+/**
+ * Sanitize and normalize a file path to prevent directory traversal attacks.
+ *
+ * @param string $path The input path.
+ * @return string|WP_Error The sanitized and normalized path, or WP_Error on failure.
+ */
+function sanitize_and_normalize_path( $path ) {
+    // Remove any null bytes.
+    $path = str_replace( "\0", '', $path );
+
+    // Normalize to forward slashes.
+    $path = str_replace( '\\', '/', $path );
+
+    // Split the path into segments.
+    $segments = explode( '/', $path );
+    $sanitized_segments = array();
+
+    foreach ( $segments as $segment ) {
+        // Remove any empty segments or current directory references.
+        if ( $segment === '' || $segment === '.' ) {
+            continue;
+        }
+
+        // Remove any parent directory references.
+        if ( $segment === '..' ) {
+            array_pop( $sanitized_segments );
+        } else {
+            // Sanitize each segment.
+            $sanitized_segment = sanitize_file_name( $segment );
+            $sanitized_segments[] = $sanitized_segment;
+        }
+    }
+
+    // Rejoin the sanitized segments.
+    $sanitized_path = implode( '/', $sanitized_segments );
+
+    // Return the sanitized and normalized path.
+    return $sanitized_path;
 }

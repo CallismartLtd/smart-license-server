@@ -464,6 +464,26 @@ class Smliser_Plugin {
     }
 
     /**
+     * Get all plugins
+     */
+    public static function get_plugins() {
+        global $wpdb;
+        // phpcs:disable
+        $query      = "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE;
+        $results    = $wpdb->get_results( $query, ARRAY_A );
+        $plugins    = array();
+
+        if ( $results ) {
+
+            foreach ( $results as $result ) {
+                $plugins[] = self::convert_db_result( $result );
+            }
+        }
+
+        return $plugins;
+    }
+
+    /**
      * Save a plugin.
      */
     public function save() {
@@ -516,9 +536,28 @@ class Smliser_Plugin {
 
     /**
      * Update Plugin
+     * 
+     * @param array $data   Associative array of column_name => value.
+     * @return bool true if updated | false otherwise.
      */
-    public function update() {
+    public function update( $data ) {
+        if ( empty( $data ) ) {
+            return false;
+        }
 
+        $d_format = array();
+
+        foreach ( $data as $column => $value ) {
+            $d_format[] = $this->get_data_format( $value );
+        }
+
+        global $wpdb;
+
+        if ( $wpdb->update( SMLISER_PLUGIN_ITEM_TABLE, $data, array( 'id' => $this->get_item_id() ), $d_format, array( '%d' ) ) ) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -528,7 +567,7 @@ class Smliser_Plugin {
         if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
             global $smliser_repo;
             $self = new self();
-            $file = $_FILES['smliser_plugin_file'];
+            $file = isset( $_FILES['smliser_plugin_file'] ) ? $_FILES['smliser_plugin_file'] : '';
 
             $self->set_file( $file );
             $self->set_name( isset( $_POST['smliser_plugin_name']  ) ? sanitize_text_field( $_POST['smliser_plugin_name'] ) : '' );
@@ -537,12 +576,14 @@ class Smliser_Plugin {
             $self->set_required( isset( $_POST['smliser_plugin_requires']  ) ? sanitize_text_field( $_POST['smliser_plugin_requires'] ) : '' );
             $self->set_tested( isset( $_POST['smliser_plugin_tested']  ) ? sanitize_text_field( $_POST['smliser_plugin_tested'] ) : '' );
             $self->set_required_php( isset( $_POST['smliser_plugin_requires_php']  ) ? sanitize_text_field( $_POST['smliser_plugin_requires_php'] ) : '' );
+            $self->set_version( isset( $_POST['smliser_plugin_version']  ) ? sanitize_text_field( $_POST['smliser_plugin_version'] ) : '' );
             $is_new     = isset( $_POST['smliser_plugin_upload_new'] ) ? true : false;
             $is_update  = isset( $_POST['smliser_plugin_upload_update'] ) ? true : false;
 
             if ( $is_new ) {
                 $item_id = $self->save();
-                var_dump( $item_id );
+                wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $item_id ) );
+                exit;
             }
 
         }
@@ -579,13 +620,29 @@ class Smliser_Plugin {
     }
 
     /**
-     * Encode class data.
+     * Determine and return the format of a data.
+     * 
+     * @param mixed $data Unknown data.
+     * @return $format The correct data format for DB insertion or update.
      */
-    public function encode() {
-        
+    private function get_data_format( $data ) {
+        if ( is_int( $data ) ) {
+            return '%d';
+        } elseif ( is_float( $data ) ) {
+            return '%f';
+        } else {
+            return '%s';
+        }
+    }
+
+    /**
+     * Format response for plugin update.
+     */
+    public function formalize_response() {
+        $pseudo_slug    = explode( '/', $this->get_slug() )[0];
         $data = array(
             'name'      => $this->get_name(),
-            'id'        => $this->get_url(),
+            'id'        => $pseudo_slug,
             'slug'      => $this->get_slug(),
             'plugin'    => $this->get_slug(),
             'version'   => $this->get_version(),
@@ -610,10 +667,32 @@ class Smliser_Plugin {
                 'description'   => '',
                 'installation'  => '',
                 'changelog'     => '',
+                'FAQ'           => '',
             ),
         );
 
         return $data;
+    }
+
+    /**
+     * Syncronise License data with the plugin.
+     * 
+     * @param Smliser_license.
+     */
+    public static function sync_data( $data ) {
+        $item_id = $data->get_item_id();
+        if ( empty( $item_id ) ) {
+            return;
+        }
+
+        $obj    = new self();
+        $self   = $obj->get_plugin( absint( $item_id ) );
+        
+        if ( empty( $self ) ) {
+            return;
+        }
+
+        $self->update( array( 'license_key' => $data->get_license_key() ) );
     }
 
 }

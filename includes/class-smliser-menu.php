@@ -299,32 +299,69 @@ class Smliser_admin_menu {
      * Repository dashboard.
      */
     private function repositor_dashboard() {
-        global $smliser_repo;
+
+        $plugins     = Smliser_Plugin::get_plugins();
         $table_html  = '<div class="smliser-table-wrapper">';
-        $table_html .= '<h1>Repository Dashboard</h1>';
+        $table_html .= '<h1>Plugin Repository</h1>';
         $add_url     = smliser_repository_admin_action_page( 'add-new' );
         $table_html .= '<a href="'. esc_url( $add_url ) . '" class="button action smliser-nav-btn">Upload New Plugin</a>';
-        $plugins     = $smliser_repo->get_all_plugin_files();
-        $table_html .= '</div>';
+    
+        if ( empty( $plugins ) ) {
+            $table_html .= smliser_not_found_container( 'All uploaded plugins will appear here.' );
+            $table_html .= '</div>';
+    
+            return $table_html;
+            
+        }
+    
+        $table_html .= '<form id="smliser-bulk-action-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         
-        $table_html .= wp_nonce_field( 'smliser_table_nonce', 'smliser_table_nonce');
+        $table_html .= '<div class="smliser-actions-wrapper">';
+        
+        $table_html .= '<div class="smliser-search-box">';
+        $table_html .= '<input type="search" id="smliser-search" class="smliser-search-input" placeholder="' . esc_attr__( 'Search Plugins', 'smliser' ) . '">';
+        $table_html .= '</div>';
+        $table_html .= '</div>';
+    
         $table_html .= '<table class="smliser-table">';
         $table_html .= '<thead>';
         $table_html .= '<tr>';
-        $table_html .= '<th><input type="checkbox" id="smliser-select-all"></th>';
+        $table_html .= '<th>' . esc_html__( 'Item ID', 'smliser' ) . '</th>';
         $table_html .= '<th>' . esc_html__( 'Plugin Name', 'smliser' ) . '</th>';
-
+        $table_html .= '<th>' . esc_html__( 'Plugin Author', 'smliser' ) . '</th>';
+        $table_html .= '<th>' . esc_html__( 'Version', 'smliser' ) . '</th>';
+        $table_html .= '<th>' . esc_html__( 'Slug', 'smliser' ) . '</th>';
+        $table_html .= '<th>' . esc_html__( 'Created at', 'smliser' ) . '</th>';
+        $table_html .= '<th>' . esc_html__( 'Last Updated', 'smliser' ) . '</th>';
         $table_html .= '</tr>';
         $table_html .= '</thead>';
         $table_html .= '<tbody>';
-        
+    
         foreach ( $plugins as $plugin ) {
+            $plugin_edit_url    = smliser_repository_admin_action_page( 'edit', $plugin->get_item_id() );
+            $plugin_view_url    = smliser_repository_admin_action_page( 'view', $plugin->get_item_id() );
+    
             $table_html .= '<tr>';
-            $table_html .= '<td><input type="checkbox" class="smliser-license-checkbox" name="licenses[]" value=""> </td>';
-            $table_html .= '<td>' . esc_html( $plugin ) . '</td>';
+            $table_html .= '<td class="smliser-edit-row">';
+            $table_html .= esc_html( $plugin->get_item_id() );
+            $table_html .= '<div class="smliser-edit-link"><p><a href="' . esc_url( $plugin_edit_url ) . '">edit</a> | <a href="' . esc_url( $plugin_view_url ) . '">view</a> </p></div>';
+            $table_html .= '</td>';
+    
+            $table_html .= '<td>' . esc_html( $plugin->get_name() ) . '</td>';
+            $table_html .= '<td>' . $plugin->get_author() . '</td>';
+            $table_html .= '<td>' . esc_html( $plugin->get_version() ) . '</td>';
+            $table_html .= '<td>' . esc_html( $plugin->get_slug() ) . '</td>';
+            $table_html .= '<td>' . esc_html( $plugin->get_date_created() ) . '</td>';
+            $table_html .= '<td>' . esc_html( $plugin->get_last_updated() ) . '</td>';
             $table_html .= '</tr>';
-
         }
+    
+        $table_html .= '</tbody>';
+        $table_html .= '</table>';
+    
+        $table_html .= '</form>';
+        $table_html .= '<p class="sw-table-count">' . count( $plugins ) . ' items</p>';
+        $table_html .= '</div>';
         return $table_html;
     }
 

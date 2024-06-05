@@ -452,7 +452,6 @@ class Smliser_Server{
      * Update response route handler
      */
     public static function update_response( $request ) {
-        error_log( 'Update Endpoint has been accessed' );
         $item_id        = absint( $request->get_param( 'item_id' ) );
         $license_key    = sanitize_text_field( $request->get_param( 'license_key' ) );
         $service_id     = sanitize_text_field( $request->get_param( 'service_id' ) );
@@ -472,7 +471,7 @@ class Smliser_Server{
 
         global $smliser_repo;
         $plugin_id  = $license->get_item_id();
-        $pl_obj = new Smliser_Plugin();
+        $pl_obj     = new Smliser_Plugin();
         $the_plugin = $pl_obj->get_plugin( $plugin_id );
 
         if ( ! $the_plugin ){
@@ -486,7 +485,7 @@ class Smliser_Server{
             return $response;
         }
         
-        $response = new WP_REST_Response( $the_plugin->encode(), 200 );
+        $response = new WP_REST_Response( $the_plugin->formalize_response(), 200 );
         $response->header( 'Content-Type', 'application/json' );
         return $response;
 
@@ -502,20 +501,59 @@ class Smliser_Server{
             $api_key        = sanitize_text_field( $wp_query->query_vars['api_key'] );
             $plugin_slug    = sanitize_text_field( $wp_query->query_vars['plugin_slug'] );
             $plugin_file    = sanitize_text_field( $wp_query->query_vars['plugin_file'] );
+            
+            if ( $plugin_slug !== $plugin_file ) {
+                $wp_query->set_404();
+                status_header( 404 );
+                include( get_query_template( '404' ) );
+                exit;
+            }
 
+            $plugin_obj = new Smliser_Plugin();
+            $plugin     = $plugin_obj->get_plugin_by( 'slug', sanitize_and_normalize_path( $plugin_slug . '/' . $plugin_file . '.zip' ) );
+
+            if ( ! $plugin ) {
+                $wp_query->set_404();
+                status_header( 404 );
+                include( get_query_template( '404' ) );
+                exit;
+            }
+
+            // We have plugin file, let's get the associated license key.
+            $license_key = $plugin->get_license_key();
+            
+            if ( empty( $license_key ) ) {
+                wp_die( 'This is an illegal attempt to access an unlicensed plugin', 403 );
+
+            }
+
+            // We need to validate license key.
+            $license    = Smliser_license::get_by_key( $license_key );
+
+            if ( empty( $license ) ) {
+                wp_die( 'Illegal Access to licensed plugin', 403 );
+            }
+
+            $service_id = $license->get_service_id();
 
             if ( ! smliser_verify_api_key( $api_key, $service_id ) ) {
-                wp_die( '', 401 );
+                $wp_query->set_404();
+                status_header( 404 );
+                include( get_query_template( '404' ) );
+                exit;
             }
-            
-            $slug           = trailingslashit( $plugin_slug ) . $plugin_file . '.zip';
-            $plugin_path    = $smliser_repo->get_repo_dir() . '/' . $slug;       
+
+            $slug           = sanitize_and_normalize_path( trailingslashit( $plugin_slug ) . $plugin_file . '.zip' );
+            $plugin_path    = trailingslashit( $smliser_repo->get_repo_dir() ) . $slug;       
             
             if ( ! file_exists( $plugin_path ) ) {
-                wp_die('', 403 );
+                $wp_query->set_404();
+                status_header( 404 );
+                include( get_query_template( '404' ) );
+                exit;
             }
     
-            // Serve the file for download
+            // Serve the file for download.
             if ( is_readable( $plugin_path ) ) {
                 header( 'Content-Description: File Transfer' );
                 header( 'Content-Type: application/zip' );

@@ -487,9 +487,12 @@ class Smliser_license {
         );
 
         // phpcs:disable
-        $wpdb->insert( SMLISER_LICENSE_TABLE, $data, $data_format );
+        if ( $wpdb->insert( SMLISER_LICENSE_TABLE, $data, $data_format ) ) {
+            do_action( 'smliser_license_saved', $this->get_by_id( $wpdb->insert_id ) );
+            return $wpdb->insert_id;
+        }
         // phpcs:enable
-        return $wpdb->insert_id;
+        return false;
     }
 
     /**
@@ -537,6 +540,7 @@ class Smliser_license {
         $result = $wpdb->update( SMLISER_LICENSE_TABLE, $data, $where, $data_format, $where_format );
         // phpcs:enable
         if ( $result ) {
+            do_action( 'smliser_license_saved', $this->get_by_id( $this->id ) );
             return true;
         }
 
@@ -668,8 +672,10 @@ class Smliser_license {
                 wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
             } elseif ( $is_editing ) {
                 $obj->update();
+                sleep(4);
                 set_transient( 'smliser_form_success', true, 4 );
                 wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
+                exit;
             }             
         }
        // wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );

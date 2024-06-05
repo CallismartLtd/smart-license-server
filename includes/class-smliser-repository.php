@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 class Smliser_Repository {
 
     /**
-     * @var bool Where WP can directly access thefilesystem.
+     * @var bool Whether WP can directly access thefilesystem.
      */
     protected $is_loaded = false;
 
@@ -37,13 +37,6 @@ class Smliser_Repository {
     }
 
     /**
-     * Get Repository Directory
-     */
-    public function get_repo_dir() {
-        return $this->repo_dir;
-    }
-
-    /**
      * Initialize the WordPress filesystem.
      */
     private function initialize_filesystem() {
@@ -62,6 +55,34 @@ class Smliser_Repository {
         }
 
     }
+
+   /**
+     * Instance of current class
+     */
+    public static function instance() {
+        if ( is_null( self::$instance ) ) {
+            return self::$instance = new self();
+        }
+    }
+
+    /*
+    |------------
+    | Getters
+    |------------
+    */
+    
+    /**
+     * Get Repository Directory
+     */
+    public function get_repo_dir() {
+        return $this->repo_dir;
+    }
+
+    /*
+    |--------------
+    | CRUD methods
+    |--------------
+    */
 
     /**
      * Get all files in the repository.
@@ -119,26 +140,6 @@ class Smliser_Repository {
         return $file_path;
     }
 
-
-    /**
-     * Write contents to a file in the repository.
-     *
-     * @param string $file_name Name of the file to write to.
-     * @param string $contents Contents to write.
-     * @return true|WP_Error True on success or WP_Error on failure.
-     */
-    public function write_file( $file_name, $contents ) {
-        global $wp_filesystem;
-
-        $file_path = $this->repo_dir . '/' . $file_name;
-
-        if ( ! $wp_filesystem->put_contents( $file_path, $contents, FS_CHMOD_FILE ) ) {
-            return new WP_Error( 'file_write_failed', __( 'Failed to write file', 'smliser' ) );
-        }
-
-        return true;
-    }
-
     /**
      * Delete a file from the repository.
      *
@@ -159,38 +160,6 @@ class Smliser_Repository {
         }
 
         return true;
-    }
-
-    /**
-     * Update a file in the repository.
-     *
-     * @param string $file_name Name of the file to update.
-     * @param string $contents New contents for the file.
-     * @return true|WP_Error True on success or WP_Error on failure.
-     */
-    public function update_file( $file_name, $contents ) {
-        return $this->write_file( $file_name, $contents );
-    }
-
-    /**
-     * Add a notice if file system is not direct.
-     */
-    private function add_connection_notice() {
-        add_action( 'admin_notices', function() {
-            $message = '<div class="notice notice-warning"><p>
-            Your server filesystem configuration requires authentication. In other to use Smart License Server, you will
-            need to configure it to use FTP credentials.</p></div>';
-            echo wp_kses_post( $message );
-        }  );
-    }
-
-    /**
-     * Instance of current class
-     */
-    public static function instance() {
-        if ( is_null( self::$instance ) ) {
-            return self::$instance = new self();
-        }
     }
 
     /**
@@ -228,6 +197,145 @@ class Smliser_Repository {
 
         // The plugin slug.
         return untrailingslashit( $base_name . '/' . $file_name );
+    }
+
+    /**
+     * Get plugin description
+     *
+     * @param string $plugin_slug The slug of the plugin zip file.
+     * @return string The plugin description or an error message.
+     */
+    public function get_description( $plugin_slug ) {
+        $repo_dir           = $this->get_repo_dir();
+        $zipped_file_path   = trailingslashit( $repo_dir ) . $plugin_slug;
+        $zip                = new ZipArchive;
+
+        if ( $zip->open( $zipped_file_path ) === TRUE ) {
+            // Loop through the files in the zip archive
+            for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+                $file_name = $zip->getNameIndex( $i );
+
+                // Check if this file is the readme.txt file
+                if ( preg_match( '/^[^\/]+\/readme\.txt$/', $file_name ) ) {
+                    // Read the contents of the readme.txt file
+                    $readme_contents = $zip->getFromName( $file_name );
+
+                    // Close the zip archive
+                    $zip->close();
+
+                    // Look for the "== Description ==" section in the readme.txt
+                    if ( preg_match( '/==\s*Description\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
+                        return nl2br( esc_html( trim( $matches[1] ) ) );
+                    } else {
+                        return 'Description section not found in the readme.txt file.';
+                    }
+                }
+            }
+            // Close the zip archive if readme.txt is not found
+            $zip->close();
+            return 'readme.txt not found in the plugin file.';
+        } else {
+            return 'Unable to read plugin file.';
+        }
+    }
+
+    /**
+     * Get plugin changelog
+     *
+     * @param string $plugin_slug The slug of the plugin zip file.
+     * @return string The plugin changelog or an error message.
+     */
+    public function get_changelog( $plugin_slug ) {
+        $repo_dir = $this->get_repo_dir();
+        $zipped_file_path = trailingslashit( $repo_dir ) . $plugin_slug;
+        $zip = new ZipArchive;
+
+        if ( $zip->open( $zipped_file_path ) === TRUE ) {
+            // Loop through the files in the zip archive
+            for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+                $file_name = $zip->getNameIndex( $i );
+
+                // Check if this file is the readme.txt file
+                if ( preg_match( '/^[^\/]+\/readme\.txt$/', $file_name ) ) {
+                    // Read the contents of the readme.txt file
+                    $readme_contents = $zip->getFromName( $file_name );
+
+                    // Close the zip archive
+                    $zip->close();
+
+                    // Look for the "== Changelog ==" section in the readme.txt
+                    if ( preg_match( '/==\s*Changelog\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
+                        return nl2br( esc_html( trim( $matches[1] ) ) );
+                    } else {
+                        return 'Changelog section not found in the readme.txt file.';
+                    }
+                }
+            }
+            // Close the zip archive if readme.txt is not found
+            $zip->close();
+            return 'readme.txt not found in the plugin file.';
+        } else {
+            return 'Failed to open the plugin file.';
+        }
+    }
+
+    /**
+     * Get plugin installtion guide
+     *
+     * @param string $plugin_slug The slug of the plugin zip file.
+     * @return string The plugin installation text or an error message.
+     */
+    public function get_installation_text( $plugin_slug ) {
+        $repo_dir = $this->get_repo_dir();
+        $zipped_file_path = trailingslashit( $repo_dir ) . $plugin_slug;
+        $zip = new ZipArchive;
+
+        if ( $zip->open( $zipped_file_path ) === TRUE ) {
+            // Loop through the files in the zip archive
+            for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+                $file_name = $zip->getNameIndex( $i );
+
+                // Check if this file is the readme.txt file
+                if ( preg_match( '/^[^\/]+\/readme\.txt$/', $file_name ) ) {
+                    // Read the contents of the readme.txt file
+                    $readme_contents = $zip->getFromName( $file_name );
+
+                    // Close the zip archive
+                    $zip->close();
+
+                    // Look for the "== Changelog ==" section in the readme.txt
+                    if ( preg_match( '/==\s*Installation\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
+                        return nl2br( esc_html( trim( $matches[1] ) ) );
+                    } else {
+                        return 'Changelog section not found in the readme.txt file.';
+                    }
+                }
+            }
+            // Close the zip archive if readme.txt is not found
+            $zip->close();
+            return 'readme.txt not found in the zip file.';
+        } else {
+            return 'Failed to open the zip file.';
+        }
+    }
+
+
+    /*
+    |----------
+    | Utils
+    |----------
+    */
+
+    /**
+     * Add a notice if file system is not direct.
+     */
+    private function add_connection_notice() {
+        add_action( 'admin_notices', function() {
+            $message = '<div class="notice notice-warning"><p>
+            Your server filesystem configuration requires authentication. In other to use Smart License Server, you will
+            need to configure it to use FTP credentials.</p></div>';
+            echo wp_kses_post( $message );
+        }  );
     }
 }
 
