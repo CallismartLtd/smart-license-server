@@ -85,7 +85,7 @@ class Smliser_Server{
             'last_updated'  => $expires_after, 
             'license_key'   => $license_key,
             'token'         => $token,
-            'API_KEY'       => smliser_generate_api_key( $license->get_service_id() ),
+            'API_KEY'       => smliser_generate_api_key( $license->get_item_id(), $license_key ),
             'data'          => $data,
         );
 

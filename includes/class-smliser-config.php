@@ -101,10 +101,10 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-
         global $smliser_repo;
-        $path = "smart-woo-pro/smart-woo-pro.zip";
-        echo $smliser_repo->get_changelog( $path );
+        var_dump(  $smliser_repo->delete( 'smart-woo-pro/smart-woo-pro.zip' ));
+
+    
     }
 
     /**

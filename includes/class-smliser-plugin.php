@@ -278,6 +278,26 @@ class Smliser_Plugin {
         $this->file = $file;
     }
 
+    /**
+     * Set Section
+     * 
+     * @param array $section_data An associative array containing each section information.
+     * @see Smliser_Plugin::$sections.
+     */
+    public function set_section( $section_data ) {
+        if ( isset( $section_data['description'] ) ) {
+            $this->sections['description'] = sanitize_text_field( $section_data['description'] );
+        } 
+        
+        if ( isset( $section_data['installation'] ) ) {
+            $this->sections['installation'] = sanitize_text_field( $section_data['installation'] );
+        } 
+        
+        if ( isset( $section_data['changelog'] ) ) {
+            $this->sections['changelog'] = sanitize_text_field( $section_data['changelog'] );
+        }
+    }
+
     /*
     |-------------
     | Getters.
@@ -392,6 +412,25 @@ class Smliser_Plugin {
         $url        = site_url( 'plugins/'. $slug_parts[0] );
         return esc_url_raw( $url );
 
+    }
+
+    /**
+     * Get a plugin section information
+     * 
+     * @param string $name  Section name.
+     * @return string The particular section name
+     */
+    public function get_section( $name ) {
+        return $this->section[$name];
+    }
+
+    /**
+     * Get Sections
+     * 
+     * @return array $sections.
+     */
+    public function get_sections() {
+        return $this->sections;
     }
 
     /*
@@ -515,7 +554,6 @@ class Smliser_Plugin {
             'requires'      => sanitize_text_field( $this->get_required() ),
             'tested'        => sanitize_text_field( $this->get_tested() ),
             'requires_php'  => sanitize_text_field( $this->get_required_php() ),
-            'last_updated'  => sanitize_text_field( $this->get_last_updated() ),
             'download_link' => esc_url_raw( $this->get_download_link() ),
         );
 
@@ -535,12 +573,58 @@ class Smliser_Plugin {
     }
 
     /**
+     * Upload a plugin.
+     */
+    public function update() {
+        global $smliser_repo, $wpdb;
+        $file = $this->file;
+    
+        if ( ! empty( $file['name'] ) ) {
+            $slug = $smliser_repo->update_plugin( $file, $this->get_slug() );
+            if ( is_wp_error( $slug ) ) {
+                return $slug;
+            }
+            $this->set_slug( $slug );
+            $this->set_download_link( site_url( '/plugin/' . $slug ) );
+        }
+    
+        // Prepare plugin data.
+        $plugin_data = array(
+            'name'          => sanitize_text_field( $this->get_name() ),
+            'slug'          => sanitize_text_field( $this->get_slug() ),
+            'version'       => sanitize_text_field( $this->get_version() ),
+            'author'        => sanitize_text_field( $this->get_author() ),
+            'author_profile'=> esc_url_raw( $this->get_author_profile() ),
+            'requires'      => sanitize_text_field( $this->get_required() ),
+            'tested'        => sanitize_text_field( $this->get_tested() ),
+            'requires_php'  => sanitize_text_field( $this->get_required_php() ),
+            'download_link' => esc_url_raw( $this->get_download_link() ),
+            'last_updated'  => current_time( 'mysql' ),
+        );
+    
+        // Database update.
+        $result = $wpdb->update(
+            SMLISER_PLUGIN_ITEM_TABLE,
+            $plugin_data,
+            array( 'id' => absint( $this->get_item_id() ) ),
+            array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ),
+            array( '%d' )
+        );
+    
+        if ( $result ) {
+            return $this->get_item_id();
+        }
+        return $result;
+    }
+    
+
+    /**
      * Update Plugin
      * 
      * @param array $data   Associative array of column_name => value.
      * @return bool true if updated | false otherwise.
      */
-    public function update( $data ) {
+    public function update_data( $data ) {
         if ( empty( $data ) ) {
             return false;
         }
@@ -566,9 +650,18 @@ class Smliser_Plugin {
     public static function plugin_upload_controller () {
         if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
             global $smliser_repo;
-            $self = new self();
-            $file = isset( $_FILES['smliser_plugin_file'] ) ? $_FILES['smliser_plugin_file'] : '';
+            $is_new     = isset( $_POST['smliser_plugin_upload_new'] ) ? true : false;
+            $is_update  = isset( $_POST['smliser_plugin_upload_update'] ) ? true : false;
 
+            if ( $is_new ) {
+                $self = new self();
+            } elseif ( $is_update ) {
+                $id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+                $obj = new self();
+                $self = $obj->get_plugin( $id );
+            }
+
+            $file = isset( $_FILES['smliser_plugin_file'] ) ? $_FILES['smliser_plugin_file'] : '';
             $self->set_file( $file );
             $self->set_name( isset( $_POST['smliser_plugin_name']  ) ? sanitize_text_field( $_POST['smliser_plugin_name'] ) : '' );
             $self->set_author( isset( $_POST['smliser_plugin_author']  ) ? sanitize_text_field( $_POST['smliser_plugin_author'] ) : '' );
@@ -577,13 +670,23 @@ class Smliser_Plugin {
             $self->set_tested( isset( $_POST['smliser_plugin_tested']  ) ? sanitize_text_field( $_POST['smliser_plugin_tested'] ) : '' );
             $self->set_required_php( isset( $_POST['smliser_plugin_requires_php']  ) ? sanitize_text_field( $_POST['smliser_plugin_requires_php'] ) : '' );
             $self->set_version( isset( $_POST['smliser_plugin_version']  ) ? sanitize_text_field( $_POST['smliser_plugin_version'] ) : '' );
-            $is_new     = isset( $_POST['smliser_plugin_upload_new'] ) ? true : false;
-            $is_update  = isset( $_POST['smliser_plugin_upload_update'] ) ? true : false;
 
             if ( $is_new ) {
                 $item_id = $self->save();
+                if ( is_wp_error( $item_id ) ) {
+                    set_transient( 'smliser_form_validation_message', $item_id->get_error_message(), 5 );
+                    wp_safe_redirect( smliser_repository_admin_action_page() );
+                    exit;
+                }
                 wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $item_id ) );
                 exit;
+            }
+            
+            if ( $is_update ) {
+                echo '<pre>';
+                var_dump( $self->update() );
+                // wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $id ) );
+                // exit;
             }
 
         }
@@ -608,6 +711,7 @@ class Smliser_Plugin {
         $self->set_created_at( $result['created_at'] );
         $self->set_last_updated( $result['last_updated'] );
         
+        /** Set file information */
         global $smliser_repo;
         $plugin_file_path   = $smliser_repo->get_plugin( $self->get_slug() );
         if ( ! is_wp_error( $plugin_file_path ) ) {
@@ -615,6 +719,14 @@ class Smliser_Plugin {
         } else {
             $self->set_file( null );
         }
+
+        /** Section informations */
+        $sections = array(
+            'description'   => $smliser_repo->get_description( $self->get_slug() ),
+            'changelog'     => $smliser_repo->get_changelog( $self->get_slug() ),
+            'installation'  => $smliser_repo->get_installation_text( $self->get_slug() ),
+        );
+        $self->set_section( $sections );
 
         return $self;
     }
@@ -663,12 +775,7 @@ class Smliser_Plugin {
             'requires_php'  => $this->get_required_php(),
             'requires_plugins'  => '',
             'last_updated'  => $this->get_last_updated(),
-            'sections'      => array(
-                'description'   => '',
-                'installation'  => '',
-                'changelog'     => '',
-                'FAQ'           => '',
-            ),
+            'sections'      => $this->get_sections(),
         );
 
         return $data;
@@ -692,7 +799,7 @@ class Smliser_Plugin {
             return;
         }
 
-        $self->update( array( 'license_key' => $data->get_license_key() ) );
+        $self->update_data( array( 'license_key' => $data->get_license_key() ) );
     }
 
 }

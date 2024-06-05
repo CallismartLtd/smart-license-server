@@ -374,6 +374,25 @@ class Smliser_admin_menu {
         return ob_get_clean();
     }
 
+    /**
+     * Plugin edit page
+     */
+    public function edit_plugin_page() {
+        $id     = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
+        if ( empty( $id ) ) {
+            return smliser_not_found_container( 'Item ID parameter should not be manipulated' );
+        }
+        $obj    = new Smliser_Plugin();
+        $plugin = $obj->get_plugin( $id );
+        if ( empty( $plugin ) ) {
+            return smliser_not_found_container( 'Invalid or deleted plugin' );
+        }
+        ob_start();
+        include_once SMLISER_PATH . 'templates/repository/plugin-edit.php';
+        return ob_get_clean();
+
+    }
+
 }
 
 Smliser_admin_menu::instance();

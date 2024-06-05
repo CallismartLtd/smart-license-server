@@ -143,19 +143,19 @@ class Smliser_Repository {
     /**
      * Delete a file from the repository.
      *
-     * @param string $file_name Name of the file to delete.
+     * @param string $slug Name of the file to delete.
      * @return true|WP_Error True on success or WP_Error on failure.
      */
-    public function delete( $file_name ) {
+    public function delete( $slug ) {
         global $wp_filesystem;
-
-        $file_path = $this->repo_dir . '/' . $file_name;
+        $plugin_basename = explode( '/', $slug );
+        $file_path = $this->repo_dir . '/' . $plugin_basename[0];
 
         if ( ! $wp_filesystem->exists( $file_path ) ) {
             return new WP_Error( 'file_not_found', __( 'File not found', 'smliser' ) );
         }
 
-        if ( ! $wp_filesystem->delete( $file_path ) ) {
+        if ( ! $wp_filesystem->delete( $file_path, true ) ) {
             return new WP_Error( 'file_delete_failed', __( 'Failed to delete file', 'smliser' ) );
         }
 
@@ -197,6 +197,48 @@ class Smliser_Repository {
 
         // The plugin slug.
         return untrailingslashit( $base_name . '/' . $file_name );
+    }
+
+    /**
+     * Safely update an existing plugin the repository.
+     *
+     * @param array $file The uploaded file details.
+     * @param string $location The file to update.
+     * @return true|WP_Error True on success or WP_Error on failure.
+     */
+    public function update_plugin( $file, $slug ) {
+        global $wp_filesystem;
+
+        $repo_dir       = $this->repo_dir;
+        $file_name      = $file['name'];
+        $tmp_name       = $file['tmp_name'];
+        $file_mime      = wp_check_filetype( $file_name );
+        $folder         = explode( '.', $file_name )[0];
+
+        if ( $file_mime['ext'] !== 'zip' ) {
+            return new WP_Error( 'invalid_file_type', 'Invalid file type, the plugin must be in zip format.' );
+        }
+
+        $original_plugin_path = $this->get_plugin( sanitize_and_normalize_path( $slug ) );
+
+        if ( is_wp_error( $original_plugin_path ) ) {
+            return $original_plugin_path;
+        }
+
+        // Attempt to replicate the original plugin path with and check if the upload will affect unintended plugin.
+        $pseudo_folder      = explode( '.', $file_name );
+        $plugin_basename    = $repo_dir . '/' . sanitize_and_normalize_path( $pseudo_folder[0] . '/' . $file_name ); 
+
+        if ( $plugin_basename !==  $original_plugin_path ) {
+            return new WP_Error( 'file_mismatch', 'The uploaded plugin is not same as the original.' );
+        }
+
+        if ( ! move_uploaded_file( $tmp_name, $plugin_basename ) ) {
+           return new WP_Error( 'failure_to_move', 'Failed to move uploaded file to the repository' );
+        }
+
+        // The plugin slug.
+        return sanitize_and_normalize_path( $slug );
     }
 
     /**
