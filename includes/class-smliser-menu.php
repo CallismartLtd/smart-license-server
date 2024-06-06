@@ -284,6 +284,11 @@ class Smliser_admin_menu {
             case 'edit':
                 $page = $this->edit_plugin_page();
                 break;
+
+            case 'view':
+                $page = $this->view_plugin_page();
+                break;
+    
             default:
             if ( empty( $action ) ) {
                 $page = $this->repositor_dashboard();
@@ -391,6 +396,18 @@ class Smliser_admin_menu {
         include_once SMLISER_PATH . 'templates/repository/plugin-edit.php';
         return ob_get_clean();
 
+    }
+
+    /**
+     * Plugin view
+     */
+    public function view_plugin_page() {
+        $id = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
+        if ( empty( $id ) ) {
+            return smliser_not_found_container( 'Item ID parameter should not be manipulated' );
+        }
+        $obj    = new Smliser_Plugin();
+        $plugin = $obj->get_plugin( $id );
     }
 
 }

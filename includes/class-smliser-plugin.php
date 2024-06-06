@@ -13,91 +13,91 @@ class Smliser_Plugin {
      * Item ID.
      * @var int $item_id The plugin ID.
      */
-    private $item_id = 0;
+    protected $item_id = 0;
 
     /**
      * The name of the plugin..
      * 
      * @var string $name The plugin's name.
      */
-    private $name = '';
+    protected $name = '';
         
     /**
      * License key for the plugin.
      * 
      * @var string $license_key
      */
-    private $license_key = '';
+    protected $license_key = '';
 
     /**
      * Plugin slug.
      * 
      * @var string $slug Plugin slug.
      */
-    private $slug = '';
+    protected $slug = '';
 
     /**
      * Plugin Version.
      * 
      * @var string $version The current version of the plugin.
      */
-    private $version = '';
+    protected $version = '';
 
     /**
      * Author .
      * 
      * @var string $author The author of the plugin
      */
-    private $author = '';
+    protected $author = '';
 
     /**
      * Author profile.
      * 
      * @var string $author_profile The author's profile link or information.
      */
-    private $author_profile = '';
+    protected $author_profile = '';
 
     /**
      * WordPress Version requirement.
      * 
      * @var string $requires The minimum WordPress version required to run the plugin.
      */
-    private $requires = '';
+    protected $requires = '';
 
     /**
      * Version Tested up to.
      * 
      * @var string $tested The latest WordPress version the plugin has been tested with.
      */
-    private $tested = '';
+    protected $tested = '';
 
     /**
      * PHP version requirement.
      * 
      * @var string $requires_php The minimum PHP version required to run the plugin.
      */
-    private $requires_php = '';
+    protected $requires_php = '';
 
     /**
      * Update time.
      * 
      * @var string $last_updated The last time the plugin was updated
      */
-    private $last_updated = '';
+    protected $last_updated = '';
 
     /**
      * Date created
      * 
      * @var string $created_at When plugin was created.
      */
-    private $created_at;
+    protected $created_at;
 
     /**
      * An array of different sections of plugin information (e.g., description, installation, FAQ).
      * 
      * @var array $sections
      */
-    private $sections = array(
+    protected $sections = array(
         'description'   => '',
         'installation'  => '',
         'changelog'     => '',
@@ -108,14 +108,14 @@ class Smliser_Plugin {
      * 
      * @var array $screenshots
      */
-    private $screenshots = array();
+    protected $screenshots = array();
 
     /**
      * An array of banner images for the plugin..
      * 
      * @var array $banners
      */
-    private $banners = array(
+    protected $banners = array(
         '2x'    => '',
         '1x'    => '',
     );
@@ -123,7 +123,7 @@ class Smliser_Plugin {
     /**
      * Icons
      */
-    private $icons = array(
+    protected $icons = array(
         '2x'    => '',
         '1x'    => '',
     );
@@ -133,14 +133,14 @@ class Smliser_Plugin {
      * 
      * @var $download_link The file url.
      */
-    private $download_link = '#';
+    protected $download_link = '#';
 
     /**
      * Plugin zip file.
      * 
      * @var string $file The plugin file.
      */
-    private $file;
+    protected $file;
 
     /**
      * Class constructor.
@@ -695,7 +695,7 @@ class Smliser_Plugin {
     /**
      * convert database result to Smliser_plugin
      */
-    private static function convert_db_result( $result ) {
+    protected static function convert_db_result( $result ) {
         $self = new self();
         $self->set_item_id( $result['id'] );
         $self->set_name( $result['name'] );
@@ -737,7 +737,7 @@ class Smliser_Plugin {
      * @param mixed $data Unknown data.
      * @return $format The correct data format for DB insertion or update.
      */
-    private function get_data_format( $data ) {
+    protected function get_data_format( $data ) {
         if ( is_int( $data ) ) {
             return '%d';
         } elseif ( is_float( $data ) ) {
