@@ -119,6 +119,9 @@ function smliser_datetime_format() {
  * @return string Formatted date or 'Not Available'.
  */
 function smliser_check_and_format( $dateString, $includeTime = false ) {
+    if ( smliser_is_empty_date( $dateString ) ) {
+        return 'N/A';
+    }
 	$locale = smliser_locale_date_format();
 	$format = $includeTime ? $locale->date_format . ' ' . $locale->time_format : $locale->date_format;
 	return ! empty( $dateString ) ? date_i18n( $format, strtotime( $dateString ) ) : 'N/A';

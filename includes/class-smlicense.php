@@ -85,7 +85,6 @@ class Smliser_license {
             $license_data = $this->get_license_data( $service_id, $license_key );
             return $license_data;
         }
-        //add_action( 'admin_post_smliser_add_license', array( $this->add_license() ) );
 
     }
     
@@ -328,6 +327,8 @@ class Smliser_license {
         return self::$action;
     }
 
+
+
     /*
     |-----------------
     |   CRUD METHODS
@@ -488,6 +489,7 @@ class Smliser_license {
 
         // phpcs:disable
         if ( $wpdb->insert( SMLISER_LICENSE_TABLE, $data, $data_format ) ) {
+            $this->id = absint( $wpdb->insert_id );
             do_action( 'smliser_license_saved', $this->get_by_id( $wpdb->insert_id ) );
             return $wpdb->insert_id;
         }
@@ -537,7 +539,9 @@ class Smliser_license {
         );
 
         // phpcs:disable
-        $result = $wpdb->update( SMLISER_LICENSE_TABLE, $data, $where, $data_format, $where_format );
+        $result = $wpdb->update( 
+            SMLISER_LICENSE_TABLE, $data, $where, $data_format, $where_format 
+        );
         // phpcs:enable
         if ( $result ) {
             do_action( 'smliser_license_saved', $this->get_by_id( $this->id ) );
@@ -546,6 +550,172 @@ class Smliser_license {
 
         return false;
     }
+
+    /**
+     * Add a new metadata to a license.
+     * 
+     * @param mixed $key Meta Key.
+     * @param mixed $value Meta value.
+     * @return bool True on success, false on failure.
+     */
+    public function add_meta( $key, $value ) {
+        if ( did_action( 'smliser_license_saved' ) > 0 ) {
+            global $wpdb;
+
+            // Sanitize inputs
+            $license_id = absint( $this->id );
+            $meta_key   = sanitize_text_field( $key );
+            $meta_value = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value  );
+
+            // Prepare data for insertion
+            $data = array(
+                'license_id'    => $license_id,
+                'meta_key'      => $meta_key,
+                'meta_value'    => $meta_value,
+            );
+
+            $data_format = array( '%d', '%s', '%s' );
+
+            $result = $wpdb->insert( SMLISER_LICENSE_META_TABLE, $data, $data_format );
+            return $result !== false;
+        }
+
+        return false;
+    }
+
+
+    /**
+     * Update existing metadata
+     * 
+     * @param mixed $key Meta key.
+     * @param mixed $value New value.
+     * @return bool True on success, false on failure.
+     */
+    public function update_meta( $key, $value ) {
+        global $wpdb;
+
+        $table_name = SMLISER_LICENSE_META_TABLE;
+        $key        = sanitize_text_field( $key );
+        $value      = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value );
+
+        // Prepare data for insertion/updation
+        $data = array(
+            'license_id' => absint( $this->id ),
+            'meta_key'   => $key,
+            'meta_value' => $value,
+        );
+
+        $data_format = array( '%d', '%s', '%s' );
+
+        // Check if the meta_key already exists for the given license_id
+        $exists = $wpdb->get_var( $wpdb->prepare(
+            "SELECT 1 FROM {$table_name} WHERE license_id = %d AND meta_key = %s",
+            absint( $this->id ),
+            $key
+        ) );
+
+        if ( ! $exists ) {
+            // Insert new record if it doesn't exist
+            $inserted = $wpdb->insert( $table_name, $data, $data_format );
+
+            return $inserted !== false;
+        } else {
+            // Update existing record
+            $updated = $wpdb->update(
+                $table_name,
+                array( 'meta_value' => $value ),
+                array(
+                    'license_id' => absint( $this->id ),
+                    'meta_key'   => $key,
+                ),
+                array( '%s' ),
+                array( '%d', '%s' )
+            );
+
+            return $updated !== false;
+        }
+    }
+
+    /**
+     * Get the value of a metadata
+     * 
+     * @param $meta_key The meta key.
+     * @return mixed|null $value The value.
+     */
+    public function get_meta( $meta_key ) {
+        global $wpdb;
+
+        $query  = $wpdb->prepare( 
+            "SELECT `meta_value` FROM " . SMLISER_LICENSE_META_TABLE . " WHERE `license_id` = %d AND `meta_key` = %s", 
+            absint( $this->id), 
+            sanitize_text_field( $meta_key ) 
+        );
+        $result = $wpdb->get_var( $query );
+        if ( is_null( $result ) ) {
+            return null;
+        }
+        return is_serialized( $result ) ? unserialize( $result ) : $result;
+    }
+
+    /**
+     * Get total sites license has been activated
+     */
+    public function get_total_active_sites() {
+        return count( $this->get_meta( 'websites activated on' ) ?? array() );
+    }
+
+    /**
+     * Update Activated sites
+     */
+    public function update_active_sites( $site_name ) {
+        $sites              = $this->get_meta( 'websites activated on' );
+        $activated_sites    = null;
+
+        if ( is_null( $sites ) ) {
+            $activated_sites = array( $site_name );
+            return $this->update_meta( 'websites activated on', $activated_sites );
+
+        } elseif ( is_string( $sites ) ) {
+            $sites = is_serialized( $sites ) ? unserialize( $sites ) : (array) $sites;
+        }
+        
+        array_splice( $sites, 0, 0, $site_name );
+        $activated_sites    = array_unique( $sites );
+        
+        return $this->update_meta( 'websites activated on', $activated_sites );
+    }
+
+    /**
+     * Delete a metadata from the license.
+     * 
+     * @param string $meta_key The meta key.
+     * @return bool True on success, false on failure.
+     */
+    public function delete_meta( $meta_key ) {
+        global $wpdb;
+
+        $license_id = absint( $this->id );
+        $meta_key   = sanitize_text_field( $meta_key );
+        $where      = array(
+            'license_id' => $license_id,
+            'meta_key' => $meta_key
+        );
+
+        $where_format = array( '%d', '%s' );
+
+        // Execute the delete query
+        $deleted = $wpdb->delete( SMLISER_LICENSE_META_TABLE, $where, $where_format );
+
+        // Return true on success, false on failure
+        return $deleted !== false;
+    }
+
+
+    /*
+    |-----------------
+    | ACTION HANDLERS
+    |-----------------
+    */
 
     /**
      * Handle bulk action on License table
@@ -669,16 +839,15 @@ class Smliser_license {
                 $obj->set_license_key( '', 'new' );
                 $license_id = $obj->save();
                 set_transient( 'smliser_form_success', true, 4 );
-                wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
+                wp_safe_redirect( smliser_license_admin_action_page( 'edit', $license_id ) );
             } elseif ( $is_editing ) {
                 $obj->update();
                 sleep(4);
                 set_transient( 'smliser_form_success', true, 4 );
-                wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
+                wp_safe_redirect( smliser_license_admin_action_page( 'edit', $license_id ) );
                 exit;
             }             
         }
-       // wp_safe_redirect( smliser_lisense_admin_action_page( 'edit', $license_id ) );
     }
 
     /**
@@ -766,6 +935,13 @@ class Smliser_license {
         }
 
         return $real_license_key;
+    }
+
+    /**
+     * Whether license has reached max allowed websites.
+     */
+    public function has_reached_max_allowed_sites() {
+
     }
 
     /**

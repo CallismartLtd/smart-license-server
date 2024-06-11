@@ -102,7 +102,7 @@ class Smliser_Server{
 
         // Task completed successfully, update status and store in 'completed_tasks'
         $highest_priority_task['status'] = 'completed';
-
+        $license->update_active_sites( parse_url( $callback_url, PHP_URL_HOST ) );
         // Retrieve or initialize 'completed_tasks' option
         $completed_tasks = get_option( 'completed_tasks', array() );
 
@@ -345,7 +345,7 @@ class Smliser_Server{
         if ( 'Deactivated' === $license->get_status() ) {
             $response_data = array(
                 'code'      => 'license_deactivated',
-                'message'   => 'License has been deactivated, log into you account to regenrate or purchase new one.'
+                'message'   => 'License has been deactivated, log into you account to regenerate or purchase new one.'
             );
             $response = new WP_REST_Response( $response_data, 403 );
             $response->header( 'Content-Type', 'application/json' );
@@ -396,7 +396,7 @@ class Smliser_Server{
      * Deactivation permission.
      */
     public static function deactivation_permission( $request ) {
-        // Retrieve the datas.
+        // Retrieve the data.
         $license_key    = sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) );
         $service_id     = sanitize_text_field( urldecode( $request->get_param( 'service_id') ) );
         

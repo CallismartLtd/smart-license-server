@@ -114,7 +114,7 @@ function smliser_is_empty_date( $date_string ) {
  * @param string $action Action query variable for the page.
  * @param int $license_id   The ID of the license. 
  */
-function smliser_lisense_admin_action_page( $action = 'add-new', $license_id = '' ) {
+function smliser_license_admin_action_page( $action = 'add-new', $license_id = '' ) {
     if ( 'edit' === $action || 'view' === $action ) {
         $url = add_query_arg( array(
             'action'        => $action,
@@ -233,7 +233,7 @@ function smliser_generate_api_key( $item_id = 0, $license_key = '' ) {
     
     
     $key  = bin2hex( random_bytes( 32 ) );
-    set_transient( 'smliser_API_KEY'. $key, $service_id, 10 * DAY_IN_SECONDS );
+    set_transient( 'smliser_API_KEY'. $key, $license_key, 10 * DAY_IN_SECONDS );
     return $key;
 }
 
@@ -316,3 +316,35 @@ function sanitize_and_normalize_path( $path ) {
     // Return the sanitized and normalized path.
     return $sanitized_path;
 }
+
+/**
+ * Merge strings and arrays into a single flat array with new keys.
+ *
+ * @return array Merged flat array with new keys.
+ */
+function merge_into_flat_array_with_keys() {
+    $args = func_get_args(); // Get all arguments passed to the function
+    $merged_array = array();
+    $key_index = 0;
+
+    foreach ( $args as $value ) {
+        if ( is_array( $value ) ) {
+            // Flatten the array and merge
+            foreach ( $value as $sub_value ) {
+                if ( is_array( $sub_value ) ) {
+                    foreach ( $sub_value as $inner_value ) {
+                        $merged_array[ 'key' . $key_index++ ] = $inner_value;
+                    }
+                } else {
+                    $merged_array[ 'key' . $key_index++ ] = $sub_value;
+                }
+            }
+        } else {
+            // Directly add strings
+            $merged_array[ 'key' . $key_index++ ] = $value;
+        }
+    }
+
+    return $merged_array;
+}
+

@@ -33,8 +33,9 @@ class SmartLicense_config {
     public function __construct() {
         global $wpdb;
         define( 'SMLISER_LICENSE_TABLE', $wpdb->prefix.'smliser_licenses' );
-        define( 'SMLISER_LICENSE_STATS_TABLE', $wpdb->prefix . 'smliser_license_stats' );
-        define( 'SMLISER_PLUGIN_ITEM_TABLE', $wpdb->prefix.'smliser_plugins' );
+        define( 'SMLISER_PLUGIN_META_TABLE', $wpdb->prefix . 'smliser_plugin_meta' );
+        define( 'SMLISER_LICENSE_META_TABLE', $wpdb->prefix . 'smliser_license_meta' );
+        define( 'SMLISER_PLUGIN_ITEM_TABLE', $wpdb->prefix .'smliser_plugins' );
         define( 'SMLISER_REPO_DIR', WP_CONTENT_DIR . '/premium-repository' );
         register_activation_hook( SMLISER_FILE, array( 'Smliser_install', 'install' ) );
 
@@ -96,13 +97,19 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/class-smliser-repository.php';
         require_once SMLISER_PATH . 'includes/class-smliser-plugin.php';
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
+        require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
 
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
+        $array = array( "me", "we", "us", "them", "us", "we" );
+        // $obj = new Smliser_license();
+        // $license = $obj->get_by_id( 21 );
+        array_splice( $array, count( $array ), 0, "something more" );
+        echo '<pre>';
+        var_dump( array_unique( $array ) );
 
-    
     }
 
     /**
@@ -118,6 +125,7 @@ class SmartLicense_config {
      */
     public function load_styles() {
         wp_enqueue_style( 'smliser-styles', SMLISER_URL . 'assets/css/smliser-styles.css', array(), SMLISER_VER, 'all' );
+        wp_enqueue_style( 'smliser-form-styles', SMLISER_URL . 'assets/css/smliser-forms.css', array(), SMLISER_VER, 'all' );
     }
 
     /**

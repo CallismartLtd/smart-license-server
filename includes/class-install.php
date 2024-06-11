@@ -35,6 +35,8 @@ class Smliser_install {
         $tables = array(
             SMLISER_LICENSE_TABLE,
             SMLISER_PLUGIN_ITEM_TABLE,
+            SMLISER_LICENSE_META_TABLE,
+            SMLISER_PLUGIN_META_TABLE,
         );
 
         foreach( $tables as $table ) {
@@ -68,39 +70,68 @@ class Smliser_install {
             'start_date DATE DEFAULT NULL',
             'end_date DATE DEFAULT NULL',
             'INDEX service_id_index (service_id)',
-			'INDEX status_index (status)',
-			'INDEX user_id_index (user_id)',
+            'INDEX status_index (status)',
+            'INDEX user_id_index (user_id)',
         );
 
         self::run_db_delta( $license_details_table, $license_table_columns );
 
-    /**
-     * Plugin table
-     */
-    $plugin_table_name = SMLISER_PLUGIN_ITEM_TABLE;
-    $plugin_table_columns = array(
-        'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-        'name VARCHAR(255) NOT NULL',
-        'license_key VARCHAR(300) DEFAULT NULL',
-        'slug VARCHAR(300) DEFAULT NULL',
-        'version VARCHAR(300) DEFAULT NULL',
-        'author VARCHAR(255) DEFAULT NULL',
-        'author_profile VARCHAR(255) DEFAULT NULL',
-        'requires VARCHAR(9) DEFAULT NULL',
-        'tested VARCHAR(9) DEFAULT NULL',
-        'requires_php VARCHAR(9) DEFAULT NULL',
-        'download_link VARCHAR(400) DEFAULT NULL',
-        'created_at DATETIME DEFAULT CURRENT_TIMESTAMP',
-        'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-        'INDEX download_link_index (download_link)',
-        'INDEX slug_index (slug)',
-        'INDEX author_index (author)',
+        /**
+         * Plugin table
+         */
+        $plugin_table_name      = SMLISER_PLUGIN_ITEM_TABLE;
+        $plugin_table_columns   = array(
+            'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'name VARCHAR(255) NOT NULL',
+            'license_key VARCHAR(300) DEFAULT NULL',
+            'slug VARCHAR(300) DEFAULT NULL',
+            'version VARCHAR(300) DEFAULT NULL',
+            'author VARCHAR(255) DEFAULT NULL',
+            'author_profile VARCHAR(255) DEFAULT NULL',
+            'requires VARCHAR(9) DEFAULT NULL',
+            'tested VARCHAR(9) DEFAULT NULL',
+            'requires_php VARCHAR(9) DEFAULT NULL',
+            'download_link VARCHAR(400) DEFAULT NULL',
+            'created_at DATETIME DEFAULT CURRENT_TIMESTAMP',
+            'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            'INDEX download_link_index (download_link)',
+            'INDEX slug_index (slug)',
+            'INDEX author_index (author)',
+        );
 
-    );
+        self::run_db_delta( $plugin_table_name, $plugin_table_columns );
 
-    self::run_db_delta( $plugin_table_name, $plugin_table_columns );
+        /**
+         * Plugin metadata table
+         */
+        $plugin_meta_table    = SMLISER_PLUGIN_META_TABLE;
+        $plugin_meta_columns  = array(
+            'id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'plugin_id BIGINT UNSIGNED NOT NULL',
+            'meta_key VARCHAR(255) NOT NULL',
+            'meta_value LONGTEXT DEFAULT NULL',
+            'INDEX plugin_id_index (plugin_id)',
+            'INDEX meta_key_index (meta_key)',
+        );
 
+        self::run_db_delta( $plugin_meta_table, $plugin_meta_columns );
+
+        /**
+         * License_metadata table
+         */
+        $license_meta_table     = SMLISER_LICENSE_META_TABLE;
+        $license_meta_columns   = array(
+            'id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'license_id BIGINT UNSIGNED NOT NULL',
+            'meta_key VARCHAR(255) NOT NULL',
+            'meta_value LONGTEXT DEFAULT NULL',
+            'INDEX license_id_index (license_id)',
+            'INDEX meta_key_index (meta_key)',
+        );
+
+        self::run_db_delta( $license_meta_table, $license_meta_columns );
     }
+
     
     /**
      * Create Tables.
@@ -125,7 +156,7 @@ class Smliser_install {
                 $sql .= "$column, ";
             }
     
-            $sql  = rtrim( $sql, ', ' ); // Remove the trailing comma and space.
+            $sql  = rtrim( $sql, ', ' );
             $sql .= ") $charset_collate;";
     
             // Execute the SQL query.

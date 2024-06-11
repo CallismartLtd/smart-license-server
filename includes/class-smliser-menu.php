@@ -128,6 +128,8 @@ class Smliser_admin_menu {
         } elseif( 'edit' === $action ) {
            $page = $this->edit_license_page();
             
+        } elseif( 'view' === $action ) {
+            $page = $this->license_view(); 
         } else {
             $page = $this->license_page();
         }
@@ -143,7 +145,7 @@ class Smliser_admin_menu {
         $licenses    = $obj->get_licenses();
         $table_html  = '<div class="smliser-table-wrapper">';
         $table_html .= '<h1>Licenses</h1>';
-        $add_url     = smliser_lisense_admin_action_page( 'add-new' );
+        $add_url     = smliser_license_admin_action_page( 'add-new' );
         $table_html .= '<a href="'. esc_url( $add_url ) . '" class="button action smliser-nav-btn">Add New License</a>';
     
         if ( empty( $licenses ) ) {
@@ -194,8 +196,8 @@ class Smliser_admin_menu {
             if ( -1 === intval( $license->get_user_id() ) ) {
                 $client_full_name = 'N/L';
             }
-            $license_edit_url   = smliser_lisense_admin_action_page( 'edit', $license->get_id() );
-            $license_view_url   = smliser_lisense_admin_action_page( 'view', $license->get_id() );
+            $license_edit_url   = smliser_license_admin_action_page( 'edit', $license->get_id() );
+            $license_view_url   = smliser_license_admin_action_page( 'view', $license->get_id() );
     
             $table_html .= '<tr>';
             $table_html .= '<td><input type="checkbox" class="smliser-license-checkbox" name="licenses[]" value="' . esc_attr( $license->get_id() ) . '"> </td>';
@@ -248,6 +250,29 @@ class Smliser_admin_menu {
         ob_start();
         include_once SMLISER_PATH . 'templates/license/license-edit.php';
         return ob_get_clean();
+    }
+
+    /**
+     * License details page
+     */
+    private function license_view() {
+        $license_id = isset( $_GET['license_id'] ) ? absint( $_GET['license_id'] ) : 0;
+        
+        if ( empty( $license_id ) ) {
+            return wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) );
+        }
+        $license    = Smliser_license::get_by_id( $license_id );
+        if ( empty( $license ) ) {
+            return wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) );
+        }
+
+        $user               = get_userdata( $license->get_user_id() );
+        $client_full_name   = $user ? $user->first_name . ' ' . $user->last_name : 'N/L';
+        $plugin_obj         = new Smliser_Plugin();
+        $licensed_plugin    = $plugin_obj->get_plugin( $license->get_item_id() );
+        ob_start();
+        include_once SMLISER_PATH . 'templates/license/license-admin-view.php';
+        return ob_get_clean();        
     }
 
     /**

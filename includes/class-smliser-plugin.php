@@ -7,6 +7,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Class representation of plugin meta data
+ */
 class Smliser_Plugin {
 
     /**
