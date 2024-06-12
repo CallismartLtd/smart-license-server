@@ -200,7 +200,7 @@ class Smliser_admin_menu {
             $license_view_url   = smliser_license_admin_action_page( 'view', $license->get_id() );
     
             $table_html .= '<tr>';
-            $table_html .= '<td><input type="checkbox" class="smliser-license-checkbox" name="licenses[]" value="' . esc_attr( $license->get_id() ) . '"> </td>';
+            $table_html .= '<td><input type="checkbox" class="smliser-license-checkbox" name="license_ids[]" value="' . esc_attr( $license->get_id() ) . '"> </td>';
             $table_html .= '<td class="smliser-edit-row">';
             $table_html .= esc_html( $license->get_id() );
             $table_html .= '<div class="smliser-edit-link"><p><a href="' . esc_url( $license_edit_url ) . '">edit</a> | <a href="' . esc_url( $license_view_url ) . '">view</a> </p></div>';
@@ -270,6 +270,7 @@ class Smliser_admin_menu {
         $client_full_name   = $user ? $user->first_name . ' ' . $user->last_name : 'N/L';
         $plugin_obj         = new Smliser_Plugin();
         $licensed_plugin    = $plugin_obj->get_plugin( $license->get_item_id() );
+        $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
         ob_start();
         include_once SMLISER_PATH . 'templates/license/license-admin-view.php';
         return ob_get_clean();        

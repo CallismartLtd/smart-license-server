@@ -174,6 +174,7 @@ function smliser_allowed_html() {
             'title' => array(),
             'class' => array(),
             'style' => array(),
+            'id' => array(),
         ),
         'span' => array(
             'class' => array(),

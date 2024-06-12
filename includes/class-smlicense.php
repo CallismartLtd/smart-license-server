@@ -640,9 +640,10 @@ class Smliser_license {
      * Get the value of a metadata
      * 
      * @param $meta_key The meta key.
+     * @param $default_to What to return when nothing is found.
      * @return mixed|null $value The value.
      */
-    public function get_meta( $meta_key ) {
+    public function get_meta( $meta_key, $default_to = null ) {
         global $wpdb;
 
         $query  = $wpdb->prepare( 
@@ -652,7 +653,7 @@ class Smliser_license {
         );
         $result = $wpdb->get_var( $query );
         if ( is_null( $result ) ) {
-            return null;
+            return $default_to;
         }
         return is_serialized( $result ) ? unserialize( $result ) : $result;
     }
@@ -661,7 +662,7 @@ class Smliser_license {
      * Get total sites license has been activated
      */
     public function get_total_active_sites() {
-        return count( $this->get_meta( 'websites activated on' ) ?? array() );
+        return count( $this->get_meta( 'websites activated on', array() ) );
     }
 
     /**
@@ -679,7 +680,7 @@ class Smliser_license {
             $sites = is_serialized( $sites ) ? unserialize( $sites ) : (array) $sites;
         }
         
-        array_splice( $sites, 0, 0, $site_name );
+        array_splice( $sites, count( $sites ), 0, $site_name );
         $activated_sites    = array_unique( $sites );
         
         return $this->update_meta( 'websites activated on', $activated_sites );
@@ -710,6 +711,19 @@ class Smliser_license {
         return $deleted !== false;
     }
 
+    /**
+     * Get All active licensed Websites.
+     */
+    public function get_active_sites() {
+        $all_sites = $this->get_meta( 'websites activated on', 'N/L' );
+        if ( is_array( $all_sites ) ) {
+            return implode( ', ', $all_sites );
+        }
+
+        if ( is_string( $all_sites ) ) {
+            return $all_sites;
+        }
+    }
 
     /*
     |-----------------
@@ -722,9 +736,9 @@ class Smliser_license {
      */
     public static function bulk_action() {
         
-        if ( isset( $_POST['smliser_table_nonce'] ) &&wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_table_nonce'] ) ), 'smliser_table_nonce' ) ) {
+        if ( isset( $_POST['smliser_table_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_table_nonce'] ) ), 'smliser_table_nonce' ) ) {
             $action     = sanitize_text_field( $_POST['bulk_action'] );
-            $licenses   = ! empty( $_POST['licenses'] ) ? array_map( 'absint', $_POST['licenses'] ) : '';
+            $licenses   = ! empty( $_POST['license_ids'] ) ? array_map( 'absint', $_POST['license_ids'] ) : '';
 
             switch ( $action ) {
                 case 'delete':
@@ -761,9 +775,24 @@ class Smliser_license {
                 default:
                     break;
             }
+            wp_safe_redirect( smliser_license_page() );
+            exit;
+        } elseif ( isset( $_GET['smliser_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['smliser_nonce'] ) ) ) ) {
+            $action     = isset( $_GET['real_action'] ) ? sanitize_text_field( $_GET['real_action'] ) : '';
+            $license_id = isset( $_GET['license_id'] ) ? absint( $_GET['license_id'] ) : 0;
+            
+            switch ( $action ) {
+                case 'delete':
+                    $obj = self::get_by_id( $license_id );
+                    $obj->delete();
+                    break;
+            }
+
+            wp_safe_redirect( smliser_license_page() );
+            exit;  
         }
-        wp_safe_redirect( smliser_license_page() );
-        exit;
+        
+
     }
 
     /**
@@ -941,7 +970,9 @@ class Smliser_license {
      * Whether license has reached max allowed websites.
      */
     public function has_reached_max_allowed_sites() {
-
+        if ( $this->get_total_active_sites() >= $this->get_allowed_sites() ) {
+            return true;
+        }
     }
 
     /**
@@ -977,6 +1008,10 @@ class Smliser_license {
 
         if ( 'Deactivated' === $this->get_status() ) {
             return new WP_Error( 'license_deactivated', 'License has been deactivated, log into you account to regenrate or purchase new one.' );
+        }
+
+        if ( $this->has_reached_max_allowed_sites() ) {
+            return new WP_Error( 'max_allowed_reached', 'License has reached maximum allowed activation' );
         }
         return true;
     }

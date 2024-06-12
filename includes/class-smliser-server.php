@@ -96,18 +96,14 @@ class Smliser_Server{
         $response = wp_remote_post( $callback_url, $request_body );
         // Check if remote request was successful
         if ( is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) !== 200 ) {
-
+            error_log( 'Remote validate not 200 ok' );
             return new WP_Error( 'remote_request_failed', 'Failed to execute remote POST request.' );
         }
 
-        // Task completed successfully, update status and store in 'completed_tasks'
+        $license->update_active_sites( get_base_address( $callback_url ) );
         $highest_priority_task['status'] = 'completed';
-        $license->update_active_sites( parse_url( $callback_url, PHP_URL_HOST ) );
-        // Retrieve or initialize 'completed_tasks' option
-        $completed_tasks = get_option( 'completed_tasks', array() );
-
-        // Add completed task to 'completed_tasks' option
-        $completed_tasks[] = $highest_priority_task;
+        $completed_tasks    = get_option( 'completed_tasks', array() );
+        $completed_tasks[]  = $highest_priority_task;
 
         // Update 'completed_tasks' option
         update_option( 'completed_tasks', $completed_tasks );
@@ -298,54 +294,11 @@ class Smliser_Server{
             return $response;
         }
 
-        if ( absint( $item_id ) !== absint( $license->get_item_id() ) ) {
+        $access = $license->can_serve_license( $item_id );
+        if ( is_wp_error( $access ) ) {
             $response_data = array(
                 'code'      => 'license_error',
-                'message'   => 'Invalid License key or service ID.'
-            );
-            $response = new WP_REST_Response( $response_data, 404 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-    
-        if ( 'Expired' === $license->get_status() ) {
-            $response_data = array(
-                'code'      => 'license_expired',
-                'message'   => 'License has expired, log into you account to renew your license.'
-            );
-            $response = new WP_REST_Response( $response_data, 402 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-
-        if ( 'Suspended' === $license->get_status() ) {
-            $response_data = array(
-                'code'      => 'license_suspended',
-                'message'   => 'License has been suspended, log into you account to resolve issues.'
-            );
-            $response = new WP_REST_Response( $response_data, 403 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-
-        if ( 'Revoked' === $license->get_status() ) {
-            $response_data = array(
-                'code'      => 'license_revoked',
-                'message'   => 'License is currently revoked, log into you account to resolve issues.'
-            );
-            $response = new WP_REST_Response( $response_data, 403 );
-            $response->header( 'Content-Type', 'application/json' );
-    
-            return $response;
-        }
-
-        if ( 'Deactivated' === $license->get_status() ) {
-            $response_data = array(
-                'code'      => 'license_deactivated',
-                'message'   => 'License has been deactivated, log into you account to regenerate or purchase new one.'
+                'message'   => $access->get_error_message()
             );
             $response = new WP_REST_Response( $response_data, 403 );
             $response->header( 'Content-Type', 'application/json' );
@@ -568,6 +521,21 @@ class Smliser_Server{
                 wp_die( 'Error: The file cannot be read.' );
             }
         }
+    }
+
+    /*
+    |----------------
+    |UTILITY METHODS
+    |----------------
+    */
+
+    /**
+     * Ban an IP from accessing our REST API Route.
+     * 
+     * @param string $ip The IP to ban
+     */
+    public function ban_ip( $ip ) {
+        return update_option( 'smliser_ip_ban_list', $ip );
     }
 }
 

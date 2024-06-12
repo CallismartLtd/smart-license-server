@@ -8,10 +8,12 @@ defined( 'ABSPATH' ) ||  exit;
 
 
 <?php if ( get_transient( 'smliser_form_success' ) ):?>
-    <div class="notice notice-success is-dismissible"><p>Updated!</p></div>
+    <div class="notice notice-success is-dismissible"><p>Saved!</p></div>
 <?php endif;?>
+<h1>Edit License <span class="dashicons dashicons-edit"></span></h1>
+<a href="<?php echo esc_url( smliser_license_admin_action_page( 'view', $license->get_id() ) ) ?>" class="button action smliser-nav-btn">View License</a>
 <div class="smliser-form-container">
-    <h1>Edit License <span class="dashicons dashicons-edit"></span></h1>
+    
     <?php if ( get_transient( 'smliser_form_validation_message' ) ) :?>
     <?php echo wp_kses_post( smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ) ;?>
     <?php endif;?>

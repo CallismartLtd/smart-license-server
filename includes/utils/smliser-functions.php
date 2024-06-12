@@ -318,33 +318,35 @@ function sanitize_and_normalize_path( $path ) {
 }
 
 /**
- * Merge strings and arrays into a single flat array with new keys.
+ * Get the base website address from a given URL, handling localhost and other environments.
  *
- * @return array Merged flat array with new keys.
+ * @param string $url The URL to parse.
+ * @return string The base website address.
  */
-function merge_into_flat_array_with_keys() {
-    $args = func_get_args(); // Get all arguments passed to the function
-    $merged_array = array();
-    $key_index = 0;
+function get_base_address( $url ) {
+    $parts = parse_url( $url );
 
-    foreach ( $args as $value ) {
-        if ( is_array( $value ) ) {
-            // Flatten the array and merge
-            foreach ( $value as $sub_value ) {
-                if ( is_array( $sub_value ) ) {
-                    foreach ( $sub_value as $inner_value ) {
-                        $merged_array[ 'key' . $key_index++ ] = $inner_value;
-                    }
-                } else {
-                    $merged_array[ 'key' . $key_index++ ] = $sub_value;
-                }
-            }
-        } else {
-            // Directly add strings
-            $merged_array[ 'key' . $key_index++ ] = $value;
-        }
+    if ( ! isset( $parts['scheme'], $parts['host'] ) ) {
+        return '';
     }
 
-    return $merged_array;
-}
+    $scheme = $parts['scheme'];
+    $host   = $parts['host'];
+    $path   = isset( $parts['path'] ) ? $parts['path'] : '';
 
+    // Check for localhost or local IP addresses
+    if ( $host === 'localhost' || preg_match( '/^127\.0\.0\.1|::1$/', $host ) ) {
+        // Split the path by slashes and take the first part after the host
+        $path_parts = explode( '/', trim( $path, '/' ) );
+        $base_path  = isset( $path_parts[0] ) ? '/' . $path_parts[0] : '';
+        return $scheme . '://' . $host . $base_path;
+    }
+
+    // Handle custom local domains (e.g., mysite.local)
+    if ( preg_match( '/^(.*)\.local$/', $host ) ) {
+        return $scheme . '://' . $host;
+    }
+
+    // For non-localhost addresses, return the scheme and host
+    return $scheme . '://' . $host;
+}

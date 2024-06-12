@@ -76,29 +76,6 @@ function smliserNotify(message, duration) {
 
 
 document.addEventListener('DOMContentLoaded', function () {
-
-    // Handle "select all" checkbox
-    const selectAllCheckbox = document.getElementById('smliser-select-all');
-    const checkboxes = document.querySelectorAll('.smliser-license-checkbox');
-
-    if (selectAllCheckbox ) {
-        selectAllCheckbox.addEventListener('change', function () {
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-        });
-    
-        // Prevent row click when individual checkbox is clicked
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('click', function (event) {
-                event.stopPropagation();
-            });
-        });
-    }
-});
-
-
-document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('smliser-search');
     const tableRows = document.querySelectorAll('.smliser-table tbody tr');
     const tableBody = document.querySelector('.smliser-table tbody');
@@ -194,6 +171,16 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('smliser-plugin-file');
     const fileSizeDisplay = document.querySelector('.smliser-file-size');
+    const deleteBtn = document.getElementById( 'smliser-license-delete-button' );
+    
+    if ( deleteBtn ) {
+        deleteBtn.addEventListener( 'click', function( event ) {
+            const userConfirmed = confirm( 'You are about to delete this license, be careful action cannot be reversed' );
+            if ( ! userConfirmed ) {
+                event.preventDefault();
+            }
+        });
+    }
 
     if ( fileInput ) {
         fileInput.addEventListener('change', function(event) {
@@ -206,4 +193,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Handle "select all" checkbox
+    const selectAllCheckbox = document.getElementById('smliser-select-all');
+    const checkboxes = document.querySelectorAll('.smliser-license-checkbox');
+
+    if (selectAllCheckbox ) {
+        selectAllCheckbox.addEventListener('change', function () {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        });
+    
+        // Prevent row click when individual checkbox is clicked
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('click', function (event) {
+                event.stopPropagation();
+            });
+        });
+    }
 });
+

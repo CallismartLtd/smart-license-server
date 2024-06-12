@@ -9,10 +9,10 @@
 
 defined( 'ABSPATH' ) || exit;
 add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
-
 ?>
 <h1>License Details</h1>
 <a href="<?php echo esc_url( smliser_license_admin_action_page( 'edit', $license->get_id() ) ) ?>" class="button action smliser-nav-btn">Edit License</a>
+<a href="<?php echo esc_url( $delete_link ) ?>" class="button action smliser-nav-btn" id="smliser-license-delete-button">Delete License</a>
 <div class="smliser-admin-view-page-wrapper">
     <div class="smliser-admin-view-page-header"> 
         <div class="smliser-admin-view-page-header-child">
@@ -37,7 +37,7 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Plugin Name: <p><a href="<?php echo esc_url(smliser_repository_admin_action_page( 'view', $licensed_plugin->get_item_id() ) ) ?>"><?php esc_html_e( $licensed_plugin->get_name() )?></a></p></p>
+            <p>Plugin Name: <p><a href="<?php echo ! empty( $licensed_plugin ) ? esc_url( smliser_repository_admin_action_page( 'view', $licensed_plugin->get_item_id() ) ) : '#' ?>"><?php esc_html_e( ! empty($licensed_plugin ) ? $licensed_plugin->get_name() : 'N/L' )?></a></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
@@ -45,11 +45,15 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Start Date: <p><?php esc_html_e( smliser_check_and_format( $license->get_start_date(), true ) ) ?></p></p>
+            <p>Start Date: <p><?php esc_html_e( smliser_check_and_format( $license->get_start_date() ) ) ?></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>End Date: <p><?php esc_html_e( smliser_check_and_format( $license->get_end_date(), true ) ) ?></p></p>
+            <p>End Date: <p><?php esc_html_e( smliser_check_and_format( $license->get_end_date() ) ) ?></p></p>
+        </div>
+
+        <div class="smliser-admin-view-page-body-item">
+            <p>Active on: <p><?php esc_html_e( $license->get_active_sites() ) ?></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
