@@ -151,9 +151,9 @@ class Smliser_Plugin {
     public function __construct() {}
 
     /*
-    |---------------
-    | Setters
-    |---------------
+    |----------
+    | SETTERS
+    |----------
     */
 
     /**
@@ -243,7 +243,7 @@ class Smliser_Plugin {
      * @param string $version
      */
     public function set_required_php( $version ) {
-        $this->requires_php = $version;
+        $this->requires_php = sanitize_text_field( $version );
     }
 
     /**
@@ -302,9 +302,9 @@ class Smliser_Plugin {
     }
 
     /*
-    |-------------
-    | Getters.
-    |-------------
+    |----------
+    | GETTERS.
+    |----------
     */
 
     /**
@@ -438,7 +438,7 @@ class Smliser_Plugin {
 
     /*
     |--------------
-    | Crud Methods
+    | CRUD METHODS
     |--------------
     */
 
@@ -557,7 +557,7 @@ class Smliser_Plugin {
             'requires'      => sanitize_text_field( $this->get_required() ),
             'tested'        => sanitize_text_field( $this->get_tested() ),
             'requires_php'  => sanitize_text_field( $this->get_required_php() ),
-            'download_link' => esc_url_raw( $this->get_download_link() ),
+            'download_link' => sanitize_url( $this->get_download_link(), array( 'http', 'https' ) ),
         );
 
         // Database insertion.
@@ -569,6 +569,7 @@ class Smliser_Plugin {
 
         if ( $result ) {
             $this->item_id = $wpdb->insert_id;
+            do_action( 'smliser_plugin_saved', $this );
             return $this->get_item_id();
         }
 
@@ -597,11 +598,11 @@ class Smliser_Plugin {
             'slug'          => sanitize_text_field( $this->get_slug() ),
             'version'       => sanitize_text_field( $this->get_version() ),
             'author'        => sanitize_text_field( $this->get_author() ),
-            'author_profile'=> esc_url_raw( $this->get_author_profile() ),
+            'author_profile'=> sanitize_url( $this->get_author_profile(), array( 'http', 'https' ) ),
             'requires'      => sanitize_text_field( $this->get_required() ),
             'tested'        => sanitize_text_field( $this->get_tested() ),
             'requires_php'  => sanitize_text_field( $this->get_required_php() ),
-            'download_link' => esc_url_raw( $this->get_download_link() ),
+            'download_link' => sanitize_url( $this->get_download_link(), array( 'http', 'https' ) ),
             'last_updated'  => current_time( 'mysql' ),
         );
     
@@ -615,6 +616,7 @@ class Smliser_Plugin {
         );
     
         if ( $result ) {
+            do_action( 'smliser_plugin_saved', $this );
             return $this->get_item_id();
         }
         return $result;
@@ -641,59 +643,181 @@ class Smliser_Plugin {
         global $wpdb;
 
         if ( $wpdb->update( SMLISER_PLUGIN_ITEM_TABLE, $data, array( 'id' => $this->get_item_id() ), $d_format, array( '%d' ) ) ) {
+            do_action( 'smliser_plugin_saved', $this );
             return true;
+        }
+
+        return false;
+    }
+    
+    public function delete() {
+        if ( empty( $this->item_id ) ) {
+            return false; // A valid plugin should have an ID.
+        }
+    
+        global $smliser_repo, $wpdb;
+        try {
+            $item_id        = $this->get_item_id();
+            $file_delete    = $smliser_repo->delete( $this->get_slug() );
+    
+            if ( is_wp_error( $file_delete ) ) {
+                throw new Exception( $file_delete->get_error_message() );
+            }
+    
+            $plugin_deletion    = $wpdb->delete( SMLISER_PLUGIN_ITEM_TABLE, array( 'id' => $item_id ), array( '%d' ) );
+            $meta_deletion      = $wpdb->delete( SMLISER_PLUGIN_META_TABLE, array( 'plugin_id' => $item_id ), array( '%d' ) );
+    
+            if ( false === $plugin_deletion || false === $meta_deletion ) {
+                throw new Exception( 'An issue occurred during the deletion' );
+            }
+        } catch ( Exception $e ) {
+            return false;
+        }
+    
+        return true;
+    }
+
+    /**
+     * Add a new metadata.
+     * 
+     * @param mixed $key Meta Key.
+     * @param mixed $value Meta value.
+     * @return bool True on success, false on failure.
+     */
+    public function add_meta( $key, $value ) {
+        if ( did_action( 'smliser_plugin_saved' ) > 0 ) {
+            global $wpdb;
+
+            // Sanitize inputs
+            $item_id    = absint( $this->get_item_id() );
+            $meta_key   = sanitize_text_field( $key );
+            $meta_value = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value );
+
+            // Prepare data for insertion
+            $data = array(
+                'plugin_id'    => $item_id,
+                'meta_key'      => $meta_key,
+                'meta_value'    => $meta_value,
+            );
+
+            $data_format = array( '%d', '%s', '%s' );
+
+            $result = $wpdb->insert( SMLISER_PLUGIN_META_TABLE, $data, $data_format );
+            return $result !== false;
         }
 
         return false;
     }
 
     /**
-     * Form controller.
+     * Update existing metadata
+     * 
+     * @param mixed $key Meta key.
+     * @param mixed $value New value.
+     * @return bool True on success, false on failure.
      */
-    public static function plugin_upload_controller () {
-        if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
-            global $smliser_repo;
-            $is_new     = isset( $_POST['smliser_plugin_upload_new'] ) ? true : false;
-            $is_update  = isset( $_POST['smliser_plugin_upload_update'] ) ? true : false;
+    public function update_meta( $key, $value ) {
+        if ( ! $this->get_item_id() ) {
+            return false;
+        }
+        global $wpdb;
 
-            if ( $is_new ) {
-                $self = new self();
-            } elseif ( $is_update ) {
-                $id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
-                $obj = new self();
-                $self = $obj->get_plugin( $id );
-            }
+        $table_name = SMLISER_PLUGIN_META_TABLE;
+        $key        = sanitize_text_field( $key );
+        $value      = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value );
 
-            $file = isset( $_FILES['smliser_plugin_file'] ) ? $_FILES['smliser_plugin_file'] : '';
-            $self->set_file( $file );
-            $self->set_name( isset( $_POST['smliser_plugin_name']  ) ? sanitize_text_field( $_POST['smliser_plugin_name'] ) : '' );
-            $self->set_author( isset( $_POST['smliser_plugin_author']  ) ? sanitize_text_field( $_POST['smliser_plugin_author'] ) : '' );
-            $self->set_author_profile( isset( $_POST['smliser_plugin_author_profile']  ) ? sanitize_text_field( $_POST['smliser_plugin_author_profile'] ) : '' );
-            $self->set_required( isset( $_POST['smliser_plugin_requires']  ) ? sanitize_text_field( $_POST['smliser_plugin_requires'] ) : '' );
-            $self->set_tested( isset( $_POST['smliser_plugin_tested']  ) ? sanitize_text_field( $_POST['smliser_plugin_tested'] ) : '' );
-            $self->set_required_php( isset( $_POST['smliser_plugin_requires_php']  ) ? sanitize_text_field( $_POST['smliser_plugin_requires_php'] ) : '' );
-            $self->set_version( isset( $_POST['smliser_plugin_version']  ) ? sanitize_text_field( $_POST['smliser_plugin_version'] ) : '' );
+        // Prepare data for insertion/update.
+        $data = array(
+            'plugin_id'     => absint( $this->get_item_id() ),
+            'meta_key'      => $key,
+            'meta_value'    => $value,
+        );
 
-            if ( $is_new ) {
-                $item_id = $self->save();
-                if ( is_wp_error( $item_id ) ) {
-                    set_transient( 'smliser_form_validation_message', $item_id->get_error_message(), 5 );
-                    wp_safe_redirect( smliser_repository_admin_action_page() );
-                    exit;
-                }
-                wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $item_id ) );
-                exit;
-            }
-            
-            if ( $is_update ) {
-                echo '<pre>';
-                var_dump( $self->update() );
-                // wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $id ) );
-                // exit;
-            }
+        $data_format = array( '%d', '%s', '%s' );
 
+        // Check if the meta_key already exists for the given plugin ID
+        $exists = $wpdb->get_var( $wpdb->prepare(
+            "SELECT 1 FROM {$table_name} WHERE plugin_id = %d AND meta_key = %s",
+            absint( $this->get_item_id() ),
+            $key
+        ) );
+
+        if ( ! $exists ) {
+            // Insert new record if it doesn't exist
+            $inserted = $wpdb->insert( $table_name, $data, $data_format );
+
+            return $inserted !== false;
+        } else {
+            // Update existing record
+            $updated = $wpdb->update(
+                $table_name,
+                array( 'meta_value' => $value ),
+                array(
+                    'plugin_id' => absint( $this->get_item_id() ),
+                    'meta_key'   => $key,
+                ),
+                array( '%s' ),
+                array( '%d', '%s' )
+            );
+
+            return $updated !== false;
         }
     }
+
+    /**
+     * Get the value of a metadata
+     * 
+     * @param $meta_key The meta key.
+     * @param $default_to What to return when nothing is found.
+     * @return mixed|null $value The value.
+     */
+    public function get_meta( $meta_key, $default_to = null ) {
+        global $wpdb;
+
+        $query  = $wpdb->prepare( 
+            "SELECT `meta_value` FROM " . SMLISER_PLUGIN_META_TABLE . " WHERE `plugin_id` = %d AND `meta_key` = %s", 
+            absint( $this->get_item_id() ), 
+            sanitize_text_field( $meta_key )
+        );
+
+        $result = $wpdb->get_var( $query );
+
+        if ( is_null( $result ) ) {
+            return $default_to;
+        }
+        return is_serialized( $result ) ? unserialize( $result ) : $result;
+    }
+
+    /**
+     * Delete a metadata.
+     * 
+     * @param string $meta_key The meta key.
+     * @return bool True on success, false on failure.
+     */
+    public function delete_meta( $meta_key ) {
+        global $wpdb;
+
+        $item_id    = absint( $this->get_item_id() );
+        $meta_key   = sanitize_text_field( $meta_key );
+        $where      = array(
+            'plugin_id' => $item_id,
+            'meta_key'  => $meta_key
+        );
+
+        $where_format = array( '%d', '%s' );
+
+        // Execute the delete query
+        $deleted = $wpdb->delete( SMLISER_PLUGIN_META_TABLE, $where, $where_format );
+
+        // Return true on success, false on failure
+        return $deleted !== false;
+    }
+
+    /*
+    |---------------
+    |UTILITY METHODS
+    |---------------
+    */
 
     /**
      * convert database result to Smliser_plugin
@@ -702,7 +826,6 @@ class Smliser_Plugin {
         $self = new self();
         $self->set_item_id( $result['id'] );
         $self->set_name( $result['name'] );
-        $self->set_license_key( $result['license_key'] );
         $self->set_slug( $result['slug'] );
         $self->set_version( $result['version'] );
         $self->set_author( $result['author'] );
@@ -784,13 +907,21 @@ class Smliser_Plugin {
         return $data;
     }
 
+    /*
+    |-------------------------------
+    | ACTION HANDLERS / CONTROLLERS
+    |-------------------------------
+    */
+
     /**
      * Syncronise License data with the plugin.
      * 
      * @param Smliser_license.
      */
-    public static function sync_data( $data ) {
-        $item_id = $data->get_item_id();
+    public static function action_handler() {
+        $item_id = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
+        $action  = isset( $_GET['real_action'] ) ? sanitize_text_field( $_GET['real_action'] ) : '';
+
         if ( empty( $item_id ) ) {
             return;
         }
@@ -802,7 +933,64 @@ class Smliser_Plugin {
             return;
         }
 
-        $self->update_data( array( 'license_key' => $data->get_license_key() ) );
+        switch ( $action ) {
+            case 'delete':
+                $self->delete();
+                break;
+        }
+        
+    }
+
+    /**
+     * Form controller.
+     */
+    public static function plugin_upload_controller () {
+        if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
+            global $smliser_repo;
+            $is_new     = isset( $_POST['smliser_plugin_upload_new'] ) ? true : false;
+            $is_update  = isset( $_POST['smliser_plugin_upload_update'] ) ? true : false;
+
+            if ( $is_new ) {
+                $self = new self();
+            } elseif ( $is_update ) {
+                $id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+                $obj = new self();
+                $self = $obj->get_plugin( $id );
+            }
+
+            $file = isset( $_FILES['smliser_plugin_file'] ) ? $_FILES['smliser_plugin_file'] : '';
+            $self->set_file( $file );
+            $self->set_name( isset( $_POST['smliser_plugin_name']  ) ? sanitize_text_field( $_POST['smliser_plugin_name'] ) : '' );
+            $self->set_author( isset( $_POST['smliser_plugin_author']  ) ? sanitize_text_field( $_POST['smliser_plugin_author'] ) : '' );
+            $self->set_author_profile( isset( $_POST['smliser_plugin_author_profile']  ) ? sanitize_text_field( $_POST['smliser_plugin_author_profile'] ) : '' );
+            $self->set_required( isset( $_POST['smliser_plugin_requires']  ) ? sanitize_text_field( $_POST['smliser_plugin_requires'] ) : '' );
+            $self->set_tested( isset( $_POST['smliser_plugin_tested']  ) ? sanitize_text_field( $_POST['smliser_plugin_tested'] ) : '' );
+            $self->set_required_php( isset( $_POST['smliser_plugin_requires_php']  ) ? sanitize_text_field( $_POST['smliser_plugin_requires_php'] ) : '' );
+            $self->set_version( isset( $_POST['smliser_plugin_version']  ) ? sanitize_text_field( $_POST['smliser_plugin_version'] ) : '' );
+
+            if ( $is_new ) {
+                $item_id = $self->save();
+                if ( is_wp_error( $item_id ) ) {
+                    set_transient( 'smliser_form_validation_message', $item_id->get_error_message(), 5 );
+                    wp_safe_redirect( smliser_repository_admin_action_page() );
+                    exit;
+                }
+                wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $item_id ) );
+                exit;
+            }
+            
+            if ( $is_update ) {
+                $update = $self->update();
+                if ( is_wp_error( $update ) ) {
+                    set_transient( 'smliser_form_validation_message', $update->get_error_message(), 5 );
+                }
+                
+                set_transient( 'smliser_form_success', true, 4 );
+                wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $id ) );
+                exit;
+            }
+
+        }
     }
 
 }

@@ -49,9 +49,8 @@ class SmartLicense_config {
         add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller' ) );
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
         add_filter( 'query_vars', array( $this, 'download_query_var') );
-        add_action( 'smliser_license_saved', array( 'Smliser_Plugin', 'sync_data') );
-
-
+        add_action( 'admin_post_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler') );
+        add_action( 'smliser_stats', array( 'Smliser_Stats', 'action_handler' ), 10, 4 );
     }
 
     /** Load or Register our Rest route */
@@ -105,7 +104,6 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
 
-        // var_dump( delete_option( 'completed_tasks' ) );
 
     }
 

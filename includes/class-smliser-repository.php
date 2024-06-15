@@ -134,7 +134,7 @@ class Smliser_Repository {
 
         // Check if the file exists in the repository
         if ( ! $wp_filesystem->exists( $file_path ) ) {
-            return new WP_Error( 'file_not_found', __( 'File not found: ' . $file_path, 'smliser' ) );
+            return new WP_Error( 'file_not_found', 'Plugin file not found');
         }
 
         return $file_path;

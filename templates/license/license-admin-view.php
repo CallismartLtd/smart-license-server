@@ -8,7 +8,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
+add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
 ?>
 <h1>License Details</h1>
 <a href="<?php echo esc_url( smliser_license_admin_action_page( 'edit', $license->get_id() ) ) ?>" class="button action smliser-nav-btn">Edit License</a>
@@ -17,43 +17,43 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
     <div class="smliser-admin-view-page-header"> 
         <div class="smliser-admin-view-page-header-child">
             <h2>Info</h2>
-            <p><span class="dashicons dashicons-database-view"></span> License ID: <?php esc_html_e( absint( $license->get_id() ) ) ?></p>
-            <p><span class="dashicons dashicons-yes-alt"></span> Status: <?php esc_html_e( $license->get_status() ) ?></p>
-            <p><a href="<?php echo esc_url( get_edit_user_link( absint( $license->get_user_id() ) ) ) ?>"><span class="dashicons dashicons-businessman"></span> Client: <?php esc_html_e( $client_full_name ) ?></a></p>
+            <p><span class="dashicons dashicons-database-view"></span> License ID: <?php echo esc_html( absint( $license->get_id() ) ) ?></p>
+            <p><span class="dashicons dashicons-yes-alt"></span> Status: <?php echo esc_html( $license->get_status() ) ?></p>
+            <p><a href="<?php echo esc_url( get_edit_user_link( absint( $license->get_user_id() ) ) ) ?>"><span class="dashicons dashicons-businessman"></span> Client: <?php echo esc_html( $client_full_name ) ?></a></p>
         </div>
 
         <div class="smliser-admin-view-page-header-child">
             <h2>Statistics</h2>
-            <p><span class="dashicons dashicons-admin-site-alt"></span> Max Allowed Sites: <?php esc_html_e( $license->get_allowed_sites() ) ?></p>
+            <p><span class="dashicons dashicons-admin-site-alt"></span> Max Allowed Sites: <?php echo esc_html( $license->get_allowed_sites() ) ?></p>
             <p><span class="dashicons dashicons-admin-site-alt3"></span> Total Sites Activated: <?php echo $license->get_total_active_sites()?></p>
-            <p><span class="dashicons dashicons-plugins-checked"></span> Item ID: <?php esc_html_e( $license->get_item_id() ) ?></p>
+            <p><span class="dashicons dashicons-plugins-checked"></span> Item ID: <?php echo esc_html( $license->get_item_id() ) ?></p>
         </div>
 
     </div>
     
     <div class="smliser-admin-view-page-body">
         <div class="smliser-admin-view-page-body-item">
-            <p>License ID: <p><?php esc_html_e( absint( $license->get_id() ) ) ?></p></p>
+            <p>License ID: <p><?php echo esc_html( absint( $license->get_id() ) ) ?></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Plugin Name: <p><a href="<?php echo ! empty( $licensed_plugin ) ? esc_url( smliser_repository_admin_action_page( 'view', $licensed_plugin->get_item_id() ) ) : '#' ?>"><?php esc_html_e( ! empty($licensed_plugin ) ? $licensed_plugin->get_name() : 'N/L' )?></a></p></p>
+            <p>Plugin Name: <p><a href="<?php echo ! empty( $licensed_plugin ) ? esc_url( smliser_repository_admin_action_page( 'view', $licensed_plugin->get_item_id() ) ) : '#' ?>"><?php echo esc_html( ! empty($licensed_plugin ) ? $licensed_plugin->get_name() : 'N/L' )?></a></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Service ID: <p><?php esc_html_e( $license->get_service_id() ) ?></p></p>
+            <p>Service ID: <p><?php echo esc_html( $license->get_service_id() ) ?></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Start Date: <p><?php esc_html_e( smliser_check_and_format( $license->get_start_date() ) ) ?></p></p>
+            <p>Start Date: <p><?php echo esc_html( smliser_check_and_format( $license->get_start_date() ) ) ?></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>End Date: <p><?php esc_html_e( smliser_check_and_format( $license->get_end_date() ) ) ?></p></p>
+            <p>End Date: <p><?php echo esc_html( smliser_check_and_format( $license->get_end_date() ) ) ?></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Active on: <p><?php esc_html_e( $license->get_active_sites() ) ?></p></p>
+            <p>Active on: <p><?php echo esc_html( $license->get_active_sites() ) ?></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">

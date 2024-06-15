@@ -327,7 +327,19 @@ class Smliser_license {
         return self::$action;
     }
 
+    /**
+     * Get All active licensed Websites.
+     */
+    public function get_active_sites() {
+        $all_sites = $this->get_meta( 'websites activated on', 'N/L' );
+        if ( is_array( $all_sites ) ) {
+            return implode( ', ', $all_sites );
+        }
 
+        if ( is_string( $all_sites ) ) {
+            return $all_sites;
+        }
+    }
 
     /*
     |-----------------
@@ -583,7 +595,6 @@ class Smliser_license {
         return false;
     }
 
-
     /**
      * Update existing metadata
      * 
@@ -687,6 +698,26 @@ class Smliser_license {
     }
 
     /**
+     * Remove Activated website
+     * 
+     * @param $website_name The name of the website.
+     */
+    public function remove_activated_website( $website_name ) {
+        $sites  = $this->get_meta( 'websites activated on' );
+
+        if ( empty( $sites ) ) {
+            return false;
+        }
+        
+        foreach ( (array) $sites as $k => $v ) {
+            if ( $v === $website_name ) {
+                unset( $sites[$k] );
+            }
+        }
+        return $this->update_meta( 'websites activated on', $sites );
+    }
+
+    /**
      * Delete a metadata from the license.
      * 
      * @param string $meta_key The meta key.
@@ -712,17 +743,30 @@ class Smliser_license {
     }
 
     /**
-     * Get All active licensed Websites.
+     * Delete a license
+     * 
+     * @param mixed $data 
      */
-    public function get_active_sites() {
-        $all_sites = $this->get_meta( 'websites activated on', 'N/L' );
-        if ( is_array( $all_sites ) ) {
-            return implode( ', ', $all_sites );
+    public function delete( $data = '' ) {
+        if ( is_int( $data ) ) {
+            $data = absint( $data );
+        }elseif ( empty( $data ) ) {
+            $data = $this ? absint( $this->get_id() ) : 0;
         }
 
-        if ( is_string( $all_sites ) ) {
-            return $all_sites;
+        if ( ! $data && defined( 'DOING_AJAX' ) ) {
+            wp_send_json_error( array( 'message' => 'Invalid Lincense' ) );
         }
+
+        global $wpdb;
+        // phpcs:disable
+		$deleted = $wpdb->delete( SMLISER_LICENSE_TABLE, array( 'id' => $data ), array( '%d' ) );
+		$deleted_meta = $wpdb->delete( SMLISER_LICENSE_META_TABLE, array( 'license_id' => $data ), array( '%d' ) );
+		// phpcs:enable
+		if ( false === $deleted && false === $deleted_meta ) {
+			return $deleted;
+		}
+        return true;
     }
 
     /*
@@ -777,7 +821,7 @@ class Smliser_license {
             }
             wp_safe_redirect( smliser_license_page() );
             exit;
-        } elseif ( isset( $_GET['smliser_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['smliser_nonce'] ) ) ) ) {
+        } elseif ( isset( $_GET['smliser_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['smliser_nonce'] ) ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             $action     = isset( $_GET['real_action'] ) ? sanitize_text_field( $_GET['real_action'] ) : '';
             $license_id = isset( $_GET['license_id'] ) ? absint( $_GET['license_id'] ) : 0;
             
@@ -791,8 +835,6 @@ class Smliser_license {
             wp_safe_redirect( smliser_license_page() );
             exit;  
         }
-        
-
     }
 
     /**
@@ -877,32 +919,6 @@ class Smliser_license {
                 exit;
             }             
         }
-    }
-
-    /**
-     * Delete a license
-     * 
-     * @param mixed $data 
-     */
-    public function delete( $data = '' ) {
-        if ( is_int( $data ) ) {
-            $data = absint( $data );
-        }elseif ( empty( $data ) ) {
-            $data = $this ? absint( $this->get_id() ) : 0;
-        }
-
-        if ( ! $data && defined( 'DOING_AJAX' ) ) {
-            wp_send_json_error( array( 'message' => 'Invalid Lincense' ) );
-
-        }
-        global $wpdb;
-        // phpcs:disable
-		$deleted = $wpdb->delete( SMLISER_LICENSE_TABLE, array( 'id' => $data ), array( '%d' ) );
-		// phpcs:enable
-		if ( false === $deleted ) {
-			return $deleted;
-		}
-        return true;
     }
 
     /**

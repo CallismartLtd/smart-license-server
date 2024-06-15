@@ -131,7 +131,7 @@ function smliser_check_and_format( $dateString, $includeTime = false ) {
 /**
  * Filter callback function to allow our tags into wp_kses filter
  */
-function smliser_allowed_html() {
+function smliser_allowed_html( $wp_html, $context ) {
     // Define the allowed HTML tags and attributes.
     $allowed_tags = array(
         'div' => array(
@@ -175,6 +175,7 @@ function smliser_allowed_html() {
             'class' => array(),
             'style' => array(),
             'id' => array(),
+            'target' => array(),
         ),
         'span' => array(
             'class' => array(),
@@ -195,6 +196,7 @@ function smliser_allowed_html() {
             'class' => array(),
             'style' => array(),
             'id' => array(),
+            'accept' => array(),
             'required' => array(),
             'readonly' => array(),
 
@@ -241,5 +243,5 @@ function smliser_allowed_html() {
     
     );
 
-    return $allowed_tags;
+    return array_merge( $wp_html, $allowed_tags );
 }

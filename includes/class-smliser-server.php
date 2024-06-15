@@ -146,7 +146,7 @@ class Smliser_Server{
         // Any existing duplicate key(which is rear though) should be overwriten.
         $task_queue[ $duration ] = array( $value );
        return update_option( 'smliser_task_queue', $task_queue );
-   }
+    }
 
    /**
      * Fetch the highest priority task from the task queue based on current timestamp.
@@ -373,6 +373,7 @@ class Smliser_Server{
     public static function deactivation_response( $request ) {
         $license_key    = sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) );
         $service_id     = sanitize_text_field( urldecode( $request->get_param( 'service_id') ) );
+        $website_name   = sanitize_url( urldecode( $requiest->get_param( 'client' ) ) );
         $instance       = Smliser_license::instance();
         $obj            = $instance->get_license_data( $service_id, $license_key );
         $obj->set_action( 'deactivate' );
@@ -384,6 +385,15 @@ class Smliser_Server{
     
         $response = new WP_REST_Response( $response_data, 200 );
         $response->header( 'Content-Type', 'application/json' );
+        /**
+         * Fires for stats syncronization.
+         * 
+         * @param string $context The context which the hook is fired.
+         * @param string Empty field for license object.
+         * @param Smliser_License The license object (optional).
+         */
+        do_action( 'smliser_stats', 'license_deactivation', '', $obj );
+        
         return $response;
     }
 
@@ -422,7 +432,6 @@ class Smliser_Server{
             return $response;
         }
 
-        global $smliser_repo;
         $plugin_id  = $license->get_item_id();
         $pl_obj     = new Smliser_Plugin();
         $the_plugin = $pl_obj->get_plugin( $plugin_id );
@@ -438,6 +447,7 @@ class Smliser_Server{
             return $response;
         }
         
+        do_action( 'smliser_stats_plugin', $the_plugin->get_item_id() );
         $response = new WP_REST_Response( $the_plugin->formalize_response(), 200 );
         $response->header( 'Content-Type', 'application/json' );
         return $response;
@@ -508,6 +518,15 @@ class Smliser_Server{
     
             // Serve the file for download.
             if ( is_readable( $plugin_path ) ) {
+
+                /**
+                 * Fires for stats syncronization.
+                 * 
+                 * @param string $context The context which the hook is fired.
+                 * @param Smliser_Plugin The plugin object (optional).
+                 */
+                do_action( 'smliser_stats', 'plugin_download', $plugin );
+
                 header( 'Content-Description: File Transfer' );
                 header( 'Content-Type: application/zip' );
                 header( 'Content-Disposition: attachment; filename="' . basename( $plugin_path ) . '"' );

@@ -7,8 +7,13 @@
 $max_upload_size_bytes = wp_max_upload_size();
 $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 ?>
+<?php if ( get_transient( 'smliser_form_success' ) ):?>
+    <div class="notice notice-success is-dismissible"><p>Saved!</p></div>
+<?php endif;?>
 
 <h1>Edit Plugin <span class="dashicons dashicons-plugins-checked"></span></h1>
+<a href="<?php echo esc_url( smliser_repository_admin_action_page( 'view', $plugin->get_item_id() ) ) ?>" class="button action smliser-nav-btn">View Plugin</a>
+
 <p>If you upload a new version of your plugin, please remember to update the relevant inputs with the latest information about your plugin.</p>
 <div class="smliser-form-container">
     <?php if ( $message = get_transient( 'smliser_form_validation_message' ) ) :?>
@@ -76,7 +81,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
         <div class="smliser-form-row">
             <label for="smliser-plugin-requires-php" class="smliser-form-label">Requires PHP Version:</label>
             <span class="smliser-form-description" title="Minimum required PHP version">?</span>
-            <input type="text" name="smliser_plugin_requires_php" id="smliser-plugin-requires-php" class="smliser-form-input" value="<?php esc_attr_e( $plugin->get_required() )?>">
+            <input type="text" name="smliser_plugin_requires_php" id="smliser-plugin-requires-php" class="smliser-form-input" value="<?php esc_attr_e( $plugin->get_required_php() )?>">
         </div>
 
         <input type="submit" class="button action smliser-bulk-action-button" name="smliser_plugin_upload_update" value="Update Plugin"/>

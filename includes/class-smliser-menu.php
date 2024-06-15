@@ -120,20 +120,24 @@ class Smliser_admin_menu {
      * License page controller
      */
     public function license_page_controller() {
-        $action = isset( $_GET['action'] ) ? $_GET['action'] : '';
+        $action = isset( $_GET['action'] ) ? $_GET['action'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $page = '';
 
-        if ( 'add-new' === $action ) {
-           $page = $this->add_license_page();
-        } elseif( 'edit' === $action ) {
-           $page = $this->edit_license_page();
-            
-        } elseif( 'view' === $action ) {
-            $page = $this->license_view(); 
-        } else {
-            $page = $this->license_page();
+        switch ( $action ) {
+            case 'add-new':
+                $this->add_license_page();
+                break;
+            case 'edit':
+                $this->edit_license_page();
+                break;
+            case 'view':
+                $this->license_view();
+                break;
+            default:
+                $page = $this->license_page();
         }
-        add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
+
+        add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10, 2 );
         echo wp_kses_post( $page );
     }
 
@@ -227,16 +231,14 @@ class Smliser_admin_menu {
      * Add new License page
      */
     private function add_license_page() {
-        ob_start();
         include_once SMLISER_PATH . 'templates/license/license-add.php';
-        return ob_get_clean();
     }
 
     /**
      * Edit license page
      */
     private function edit_license_page() {
-        $license_id = isset( $_GET['license_id'] ) ? absint( $_GET['license_id'] ) : 0;
+        $license_id = isset( $_GET['license_id'] ) ? absint( $_GET['license_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         
         if ( empty( $license_id ) ) {
             return wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) );
@@ -247,16 +249,15 @@ class Smliser_admin_menu {
         }
 
         $user_id    = ! empty( $license->get_user_id() ) ? $license->get_user_id() : 0;
-        ob_start();
         include_once SMLISER_PATH . 'templates/license/license-edit.php';
-        return ob_get_clean();
+        return;
     }
 
     /**
      * License details page
      */
     private function license_view() {
-        $license_id = isset( $_GET['license_id'] ) ? absint( $_GET['license_id'] ) : 0;
+        $license_id = isset( $_GET['license_id'] ) ? absint( $_GET['license_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         
         if ( empty( $license_id ) ) {
             return wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) );
@@ -271,16 +272,16 @@ class Smliser_admin_menu {
         $plugin_obj         = new Smliser_Plugin();
         $licensed_plugin    = $plugin_obj->get_plugin( $license->get_item_id() );
         $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
-        ob_start();
+        
         include_once SMLISER_PATH . 'templates/license/license-admin-view.php';
-        return ob_get_clean();        
+        return;        
     }
 
     /**
      * Task page controller
      */
     public function task_page_controller() {
-        $path = isset( $_GET['path'] );
+        $path = isset( $_GET['path'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $this->task_page();
     }
 
@@ -301,14 +302,15 @@ class Smliser_admin_menu {
      * Repository page controller.
      */
     public function repo_page_controller() {
-        $action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : '';
+        $action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $page = '';
         switch( $action ) {
             case 'add-new':
-                $page = $this->upload_plugin_page();
+                $this->upload_plugin_page();
                 break;
+            
             case 'edit':
-                $page = $this->edit_plugin_page();
+                $this->edit_plugin_page();
                 break;
 
             case 'view':
@@ -322,8 +324,9 @@ class Smliser_admin_menu {
                 do_action( 'smliser_repository_page_' . $action .'_content' );
             }
         }
-        add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
-        echo $page;
+
+        add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10, 2 );
+        echo wp_kses_post( $page );
     }
 
     /**
@@ -400,16 +403,15 @@ class Smliser_admin_menu {
      * upload new plugin page template
      */
     private function upload_plugin_page() {
-        ob_start();
         include_once SMLISER_PATH . 'templates/repository/repo-add.php';
-        return ob_get_clean();
+        return;
     }
 
     /**
      * Plugin edit page
      */
     public function edit_plugin_page() {
-        $id     = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
+        $id     = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         if ( empty( $id ) ) {
             return smliser_not_found_container( 'Item ID parameter should not be manipulated' );
         }
@@ -418,9 +420,9 @@ class Smliser_admin_menu {
         if ( empty( $plugin ) ) {
             return smliser_not_found_container( 'Invalid or deleted plugin' );
         }
-        ob_start();
+
         include_once SMLISER_PATH . 'templates/repository/plugin-edit.php';
-        return ob_get_clean();
+        return;
 
     }
 
@@ -428,12 +430,22 @@ class Smliser_admin_menu {
      * Plugin view
      */
     public function view_plugin_page() {
-        $id = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
+        $id = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         if ( empty( $id ) ) {
             return smliser_not_found_container( 'Item ID parameter should not be manipulated' );
         }
+
         $obj    = new Smliser_Plugin();
         $plugin = $obj->get_plugin( $id );
+
+        if ( empty( $plugin ) ) {
+            return smliser_not_found_container( 'Invalid or deleted plugin' );
+        }
+        $delete_link    = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_plugin_action', 'real_action' => 'delete', 'item_id' => $id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
+        $stats          = new Smliser_Stats();
+        ob_start();
+        include_once SMLISER_PATH . 'templates/repository/plugin-view.php';
+        return ob_get_clean();
     }
 
 }

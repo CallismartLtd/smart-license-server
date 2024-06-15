@@ -83,7 +83,6 @@ class Smliser_install {
         $plugin_table_columns   = array(
             'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
             'name VARCHAR(255) NOT NULL',
-            'license_key VARCHAR(300) DEFAULT NULL',
             'slug VARCHAR(300) DEFAULT NULL',
             'version VARCHAR(300) DEFAULT NULL',
             'author VARCHAR(255) DEFAULT NULL',

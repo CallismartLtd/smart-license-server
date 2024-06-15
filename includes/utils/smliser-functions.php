@@ -267,7 +267,7 @@ function smliser_license_key_dropdown( $selected = false, $required = false , $e
         $drop_down .= '<option value="'. esc_attr( $license->get_license_key() ) . '" ' . selected( $license->get_license_key(), $selected ) . '>' . esc_html( $license->get_license_key() ) . '</option>';
     }
     $drop_down .= '</select>';
-    add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html' );
+    add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10, 2 );
 
     if ( $echo ) {
         echo wp_kses_post( $drop_down );
@@ -350,3 +350,4 @@ function get_base_address( $url ) {
     // For non-localhost addresses, return the scheme and host
     return $scheme . '://' . $host;
 }
+
