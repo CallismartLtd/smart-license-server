@@ -129,6 +129,26 @@ class Smliser_install {
         );
 
         self::run_db_delta( $license_meta_table, $license_meta_columns );
+
+        /**
+         * API endpoint Access logs table.
+         */
+        $api_access_table   = SMLISER_API_ACCESS_LOG_TABLE;
+        $api_access_columns = array(
+            'id BIGINT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'api_route VARCHAR(255) NOT NULL',
+            'client_ip VARCHAR(45) DEFAULT NULL',
+            'access_time DATETIME DEFAULT NULL',
+            'status_code INT(3) DEFAULT NULL',
+            'website VARCHAR(255) DEFAULT NULL',
+            'request_data TEXT DEFAULT NULL',
+            'response_data TEXT DEFAULT NULL',
+            'INDEX (api_route)',
+            'INDEX (client_ip)',
+            'INDEX (access_time)',
+        );
+        self::run_db_delta( $api_access_table, $api_access_columns );
+
     }
 
     

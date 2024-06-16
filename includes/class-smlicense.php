@@ -444,25 +444,6 @@ class Smliser_license {
     }
 
     /**
-     * Convert and return associative array of DB result to object of this class
-     * 
-     * @param array $data   Associative array containing result from database
-     */
-    private static function return_db_results( $data ) {
-        $result = new self();
-        $result->set_id( ! empty( $data['id'] ) ? $data['id'] : '' );
-        $result->set_user_id( ! empty( $data['user_id'] ) ? $data['user_id'] : 0 );
-        $result->set_service_id( ! empty( $data['service_id'] ) ? $data['service_id'] : '' );
-        $result->set_license_key( ! empty( $data['license_key'] ) ? $data['license_key'] : '' );
-        $result->set_item_id( ! empty( $data['item_id'] ) ? $data['item_id'] : 0 );
-        $result->set_status( ! empty( $data['status'] ) ? $data['status'] : '' );
-        $result->set_start_date( ! empty( $data['start_date'] ) ? $data['start_date'] : '' );
-        $result->set_end_date( ! empty( $data['end_date'] ) ? $data['end_date'] : '' );
-        $result->set_allowed_sites( ! empty( $data['allowed_sites'] ) ? $data['allowed_sites'] : '' );
-        return $result;
-    }
-
-    /**
      * Save Licensed data into the database.
      */
     public function save() {
@@ -983,18 +964,39 @@ class Smliser_license {
     }
 
     /**
+     * Convert and return associative array of DB result to object of this class
+     * 
+     * @param array $data   Associative array containing result from database
+     */
+    private static function return_db_results( $data ) {
+        $result = new self();
+        $result->set_id( ! empty( $data['id'] ) ? $data['id'] : '' );
+        $result->set_user_id( ! empty( $data['user_id'] ) ? $data['user_id'] : 0 );
+        $result->set_service_id( ! empty( $data['service_id'] ) ? $data['service_id'] : '' );
+        $result->set_license_key( ! empty( $data['license_key'] ) ? $data['license_key'] : '' );
+        $result->set_item_id( ! empty( $data['item_id'] ) ? $data['item_id'] : 0 );
+        $result->set_status( ! empty( $data['status'] ) ? $data['status'] : '' );
+        $result->set_start_date( ! empty( $data['start_date'] ) ? $data['start_date'] : '' );
+        $result->set_end_date( ! empty( $data['end_date'] ) ? $data['end_date'] : '' );
+        $result->set_allowed_sites( ! empty( $data['allowed_sites'] ) ? $data['allowed_sites'] : '' );
+        return $result;
+    }
+
+    /**
      * Whether license has reached max allowed websites.
      */
     public function has_reached_max_allowed_sites() {
         if ( $this->get_total_active_sites() >= $this->get_allowed_sites() ) {
             return true;
         }
+
+        return false;
     }
 
     /**
      * Check if we can serve license.
      */
-    public function can_serve_license( $item_id ) {
+    public function can_serve_license( $item_id, $context = '' ) {
         
         if ( ! $this ) {
             return new WP_Error( 'license_error', 'Invalid License key or service ID.' );    
@@ -1026,7 +1028,7 @@ class Smliser_license {
             return new WP_Error( 'license_deactivated', 'License has been deactivated, log into you account to regenrate or purchase new one.' );
         }
 
-        if ( $this->has_reached_max_allowed_sites() ) {
+        if ( 'license activation' === $context && $this->has_reached_max_allowed_sites() ) {
             return new WP_Error( 'max_allowed_reached', 'License has reached maximum allowed activation' );
         }
         return true;

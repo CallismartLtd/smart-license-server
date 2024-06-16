@@ -1,7 +1,7 @@
 <?php
 /**
  * file name class-license-server.php
- * Licenser server class file
+ * License server class file
  * 
  * @author Callistus
  * @package SmartLicenseServer\classes
@@ -96,7 +96,7 @@ class Smliser_Server{
         $response = wp_remote_post( $callback_url, $request_body );
         // Check if remote request was successful
         if ( is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) !== 200 ) {
-            error_log( 'Remote validate not 200 ok' );
+            
             return new WP_Error( 'remote_request_failed', 'Failed to execute remote POST request.' );
         }
 
@@ -294,7 +294,8 @@ class Smliser_Server{
             return $response;
         }
 
-        $access = $license->can_serve_license( $item_id );
+        $access = $license->can_serve_license( $item_id, 'license activation' );
+
         if ( is_wp_error( $access ) ) {
             $response_data = array(
                 'code'      => 'license_error',
@@ -350,6 +351,12 @@ class Smliser_Server{
      */
     public static function deactivation_permission( $request ) {
         // Retrieve the data.
+        $api_key    = sanitize_text_field( smliser_get_auth_token( $request ) );
+        $item_id    = sanitize_text_field( urldecode( $request->get_param( 'item_id' ) ) );
+
+        if ( empty( $api_key ) ) {
+            return false;
+        }
         $license_key    = sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) );
         $service_id     = sanitize_text_field( urldecode( $request->get_param( 'service_id') ) );
         
@@ -364,7 +371,7 @@ class Smliser_Server{
             return false;
         }
 
-        return true;
+        return smliser_verify_api_key( $api_key, $item_id );
     }
 
     /**
@@ -373,15 +380,29 @@ class Smliser_Server{
     public static function deactivation_response( $request ) {
         $license_key    = sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) );
         $service_id     = sanitize_text_field( urldecode( $request->get_param( 'service_id') ) );
-        $website_name   = sanitize_url( urldecode( $requiest->get_param( 'client' ) ) );
+        $website_name   = sanitize_url( get_base_address( urldecode( $request->get_param( 'client' ) ) ), array( 'http', 'https' ) );
         $instance       = Smliser_license::instance();
         $obj            = $instance->get_license_data( $service_id, $license_key );
+
+        if ( empty( $obj ) ) {
+            $response_data = array(
+                'status'    => 'failed',
+                'message'   => 'License does not exist.'
+            );
+
+            $response = new WP_REST_Response( $response_data, 404 );
+            $response->header( 'Content-Type', 'application/json' );
+            return $response;
+        }
+
         $obj->set_action( 'deactivate' );
         $obj->do_action();
         $response_data = array(
             'status'    => 'success',
             'message'   => 'License has been deactivated',
         );
+
+        $obj->set_action( $website_name );
     
         $response = new WP_REST_Response( $response_data, 200 );
         $response->header( 'Content-Type', 'application/json' );
@@ -393,7 +414,7 @@ class Smliser_Server{
          * @param Smliser_License The license object (optional).
          */
         do_action( 'smliser_stats', 'license_deactivation', '', $obj );
-        
+
         return $response;
     }
 
@@ -401,10 +422,10 @@ class Smliser_Server{
      * Update permission checker.
      */
     public static function update_permission( $request ) {
-        $service_id = sanitize_text_field( $request->get_param( 'service_id' ) );
+        $item_id    = absint( $request->get_param( 'item_id' ) );
         $api_key    = sanitize_text_field( smliser_get_auth_token( $request ) );
 
-        if ( ! smliser_verify_api_key( $api_key, $service_id ) ) {
+        if ( ! smliser_verify_api_key( $api_key, $item_id ) ) {
             return false;
         }
 
@@ -415,6 +436,7 @@ class Smliser_Server{
      * Update response route handler
      */
     public static function update_response( $request ) {
+        
         $item_id        = absint( $request->get_param( 'item_id' ) );
         $license_key    = sanitize_text_field( $request->get_param( 'license_key' ) );
         $service_id     = sanitize_text_field( $request->get_param( 'service_id' ) );
@@ -447,7 +469,13 @@ class Smliser_Server{
             return $response;
         }
         
-        do_action( 'smliser_stats_plugin', $the_plugin->get_item_id() );
+        /**
+         * Fires for stats syncronization.
+         * 
+         * @param string $context The context which the hook is fired.
+         * @param Smliser_Plugin.
+         */
+        do_action( 'smliser_stats', 'plugin_update', $the_plugin );
         $response = new WP_REST_Response( $the_plugin->formalize_response(), 200 );
         $response->header( 'Content-Type', 'application/json' );
         return $response;
@@ -482,24 +510,9 @@ class Smliser_Server{
                 exit;
             }
 
-            // We have plugin file, let's get the associated license key.
-            $license_key = $plugin->get_license_key();
-            
-            if ( empty( $license_key ) ) {
-                wp_die( 'This is an illegal attempt to access an unlicensed plugin', 403 );
+            $item_id = $plugin->get_item_id();
 
-            }
-
-            // We need to validate license key.
-            $license    = Smliser_license::get_by_key( $license_key );
-
-            if ( empty( $license ) ) {
-                wp_die( 'Illegal Access to licensed plugin', 403 );
-            }
-
-            $service_id = $license->get_service_id();
-
-            if ( ! smliser_verify_api_key( $api_key, $service_id ) ) {
+            if ( ! smliser_verify_api_key( $api_key, $item_id ) ) {
                 $wp_query->set_404();
                 status_header( 404 );
                 include( get_query_template( '404' ) );

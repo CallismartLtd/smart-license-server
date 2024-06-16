@@ -66,6 +66,11 @@ class Smliser_Stats {
     public function __construct() {
         $this->plugin   = new Smliser_Plugin();
         $this->license  = new Smliser_license();
+
+        /**
+         * Set up API route logs
+         */
+        
     }
 
     /**
@@ -239,6 +244,13 @@ class Smliser_Stats {
         return $average_daily_downloads;
     }
 
+
+    /*
+    |-------------------------
+    | ACTION HANDLER METHODS
+    |-------------------------
+    */
+
     /**
      * Handles stats sycronization.
      * 
@@ -268,7 +280,9 @@ class Smliser_Stats {
             self::instance()->log_download( $plugin->get_item_id() );
 
         } elseif ( 'license_deactivation' === $context ) {
-            $license;
+            $website = $license->get_action();
+            $license->remove_activated_website( $website );
+        } elseif( 'plugin_update' === $context ) {
 
         }
     }
