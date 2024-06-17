@@ -32,7 +32,6 @@ class Smliser_Server{
     public function __construct() {
         add_action( 'smliser_validate_license', array( $this, 'remote_validate' ) );
         add_action( 'template_redirect', array( $this, 'serve_package_download' ) );
-
     }
 
     /**
@@ -324,25 +323,34 @@ class Smliser_Server{
         $waiting_period = smliser_wait_period();
         $local_duration = preg_replace( '/\D/', '', $waiting_period );
         // add new task.
-        $license_server = new Smliser_Server();
-        $license_server->add_task_queue(
-            $local_duration, array(
-                'license_id'    => $license->get_id(),
-                'license_key'   => $license_key,
-                'token'         => $token,
-                'end_date'      => $license->get_end_date(),
-                'callback_url'  => $callback_url,
-                'data'          => $encoded_data
-
-            )
+        $tasks = array(
+            'license_id'    => $license->get_id(),
+            'license_key'   => $license_key,
+            'token'         => $token,
+            'end_date'      => $license->get_end_date(),
+            'callback_url'  => $callback_url,
+            'data'          => $encoded_data
         );
-    
-    
+        self::$instance->add_task_queue( $local_duration, $tasks );
+        unset( $tasks['data'] );
+        $additional = array( 'args',  $tasks );
+        /**
+         * Handles stats sycronization.
+         * 
+         * @param string $context The context which the hook is fired.
+         * @param Smliser_Plugin The plugin object (optional).
+         * @param Smliser_License The license object (optional).
+         * @param array $additional An associative array(callable => arg)
+         *                          only one argument is passed to the callback function
+         */
+        do_action( 'smliser_stats', 'license_activation', '', $license, $additional );
         $response_data = array(
             'waiting_period'    => $waiting_period,
             'message'           => 'License is being validated',
         );
         $response = new WP_REST_Response( $response_data, 200 );
+        $response->header( 'Content-Type', 'application/json' );
+
         return $response;
     }
 

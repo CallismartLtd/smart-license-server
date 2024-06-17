@@ -24,7 +24,7 @@ defined( 'ABSPATH' ) || exit;
         <div class="smliser-admin-view-page-header-child">
             <h2><span class="dashicons dashicons-chart-bar"></span> Statistics</h2>
             <p><span class="dashicons dashicons-download"></span> Downloads: <?php echo absint( $stats->get_downloads( $plugin->get_item_id() ) ) ?></p>
-            <p><span class="dashicons dashicons-cloud-saved"></span></span> Active Installations: 0</p>
+            <p><span class="dashicons dashicons-cloud-saved"></span></span> Active Installations: <?php echo absint( $stats->estimate_active_installations( $plugin->get_item_id() ) ) ?></p>
             <p><span class="dashicons dashicons-chart-line"></span> Average Daily Download: <?php echo absint( $stats->get_average_daily_downloads( $plugin->get_item_id() ) ) ?></p>
         </div>
 

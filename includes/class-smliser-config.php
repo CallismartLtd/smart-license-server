@@ -104,9 +104,8 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-
-        // var_dump( get_transient( 'smliser_API_KEY_c166c50a59906e57b665a6c71bb2ef8075f3ce57f819c6a5c2f2b706ee972078' ) );
-
+        // var_dump( Smliser_Stats::action_handler( 'context', 'plugin', 'license', array( 'callback_function', array('args') ) ) );
+        // echo current_time( 'mysql' );
     }
 
     /**

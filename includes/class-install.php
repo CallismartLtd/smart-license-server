@@ -37,6 +37,7 @@ class Smliser_install {
             SMLISER_PLUGIN_ITEM_TABLE,
             SMLISER_LICENSE_META_TABLE,
             SMLISER_PLUGIN_META_TABLE,
+            SMLISER_API_ACCESS_LOG_TABLE
         );
 
         foreach( $tables as $table ) {
