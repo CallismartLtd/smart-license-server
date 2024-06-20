@@ -60,7 +60,7 @@ function smliser_not_found_container( $text ) {
     ob_start();
     ?>
     <div class="smliser-not-found-container">
-        <p><?php esc_html_e( $text ) ?> </p>
+        <p><?php echo esc_html( $text ) ?> </p>
     </div>
 
     <?php

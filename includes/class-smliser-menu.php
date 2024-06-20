@@ -104,16 +104,9 @@ class Smliser_admin_menu {
      * Dashboard Callback method
      */
     public function admin_menu() {
-        $page_html = '<h2>Smart License Dashboard</h2>';
-        $obj = new Smliser_license();
-        $license_key ='SMALISER-AAE1659B-D9ED2B79-1B703CA1-EF721477-4D5EBF4E-E02A3A7A-C5CDFD1D-B2203EAA-99E884B1';
-         $result = $obj->get_license_data( 'fgfgfhsxbdbd', $license_key );
-        if ( ! empty( $result ) ) {
-            $page_html .=  $result->get_copyable_Lkey();
-        } else {
-            $page_html .= 'Nothing was fetched';
-        }
-        echo wp_kses_post( $page_html );
+        $stats  = new Smliser_Stats();
+        include_once SMLISER_PATH . 'templates/admin-dashboard.php';
+        return;
     }
 
     /**

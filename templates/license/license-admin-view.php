@@ -25,7 +25,7 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
         <div class="smliser-admin-view-page-header-child">
             <h2>Statistics</h2>
             <p><span class="dashicons dashicons-admin-site-alt"></span> Max Allowed Sites: <?php echo esc_html( $license->get_allowed_sites() ) ?></p>
-            <p><span class="dashicons dashicons-admin-site-alt3"></span> Total Sites Activated: <?php echo $license->get_total_active_sites()?></p>
+            <p><span class="dashicons dashicons-admin-site-alt3"></span> Total Sites Activated: <?php echo absint( $license->get_total_active_sites() )?></p>
             <p><span class="dashicons dashicons-plugins-checked"></span> Item ID: <?php echo esc_html( $license->get_item_id() ) ?></p>
         </div>
 

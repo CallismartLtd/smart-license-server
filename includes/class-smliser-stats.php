@@ -96,6 +96,22 @@ class Smliser_Stats {
     */
 
     /**
+     * Get the total number of plugins in our repository
+     * 
+     * @return int $total_plugins The total uploaded plugins
+     */
+    public function total_plugins() {
+        $total_plugins = get_transient( 'smliser_total_plugins' );
+
+        if ( false === $total_plugins ) {
+            $total_plugins = count( $this->instance()->plugin()->get_plugins() );
+            set_transient( 'smliser_total_plugins', absint( $total_plugins ), 7 * DAY_IN_SECONDS );
+        }
+
+        return absint( $total_plugins );
+    }
+
+    /**
      * Log Download.
      * 
      * @param int $plugin_id Plugin ID.
@@ -151,6 +167,19 @@ class Smliser_Stats {
     }
 
     /*
+    |----------------------------
+    | LICENSE STATISTIC METHODS
+    |----------------------------
+    */
+
+    /**
+     * Total Licenses
+     */
+    public function total_licenses() {
+
+    }
+
+    /*
     |-------------------------------
     | API ROUTE ACCESS LOG METHODS
     |-------------------------------
@@ -198,7 +227,7 @@ class Smliser_Stats {
             '%s', // Response data.
         );
         
-        $inserted = $wpdb->insert( $table_name, $data, $data_formats );
+        $inserted = $wpdb->insert( $table_name, $data, $data_formats ); // phpcs:disable
 
         if ( $inserted ) {
             return true;
@@ -214,16 +243,22 @@ class Smliser_Stats {
      * @return int Total number of hits.
      */
     public function get_total_hits( $route ) {
-        global $wpdb;
-        $table_name = SMLISER_API_ACCESS_LOG_TABLE;
-        $route = sanitize_text_field( $route );
+        $total_hits = get_transient( 'smliser_' . $route . '_hits' );
+        
+        if ( false === $total_hits ) {
+            global $wpdb;
+            $table_name = SMLISER_API_ACCESS_LOG_TABLE;
+            $route = sanitize_text_field( $route );
 
-        $query = $wpdb->prepare(
-            "SELECT COUNT(*) FROM $table_name WHERE api_route = %s",
-            $route
-        );
-
-        return (int) $wpdb->get_var( $query );
+            $query = $wpdb->prepare(
+                "SELECT COUNT(*) FROM $table_name WHERE api_route = %s",
+                $route
+            );
+            $total_hits = (int) $wpdb->get_var( $query ); // phpcs:disable
+            set_transient( 'smliser_' . $route . '_hits', $total_hits, 24 * HOUR_INSECONDS );            
+        }
+        
+        return ;
     }
 
     /**
@@ -233,16 +268,23 @@ class Smliser_Stats {
      * @return int Total number of unique IP addresses.
      */
     public function get_unique_ips( $route ) {
-        global $wpdb;
-        $table_name = SMLISER_API_ACCESS_LOG_TABLE;
-        $route = sanitize_text_field( $route );
+        $ips = get_transient( 'smliser_' . $route . '_ips' );
 
-        $query = $wpdb->prepare(
-            "SELECT COUNT(DISTINCT client_ip) FROM {$table_name} WHERE api_route = %s",
-            $route
-        );
+        if ( false === $ips ) {
+            global $wpdb;
+            $table_name = SMLISER_API_ACCESS_LOG_TABLE;
+            $route = sanitize_text_field( $route );
 
-        return (int) $wpdb->get_var( $query );
+            $query = $wpdb->prepare(
+                "SELECT COUNT(DISTINCT client_ip) FROM {$table_name} WHERE api_route = %s",
+                $route
+            );
+            $ips = (int) $wpdb->get_var( $query ); // phpcs:disable
+            set_transient( 'smliser_' . $route . '_ips', $ips, HOUR_IN_SECONDS );
+            
+        }
+
+        return $ips;
     }
 
     /**
@@ -252,24 +294,31 @@ class Smliser_Stats {
      * @return array Associative array with dates as keys and access counts as values.
      */
     public function get_daily_access_frequency( $route ) {
-        global $wpdb;
-        $table_name = SMLISER_API_ACCESS_LOG_TABLE;
-        $route = sanitize_text_field( $route );
+        
+        $frequency = wp_cache_get( 'smliser_' . $route .'_access_frequency' );
+        
+        if ( false === $frequency ) {
+            global $wpdb;
+            $table_name = SMLISER_API_ACCESS_LOG_TABLE;
+            $route = sanitize_text_field( $route );
 
-        $query = $wpdb->prepare(
+            $query = $wpdb->prepare(
             "SELECT DATE(access_time) as date, COUNT(*) as count
             FROM $table_name
             WHERE api_route = %s
             GROUP BY DATE(access_time)",
             $route
-        );
+            );
 
-        $results = $wpdb->get_results( $query, ARRAY_A );
+            $results = $wpdb->get_results( $query, ARRAY_A ); // phpcs:disable
 
-        $frequency = array();
-        foreach ( $results as $result ) {
-            $frequency[ $result['date'] ] = (int) $result['count'];
+            $frequency = array();
+            foreach ( $results as $result ) {
+                $frequency[ $result['date'] ] = (int) $result['count'];
+            }
+            wp_cache_set( 'smliser_' . $route .'_access_frequency', $frequency, 'smliser_query_cache', 3 * HOUR_IN_SECONDS );
         }
+
 
         return $frequency;
     }
@@ -285,27 +334,32 @@ class Smliser_Stats {
             return false;
         }
 
-        global $wpdb;
-        $table_name = SMLISER_API_ACCESS_LOG_TABLE;
+        $route_log = wp_cache_get( 'smliser_'. $route . '_log' );
 
-        $query = $wpdb->prepare(
-            "SELECT * FROM $table_name WHERE api_route = %s",
-            sanitize_text_field( $route )
-        );
+        if ( false === $route_log ) {
+            global $wpdb;
+            $table_name = SMLISER_API_ACCESS_LOG_TABLE;
 
-        $results = $wpdb->get_results( $query, ARRAY_A );
+            $query = $wpdb->prepare(
+                "SELECT * FROM $table_name WHERE api_route = %s",
+                sanitize_text_field( $route )
+            );
 
-        if ( ! $results ) {
-            return false;
+            $results = $wpdb->get_results( $query, ARRAY_A ); // phpcs:disable
+
+            if ( ! $results ) {
+                return false;
+            }
+
+            // Unserialize request_data and response_data
+            foreach ( $results as &$log ) {
+                $log['request_data']    = maybe_unserialize( $log['request_data'] );
+                $log['response_data']   = maybe_unserialize( $log['response_data'] );
+            }
+            wp_cache_set( 'smliser_'. $route . '_log', $results, 'smliser_query_cache', DAY_IN_SECONDS );
+            $route_log = $results;            
         }
-
-        // Unserialize request_data and response_data
-        foreach ( $results as &$log ) {
-            $log['request_data'] = maybe_unserialize( $log['request_data'] );
-            $log['response_data'] = maybe_unserialize( $log['response_data'] );
-        }
-
-        return $results;
+        return $route_log;
     }
 
 
@@ -316,18 +370,19 @@ class Smliser_Stats {
      * @return int Estimated active installations.
      */
     public function estimate_active_installations( $plugin_id ) {
-        $logs = $this->get_route_log( 'plugin_update' );
+        
+        $logs = $this->get_route_log( self::$plugin_update );
 
         if ( ! $logs ) {
             return 0;
         }
 
-        // Initialize an array to keep track of unique IPs for the given plugin_id
         $unique_ips = array();
 
-        // Process each log entry
         foreach ( $logs as $log ) {
-            if ( isset( $log['request_data']['plugin_id'] ) && $log['request_data']['plugin_id'] == $plugin_id ) {
+            $plugin_id_in_log = isset( $log['request_data']['plugin_id'] ) ? absint( $log['request_data']['plugin_id'] ) : 0;
+
+            if ( $plugin_id_in_log && $plugin_id_in_log === absint( $plugin_id ) ) {
                 $unique_ips[ $log['client_ip'] ] = true;
             }
         }
@@ -387,7 +442,7 @@ class Smliser_Stats {
                      
                 ) );
         } elseif( 'plugin_update' === $context ) {
-            self::log_access( self::$plugin_update, array( 'request_data' => $plugin->get_item_id() ) );
+            self::log_access( self::$plugin_update, array( 'request_data' => array( 'plugin_id' => $plugin->get_item_id() ) ) );
         }
     }
 }

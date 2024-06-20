@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) ||  exit;
     <?php endif;?>
     <form id="smliserForm" class="smliser-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
     <input type="hidden" name="action" value="smliser_license_update">
-    <input type="hidden" name="license_id" value="<?php esc_attr_e( $license->get_id() ) ?>">
+    <input type="hidden" name="license_id" value="<?php echo esc_attr( $license->get_id() ) ?>">
         <?php wp_nonce_field( 'smliser_nonce_field', 'smliser_nonce_field' ); ?>
         
         <div class="smliser-form-row">

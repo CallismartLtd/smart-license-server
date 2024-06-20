@@ -240,7 +240,7 @@ class Smliser_license {
         <div class="smliser-key-div">
             <!-- The container for the partially hidden key -->
             <div class="smliser-partially-hidden-license-key-container">
-                <p><?php esc_html_e( substr( $license_key, 0, 16 ) . 'xxxxxxxxxxxxxxxxxxxxxxx' ); ?></p>
+                <p><?php echo esc_html( substr( $license_key, 0, 16 ) . 'xxxxxxxxxxxxxxxxxxxxxxx' ); ?></p>
             </div>
             
             <!-- Container for the fully displayed and copyable license key -->
@@ -360,13 +360,13 @@ class Smliser_license {
         $service_id  = sanitize_text_field( $service_id );
         $license_key = sanitize_text_field( $license_key );
 
+        // phpcs:disable
         $query = $wpdb->prepare( 
-            "SELECT * FROM ". SMLISER_LICENSE_TABLE ." WHERE `service_id` = %s AND `license_key` = %s", 
+            "SELECT * FROM " . SMLISER_LICENSE_TABLE . " WHERE `service_id` = %s AND `license_key` = %s", 
             $service_id,
             $license_key
         );
 
-        // phpcs:disable
         $result = $wpdb->get_row( $query, ARRAY_A );
         // phpcs:enable
 
@@ -568,8 +568,8 @@ class Smliser_license {
             );
 
             $data_format = array( '%d', '%s', '%s' );
-
-            $result = $wpdb->insert( SMLISER_LICENSE_META_TABLE, $data, $data_format );
+            
+            $result = $wpdb->insert( SMLISER_LICENSE_META_TABLE, $data, $data_format ); // phpcs:disable
             return $result !== false;
         }
 
@@ -586,6 +586,7 @@ class Smliser_license {
     public function update_meta( $key, $value ) {
         global $wpdb;
 
+        // phpcs:disable
         $table_name = SMLISER_LICENSE_META_TABLE;
         $key        = sanitize_text_field( $key );
         $value      = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value );
@@ -601,7 +602,7 @@ class Smliser_license {
 
         // Check if the meta_key already exists for the given license_id
         $exists = $wpdb->get_var( $wpdb->prepare(
-            "SELECT 1 FROM {$table_name} WHERE license_id = %d AND meta_key = %s",
+            "SELECT 1 FROM $table_name WHERE license_id = %d AND meta_key = %s",
             absint( $this->id ),
             $key
         ) );
@@ -624,6 +625,7 @@ class Smliser_license {
                 array( '%d', '%s' )
             );
 
+            // phpcs:enable
             return $updated !== false;
         }
     }
@@ -638,12 +640,15 @@ class Smliser_license {
     public function get_meta( $meta_key, $default_to = null ) {
         global $wpdb;
 
+        // phpcs:disable
         $query  = $wpdb->prepare( 
             "SELECT `meta_value` FROM " . SMLISER_LICENSE_META_TABLE . " WHERE `license_id` = %d AND `meta_key` = %s", 
             absint( $this->id), 
             sanitize_text_field( $meta_key ) 
         );
+
         $result = $wpdb->get_var( $query );
+        // phpcs:enable
         if ( is_null( $result ) ) {
             return $default_to;
         }
@@ -717,7 +722,7 @@ class Smliser_license {
         $where_format = array( '%d', '%s' );
 
         // Execute the delete query
-        $deleted = $wpdb->delete( SMLISER_LICENSE_META_TABLE, $where, $where_format );
+        $deleted = $wpdb->delete( SMLISER_LICENSE_META_TABLE, $where, $where_format ); // phpcs:disable
 
         // Return true on success, false on failure
         return $deleted !== false;

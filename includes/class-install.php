@@ -227,7 +227,7 @@ class Smliser_install {
     
         if ( ! $wp_filesystem->is_dir( $repo_dir ) ) {
             if ( ! $wp_filesystem->mkdir( $repo_dir, 0755 ) ) {
-                return new WP_Error( 'directory_creation_failed', __( 'Failed to create directory: ' . esc_html( $repo_dir ), 'smliser' ) );
+                return new WP_Error( 'directory_creation_failed', 'Failed to create directory: ' . esc_html( $repo_dir ) );
             }
         }
     

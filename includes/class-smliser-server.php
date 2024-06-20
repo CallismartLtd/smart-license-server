@@ -538,7 +538,7 @@ class Smliser_Server{
             }
     
             // Serve the file for download.
-            if ( is_readable( $plugin_path ) ) {
+            if ( $smliser_repo->is_readable( $plugin_path ) ) {
 
                 /**
                  * Fires for stats syncronization.
@@ -554,8 +554,8 @@ class Smliser_Server{
                 header( 'Expires: 0' );
                 header( 'Cache-Control: must-revalidate' );
                 header( 'Pragma: public' );
-                header( 'Content-Length: ' . filesize( $plugin_path ) );
-                readfile( $plugin_path );
+                header( 'Content-Length: ' . $smliser_repo->size( $plugin_path ) );
+                $smliser_repo->readfile( $plugin_path );
                 exit;
             } else {
                 wp_die( 'Error: The file cannot be read.' );

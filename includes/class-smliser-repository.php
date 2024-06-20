@@ -117,14 +117,18 @@ class Smliser_Repository {
      * @return string|WP_Error Absolute file path or WP_Error on failure.
      */
     public function get_plugin( $plugin_slug ) {
+        
+        if ( empty( $plugin_slug ) ) {
+            return new WP_Error( 'invalid_slug', 'Plugin cannot be empty' );
+        }
         // Validate and sanitize the plugin slug.
         $slug_parts         = explode( '/', $plugin_slug );
         $sanitized_parts    = array_map( 'sanitize_text_field', $slug_parts );
         $sanitized_slug     = implode( '/', $sanitized_parts );
-
+        $sanitized_slug     = sanitize_and_normalize_path( $sanitized_slug );
         // Check for directory traversal attempts.
         if ( strpos( $sanitized_slug, '..' ) !== false ) {
-            return new WP_Error( 'invalid_slug', __( 'Invalid plugin slug: ' . $sanitized_slug, 'smliser' ) );
+            return new WP_Error( 'invalid_slug', 'Invalid plugin slug' );
         }
 
         global $wp_filesystem;
@@ -191,8 +195,8 @@ class Smliser_Repository {
 
         $plugin_basename = trailingslashit( $base_folder ) . sanitize_file_name( $file_name );
         
-        if ( ! move_uploaded_file( $tmp_name, $plugin_basename ) ) {
-            return new WP_Error( 'failure_to_move', 'Failed to move uploaded file to the repository' );
+        if ( ! $wp_filesystem->move( $tmp_name, $plugin_basename ) ) {
+            return new WP_Error( 'failure_to_upload', 'This plugin already exists, try updating it.' );
         }
 
         // The plugin slug.
@@ -233,10 +237,10 @@ class Smliser_Repository {
             return new WP_Error( 'file_mismatch', 'The uploaded plugin is not same as the original.' );
         }
 
-        if ( ! move_uploaded_file( $tmp_name, $plugin_basename ) ) {
+        if ( ! $wp_filesystem->move( $tmp_name, $plugin_basename, true ) ) {
            return new WP_Error( 'failure_to_move', 'Failed to move uploaded file to the repository' );
         }
-
+    
         // The plugin slug.
         return sanitize_and_normalize_path( $slug );
     }
@@ -378,6 +382,82 @@ class Smliser_Repository {
             need to configure it to use FTP credentials.</p></div>';
             echo wp_kses_post( $message );
         }  );
+    }
+
+    /**
+     * Get a plugin file size
+     * 
+     * @param $file Full path to the file
+     */
+    public function size( $file ) {
+        global $wp_filesystem;
+        return $wp_filesystem->size( $file );
+    }
+
+    /**
+     * Checks if a plugin file is readable
+     * 
+     * @param $file Full path to file.
+     * @uses $wp_filesystem::is_readable
+     */
+    public function is_readable( $file ) {
+        global $wp_filesystem;
+        return $wp_filesystem->is_readable( $file );
+    }
+
+    /**
+     * Outputs a file.
+     * 
+     * @param $file Full path to file
+     */
+    public function readfile( $file ) {
+        
+        if ( ! defined( 'SMLISER_CHUNK_SIZE' ) ) {
+			define( 'SMLISER_CHUNK_SIZE', 1024 * 1024 );
+		}
+        // phpcs:disable
+		$handle = @fopen( $file, 'r' );
+
+		if ( false === $handle ) {
+			return false;
+		}
+
+        $length         = @filesize( $file ); 
+		$read_length    = (int) SMLISER_CHUNK_SIZE;
+
+		if ( $length ) {
+			$end = $start + $length - 1;
+
+			@fseek( $handle, $start ); 
+			$p = @ftell( $handle ); 
+
+			while ( ! @feof( $handle ) && $p <= $end ) { 
+				// Don't run past the end of file.
+				if ( $p + $read_length > $end ) {
+					$read_length = $end - $p + 1;
+				}
+
+				echo @fread( $handle, $read_length );
+				$p = @ftell( $handle ); 
+
+				if ( ob_get_length() ) {
+					ob_flush();
+					flush();
+				}
+			}
+		} else {
+			while ( ! @feof( $handle ) ) {
+				echo @fread( $handle, $read_length );
+				if ( ob_get_length() ) {
+					ob_flush();
+					flush();
+				}
+			}
+		}
+
+		return @fclose( $handle );
+        // phpcs:enable
+
     }
 }
 

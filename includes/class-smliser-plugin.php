@@ -471,13 +471,14 @@ class Smliser_Plugin {
             return false;
         }
 
+        // phpcs:disable
         global $wpdb;
         // Prepare and execute the query.
         $query = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE {$column_name} = %s", $value );
         $result = $wpdb->get_row( $query, ARRAY_A );
          if ( $result ){
             return self::convert_db_result( $result );
-
+            // phpcs:enable
         }
         return false;
     }
@@ -497,7 +498,7 @@ class Smliser_Plugin {
         global $wpdb;
         $query  = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE `id` = %d", $id );
         $result = $wpdb->get_row( $query, ARRAY_A );
-        
+        // phpcs:enable
         if ( $result ) {
             return self::convert_db_result( $result );
         }
@@ -570,6 +571,7 @@ class Smliser_Plugin {
         if ( $result ) {
             $this->item_id = $wpdb->insert_id;
             do_action( 'smliser_plugin_saved', $this );
+            delete_transient( 'smliser_total_plugins' );
             return $this->get_item_id();
         }
 
@@ -938,7 +940,8 @@ class Smliser_Plugin {
                 $self->delete();
                 break;
         }
-        
+        wp_safe_redirect( smliser_repo_page() );
+        exit;
     }
 
     /**
@@ -975,6 +978,7 @@ class Smliser_Plugin {
                     wp_safe_redirect( smliser_repository_admin_action_page() );
                     exit;
                 }
+                set_transient( 'smliser_form_success', true, 4 );
                 wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $item_id ) );
                 exit;
             }
