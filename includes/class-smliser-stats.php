@@ -239,7 +239,7 @@ class Smliser_Stats {
 
     /*
     |-------------------------------
-    | API ROUTE ACCESS LOG METHODS
+    | API ROUTE STATISTICS METHODS
     |-------------------------------
     */
 
@@ -512,6 +512,7 @@ class Smliser_Stats {
         if ( empty( $route ) ) {
             return false;
         }
+        
         // delete_transient( 'smliser_'. $route . '_log' );
         $route_log = get_transient( 'smliser_'. $route . '_log' );
 
