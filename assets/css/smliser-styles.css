@@ -255,6 +255,30 @@
         margin-left: 20px;
     }
 }
+
+.smliser-admin-dashboard-subheader {
+    display: flex;
+    justify-content: space-evenly;
+    border: solid #d3d0d6;
+    border-radius: 9px;
+    box-shadow: 5px 10px 10px rgba(3, 1, 2, 0.2);
+    background-color: #fff;
+    height: 90px;
+}
+.smliser-admin-dashboard-subheader-items {
+    text-align: center;
+    text-justify: inter-ideograph;
+    color: #000000;
+    font-weight: bold;
+    margin: 20px auto;
+    border-radius: 3px;
+    background-color: #d3d0d6;
+    height: 40px;
+    width: 150px;
+}
+
+
+
 .smliser-admin-dashboard-body {
     background-color: #fff;
     border-radius: 9px;
@@ -269,9 +293,11 @@
     padding: 10px;
 
 }
-.smliser-admin-dashboard-body-item {
-    padding-left: 3px;
-
+.smliser-admin-dashboard-body-item p {
+    display: inline-block;
+    font-weight: bold;
+    margin-left: 10px;
+    
 }
 .smliser-admin-view-page-header {
     display: flex;

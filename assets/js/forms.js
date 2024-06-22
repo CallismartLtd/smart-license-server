@@ -227,11 +227,11 @@ document.addEventListener('DOMContentLoaded', function () {
         new Chart(ctx1, {
             type: 'bar',
             data: {
-                labels: ['Hits', 'Visits Today', 'Unique Visitors'],
+                labels: ['Hits', 'Visits Today', 'Unique Visitors', 'Plugin Downloads Served'],
                 datasets: [{
                     label: 'Plugin Update Route',
-                    data: [smliserStats.pluginUpdateHits, smliserStats.pluginUpdateVisits, smliserStats.pluginUniqueVisitors],
-                    backgroundColor: ['#36a2eb', '#ff6384', '#ff0000']
+                    data: [smliserStats.pluginUpdateHits, smliserStats.pluginUpdateVisits, smliserStats.pluginUniqueVisitors, smliserStats.pluginDownloads],
+                    backgroundColor: ['#36a2eb', '#ff6384', '#ff0000', '#16f2b0']
                 }]
             },
             options: {
@@ -247,11 +247,11 @@ document.addEventListener('DOMContentLoaded', function () {
         new Chart(ctx2, {
             type: 'bar',
             data: {
-                labels: ['Hits', 'Visits Today'],
+                labels: ['Hits', 'Visits Today', 'Unique Visitors'],
                 datasets: [{
                     label: 'License Activation Route',
-                    data: [smliserStats.licenseActivationHits, smliserStats.licenseActivationVisits],
-                    backgroundColor: ['#36a2eb', '#ff6384']
+                    data: [smliserStats.licenseActivationHits, smliserStats.licenseActivationVisits, smliserStats.licenseActivationUniqueVisitors],
+                    backgroundColor: ['#36a2eb', '#ff6384', '#ff0000']
                 }]
             },
             options: {
@@ -267,11 +267,11 @@ document.addEventListener('DOMContentLoaded', function () {
         new Chart(ctx3, {
             type: 'bar',
             data: {
-                labels: ['Hits', 'Visits Today'],
+                labels: ['Hits', 'Visits Today', 'Unique Visitors'],
                 datasets: [{
                     label: 'License Deactivation Route',
-                    data: [smliserStats.licenseDeactivationHits, smliserStats.licenseDeactivationVisits],
-                    backgroundColor: ['#36a2eb', '#ff6384']
+                    data: [smliserStats.licenseDeactivationHits, smliserStats.licenseDeactivationVisits, smliserStats.licenseDeactivationUniqueVisitors],
+                    backgroundColor: ['#36a2eb', '#ff6384', '#ff0000']
                 }]
             },
             options: {

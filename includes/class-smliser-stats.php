@@ -150,6 +150,7 @@ class Smliser_Stats {
      * @return int $count The total plugin downloads served
      */
     public function get_total_downloads_served() {
+        // delete_transient( 'smliser_total_served_downloads' );
         $count = get_transient( 'smliser_total_served_downloads' );
 
         if ( false === $count ) {
@@ -187,6 +188,34 @@ class Smliser_Stats {
         $average_daily_downloads = $download_count / $days_since_first_download;
 
         return $average_daily_downloads;
+    }
+
+    /**
+     * Estimate active installations for a plugin.
+     * 
+     * @param int $plugin_id The plugin ID.
+     * @return int Estimated active installations.
+     */
+    public function estimate_active_installations( $plugin_id ) {
+        
+        $logs = $this->get_route_log( self::$plugin_update );
+
+        if ( ! $logs ) {
+            return 0;
+        }
+
+        $unique_ips = array();
+
+        foreach ( $logs as $log ) {
+            $plugin_id_in_log = isset( $log['request_data']['plugin_id'] ) ? absint( $log['request_data']['plugin_id'] ) : 0;
+
+            if ( $plugin_id_in_log && $plugin_id_in_log === absint( $plugin_id ) ) {
+                $unique_ips[ $log['client_ip'] ] = true;
+            }
+        }
+
+        // Count unique IPs
+        return count( $unique_ips );
     }
 
     /*
@@ -272,7 +301,7 @@ class Smliser_Stats {
      * @return int Total number of hits.
      */
     public function get_total_hits( $route ) {
-        delete_transient( 'smliser_'. $route . '_hits' );
+        // delete_transient( 'smliser_'. $route . '_hits' );
 
         $total_hits = get_transient( 'smliser_' . $route . '_hits' );
         
@@ -324,7 +353,7 @@ class Smliser_Stats {
      * @return int Total number of unique IP addresses.
      */
     public function get_unique_ips( $route ) {
-        delete_transient( 'smliser_'. $route . '_ips' );
+        // delete_transient( 'smliser_'. $route . '_ips' );
         $ips = get_transient( 'smliser_' . $route . '_ips' );
 
         if ( false === $ips ) {
@@ -483,7 +512,7 @@ class Smliser_Stats {
         if ( empty( $route ) ) {
             return false;
         }
-        delete_transient( 'smliser_'. $route . '_log' );
+        // delete_transient( 'smliser_'. $route . '_log' );
         $route_log = get_transient( 'smliser_'. $route . '_log' );
 
         if ( false === $route_log ) {
@@ -512,46 +541,18 @@ class Smliser_Stats {
         return $route_log;
     }
 
-
-    /**
-     * Estimate active installations for a plugin.
-     * 
-     * @param int $plugin_id The plugin ID.
-     * @return int Estimated active installations.
-     */
-    public function estimate_active_installations( $plugin_id ) {
-        
-        $logs = $this->get_route_log( self::$plugin_update );
-
-        if ( ! $logs ) {
-            return 0;
-        }
-
-        $unique_ips = array();
-
-        foreach ( $logs as $log ) {
-            $plugin_id_in_log = isset( $log['request_data']['plugin_id'] ) ? absint( $log['request_data']['plugin_id'] ) : 0;
-
-            if ( $plugin_id_in_log && $plugin_id_in_log === absint( $plugin_id ) ) {
-                $unique_ips[ $log['client_ip'] ] = true;
-            }
-        }
-
-        // Count unique IPs
-        return count( $unique_ips );
-    }
-
     /**
      * Get total API requests count.
      * 
      * @return int Total number of API requests.
      */
-    public static function get_total_requests() {
+    public function get_total_requests() {
+        // delete_transient( 'smliser_total_requests' );
         global $wpdb;
         $total_requests = get_transient( 'smliser_total_requests' );
 
         if ( false === $total_requests ) {
-            $total_requests = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . SMLISER_API_ACCESS_LOG_TABLE);
+            $total_requests = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . SMLISER_API_ACCESS_LOG_TABLE );
             set_transient( 'smliser_total_requests', $total_requests, HOUR_IN_SECONDS );
         }
 
@@ -563,7 +564,8 @@ class Smliser_Stats {
      * 
      * @return int Total number of unique IP addresses.
      */
-    public static function get_unique_ips_count() {
+    public function get_unique_ips_count() {
+        // delete_transient( 'smliser_unique_ips' );
         global $wpdb;
         $unique_ips = get_transient( 'smliser_unique_ips' );
 
@@ -581,6 +583,7 @@ class Smliser_Stats {
      * @return array Associative array with API routes as keys and request counts as values.
      */
     public static function get_requests_per_route() {
+        // delete_transient( 'smliser_requests_per_route' );
         global $wpdb;
         $requests_per_route = get_transient( 'smliser_requests_per_route' );
 
@@ -600,7 +603,8 @@ class Smliser_Stats {
      * 
      * @return array Associative array with status codes as keys and their counts as values.
      */
-    public static function get_status_codes_distribution() {
+    public function get_status_codes_distribution() {
+        // delete_transient( 'smliser_status_codes' );
         global $wpdb;
         $status_codes = get_transient( 'smliser_status_codes' );
 
@@ -621,7 +625,8 @@ class Smliser_Stats {
      * @param int $limit Number of top errors to retrieve.
      * @return array Associative array with status codes as keys and their counts as values.
      */
-    public static function get_top_errors( $limit = 5 ) {
+    public function get_top_errors( $limit = 5 ) {
+        // delete_transient( 'smliser_top_errors' );
         global $wpdb;
         $top_errors = get_transient( 'smliser_top_errors' );
 
@@ -644,12 +649,13 @@ class Smliser_Stats {
      * 
      * @return array Associative array with client IPs as keys and request counts as values.
      */
-    public static function get_requests_per_user() {
+    public function get_requests_per_user() {
+        // delete_transient( 'smliser_requests_per_user' );
         global $wpdb;
         $requests_per_user = get_transient( 'smliser_requests_per_user' );
 
         if ( false === $requests_per_user ) {
-            $results = $wpdb->get_results("SELECT client_ip, COUNT(*) as count FROM " . SMLISER_API_ACCESS_LOG_TABLE . " GROUP BY client_ip", OBJECT_K);
+            $results = $wpdb->get_results( "SELECT client_ip, COUNT(*) as count FROM " . SMLISER_API_ACCESS_LOG_TABLE . " GROUP BY client_ip", OBJECT_K );
             $requests_per_user = array_map( function( $result ) {
                 return (int) $result->count;
             }, $results );

@@ -40,6 +40,9 @@ class Smliser_admin_menu {
      * Admin menus
      */
     public function menus() {
+        if ( ! defined( 'SMLISER_ADMIN_PAGE' ) ) {
+            define( 'SMLISER_ADMIN_PAGE', 'yes' );
+        }
         global $menu;
 	
         $dashboard = add_menu_page(
@@ -104,7 +107,9 @@ class Smliser_admin_menu {
      * Dashboard Callback method
      */
     public function admin_menu() {
-        $stats  = new Smliser_Stats();
+        $stats          = new Smliser_Stats();
+        $status_codes   = $stats->get_status_codes_distribution();
+        $error_codes    = $stats->get_top_errors( wp_rand( 50, 100 ) );
         // Prepare data for Chart.js
         $plugin_update_hits         = $stats->get_total_hits( $stats::$plugin_update );
         $license_activation_hits    = $stats->get_total_hits( $stats::$license_activation );
@@ -117,7 +122,7 @@ class Smliser_admin_menu {
         $plugin_unique_visitors                 = $stats->get_unique_ips( $stats::$plugin_update );
         $license_activation_unique_visitors     = $stats->get_unique_ips( $stats::$plugin_update );
         $license_deactivation_unique_visitors   = $stats->get_unique_ips( $stats::$plugin_update );
-        
+
         include_once SMLISER_PATH . 'templates/admin-dashboard.php';
         return;
     }

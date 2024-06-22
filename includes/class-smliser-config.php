@@ -112,7 +112,9 @@ class SmartLicense_config {
      */
     public function load_scripts() {
         wp_enqueue_script( 'smliser-script', SMLISER_URL . 'assets/js/forms.js', array( 'jquery' ), SMLISER_VER, true );
-        wp_enqueue_script( 'smliser-chart', 'https://cdn.jsdelivr.net/npm/chart.js', array(), SMLISER_VER, true );
+        if ( defined( 'SMLISER_ADMIN_PAGE' ) ) {
+            wp_enqueue_script( 'smliser-chart', SMLISER_URL . 'assets/js/chart.js', array(), SMLISER_VER, true );
+        }
 
     }
 
