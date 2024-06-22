@@ -414,6 +414,7 @@ class Smliser_Server{
     
         $response = new WP_REST_Response( $response_data, 200 );
         $response->header( 'Content-Type', 'application/json' );
+        $additional = array( 'args' => $response_data );
         /**
          * Fires for stats syncronization.
          * 
@@ -421,7 +422,7 @@ class Smliser_Server{
          * @param string Empty field for license object.
          * @param Smliser_License The license object (optional).
          */
-        do_action( 'smliser_stats', 'license_deactivation', '', $obj );
+        do_action( 'smliser_stats', 'license_deactivation', '', $obj, $additional );
 
         return $response;
     }

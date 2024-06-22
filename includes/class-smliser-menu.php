@@ -105,6 +105,19 @@ class Smliser_admin_menu {
      */
     public function admin_menu() {
         $stats  = new Smliser_Stats();
+        // Prepare data for Chart.js
+        $plugin_update_hits         = $stats->get_total_hits( $stats::$plugin_update );
+        $license_activation_hits    = $stats->get_total_hits( $stats::$license_activation );
+        $license_deactivation_hits  = $stats->get_total_hits( $stats::$license_deactivation );
+
+        $plugin_update_visits       = $stats->total_visits_today( $stats::$plugin_update );
+        $license_activation_visits  = $stats->total_visits_today( $stats::$license_activation );
+        $license_deactivation_visits = $stats->total_visits_today( $stats::$license_deactivation );
+
+        $plugin_unique_visitors                 = $stats->get_unique_ips( $stats::$plugin_update );
+        $license_activation_unique_visitors     = $stats->get_unique_ips( $stats::$plugin_update );
+        $license_deactivation_unique_visitors   = $stats->get_unique_ips( $stats::$plugin_update );
+        
         include_once SMLISER_PATH . 'templates/admin-dashboard.php';
         return;
     }

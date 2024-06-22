@@ -73,6 +73,65 @@ function smliser_time_diff_string( $start_date, $end_date ) {
 }
 
 /**
+ * Convert duration to a readable date.
+ * 
+ * @param int|float $duration The duration in seconds.
+ * @return string|bool $readable_format A formatted string from year to seconds or false. 
+ */
+function smliser_readable_duration( $duration ) {
+    if ( ! is_int( $duration ) && ! is_float( $duration ) ) {
+        return false;
+    }
+
+    $duration = round( $duration );
+    $years      = floor( $duration / ( 365 * 24 * 3600 ) );
+    $duration   %= ( 365 * 24 * 3600 );
+    $months     = floor( $duration / ( 30 * 24 * 3600 ) );
+    $duration   %= ( 30 * 24 * 3600 );
+    $weeks      = floor( $duration / ( 7 * 24 * 3600 ) );
+    $duration   %= ( 7 * 24 * 3600 );
+    $days       = floor( $duration / ( 24 * 3600 ) );
+    $duration   %= ( 24 * 3600 );
+    $hours      = floor( $duration / 3600 );
+    $duration   %= 3600;
+    $minutes    = floor( $duration / 60 );
+    $seconds    = $duration % 60;
+
+    $readable_parts = array();
+    if ( $years > 0 ) {
+        $readable_parts[] = $years . ' year' . ( $years > 1 ? 's' : '' );
+    }
+
+    if ( $months > 0 ) {
+        $readable_parts[] = $months . ' month' . ( $months > 1 ? 's' : '' );
+    }
+
+    if ( $weeks > 0 ) {
+        $readable_parts[] = $weeks . ' week' . ( $weeks > 1 ? 's' : '' );
+    }
+
+    if ( $days > 0 ) {
+        $readable_parts[] = $days . ' day' . ( $days > 1 ? 's' : '' );
+    }
+
+    if ( $hours > 0 ) {
+        $readable_parts[] = $hours . ' hour' . ( $hours > 1 ? 's' : '' );
+    }
+
+    if ( $minutes > 0 ) {
+        $readable_parts[] = $minutes . ' minute' . ( $minutes > 1 ? 's' : '' );
+    }
+
+    if ( $seconds > 0 ) {
+        $readable_parts[] = $seconds . ' second' . ( $seconds > 1 ? 's' : '' );
+    }
+
+    $readable_format = implode( ', ', $readable_parts );
+    return $readable_format;
+}
+
+
+/**
  * Extracts the date portion from a date and time string.
  *
  * @param string $dateTimeString The date and time string.

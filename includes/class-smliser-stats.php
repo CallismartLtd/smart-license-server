@@ -34,21 +34,21 @@ class Smliser_Stats {
      * 
      * @var string $license_activation License Activation route.
      */
-    private static $license_activation = 'license-validator';
+    public static $license_activation = 'license-validator';
     
     /**
      * License deactivation route
      * 
      * @var string $license_deactivation License deactivation route
      */
-    private static $license_deactivation = 'license-deactivator';
+    public static $license_deactivation = 'license-deactivator';
 
     /**
      * Plugin update route
      * 
      * @var string $plugin_update   Plugin update route.
      */
-    private static $plugin_update  = 'software-update';
+    public static $plugin_update  = 'software-update';
 
     /**
      * Instance of current class.
@@ -104,7 +104,7 @@ class Smliser_Stats {
         $total_plugins = get_transient( 'smliser_total_plugins' );
 
         if ( false === $total_plugins ) {
-            $total_plugins = count( $this->instance()->plugin()->get_plugins() );
+            $total_plugins = count( $this->plugin()->get_plugins() );
             set_transient( 'smliser_total_plugins', absint( $total_plugins ), 7 * DAY_IN_SECONDS );
         }
 
@@ -133,7 +133,7 @@ class Smliser_Stats {
     }
 
     /**
-     * Get total downloads.
+     * Get total downloads for a plugin.
      * 
      * @param int $plugin_id The plugin ID.
      * @return int total downloads.
@@ -142,6 +142,29 @@ class Smliser_Stats {
         
         $this->plugin()->set_item_id( $plugin_id );
         return $this->plugin()->get_meta( 'download_count', 0 );
+    }
+
+    /**
+     * Get total downloads served.
+     * 
+     * @return int $count The total plugin downloads served
+     */
+    public function get_total_downloads_served() {
+        $count = get_transient( 'smliser_total_served_downloads' );
+
+        if ( false === $count ) {
+            global $wpdb;
+            $query = $wpdb->prepare(
+                "SELECT `meta_value` FROM " . SMLISER_PLUGIN_META_TABLE . " WHERE `meta_key` = %s AND `meta_value` > %d", 
+                "download_count", 0
+            );
+
+            $results    = $wpdb->get_col( $query );
+            $count      = array_sum( $results );
+            set_transient( 'smliser_total_served_downloads', $count, HOUR_IN_SECONDS );
+        }
+
+        return $count;
     }
 
     /**
@@ -176,7 +199,13 @@ class Smliser_Stats {
      * Total Licenses
      */
     public function total_licenses() {
+        $total_licenses = get_transient( 'smliser_total_licenses' );
+        
+        if ( false === $total_licenses ) {
+            $total_licenses = count( $this->license()->get_licenses() );
+        }
 
+        return $total_licenses;
     }
 
     /*
@@ -243,6 +272,8 @@ class Smliser_Stats {
      * @return int Total number of hits.
      */
     public function get_total_hits( $route ) {
+        delete_transient( 'smliser_'. $route . '_hits' );
+
         $total_hits = get_transient( 'smliser_' . $route . '_hits' );
         
         if ( false === $total_hits ) {
@@ -255,10 +286,35 @@ class Smliser_Stats {
                 $route
             );
             $total_hits = (int) $wpdb->get_var( $query ); // phpcs:disable
-            set_transient( 'smliser_' . $route . '_hits', $total_hits, 24 * HOUR_INSECONDS );            
+            set_transient( 'smliser_' . $route . '_hits', $total_hits, 24 * HOUR_IN_SECONDS );            
         }
         
-        return ;
+        return $total_hits;
+    }
+
+    /**
+     * Total visits to an API route today
+     * 
+     * @param string $route The Api route name.
+     * @return int $total_visits
+     */
+    public function total_visits_today( $route ) {
+        $logs           = $this->get_route_log( $route );
+
+        if ( ! $logs ) {
+            return 0;
+        }
+
+        $start_of_day   = strtotime( current_time( 'Y-m-d' ) . ' 00:00:00' );
+        $end_of_day     = strtotime( current_time( 'Y-m-d' ) . ' 23:59:59' );
+
+        $filtered_logs = array_filter( $logs, function( $log ) use ( $start_of_day, $end_of_day ) {
+            $log_timestamp = strtotime( $log['access_time'] );
+            return $log_timestamp >= $start_of_day && $log_timestamp <= $end_of_day;
+        });
+        $total_visits = count( $filtered_logs );
+
+        return $total_visits;
     }
 
     /**
@@ -268,6 +324,7 @@ class Smliser_Stats {
      * @return int Total number of unique IP addresses.
      */
     public function get_unique_ips( $route ) {
+        delete_transient( 'smliser_'. $route . '_ips' );
         $ips = get_transient( 'smliser_' . $route . '_ips' );
 
         if ( false === $ips ) {
@@ -295,7 +352,7 @@ class Smliser_Stats {
      */
     public function get_daily_access_frequency( $route ) {
         
-        $frequency = wp_cache_get( 'smliser_' . $route .'_access_frequency' );
+        $frequency = get_transient( 'smliser_' . $route .'_access_frequency' );
         
         if ( false === $frequency ) {
             global $wpdb;
@@ -316,12 +373,105 @@ class Smliser_Stats {
             foreach ( $results as $result ) {
                 $frequency[ $result['date'] ] = (int) $result['count'];
             }
-            wp_cache_set( 'smliser_' . $route .'_access_frequency', $frequency, 'smliser_query_cache', 3 * HOUR_IN_SECONDS );
+            set_transient( 'smliser_' . $route .'_access_frequency', $frequency, 3 * HOUR_IN_SECONDS );
         }
 
 
         return $frequency;
     }
+
+    /**
+     * Get the average time between visits for a given route.
+     * 
+     * @param string $route The API route.
+     * @return string The average time in hours, minutes, and seconds between visits in a human-readable format (e.g., 1hr 15mins 10secs).
+     */
+    public function get_average_time_between_visits( $route ) {
+        // Get the access logs for the route
+        $logs = $this->get_route_log( $route );
+
+        if ( ! $logs ) {
+            return 'No visits'; // Clearer message for no visits
+        }
+
+        // Extract timestamps
+        $timestamps = array();
+        foreach ( $logs as $log ) {
+            $timestamps[] = strtotime( $log['access_time'] );
+        }
+
+        // Sort timestamps in ascending order
+        sort( $timestamps );
+
+        // Calculate intervals between consecutive timestamps
+        $intervals = array();
+        for ( $i = 1; $i < count( $timestamps ); $i++ ) {
+            $intervals[] = $timestamps[$i] - $timestamps[$i - 1];
+        }
+
+        // Calculate the average interval in seconds
+        $average_interval = ! empty( $intervals ) ? array_sum( $intervals ) / count( $intervals ) : 0;
+
+        return smliser_readable_duration( $average_interval );
+    }
+
+  
+
+    /**
+     * Get the average time between visits for a given route on a specific date.
+     * 
+     * @param string $route The API route.
+     * @param string $date The date string (Y-m-d format) for which to calculate the average time between visits.
+     * @return float|int The average time in seconds between visits for the specified date.
+     */
+    public function get_average_time_between_visits_for_date( $route, $date ) {
+        if ( empty( $route || empty( $date ) ) ) {
+            return '';
+        }
+        
+        // Get the access logs for the route
+        $logs = $this->get_route_log( $route );
+
+        // If there are no logs, return 0
+        if ( ! $logs ) {
+            return 'No visits yet';
+        }
+
+        // Convert the date string to a timestamp range for the entire day
+        $start_of_day   = strtotime( $date . ' 00:00:00' );
+        $end_of_day     = strtotime( $date . ' 23:59:59' );
+
+        // Filter the logs to include only those within the specified date range
+        $filtered_logs = array_filter( $logs, function( $log ) use ( $start_of_day, $end_of_day ) {
+            $log_timestamp = strtotime( $log['access_time'] );
+            return $log_timestamp >= $start_of_day && $log_timestamp <= $end_of_day;
+        });
+
+        // If there are no logs for the specified date, return 0
+        if ( empty( $filtered_logs ) ) {
+            return 0;
+        }
+
+        // Extract timestamps from the filtered logs
+        $timestamps = array();
+        foreach ( $filtered_logs as $log ) {
+            $timestamps[] = strtotime( $log['access_time'] );
+        }
+
+        // Sort timestamps in ascending order
+        sort( $timestamps );
+
+        // Calculate intervals between consecutive timestamps
+        $intervals = array();
+        for ( $i = 1; $i < count( $timestamps ); $i++ ) {
+            $intervals[] = $timestamps[$i] - $timestamps[$i - 1];
+        }
+
+        // Calculate the average interval
+        $average_interval = ! empty( $intervals ) ? array_sum( $intervals ) / count( $intervals ) : 0;
+        return smliser_readable_duration( $average_interval );
+    }
+
 
     /**
      * Get all access logs for a given API route.
@@ -333,8 +483,8 @@ class Smliser_Stats {
         if ( empty( $route ) ) {
             return false;
         }
-
-        $route_log = wp_cache_get( 'smliser_'. $route . '_log' );
+        delete_transient( 'smliser_'. $route . '_log' );
+        $route_log = get_transient( 'smliser_'. $route . '_log' );
 
         if ( false === $route_log ) {
             global $wpdb;
@@ -356,7 +506,7 @@ class Smliser_Stats {
                 $log['request_data']    = maybe_unserialize( $log['request_data'] );
                 $log['response_data']   = maybe_unserialize( $log['response_data'] );
             }
-            wp_cache_set( 'smliser_'. $route . '_log', $results, 'smliser_query_cache', DAY_IN_SECONDS );
+            set_transient( 'smliser_'. $route . '_log', $results, DAY_IN_SECONDS );
             $route_log = $results;            
         }
         return $route_log;
@@ -391,7 +541,123 @@ class Smliser_Stats {
         return count( $unique_ips );
     }
 
+    /**
+     * Get total API requests count.
+     * 
+     * @return int Total number of API requests.
+     */
+    public static function get_total_requests() {
+        global $wpdb;
+        $total_requests = get_transient( 'smliser_total_requests' );
 
+        if ( false === $total_requests ) {
+            $total_requests = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . SMLISER_API_ACCESS_LOG_TABLE);
+            set_transient( 'smliser_total_requests', $total_requests, HOUR_IN_SECONDS );
+        }
+
+        return $total_requests;
+    }
+
+    /**
+     * Get unique IP addresses count.
+     * 
+     * @return int Total number of unique IP addresses.
+     */
+    public static function get_unique_ips_count() {
+        global $wpdb;
+        $unique_ips = get_transient( 'smliser_unique_ips' );
+
+        if ( false === $unique_ips ) {
+            $unique_ips = (int) $wpdb->get_var("SELECT COUNT(DISTINCT client_ip) FROM " . SMLISER_API_ACCESS_LOG_TABLE);
+            set_transient( 'smliser_unique_ips', $unique_ips, HOUR_IN_SECONDS );
+        }
+
+        return $unique_ips;
+    }
+
+    /**
+     * Get requests count per API route.
+     * 
+     * @return array Associative array with API routes as keys and request counts as values.
+     */
+    public static function get_requests_per_route() {
+        global $wpdb;
+        $requests_per_route = get_transient( 'smliser_requests_per_route' );
+
+        if ( false === $requests_per_route ) {
+            $results = $wpdb->get_results("SELECT api_route, COUNT(*) as count FROM " . SMLISER_API_ACCESS_LOG_TABLE . " GROUP BY api_route", OBJECT_K);
+            $requests_per_route = array_map( function( $result ) {
+                return (int) $result->count;
+            }, $results );
+            set_transient( 'smliser_requests_per_route', $requests_per_route, HOUR_IN_SECONDS );
+        }
+
+        return $requests_per_route;
+    }
+
+    /**
+     * Get HTTP status codes distribution.
+     * 
+     * @return array Associative array with status codes as keys and their counts as values.
+     */
+    public static function get_status_codes_distribution() {
+        global $wpdb;
+        $status_codes = get_transient( 'smliser_status_codes' );
+
+        if ( false === $status_codes ) {
+            $results = $wpdb->get_results("SELECT status_code, COUNT(*) as count FROM " . SMLISER_API_ACCESS_LOG_TABLE . " GROUP BY status_code", OBJECT_K);
+            $status_codes = array_map( function( $result ) {
+                return (int) $result->count;
+            }, $results );
+            set_transient( 'smliser_status_codes', $status_codes, HOUR_IN_SECONDS );
+        }
+
+        return $status_codes;
+    }
+
+    /**
+     * Get top errors by status code.
+     * 
+     * @param int $limit Number of top errors to retrieve.
+     * @return array Associative array with status codes as keys and their counts as values.
+     */
+    public static function get_top_errors( $limit = 5 ) {
+        global $wpdb;
+        $top_errors = get_transient( 'smliser_top_errors' );
+
+        if ( false === $top_errors ) {
+            $results = $wpdb->get_results( $wpdb->prepare(
+                "SELECT status_code, COUNT(*) as count FROM " . SMLISER_API_ACCESS_LOG_TABLE . " WHERE status_code >= 400 GROUP BY status_code ORDER BY count DESC LIMIT %d", 
+                $limit 
+            ), OBJECT_K);
+            $top_errors = array_map( function( $result ) {
+                return (int) $result->count;
+            }, $results );
+            set_transient( 'smliser_top_errors', $top_errors, HOUR_IN_SECONDS );
+        }
+
+        return $top_errors;
+    }
+
+    /**
+     * Get requests per user.
+     * 
+     * @return array Associative array with client IPs as keys and request counts as values.
+     */
+    public static function get_requests_per_user() {
+        global $wpdb;
+        $requests_per_user = get_transient( 'smliser_requests_per_user' );
+
+        if ( false === $requests_per_user ) {
+            $results = $wpdb->get_results("SELECT client_ip, COUNT(*) as count FROM " . SMLISER_API_ACCESS_LOG_TABLE . " GROUP BY client_ip", OBJECT_K);
+            $requests_per_user = array_map( function( $result ) {
+                return (int) $result->count;
+            }, $results );
+            set_transient( 'smliser_requests_per_user', $requests_per_user, HOUR_IN_SECONDS );
+        }
+
+        return $requests_per_user;
+    }
     /*
     |-------------------------
     | ACTION HANDLER METHODS
@@ -429,6 +695,17 @@ class Smliser_Stats {
         } elseif ( 'license_deactivation' === $context ) {
             $website = $license->get_action();
             $license->remove_activated_website( $website );
+            self::log_access( self::$license_deactivation, array( 
+                'request_data' => array( 
+                    'license_id' => $license->get_id(), 
+                    'item_id' => $license->get_item_id(), 
+                ),
+                'response_data' => array(
+                    $args
+                ),
+                'website' => isset( $args['callback_url'] ) ? isset( $args['callback_url'] ) : '',
+                 
+            ) );
         } elseif( 'license_activation' === $context ) {
             self::log_access( self::$license_activation, array( 
                     'request_data' => array( 

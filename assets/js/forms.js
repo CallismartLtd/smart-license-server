@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 document.addEventListener('DOMContentLoaded', function() {
-    var tooltips = document.querySelectorAll('.smliser-form-description');
+    var tooltips = document.querySelectorAll('.smliser-form-description, .smliser-tooltip');
 
     tooltips.forEach(function(tooltip) {
         tooltip.addEventListener('mouseenter', function() {
@@ -214,3 +214,75 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    var dashboardPage = document.getElementById( 'smliser-admin-dasboard-wrapper' );
+
+    if( dashboardPage ) {
+        var ctx1 = document.getElementById('pluginUpdateChart').getContext('2d');
+        var ctx2 = document.getElementById('licenseActivationChart').getContext('2d');
+        var ctx3 = document.getElementById('licenseDeactivationChart').getContext('2d');
+
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: ['Hits', 'Visits Today', 'Unique Visitors'],
+                datasets: [{
+                    label: 'Plugin Update Route',
+                    data: [smliserStats.pluginUpdateHits, smliserStats.pluginUpdateVisits, smliserStats.pluginUniqueVisitors],
+                    backgroundColor: ['#36a2eb', '#ff6384', '#ff0000']
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['Hits', 'Visits Today'],
+                datasets: [{
+                    label: 'License Activation Route',
+                    data: [smliserStats.licenseActivationHits, smliserStats.licenseActivationVisits],
+                    backgroundColor: ['#36a2eb', '#ff6384']
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    
+        new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: ['Hits', 'Visits Today'],
+                datasets: [{
+                    label: 'License Deactivation Route',
+                    data: [smliserStats.licenseDeactivationHits, smliserStats.licenseDeactivationVisits],
+                    backgroundColor: ['#36a2eb', '#ff6384']
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+});

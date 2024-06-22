@@ -1,4 +1,7 @@
 /*License CSS**/
+.smliser-tooltip {
+    cursor: help;
+}
 .smliser-partially-hidden-license-key-container{
     margin-bottom: 10px;
 }
@@ -206,6 +209,7 @@
     color: #000000;
     font-weight: bold;
 }
+
 .smliser-admin-dashboard-header-child a {
     text-decoration: none;
     color: #000000;
@@ -218,7 +222,7 @@
     
 }
 
-@media only screen and ( min-width: 150px ) and ( max-width: 569px ) {
+@media only screen and ( min-width: 1px ) and ( max-width: 569px ) {
     .smliser-admin-dashboard-header{
         flex-wrap: wrap;
         margin-right: 15px;
@@ -251,7 +255,24 @@
         margin-left: 20px;
     }
 }
+.smliser-admin-dashboard-body {
+    background-color: #fff;
+    border-radius: 9px;
+    width: 80%;
+    margin: 20px auto;
+    min-height: 90px;
+}
+.smliser-admin-dashboard-body h3 {
+    text-align: center;
+    font-weight: bold;
+    color: #4928be;
+    padding: 10px;
 
+}
+.smliser-admin-dashboard-body-item {
+    padding-left: 3px;
+
+}
 .smliser-admin-view-page-header {
     display: flex;
     justify-content: space-evenly;
@@ -333,5 +354,8 @@
         width: 100%;
 
     }
-    
+}
+
+.smliser-div-link {
+    text-decoration: none;
 }
