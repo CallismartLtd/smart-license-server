@@ -422,6 +422,7 @@ class Smliser_Repository {
 			return false;
 		}
 
+        $start          = 0;
         $length         = @filesize( $file ); 
 		$read_length    = (int) SMLISER_CHUNK_SIZE;
 
