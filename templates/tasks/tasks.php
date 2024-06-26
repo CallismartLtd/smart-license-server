@@ -1,6 +1,6 @@
 <?php
 /**
- * file name main.php
+ * file name tasks.php
  * Queued tasks template page
  * 
  * @author Callistus
@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 
 <div class="smliser-task-main">
     <h1>License Activation Schedules</h1>
+    <a href="<?php echo esc_url( admin_url( 'admin.php?page=tasks&path=missed-schedules' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-controls-forward"></span> Missed Schedules</a>
     <table class="smliser-table">
         <tr>
             <th>Client Wait Period</th>

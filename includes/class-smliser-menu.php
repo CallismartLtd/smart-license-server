@@ -91,7 +91,7 @@ class Smliser_admin_menu {
             'Settings',
             'manage_options',
             'smliser-options',
-            array( $this, 'options_page' )
+            array( $this, 'options_page_controller' )
         );
 
         foreach ( $menu as $index => $data ) {
@@ -291,25 +291,42 @@ class Smliser_admin_menu {
      * Task page controller
      */
     public function task_page_controller() {
-        $path = isset( $_GET['path'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $path = isset( $_GET['path'] ) ? sanitize_key( $_GET['path'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        
+        if ( 'missed-schedules' === $path ) {
+            $this->missed_task_page( 'missed-schedules' );
+            return;
+        }
         $this->task_page();
+        return;
     }
 
 
     /**
      * Task page.
      */
-    public function task_page() {
+    public function task_page( $page = '') {
         $obj            = new Smliser_Server();
         $all_tasks      = $obj->scheduled_tasks();
         $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
         $cron_timestamp = $cron_handle ? $cron_handle->timestamp : 0;
         $next_date      = smliser_tstmp_to_date( $cron_timestamp );
 
-        // Sort tasks by timestamp
-        ksort( $all_tasks );
+        include_once SMLISER_PATH . 'templates/tasks/tasks.php';
+        return;
+    }
 
-        include_once SMLISER_PATH . 'templates/tasks/main.php';
+    /**
+     * Missed task page.
+     */
+    public function missed_task_page() {
+        $obj            = new Smliser_Server();
+        $all_tasks      = $obj->get_missed_schedules();
+        $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
+        $cron_timestamp = $cron_handle ? $cron_handle->timestamp : 0;
+        $next_date      = smliser_tstmp_to_date( $cron_timestamp );
+
+        include_once SMLISER_PATH . 'templates/tasks/missed-tasks.php';
         return;
     }
 
@@ -461,6 +478,36 @@ class Smliser_admin_menu {
         ob_start();
         include_once SMLISER_PATH . 'templates/repository/plugin-view.php';
         return ob_get_clean();
+    }
+
+    /**
+     *  Settings page contrlloer.
+     */
+    public function options_page_controller() {
+        $path = isset( $_GET['path'] ) ? sanitize_key( $_GET['path'] ) : '';
+        switch ( $path ) {
+            case 'api-keys': 
+                include_once SMLISER_PATH . 'templates/options/api-keys';
+                break;
+            case 'pages':
+                include_once SMLISER_PATH . '/templates/options/pages';
+                break;
+            default :
+                
+                if ( has_action( 'smlise_options_' . $path . '_content'  ) ) {
+                    do_action( 'smlise_options_' . $path . '_content' );
+                }else {
+                    $this->options_page();
+                }
+        }
+
+    }
+
+    /**
+     * Settings page
+     */
+    public function options_page() {
+        include_once SMLISER_PATH . 'templates/options/options.php';
     }
 
 }

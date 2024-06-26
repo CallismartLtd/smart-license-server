@@ -104,8 +104,8 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-
-        // echo smliser_wait_period();
+        // var_dump( get_option( 'smliser_task_queue', array() ) );
+        
     }
 
     /**

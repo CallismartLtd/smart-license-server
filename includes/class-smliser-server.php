@@ -52,11 +52,11 @@ class Smliser_Server{
         $this->doing_post();
         // Fetch the highest priority task data
         $highest_priority_task = $this->fetch_highest_priority_task();
-        return;
 
         if ( empty( $highest_priority_task ) ) {
             return;
         }
+        
         // Extract task data
         $callback_url   = isset( $highest_priority_task['callback_url'] ) ? sanitize_text_field( $highest_priority_task['callback_url'] ) : '';
         $license_key    = isset( $highest_priority_task['license_key'] ) ? sanitize_text_field( $highest_priority_task['license_key'] ) : '';
@@ -102,7 +102,7 @@ class Smliser_Server{
         $response = wp_remote_post( $callback_url, $request_body );
         // Check if remote request was successful
         if ( is_wp_error( $response ) ) {
-            
+            delete_transient( 'smliser_server_doing_post' );
             return new WP_Error( 'remote_request_failed', 'Failed to execute remote POST request.' );
         }
 
@@ -130,7 +130,6 @@ class Smliser_Server{
         $duration   = current_time( 'timestamp' ) + $duration;
         $task_queue = get_option( 'smliser_task_queue', array() );
         
-        // Any existing duplicate key(which is rear though) should be overwriten.
         $task_queue[ $duration ] = array( $value );
        return update_option( 'smliser_task_queue', $task_queue );
     }
@@ -182,7 +181,20 @@ class Smliser_Server{
     public function move_to_missed_schedules( $timestamp, $tasks ) {
         
         $missed_schedules[ $timestamp ] = $tasks;
-        update_option( 'smliser_missed_schedules', $missed_schedules );
+        set_transient( 'smliser_missed_schedules', $missed_schedules, DAY_IN_SECONDS );
+    }
+
+    /**
+     * Get missed task for the last 24hrs
+     */
+    public function get_missed_schedules() {
+        $schedules = get_transient( 'smliser_missed_schedules' );
+        
+        if ( false === $schedules ) {
+            return array();
+        }
+        ksort( $schedules );
+        return $schedules;
     }
 
 
@@ -194,8 +206,10 @@ class Smliser_Server{
     public function scheduled_tasks() {
         // Retrieve the task queue from the WordPress options
         $task_queue = get_option( 'smliser_task_queue', array() );
-
-        // Return the entire task queue (tasks and their expiration timestamps)
+        if ( ! empty( $task_queue ) ) {
+            ksort( $task_queue );
+        }
+        
         return $task_queue;
     }
 
@@ -572,25 +586,27 @@ class Smliser_Server{
      * @return string The next validation time in a human-readable format.
      */
     public function calculate_next_validation_time( $task_timestamp, $cron_timestamp ) {
-        $current_time = current_time( 'timestamp' );
-        $cron_interval = $cron_timestamp - $current_time; // 5 minutes interval
+        $tasks      = $this->scheduled_tasks();
+        $cron_intvl = 3 * MINUTE_IN_SECONDS; // Runs every 3mins.
+        $task_count = 0;
 
-        // Calculate the next run time based on the cron schedule
-        $next_cron_time = $cron_timestamp;
-
-        // Check if the cron timestamp is in the past, and adjust if necessary
-        if ( $next_cron_time < $current_time  ) {
-            // while ( $next_cron_time < $current_time ) {
-            //     $next_cron_time += $cron_interval;
-            // }            
+        foreach ( $tasks as $timestamp => $task ) {
+            $task_count++;
+            if ( $task_timestamp === $timestamp ) {
+                $task_count = absint( $task_count - 1 ); // Looking for tasks ahead.
+                break;
+            }
+        }
+        
+        if ( $task_count === 0 ) {
+            $next_task_time = $cron_timestamp - time();
+            return smliser_readable_duration( $next_task_time ); // The current cron countdown is for the next task.
         }
 
+        $cron_intvl     = $cron_intvl * $task_count; // Cron will run for tasks ahead.
+        $next_task_time = $cron_timestamp - time() + $cron_intvl;
 
-        // Calculate the next validation time considering the task timestamp
-        $next_validation_time = max( $task_timestamp, $next_cron_time );
-
-        // Format the next validation time
-        return smliser_tstmp_to_date( $next_validation_time );
+        return smliser_readable_duration( $next_task_time );
     }
 
     /**

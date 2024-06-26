@@ -11,7 +11,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Generate ISO8601 compatible Period Time in Seconds
+ * Generate ISO8601 compatible Period Time in Seconds for incoming task requests
  *
  * @return string ISO8601 duration string.
  */
@@ -19,34 +19,37 @@ function smliser_wait_period() {
     // Initialize the object and get all scheduled tasks
     $obj            = new Smliser_Server();
     $all_tasks      = $obj->scheduled_tasks();
-    $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
-   
-    if ( ! $cron_handle ) {
-        return 'PT0S';
-    }
+    $default_wait   = 600; // 10 minutes
+    $max_wait       = 3600; // 1 hour
 
-    $next_run_time      = $cron_handle->timestamp;
-    $next_run_in_secs   = $next_run_time - time();
-
-    /** Default wait period is the time until the next cron run if no tasks are pending. */
+    // Default wait period if no tasks are pending
     if ( empty( $all_tasks ) ) {
-        $wait_duration = 'PT' . max( $next_run_in_secs - 60 , 600 ) . 'S'; // Ensure at least 10 minutes wait.
+        $wait_duration = 'PT' . $default_wait . 'S'; 
+        delete_transient( 'smliser_task_wait_period' ); // Reset wait period when no tasks are pending
         return $wait_duration;
     }
 
-    // Sort the tasks by their keys (timestamps) in ascending order.
-    ksort( $all_tasks );
-
-    // Calculate the total time required to process all pending tasks
-    $task_duration = 0;
-    foreach ( $all_tasks as $timestamp => $task ) {
-        $task_duration += 600; // Each task takes 5 minutes.
+    $extend_wait = get_transient( 'smliser_task_wait_period' );
+    if ( false === $extend_wait ) {
+        $extend_wait = $default_wait / 2; // Start with half the default wait time
     }
 
-    // Determine the total wait time.
-    $total_wait_time = $next_run_in_secs + $task_duration;
+    // Adjust wait period based on the number of pending tasks
+    if ( count( $all_tasks ) <= 2 ) {
+        $extend_wait += $default_wait / 2;
+        set_transient( 'smliser_task_wait_period', $extend_wait, 10 * MINUTE_IN_SECONDS );
+    } elseif ( count( $all_tasks ) <= 5 ) {
+        $extend_wait += $default_wait;
+        set_transient( 'smliser_task_wait_period', $extend_wait, 20 * MINUTE_IN_SECONDS );
+    } else {
+        $extend_wait += $default_wait + 300; // Add 5 minutes extra
+        set_transient( 'smliser_task_wait_period', $extend_wait, 30 * MINUTE_IN_SECONDS );
+    }
 
-    // Format the total wait time into ISO 8601 duration format.
+    // Ensure the wait period does not exceed the maximum limit
+    $total_wait_time = min( $extend_wait, $max_wait );
+
+    // Format the total wait time into ISO 8601 duration format
     $wait_duration = 'PT' . $total_wait_time . 'S';
 
     return $wait_duration;

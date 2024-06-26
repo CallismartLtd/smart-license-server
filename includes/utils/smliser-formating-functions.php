@@ -91,6 +91,10 @@ function smliser_readable_duration( $duration ) {
     if ( ! is_int( $duration ) && ! is_float( $duration ) ) {
         return false;
     }
+    
+    if ( $duration <= 0 ) {
+        return 'Now';
+    }
 
     $duration = round( $duration );
     $years      = floor( $duration / ( 365 * 24 * 3600 ) );
