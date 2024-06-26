@@ -380,7 +380,7 @@ class Smliser_Plugin {
      * Get when updated
      */
     public function get_date_created() {
-        return $this->last_updated;
+        return $this->created_at;
     }
 
     /**
@@ -559,13 +559,14 @@ class Smliser_Plugin {
             'tested'        => sanitize_text_field( $this->get_tested() ),
             'requires_php'  => sanitize_text_field( $this->get_required_php() ),
             'download_link' => sanitize_url( $this->get_download_link(), array( 'http', 'https' ) ),
+            'created_at'    => sanitize_text_field( current_time( 'mysql' ) ),
         );
 
         // Database insertion.
         $result = $wpdb->insert( 
             SMLISER_PLUGIN_ITEM_TABLE, 
             $plugin_data, 
-            array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ) 
+            array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ) 
         );
 
         if ( $result ) {
@@ -652,6 +653,9 @@ class Smliser_Plugin {
         return false;
     }
     
+    /**
+     * Delete a plugin.
+     */
     public function delete() {
         if ( empty( $this->item_id ) ) {
             return false; // A valid plugin should have an ID.

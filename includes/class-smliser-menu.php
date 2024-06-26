@@ -24,7 +24,6 @@ class Smliser_admin_menu {
      */
     public function __construct() {
         add_action( 'admin_menu', array( $this, 'menus') );
-
     }
 
     /**
@@ -120,8 +119,8 @@ class Smliser_admin_menu {
         $license_deactivation_visits = $stats->total_visits_today( $stats::$license_deactivation );
 
         $plugin_unique_visitors                 = $stats->get_unique_ips( $stats::$plugin_update );
-        $license_activation_unique_visitors     = $stats->get_unique_ips( $stats::$plugin_update );
-        $license_deactivation_unique_visitors   = $stats->get_unique_ips( $stats::$plugin_update );
+        $license_activation_unique_visitors     = $stats->get_unique_ips( $stats::$license_activation );
+        $license_deactivation_unique_visitors   = $stats->get_unique_ips( $stats::$license_deactivation );
 
         include_once SMLISER_PATH . 'templates/admin-dashboard.php';
         return;
@@ -233,7 +232,7 @@ class Smliser_admin_menu {
         $table_html .= '</table>';
     
         $table_html .= '</form>';
-        $table_html .= '<p class="sw-table-count">' . count( $licenses ) . ' items</p>';
+        $table_html .= '<p class="smliser-table-count">' . count( $licenses ) . ' item'. ( count( $licenses ) > 1 ? 's': '' ) . '</p>';
         $table_html .= '</div>';
         return $table_html;
     }
@@ -301,12 +300,17 @@ class Smliser_admin_menu {
      * Task page.
      */
     public function task_page() {
-        $obj        = new Smliser_Server();
-        $all_tasks  = $obj->fetch_all_scheduled_tasks();
-        echo '<pre>';
-        var_dump( $all_tasks );
-        echo '<pre>';
-        
+        $obj            = new Smliser_Server();
+        $all_tasks      = $obj->scheduled_tasks();
+        $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
+        $cron_timestamp = $cron_handle ? $cron_handle->timestamp : 0;
+        $next_date      = smliser_tstmp_to_date( $cron_timestamp );
+
+        // Sort tasks by timestamp
+        ksort( $all_tasks );
+
+        include_once SMLISER_PATH . 'templates/tasks/main.php';
+        return;
     }
 
     /**
@@ -405,7 +409,7 @@ class Smliser_admin_menu {
         $table_html .= '</table>';
     
         $table_html .= '</form>';
-        $table_html .= '<p class="sw-table-count">' . count( $plugins ) . ' items</p>';
+        $table_html .= '<p class="smliser-table-count">' . count( $plugins ) . ' item'. ( count( $plugins ) > 1 ? 's': '' ) . '</p>';
         $table_html .= '</div>';
         return $table_html;
     }

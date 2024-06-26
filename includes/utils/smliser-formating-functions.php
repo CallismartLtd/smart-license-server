@@ -11,16 +11,21 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Format Timestamp to date
+ * Format Timestamp to date according to WordPress time settings
  * 
- * @param int $timestamp   The timestamp.
+ * @param int $timestamp    The timestamp.
+ * @param bool $use_i18n    Whether the given time stamp is Unix timestamp or not,
+ *                          when unix timestamp is given, the function will use wp_date to convert
+ *                          to local time, else the timestamp will be assumed to be the local timestamp hence
+ *                          date_i18n will be used.
+ * @return string formated local date.
  */
-function smliser_tstmp_to_date( $timestamp ) {
+function smliser_tstmp_to_date( $timestamp, $use_i18n = true ) {
 	if ( empty( $timestamp ) ) {
 		return $timestamp;
 	}
 
-    return  date_i18n( smliser_datetime_format(), $timestamp );
+    return  ( true === $use_i18n ) ? date_i18n( smliser_datetime_format(), $timestamp ) : wp_date( smliser_datetime_format(), $timestamp );
 }
 
 /**
@@ -79,6 +84,10 @@ function smliser_time_diff_string( $start_date, $end_date ) {
  * @return string|bool $readable_format A formatted string from year to seconds or false. 
  */
 function smliser_readable_duration( $duration ) {
+    if ( is_string( $duration ) ) {
+        return $duration;
+    }
+    
     if ( ! is_int( $duration ) && ! is_float( $duration ) ) {
         return false;
     }

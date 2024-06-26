@@ -60,4 +60,6 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
             <p>License Key: <p><?php echo wp_kses_post( $license->get_copyable_Lkey() ) ?></p></p>
         </div>
     </div>
+
+    <h2>API Routes</h2>
 </div>

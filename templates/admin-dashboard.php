@@ -16,26 +16,26 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
     <div class="smliser-admin-dashboard-header"> 
         <div class="smliser-admin-dashboard-header-child">
             <h2>Repository</h2>
-            <p><a href="<?php echo esc_url( smliser_repo_page() ) ?>"><span class="dashicons dashicons-plugins-checked"></span> Total Plugins: <?php echo absint( $stats->total_plugins() ) ?></a></p>
-            <p><a href="<?php echo esc_url( smliser_license_page() )?>"><span class="dashicons dashicons-privacy"></span> Total Licenses: <?php echo absint( $stats->total_licenses() ) ?></a></p>
-            <p title="Total plugin downloads served will update every hour." class="smliser-tooltip"><span class="dashicons dashicons-businessman"></span> Total Downloads Served: <?php echo absint( $stats->get_total_downloads_served() ) ?></p>
+            <p><a href="<?php echo esc_url( smliser_repo_page() ) ?>"><span class="dashicons dashicons-plugins-checked"></span> Total Plugins: <?php echo absint( $stats->total_plugins() ); ?></a></p>
+            <p><a href="<?php echo esc_url( smliser_license_page() )?>"><span class="dashicons dashicons-privacy"></span> Total Licenses: <?php echo absint( $stats->total_licenses() ); ?></a></p>
+            <p title="Total plugin downloads served will update every hour." class="smliser-tooltip"><span class="dashicons dashicons-businessman"></span> Total Downloads Served: <?php echo absint( $stats->get_total_downloads_served() ); ?></p>
         </div>
 
         <div class="smliser-admin-dashboard-header-child">
             <a href="#plugin-api-route" class="smliser-div-link">
                 <h2>Plugin Update Route</h2>
-                <p><span class="dashicons dashicons-rest-api"></span> Total Hits: <?php echo absint( $stats->get_total_hits( $stats::$plugin_update ) ) ?></p>
-                <p><span class="dashicons dashicons-visibility"></span> Unique Visitors:  <?php echo absint( $stats->get_unique_ips( $stats::$plugin_update ) ) ?></p>
-                <p><span class="dashicons dashicons-chart-bar"></span> Average Visits Today: <?php echo absint( $stats->total_visits_today( $stats::$plugin_update ) ) ?></p>
+                <p><span class="dashicons dashicons-rest-api"></span> Total Hits: <?php echo absint( $stats->get_total_hits( $stats::$plugin_update ) ); ?></p>
+                <p><span class="dashicons dashicons-visibility"></span> Unique Visitors:  <?php echo absint( $stats->get_unique_ips( $stats::$plugin_update ) ); ?></p>
+                <p><span class="dashicons dashicons-chart-bar"></span> Average Visits Today: <?php echo absint( $stats->total_visits_today( $stats::$plugin_update ) ); ?></p>
             </a>
         </div>
         
         <div class="smliser-admin-dashboard-header-child">
             <a href="#license-activation-route" class="smliser-div-link">
                 <h2>License Activation Route</h2>
-                <p><span class="dashicons dashicons-rest-api"></span> Total Hits: <?php echo absint( $stats->get_total_hits( $stats::$license_activation ) ) ?></p>
-                <p><span class="dashicons dashicons-visibility"></span> Unique Visitors:  <?php echo absint( $stats->get_unique_ips( $stats::$license_activation ) ) ?></p>
-                <p><span class="dashicons dashicons-chart-bar"></span> Average Visits Today: <?php echo absint( $stats->total_visits_today( $stats::$license_activation ) ) ?></p>
+                <p><span class="dashicons dashicons-rest-api"></span> Total Hits: <?php echo absint( $stats->get_total_hits( $stats::$license_activation ) ); ?></p>
+                <p><span class="dashicons dashicons-visibility"></span> Unique Visitors:  <?php echo absint( $stats->get_unique_ips( $stats::$license_activation ) ); ?></p>
+                <p><span class="dashicons dashicons-chart-bar"></span> Average Visits Today: <?php echo absint( $stats->total_visits_today( $stats::$license_activation ) ); ?></p>
             </a>
 
         </div>
@@ -43,9 +43,9 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
         <div class="smliser-admin-dashboard-header-child">
             <a href="#license-deactivation-route" class="smliser-div-link">
                 <h2>License Deactivation Route</h2>
-                <p><span class="dashicons dashicons-rest-api"></span> Total Hits: <?php echo absint( $stats->get_total_hits( $stats::$license_deactivation ) ) ?></p>
-                <p><span class="dashicons dashicons-visibility"></span> Unique Visitors:  <?php echo absint( $stats->get_unique_ips( $stats::$license_deactivation ) ) ?></p>
-                <p><span class="dashicons dashicons-chart-bar"></span> Average Visits Today: <?php echo absint( $stats->total_visits_today( $stats::$license_deactivation ) ) ?></p>
+                <p><span class="dashicons dashicons-rest-api"></span> Total Hits: <?php echo absint( $stats->get_total_hits( $stats::$license_deactivation ) ); ?></p>
+                <p><span class="dashicons dashicons-visibility"></span> Unique Visitors:  <?php echo absint( $stats->get_unique_ips( $stats::$license_deactivation ) ); ?></p>
+                <p><span class="dashicons dashicons-chart-bar"></span> Average Visits Today: <?php echo absint( $stats->total_visits_today( $stats::$license_deactivation ) ); ?></p>
             </a>
         </div>
        
@@ -61,7 +61,7 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
         </div>
 
         <div class="smliser-admin-dashboard-subheader-items">
-            <p>Success Rate: <?php echo absint( $status_codes[200] ); ?></p>
+            <p>Success Rate: <?php echo absint( ! empty( $status_codes ) ? $status_codes[200] : 0 ); ?></p>
         </div>
 
         <div class="smliser-admin-dashboard-subheader-items">
@@ -129,7 +129,7 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
         licenseDeactivationVisits: <?php echo wp_kses_post( wp_json_encode( $license_deactivation_visits ) ); ?>,
 
         pluginUniqueVisitors: <?php echo wp_kses_post( wp_json_encode( $plugin_unique_visitors ) ) ?>,
-        licenseActivationUniqueVisitors: <?php echo wp_kses_post( wp_json_encode( $license_activation_unique_visitors ) ) ?>,
-        licenseDeactivationUniqueVisitors: <?php echo wp_kses_post( wp_json_encode( $license_deactivation_unique_visitors ) ) ?>,
+        licenseActivationUniqueVisitors: <?php echo wp_kses_post( wp_json_encode( $license_activation_unique_visitors ) ); ?>,
+        licenseDeactivationUniqueVisitors: <?php echo wp_kses_post( wp_json_encode( $license_deactivation_unique_visitors ) ); ?>,
     };
 </script>

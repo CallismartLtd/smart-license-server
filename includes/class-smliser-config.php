@@ -105,6 +105,7 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
 
+        // echo smliser_wait_period();
     }
 
     /**
@@ -143,10 +144,10 @@ class SmartLicense_config {
      * Register cron.
      */
     public function register_cron( $schedules ) {
-        /** Add a new cron schedule interval for every 5 minutes. */
-        $schedules['smliser_five_minutely'] = array(
-            'interval' => 5 * MINUTE_IN_SECONDS,
-            'display'  => 'Five Minutely',
+        /** Add a new cron schedule interval for every 3 minutes. */
+        $schedules['smliser_three_minutely'] = array(
+            'interval' => 3 * MINUTE_IN_SECONDS,
+            'display'  => 'Smliser Three Minutely',
         );
         return $schedules;
     }
@@ -157,7 +158,7 @@ class SmartLicense_config {
     public function run_automation() {
 
         if ( ! wp_next_scheduled( 'smliser_validate_license' ) ) {
-			wp_schedule_event( current_time( 'timestamp' ), 'smliser_five_minutely', 'smliser_validate_license' );
+			wp_schedule_event( time(), 'smliser_three_minutely', 'smliser_validate_license' );
 		}
 
     }

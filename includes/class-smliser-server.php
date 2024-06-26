@@ -34,8 +34,14 @@ class Smliser_Server{
         add_action( 'template_redirect', array( $this, 'serve_package_download' ) );
     }
 
+    /*
+    |--------------------------------------------------
+    | LICENSE VALIDATION SERVICE PROVISION METHODS
+    |--------------------------------------------------
+    */
+
     /**
-     * Provide validation of license data to client's website.
+     * Perform license validation by providing client website with license documents.
      */
     public function remote_validate() {
 
@@ -46,6 +52,7 @@ class Smliser_Server{
         $this->doing_post();
         // Fetch the highest priority task data
         $highest_priority_task = $this->fetch_highest_priority_task();
+        return;
 
         if ( empty( $highest_priority_task ) ) {
             return;
@@ -94,46 +101,27 @@ class Smliser_Server{
 
         $response = wp_remote_post( $callback_url, $request_body );
         // Check if remote request was successful
-        if ( is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) !== 200 ) {
+        if ( is_wp_error( $response ) ) {
             
             return new WP_Error( 'remote_request_failed', 'Failed to execute remote POST request.' );
         }
 
-        $license->update_active_sites( get_base_address( $callback_url ) );
-        $highest_priority_task['status'] = 'completed';
-        $completed_tasks    = get_option( 'completed_tasks', array() );
-        $completed_tasks[]  = $highest_priority_task;
+        if ( wp_remote_retrieve_response_code( $response ) === 200 ) {
+            $license->update_active_sites( get_base_address( $callback_url ) );
+        }
 
-        // Update 'completed_tasks' option
-        update_option( 'completed_tasks', $completed_tasks );
+        $this->post_completed( $highest_priority_task );
         delete_transient( 'smliser_server_doing_post' );
 
         return true;
     }
 
-    /**
-     * Set status when performing remote post.
-     */
-    public function doing_post() {
-        set_transient( 'smliser_server_doing_post', true, 30 );
-    }
-
-    /**
-     * Are we currently doing a post?
-     */
-    public function is_doing_post() {
-        return get_transient( 'smliser_server_doing_post', true );
-    }
-
-    /**
-     * Instance of Smiliser_Server
-     */
-    public static function instance() {
-        if ( is_null( self::$instance ) ) {
-            self::$instance = new self();
-        }
-    }
-
+    /*
+    |------------------------------------------
+    | TASK MANAGEMENT FEATURE METHODS
+    |------------------------------------------
+    */
+    
     /**
      * Add validation tasks to queue.
      */
@@ -154,26 +142,22 @@ class Smliser_Server{
      */
     public function fetch_highest_priority_task() {
         // Retrieve the current timestamp
-        $current_time = current_time( 'timestamp' );
-
-        // Retrieve the task queue from the WordPress options
-        $task_queue = get_option( 'smliser_task_queue', array() );
-
-        // Initialize variables for the highest priority task and its expiration timestamp
-        $highest_priority_task = null;
-        $highest_priority_timestamp = PHP_INT_MAX; // Start with the highest possible integer value
-        $tsp = '';
+        $current_time   = current_time( 'timestamp' );
+        $task_queue     = get_option( 'smliser_task_queue', array() );
+        $the_task       = array();
+        $highest_timest = PHP_INT_MAX;
+        ksort( $task_queue );
 
         // Iterate through each task in the task queue
         foreach ( $task_queue as $timestamp => $tasks ) {
-            // Check if the task's expiration timestamp is valid (greater than or equal to current time)
+    
             if ( $timestamp >= $current_time ) {
                 // Update the highest priority task if the current task's timestamp is closer to the current time
-                if ( $timestamp < $highest_priority_timestamp ) {
-                    $highest_priority_task = reset( $tasks );
+                if ( $timestamp < $highest_timest ) {
+                    $the_task = reset( $tasks );
                     unset( $task_queue[ $timestamp ] );
                     update_option( 'smliser_task_queue', $task_queue );
-                    $highest_priority_timestamp = $timestamp;
+                    $highest_timest = $timestamp;
                 }
              
             } else {
@@ -187,7 +171,7 @@ class Smliser_Server{
         }
 
         // Return the highest priority task (if found)
-        return  $highest_priority_task;
+        return  $the_task;
     }
 
     /**
@@ -207,7 +191,7 @@ class Smliser_Server{
      *
      * @return array Array of all scheduled tasks with their expiration timestamps.
      */
-    public function fetch_all_scheduled_tasks() {
+    public function scheduled_tasks() {
         // Retrieve the task queue from the WordPress options
         $task_queue = get_option( 'smliser_task_queue', array() );
 
@@ -326,6 +310,7 @@ class Smliser_Server{
         $tasks = array(
             'license_id'    => $license->get_id(),
             'license_key'   => $license_key,
+            'IP Address'    => smliser_get_client_ip(),
             'token'         => $token,
             'end_date'      => $license->get_end_date(),
             'callback_url'  => $callback_url,
@@ -577,6 +562,58 @@ class Smliser_Server{
      */
     public function ban_ip( $ip ) {
         return update_option( 'smliser_ip_ban_list', $ip );
+    }
+
+    /**
+     * Calculate the next validation time for a given task.
+     *
+     * @param int $task_timestamp The task timestamp.
+     * @param int $cron_timestamp The next cron job timestamp.
+     * @return string The next validation time in a human-readable format.
+     */
+    public function calculate_next_validation_time( $task_timestamp, $cron_timestamp ) {
+        $current_time = current_time( 'timestamp' );
+        $cron_interval = $cron_timestamp - $current_time; // 5 minutes interval
+
+        // Calculate the next run time based on the cron schedule
+        $next_cron_time = $cron_timestamp;
+
+        // Check if the cron timestamp is in the past, and adjust if necessary
+        if ( $next_cron_time < $current_time  ) {
+            // while ( $next_cron_time < $current_time ) {
+            //     $next_cron_time += $cron_interval;
+            // }            
+        }
+
+
+        // Calculate the next validation time considering the task timestamp
+        $next_validation_time = max( $task_timestamp, $next_cron_time );
+
+        // Format the next validation time
+        return smliser_tstmp_to_date( $next_validation_time );
+    }
+
+    /**
+     * Set status when performing remote post.
+     */
+    public function doing_post() {
+        set_transient( 'smliser_server_doing_post', true, 30 );
+    }
+
+    /**
+     * Are we currently doing a post?
+     */
+    public function is_doing_post() {
+        return get_transient( 'smliser_server_doing_post', true );
+    }
+
+    /**
+     * Instance of Smiliser_Server
+     */
+    public static function instance() {
+        if ( is_null( self::$instance ) ) {
+            self::$instance = new self();
+        }
     }
 }
 

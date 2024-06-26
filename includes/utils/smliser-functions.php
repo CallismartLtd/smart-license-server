@@ -12,16 +12,46 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Generate ISO8601 compatible Period Time in Seconds
+ *
+ * @return string ISO8601 duration string.
  */
 function smliser_wait_period() {
-    
-    $random_seconds = wp_rand( 60, 600 );
+    // Initialize the object and get all scheduled tasks
+    $obj            = new Smliser_Server();
+    $all_tasks      = $obj->scheduled_tasks();
+    $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
+   
+    if ( ! $cron_handle ) {
+        return 'PT0S';
+    }
 
-    // Format the random seconds into ISO 8601 duration format
-    $wait_duration = 'PT' . $random_seconds . 'S';
+    $next_run_time      = $cron_handle->timestamp;
+    $next_run_in_secs   = $next_run_time - time();
+
+    /** Default wait period is the time until the next cron run if no tasks are pending. */
+    if ( empty( $all_tasks ) ) {
+        $wait_duration = 'PT' . max( $next_run_in_secs - 60 , 600 ) . 'S'; // Ensure at least 10 minutes wait.
+        return $wait_duration;
+    }
+
+    // Sort the tasks by their keys (timestamps) in ascending order.
+    ksort( $all_tasks );
+
+    // Calculate the total time required to process all pending tasks
+    $task_duration = 0;
+    foreach ( $all_tasks as $timestamp => $task ) {
+        $task_duration += 600; // Each task takes 5 minutes.
+    }
+
+    // Determine the total wait time.
+    $total_wait_time = $next_run_in_secs + $task_duration;
+
+    // Format the total wait time into ISO 8601 duration format.
+    $wait_duration = 'PT' . $total_wait_time . 'S';
 
     return $wait_duration;
 }
+
 
 /**
  * The License page url function
@@ -173,8 +203,14 @@ function smliser_form_message( $texts ) {
 
 }
 
+/**
+ * Get the client's IP address.
+ *
+ * @return string|false The client's IP address or false if not found.
+ */
 function smliser_get_client_ip() {
     $ip_keys = array(
+        'HTTP_X_REAL_IP',
         'HTTP_CLIENT_IP',
         'HTTP_X_FORWARDED_FOR',
         'HTTP_X_FORWARDED',
@@ -186,18 +222,21 @@ function smliser_get_client_ip() {
 
     foreach ( $ip_keys as $key ) {
         if ( ! empty( $_SERVER[ $key ] ) ) {
-            // In case of multiple IPs, take the first one (usually the client IP)
-            $ip_list = explode( ',', $_SERVER[ $key ] );
+            // In case of multiple IPs, we take the first one (usually the client IP)
+            $ip_list = explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) ) );
             foreach ( $ip_list as $ip ) {
                 $ip = trim( $ip ); // Remove any extra spaces
-                if ( false !== filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+                // Validate both IPv4 and IPv6 addresses
+                if ( filter_var( $ip, FILTER_VALIDATE_IP, array( FILTER_FLAG_NO_RES_RANGE, FILTER_FLAG_IPV4, FILTER_FLAG_IPV6 ) ) ) {
                     return $ip;
                 }
             }
         }
     }
-    return false; // Return false if no valid IP is found
+
+    return 'unresoved_ip';
 }
+
 
 
 /**
