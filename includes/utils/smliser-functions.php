@@ -103,7 +103,7 @@ function smliser_not_found_container( $text ) {
 /**
  * Submenu navigation button tab function
  *
- * @param array  $tabs         An associative array of tabs (tab_slug => tab_title).
+ * @param array  $tabs         An associative array of tabs (tab_slug => tab title).
  * @param string $title        The title of the current submenu page.
  * @param string $page_slug    The admin menu/submenu slug.
  * @param string $current_tab  The current tab parameter for the submenu page.
@@ -111,7 +111,8 @@ function smliser_not_found_container( $text ) {
  */
 function smliser_sub_menu_nav( $tabs, $title, $page_slug, $current_tab, $query_var ) {
 	$output  = '<div class="wrap">';
-	$output .= '<h1 class="wp-heading-inline">' . esc_html( $title ) . '</h1>';
+    $dashicon= ( 'Settings' === $title ) ? '<span class="dashicons dashicons-admin-generic"></span>' : '';
+	$output .= '<h1 class="wp-heading-inline">' . esc_html( $title ) . ' '. $dashicon . '</h1>';
 	$output .= '<nav class="nav-tab-wrapper">';
 
 	foreach ( $tabs as $tab_slug => $tab_title ) {

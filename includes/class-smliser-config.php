@@ -22,7 +22,7 @@ class SmartLicense_config {
     private $deactivation_route = '/license-deactivator/';
 
     /** Route namespace */
-    private $namespace = 'smartwoo-api/v1';
+    private $namespace = 'smliser/v1';
 
     /** Instance of current class */
     private static $instance = null;
@@ -99,12 +99,15 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/class-smliser-plugin.php';
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
+        require_once SMLISER_PATH . 'includes/class-smliser-api-key.php';
 
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-        // var_dump( get_option( 'smliser_task_queue', array() ) );
+        if ( sanitize_email( 'callistus@me.com') ) {
+            echo filter_var( '::1', FILTER_VALIDATE_IP, array( FILTER_FLAG_NO_RES_RANGE, FILTER_FLAG_IPV4, FILTER_FLAG_IPV6 ) );
+        }
         
     }
 

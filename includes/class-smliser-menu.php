@@ -485,19 +485,27 @@ class Smliser_admin_menu {
      */
     public function options_page_controller() {
         $path = isset( $_GET['path'] ) ? sanitize_key( $_GET['path'] ) : '';
+        $tabs = array(
+            ''          => 'Dashboard',
+            'api-keys'  => 'REST API',
+            'pages'     => 'Page Setup',
+        );
+        
+        echo wp_kses_post( smliser_sub_menu_nav( $tabs, 'Settings', 'smliser-options', $path, 'path' ) );
+        
         switch ( $path ) {
             case 'api-keys': 
-                include_once SMLISER_PATH . 'templates/options/api-keys';
+                $this->api_keys_option();
                 break;
             case 'pages':
-                include_once SMLISER_PATH . '/templates/options/pages';
+                include_once SMLISER_PATH . '/templates/options/pages.php';
                 break;
             default :
                 
                 if ( has_action( 'smlise_options_' . $path . '_content'  ) ) {
                     do_action( 'smlise_options_' . $path . '_content' );
                 }else {
-                    $this->options_page();
+                $this->options_page();
                 }
         }
 
@@ -508,6 +516,15 @@ class Smliser_admin_menu {
      */
     public function options_page() {
         include_once SMLISER_PATH . 'templates/options/options.php';
+    }
+
+    /**
+     * API Keys options page
+     */
+    public function api_keys_option() {
+        
+        include_once SMLISER_PATH . 'templates/options/api-keys.php';
+        return;
     }
 
 }
