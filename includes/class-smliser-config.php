@@ -12,14 +12,17 @@ defined( 'ABSPATH' ) || exit;
 
 class SmartLicense_config {
 
-    /** REST API software update route */
+    /** REST API plugin update route */
     private $update_route = '/software-update/';
 
-    /** REST API software activation route */
+    /** REST API license activation route */
     private $activation_route = '/license-validator/';
 
-    /** REST API sofware deactivation route */
+    /** REST API license deactivation route */
     private $deactivation_route = '/license-deactivator/';
+
+    /** REST API Repository interaction route */
+    private $repository_route = '/repository/(?P<slug>.+)';
 
     /** Route namespace */
     private $namespace = 'smliser/v1';
@@ -76,6 +79,12 @@ class SmartLicense_config {
             'callback'            => array( 'Smliser_Server', 'update_response' ),
             'permission_callback' => array( 'Smliser_Server', 'update_permission' ),
         ) );
+
+        register_rest_route( $this->namespace, $this->repository_route, array(
+            'methods'               => 'GET',
+            'callback'              => array( 'Smliser_Server', 'repository_response' ),
+            'permission_callback'   => array( 'Smliser_Server', 'repository_access_permission' ),
+        ) );
     }
 
     /**
@@ -105,9 +114,7 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-        if ( sanitize_email( 'callistus@me.com') ) {
-            echo filter_var( '::1', FILTER_VALIDATE_IP, array( FILTER_FLAG_NO_RES_RANGE, FILTER_FLAG_IPV4, FILTER_FLAG_IPV6 ) );
-        }
+        // echo urldecode( 'SID-MS6664 b9007d&704' );
         
     }
 

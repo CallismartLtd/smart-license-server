@@ -253,6 +253,13 @@ class Smliser_Stats {
         if ( empty( $route ) ) {
             return false;
         }
+        
+        if ( defined( 'SMLISER_LOGGING' ) ) {
+            return;
+        }
+
+        define( 'SMLISER_LOGGING', 'yes' );
+
         $our_registered_routes = array(
             self::$license_activation,
             self::$license_deactivation,
@@ -271,8 +278,8 @@ class Smliser_Stats {
             'access_time'   => current_time( 'mysql' ),
             'status_code'   => isset( $args['status_code'] ) ? absint( $args['status_code'] ) : 200,
             'website'       => isset( $args['website'] ) ? sanitize_url( $args['website'] ) : '',
-            'request_data'  => isset( $args['request_data'] ) && is_array( $args['request_data'] ) ? maybe_serialize( $args['request_data'] ) : '',
-            'response_data' => isset( $args['response_data'] ) && is_array( $args['response_data'] ) ? maybe_serialize( $args['response_data'] ) : '',
+            'request_data'  => isset( $args['request_data'] ) && is_array( $args['request_data'] ) ? maybe_serialize( $args['request_data'] ) : sanitize_text_field( ! empty( $args['request_data'] ) ? $args['request_data'] : '' ),
+            'response_data' => isset( $args['response_data'] ) && is_array( $args['response_data'] ) ? maybe_serialize( $args['response_data'] ) : sanitize_text_field( ! empty( $args['response_data'] ) ? $args['response_data'] : '' ),
         );
 
         $data_formats = array(
@@ -727,6 +734,15 @@ class Smliser_Stats {
                 ) );
         } elseif( 'plugin_update' === $context ) {
             self::log_access( self::$plugin_update, array( 'request_data' => array( 'plugin_id' => $plugin->get_item_id() ) ) );
+        } elseif( 'denied_access' === $context ) {
+            $reasons = $args;
+            self::log_access( $reasons['route'], array( 
+                    'status_code'   => $reasons['status_code'],
+                    'request_data'  => $reasons['request_data'],
+                    'response_data' => $reasons['response_data'],
+                )
+            );
+
         }
     }
 }

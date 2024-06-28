@@ -36,7 +36,7 @@ defined( 'ABSPATH' ) || exit;
     </tr>
     <?php if ( empty( $all_tasks ) ):?>
         <tr>
-            <td colspan="5">No task scheduled</td>
+            <td colspan="5">No API key created.</td>
         </tr> 
     <?php else: foreach( $all_tasks as $timestamp => $task_data ):?>
     <tr>

@@ -71,6 +71,7 @@ class Smliser_install {
             'start_date DATE DEFAULT NULL',
             'end_date DATE DEFAULT NULL',
             'INDEX service_id_index (service_id)',
+            'INDEX item_id_index (item_id)',
             'INDEX status_index (status)',
             'INDEX user_id_index (user_id)',
         );
