@@ -618,7 +618,6 @@ class Smliser_Server{
             }
         }
 
-
         $plugin_id  = $item_id;
         $pl_obj     = new Smliser_Plugin();
         $the_plugin = $pl_obj->get_plugin( $plugin_id );
@@ -665,7 +664,7 @@ class Smliser_Server{
     public static function repository_access_permission( $request ) {
 
 
-        return false;
+        return true;
     }
 
     /**
@@ -675,7 +674,16 @@ class Smliser_Server{
 
      */
     public static function repository_response( $request ) {
-
+        $slug = $request->get_param( 'slug' );
+        $scope = $request->get_param( 'scope' );
+    
+        // Handle the request with the slug and scope values
+        $response = array(
+            'slug' => $slug,
+            'scope' => $scope,
+        );
+    
+        return new WP_REST_Response( $response, 200 );
     }
 
     /**

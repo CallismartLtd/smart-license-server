@@ -22,7 +22,7 @@ class SmartLicense_config {
     private $deactivation_route = '/license-deactivator/';
 
     /** REST API Repository interaction route */
-    private $repository_route = '/repository/(?P<slug>.+)';
+    private $repository_route = '/repository/(?P<slug>[^/]+)/(?P<scope>read|write|read-write)';
 
     /** Route namespace */
     private $namespace = 'smliser/v1';
