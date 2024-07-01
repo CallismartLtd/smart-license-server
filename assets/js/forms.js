@@ -288,3 +288,122 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
+document.addEventListener('DOMContentLoaded', function () {
+    var apiKeyForm = document.getElementById('smliser-api-key-generation-form');
+    var spinnerOverlay = document.querySelector('.spinner-overlay');
+
+    if (apiKeyForm) {
+        apiKeyForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            // Show full-page spinner overlay
+            spinnerOverlay.classList.add('show');
+
+            // Serialize form data
+            var formData = new FormData(apiKeyForm);
+
+            // Append additional data
+            formData.append('action', 'smliser_key_generate');
+            formData.append('security', smliser_var.nonce );
+
+            // Send AJAX request
+            jQuery.ajax({
+                type: 'POST',
+                url: smliser_var.smliser_ajax_url,
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        var consumer_public = response.data ? response.data.consumer_public : '';
+                        var consumer_secret = response.data ? response.data.consumer_secret : '';
+                        var description = response.data ? response.data.description : '';
+
+                        // Create a div to display the credentials
+                        var credentialsDiv = document.createElement('div');
+                        credentialsDiv.style.border = '1px solid #ccc';
+                        credentialsDiv.style.borderRadius = '9px';
+                        credentialsDiv.style.padding = '10px';
+                        credentialsDiv.style.margin = '20px auto';
+                        credentialsDiv.style.backgroundColor = '#fff';
+                        credentialsDiv.style.width = '50%';
+
+                        var htmlContent = '<h2 style="text-align:center;">API Credentials</h2>';
+                        htmlContent += '<p><strong>Description:</strong> ' + description + '</p>';
+                        htmlContent += '<p><strong>Consumer Public:</strong> ' + consumer_public + '  <span onclick="smliserCopyToClipboard(\'' + consumer_public + '\')" class="dashicons dashicons-admin-page"></span></p>';
+                        htmlContent += '<p><strong>Consumer Secret:</strong> ' + consumer_secret + '  <span onclick="smliserCopyToClipboard(\'' + consumer_secret + '\')" class="dashicons dashicons-admin-page"></span></p>';
+                        htmlContent += '<p><strong>Note:</strong> This is the last time these credentials will be revealed. Please copy and save them securely.</p>';
+
+                        credentialsDiv.innerHTML = htmlContent;
+
+                        // Append the credentials div after the form
+                        apiKeyForm.parentNode.insertBefore(credentialsDiv, apiKeyForm.nextSibling);
+                    } else {
+                        var errorMessage = response.data && response.data.message ? response.data.message : 'An unknown error occurred.';
+                        console.log(errorMessage);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error(error); // Log detailed error information
+                },
+                complete: function () {
+                    spinnerOverlay.classList.remove('show');
+                    apiKeyForm.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+
+// Function to copy text to clipboard using Clipboard API
+function smliserCopyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        smliserNotify('Copied to clipboard: ', 3000);
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+    });
+}
+
+document.addEventListener( 'DOMContentLoaded', function() {
+    var revokeBtn = document.getElementById( 'smliser-revoke-btn' );
+    if ( revokeBtn ) {
+        var spinnerOverlay = document.querySelector('.spinner-overlay');
+        var apiKeyId       = revokeBtn.dataset.keyId;
+
+        revokeBtn.addEventListener( 'click', function( event ) {
+         
+            const userConfirmed = confirm( 'You are about to revoke this license, connected app will not be able to access resource on this server, be careful action cannot be reversed' );
+            if ( userConfirmed ) {
+                spinnerOverlay.classList.add('show');
+
+                jQuery.ajax( {
+                    type: 'GET',
+                    url: smliser_var.smliser_ajax_url,
+                    data: { 
+                        action: 'smliser_revoke_key',
+                        security: smliser_var.nonce,
+                        api_key_id: apiKeyId,
+
+                    },
+                    success: function( response ) {
+                        if ( response.success ) {
+                            var feedback = response.data ? response.data.message : '';
+                            smliserNotify(feedback, 3000);
+                            location.reload();
+                        } else {
+                            var errorMessage = response.data && response.data.message ? response.data.message : 'An unknown error occurred.';
+                            console.log(errorMessage);
+                            smliserNotify(errorMessage, 3000);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(error); // Log detailed error information
+                    },
+                    complete: function () {
+                        spinnerOverlay.classList.remove('show');
+                    }
+                })
+            }
+        });
+    }
+});

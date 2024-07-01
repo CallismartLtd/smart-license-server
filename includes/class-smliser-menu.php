@@ -522,7 +522,7 @@ class Smliser_admin_menu {
      * API Keys options page
      */
     public function api_keys_option() {
-        
+        $all_api_data   = Smliser_API_Key::get_all();
         include_once SMLISER_PATH . 'templates/options/api-keys.php';
         return;
     }

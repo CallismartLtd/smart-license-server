@@ -412,3 +412,16 @@ function get_base_address( $url ) {
     return $scheme . '://' . $host;
 }
 
+/**
+ * Load app authentication page header
+ */
+function smliser_load_auth_header() {
+    include_once SMLISER_PATH . 'templates/auth/auth-header.php';
+}
+
+/**
+ * Load app authentication page footer
+ */
+function smliser_load_auth_footer() {
+    include_once SMLISER_PATH . 'templates/auth/auth-footer.php';
+}

@@ -32,6 +32,7 @@ class Smliser_Server{
     public function __construct() {
         add_action( 'smliser_validate_license', array( $this, 'remote_validate' ) );
         add_action( 'template_redirect', array( $this, 'serve_package_download' ) );
+        add_filter( 'template_include', array( $this, 'load_auth_template' ) );
     }
 
     /*
@@ -757,6 +758,26 @@ class Smliser_Server{
                 wp_die( 'Error: The file cannot be read.' );
             }
         }
+    }
+
+    /**
+     * Authentication Tempalte file loader
+     */
+    public function load_auth_template( $template ) {
+        global $wp_query;
+        if ( isset( $wp_query->query_vars[ 'smliser_auth' ] ) ) {
+
+            $login_form    = SMLISER_PATH . 'templates/auth/auth-login.php';
+            $auth_template = SMLISER_PATH . 'templates/auth/auth-temp.php';
+            
+            if ( ! is_user_logged_in() ) {
+                return $login_form;
+            } else {
+                return $auth_template;
+            }
+        }
+        
+        return $template;
     }
 
     /*

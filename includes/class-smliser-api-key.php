@@ -33,11 +33,23 @@ class Smliser_API_Key {
     );
 
     /**
+     * API Token data
+     * 
+     * @var array $tokens The tokens associated with this object
+     */
+    private $tokens = array(
+        'app_name'      => '',
+        'token'         => '',
+        'refresh_token' => '',
+        'token_expiry'  => '',
+    );
+
+    /**
      * The API key permission.
      * 
-     * @var mixed $permissions The capability of the API user.
+     * @var string $permission The capability of the API user.
      */
-    private $permissions = null;
+    private $permission = null;
 
     /**
      * Last accessed
@@ -47,21 +59,34 @@ class Smliser_API_Key {
     private $last_accessed = '';
 
     /**
-     * IP address
+     * Date this was created.
      * 
-     * @var string $ip_address Last known client IP.
+     * @var string date The date when this object is created
      */
-    private $ip_address = '';
+    private $created_at;
+
+    /**
+     * Instance of current class
+     * 
+     * @var Smliser_API_Key $instance
+     */
+    private static $instance = null;
+
 
     /**
      * Class constructor
-     * 
-     * @param int $id The API key ID.
      */
-    public function __construct( $id = 0 ) {
-        if ( is_int( $id ) && 0 !== $id ) {
-            $this->get_by_id( $id );
+    public function __construct() {}
+
+    /**
+     * Instantiate current class statically
+     */
+    public static function instance() {
+        if ( is_null( self::$instance ) ) {
+            self::$instance = new self();
         }
+
+        return self::$instance;
     }
 
     /*
@@ -106,11 +131,8 @@ class Smliser_API_Key {
             }
 
             if ( isset( $data['consumer_public'] ) ) {
-                $this->api_keys['consumer_public'] = sanitize_text_field( $data['consumer_public'] );
-            }
-
-            if ( isset( $data['key_ending'] ) ) {
-                $this->api_keys['key_ending'] = sanitize_text_field( $data['key_ending'] );
+                $this->api_keys['consumer_public']  = sanitize_text_field( $data['consumer_public'] );
+                $this->api_keys['key_ending']       = $this->format_key_ending( $data['consumer_public'] );
             }
         }
     }
@@ -128,16 +150,43 @@ class Smliser_API_Key {
     }
 
     /**
+     * Set tokens
+     * 
+     * @param array $data Associative array containing corresponding token indexes
+     */
+    public function set_tokens( $data ) {
+        if ( isset( $data['token'] ) ) {
+            $this->tokens['token'] = sanitize_text_field( $data['token'] );
+        }
+
+        if ( isset( $data['refresh_token'] ) ) {
+            $this->tokens['refresh_token'] = sanitize_text_field( $data['refresh_token'] );
+        }
+
+        if ( isset( $data['token_expiry'] ) ) {
+            $this->tokens['token_expiry'] = sanitize_text_field( $data['token_expiry'] );
+        }
+    }
+
+    /**
+     * Set individual Token using the key.
+     * 
+     * @param $key The token key.
+     * @param $value The value to set.
+     */
+    public function set_token( $key, $value ) {
+        if ( array_key_exists( $key, $this->tokens ) ) {
+            $this->tokens[$key] = sanitize_text_field( $value );
+        }
+    }
+
+    /**
      * Set permission
      * 
-     * @param mixed $permissions The API permissions.
+     * @param string $permission The API permission.
      */
-    public function set_permission( $permissions ) {
-        if ( is_array( $permissions ) ) {
-            $this->permissions = array_map( 'sanitize_text_field', $permissions );
-        } else {
-            $this->permissions = sanitize_text_field( $permissions );
-        }
+    public function set_permission( $permission ) {
+        $this->permission = sanitize_text_field( $permission );
     }
 
     /**
@@ -150,17 +199,12 @@ class Smliser_API_Key {
     }
 
     /**
-     * Set IP
+     * Set the creation date;
      * 
-     * @param string $ip The IP address.
+     * @param string $date The date a key is created
      */
-    public function set_ip( $ip ) {
-        $ip = trim( $ip );
-        // Validate both IPv4 and IPv6 addresses
-        $this->ip_address = filter_var( $ip, FILTER_VALIDATE_IP, array( FILTER_FLAG_NO_RES_RANGE, FILTER_FLAG_IPV4, FILTER_FLAG_IPV6 ) );
-        if ( false === $this->ip_address ) {
-            $this->ip_address = '';
-        }
+    public function set_created_at( $date ) {
+        $this->created_at = sanitize_text_field( $date );
     }
 
     /*
@@ -203,16 +247,38 @@ class Smliser_API_Key {
      * @return string|null The API key value or null if key does not exist.
      */
     public function get_key( $key ) {
-        return isset( $this->api_keys[ $key ] ) ? $this->api_keys[ $key ] : null;
+        return ! empty( $this->api_keys[ $key ] ) ? $this->api_keys[ $key ] : null;
     }
 
     /**
-     * Get permissions
+     * The tokens
      * 
-     * @return mixed The API permissions.
+     * @return array The tokens.
      */
-    public function get_permissions() {
-        return $this->permissions;
+    public function get_tokens() {
+        return $this->tokens;
+    }
+
+    /**
+     * Get individual token
+     * 
+     * @param string $name The token name.
+     * @return string|null $value of the given token key or null if key does not exits
+     */
+    public function get_token( $name ) {
+        return ! empty( $this->tokens[ $name ] ) ? $this->tokens[ $name ] : 'N/A';
+    }
+
+    /**
+     * Get permission
+     * 
+     * @return mixed The API permission.
+     */
+    public function get_permission() {
+        if ( 'read_write' === $this->permission ) {
+            return 'Read/Write';
+        }
+        return ucfirst( $this->permission );
     }
 
     /**
@@ -225,29 +291,261 @@ class Smliser_API_Key {
     }
 
     /**
-     * Get IP address
-     * 
-     * @return string The IP address.
-     */
-    public function get_ip() {
-        return $this->ip_address;
-    }
-
-    /**
      |--------------
      | CRUD METHODS
      |--------------
      */
 
     /**
-     * Retrieve the API key data by ID
-     * 
-     * @param int $id The ID of the API key.
-     * @return void
+     * Retrieve all api keys
      */
-    public function get_by_id( $id ) {
+    public static function get_all() {
+        $api_keys = wp_cache_get( 'smliser_api_keys' );
+        if ( false === $api_keys ) {
+            global $wpdb;
+            $table_name = SMLISER_API_KEY_TABLE;
+            $query      = "SELECT * FROM {$table_name}";
+            $results    = $wpdb->get_results( $query, ARRAY_A ); // phpcs:disable
 
-
+            $api_keys   = array();
+            if ( ! empty( $results ) ) {
+                foreach( $results as $result ) {
+                    $api_keys[] = self::instance()->convert_db_result( $result );
+                }
+                wp_cache_set( 'smliser_api_keys', $api_keys, '', 2 * HOUR_IN_SECONDS );
+            }
+        }
+    
+        return $api_keys;
     }
 
+    /**
+     * Retrieve data for a given consumer_public and consumer_secret
+     * 
+     * @param string $consumer_public The public key(client_id)
+     * @param string $consumer_secret The consumer_secret(client secret)
+     */
+    public function get_api_data( $consumer_public, $consumer_secret ) {
+        global $wpdb;
+        $table_name = SMLISER_API_KEY_TABLE;
+        $query  = $wpdb->prepare( "SELECT * FROM {$table_name} WHERE `consumer_public` = %s", sanitize_text_field( $consumer_public ) );
+        $result = $wpdb->get_row( $query, ARRAY_A );
+
+        if ( ! empty( $result ) && password_verify( $consumer_secret, $result['consumer_secret'] ) ) {
+            return $this->convert_db_result( $result );
+        }
+
+        return false;
+    }
+
+        /**
+     * Retrieve data for a given consumer_public and consumer_secret
+     * 
+     * @param int $id The api key ID
+     */
+    public function get_api_key( $id ) {
+        global $wpdb;
+        $table_name = SMLISER_API_KEY_TABLE;
+        $query  = $wpdb->prepare( "SELECT * FROM {$table_name} WHERE `id` = %d", absint( $id ) );
+        $result = $wpdb->get_row( $query, ARRAY_A );
+
+        if ( ! empty( $result ) ) {
+            return $this->convert_db_result( $result );
+        }
+
+        return false;
+    }
+
+    /**
+     * Generate and store new API key.
+     * 
+     * @return object|false $credentials Object containing the consumer keys.
+     */
+    private function insert_new() {
+        global $wpdb;
+
+        $credentials    = $this->create_credentials();
+        $user_id        = ! empty( $this->user ) && ! empty( $this->get_user()->ID ) ? absint( $this->get_user()->ID ) : 0;
+        $permission     = ! empty( $this->permission ) ? sanitize_text_field( $this->permission ) : 'read';
+
+        // Prepare data.
+        $data   = array(
+            'user_id'           => $user_id,
+            'permission'        => $permission,
+            'consumer_secret'   => password_hash( $credentials->consumer_secret, PASSWORD_BCRYPT ),
+            'consumer_public'   => $credentials->consumer_public,
+            'created_at'        => current_time( 'mysql' ),
+        );
+
+        $data_format    = array(
+            '%d', // User ID.
+            '%s', // Permission.
+            '%s', // Secret.
+            '%s', // Public.
+            '%s', // Created At.
+        );
+
+        if ( $wpdb->insert( SMLISER_API_KEY_TABLE, $data, $data_format ) ) {
+            return $credentials;
+        }
+
+        return false;
+    }
+
+    /**
+     * Delete an api key from the database
+     */
+    public function delete() {
+        if ( empty( $this->id ) ) {
+            return false; // API credentials must exist in the database.
+        }
+
+        global $wpdb;
+        $deleted = $wpdb->delete( SMLISER_API_KEY_TABLE, array( 'id' => $this->id ), array( '%d' ) );
+
+        return $delete !== false;
+    }
+
+    /*
+    |----------------
+    | FORM AJAX HANDLER
+    |----------------
+    */
+
+    /**
+     * Handle form submission
+     */
+    public static function form_handler() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ) );
+        }
+
+        $user_id    = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+        $permission = isset( $_POST['permission'] ) ? sanitize_text_field( $_POST['permission'] ) : '';
+        $description = isset( $_POST['description'] ) ? sanitize_text_field( $_POST['description'] ) : '';
+
+        $validation = array();
+        if ( empty( $user_id ) ) {
+            $validation[]   = 'Select a user';
+        }
+
+        if ( empty( $permission ) ) {
+            $validation[]   = 'Select the appropriate Permission';
+        }
+
+        if ( empty( $description ) ) {
+            $validation[]   = 'Add a decription for your reference';
+        }
+
+        if ( ! empty( $validation ) ) {
+            wp_send_json_error( array( 'message' => 'Fill required fields' ) );
+        }
+
+        $self = new self();
+        $self->set_permission( $permission );
+        $self->set_user( $user_id );
+        $credentials = $self->insert_new();
+        if ( false === $credentials ) {
+            wp_send_json_error( array( 'message' => 'Unable to generate API Key credentials' ) );
+        }
+
+        wp_send_json_success( array( 
+            'description'       => $description,
+            'consumer_public'   => $credentials->consumer_public,
+            'consumer_secret'   => $credentials->consumer_secret 
+        ) );
+    }
+
+        /**
+     * Revoke a key.
+     */
+    public static function revoke() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ) );
+        }
+
+        $id = isset( $_GET['api_key_id'] ) ? absint( $_GET['api_key_id'] ) : 0;
+        if ( empty( $id ) ) {
+            wp_send_json_error( array( 'message' => 'No API key id specified.' ) );
+        }
+
+        $self = self::instance();
+        $self->set_id( absint( $id ) );
+        
+        if ( false === $self->delete() ) {
+            wp_send_json_error( array( 'message' => 'Unable to delete the selected key.' ) );
+        }
+
+        wp_send_json_success( array( 'message' => 'Key has been revoked' ) );
+    }
+
+    /*
+    |----------------------
+    | UTILITY METHODS
+    |----------------------
+    */
+
+    /**
+     * Convert database result Smliser_API_Key
+     * 
+     * @param array $result Associative array containing database results.
+     * @return self An object of current class containing with corresponding data.
+     */
+    private static function convert_db_result( $result ) {
+        $self = new self();
+        $self->set_id( $result['id'] );
+        $self->set_keys( $result );
+        $self->set_tokens( $result );
+        $self->set_user( absint( $result['user_id'] ) );
+        $self->set_created_at( $result['created_at'] );
+        $self->set_permission( $result['permission'] );
+        return $self;
+    }
+
+    /**
+     * Return 6 characters marking the end of a consumer_public key
+     * 
+     * @param string $text The text to return as key ending.
+     * @return string $ending The ending part of a consumer public.
+     */
+    private function format_key_ending( $text ) {
+        if ( empty( $text ) ) {
+            return $text;
+        }
+
+        if ( strlen( $text ) < 6  ) {
+            return sanitize_text_field( 'xxxxxxxxxxxx' . $text );
+        }
+
+        $ending = sanitize_text_field( 'xxxxxxxxxxxx' . substr( $text, - 6 ) );
+
+        return $ending;
+    }
+
+    /**
+     * Create consumer_secret and consumer_public keys
+     */
+    public function create_credentials() {
+        $consumer_public = 'cp_' . bin2hex( random_bytes( 16 ) );
+        $consumer_secret = 'cs_' . bin2hex( random_bytes( 32 ) );
+
+        $credentials = new stdClass();
+        $credentials->consumer_public = $consumer_public;
+        $credentials->consumer_secret = $consumer_secret;
+
+        return $credentials;
+    }
+
+    /**
+     * Get the status of an API key.
+     */
+    public function get_status() {
+        if ( ! empty( $this->tokens['token'] ) && ! empty( $this->tokens['refresh_token'] ) ) {
+            return 'Active';
+        }
+
+        return 'Inactive';
+    }
 }
+
+

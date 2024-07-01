@@ -37,7 +37,8 @@ class Smliser_install {
             SMLISER_PLUGIN_ITEM_TABLE,
             SMLISER_LICENSE_META_TABLE,
             SMLISER_PLUGIN_META_TABLE,
-            SMLISER_API_ACCESS_LOG_TABLE
+            SMLISER_API_ACCESS_LOG_TABLE,
+            SMLISER_API_KEY_TABLE,
         );
 
         foreach( $tables as $table ) {
@@ -61,7 +62,7 @@ class Smliser_install {
          */
         $license_details_table = SMLISER_LICENSE_TABLE;
         $license_table_columns = array(
-            'id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
             'user_id MEDIUMINT(9) DEFAULT NULL',
             'license_key VARCHAR(300) NOT NULL UNIQUE',
             'service_id VARCHAR(300) NOT NULL',
@@ -94,7 +95,7 @@ class Smliser_install {
             'requires_php VARCHAR(9) DEFAULT NULL',
             'download_link VARCHAR(400) DEFAULT NULL',
             'created_at DATETIME DEFAULT NULL',
-            'last_updated DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP',
+            'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
             'INDEX download_link_index (download_link)',
             'INDEX slug_index (slug)',
             'INDEX author_index (author)',
@@ -107,8 +108,8 @@ class Smliser_install {
          */
         $plugin_meta_table    = SMLISER_PLUGIN_META_TABLE;
         $plugin_meta_columns  = array(
-            'id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'plugin_id BIGINT UNSIGNED NOT NULL',
+            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'plugin_id BIGINT(20) UNSIGNED NOT NULL',
             'meta_key VARCHAR(255) NOT NULL',
             'meta_value LONGTEXT DEFAULT NULL',
             'INDEX plugin_id_index (plugin_id)',
@@ -122,8 +123,8 @@ class Smliser_install {
          */
         $license_meta_table     = SMLISER_LICENSE_META_TABLE;
         $license_meta_columns   = array(
-            'id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'license_id BIGINT UNSIGNED NOT NULL',
+            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'license_id BIGINT(20) UNSIGNED NOT NULL',
             'meta_key VARCHAR(255) NOT NULL',
             'meta_value LONGTEXT DEFAULT NULL',
             'INDEX license_id_index (license_id)',
@@ -137,7 +138,7 @@ class Smliser_install {
          */
         $api_access_table   = SMLISER_API_ACCESS_LOG_TABLE;
         $api_access_columns = array(
-            'id BIGINT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
             'api_route VARCHAR(255) NOT NULL',
             'client_ip VARCHAR(45) DEFAULT NULL',
             'access_time DATETIME DEFAULT NULL',
@@ -151,9 +152,31 @@ class Smliser_install {
         );
         self::run_db_delta( $api_access_table, $api_access_columns );
 
+        /**
+         * API credential table
+         */
+        $api_cred_table = SMLISER_API_KEY_TABLE;
+        $api_cred_columns = array(
+            'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT',
+            'user_id MEDIUMINT(9) NOT NULL',
+            'permission VARCHAR(255) NOT NULL',
+            'consumer_secret CHAR(70) NOT NULL',
+            'consumer_public VARCHAR(255) NOT NULL',
+            'token TEXT DEFAULT NULL',
+            'app_name TEXT DEFAULT NULL',
+            'refresh_token TEXT DEFAULT NULL',
+            'token_expiry DATETIME DEFAULT NULL',
+            'created_at DATETIME DEFAULT NULL',
+            'PRIMARY KEY (id)',
+            'UNIQUE (consumer_secret)',
+            'UNIQUE (consumer_public)',
+            'UNIQUE (token)',
+            'UNIQUE (refresh_token)',
+        );
+        self::run_db_delta( $api_cred_table, $api_cred_columns );
     }
 
-    
+
     /**
      * Create Tables.
      * 
