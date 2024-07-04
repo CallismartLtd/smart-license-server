@@ -92,7 +92,7 @@ class Smliser_Server{
             'last_updated'  => $expires_after, 
             'license_key'   => $license_key,
             'token'         => $token,
-            'API_KEY'       => smliser_generate_api_key( $license->get_item_id(), $license_key ),
+            'API_KEY'       => smliser_generate_item_token( $license->get_item_id(), $license_key ),
             'data'          => $data,
         );
 
@@ -229,10 +229,10 @@ class Smliser_Server{
     public static function validation_permission( $request ) {
         // Get the Authorization header from the request.
         $authorization_header = $request->get_header( 'authorization' );
-        $service_id     =  ! empty( $request->get_param( 'service_id' ) ) ? urldecode( $request->get_param( 'service_id' ) ) : '';
-        $item_id        =  ! empty( $request->get_param( 'item_id' ) ) ? urldecode( $request->get_param( 'item_id' ) ) : '';
-        $license_key    =  ! empty( $request->get_param( 'license_key' ) ) ? urldecode( $request->get_param( 'license_key' ) ) : '';
-        $callback_url   =  ! empty(  $request->get_param( 'callback_url' ) ) ? urldecode( $request->get_param( 'callback_url' ) ) : '';
+        $service_id     =  ! empty( $request->get_param( 'service_id' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'service_id' ) ) ) ) : '';
+        $item_id        =  ! empty( $request->get_param( 'item_id' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'item_id' ) ) ) ) : '';
+        $license_key    =  ! empty( $request->get_param( 'license_key' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'license_key' ) ) ) ) : '';
+        $callback_url   =  ! empty(  $request->get_param( 'callback_url' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'callback_url' ) ) ) ) : '';
         
         /**
          * Authorization token in this regard is the token from the client
@@ -454,7 +454,7 @@ class Smliser_Server{
     public static function deactivation_permission( $request ) {
         // Retrieve the data.
         $api_key    = sanitize_text_field( smliser_get_auth_token( $request ) );
-        $item_id    = ! empty( $request->get_param( 'item_id' ) ) ? sanitize_text_field( urldecode( $request->get_param( 'item_id' ) )  ) : '';
+        $item_id    = ! empty( $request->get_param( 'item_id' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'item_id' ) ) )  ) : '';
 
         if ( empty( $api_key ) ) {
             $reasons = array(
@@ -469,8 +469,9 @@ class Smliser_Server{
             do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
             return false;
         }
-        $license_key    = ! empty( $request->get_param( 'license_key' ) ) ? sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) ) : '';
-        $service_id     = ! empty( $request->get_param( 'service_id') ) ? sanitize_text_field( urldecode( $request->get_param( 'service_id') ) ) : '';
+
+        $license_key    = ! empty( $request->get_param( 'license_key' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'license_key' ) ) ) ) : '';
+        $service_id     = ! empty( $request->get_param( 'service_id') ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'service_id' ) ) ) ) : '';
         
         if ( empty( $service_id ) || empty( $license_key ) ) {
             $reasons = array(
@@ -503,15 +504,15 @@ class Smliser_Server{
             return false;
         }
 
-        return smliser_verify_api_key( $api_key, $item_id );
+        return smliser_verify_item_token( $api_key, $item_id );
     }
 
     /**
      * License deactivation route handler.
      */
     public static function deactivation_response( $request ) {
-        $license_key    = sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) );
-        $service_id     = sanitize_text_field( urldecode( $request->get_param( 'service_id') ) );
+        $license_key    = sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'license_key' ) ) ) );
+        $service_id     = sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'service_id' ) ) ) );
         $website_name   = sanitize_url( get_base_address( urldecode( $request->get_param( 'client' ) ) ), array( 'http', 'https' ) );
         $instance       = Smliser_license::instance();
         $obj            = $instance->get_license_data( $service_id, $license_key );
@@ -568,7 +569,7 @@ class Smliser_Server{
         $item_id    = absint( $request->get_param( 'item_id' ) );
         $api_key    = sanitize_text_field( smliser_get_auth_token( $request ) );
 
-        if ( ! smliser_verify_api_key( $api_key, $item_id ) ) {
+        if ( ! smliser_verify_item_token( $api_key, $item_id ) ) {
             $reasons = array(
                 '',
                 array( 
@@ -664,6 +665,7 @@ class Smliser_Server{
      */
     public static function repository_access_permission( $request ) {
 
+        $authorization - self::$instance->extract_token( $request );
 
         return true;
     }
@@ -680,12 +682,14 @@ class Smliser_Server{
     
         // Handle the request with the slug and scope values
         $response = array(
-            'slug' => $slug,
-            'scope' => $scope,
+            'Authorization'   => self::$instance->extract_token( $request ),
+            'slug'      => $slug,
+            'scope'     => $scope,
         );
     
         return new WP_REST_Response( $response, 200 );
     }
+
 
     /**
      * Serve plugin Download.
@@ -717,7 +721,7 @@ class Smliser_Server{
 
             $item_id = $plugin->get_item_id();
 
-            if ( ! smliser_verify_api_key( $api_key, $item_id ) ) {
+            if ( ! smliser_verify_item_token( $api_key, $item_id ) ) {
                 $wp_query->set_404();
                 status_header( 404 );
                 include( get_query_template( '404' ) );
@@ -884,6 +888,25 @@ class Smliser_Server{
         $result     = $wpdb->get_var( $query ); // phpcs:disable
 
         return ! empty( $result );
+    }
+
+    /**
+     * Extract token from request header.
+     * 
+     * @param WP_REST_Request $request The WordPress REST response object.
+     */
+    public function extract_token( WP_REST_Request $request ) {
+
+        // Get the authorization header.
+        $header = $request->get_header( 'authorization' );
+        $parts  = explode( ' ', $header );
+        if ( 2 === count( $parts ) && 'Bearer' === $parts[0] ) {
+            return $parts[1];
+
+        }
+        
+        // Return null if no valid token is found.
+        return null;
     }
 
 }

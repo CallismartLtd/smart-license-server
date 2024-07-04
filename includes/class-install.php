@@ -38,7 +38,7 @@ class Smliser_install {
             SMLISER_LICENSE_META_TABLE,
             SMLISER_PLUGIN_META_TABLE,
             SMLISER_API_ACCESS_LOG_TABLE,
-            SMLISER_API_KEY_TABLE,
+            SMLISER_API_CRED_TABLE,
         );
 
         foreach( $tables as $table ) {
@@ -155,7 +155,7 @@ class Smliser_install {
         /**
          * API credential table
          */
-        $api_cred_table = SMLISER_API_KEY_TABLE;
+        $api_cred_table = SMLISER_API_CRED_TABLE;
         $api_cred_columns = array(
             'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT',
             'user_id MEDIUMINT(9) NOT NULL',
@@ -164,14 +164,12 @@ class Smliser_install {
             'consumer_public VARCHAR(255) NOT NULL',
             'token TEXT DEFAULT NULL',
             'app_name TEXT DEFAULT NULL',
-            'refresh_token TEXT DEFAULT NULL',
             'token_expiry DATETIME DEFAULT NULL',
             'created_at DATETIME DEFAULT NULL',
             'PRIMARY KEY (id)',
             'UNIQUE (consumer_secret)',
             'UNIQUE (consumer_public)',
             'UNIQUE (token)',
-            'UNIQUE (refresh_token)',
         );
         self::run_db_delta( $api_cred_table, $api_cred_columns );
     }

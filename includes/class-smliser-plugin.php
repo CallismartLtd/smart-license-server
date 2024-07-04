@@ -913,6 +913,24 @@ class Smliser_Plugin {
         return $data;
     }
 
+    /**
+     * Check if a given plugin is licensed.
+     * 
+     * @return bool true if plugin is licensed, false otherwise.
+     */
+    public function is_licensed() {
+        if ( empty( $this->item_id ) ) {
+            return false; // Plugin must exist.
+        }
+        
+        global $wpdb;
+        $table_name = SMLISER_LICENSE_TABLE;
+        $query      = $wpdb->prepare( "SELECT `item_id` FROM {$table_name} WHERE `item_id` = %d", absint( $this->item_id ) );
+        $result     = $wpdb->get_var( $query ); // phpcs:disable
+
+        return ! empty( $result );
+    }
+
     /*
     |-------------------------------
     | ACTION HANDLERS / CONTROLLERS

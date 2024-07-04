@@ -3,12 +3,13 @@
  * File name class-smliser-api-key.php
  * Class file for API key management class.
  * 
+ * @author Callistus
  * @package Smliser\classes
  */
 
 defined( 'ABSPATH' ) || exit;
 
-class Smliser_API_Key {
+class Smliser_API_Cred {
     /**
      * Database id
      * 
@@ -40,7 +41,6 @@ class Smliser_API_Key {
     private $tokens = array(
         'app_name'      => '',
         'token'         => '',
-        'refresh_token' => '',
         'token_expiry'  => '',
     );
 
@@ -68,7 +68,7 @@ class Smliser_API_Key {
     /**
      * Instance of current class
      * 
-     * @var Smliser_API_Key $instance
+     * @var Smliser_API_Cred $instance
      */
     private static $instance = null;
 
@@ -159,12 +159,12 @@ class Smliser_API_Key {
             $this->tokens['token'] = sanitize_text_field( $data['token'] );
         }
 
-        if ( isset( $data['refresh_token'] ) ) {
-            $this->tokens['refresh_token'] = sanitize_text_field( $data['refresh_token'] );
-        }
-
         if ( isset( $data['token_expiry'] ) ) {
             $this->tokens['token_expiry'] = sanitize_text_field( $data['token_expiry'] );
+        }
+
+        if ( isset( $data['app_name'] ) ) {
+            $this->tokens['app_name'] = sanitize_text_field( $data['app_name'] );
         }
     }
 
@@ -265,8 +265,12 @@ class Smliser_API_Key {
      * @param string $name The token name.
      * @return string|null $value of the given token key or null if key does not exits
      */
-    public function get_token( $name ) {
-        return ! empty( $this->tokens[ $name ] ) ? $this->tokens[ $name ] : 'N/A';
+    public function get_token( $name, $context = 'view' ) {
+        if ( 'view' === $context ) {
+            return ! empty( $this->tokens[ $name ] ) ? $this->tokens[ $name ] : 'N/A';
+        }
+        
+        return ! empty( $this->tokens[ $name ] ) ? $this->tokens[ $name ] : null;
     }
 
     /**
@@ -300,10 +304,10 @@ class Smliser_API_Key {
      * Retrieve all api keys
      */
     public static function get_all() {
-        $api_keys = wp_cache_get( 'smliser_api_keys' );
+        $api_keys = wp_cache_get( 'Smliser_API_Creds' );
         if ( false === $api_keys ) {
             global $wpdb;
-            $table_name = SMLISER_API_KEY_TABLE;
+            $table_name = SMLISER_API_CRED_TABLE;
             $query      = "SELECT * FROM {$table_name}";
             $results    = $wpdb->get_results( $query, ARRAY_A ); // phpcs:disable
 
@@ -312,7 +316,7 @@ class Smliser_API_Key {
                 foreach( $results as $result ) {
                     $api_keys[] = self::instance()->convert_db_result( $result );
                 }
-                wp_cache_set( 'smliser_api_keys', $api_keys, '', 2 * HOUR_IN_SECONDS );
+                wp_cache_set( 'Smliser_API_Creds', $api_keys, '', 2 * HOUR_IN_SECONDS );
             }
         }
     
@@ -327,7 +331,7 @@ class Smliser_API_Key {
      */
     public function get_api_data( $consumer_public, $consumer_secret ) {
         global $wpdb;
-        $table_name = SMLISER_API_KEY_TABLE;
+        $table_name = SMLISER_API_CRED_TABLE;
         $query  = $wpdb->prepare( "SELECT * FROM {$table_name} WHERE `consumer_public` = %s", sanitize_text_field( $consumer_public ) );
         $result = $wpdb->get_row( $query, ARRAY_A );
 
@@ -338,14 +342,14 @@ class Smliser_API_Key {
         return false;
     }
 
-        /**
+    /**
      * Retrieve data for a given consumer_public and consumer_secret
      * 
      * @param int $id The api key ID
      */
     public function get_api_key( $id ) {
         global $wpdb;
-        $table_name = SMLISER_API_KEY_TABLE;
+        $table_name = SMLISER_API_CRED_TABLE;
         $query  = $wpdb->prepare( "SELECT * FROM {$table_name} WHERE `id` = %d", absint( $id ) );
         $result = $wpdb->get_row( $query, ARRAY_A );
 
@@ -385,7 +389,7 @@ class Smliser_API_Key {
             '%s', // Created At.
         );
 
-        if ( $wpdb->insert( SMLISER_API_KEY_TABLE, $data, $data_format ) ) {
+        if ( $wpdb->insert( SMLISER_API_CRED_TABLE, $data, $data_format ) ) {
             return $credentials;
         }
 
@@ -401,9 +405,82 @@ class Smliser_API_Key {
         }
 
         global $wpdb;
-        $deleted = $wpdb->delete( SMLISER_API_KEY_TABLE, array( 'id' => $this->id ), array( '%d' ) );
+        $deleted = $wpdb->delete( SMLISER_API_CRED_TABLE, array( 'id' => $this->id ), array( '%d' ) );
 
-        return $delete !== false;
+        return $deleted !== false;
+    }
+
+    /**
+     * Activate an API Credential.
+     * 
+     * @param string $app_name The name of the client to associate with API Credentials.
+     * @return string $token A session token to allow client access to protected resource.
+     */
+    public function activate( $app_name ) {
+        global $wpdb;
+
+        if ( empty( $this->id ) ) {
+            return false; // The apicredential must exists in the database;
+        }
+
+        if ( ! is_string( $app_name ) ) {
+            return false; // App Name must be string.
+        }
+
+        $this->set_token( 'app_name', $app_name );
+        $this->set_token( 'token', bin2hex( random_bytes( 32 ) ) );
+        $this->set_token( 'token_expiry',  wp_date( 'Y-m-d H:i:s', time() + ( 2 * WEEK_IN_SECONDS ) ) );
+
+        // Prepare data
+        $data = array(
+            'app_name'      => $this->tokens['app_name'],
+            'token'         => $this->tokens['token'],
+            'token_expiry'  => $this->tokens['token_expiry'],
+        );
+
+        $data_format = array( '%s', '%s', '%s' );
+        
+        $updated = $wpdb->update( SMLISER_API_CRED_TABLE, $data, array( 'id' => $this->id ), $data_format, array( '%d' ) );
+        
+        if ( false === $updated ) {
+            return false;
+        }
+        
+        return $this->tokens;
+    }
+
+    /**
+     * Regenerate access tokens.
+     */
+    public function reauth() {
+        global $wpdb;
+        
+        if ( empty( $this->id ) ) {
+            return false;
+        }
+
+        if ( 'Inactive' === $this->get_status() ) {
+            return false;
+        }
+
+        $this->set_token( 'token', bin2hex( random_bytes( 32 ) ) );
+        $this->set_token( 'token_expiry',  wp_date( 'Y-m-d H:i:s', time() + ( 2 * WEEK_IN_SECONDS ) ) );
+       
+        // Prepare data
+        $data = array(
+            'token'         => $this->tokens['token'],
+            'token_expiry'  => $this->tokens['token_expiry'],
+        );
+
+        $data_format = array( '%s', '%s' );
+        
+        $updated = $wpdb->update( SMLISER_API_CRED_TABLE, $data, array( 'id' => $this->id ), $data_format, array( '%d' ) );
+        
+        if ( false === $updated ) {
+            return false;
+        }
+        
+        return $this->tokens;
     }
 
     /*
@@ -486,7 +563,7 @@ class Smliser_API_Key {
     */
 
     /**
-     * Convert database result Smliser_API_Key
+     * Convert database result Smliser_API_Cred
      * 
      * @param array $result Associative array containing database results.
      * @return self An object of current class containing with corresponding data.
@@ -540,7 +617,7 @@ class Smliser_API_Key {
      * Get the status of an API key.
      */
     public function get_status() {
-        if ( ! empty( $this->tokens['token'] ) && ! empty( $this->tokens['refresh_token'] ) ) {
+        if ( ! empty( $this->tokens['token'] ) && ! empty( $this->tokens['app_name'] ) ) {
             return 'Active';
         }
 

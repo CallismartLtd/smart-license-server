@@ -3,8 +3,8 @@
  * filename class-smliser-plugin-stats.php
  * 
  * @author Callistus
- * @since 1.0.0
  * @package Smliser\classes
+ * @since 1.0.0
  */
 
 defined( 'ABSPATH' ) || exit;

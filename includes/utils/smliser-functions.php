@@ -272,14 +272,14 @@ function smliser_get_auth_token( $request ) {
  * 
  * @param int $item_id    The service ID associated with the license.
  */
-function smliser_generate_api_key( $item_id = 0, $license_key = '' ) {
+function smliser_generate_item_token( $item_id = 0, $license_key = '' ) {
     $key_props  = maybe_serialize( array(
         'item_id'       => $item_id,
         'license_key'   => $license_key,
     ) );
 
     $key  = bin2hex( random_bytes( 32 ) );
-    set_transient( 'smliser_API_KEY_'. $key, $key_props, 10 * DAY_IN_SECONDS );
+    set_transient( 'smliser_item_token_'. $key, $key_props, 10 * DAY_IN_SECONDS );
     return $key;
 }
 
@@ -289,8 +289,8 @@ function smliser_generate_api_key( $item_id = 0, $license_key = '' ) {
  * @param string $api_key The API key.
  * @param string $service_id    The service ID associated with the API key.
  */
-function smliser_verify_api_key( $api_key, $item_id ) {
-    $props          = get_transient( 'smliser_API_KEY_'. $api_key );
+function smliser_verify_item_token( $api_key, $item_id ) {
+    $props          = get_transient( 'smliser_item_token_'. $api_key );
     $key_props      = is_serialized( $props ) ? unserialize( $props ) : $props;
 
     if ( empty( $key_props ) ) {

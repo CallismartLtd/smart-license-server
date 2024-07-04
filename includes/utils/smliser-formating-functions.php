@@ -21,12 +21,21 @@ defined( 'ABSPATH' ) || exit;
  * @return string formated local date.
  */
 function smliser_tstmp_to_date( $timestamp, $use_i18n = true ) {
-	if ( empty( $timestamp ) ) {
-		return $timestamp;
-	}
+    // Ensure that the timestamp is valid
+    if ( empty( $timestamp ) || ! is_numeric( $timestamp ) ) {
+        return '';
+    }
 
-    return  ( true === $use_i18n ) ? date_i18n( smliser_datetime_format(), $timestamp ) : wp_date( smliser_datetime_format(), $timestamp );
+    // Format date based on the flag $use_i18n
+    $date_format = smliser_datetime_format();
+    
+    if ( true === $use_i18n ) {
+        return date_i18n( $date_format, $timestamp );
+    } else {
+        return wp_date( $date_format, $timestamp );
+    }
 }
+
 
 /**
  * Calculate the difference between two dates and return it as a human-readable string.
