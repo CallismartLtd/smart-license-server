@@ -27,14 +27,56 @@ class Smliser_Server{
     private static $instance;
 
     /**
+     * Authorization token.
+     */
+    private $authorization = '';
+
+    /**
+     * Authorization type
+     * 
+     * @var string $authorization_type
+     */
+    private $authorization_type = '';
+
+    /**
      * Class constructor.
      */
     public function __construct() {
         add_action( 'smliser_validate_license', array( $this, 'remote_validate' ) );
         add_action( 'template_redirect', array( $this, 'serve_package_download' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
+
     }
 
+    /*
+    |------------
+    | SETTERS.
+    |------------
+    */
+
+    /**
+     * Set authorization token
+     * 
+     * @param string $value The value
+     */
+    public function set_oath( $value ) {
+        $this->authorization = sanitize_text_field( $value );
+    }
+
+    /**
+     * Set authorization type.
+     * 
+     * @param WP_REST_Request $request
+     */
+    public function set_auth_type( WP_REST_Request $request ) {
+        $auth_header    = $request->get_header( 'authorization' );
+        if ( ! empty( $auth_header ) ) {
+            $parts  = explode( ' ', $auth_header );
+
+            // The first value should always be the authentication type;
+            $this->authorization_type = sanitize_text_field( wp_unslash( $parts[0] ) );
+        }
+    }
     /*
     |--------------------------------------------------
     | LICENSE VALIDATION SERVICE PROVISION METHODS
@@ -330,11 +372,11 @@ class Smliser_Server{
     }
 
     /**
-     * Handling immediate response to validation request.
+     * Handling immediate response to license validation request.
      * 
      * @param WP_REST_Request $request The current request object.
      */
-    public static function validation_response( $request ) {
+    public static function validation_response( WP_REST_Request $request ) {
         $request_params = $request->get_params();
         $service_id     = $request_params['service_id'];
         $license_key    = $request_params['license_key'];
@@ -360,7 +402,7 @@ class Smliser_Server{
                 )
             );
             do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-            $response->header( 'Content-Type', 'application/json' );
+            $response->header( 'content-type', 'application/json' );
     
             return $response;
         }
@@ -383,7 +425,7 @@ class Smliser_Server{
                 )
             );
             do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-            $response->header( 'Content-Type', 'application/json' );
+            $response->header( 'content-type', 'application/json' );
     
             return $response;
         }
@@ -407,7 +449,7 @@ class Smliser_Server{
                 )
             );
             do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-            $response->header( 'Content-Type', 'application/json' );
+            $response->header( 'content-type', 'application/json' );
     
             return $response;
         }
@@ -443,18 +485,21 @@ class Smliser_Server{
             'message'           => 'License is being validated',
         );
         $response = new WP_REST_Response( $response_data, 200 );
-        $response->header( 'Content-Type', 'application/json' );
+        $response->header( 'content-type', 'application/json' );
 
         return $response;
     }
 
     /**
-     * Deactivation permission.
+     * License deactivation permission.
+     * We issued an api key as part of the license document during activation, same will be required
+     * during remote deactivation.
+     * 
+     * @param WP_REST_Request $request
      */
-    public static function deactivation_permission( $request ) {
+    public static function deactivation_permission( WP_REST_Request $request ) {
         // Retrieve the data.
         $api_key    = sanitize_text_field( smliser_get_auth_token( $request ) );
-        $item_id    = ! empty( $request->get_param( 'item_id' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'item_id' ) ) )  ) : '';
 
         if ( empty( $api_key ) ) {
             $reasons = array(
@@ -470,9 +515,13 @@ class Smliser_Server{
             return false;
         }
 
+        $item_id        = ! empty( $request->get_param( 'item_id' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'item_id' ) ) )  ) : '';
         $license_key    = ! empty( $request->get_param( 'license_key' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'license_key' ) ) ) ) : '';
         $service_id     = ! empty( $request->get_param( 'service_id') ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'service_id' ) ) ) ) : '';
         
+        /**
+         * License key and service ID are part of the license documents.
+         */
         if ( empty( $service_id ) || empty( $license_key ) ) {
             $reasons = array(
                 '',
@@ -490,6 +539,9 @@ class Smliser_Server{
         $obj        = new Smliser_license();
         $license    = $obj->get_license_data( $service_id, $license_key );
 
+        /**
+         * The permission has failed if this license does not exist.
+         */
         if ( empty( $license ) ) {
             $reasons = array(
                 '',
@@ -504,6 +556,9 @@ class Smliser_Server{
             return false;
         }
 
+        /**
+         * Depending on the result of the API key verification, client may either be allowed or denied.
+         */
         return smliser_verify_item_token( $api_key, $item_id );
     }
 
@@ -517,6 +572,9 @@ class Smliser_Server{
         $instance       = Smliser_license::instance();
         $obj            = $instance->get_license_data( $service_id, $license_key );
 
+        /**
+         * We just ned to recheck to be sure.
+         */
         if ( empty( $obj ) ) {
             $response_data = array(
                 'status'    => 'failed',
@@ -534,7 +592,7 @@ class Smliser_Server{
                 )
             );
             do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-            $response->header( 'Content-Type', 'application/json' );
+            $response->header( 'content-type', 'application/json' );
             return $response;
         }
 
@@ -548,7 +606,7 @@ class Smliser_Server{
         $obj->set_action( $website_name );
     
         $response = new WP_REST_Response( $response_data, 200 );
-        $response->header( 'Content-Type', 'application/json' );
+        $response->header( 'content-type', 'application/json' );
         $additional = array( 'args' => $response_data );
         /**
          * Fires for stats syncronization.
@@ -561,13 +619,18 @@ class Smliser_Server{
 
         return $response;
     }
+    /*
+    |-----------------------------------------
+    | REPOSITORY RESOURCE SERVER METHODS
+    |-----------------------------------------
+    */
 
     /**
-     * Update permission checker.
+     * Plugin update permission checker.
      */
     public static function update_permission( $request ) {
         $item_id    = absint( $request->get_param( 'item_id' ) );
-        $api_key    = sanitize_text_field( smliser_get_auth_token( $request ) );
+        $api_key    = sanitize_text_field( self::$instance->extract_token( $request ) );
 
         if ( ! smliser_verify_item_token( $api_key, $item_id ) ) {
             $reasons = array(
@@ -592,6 +655,9 @@ class Smliser_Server{
     public static function update_response( $request ) {
         $item_id    = absint( $request->get_param( 'item_id' ) );
         
+        /**
+         * Determine if the resource is licensed.
+         */
         if ( self::$instance->is_licensed( $item_id ) ) {
             $license_key    = sanitize_text_field( $request->get_param( 'license_key' ) );
             $service_id     = sanitize_text_field( $request->get_param( 'service_id' ) );
@@ -614,7 +680,7 @@ class Smliser_Server{
                 );
                 do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
                 $response = new WP_REST_Response( $response_data, 403 );
-                $response->header( 'Content-Type', 'application/json' );
+                $response->header( 'content-type', 'application/json' );
         
                 return $response;
             }
@@ -640,7 +706,7 @@ class Smliser_Server{
                 )
             );
             do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-            $response->header( 'Content-Type', 'application/json' );
+            $response->header( 'content-type', 'application/json' );
     
             return $response;
         }
@@ -653,7 +719,7 @@ class Smliser_Server{
          */
         do_action( 'smliser_stats', 'plugin_update', $the_plugin );
         $response = new WP_REST_Response( $the_plugin->formalize_response(), 200 );
-        $response->header( 'Content-Type', 'application/json' );
+        $response->header( 'content-type', 'application/json' );
         return $response;
 
     }
@@ -664,10 +730,10 @@ class Smliser_Server{
      * @param WP_REST_Request $request The current request object.
      */
     public static function repository_access_permission( $request ) {
-
-        $authorization - self::$instance->extract_token( $request );
-
-        return true;
+        $authorization = self::$instance->extract_token( $request );
+        self::$instance->set_oath( $authorization );
+        
+        return self::$instance->validate_token();
     }
 
     /**
@@ -682,9 +748,10 @@ class Smliser_Server{
     
         // Handle the request with the slug and scope values
         $response = array(
-            'Authorization'   => self::$instance->extract_token( $request ),
-            'slug'      => $slug,
-            'scope'     => $scope,
+            'Authorization' => self::$instance->authorization,
+            'slug'          => $slug,
+            'scope'         => $scope,
+            'message'       => 'You authorized'
         );
     
         return new WP_REST_Response( $response, 200 );
@@ -749,13 +816,13 @@ class Smliser_Server{
                  */
                 do_action( 'smliser_stats', 'plugin_download', $plugin );
 
-                header( 'Content-Description: File Transfer' );
-                header( 'Content-Type: application/zip' );
-                header( 'Content-Disposition: attachment; filename="' . basename( $plugin_path ) . '"' );
-                header( 'Expires: 0' );
-                header( 'Cache-Control: must-revalidate' );
-                header( 'Pragma: public' );
-                header( 'Content-Length: ' . $smliser_repo->size( $plugin_path ) );
+                header( 'content-description: File Transfer' );
+                header( 'content-type: application/zip' );
+                header( 'content-disposition: attachment; filename="' . basename( $plugin_path ) . '"' );
+                header( 'expires: 0' );
+                header( 'cache-control: must-revalidate' );
+                header( 'pragma: public' );
+                header( 'content-length: ' . $smliser_repo->size( $plugin_path ) );
                 $smliser_repo->readfile( $plugin_path );
                 exit;
             } else {
@@ -899,14 +966,49 @@ class Smliser_Server{
 
         // Get the authorization header.
         $header = $request->get_header( 'authorization' );
-        $parts  = explode( ' ', $header );
-        if ( 2 === count( $parts ) && 'Bearer' === $parts[0] ) {
-            return $parts[1];
-
-        }
         
+        if ( ! empty( $header ) ) {
+            $parts  = explode( ' ', $header );
+            if ( 2 === count( $parts ) && 'Bearer' === $parts[0] ) {
+                
+                return smliser_safe_base64_decode( $parts[1] );
+
+            }            
+        }
+
         // Return null if no valid token is found.
         return null;
+    }
+
+    /**
+     * Validate Authorization token
+     * 
+     * @return bool true if valid, false otherwise.
+     */
+    public static function validate_token() {
+        $token = sanitize_text_field( self::$instance->authorization );
+        if ( empty( $token ) ) {
+            return false;
+        }
+        global $wpdb;
+        $table_name = SMLISER_API_CRED_TABLE;
+        $query  = $wpdb->prepare( "SELECT `token`, `token_expiry` FROM {$table_name} WHERE `token`= %s", $token );
+        $result = $wpdb->get_row( $query, ARRAY_A );
+
+        if ( empty( $result ) ) {
+            return false;
+        }
+
+        $expiry     = ! empty( $result['token_expiry'] ) ? strtotime( $result['token_expiry'] ) : 0;
+        
+        if ( $expiry < time() ) {
+            return false;
+        }
+
+        $real_token = sanitize_text_field( $result['token'] );
+
+        return hash_equals( $real_token, $token );
+
     }
 
 }

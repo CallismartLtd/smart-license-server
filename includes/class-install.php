@@ -146,9 +146,9 @@ class Smliser_install {
             'website VARCHAR(255) DEFAULT NULL',
             'request_data TEXT DEFAULT NULL',
             'response_data TEXT DEFAULT NULL',
-            'INDEX (api_route)',
-            'INDEX (client_ip)',
-            'INDEX (access_time)',
+            'INDEX api_route_index (api_route)',
+            'INDEX client_ip_index (client_ip)',
+            'INDEX access_time_index (access_time)',
         );
         self::run_db_delta( $api_access_table, $api_access_columns );
 
@@ -165,11 +165,14 @@ class Smliser_install {
             'token TEXT DEFAULT NULL',
             'app_name TEXT DEFAULT NULL',
             'token_expiry DATETIME DEFAULT NULL',
+            'last_accessed DATETIME DEFAULT NULL',
             'created_at DATETIME DEFAULT NULL',
             'PRIMARY KEY (id)',
             'UNIQUE (consumer_secret)',
             'UNIQUE (consumer_public)',
             'UNIQUE (token)',
+            'INDEX token_expiry_index(token_expiry)',
+
         );
         self::run_db_delta( $api_cred_table, $api_cred_columns );
     }

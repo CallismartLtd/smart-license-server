@@ -313,29 +313,34 @@ function smliser_verify_item_token( $api_key, $item_id ) {
 }
 
 /**
- * Get the dropdown of license keys.
+ * Validate and decode Base64-encoded token.
  * 
- * @param bool $selected    Selected License key.
- * @param bool $required    Is the input field required?
- * @param bool $echo        Whether to  echo or return.
+ * @param string $encoded_token The Base64-encoded token.
+ * @return string|null The decoded token if valid, null otherwise.
  */
-function smliser_license_key_dropdown( $selected = false, $required = false , $echo = false ) {
-    $obj        = new Smliser_license();
-    $licenses   = $obj->get_licenses();
-    $drop_down  = '<select class="smliser-select-input" id="license_key" name="license_key" ' . esc_attr( $required ) .'>';
-	$drop_down .= '<option value="">Select License Key</option>';
-    foreach ( $licenses as $license ) {
-        $drop_down .= '<option value="'. esc_attr( $license->get_license_key() ) . '" ' . selected( $license->get_license_key(), $selected ) . '>' . esc_html( $license->get_license_key() ) . '</option>';
-    }
-    $drop_down .= '</select>';
-    add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10, 2 );
-
-    if ( $echo ) {
-        echo wp_kses_post( $drop_down );
-    } else {
-        return $drop_down;
+function smliser_safe_base64_decode( $encoded_token ) {
+    // Check the length of the string.
+    if ( strlen( $encoded_token ) % 4 !== 0 ) {
+        return null;
     }
 
+    // Check the character set.
+    if ( preg_match( '/^[A-Za-z0-9+\/=]*$/', $encoded_token ) !== 1 ) {
+        return null;
+    }
+
+    // Base64 decode the token.
+    $decoded_token = base64_decode( $encoded_token, true );
+    if ( $decoded_token === false ) {
+        return null;
+    }
+
+    // Further validate the content.
+    if ( ! preg_match( '/^[a-zA-Z0-9]+$/', $decoded_token ) ) {  
+        return null;
+    }
+
+    return $decoded_token;
 }
 
 /**

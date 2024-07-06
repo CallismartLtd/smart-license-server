@@ -28,7 +28,7 @@ class SmartLicense_config {
      * REST API App re-authentication route, essentially for token regeneration.
      * @var string $app_reauth property value for re-authentication route
      */
-    private $app_reauth = '/client-reauth/';
+    private $app_reauth = '/client-auth/';
 
     /** REST API Repository route for plugin interaction */
     private $repository_plugin_route = '/repository/(?P<slug>[^/]+)/(?P<scope>read|write|read-write)';
@@ -63,6 +63,8 @@ class SmartLicense_config {
         add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller' ) );
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
         add_filter( 'query_vars', array( $this, 'download_query_var') );
+        add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10 );
+
         add_action( 'admin_post_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler') );
         add_action( 'smliser_stats', array( 'Smliser_Stats', 'action_handler' ), 10, 4 );
         add_action( 'wp_ajax_smliser_key_generate', array( 'Smliser_API_Cred', 'form_handler' ) );
@@ -73,6 +75,7 @@ class SmartLicense_config {
 
     /** Load or Register our Rest route */
     public function rest_load() {
+        
         /** Register the license validator route */
         register_rest_route( $this->namespace, $this->activation_route, array(
             'methods'             => 'GET',
@@ -108,9 +111,33 @@ class SmartLicense_config {
 
         register_rest_route( $this->namespace, $this->app_reauth, array(
             'methods'               => 'GET',
-            'callback'              => array( 'Smliser_Server', 'client_authentication_response' ),
-            'permission_callback'   => array( 'Smliser_Server', 'auth_permission' ),
+            'callback'              => array( 'Smliser_REST_Authentication', 'client_authentication_response' ),
+            'permission_callback'   => array( 'Smliser_REST_Authentication', 'auth_permission' ),
         ) );
+    }
+
+    /**
+     * Ensures HTTPS/TLS for REST API endpoints within the plugin's namespace.
+     *
+     * Checks if the current REST API request belongs to the plugin's namespace
+     * and enforces HTTPS/TLS requirements if the environment is production.
+     *
+     * @return WP_Error|null WP_Error object if HTTPS/TLS requirement is not met, null otherwise.
+     */
+    public function enforce_https_for_rest_api() {
+        // Check if current request belongs to the plugin's namespace.
+        if ( ! str_contains( $_SERVER['REQUEST_URI'], $this->namespace ) ) {
+            return;
+        }
+
+        // Check if environment is production and request is not over HTTPS.
+        if ( 'production' === wp_get_environment_type() && ! is_ssl() ) {
+            // Create WP_Error object to indicate insecure SSL.
+            $error = new WP_Error( 'insecure_ssl', 'HTTPS/TLS is required for secure communication.', array( 'status' => 400, ) );
+            
+            // Return the WP_Error object.
+            return $error;
+        }
     }
 
     /**
@@ -135,14 +162,12 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
         require_once SMLISER_PATH . 'includes/class-smliser-api-cred.php';
+        require_once SMLISER_PATH . 'includes/smliser-rest-api/classr-rest-auth.php';
 
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
-        do_action( 'smliser_loaded' );
-        
-        // var_dump( hash_equals( '$2y$10$h0iLK6omKbv1reyryzitAOdlRDertg1i3KFOwNBZ1aVDyrIcRa60u', '$2y$10$h0iLK6omKbv1reyryzitAOdlRDertg1i3KFOwNBZ1aVDyrIcRa60u' ) );
-            
+        do_action( 'smliser_loaded' );        
     }
 
     /**

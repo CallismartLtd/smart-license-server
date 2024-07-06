@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', function () {
     const licenseKeyContainers = document.querySelectorAll('.smliser-key-div');
 

@@ -435,10 +435,11 @@ class Smliser_API_Cred {
         $data = array(
             'app_name'      => $this->tokens['app_name'],
             'token'         => $this->tokens['token'],
+            'last_accessed' => current_time( 'mysql' ),
             'token_expiry'  => $this->tokens['token_expiry'],
         );
 
-        $data_format = array( '%s', '%s', '%s' );
+        $data_format = array( '%s', '%s', '%s', '%s' );
         
         $updated = $wpdb->update( SMLISER_API_CRED_TABLE, $data, array( 'id' => $this->id ), $data_format, array( '%d' ) );
         
@@ -470,9 +471,10 @@ class Smliser_API_Cred {
         $data = array(
             'token'         => $this->tokens['token'],
             'token_expiry'  => $this->tokens['token_expiry'],
+            'last_accessed' => current_time( 'mysql' ),
         );
 
-        $data_format = array( '%s', '%s' );
+        $data_format = array( '%s', '%s', '%s' );
         
         $updated = $wpdb->update( SMLISER_API_CRED_TABLE, $data, array( 'id' => $this->id ), $data_format, array( '%d' ) );
         
@@ -533,7 +535,7 @@ class Smliser_API_Cred {
         ) );
     }
 
-        /**
+    /**
      * Revoke a key.
      */
     public static function revoke() {
@@ -594,7 +596,7 @@ class Smliser_API_Cred {
             return sanitize_text_field( 'xxxxxxxxxxxx' . $text );
         }
 
-        $ending = sanitize_text_field( 'xxxxxxxxxxxx' . substr( $text, - 6 ) );
+        $ending = sanitize_text_field( 'xxxxxxxxxxxx' . substr( $text, - 8 ) );
 
         return $ending;
     }
