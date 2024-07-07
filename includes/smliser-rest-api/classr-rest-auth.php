@@ -77,7 +77,7 @@ class Smliser_REST_Authentication {
      * 
      * @param WP_REST_Request $request The current REST API Request object
      */
-    public static function client_authentication_response( $request ) {
+    public static function client_authentication_response( WP_REST_Request $request ) {
         $consumer_public    = ! empty( $request->get_param( 'consumer_public' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'consumer_public' ) ) ) ) : '';
         $consumer_secret    = ! empty( $request->get_param( 'consumer_secret' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'consumer_secret' ) ) ) ) : '';
         $app_name           = ! empty( $request->get_param( 'app_name' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'app_name' ) ) ) ) : '';
@@ -186,10 +186,10 @@ class Smliser_REST_Authentication {
     /**
      * Set headers for a denied response.
      *
-     * @param WP_REST_Response $response The response object to set headers on.
+     * @param WP_REST_Request $response The response object to set headers on.
      * @return WP_REST_Response The response object with headers set.
      */
-    private static function set_denied_header( WP_REST_Response $response ) {
+    private static function set_denied_header( WP_REST_Request $response ) {
         $response->header( 'content-type', 'application/json' );
         $response->header( 'X-Smliser-REST-Response', 'AccessDenied' );
         $response->header( 'WWW-Authenticate', 'Bearer realm="example", error="invalid_token", error_description="Invalid access token supplied."' );

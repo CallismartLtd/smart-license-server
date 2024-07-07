@@ -39,6 +39,13 @@ class Smliser_Server{
     private $authorization_type = '';
 
     /**
+     * Resource Requested
+     * 
+     * @var object $resource
+     */
+    private $permission = '';
+
+    /**
      * Class constructor.
      */
     public function __construct() {
@@ -59,7 +66,7 @@ class Smliser_Server{
      * 
      * @param string $value The value
      */
-    public function set_oath( $value ) {
+    public function set_oauth_token( $value ) {
         $this->authorization = sanitize_text_field( $value );
     }
 
@@ -729,11 +736,16 @@ class Smliser_Server{
      * 
      * @param WP_REST_Request $request The current request object.
      */
-    public static function repository_access_permission( $request ) {
+    public static function repository_access_permission( WP_REST_Request $request ) {
         $authorization = self::$instance->extract_token( $request );
-        self::$instance->set_oath( $authorization );
-        
-        return self::$instance->validate_token();
+        self::$instance->set_oauth_token( $authorization );
+        self::$instance->set_auth_type( $request );
+
+        if ( 'Bearer' !== self::$instance->authorization_type ) {
+            return new WP_Error( 'unsupported_auth_type', "The '" . self::$instance->authorization_type . "' authorization type is not supported.", array( 'status' => 400 ) );
+        }
+       
+        return self::$instance->validate_token() && self::$instance->permission_check( $request );
     }
 
     /**
@@ -743,18 +755,65 @@ class Smliser_Server{
 
      */
     public static function repository_response( $request ) {
-        $slug = $request->get_param( 'slug' );
-        $scope = $request->get_param( 'scope' );
+        $route          = $request->get_route();
+        $slug           = sanitize_text_field( $request->get_param( 'slug' ) );
+        $scope          = sanitize_text_field( $request->get_param( 'scope' ) );
+        $is_entire_repo = false;
+        $single_plugin  = false;
+
+        if ( empty( $slug ) && empty( $scope ) ) {
+            $is_entire_repo = true;
+        } elseif ( ! empty( $slug ) && ! empty( $scope ) ) {
+            $single_plugin  = true;
+        }
     
-        // Handle the request with the slug and scope values
-        $response = array(
-            'Authorization' => self::$instance->authorization,
-            'slug'          => $slug,
-            'scope'         => $scope,
-            'message'       => 'You authorized'
-        );
-    
-        return new WP_REST_Response( $response, 200 );
+        /**
+         * Handle request to read entire repository
+         */
+        if ( $is_entire_repo && 'GET' === $request->get_method() ) {
+            $plugin_obj     = new Smliser_plugin();
+            $all_plugins    = $plugin_obj->get_plugins();
+            $plugins_info   = array();
+            if ( ! empty( $all_plugins ) ) {
+                foreach ( $all_plugins  as $plugin ) {
+                    $plugins_info[] = $plugin->formalize_response();
+                }
+            }
+            
+            $response = array(
+                'success'   => true,
+                'plugins'   => $plugins_info,
+
+            );
+        
+            return new WP_REST_Response( $response, 200 );
+        }
+
+        if ( $single_plugin && 'GET' === $request->get_method() ) {
+            $plugin_obj = new Smliser_plugin();
+            $real_slug  = trailingslashit( $slug ) . $slug . '.zip';
+            $the_plugin = $plugin_obj->get_plugin_by( 'slug', $real_slug );
+            
+            if ( ! $the_plugin ){
+                $response_data = array(
+                    'success'      => false,
+                    'message'   => 'The plugin was not found'
+                );
+                $response = new WP_REST_Response( $response_data, 404 );
+                $response->header( 'content-type', 'application/json' );
+        
+                return $response;
+            }
+            $response_data = array(
+                'success'   => true,
+                'plugin'    => $the_plugin->formalize_response(),
+            );
+            
+            $response = new WP_REST_Response( $response_data, 200 );
+            $response->header( 'content-type', 'application/json' );
+            return $response;
+        }
+
     }
 
 
@@ -992,7 +1051,7 @@ class Smliser_Server{
         }
         global $wpdb;
         $table_name = SMLISER_API_CRED_TABLE;
-        $query  = $wpdb->prepare( "SELECT `token`, `token_expiry` FROM {$table_name} WHERE `token`= %s", $token );
+        $query  = $wpdb->prepare( "SELECT `token`, `token_expiry`, `permission` FROM {$table_name} WHERE `token`= %s", $token );
         $result = $wpdb->get_row( $query, ARRAY_A );
 
         if ( empty( $result ) ) {
@@ -1006,9 +1065,54 @@ class Smliser_Server{
         }
 
         $real_token = sanitize_text_field( $result['token'] );
+        self::$instance->permission = sanitize_text_field( $result['permission'] );
 
         return hash_equals( $real_token, $token );
 
+    }
+
+    /**
+     * Set headers for a denied response.
+     *
+     * @param WP_REST_Response $response The response object to set headers on.
+     * @return WP_REST_Response The response object with headers set.
+     */
+    private static function set_denied_header( WP_REST_Response $response ) {
+        $response->header( 'content-type', 'application/json' );
+        $response->header( 'X-Smliser-REST-Response', 'AccessDenied' );
+        $response->header( 'WWW-Authenticate', 'Bearer realm="example", error="invalid_token", error_description="Invalid access token supplied."' );
+
+    }
+
+    /**
+     * Check scope of the given access token against request method.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if the token has permission, false otherwise.
+     */
+    public function permission_check( $request ) {
+        $token_permission       = $this->permission;
+        $allowed_permissions    = array( 'read', 'write', 'read_write' );
+
+        // Ensure the token permission is valid.
+        if ( ! in_array( $token_permission, $allowed_permissions, true ) ) {
+            return false;
+        }
+
+        $request_method = $request->get_method();
+
+        // Allow GET requests only for read or read_write permissions.
+        if ( 'GET' === $request_method && in_array( $token_permission, array( 'read', 'read_write' ), true ) ) {
+            return true;
+        }
+
+        // Allow POST requests only for write or read_write permissions.
+        if ( 'POST' === $request_method && in_array( $token_permission, array( 'write', 'read_write' ), true ) ) {
+            return true;
+        }
+
+        // Deny access for any other methods or conditions not explicitly checked.
+        return false;
     }
 
 }

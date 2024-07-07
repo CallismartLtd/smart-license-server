@@ -23,7 +23,7 @@ class Smliser_admin_menu {
      * Class constructor.
      */
     public function __construct() {
-        add_action( 'admin_menu', array( $this, 'menus') );
+        add_action( 'admin_menu', array( $this, 'menus') );        
     }
 
     /**
@@ -100,6 +100,7 @@ class Smliser_admin_menu {
                 break;
             }
         }
+
     }
 
     /**
@@ -486,9 +487,10 @@ class Smliser_admin_menu {
     public function options_page_controller() {
         $path = isset( $_GET['path'] ) ? sanitize_key( $_GET['path'] ) : '';
         $tabs = array(
-            ''          => 'Dashboard',
-            'api-keys'  => 'REST API',
+            ''          => 'General',
             'pages'     => 'Page Setup',
+            'api-keys'  => 'REST API',
+
         );
         
         echo wp_kses_post( smliser_sub_menu_nav( $tabs, 'Settings', 'smliser-options', $path, 'path' ) );
@@ -498,14 +500,14 @@ class Smliser_admin_menu {
                 $this->api_keys_option();
                 break;
             case 'pages':
-                include_once SMLISER_PATH . '/templates/options/pages.php';
+                $this->pages_options();
                 break;
             default :
                 
                 if ( has_action( 'smlise_options_' . $path . '_content'  ) ) {
                     do_action( 'smlise_options_' . $path . '_content' );
                 }else {
-                $this->options_page();
+                    $this->options_general_page();
                 }
         }
 
@@ -514,7 +516,7 @@ class Smliser_admin_menu {
     /**
      * Settings page
      */
-    public function options_page() {
+    public function options_general_page() {
         include_once SMLISER_PATH . 'templates/options/options.php';
     }
 
@@ -525,6 +527,18 @@ class Smliser_admin_menu {
         $all_api_data   = Smliser_API_Cred::get_all();
         include_once SMLISER_PATH . 'templates/options/api-keys.php';
         return;
+    }
+
+    /**
+     * Permalink settings
+     */
+    public function pages_options() {
+        
+        if ( isset( $_POST['permalink_structure'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( 'smliser_perma_form' ) ), 'smliser_perma_form' ) ) {
+            $permalink = isset( $_POST['smliser_permalink'] ) ? preg_replace( '~(^\/|\/$)~', '', sanitize_text_field( wp_unslash( $_POST['smliser_permalink'] ) ) ) : 'plugins';
+            update_option( 'smliser_repo_base_perma' );
+        }
+        include_once SMLISER_PATH . '/templates/options/pages-setup.php';
     }
 
 }

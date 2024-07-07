@@ -89,4 +89,4 @@ defined( 'ABSPATH' ) || exit;
     </tr>
     <?php endforeach; endif;?>
 </table>
-<p class="smliser-table-count"><?php echo absint( count( array() ) ); echo ' Item'. ( count( array()) > 1 ? 's' : '' ); ?></p>
+<p class="smliser-table-count"><?php echo absint( count( $all_api_data ) ); echo ' Item'. ( count( $all_api_data ) > 1 ? 's' : '' ); ?></p>

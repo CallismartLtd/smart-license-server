@@ -19,6 +19,6 @@ defined( 'ABSPATH' ) || exit;
 
 <?php do_action( 'smliser_auth_page_header' );?>
 
-<?php echo wp_logout_url( 'facebook.com' ) ?> This is the content part
+<?php echo esc_url( wp_logout_url( 'facebook.com' ) ) ?> This is the content part
 
 <?php do_action( 'smliser_auth_page_footer' );?>

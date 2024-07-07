@@ -43,6 +43,8 @@ class SmartLicense_config {
      * Class constructor.
      */
     public function __construct() {
+        define( 'SMLISER_REPOSITORY_ROUTE', $this->repository_route );
+
         global $wpdb;
         define( 'SMLISER_LICENSE_TABLE', $wpdb->prefix.'smliser_licenses' );
         define( 'SMLISER_PLUGIN_META_TABLE', $wpdb->prefix . 'smliser_plugin_meta' );
@@ -62,9 +64,9 @@ class SmartLicense_config {
         add_action( 'admin_post_smliser_license_new', array( 'Smliser_license', 'license_form_controller') );
         add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller' ) );
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
-        add_filter( 'query_vars', array( $this, 'download_query_var') );
-        add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10 );
-
+        add_filter( 'query_vars', array( $this, 'query_vars') );
+        add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
+        add_filter( 'rest_post_dispatch', array( $this, 'rest_signature_headers' ), 10, 3 );
         add_action( 'admin_post_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler') );
         add_action( 'smliser_stats', array( 'Smliser_Stats', 'action_handler' ), 10, 4 );
         add_action( 'wp_ajax_smliser_key_generate', array( 'Smliser_API_Cred', 'form_handler' ) );
@@ -98,13 +100,13 @@ class SmartLicense_config {
         ) );
 
         register_rest_route( $this->namespace, $this->repository_route, array(
-            'methods'               => 'GET',
+            'methods'               => array( 'GET', 'POST'),
             'callback'              => array( 'Smliser_Server', 'repository_response' ),
             'permission_callback'   => array( 'Smliser_Server', 'repository_access_permission' ),
         ) );
 
         register_rest_route( $this->namespace, $this->repository_plugin_route, array(
-            'methods'               => 'GET',
+            'methods'               => array( 'GET', 'POST'),
             'callback'              => array( 'Smliser_Server', 'repository_response' ),
             'permission_callback'   => array( 'Smliser_Server', 'repository_access_permission' ),
         ) );
@@ -124,9 +126,9 @@ class SmartLicense_config {
      *
      * @return WP_Error|null WP_Error object if HTTPS/TLS requirement is not met, null otherwise.
      */
-    public function enforce_https_for_rest_api() {
+    public function enforce_https_for_rest_api( $result, $server, $request ) {
         // Check if current request belongs to the plugin's namespace.
-        if ( ! str_contains( $_SERVER['REQUEST_URI'], $this->namespace ) ) {
+        if ( ! str_contains( $request->get_route(), $this->namespace ) ) {
             return;
         }
 
@@ -138,6 +140,27 @@ class SmartLicense_config {
             // Return the WP_Error object.
             return $error;
         }
+    }
+
+    /**
+     * Add custom headers to REST API responses.
+     *
+     * @param WP_REST_Response $response The REST API response object.
+     * @param WP_REST_Server   $server   The REST server object.
+     * @param WP_REST_Request  $request  The REST request object.
+     * @return WP_REST_Response Modified REST API response object.
+     */
+    public function rest_signature_headers( $response, $server, $request ) {
+        
+        if ( strpos( $request->get_route(), $this->namespace )  ) {
+            $response->header( 'x-plugin-name', 'Smart License Server' );
+            $response->header( 'x-api', 'Smart License Server API' );
+            $response->header( 'x-plugin-version', SMLISER_VER );
+            $response->header( 'x-api-version', 'v1' );
+            $response->header( 'x-powered-By', 'Callistus Nwachukwu' );
+        }
+
+        return $response;
     }
 
     /**
@@ -167,7 +190,9 @@ class SmartLicense_config {
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
-        do_action( 'smliser_loaded' );        
+        do_action( 'smliser_loaded' );
+
+        // var_dump(  true && true );
     }
 
     /**
@@ -203,6 +228,8 @@ class SmartLicense_config {
      * Init hooks
      */
     public function init_hooks() {
+        
+        /**Licensed Plugin Download URI Rule */
         add_rewrite_rule(
             '^plugin/([^/]+)/([^/]+)/([^/]+)\.zip$',
             'index.php?plugin_slug=$matches[1]&api_key=$matches[2]&plugin_file=$matches[3]',
@@ -214,6 +241,8 @@ class SmartLicense_config {
             'index.php?smliser_auth=$matches[1]',
             'top'
         );
+        
+        
         add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
         $this->run_automation();
     }
@@ -244,7 +273,7 @@ class SmartLicense_config {
     /**
      * Plugin Download Query Variable
      */
-    public function download_query_var( $vars ) {
+    public function query_vars( $vars ) {
         $vars[] = 'plugin_slug';
         $vars[] = 'api_key';
         $vars[] = 'plugin_file';

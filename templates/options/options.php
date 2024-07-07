@@ -8,7 +8,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 ?>
-<h1>Dashboard</h1>
+<h1>General</h1>
 <?php if ( get_transient( 'smliser_form_validation_message' ) ) :?>
     <?php echo wp_kses_post( smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ) ;?>
 <?php endif;?>
