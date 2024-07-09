@@ -82,6 +82,8 @@ function smliser_repo_page() {
         ), admin_url( 'admin.php' ) );
         return $url;
     }
+
+    return site_url( get_option( 'smliser_repo_base_perma', 'plugins' ) );
 }
 
 /**
@@ -280,7 +282,7 @@ function smliser_generate_item_token( $item_id = 0, $license_key = '' ) {
 
     $key  = bin2hex( random_bytes( 32 ) );
     set_transient( 'smliser_item_token_'. $key, $key_props, 10 * DAY_IN_SECONDS );
-    return $key;
+    return base64_encode( $key );
 }
 
 /**
@@ -290,7 +292,7 @@ function smliser_generate_item_token( $item_id = 0, $license_key = '' ) {
  * @param string $service_id    The service ID associated with the API key.
  */
 function smliser_verify_item_token( $api_key, $item_id ) {
-    $props          = get_transient( 'smliser_item_token_'. $api_key );
+    $props          = get_transient( 'smliser_item_token_'. smliser_safe_base64_decode( $api_key ) );
     $key_props      = is_serialized( $props ) ? unserialize( $props ) : $props;
 
     if ( empty( $key_props ) ) {
@@ -369,11 +371,12 @@ function sanitize_and_normalize_path( $path ) {
         // Remove any parent directory references.
         if ( $segment === '..' ) {
             array_pop( $sanitized_segments );
-        } else {
-            // Sanitize each segment.
-            $sanitized_segment = sanitize_file_name( $segment );
-            $sanitized_segments[] = $sanitized_segment;
         }
+
+        // Sanitize each segment.
+        $sanitized_segment = sanitize_file_name( $segment );
+        $sanitized_segments[] = $sanitized_segment;
+        
     }
 
     // Rejoin the sanitized segments.
@@ -389,7 +392,7 @@ function sanitize_and_normalize_path( $path ) {
  * @param string $url The URL to parse.
  * @return string The base website address.
  */
-function get_base_address( $url ) {
+function smliser_get_base_address( $url ) {
     $parts = parse_url( $url );
 
     if ( ! isset( $parts['scheme'], $parts['host'] ) ) {
@@ -429,4 +432,11 @@ function smliser_load_auth_header() {
  */
 function smliser_load_auth_footer() {
     include_once SMLISER_PATH . 'templates/auth/auth-footer.php';
+}
+
+/**
+ * Get the slug for file downloads
+ */
+function smliser_get_download_slug() {
+    return apply_filters( 'smliser_download_slug', 'smliser-download' );
 }

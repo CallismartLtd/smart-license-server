@@ -23,6 +23,7 @@ class Smliser_admin_menu {
      * Class constructor.
      */
     public function __construct() {
+        add_action( 'admin_post_smliser_options', array( $this, 'options_form_handler' ) );
         add_action( 'admin_menu', array( $this, 'menus') );        
     }
 
@@ -534,11 +535,30 @@ class Smliser_admin_menu {
      */
     public function pages_options() {
         
-        if ( isset( $_POST['permalink_structure'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( 'smliser_perma_form' ) ), 'smliser_perma_form' ) ) {
-            $permalink = isset( $_POST['smliser_permalink'] ) ? preg_replace( '~(^\/|\/$)~', '', sanitize_text_field( wp_unslash( $_POST['smliser_permalink'] ) ) ) : 'plugins';
-            update_option( 'smliser_repo_base_perma' );
-        }
+
+
         include_once SMLISER_PATH . '/templates/options/pages-setup.php';
+    }
+
+    /**
+     * Options form handler
+     */
+    public function options_form_handler() {
+
+        if ( isset( $_POST['smliser_page_setup'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_options_form'] ) ), 'smliser_options_form' ) ) {
+            
+            if ( isset( $_POST['smliser_permalink'] ) ) {
+                $permalink = preg_replace( '~(^\/|\/$)~', '', sanitize_text_field( wp_unslash( $_POST['smliser_permalink'] ) ) );
+                update_option( 'smliser_repo_base_perma', ! empty( $permalink ) ? strtolower( $permalink ) : 'plugins'  );
+                
+            }
+
+
+            set_transient( 'smliser_form_success', true, 10 );
+        }
+
+        wp_safe_redirect( admin_url( 'admin.php?page=smliser-options&path=pages' ) );
+        exit;
     }
 
 }

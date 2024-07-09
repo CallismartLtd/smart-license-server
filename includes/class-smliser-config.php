@@ -64,6 +64,7 @@ class SmartLicense_config {
         add_action( 'admin_post_smliser_license_new', array( 'Smliser_license', 'license_form_controller') );
         add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller' ) );
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
+        add_action( 'admin_post_smliser_admin_download_plugin', array( 'Smliser_Server', 'serve_admin_download' ) );
         add_filter( 'query_vars', array( $this, 'query_vars') );
         add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
         add_filter( 'rest_post_dispatch', array( $this, 'rest_signature_headers' ), 10, 3 );
@@ -192,7 +193,14 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
 
-        // var_dump(  true && true );
+        // add_action( 'wp', function() {
+        //     if ( is_admin() ) {
+        //         return;
+        //     }
+        //     global $wp_query;
+        //     var_dump( $wp_query->query_vars );
+        // } );
+        
     }
 
     /**
@@ -228,16 +236,53 @@ class SmartLicense_config {
      * Init hooks
      */
     public function init_hooks() {
-        
-        /**Licensed Plugin Download URI Rule */
+        $repo_base_url = get_option( 'smliser_repo_base_perma', 'plugins' );
+    
         add_rewrite_rule(
-            '^plugin/([^/]+)/([^/]+)/([^/]+)\.zip$',
-            'index.php?plugin_slug=$matches[1]&api_key=$matches[2]&plugin_file=$matches[3]',
+            '^' . $repo_base_url . '$',
+            'index.php?smliser_repository=1',
+            'top'
+        );
+    
+        add_rewrite_rule(
+            '^' . $repo_base_url . '/([^/]+)$',
+            'index.php?smliser_repository=1&smliser_repository_plugin_slug=$matches[1]',
             'top'
         );
 
+        /*
+        |------------------------
+        | Plugin download rules
+        |------------------------
+        */
+
+        $download_slug = smliser_get_download_slug();
+        /**
+         * Plugin download base pagename.
+         */
         add_rewrite_rule(
-            'smliser-auth/v1/authorize',
+            '^' . $download_slug . '$',
+            'index.php?smliser_repository_download_page=1',
+            'top'
+        );
+        
+        /** Plugin Download URI Rule */
+        add_rewrite_rule(
+            '^' . $download_slug . '/([^/]+)/([^/]+)\.zip$',
+            'index.php?smliser_repository_download_page=1&plugin_slug=$matches[1]&plugin_file=$matches[2]',
+            'top'
+        );
+
+        /**Licensed Plugin Download URI Rule */
+        add_rewrite_rule(
+            '^' . $download_slug . '/([^/]+)/([^/]+)/([^/]+)\.zip$',
+            'index.php?smliser_repository_download_page=1&plugin_slug=$matches[1]&download_token=$matches[2]&plugin_file=$matches[3]',
+            'top'
+        );
+
+        /**OAUTH authorization endpoint */
+        add_rewrite_rule(
+            '^smliser-auth/v1/authorize$',
             'index.php?smliser_auth=$matches[1]',
             'top'
         );
@@ -271,11 +316,21 @@ class SmartLicense_config {
     }
 
     /**
-     * Plugin Download Query Variable
+     * Plugin Query Variables
+     *
+     * Adds custom query variables to WordPress recognized query variables.
+     *
+     * @param array $vars The existing array of query variables.
+     * @return array Modified array of query variables.
      */
     public function query_vars( $vars ) {
+        
+        $vars[] = 'smliser_repository';
+        $vars[] = 'smliser_repository_plugin_slug';
+
+        $vars[] = 'smliser_repository_download_page';
         $vars[] = 'plugin_slug';
-        $vars[] = 'api_key';
+        $vars[] = 'download_token';
         $vars[] = 'plugin_file';
         $vars[] = 'smliser_auth';
         

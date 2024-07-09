@@ -265,11 +265,13 @@ class Smliser_Plugin {
 
     /**
      * Set Download link.
-     * 
-     * @param string $slug the download query vars
      */
-    public function set_download_link( $slug ) {
-        $this->download_link = sanitize_text_field( $slug );
+    public function set_download_link() {
+        $slug           = $this->get_slug();
+        $download_slug  = smliser_get_download_slug();
+        $download_link  = site_url( '/'. $download_slug  . '/' . $slug );
+
+        $this->download_link = sanitize_url( $download_link );
     }
 
     /**
@@ -545,7 +547,7 @@ class Smliser_Plugin {
         }
 
         $this->set_slug( $slug );
-        $this->set_download_link( site_url( '/plugin/'. $slug )  );
+        $this->set_download_link();
 
 
         // Prepare plugin data.
@@ -592,7 +594,7 @@ class Smliser_Plugin {
                 return $slug;
             }
             $this->set_slug( $slug );
-            $this->set_download_link( site_url( '/plugin/' . $slug ) );
+            $this->set_download_link();
         }
     
         // Prepare plugin data.
@@ -839,7 +841,7 @@ class Smliser_Plugin {
         $self->set_required( $result['requires'] );
         $self->set_tested( $result['tested'] );
         $self->set_required_php( $result['requires_php'] );
-        $self->set_download_link( $result['download_link'] );
+        $self->set_download_link();
         $self->set_created_at( $result['created_at'] );
         $self->set_last_updated( $result['last_updated'] );
         

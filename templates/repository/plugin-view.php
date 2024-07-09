@@ -12,6 +12,7 @@ defined( 'ABSPATH' ) || exit;
 <h1><?php echo esc_html( $plugin->get_name() ) ?></h1>
 <a href="<?php echo esc_url( smliser_repository_admin_action_page( 'edit', $plugin->get_item_id() ) ) ?>" class="button action smliser-nav-btn">Edit Plugin</a>
 <a href="<?php echo esc_url( $delete_link ) ?>" class="button action smliser-nav-btn" id="smliser-license-delete-button">Delete Plugin</a>
+<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=smliser_admin_download_plugin&item_id=' . $plugin->get_item_id() ), 'smliser_download_token', 'download_token' ) ) ?>" class="button action smliser-nav-btn" id="smliser-license-delete-button">Download Plugin <span class="dashicons dashicons-download"></span></a>
 <div class="smliser-admin-view-page-wrapper">
     <div class="smliser-admin-view-page-header"> 
         <div class="smliser-admin-view-page-header-child">
@@ -52,7 +53,7 @@ defined( 'ABSPATH' ) || exit;
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Active on: <p> Not Set</p></p>
+            <p>License Status: <p><?php echo esc_html( $plugin->is_licensed() ? 'Licensed' : 'Not Licensed' );?></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">

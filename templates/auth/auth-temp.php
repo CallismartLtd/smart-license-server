@@ -14,11 +14,10 @@
  * @version 1.0.0
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'ABSPATH' ) || exit; global $wp;
 ?>
 
 <?php do_action( 'smliser_auth_page_header' );?>
 
-<?php echo esc_url( wp_logout_url( 'facebook.com' ) ) ?> This is the content part
-
+<?php var_dump( $_GET ); ?>
 <?php do_action( 'smliser_auth_page_footer' );?>
