@@ -613,8 +613,9 @@ class Smliser_API_Cred {
 
                 $request_body = array(
                     'headers'   => array( 
-                        'content-type' => 'application/json',
-                        'x-plugin-name', 'Smart License Server' 
+                        'content-type'  => 'application/json',
+                        'x-api'         => 'Smart License Server API',
+                        'x-smliser-ver' => SMLISER_VER,
                         
                     ),
         
@@ -638,6 +639,39 @@ class Smliser_API_Cred {
             }
             
         }
+    }
+
+    /**
+     * OAUTH Login form handler
+     */
+    public static function oauth_login_form_handler() {
+
+        if ( isset( $_POST['user_login'] ) && isset( $_POST['password'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $credentials = array(
+                'user_login'    => sanitize_text_field( wp_unslash( $_POST['user_login'] ) ),
+                'user_password' => sanitize_text_field( $_POST['password'] ),
+                'remember'      => true,
+            );
+
+            $redirect_args  = sanitize_text_field( wp_unslash( $_POST['redirect_args'] ) );
+            $url            = site_url( 'smliser-auth/v1/authorize/?' . $redirect_args );
+
+            $user = wp_signon( $credentials, false );
+
+            if ( is_wp_error( $user ) ) {
+                set_transient( 'smliser_form_validation_message', $user->get_error_message(), 5 );
+                wp_redirect( $url );
+                exit;
+
+            } else {
+                
+                wp_redirect( $url );
+                exit;
+            }
+        }
+
+        wp_die( 'Fill the required fields', 401 );
+        
     }
 
     /*

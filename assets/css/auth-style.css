@@ -63,3 +63,61 @@
     font-weight: bold;
     width: 40%;
 }
+.smliser-oauth-login-form {
+    background-color: #f1f1f1;
+    border-radius: 9px;
+    padding: 20px;
+    margin: 50px auto;
+    height: 300px;
+    width: 90%;
+}
+
+.smliser-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 20px 15px 0 20px;
+
+}
+.smliser-oauth-form-label {
+    font-size: 16px;
+    font-weight: bold;
+
+}
+
+.smliser-login-input {
+    
+    width: 100%;
+    border-color: blue;
+    background-color: #ffffff;
+    border-radius: 9px;
+    margin: 20px 0 0 5px;
+    height: 40px;
+
+}
+
+.smliser-submit-btn-container {
+    text-align: center;
+    margin-top: 10px;
+    
+    
+    
+}
+
+.smliser-submit-btn-container button {
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 16px;
+    font-family: aloe;
+    border: #ffffff;
+    background-color: #0000ff;
+    border-radius: 8px;
+    height: 40px;
+    width: 80%;
+
+}
+
+.smliser-auth-footer p {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 40px;
+}

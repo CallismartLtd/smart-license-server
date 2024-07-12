@@ -2,7 +2,7 @@
 /**
  * OAUTH Authorization Template file.
  *
- * This template can be overridden by copying it to yourtheme/smliser/auth/auth-header.php.
+ * This template can be overridden by copying it to yourtheme/smliser/auth/auth-temp.php.
  *
  * HOWEVER, on occasion Smart License Server will need to update template files and you
  * (the theme developer) will need to copy the new files to your theme to
@@ -15,45 +15,6 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-
-// Define the default values for the required parameters.
-$default_params = array(
-    'scope'         => '',
-    'app_name'      => '',
-    'return_url'    => '',
-    'callback_url'  => '',
-    'user_id'       => ''
-);
-
-// Filter $_GET to include only expected keys.
-$filtered_get = array_intersect_key( $_GET, $default_params );
-
-// Merge the default values with the filtered $_GET parameters.
-$merged_params = array_merge( $default_params, $filtered_get );
-
-// Sanitize all parameters.
-$sanitized_params = array_map( function( $value ) {
-    return sanitize_text_field( wp_unslash( $value ) );
-}, $merged_params );
-
-// Check for missing required parameters and use wp_die() to show a message.
-foreach ( $default_params as $key => $value ) {
-    if ( empty( $sanitized_params[$key] ) ) {
-        wp_die( sprintf( 'Missing required parameter: %s', esc_html( $key ) ) );
-    }
-}
-
-$permission = 'Read';
-$verb       = 'View';
-if ( 'read_write' === $sanitized_params['scope'] ) {
-    $permission = 'Read/Write';
-    $verb       = 'View and manage';
-} elseif( 'write' === $sanitized_params['scope'] ) {
-    $permission = 'Write';
-    $verb       = 'Create';
-} elseif ( 'read' !== $sanitized_params['scope'] && 'read_write' !== $sanitized_params['scope'] && 'write' !== $sanitized_params['scope'] ) {
-    wp_die( 'Invalid scope: "' . esc_html( $sanitized_params['scope'] ) . '".' );
-}
 ?>
 
     <?php do_action( 'smliser_auth_page_header' );?>

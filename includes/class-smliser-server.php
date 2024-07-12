@@ -149,7 +149,7 @@ class Smliser_Server{
         $request_body = array(
             'headers'   => array( 
                 'Content-Type' => 'application/json',
-                
+
             ),
 
             'body'  => $request_args,
@@ -969,15 +969,8 @@ class Smliser_Server{
     public function load_auth_template( $template ) {
         global $wp_query;
         if ( isset( $wp_query->query_vars[ 'smliser_auth' ] ) ) {
-            
-            $login_form    = SMLISER_PATH . 'templates/auth/auth-login.php';
-            $auth_template = SMLISER_PATH . 'templates/auth/auth-temp.php';
-            
-            if ( ! is_user_logged_in() ) {
-                return $login_form;
-            } else {
-                return $auth_template;
-            }
+            $oauth_template_handler = SMLISER_PATH . 'templates/auth/auth-controller.php';
+            return $oauth_template_handler;
         }
         
         return $template;

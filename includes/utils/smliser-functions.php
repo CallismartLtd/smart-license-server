@@ -424,14 +424,16 @@ function smliser_get_base_address( $url ) {
  * Load app authentication page header
  */
 function smliser_load_auth_header() {
-    include_once SMLISER_PATH . 'templates/auth/auth-header.php';
+    $theme_template_dir = get_template_directory() . '/smliser/auth/auth-header.php';
+    include_once file_exists( $theme_template_dir ) ? $theme_template_dir : SMLISER_PATH . 'templates/auth/auth-header.php';
 }
 
 /**
  * Load app authentication page footer
  */
 function smliser_load_auth_footer() {
-    include_once SMLISER_PATH . 'templates/auth/auth-footer.php';
+    $theme_template_dir = get_template_directory() . '/smliser/auth/auth-footer.php';
+    include_once file_exists( $theme_template_dir ) ? $theme_template_dir : SMLISER_PATH . 'templates/auth/auth-footer.php';
 }
 
 /**
