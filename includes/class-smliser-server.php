@@ -51,6 +51,7 @@ class Smliser_Server{
     public function __construct() {
         add_action( 'smliser_validate_license', array( $this, 'remote_validate' ) );
         add_action( 'template_redirect', array( $this, 'serve_package_download' ) );
+        add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
 
     }
@@ -146,7 +147,12 @@ class Smliser_Server{
         );
 
         $request_body = array(
-            'body' => $request_args,
+            'headers'   => array( 
+                'Content-Type' => 'application/json',
+                
+            ),
+
+            'body'  => $request_args,
         );
 
         $response = wp_remote_post( $callback_url, $request_body );
@@ -963,7 +969,7 @@ class Smliser_Server{
     public function load_auth_template( $template ) {
         global $wp_query;
         if ( isset( $wp_query->query_vars[ 'smliser_auth' ] ) ) {
-
+            
             $login_form    = SMLISER_PATH . 'templates/auth/auth-login.php';
             $auth_template = SMLISER_PATH . 'templates/auth/auth-temp.php';
             

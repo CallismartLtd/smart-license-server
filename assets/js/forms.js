@@ -365,45 +365,48 @@ function smliserCopyToClipboard(text) {
 }
 
 document.addEventListener( 'DOMContentLoaded', function() {
-    var revokeBtn = document.getElementById( 'smliser-revoke-btn' );
-    if ( revokeBtn ) {
-        var spinnerOverlay = document.querySelector('.spinner-overlay');
-        var apiKeyId       = revokeBtn.dataset.keyId;
+    var revokeBtns = document.querySelectorAll( '.smliser-revoke-btn' );
+    var spinnerOverlay = document.querySelector('.spinner-overlay');
+    if ( revokeBtns ) {
+        revokeBtns.forEach( function( revokeBtn ){
+            var apiKeyId       = revokeBtn.dataset.keyId;
 
-        revokeBtn.addEventListener( 'click', function( event ) {
-         
-            const userConfirmed = confirm( 'You are about to revoke this license, connected app will not be able to access resource on this server, be careful action cannot be reversed' );
-            if ( userConfirmed ) {
-                spinnerOverlay.classList.add('show');
-
-                jQuery.ajax( {
-                    type: 'GET',
-                    url: smliser_var.smliser_ajax_url,
-                    data: { 
-                        action: 'smliser_revoke_key',
-                        security: smliser_var.nonce,
-                        api_key_id: apiKeyId,
-
-                    },
-                    success: function( response ) {
-                        if ( response.success ) {
-                            var feedback = response.data ? response.data.message : '';
-                            smliserNotify(feedback, 3000);
-                            location.reload();
-                        } else {
-                            var errorMessage = response.data && response.data.message ? response.data.message : 'An unknown error occurred.';
-                            console.log(errorMessage);
-                            smliserNotify(errorMessage, 3000);
+            revokeBtn.addEventListener( 'click', function( event ) {
+             
+                const userConfirmed = confirm( 'You are about to revoke this license, connected app will not be able to access resource on this server, be careful action cannot be reversed' );
+                if ( userConfirmed ) {
+                    spinnerOverlay.classList.add('show');
+    
+                    jQuery.ajax( {
+                        type: 'GET',
+                        url: smliser_var.smliser_ajax_url,
+                        data: { 
+                            action: 'smliser_revoke_key',
+                            security: smliser_var.nonce,
+                            api_key_id: apiKeyId,
+    
+                        },
+                        success: function( response ) {
+                            if ( response.success ) {
+                                var feedback = response.data ? response.data.message : '';
+                                smliserNotify(feedback, 3000);
+                                location.reload();
+                            } else {
+                                var errorMessage = response.data && response.data.message ? response.data.message : 'An unknown error occurred.';
+                                console.log(errorMessage);
+                                smliserNotify(errorMessage, 3000);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error(error); // Log detailed error information
+                        },
+                        complete: function () {
+                            spinnerOverlay.classList.remove('show');
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error(error); // Log detailed error information
-                    },
-                    complete: function () {
-                        spinnerOverlay.classList.remove('show');
-                    }
-                })
-            }
-        });
+                    })
+                }
+            });
+        } );
+
     }
 });

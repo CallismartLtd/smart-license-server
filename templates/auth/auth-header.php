@@ -23,8 +23,10 @@
      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
      <meta name="robots" content="noindex, nofollow" />
      <title><?php esc_html_e( 'Application Authorization', 'smliser' ); ?></title>
-     <link rel="stylesheet" href="" type="text/css" />
+     <link rel="stylesheet" href="<?php echo esc_url( SMLISER_URL . 'assets/css/auth-style.css'); ?>" type="text/css" />
  </head>
- <body class="smliser-auth-body wp-core-ui">
-     <h1 id=""><img src="" alt="<?php esc_attr_e( 'Smart License Server', 'smliser' ); ?>" /></h1>
+ <body class="smliser-auth-body">
      <div class="smliser-auth-content">
+        <div class="smliser-auth-img">
+            <img src="<?php echo esc_url( SMLISER_URL . 'assets/images/smart-license-server.png'); ?>" alt="<?php esc_attr_e( 'smliser logo', 'smliser' ); ?>" />
+        </div>

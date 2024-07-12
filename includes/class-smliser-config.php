@@ -68,9 +68,9 @@ class SmartLicense_config {
         add_filter( 'query_vars', array( $this, 'query_vars') );
         add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
         add_filter( 'rest_post_dispatch', array( $this, 'rest_signature_headers' ), 10, 3 );
-        add_action( 'admin_post_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler') );
+        add_action( 'admin_post_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler' ) );
         add_action( 'smliser_stats', array( 'Smliser_Stats', 'action_handler' ), 10, 4 );
-        add_action( 'wp_ajax_smliser_key_generate', array( 'Smliser_API_Cred', 'form_handler' ) );
+        add_action( 'wp_ajax_smliser_key_generate', array( 'Smliser_API_Cred', 'admin_create_cred_form' ) );
         add_action( 'wp_ajax_smliser_revoke_key', array( 'Smliser_API_Cred', 'revoke' ) );
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );

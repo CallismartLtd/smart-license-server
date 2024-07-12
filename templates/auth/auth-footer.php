@@ -1,8 +1,8 @@
 <?php
 /**
- * Auth Footer
+ * Auth footer
  *
- * This template can be overridden by copying it to yourtheme/smliser/auth/auth-header.php.
+ * This template can be overridden by copying it to yourtheme/smliser/auth/auth-footer.php.
  *
  * HOWEVER, on occasion Smart License Server will need to update template files and you
  * (the theme developer) will need to copy the new files to your theme to
@@ -14,8 +14,12 @@
  * @version 1.0.0
  */
 
- defined( 'ABSPATH' ) || exit;
+defined( 'ABSPATH' ) || exit;
 ?>
-        </div>
+
+            </div> <!-- .smliser-auth-content -->
+        <footer class="smliser-auth-footer">
+            <p>&copy;<?php echo get_bloginfo( 'name' );?> <?php echo esc_html( date( 'Y' ) ); ?> powered by <?php esc_html_e( 'Smart License Server', 'smliser' ); ?></p>
+        </footer>
     </body>
 </html>

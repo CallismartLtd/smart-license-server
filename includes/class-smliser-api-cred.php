@@ -390,6 +390,7 @@ class Smliser_API_Cred {
         );
 
         if ( $wpdb->insert( SMLISER_API_CRED_TABLE, $data, $data_format ) ) {
+            $this->set_id( $wpdb->insert_id );
             return $credentials;
         }
 
@@ -492,9 +493,9 @@ class Smliser_API_Cred {
     */
 
     /**
-     * Handle form submission
+     * Handle admin api credential generation form
      */
-    public static function form_handler() {
+    public static function admin_create_cred_form() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
             wp_send_json_error( array( 'message' => 'This action failed basic security check' ) );
         }
@@ -556,6 +557,87 @@ class Smliser_API_Cred {
         }
 
         wp_send_json_success( array( 'message' => 'Key has been revoked' ) );
+    }
+
+    /**
+     * Client oauth 2.0 consent form handler
+     */
+    public static function oauth_client_consent_handler() {
+        if ( isset( $_POST['smliser_consent_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_consent_nonce'] ) ), 'smliser_consent_nonce' ) ) {
+            
+            $app_name       = isset( $_POST['app_name'] ) ? sanitize_text_field( $_POST['app_name'] ) : '';
+            $scope          = isset( $_POST['scope'] ) ? sanitize_text_field( $_POST['scope'] ) : '';
+            $return_url     = isset( $_POST['return_url'] ) ? sanitize_text_field( $_POST['return_url'] ) : '';
+            $callback_url   = isset( $_POST['callback_url'] ) ? sanitize_text_field( $_POST['callback_url'] ) : '';
+            $user_id        = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+            $consent        = isset( $_POST['authorize'] ) ? 'Authorized' : 'Denied';
+            
+            $required_fields = array( $app_name , $scope, $return_url, $callback_url, $user_id );
+
+            foreach ( $required_fields as $required_field ) {
+                if ( empty( $required_field ) ) {
+                    wp_die( $required_field . ' is missing.', 403 );
+                }
+            }
+
+            // Check if the authorization is denied.
+
+            if ( 'Denied' === $consent ) {
+                $params = http_build_query( array(
+                    'success'   => 0,
+                    'user_id'   => $user_id,
+
+                ) );
+                $url = trailingslashit( $return_url ) . '?' . $params;
+                wp_redirect( $url, 302, 'Smart License Server' );
+                exit;
+            }
+
+            if ( 'Authorized' === $consent ) {
+                self::instance();
+                self::$instance->set_permission( $scope );
+                self::$instance->set_user( absint( $user_id ) );
+                $credentials = self::$instance->insert_new();
+                
+                if ( false === $credentials ) {
+                    wp_die( 'Unable to generate API Key credentials' );
+                }
+        
+                $api_credentials    = array( 
+                    'key_id'            => self::$instance->id,
+                    'user_id'           => self::$instance->get_user()->ID,
+                    'permission'        => self::$instance->get_permission(),
+                    'consumer_public'   => $credentials->consumer_public,
+                    'consumer_secret'   => $credentials->consumer_secret,
+                );
+
+                $request_body = array(
+                    'headers'   => array( 
+                        'content-type' => 'application/json',
+                        'x-plugin-name', 'Smart License Server' 
+                        
+                    ),
+        
+                    'body' => wp_json_encode( $api_credentials ),
+                );
+
+                $response = wp_remote_post( $callback_url, $request_body );
+
+                if ( is_wp_error( $response ) ) {
+                    wp_die( $response->get_error_message() );
+                }
+
+                $params = http_build_query( array(
+                    'success'   => 1,
+                    'user_id'   => $user_id,
+
+                ) );
+                $url = trailingslashit( $return_url ) . '?' . $params;
+                wp_redirect( $url, 302, 'Smart License Server' );
+                exit;
+            }
+            
+        }
     }
 
     /*

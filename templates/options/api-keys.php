@@ -85,7 +85,7 @@ defined( 'ABSPATH' ) || exit;
         <td><?php echo esc_html( $api_key->get_permission() );?></td>
         <td><?php echo esc_html( $api_key->get_token( 'app_name' ) );?></td>
         <td><?php echo esc_html( $api_key->get_status() );?></td>
-        <td><button id="smliser-revoke-btn" data-key-id="<?php echo esc_attr( $api_key->get_id() ); ?>">Revoke</button></td>
+        <td><button class="smliser-revoke-btn" data-key-id="<?php echo esc_attr( $api_key->get_id() ); ?>">Revoke</button></td>
     </tr>
     <?php endforeach; endif;?>
 </table>
