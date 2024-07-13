@@ -419,8 +419,8 @@ class Smliser_admin_menu {
             $table_html .= '<td>' . $plugin->get_author() . '</td>';
             $table_html .= '<td>' . esc_html( $plugin->get_version() ) . '</td>';
             $table_html .= '<td>' . esc_html( $plugin->get_slug() ) . '</td>';
-            $table_html .= '<td>' . esc_html( $plugin->get_date_created() ) . '</td>';
-            $table_html .= '<td>' . esc_html( $plugin->get_last_updated() ) . '</td>';
+            $table_html .= '<td>' . esc_html( smliser_check_and_format( $plugin->get_date_created(), true ) ) . '</td>';
+            $table_html .= '<td>' . esc_html( smliser_check_and_format( $plugin->get_last_updated(), true ) ) . '</td>';
             $table_html .= '</tr>';
         }
     
