@@ -57,6 +57,9 @@ class SmartLicense_config {
 
         // Register REST endpoints.
         add_action( 'rest_api_init', array( $this, 'rest_load' ) );
+        add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
+        add_filter( 'rest_post_dispatch', array( $this, 'rest_signature_headers' ), 10, 3 );
+
         add_action( 'plugins_loaded', array( $this, 'include' ) );
         add_action( 'init', array( $this, 'init_hooks' ) );
         add_action( 'admin_post_smliser_bulk_action', array( 'Smliser_license', 'bulk_action') );
@@ -66,8 +69,6 @@ class SmartLicense_config {
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
         add_action( 'admin_post_smliser_admin_download_plugin', array( 'Smliser_Server', 'serve_admin_download' ) );
         add_filter( 'query_vars', array( $this, 'query_vars') );
-        add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
-        add_filter( 'rest_post_dispatch', array( $this, 'rest_signature_headers' ), 10, 3 );
         add_action( 'admin_post_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler' ) );
         add_action( 'admin_post_nopriv_smliser_oauth_login', array( 'Smliser_API_Cred', 'oauth_login_form_handler' ) );
         add_action( 'smliser_stats', array( 'Smliser_Stats', 'action_handler' ), 10, 4 );
@@ -193,14 +194,6 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-
-        // add_action( 'wp', function() {
-        //     if ( is_admin() ) {
-        //         return;
-        //     }
-        //     global $wp_query;
-        //     var_dump( $wp_query->query_vars );
-        // } );
         
     }
 

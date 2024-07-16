@@ -30,9 +30,9 @@ defined( 'ABSPATH' ) || exit;
         <tr>
             <td><?php echo esc_html( smliser_tstmp_to_date( $timestamp ) );?></td>
             <td><?php echo esc_html( $obj->calculate_next_validation_time( $timestamp, $cron_timestamp ) );?></td>
-            <td><?php echo esc_html( $task_data[0]['license_id']);?></td>
-            <td><?php echo esc_html( $task_data[0]['IP Address']);?></td>
-            <td><?php echo esc_html( smliser_get_base_address( $task_data[0]['callback_url'] ) );?></td>
+            <td><?php echo esc_html( $task_data['license_id']);?></td>
+            <td><?php echo esc_html( $task_data['IP Address']);?></td>
+            <td><?php echo esc_html( smliser_get_base_address( $task_data['callback_url'] ) );?></td>
         </tr>
         <?php endforeach; endif;?>
     </table>

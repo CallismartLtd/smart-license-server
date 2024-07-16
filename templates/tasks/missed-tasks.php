@@ -17,21 +17,25 @@ defined( 'ABSPATH' ) || exit;
 
     <table class="smliser-table">
         <tr>
-            <th>Next Validation</th>
+            <th>Date</th>
             <th>License ID</th>
             <th>IP Address</th>
+            <th>Reason</th>
+            <th>Status Code</th>
             <th>Website</th>
         </tr>
         <?php if ( empty( $all_tasks ) ):?>
             <tr>
                 <td colspan="5">No missed task in the last 24hrs.</td>
             </tr> 
-        <?php else: foreach( $all_tasks as $timestamp => $task_data ):?>
+        <?php else: foreach( $all_tasks as $date => $task_data ):?>
         <tr>
-            <td><?php echo esc_html( $obj->calculate_next_validation_time( $timestamp, $cron_timestamp ) );?></td>
-            <td><?php echo esc_html( $task_data[0]['license_id']);?></td>
-            <td><?php echo esc_html( $task_data[0]['IP Address']);?></td>
-            <td><?php echo esc_html( smliser_get_base_address( $task_data[0]['callback_url'] ) );?></td>
+            <td><?php echo esc_html( $date );?></td>
+            <td><?php echo esc_html( $task_data['license_id']);?></td>
+            <td><?php echo esc_html( $task_data['ip_address']);?></td>
+            <td><?php echo esc_html( $task_data['reason']);?></td>
+            <td><?php echo esc_html( $task_data['status_code']);?></td>
+            <td><?php echo esc_html( smliser_get_base_address( $task_data['website'] ) );?></td>
         </tr>
         <?php endforeach; endif;?>
     </table>

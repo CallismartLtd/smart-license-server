@@ -19,4 +19,3 @@ define( 'SMLISER_URL', plugin_dir_url( __FILE__) );
 require_once SMLISER_PATH . 'includes/class-smliser-config.php';
 require_once SMLISER_PATH . 'includes/class-install.php';
 SmartLicense_config::instance();
-

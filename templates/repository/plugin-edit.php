@@ -14,7 +14,9 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 <h1>Edit Plugin <span class="dashicons dashicons-plugins-checked"></span></h1>
 <a href="<?php echo esc_url( smliser_repository_admin_action_page( 'view', $plugin->get_item_id() ) ) ?>" class="button action smliser-nav-btn">View Plugin</a>
 
-<p>If you upload a new version of your plugin, please remember to update the relevant inputs with the latest information about your plugin.</p>
+
+<p>If a new file is uploaded, it will replace the existing one in the repository, so be sure to have a backup of the earlier version.</p>
+<p>Note: Incrementing the version number will cause an update prompt on the websites where this plugin is currently installed.</p>
 <div class="smliser-form-container">
     <?php if ( $message = get_transient( 'smliser_form_validation_message' ) ) :?>
         <?php echo wp_kses_post( smliser_form_message( $message ) ) ;?>

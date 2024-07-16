@@ -108,7 +108,7 @@ class Smliser_Server{
             return;
         }
         
-        // Extract task data
+        // Extract task data.
         $callback_url   = isset( $highest_priority_task['callback_url'] ) ? sanitize_text_field( $highest_priority_task['callback_url'] ) : '';
         $license_key    = isset( $highest_priority_task['license_key'] ) ? sanitize_text_field( $highest_priority_task['license_key'] ) : '';
         $license_id     = isset( $highest_priority_task['license_id'] ) ? absint( $highest_priority_task['license_id'] ) : 0;
@@ -136,37 +136,43 @@ class Smliser_Server{
                 $expires_after = MONTH_IN_SECONDS; // Will require routine checks though.
             }
         }
-        
-        $request_args   = array(
-            'action'        => 'verified_license',
-            'last_updated'  => $expires_after, 
-            'license_key'   => $license_key,
-            'token'         => $token,
-            'API_KEY'       => smliser_generate_item_token( $license->get_item_id(), $license_key ),
-            'data'          => $data,
-        );
 
-        $request_body = array(
+        $request = array(
             'headers'   => array( 
                 'Content-Type' => 'application/json',
 
             ),
 
-            'body'  => $request_args,
+            'body'  =>  $data
         );
+        $params     = http_build_query( array(
+            'action'        => 'smliser_verified_license_action',
+            'last_updated'  => $expires_after,
+            'token'         => $token,
+            'API_KEY'       => smliser_generate_item_token( $license->get_item_id(), $license_key ),
+        ) );
 
-        $response = wp_remote_post( $callback_url, $request_body );
+        $client_url = trailingslashit( $callback_url ) . '?' . $params;
+        $response   = wp_remote_post( $client_url, $request );
         // Check if remote request was successful
         if ( is_wp_error( $response ) ) {
             delete_transient( 'smliser_server_doing_post' );
-            return new WP_Error( 'remote_request_failed', 'Failed to execute remote POST request.' );
+            $this->move_to_missed_schedules( $highest_priority_task, array( 'reason' => $response->get_error_message(), 'status_code' => $response->get_error_code() ) );
         }
 
-        if ( wp_remote_retrieve_response_code( $response ) === 200 ) {
+        $status_code    = wp_remote_retrieve_response_code( $response );
+        if ( 200 === $status_code ) {
             $license->update_active_sites( smliser_get_base_address( $callback_url ) );
+        
+        } else {
+            $response_data  = json_decode( wp_remote_retrieve_body( $response ), true );
+            $reasons        = array( 
+                'reason' => ! empty( $response_data['data'] ) ? sanitize_text_field( wp_unslash( $response_data['data']['message'] ) ) : 'No response from host', 
+                'status_code' => $status_code
+            );
+            $this->move_to_missed_schedules( $highest_priority_task, $reasons );
         }
 
-        $this->post_completed( $highest_priority_task );
         delete_transient( 'smliser_server_doing_post' );
 
         return true;
@@ -180,13 +186,17 @@ class Smliser_Server{
     
     /**
      * Add validation tasks to queue.
+     * 
+     * @param int $wait_period Wait period.
+     * @param array $value an associative array containing task data.
+     * @return bool true on success, false otherwise.
      */
     public function add_task_queue( $duration, $value ) {
         // add the duration which is in seconds to the current timestamp to enable us calculate expiry later.
         $duration   = current_time( 'timestamp' ) + $duration;
         $task_queue = get_option( 'smliser_task_queue', array() );
         
-        $task_queue[ $duration ] = array( $value );
+        $task_queue[ $duration ] = $value;
        return update_option( 'smliser_task_queue', $task_queue );
     }
 
@@ -203,14 +213,13 @@ class Smliser_Server{
         $highest_timest = PHP_INT_MAX;
         ksort( $task_queue );
 
-        // Iterate through each task in the task queue
         foreach ( $task_queue as $timestamp => $tasks ) {
     
             if ( $timestamp >= $current_time ) {
-                // Update the highest priority task if the current task's timestamp is closer to the current time
+
                 if ( $timestamp < $highest_timest ) {
-                    $the_task = reset( $tasks );
-                    unset( $task_queue[ $timestamp ] );
+                    $the_task = reset( $task_queue );
+                    unset( $task_queue[$timestamp] );
                     update_option( 'smliser_task_queue', $task_queue );
                     $highest_timest = $timestamp;
                 }
@@ -218,7 +227,7 @@ class Smliser_Server{
             } else {
 
                 // move expired tasks to missed schedules.
-                $this->move_to_missed_schedules( $timestamp, $tasks );
+                $this->move_to_missed_schedules( $task_queue[$timestamp], array( 'reason' => 'Task time elapsed' ) );
                 // Remove expired tasks from the task queue
                 unset( $task_queue[ $timestamp ] );
                 update_option( 'smliser_task_queue', $task_queue ); // Update the task queue after removal.
@@ -230,27 +239,52 @@ class Smliser_Server{
     }
 
     /**
-     * Move expired tasks from the task queue to the 'smliser_missed_schedules' option.
-     *
+     * Move tasks from the task queue to the 'smliser_missed_schedules' option.
+     * 
+     * @param array $the_task Associative contanining the missed task.
+     * @param array $reason    Reason for the missed task.
      * @return void
      */
-    public function move_to_missed_schedules( $timestamp, $tasks ) {
+    public function move_to_missed_schedules( $the_task, $reason = array() ) {
         $missed_schedules = $this->get_missed_schedules();
-        $missed_schedules[ $timestamp ] = $tasks;
-        set_transient( 'smliser_missed_schedules', $missed_schedules, DAY_IN_SECONDS );
+        
+        $missed_schedules[ current_time( 'mysql' ) ] = array(
+            'license_id'    => $the_task['license_id'],
+            'ip_address'    => $the_task['IP Address'],
+            'website'       => $the_task['callback_url'],
+            'reason'        => ! empty( $reason['reason'] ) ? $reason['reason'] : 'N/A',
+            'status_code'   => ! empty( $reason['status_code'] ) ? $reason['status_code'] : 'N/A',
+        );
+        
+        update_option( 'smliser_missed_schedules', $missed_schedules );
     }
 
     /**
      * Get missed task for the last 24hrs
      */
     public function get_missed_schedules() {
-        $schedules = get_transient( 'smliser_missed_schedules' );
+        $schedules = get_option( 'smliser_missed_schedules', false );
         
         if ( false === $schedules ) {
-            return array();
+            return array(); // Returns empty array.
         }
         ksort( $schedules );
-        return $schedules;
+
+        $missed_tasks  = array();
+
+        foreach ( $schedules as $time => $schedule ) {
+            $timestamp = strtotime( $time );
+            $expiration = time() - ( 24 * HOUR_IN_SECONDS );
+
+            if ( $timestamp < $expiration ) {
+                unset( $schedules[$time] );
+                update_opion( 'smliser_missed_schedules', $schedules );
+            }
+
+            $missed_tasks[$time] = $schedule;
+        }
+
+        return $missed_tasks;
     }
 
 
