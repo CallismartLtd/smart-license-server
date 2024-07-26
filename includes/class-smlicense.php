@@ -333,12 +333,12 @@ class Smliser_license {
     public function get_active_sites() {
         $all_sites = $this->get_meta( 'websites activated on', 'N/L' );
         if ( is_array( $all_sites ) ) {
-            return implode( ', ', $all_sites );
+            $all_sites = implode( ', ', $all_sites );
         }
 
-        if ( is_string( $all_sites ) ) {
-            return $all_sites;
-        }
+        
+        return ! empty( $all_sites ) ? $all_sites : 'N/L';
+        
     }
 
     /*
@@ -1030,7 +1030,7 @@ class Smliser_license {
         }
 
         if ( 'Deactivated' === $this->get_status() ) {
-            return new WP_Error( 'license_deactivated', 'License has been deactivated, log into you account to regenrate or purchase new one.' );
+            return new WP_Error( 'license_deactivated', 'License has been deactivated, log into you account to reactivate it or purchase new one.' );
         }
 
         if ( 'license activation' === $context && $this->has_reached_max_allowed_sites() ) {

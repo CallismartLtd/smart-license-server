@@ -12,31 +12,67 @@ defined( 'ABSPATH' ) || exit;
 
 class SmartLicense_config {
 
-    /** REST API plugin update route */
-    private $update_route = '/software-update/';
+    /** 
+     * REST API Route namespace.
+     * 
+     * @var string
+     */
+    private $namespace  = 'smliser/v1';
 
-    /** REST API license activation route */
+    /** 
+     * Plugin update REST API route.
+     * 
+     * @var string
+     */
+    private $update_route   = '/software-update/';
+
+    /** 
+     * License activation REST API route.
+     * 
+     * @var string
+     */
     private $activation_route = '/license-validator/';
 
-    /** REST API license deactivation route */
+    /** 
+     * License deactivation REST API route
+     * 
+     * @var string
+     */
     private $deactivation_route = '/license-deactivator/';
 
-    /** REST API Repository interaction route */
+    /** 
+     * Repository REST API route.
+     * 
+     * @var string
+     */
     private $repository_route = '/repository/';
+
+    /** 
+     * Repository REST API route for specific plugin.
+     * 
+     * @var string
+     */
+    private $repository_plugin_route = '/repository/(?P<slug>[^/]+)/(?P<scope>read|write|read-write)';
     
     /** 
-     * REST API App re-authentication route, essentially for token regeneration.
-     * @var string $app_reauth property value for re-authentication route
+     * Client authentication REST API route, essentially for token regeneration.
+     * 
+     * @var string
      */
     private $app_reauth = '/client-auth/';
 
-    /** REST API Repository route for plugin interaction */
-    private $repository_plugin_route = '/repository/(?P<slug>[^/]+)/(?P<scope>read|write|read-write)';
+    /**
+     * Download token regeneration REST API route
+     * 
+     * @var string
+     */
+    private $download_reauth = '/item-token-reauth/';
 
-    /** Route namespace */
-    private $namespace = 'smliser/v1';
-
-    /** Instance of current class */
+    /** 
+     * Instance of current class.
+     * 
+     * @var SmartLicense_config
+     */
     private static $instance = null;
 
     /**
@@ -102,22 +138,32 @@ class SmartLicense_config {
             'permission_callback' => array( 'Smliser_Server', 'update_permission' ),
         ) );
 
+        /**Register REST API route for querying entire repository*/
         register_rest_route( $this->namespace, $this->repository_route, array(
             'methods'               => array( 'GET', 'POST'),
             'callback'              => array( 'Smliser_Server', 'repository_response' ),
             'permission_callback'   => array( 'Smliser_Server', 'repository_access_permission' ),
         ) );
 
+        /** Register REST API Route for querying a specific plugin */
         register_rest_route( $this->namespace, $this->repository_plugin_route, array(
             'methods'               => array( 'GET', 'POST'),
             'callback'              => array( 'Smliser_Server', 'repository_response' ),
             'permission_callback'   => array( 'Smliser_Server', 'repository_access_permission' ),
         ) );
 
+        /** Register Oauth client authentication route */
         register_rest_route( $this->namespace, $this->app_reauth, array(
             'methods'               => 'GET',
             'callback'              => array( 'Smliser_REST_Authentication', 'client_authentication_response' ),
             'permission_callback'   => array( 'Smliser_REST_Authentication', 'auth_permission' ),
+        ) );
+
+        /** Register licensed plugin download token regeneration route */
+        register_rest_route( $this->namespace, $this->download_reauth, array(
+            'methods'               => 'GET',
+            'callback'              => array( 'Smliser_REST_Authentication', 'item_download_reauth' ),
+            'permission_callback'   => array( 'Smliser_REST_Authentication', 'item_download_reauth_permission' ),
         ) );
     }
 
@@ -138,7 +184,7 @@ class SmartLicense_config {
         // Check if environment is production and request is not over HTTPS.
         if ( 'production' === wp_get_environment_type() && ! is_ssl() ) {
             // Create WP_Error object to indicate insecure SSL.
-            $error = new WP_Error( 'insecure_ssl', 'HTTPS/TLS is required for secure communication.', array( 'status' => 400, ) );
+            $error = new WP_Error( 'connection_not_secure', 'HTTPS/TLS is required for secure communication.', array( 'status' => 400, ) );
             
             // Return the WP_Error object.
             return $error;
@@ -194,7 +240,19 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
+        $last_auth_date     = time(); // Date we authenticated.
+        $auth_duration      = 10 * DAY_IN_SECONDS; // Auth duration is 10 days
+        $expiration_date    = $last_auth_date + $auth_duration;
+        $reauth_threshold   = $expiration_date - (2 * DAY_IN_SECONDS); // Two days before expiration date
+        $today              = time();
         
+        // if ( $today >= $reauth_threshold && $today < $expiration_date ) {
+        //     echo 'We need to reauth soon, last auth is ' . smliser_readable_duration( $today - $last_auth_date ) . ' and token expires in ' . smliser_readable_duration( $expiration_date - $today );
+        // } elseif ( $today >= $expiration_date ) {
+        //     echo 'We need to reauth, last auth is ' . smliser_readable_duration( $today - $last_auth_date ) . ' and token has expired';
+        // } else {
+        //     echo 'No need to reauth yet, last auth is ' . smliser_readable_duration( $today - $last_auth_date ) . ' and token expires in ' . smliser_readable_duration( $expiration_date - $today );
+        // }
     }
 
     /**

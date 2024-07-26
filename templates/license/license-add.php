@@ -44,7 +44,7 @@ defined( 'ABSPATH' ) ||  exit;
         <!-- Allowed Websites -->
         <div class="smliser-form-row">
             <label for="allowed_sites" class="smliser-form-label">Allowed Websites</label>
-            <span class="smliser-form-description" title="Item ID uniquely identifies a License key. It is required when accessing the license validation API endpoint">?</span>
+            <span class="smliser-form-description" title="Specify the number of websites this license can be activated on.">?</span>
             <input type="number" class="smliser-form-input" name="allowed_sites" id="allowed_sites" value="">
         </div>
 

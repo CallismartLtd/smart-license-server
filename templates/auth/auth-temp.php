@@ -42,8 +42,8 @@ defined( 'ABSPATH' ) || exit;
         </ul>
         <p>Authorizing this action will share credentials with <?php 
         
-        /** Translators: %s Return url */
-            printf( esc_html__( '"%s". Deny this request if you do not trust this app.', 'smliser' ), esc_html( $sanitized_params['return_url'] ) );?>
+        /** Translators: %s Callback url */
+            printf( esc_html__( '"%s". Deny this request if you do not trust this app.', 'smliser' ), esc_html( $sanitized_params['callback_url'] ) );?>
             
         </p>
         <div class="smliser-auth-avater">

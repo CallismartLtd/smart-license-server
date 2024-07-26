@@ -276,11 +276,15 @@ class Smliser_API_Cred {
     /**
      * Get permission
      * 
+     * @param string $context   The context in which the permission is returned, 
+     *                          "raw" will return the original permission as stored (defaults to "view").
      * @return mixed The API permission.
      */
-    public function get_permission() {
-        if ( 'read_write' === $this->permission ) {
+    public function get_permission( $context = 'view' ) {
+        if ( 'read_write' === $this->permission && 'view' === $context ) {
             return 'Read/Write';
+        } elseif ( 'raw' === $context ) {
+            return $this->permission;
         }
         return ucfirst( $this->permission );
     }
@@ -358,6 +362,22 @@ class Smliser_API_Cred {
         }
 
         return false;
+    }
+
+    /**
+     * Retrieve api credentials using access token
+     */
+    public function get_by_token( $token ){
+        global $wpdb;
+        $table_name = SMLISER_API_CRED_TABLE;
+        $query  = $wpdb->prepare( "SELECT * FROM {$table_name} WHERE `token`= %s", $token );
+        $result = $wpdb->get_row( $query, ARRAY_A );
+
+        if ( empty( $result ) ) {
+            return false;
+        }
+
+        return $this->convert_db_result( $result );
     }
 
     /**
@@ -452,7 +472,59 @@ class Smliser_API_Cred {
     }
 
     /**
-     * Regenerate access tokens.
+     * Log last accessed
+     */
+    public function log_access() {
+        global $wpdb;
+
+        if ( empty( $this->id ) ) {
+            return false; // Credentials must exist in the database first.
+        }
+
+        $updated = $wpdb->update( 
+            SMLISER_API_CRED_TABLE, 
+            array( 'last_accessed' => current_time( 'mysql' ) ), 
+            array( 'id' => $this->id ), 
+            array( '%s' ), 
+            array( '%d' )
+        );
+
+        return $updated !== false;
+
+    }
+
+    /**
+     * Revoke a key.
+     */
+    public static function revoke() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ) );
+        }
+
+        $id = isset( $_GET['api_key_id'] ) ? absint( $_GET['api_key_id'] ) : 0;
+        if ( empty( $id ) ) {
+            wp_send_json_error( array( 'message' => 'No API key id specified.' ) );
+        }
+
+        $self = self::instance();
+        $self->set_id( absint( $id ) );
+        
+        if ( false === $self->delete() ) {
+            wp_send_json_error( array( 'message' => 'Unable to delete the selected key.' ) );
+        }
+
+        wp_send_json_success( array( 'message' => 'Key has been revoked' ) );
+    }
+
+
+    /*
+    |-----------------------------------------------
+    | AUTHENTICATION AND TOKEN MANAGEMENT METHODS
+    |-----------------------------------------------
+    */
+
+    /**
+     * Regenerate oauth access tokens.
      */
     public function reauth() {
         global $wpdb;
@@ -486,78 +558,6 @@ class Smliser_API_Cred {
         return $this->tokens;
     }
 
-    /*
-    |----------------
-    | FORM AJAX HANDLER
-    |----------------
-    */
-
-    /**
-     * Handle admin api credential generation form
-     */
-    public static function admin_create_cred_form() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ) );
-        }
-
-        $user_id    = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
-        $permission = isset( $_POST['permission'] ) ? sanitize_text_field( $_POST['permission'] ) : '';
-        $description = isset( $_POST['description'] ) ? sanitize_text_field( $_POST['description'] ) : '';
-
-        $validation = array();
-        if ( empty( $user_id ) ) {
-            $validation[]   = 'Select a user';
-        }
-
-        if ( empty( $permission ) ) {
-            $validation[]   = 'Select the appropriate Permission';
-        }
-
-        if ( empty( $description ) ) {
-            $validation[]   = 'Add a decription for your reference';
-        }
-
-        if ( ! empty( $validation ) ) {
-            wp_send_json_error( array( 'message' => 'Fill required fields' ) );
-        }
-
-        $self = new self();
-        $self->set_permission( $permission );
-        $self->set_user( $user_id );
-        $credentials = $self->insert_new();
-        if ( false === $credentials ) {
-            wp_send_json_error( array( 'message' => 'Unable to generate API Key credentials' ) );
-        }
-
-        wp_send_json_success( array( 
-            'description'       => $description,
-            'consumer_public'   => $credentials->consumer_public,
-            'consumer_secret'   => $credentials->consumer_secret 
-        ) );
-    }
-
-    /**
-     * Revoke a key.
-     */
-    public static function revoke() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ) );
-        }
-
-        $id = isset( $_GET['api_key_id'] ) ? absint( $_GET['api_key_id'] ) : 0;
-        if ( empty( $id ) ) {
-            wp_send_json_error( array( 'message' => 'No API key id specified.' ) );
-        }
-
-        $self = self::instance();
-        $self->set_id( absint( $id ) );
-        
-        if ( false === $self->delete() ) {
-            wp_send_json_error( array( 'message' => 'Unable to delete the selected key.' ) );
-        }
-
-        wp_send_json_success( array( 'message' => 'Key has been revoked' ) );
-    }
 
     /**
      * Client oauth 2.0 consent form handler
@@ -567,8 +567,8 @@ class Smliser_API_Cred {
             
             $app_name       = isset( $_POST['app_name'] ) ? sanitize_text_field( $_POST['app_name'] ) : '';
             $scope          = isset( $_POST['scope'] ) ? sanitize_text_field( $_POST['scope'] ) : '';
-            $return_url     = isset( $_POST['return_url'] ) ? sanitize_text_field( $_POST['return_url'] ) : '';
-            $callback_url   = isset( $_POST['callback_url'] ) ? sanitize_text_field( $_POST['callback_url'] ) : '';
+            $return_url     = isset( $_POST['return_url'] ) ? sanitize_url( $_POST['return_url'] ) : '';
+            $callback_url   = isset( $_POST['callback_url'] ) ? sanitize_url( $_POST['callback_url'] ) : '';
             $user_id        = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
             $consent        = isset( $_POST['authorize'] ) ? 'Authorized' : 'Denied';
             
@@ -641,6 +641,12 @@ class Smliser_API_Cred {
         }
     }
 
+    /*
+    |----------------
+    | FORM HANDLERs
+    |----------------
+    */
+
     /**
      * OAUTH Login form handler
      */
@@ -672,6 +678,50 @@ class Smliser_API_Cred {
 
         wp_die( 'Fill the required fields', 401 );
         
+    }
+
+    /**
+     * Handle admin api credential generation form
+     */
+    public static function admin_create_cred_form() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ) );
+        }
+
+        $user_id    = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+        $permission = isset( $_POST['permission'] ) ? sanitize_text_field( $_POST['permission'] ) : '';
+        $description = isset( $_POST['description'] ) ? sanitize_text_field( $_POST['description'] ) : '';
+
+        $validation = array();
+        if ( empty( $user_id ) ) {
+            $validation[]   = 'Select a user';
+        }
+
+        if ( empty( $permission ) ) {
+            $validation[]   = 'Select the appropriate Permission';
+        }
+
+        if ( empty( $description ) ) {
+            $validation[]   = 'Add a decription for your reference';
+        }
+
+        if ( ! empty( $validation ) ) {
+            wp_send_json_error( array( 'message' => 'Fill required fields' ) );
+        }
+
+        $self = new self();
+        $self->set_permission( $permission );
+        $self->set_user( $user_id );
+        $credentials = $self->insert_new();
+        if ( false === $credentials ) {
+            wp_send_json_error( array( 'message' => 'Unable to generate API Key credentials' ) );
+        }
+
+        wp_send_json_success( array( 
+            'description'       => $description,
+            'consumer_public'   => $credentials->consumer_public,
+            'consumer_secret'   => $credentials->consumer_secret 
+        ) );
     }
 
     /*

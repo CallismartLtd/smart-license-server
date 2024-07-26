@@ -100,6 +100,8 @@ class Smliser_REST_Authentication {
             );
             $response = new WP_REST_Response( $response_data, 404 );
             $response->header( 'content-type', 'application/json' );
+            self::set_denied_header( $response );
+
     
             return $response;
         }
@@ -182,14 +184,99 @@ class Smliser_REST_Authentication {
         return $response;
     }
 
+    /**
+     * Download token reauthentication for licensed plugins.
+     */
+    public static function item_download_reauth_permission( WP_REST_Request $request ) {
+        $item_id        = ! empty( $request->get_param( 'item_id' ) ) ? sanitize_text_field( urldecode( $request->get_param( 'item_id' )) ): '';
+        $token          = self::$instance->extract_token( $request, 'raw' );
+        $service_id     = ! empty( $request->get_param( 'service_id' ) ) ? sanitize_text_field( urldecode( $request->get_param( 'service_id' ) ) ): '';
+        $license_key    = ! empty( $request->get_param( 'license_key' ) ) ? sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) ): '';
+        $callback_url   = ! empty( $request->get_param( 'callback_url' ) ) ? sanitize_text_field( urldecode( $request->get_param( 'callback_url' ) ) ): '';
+
+        if ( empty( $item_id ) || empty( $token ) || empty( $service_id ) || empty( $license_key ) || empty( $callback_url) ) {
+            return false;
+        }
+
+        return smliser_verify_item_token( $token, absint( $item_id ) );
+    }
+
+    /**
+     * Re-issue donwload token.
+     * 
+     * @param WP_REST_Request $request.
+     */
+    public static function item_download_reauth( WP_REST_Request $request ) {
+        $item_id        = sanitize_text_field( urldecode( $request->get_param( 'item_id' ) ) );
+        $token          = self::$instance->extract_token( $request );
+        $service_id     = sanitize_text_field( urldecode( $request->get_param( 'service_id' ) ) );
+        $license_key    = sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) );
+        $callback_url   = sanitize_text_field( smliser_get_base_address( urldecode( $request->get_param( 'callback_url' ) ) ) );
+
+        // Check if license is still valid.
+        $license_obj    = new Smliser_license();
+        $the_license    = $license_obj->get_license_data( $service_id, $license_key );
+
+        if ( empty( $the_license ) ) {
+            $response_data = array(
+                'code'  => 'invalid_license',
+                'message'   => 'License could not be found',
+            );
+            $response = new WP_REST_Response( $response_data, 404 );
+            $response->header( 'content-type', 'application/json' );
+
+            return $response;
+        } 
+        
+        $access = $the_license->can_serve_license( $item_id );
+        if ( is_wp_error( $access ) ) {
+            $response_data = array(
+                'code'      => 'license_error',
+                'message'   => $access->get_error_message()
+            );
+
+            $response = new WP_REST_Response( $response_data, 403 );
+            $response->header( 'content-type', 'application/json' );
+
+            return $response;
+        }
+
+        delete_transient( 'smliser_item_token_'. $token );
+
+        /**
+         *  Ensure we keep track of clients with authentic tokens that 
+         *  were not registered during the initial validation.
+         */
+        if ( ! $the_license->has_reached_max_allowed_sites() ) {
+            $the_license->update_active_sites( $callback_url );
+        }
+
+        $license_end_date   = $the_license->get_end_date();
+        $expires_after      = strtotime( $license_end_date ) - time();
+        
+        if ( smliser_is_empty_date( $license_end_date ) ) {
+            $expires_after  = MONTH_IN_SECONDS;
+        }
+
+        $response_data = array(
+            'success'       => true,
+            'API_KEY'       => smliser_generate_item_token( $item_id, $license_key ),
+            'token_expiry'  => wp_date( 'Y-m-d H:i:s', time() + ( 10 * DAY_IN_SECONDS) ),
+            'last_updated'  => $expires_after
+        );
+        $response = new WP_REST_Response( $response_data, 200 );
+        $response->header( 'content-type', 'application/json' );
+
+        return $response;
+
+    }
 
     /**
      * Set headers for a denied response.
      *
-     * @param WP_REST_Request $response The response object to set headers on.
-     * @return WP_REST_Response The response object with headers set.
+     * @param WP_REST_Response $response The response object to set headers on.
      */
-    private static function set_denied_header( WP_REST_Request $response ) {
+    private static function set_denied_header( WP_REST_Response $response ) {
         $response->header( 'content-type', 'application/json' );
         $response->header( 'X-Smliser-REST-Response', 'AccessDenied' );
         $response->header( 'WWW-Authenticate', 'Bearer realm="example", error="invalid_token", error_description="Invalid access token supplied."' );
@@ -209,18 +296,27 @@ class Smliser_REST_Authentication {
      * Extract token from request header.
      * 
      * @param WP_REST_Request $request The WordPress REST response object.
+     * @param string $context           The context in which the token is extracted. 
+     *                                  Pass "raw" for the raw data defaults to "decode"
      */
-    public function extract_token( WP_REST_Request $request ) {
+    public function extract_token( WP_REST_Request $request, $context = 'decode' ) {
 
         // Get the authorization header.
         $header = $request->get_header( 'authorization' );
-        $parts  = explode( ' ', $header );
-        if ( 2 === count( $parts ) && 'Bearer' === $parts[0] ) {
-            return smliser_safe_base64_decode( $parts[1] );
-
-        }
         
-        // Return empty string if no valid token is found.
+        if ( ! empty( $header ) ) {
+            $parts  = explode( ' ', $header );
+            if ( 2 === count( $parts ) && 'Bearer' === $parts[0] ) {
+                if ( 'raw' === $context ) {
+                    return $parts[1];
+                }
+                
+                return smliser_safe_base64_decode( $parts[1] );
+
+            }            
+        }
+
+        // Return null if no valid token is found.
         return null;
     }
 

@@ -251,7 +251,7 @@ function smliser_get_client_ip() {
  * @param WP_REST_Request $request The current request object.
  * @return string|null The extracted token or null if not found.
  */
-function smliser_get_auth_token( $request ) {
+function smliser_get_auth_token( WP_REST_Request $request ) {
     // Get the authorization header.
     $headers = $request->get_headers();
     
@@ -280,20 +280,20 @@ function smliser_generate_item_token( $item_id = 0, $license_key = '' ) {
         'license_key'   => $license_key,
     ) );
 
-    $key  = bin2hex( random_bytes( 32 ) );
-    set_transient( 'smliser_item_token_'. $key, $key_props, 10 * DAY_IN_SECONDS );
-    return base64_encode( $key );
+    $token  = bin2hex( random_bytes( 32 ) );
+    set_transient( 'smliser_item_token_'. $token, $key_props, 10 * DAY_IN_SECONDS );
+    return base64_encode( $token );
 }
 
 /**
- * Verify an API key.
+ * Verify licensed plugin download token.
  * 
- * @param string $api_key The API key.
- * @param string $service_id    The service ID associated with the API key.
+ * @param string $token The Download token.
+ * @param int $item_id    The ID of the liensed plugin.
  */
-function smliser_verify_item_token( $api_key, $item_id ) {
-    $props          = get_transient( 'smliser_item_token_'. smliser_safe_base64_decode( $api_key ) );
-    $key_props      = is_serialized( $props ) ? unserialize( $props ) : $props;
+function smliser_verify_item_token( $token, $item_id ) {
+    $props      = get_transient( 'smliser_item_token_'. smliser_safe_base64_decode( $token ) );
+    $key_props  = is_serialized( $props ) ? unserialize( $props ) : $props;
 
     if ( empty( $key_props ) ) {
         return false;
@@ -306,11 +306,10 @@ function smliser_verify_item_token( $api_key, $item_id ) {
         return false;
     }
 
-    if ( $key_item_id 
-        && $key_item_id === absint( $item_id )
-        && $key_license ) {
-        return true;
+    if ( ! empty( $key_item_id ) && ! empty( $key_license ) ) {
+        return $key_item_id === $item_id;
     }
+    
     return false;
 }
 
@@ -396,27 +395,27 @@ function smliser_get_base_address( $url ) {
     $parts = parse_url( $url );
 
     if ( ! isset( $parts['scheme'], $parts['host'] ) ) {
-        return '';
+        return $parts['path'];
     }
 
     $scheme = $parts['scheme'];
     $host   = $parts['host'];
     $path   = isset( $parts['path'] ) ? $parts['path'] : '';
 
-    // Check for localhost or local IP addresses
+    // Check for localhost or local IP addresses.
     if ( $host === 'localhost' || preg_match( '/^127\.0\.0\.1|::1$/', $host ) ) {
-        // Split the path by slashes and take the first part after the host
+        // Split the path by slashes and take the first part after the host.
         $path_parts = explode( '/', trim( $path, '/' ) );
         $base_path  = isset( $path_parts[0] ) ? '/' . $path_parts[0] : '';
         return $scheme . '://' . $host . $base_path;
     }
 
-    // Handle custom local domains (e.g., mysite.local)
+    // Handle custom local domains (e.g., mysite.local).
     if ( preg_match( '/^(.*)\.local$/', $host ) ) {
         return $scheme . '://' . $host;
     }
 
-    // For non-localhost addresses, return the scheme and host
+    // For non-localhost addresses, return the scheme and host.
     return $scheme . '://' . $host;
 }
 

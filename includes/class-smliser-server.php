@@ -127,15 +127,7 @@ class Smliser_Server{
             return;
         }
 
-        $expires_after  = strtotime( $end_date ) - current_time( 'timestamp' );
-
-        if ( smliser_is_empty_date( $end_date ) ) {
-            // Maybe it's a lifetime license.
-            $status = $license->get_status();
-            if ( 'Active' === $status ) {
-                $expires_after = MONTH_IN_SECONDS; // Will require routine checks though.
-            }
-        }
+        $expires_after  = DAY_IN_SECONDS; // Need to reauth within 24hrs.
 
         $request = array(
             'headers'   => array( 
@@ -148,6 +140,7 @@ class Smliser_Server{
         $params     = http_build_query( array(
             'action'        => 'smliser_verified_license_action',
             'last_updated'  => $expires_after,
+            'token_expiry'  => $expires_after,
             'token'         => $token,
             'API_KEY'       => smliser_generate_item_token( $license->get_item_id(), $license_key ),
         ) );
@@ -278,7 +271,7 @@ class Smliser_Server{
 
             if ( $timestamp < $expiration ) {
                 unset( $schedules[$time] );
-                update_opion( 'smliser_missed_schedules', $schedules );
+                update_option( 'smliser_missed_schedules', $schedules );
             }
 
             $missed_tasks[$time] = $schedule;
@@ -565,11 +558,12 @@ class Smliser_Server{
         $item_id        = ! empty( $request->get_param( 'item_id' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'item_id' ) ) )  ) : '';
         $license_key    = ! empty( $request->get_param( 'license_key' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'license_key' ) ) ) ) : '';
         $service_id     = ! empty( $request->get_param( 'service_id') ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'service_id' ) ) ) ) : '';
+        $callback_url   = ! empty( $request->get_param( 'callback_url') ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'callback_url' ) ) ) ) : '';
         
         /**
          * License key and service ID are part of the license documents.
          */
-        if ( empty( $service_id ) || empty( $license_key ) ) {
+        if ( empty( $service_id ) || empty( $license_key ) || empty( $callback_url ) ) {
             $reasons = array(
                 '',
                 array( 
@@ -606,7 +600,8 @@ class Smliser_Server{
         /**
          * Depending on the result of the API key verification, client may either be allowed or denied.
          */
-        return smliser_verify_item_token( $api_key, $item_id );
+        
+        return smliser_verify_item_token( $api_key, absint( $item_id ) );
     }
 
     /**
@@ -615,7 +610,7 @@ class Smliser_Server{
     public static function deactivation_response( $request ) {
         $license_key    = sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'license_key' ) ) ) );
         $service_id     = sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'service_id' ) ) ) );
-        $website_name   = sanitize_url( smliser_get_base_address( urldecode( $request->get_param( 'client' ) ) ), array( 'http', 'https' ) );
+        $website_name   = sanitize_text_field( smliser_get_base_address( urldecode( $request->get_param( 'callback_url' ) ) ) );
         $instance       = Smliser_license::instance();
         $obj            = $instance->get_license_data( $service_id, $license_key );
 
@@ -651,6 +646,8 @@ class Smliser_Server{
         );
 
         $obj->set_action( $website_name );
+        $api_key    = sanitize_text_field( smliser_get_auth_token( $request ) );
+        delete_transient( 'smliser_item_token_'. smliser_safe_base64_decode( $api_key ) );
     
         $response = new WP_REST_Response( $response_data, 200 );
         $response->header( 'content-type', 'application/json' );
@@ -677,9 +674,9 @@ class Smliser_Server{
      */
     public static function update_permission( $request ) {
         $item_id    = absint( $request->get_param( 'item_id' ) );
-        $api_key    = sanitize_text_field( self::$instance->extract_token( $request ) );
+        $api_key    = sanitize_text_field( self::$instance->extract_token( $request, 'raw' ) );
 
-        if ( ! smliser_verify_item_token( $api_key, $item_id ) ) {
+        if ( ! smliser_verify_item_token( $api_key, absint( $item_id ) ) ) {
             $reasons = array(
                 '',
                 array( 
@@ -1120,8 +1117,10 @@ class Smliser_Server{
      * Extract token from request header.
      * 
      * @param WP_REST_Request $request The WordPress REST response object.
+     * @param string $context           The context in which the token is extracted. 
+     *                                  Pass "raw" for the raw data defaults to "decode"
      */
-    public function extract_token( WP_REST_Request $request ) {
+    public function extract_token( WP_REST_Request $request, $context = 'decode' ) {
 
         // Get the authorization header.
         $header = $request->get_header( 'authorization' );
@@ -1129,6 +1128,9 @@ class Smliser_Server{
         if ( ! empty( $header ) ) {
             $parts  = explode( ' ', $header );
             if ( 2 === count( $parts ) && 'Bearer' === $parts[0] ) {
+                if ( 'raw' === $context ) {
+                    return $parts[1];
+                }
                 
                 return smliser_safe_base64_decode( $parts[1] );
 
@@ -1149,23 +1151,23 @@ class Smliser_Server{
         if ( empty( $token ) ) {
             return false;
         }
-        global $wpdb;
-        $table_name = SMLISER_API_CRED_TABLE;
-        $query  = $wpdb->prepare( "SELECT `token`, `token_expiry`, `permission` FROM {$table_name} WHERE `token`= %s", $token );
-        $result = $wpdb->get_row( $query, ARRAY_A );
 
-        if ( empty( $result ) ) {
+        $api_cred_obj   = new Smliser_API_Cred();
+        $api_credential = $api_cred_obj->get_by_token( $token );
+
+        if ( empty( $api_credential ) ) {
             return false;
         }
 
-        $expiry     = ! empty( $result['token_expiry'] ) ? strtotime( $result['token_expiry'] ) : 0;
+        $expiry     = ! empty( $api_credential->get_token( 'token_expiry' ) ) ? strtotime( $api_credential->get_token( 'token_expiry' ) ) : 0;
         
         if ( $expiry < time() ) {
             return false;
         }
 
-        $real_token = sanitize_text_field( $result['token'] );
-        self::$instance->permission = sanitize_text_field( $result['permission'] );
+        $real_token = sanitize_text_field( $api_credential->get_token( 'token' ) );
+        self::$instance->permission = sanitize_text_field( $api_credential->get_permission( 'raw' ) );
+        $api_credential->log_access();
 
         return hash_equals( $real_token, $token );
 
@@ -1190,7 +1192,7 @@ class Smliser_Server{
      * @param WP_REST_Request $request The REST request.
      * @return bool True if the token has permission, false otherwise.
      */
-    public function permission_check( $request ) {
+    public function permission_check( WP_REST_Request $request ) {
         $token_permission       = $this->permission;
         $allowed_permissions    = array( 'read', 'write', 'read_write' );
 
