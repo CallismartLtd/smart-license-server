@@ -240,19 +240,7 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-        $last_auth_date     = time(); // Date we authenticated.
-        $auth_duration      = 10 * DAY_IN_SECONDS; // Auth duration is 10 days
-        $expiration_date    = $last_auth_date + $auth_duration;
-        $reauth_threshold   = $expiration_date - (2 * DAY_IN_SECONDS); // Two days before expiration date
-        $today              = time();
-        
-        // if ( $today >= $reauth_threshold && $today < $expiration_date ) {
-        //     echo 'We need to reauth soon, last auth is ' . smliser_readable_duration( $today - $last_auth_date ) . ' and token expires in ' . smliser_readable_duration( $expiration_date - $today );
-        // } elseif ( $today >= $expiration_date ) {
-        //     echo 'We need to reauth, last auth is ' . smliser_readable_duration( $today - $last_auth_date ) . ' and token has expired';
-        // } else {
-        //     echo 'No need to reauth yet, last auth is ' . smliser_readable_duration( $today - $last_auth_date ) . ' and token expires in ' . smliser_readable_duration( $expiration_date - $today );
-        // }
+
     }
 
     /**
