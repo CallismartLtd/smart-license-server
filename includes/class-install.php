@@ -157,23 +157,19 @@ class Smliser_install {
          */
         $api_cred_table = SMLISER_API_CRED_TABLE;
         $api_cred_columns = array(
-            'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT',
+            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
             'user_id MEDIUMINT(9) NOT NULL',
             'permission VARCHAR(255) NOT NULL',
-            'consumer_secret CHAR(70) NOT NULL',
-            'consumer_public VARCHAR(255) NOT NULL',
-            'token TEXT DEFAULT NULL',
+            'consumer_secret CHAR(70) NOT NULL UNIQUE',
+            'consumer_public VARCHAR(255) NOT NULL UNIQUE',
+            'token VARCHAR(255) DEFAULT NULL UNIQUE',
             'app_name TEXT DEFAULT NULL',
             'token_expiry DATETIME DEFAULT NULL',
             'last_accessed DATETIME DEFAULT NULL',
             'created_at DATETIME DEFAULT NULL',
-            'PRIMARY KEY (id)',
-            'UNIQUE (consumer_secret)',
-            'UNIQUE (consumer_public)',
-            'UNIQUE (token)',
             'INDEX token_expiry_index(token_expiry)',
-
         );
+        
         self::run_db_delta( $api_cred_table, $api_cred_columns );
     }
 
@@ -188,10 +184,9 @@ class Smliser_install {
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     
-        // phpcs:disable
+        
         $query			= $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name );
-        $table_exists 	= $wpdb->get_var( $query );
-        // phpcs:enable
+        $table_exists 	= $wpdb->get_var( $query );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     
         if ( $table_exists !== $table_name ) {
             $charset_collate = self::charset_collate();
