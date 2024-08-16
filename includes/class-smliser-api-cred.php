@@ -619,7 +619,8 @@ class Smliser_API_Cred {
                         
                     ),
         
-                    'body' => wp_json_encode( $api_credentials ),
+                    'body'      => wp_json_encode( $api_credentials ),
+                    'timeout'   => 15,
                 );
 
                 $response = wp_remote_post( $callback_url, $request_body );

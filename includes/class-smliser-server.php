@@ -135,15 +135,20 @@ class Smliser_Server{
 
             ),
 
-            'body'  =>  $data
+            'body'      =>  $data,
+            'timeout'   => 15,
+
         );
-        $params     = http_build_query( array(
-            'action'        => 'smliser_verified_license_action',
-            'last_updated'  => $expires_after,
-            'token_expiry'  => $expires_after,
-            'token'         => $token,
-            'API_KEY'       => smliser_generate_item_token( $license->get_item_id(), $license_key ),
-        ) );
+
+        $params = http_build_query( 
+            array(
+                'action'        => 'smliser_verified_license_action',
+                'last_updated'  => $expires_after,
+                'token_expiry'  => $expires_after,
+                'token'         => $token,
+                'API_KEY'       => smliser_generate_item_token( $license->get_item_id(), $license_key ),
+            ) 
+        );
 
         $client_url = trailingslashit( $callback_url ) . '?' . $params;
         $response   = wp_remote_post( $client_url, $request );
