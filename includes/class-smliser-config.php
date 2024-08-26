@@ -95,7 +95,7 @@ class SmartLicense_config {
         add_action( 'rest_api_init', array( $this, 'rest_load' ) );
         add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
         add_filter( 'rest_post_dispatch', array( $this, 'rest_signature_headers' ), 10, 3 );
-
+        add_filter( 'redirect_canonical', array( $this, 'disable_redirect_on_downloads' ), 10, 2 );
         add_action( 'plugins_loaded', array( $this, 'include' ) );
         add_action( 'init', array( $this, 'init_hooks' ) );
         add_action( 'admin_post_smliser_bulk_action', array( 'Smliser_license', 'bulk_action') );
@@ -308,14 +308,14 @@ class SmartLicense_config {
         
         /** Plugin Download URI Rule */
         add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/([^/]+)\.zip$',
+            '^' . $download_slug . '/([^/]+)/([^/]+)\.zip/?$',
             'index.php?smliser_repository_download_page=1&plugin_slug=$matches[1]&plugin_file=$matches[2]',
             'top'
         );
 
         /**Licensed Plugin Download URI Rule */
         add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/([^/]+)/([^/]+)\.zip$',
+            '^' . $download_slug . '/([^/]+)/([^/]+)/([^/]+)\.zip/?$',
             'index.php?smliser_repository_download_page=1&plugin_slug=$matches[1]&download_token=$matches[2]&plugin_file=$matches[3]',
             'top'
         );
@@ -377,5 +377,23 @@ class SmartLicense_config {
         return $vars;
     }
     
+    /**
+     * Disable unintended http 301 redirect code during file downloads, this ensures
+     * we handle the responses to the download url the proper way instead of the default 301 returned initially
+     * by WordPress.
+     * 
+     * @param string $redirect_url The redirected url.
+     * @param string $requested_url The client requested url.
+     * @return false|string False when accessing downloads page, perform redirect when not.
+     * @since 1.0.0
+     */
+    public function disable_redirect_on_downloads( $redirect_url, $requested_url ) {
+        $download_slug = site_url( smliser_get_download_slug() );
+        if ( strpos( $requested_url, $download_slug ) !== false ) {
+            return false;
+        }
+
+        return $redirect_url;
+    }
 }
 

@@ -866,17 +866,17 @@ class Smliser_Server{
         global $wp_query, $smliser_repo;
 
         if ( isset( $wp_query->query_vars['smliser_repository_download_page'] ) ) {
-   
+            
             $plugin_slug    = ! empty( $wp_query->query_vars['plugin_slug'] ) ? sanitize_text_field( $wp_query->query_vars['plugin_slug'] ) : '';
             $plugin_file    = ! empty( $wp_query->query_vars['plugin_file'] ) ? sanitize_text_field( $wp_query->query_vars['plugin_file'] ) : '';
             
             if ( empty( $plugin_slug ) || empty( $plugin_file ) ) {
-                wp_die( 'Specify the plugin to download', 400 );
+                wp_die( 'Plugin slug missing', 400 );
             }
 
             if ( $plugin_slug !== $plugin_file ) {
                 $wp_query->set_404();
-                status_header( 404 );
+                status_header( 404, 'File not found' );
                 include( get_query_template( '404' ) );
                 exit;
             }
@@ -886,7 +886,7 @@ class Smliser_Server{
 
             if ( ! $plugin ) {
                 $wp_query->set_404();
-                status_header( 404 );
+                status_header( 404, 'File not found' );
                 include( get_query_template( '404' ) );
                 exit;
             }
@@ -896,6 +896,15 @@ class Smliser_Server{
              */
             if ( $this->is_licensed( $plugin ) ) {
                 $api_key    = ! empty( $wp_query->query_vars['download_token'] ) ? sanitize_text_field( $wp_query->query_vars['download_token'] ) : '';
+
+                // If not provided in the url, we check in the header.
+                if ( empty( $api_key ) ) {
+                    $authorization = smliser_get_authorization_header();
+                    if ( $authorization ) {
+                        $parts = explode( ' ', $authorization );
+                        $api_key = $parts[1];
+                    }
+                }
 
                 if ( empty( $api_key ) ) {
                     wp_die( 'Licensed plugin, please provide token', 401 );

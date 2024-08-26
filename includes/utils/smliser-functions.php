@@ -274,14 +274,18 @@ function smliser_get_auth_token( WP_REST_Request $request ) {
  * 
  * @param int $item_id    The service ID associated with the license.
  */
-function smliser_generate_item_token( $item_id = 0, $license_key = '' ) {
+function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry = '' ) {
     $key_props  = maybe_serialize( array(
         'item_id'       => $item_id,
         'license_key'   => $license_key,
     ) );
 
-    $token  = bin2hex( random_bytes( 32 ) );
-    set_transient( 'smliser_item_token_'. $token, $key_props, 10 * DAY_IN_SECONDS );
+    if ( empty( $expiry ) ) {
+        $expiry = 10 * DAY_IN_SECONDS;
+    }
+
+    $token  = 'smliser_' . bin2hex( random_bytes( 32 ) );
+    set_transient( 'smliser_item_token_'. $token, $key_props, $expiry );
     return base64_encode( $token );
 }
 
@@ -440,4 +444,38 @@ function smliser_load_auth_footer() {
  */
 function smliser_get_download_slug() {
     return apply_filters( 'smliser_download_slug', 'smliser-download' );
+}
+
+
+/**
+ * Retrieve the Authorization header from the client request.
+ *
+ * @return string|null The Authorization header value or null if not found.
+ */
+function smliser_get_authorization_header() {
+    $headers = [];
+
+    // Use getallheaders() if it exists
+    if ( function_exists( 'getallheaders' ) ) {
+        $headers = getallheaders();
+        // Normalize header keys to lowercase
+        $headers = array_change_key_case( $headers, CASE_LOWER );
+    }
+
+    // Check the Authorization header in getallheaders result
+    if ( isset( $headers['authorization'] ) ) {
+        return wp_unslash( $headers['authorization'] );
+    }
+
+    // Fallback to Apache-specific headers
+    if ( isset( $_SERVER['HTTP_AUTHORIZATION'] ) ) {
+        return wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] );
+    }
+
+    // Fallback to other possible server variables
+    if ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ) {
+        return wp_unslash( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] );
+    }
+
+    return null;
 }

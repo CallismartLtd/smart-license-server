@@ -75,5 +75,9 @@ defined( 'ABSPATH' ) || exit;
         <div class="smliser-admin-view-page-body-item">
             <p>Last Updated: <p><?php echo esc_html( smliser_check_and_format( $plugin->get_last_updated(), true ) ) ?></p></p>
         </div>
+
+        <div class="smliser-admin-view-page-body-item">
+            <p>Public Download URL: <p><?php echo $plugin->is_licensed() ? $plugin->licensed_download_url() : esc_html( $plugin->get_download_link()  ); ?></p></p>
+        </div>
     </div>
 </div>

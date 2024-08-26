@@ -933,6 +933,17 @@ class Smliser_Plugin {
         return ! empty( $result );
     }
 
+    /**
+     * Get a sample of download URL for licensed plugin
+     */
+    public function licensed_download_url() {
+        $slug           = $this->slug;
+        $slug_parts     = explode( '/', untrailingslashit( $slug ) );
+        $download_slug  = smliser_get_download_slug();
+        $download_url   = site_url( $download_slug . '/' . $slug_parts[0] . '/{download_token}/'. $slug_parts[1] );
+        return $download_url;
+    }
+
     /*
     |-------------------------------
     | ACTION HANDLERS / CONTROLLERS
