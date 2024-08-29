@@ -272,46 +272,46 @@ function smliser_get_auth_token( WP_REST_Request $request ) {
 /**
  * Generate Api key for license interaction.
  * 
- * @param int $item_id    The service ID associated with the license.
+ * @param int $item_id    The item ID associated with the license.
+ * @param string $license_key License Key associated with the item.
+ * @param string $expiry The expiry date for the token.
+ * @return string $token base64 encoded string.
  */
-function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry = '' ) {
-    $key_props  = maybe_serialize( array(
+function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry = 0 ) {
+    $key_props  = array(
         'item_id'       => $item_id,
         'license_key'   => $license_key,
-    ) );
+        'expiry'        => ! empty( $expiry ) ? $expiry : 10 * DAY_IN_SECONDS,
+    );
 
-    if ( empty( $expiry ) ) {
-        $expiry = 10 * DAY_IN_SECONDS;
+    $token = Smliser_Plugin_Download_Token::insert_helper( $key_props );
+
+    if ( is_wp_error( $token ) || false === $token ) {
+        return $token;
     }
 
-    $token  = 'smliser_' . bin2hex( random_bytes( 32 ) );
-    set_transient( 'smliser_item_token_'. $token, $key_props, $expiry );
     return base64_encode( $token );
 }
 
 /**
  * Verify licensed plugin download token.
  * 
- * @param string $token The Download token.
- * @param int $item_id    The ID of the liensed plugin.
+ * @param string $token     The Download token.
+ * @param int    $item_id   The ID of the liensed plugin.
  */
 function smliser_verify_item_token( $token, $item_id ) {
-    $props      = get_transient( 'smliser_item_token_'. smliser_safe_base64_decode( $token ) );
-    $key_props  = is_serialized( $props ) ? unserialize( $props ) : $props;
+    // $token  = smliser_safe_base64_decode( $token );
+    $t_obj  = new Smliser_Plugin_Download_Token();
+    $t_data =  $t_obj->get_token( $token );
 
-    if ( empty( $key_props ) ) {
+    if ( ! $t_data ) {
         return false;
     }
 
-    $key_item_id    = isset( $key_props['item_id'] ) ? absint( $key_props['item_id'] ) : null;
-    $key_license    = isset( $key_props['license_key'] ) ? sanitize_text_field( $key_props['license_key'] ) : null;
+    $key_item_id = absint( $t_data->get_item_id() );
 
-    if ( is_null( $key_item_id ) || is_null( $key_license ) ) {
-        return false;
-    }
-
-    if ( ! empty( $key_item_id ) && ! empty( $key_license ) ) {
-        return $key_item_id === $item_id;
+    if ( ! empty( $key_item_id ) ) {
+        return $key_item_id === absint( $item_id );
     }
     
     return false;
@@ -341,9 +341,10 @@ function smliser_safe_base64_decode( $encoded_token ) {
     }
 
     // Further validate the content.
-    if ( ! preg_match( '/^[a-zA-Z0-9]+$/', $decoded_token ) ) {  
+    if ( ! preg_match( '/^smliser_[a-f0-9]+$/', $decoded_token ) ) {  
         return null;
     }
+    
 
     return $decoded_token;
 }

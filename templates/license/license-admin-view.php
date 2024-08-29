@@ -11,8 +11,11 @@ defined( 'ABSPATH' ) || exit;
 add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
 ?>
 <h1>License Details</h1>
-<a href="<?php echo esc_url( smliser_license_admin_action_page( 'edit', $license->get_id() ) ) ?>" class="button action smliser-nav-btn">Edit License</a>
-<a href="<?php echo esc_url( $delete_link ) ?>" class="button action smliser-nav-btn" id="smliser-license-delete-button">Delete License</a>
+<a href="<?php echo esc_url( smliser_license_admin_action_page( 'edit', $license->get_id() ) ); ?>" class="button action smliser-nav-btn">Edit License</a>
+<?php if ( $license->has_item() ):?>
+    <a data-item-id="<?php echo absint( $license->get_item_id() ); ?>" data-license-key="<?php echo esc_attr( $license->get_license_key() ); ?>" class="button action smliser-nav-btn" id="smliserDownloadTokenBtn">Generate Download Token</a>
+<?php endif;?>
+<a href="<?php echo esc_url( $delete_link ); ?>" class="button action smliser-nav-btn" id="smliser-license-delete-button">Delete License</a>
 <div class="smliser-admin-view-page-wrapper">
     <div class="smliser-admin-view-page-header"> 
         <div class="smliser-admin-view-page-header-child">
@@ -31,6 +34,12 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
 
     </div>
     
+    <div class="smliser-loader-container">
+        <span class="smliser-loader"></span>
+    </div>
+    
+    <div id="ajaxContentContainer"></div>
+
     <div class="smliser-admin-view-page-body">
         <div class="smliser-admin-view-page-body-item">
             <p>License ID: <p><?php echo esc_html( absint( $license->get_id() ) ) ?></p></p>
@@ -53,7 +62,7 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Active on: <p><?php echo esc_html( $license->get_active_sites() ) ?></p></p>
+            <p>Activated on: <p><?php echo esc_html( $license->get_active_sites() ) ?></p></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">

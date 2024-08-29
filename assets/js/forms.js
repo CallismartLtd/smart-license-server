@@ -32,6 +32,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Countdown Timer
+function startCountdown(duration, display) {
+    let timer = duration, minutes, seconds;
+    const interval = setInterval(function() {
+        minutes = parseInt(timer / 60, 10);
+        seconds = parseInt(timer % 60, 10);
+
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        seconds = seconds < 10 ? "0" + seconds : seconds;
+
+        display.textContent = minutes + ":" + seconds;
+
+        if (--timer < 0) {
+            clearInterval(interval);
+            alert("Time's up!");
+        }
+    }, 1000);
+}
 
 
 function smliserNotify(message, duration) {
@@ -42,7 +60,7 @@ function smliserNotify(message, duration) {
     // Set the notification message
     notification.innerHTML = `
         <div class="notification-content">
-            <span class="close-btn" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <span id="remove" onclick="this.parentElement.parentElement.remove()">&times;</span>
             <p>${message}</p>
         </div>
     `;
@@ -407,6 +425,144 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 }
             });
         } );
+    }
+});
+
+document.addEventListener( 'DOMContentLoaded', function() {
+    var tokenBtn    = document.getElementById( 'smliserDownloadTokenBtn' );
+    
+    
+    if ( tokenBtn ) {
+        let spinnerDiv          = document.querySelector( '.smliser-loader-container' );
+        let licenseKey          = tokenBtn.dataset.licenseKey;
+        let itemId              = tokenBtn.dataset.itemId;
+        let contentContainner   = document.getElementById( 'ajaxContentContainer' );
+        
+        tokenBtn.addEventListener( 'click', function(event) {
+            spinnerDiv.style.display = "block";
+
+            jQuery.ajax( {
+                type : 'GET',
+                url: smliser_var.smliser_ajax_url,
+                data: {
+                    action: 'smliser_token_gen_form',
+                    security: smliser_var.nonce,
+                    license_key: licenseKey,
+                    item_id: itemId,
+                },
+                success: function( response ) {
+                    
+                    jQuery( contentContainner ).html( response );
+                    var removeBtn  = document.getElementById( 'remove' );
+                    var theForm = document.getElementById('smliser-token-body');
+                    var expiry  = document.getElementById( 'expiryDate' );
+                    var itemID   = document.getElementById( 'popup-item-id' );
+                    var licenseK = document.getElementById( 'pop-up-license-key' );
+                    var submitBtn = document.getElementById( 'createToken' );
+                    submitBtn.addEventListener( 'click', function() {
+                        
+                        smilerClientToken(itemID.value, licenseK.value, expiry.value)
+                            .then(function(downloadToken) {
+                                if ( downloadToken ) {
+                                    // Create a div to display the credentials
+                                    var credentialsDiv = document.createElement('div');
+                                    credentialsDiv.classList.add( 'smliser-token-body' );
+                                    credentialsDiv.classList.add( 'added' );
+                                    let htmlContent = '<p><strong>New token:</strong> ' + smliserWrapText( downloadToken, 16 ) + ' <span onclick="smliserCopyToClipboard(\'' + downloadToken + '\')" class="dashicons dashicons-admin-page"></span></p>';
+                                    htmlContent += '<p><strong>Note:</strong> This is the last time this token will be revealed. Please copy and save it securely.</p>';
+                                    credentialsDiv.innerHTML = htmlContent;
+
+                                    // Append the credentials div after the form
+                                    jQuery( '#smliserNewToken' ).html( credentialsDiv );
+                                    document.getElementById( 'formBody' ).remove();
+                                    submitBtn.remove();
+                                }
+                                
+                            })
+                            
+                            .catch(function(error) {
+                                console.error('Error generating token:', error);
+                                smliserNotify( error );
+                            });
+                            
+                    });
+
+                    removeBtn.addEventListener( 'click', function(){
+                        theForm.remove();
+                        contentContainner.style.display = "none";
+                    });
+
+                    //startCountdown( 30, timerId );
+
+                },
+                error: function(xhr, status, error) {
+                    console.error(error);
+                },
+                complete: function() {
+                    spinnerDiv.style.display = "none";
+                    contentContainner.style.display = "";
+
+                }
+            });
+            
+        });
 
     }
 });
+
+function smilerClientToken(itemid, licensekey, expiry) {
+    return new Promise((resolve, reject) => {
+        let spinner = document.getElementById('spinner');
+
+        // Force the display of the spinner with !important
+        spinner.style.setProperty('display', 'block', 'important');
+        spinner.style.setProperty('border', '5px dotted #000', 'important');
+
+        console.log('Item ID: ' + itemid, 'License KEY: ' + licensekey, 'Expiry: ' + expiry);
+
+        jQuery.ajax({
+            type: "POST",
+            url: smliser_var.smliser_ajax_url,
+            data: {
+                action: 'smliser_generate_item_token',
+                security: smliser_var.nonce,
+                license_key: licensekey,
+                item_id: itemid,
+                expiry: expiry,
+            },
+            success: function(response) {
+                if (response.success) {
+                    resolve(response.data.token);  // Resolve the promise with the token
+                } else {
+                    reject('Error! ' + response.data.message);  // Reject the promise with an error message
+                }
+            },
+            error: function(xhr, status, error) {
+                reject('Could not generate token, please refresh the current page. Error: ' + error);  // Reject the promise with an error message
+                console.log(error);
+            },
+            complete: function() {
+                spinner.style.display = "none";
+            }
+        });
+    });
+}
+
+
+function smliserWrapText(text, maxLength) {
+    let wrappedText = '';
+    let words = text.split(' ');
+
+    let line = '';
+    for (let i = 0; i < words.length; i++) {
+        if ((line + words[i]).length > maxLength) {
+            wrappedText += line.trim() + '\n';
+            line = '';
+        }
+        line += words[i] + ' ';
+    }
+
+    // Add the last line to the wrapped text
+    wrappedText += line.trim();
+    return wrappedText;
+}

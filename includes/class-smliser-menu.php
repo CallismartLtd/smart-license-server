@@ -282,7 +282,7 @@ class Smliser_admin_menu {
         $user               = get_userdata( $license->get_user_id() );
         $client_full_name   = $user ? $user->first_name . ' ' . $user->last_name : 'N/L';
         $plugin_obj         = new Smliser_Plugin();
-        $licensed_plugin    = $plugin_obj->get_plugin( $license->get_item_id() );
+        $licensed_plugin    = $license->has_item() ? $plugin_obj->get_plugin( $license->get_item_id() ) : false;
         $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
         
         include_once SMLISER_PATH . 'templates/license/license-admin-view.php';

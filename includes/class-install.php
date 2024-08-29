@@ -39,6 +39,7 @@ class Smliser_install {
             SMLISER_PLUGIN_META_TABLE,
             SMLISER_API_ACCESS_LOG_TABLE,
             SMLISER_API_CRED_TABLE,
+            SMLISER_DOWNLOAD_TOKEN_TABLE,
         );
 
         foreach( $tables as $table ) {
@@ -171,6 +172,21 @@ class Smliser_install {
         );
         
         self::run_db_delta( $api_cred_table, $api_cred_columns );
+
+        /**
+         * Item Download token table
+         */
+        $dToken_table   = SMLISER_DOWNLOAD_TOKEN_TABLE;
+        $dToken_columns = array(
+            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'item_id MEDIUMINT(9) DEFAULT NULL',
+            'license_key VARCHAR(255) DEFAULT NULL',
+            'token VARCHAR(255) DEFAULT NULL UNIQUE',
+            'expiry INT',
+            'INDEX expiry_index(expiry)'
+        );
+        self::run_db_delta( $dToken_table, $dToken_columns );
+
     }
 
 

@@ -999,6 +999,13 @@ class Smliser_license {
     }
 
     /**
+     * Check if license is has item
+     */
+    public function has_item() {
+        return ! empty( $this->get_item_id() );
+    }
+
+    /**
      * Check if we can serve license.
      */
     public function can_serve_license( $item_id, $context = '' ) {

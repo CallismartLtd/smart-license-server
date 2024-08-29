@@ -89,6 +89,8 @@ class SmartLicense_config {
         define( 'SMLISER_API_ACCESS_LOG_TABLE', $wpdb->prefix . 'smliser_api_access_logs' );
         define( 'SMLISER_API_CRED_TABLE', $wpdb->prefix . 'smliser_api_creds' );
         define( 'SMLISER_REPO_DIR', WP_CONTENT_DIR . '/premium-repository' );
+        define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_item_download_token' );
+        
         register_activation_hook( SMLISER_FILE, array( 'Smliser_install', 'install' ) );
 
         // Register REST endpoints.
@@ -110,6 +112,8 @@ class SmartLicense_config {
         add_action( 'smliser_stats', array( 'Smliser_Stats', 'action_handler' ), 10, 4 );
         add_action( 'wp_ajax_smliser_key_generate', array( 'Smliser_API_Cred', 'admin_create_cred_form' ) );
         add_action( 'wp_ajax_smliser_revoke_key', array( 'Smliser_API_Cred', 'revoke' ) );
+        add_action( 'wp_ajax_smliser_token_gen_form', array( 'Smliser_Plugin_Download_Token', 'ajax_token_form' ) );
+        add_action( 'wp_ajax_smliser_generate_item_token', array( 'Smliser_Plugin_Download_Token', 'get_new_token' ) );
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
     }
@@ -234,12 +238,18 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
         require_once SMLISER_PATH . 'includes/class-smliser-api-cred.php';
+        require_once SMLISER_PATH . 'includes/class-smliser-item-download-token.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/classr-rest-auth.php';
 
+        add_action( 'wp_enqueue_scripts', array( $this, 'load_styles' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
+
+        // wp_send_json_success( array( 'token' => base64_encode( 'youfrhdn' ) ) );
+        // var_dump( smliser_verify_item_token( 'c21saXNlcl80OGUwMDg0NWQwODNlN2YzOWE3NTUzZmVlOGU2ZWI3Y2VhZDBkMDZjNGQ3YTRmMmJiNDY0NGFkOGMzMTdiN2My', 1 ) );
+        // echo wp_date( 'Y-m-d', 1724925664 );
 
     }
 

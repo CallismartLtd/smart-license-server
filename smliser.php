@@ -1,10 +1,12 @@
 <?php
 /*
-Plugin Name: Smart license Server
-Description: license REST API server for WordPress premium plugins.
-Version: 1.0
-Author: Callistus Nwachukwu
-*/
+ * Plugin Name: Smart license Server
+ * Plugin URI: https://callismart.com.ng/smart-license-server
+ * Description: license REST API server for WordPress premium plugins.
+ * Author: Callistus Nwachukwu
+ * Author URI: https://callismart.com.ng/callistus
+ * Version: 1.0
+ */
 defined( 'ABSPATH' ) || exit;
 
 if ( defined( 'SMLISER_PATH' ) ) {
