@@ -249,7 +249,7 @@ class SmartLicense_config {
 
         // wp_send_json_success( array( 'token' => base64_encode( 'youfrhdn' ) ) );
         // var_dump( smliser_verify_item_token( 'c21saXNlcl80OGUwMDg0NWQwODNlN2YzOWE3NTUzZmVlOGU2ZWI3Y2VhZDBkMDZjNGQ3YTRmMmJiNDY0NGFkOGMzMTdiN2My', 1 ) );
-        // echo wp_date( 'Y-m-d', 1724925664 );
+        // var_dump( 1724971680 < time() );
 
     }
 

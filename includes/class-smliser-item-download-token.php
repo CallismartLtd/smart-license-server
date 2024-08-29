@@ -135,7 +135,7 @@ class Smliser_Plugin_Download_Token {
             $self->license_key = sanitize_text_field( $data['license_key'] );
         }
 
-        if ( isset( $data['expiry'] ) ) {
+        if ( isset( $data['expiry'] ) && ! empty( $data['expiry'] ) ) {
             $self->expiry = absint( $data['expiry'] );
         } else {
             $self->expiry = 10 * DAY_IN_SECONDS;
@@ -226,7 +226,8 @@ class Smliser_Plugin_Download_Token {
      * Check if license exists for this token.
      */
     public function license_exists() {
-        return Smliser_license::get_by_key( $this->license_key ) !== false;
+        $license = Smliser_license::get_by_key( $this->license_key );
+        return $license && true === $license->can_serve_license( $this->item_id );
     }
 
     /**
@@ -240,10 +241,11 @@ class Smliser_Plugin_Download_Token {
         if ( empty( $item_id ) || empty( $license_key ) ) {
             wp_die( 'Missing required parameters' );
         }
+
         $plugin         = new Smliser_Plugin();
         $plugin_name    = $plugin ? $plugin->get_plugin( $item_id )->get_name() : 'N/A';
-       include_once SMLISER_PATH . 'templates/license/token-form.php';
-       die();
+        include_once SMLISER_PATH . 'templates/license/token-form.php';
+        die();
         
     }
 
@@ -259,8 +261,10 @@ class Smliser_Plugin_Download_Token {
         
         if ( isset( $_POST['expiry'] ) && ! empty( $_POST['expiry'] ) ) {
             $converted_date     = strtotime( sanitize_text_field( wp_unslash( $_POST['expiry'] ) ) );
-            $duration           = $converted_date ? max( 0, time() - $converted_date ): 0;
+            $duration           = $converted_date ? max( 0, $converted_date - time() ): 0;
             $_POST['expiry']    = $duration;
+
+            error_log( 'modified date ' . $_POST['expiry'] );
         }
         $token = self::insert_helper( $_POST );
 
