@@ -913,7 +913,7 @@ class Smliser_Server{
                 $item_id = $plugin->get_item_id();
 
                 if ( ! smliser_verify_item_token( $api_key, $item_id ) ) {
-                    wp_die( 'Invalid token, you may need to purchase a licensed for this plugin.', 401 );
+                    wp_die( 'Invalid token, you may need to purchase a license for this plugin.', 401 );
                 }
 
             }
