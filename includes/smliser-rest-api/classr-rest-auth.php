@@ -241,8 +241,6 @@ class Smliser_REST_Authentication {
             return $response;
         }
 
-        delete_transient( 'smliser_item_token_'. $token );
-
         /**
          *  Ensure we keep track of clients with authentic tokens that 
          *  were not registered during the initial validation.

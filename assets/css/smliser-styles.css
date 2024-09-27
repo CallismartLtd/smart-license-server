@@ -29,24 +29,19 @@
 .smliser-tooltip {
     cursor: help;
 }
-.smliser-partially-hidden-license-key-container{
+.smliser-key-div .smliser-partially-hidden-license-key-container{
     margin-bottom: 10px;
+    font-weight: bold;
+    background-color: #c5ffc09f;
+    color: #0716f567;
+    margin-left: .5px;
+    border-radius: 4px;
+    
 }
 
 .smliser-visible-license-key {
     margin-bottom: 10px;
     display: none;
-}
-
-.smliser-partially-hidden-license-key-container p {
-    font-size: 10px;
-    font-family: Aleo;
-    font-weight: bold;
-    background-color: rgba(197, 255, 192, 0.623);
-    color: #0716f567;
-    padding: 10px;
-    border-radius: 4px;
-    width: 250px;
 }
 
 .smliser-visible-license-key input[type="text"] {
@@ -145,17 +140,24 @@
 /* Show the edit link when hovering over the table cell */
 .smliser-edit-row:hover .smliser-edit-link {
     display: block;
+    animation: fadeIn 2s;
 }
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  
 
-/* Optionally, hide the <p> tag by default if you want to show it only on hover */
-.smliser-edit-row p {
+/* .smliser-edit-row p {
     display: none;
 }
 
 .smliser-edit-row:hover p {
     display: block;
     
-}.smliser-edit-row:hover p a {
+} */
+.smliser-edit-row:hover p a {
     text-decoration: none;    
 }
 
@@ -373,21 +375,26 @@
 }
 .smliser-admin-view-page-body-item {
     display: flex;
-    text-align: left;
+    flex-direction: row;
+    justify-content: left;
+    margin-left: 5px;
     
 }
-.smliser-admin-view-page-body-item p {
+
+.smliser-admin-view-page-body-item div,
+.smliser-admin-view-page-body-item p,
+.smliser-admin-view-page-body-item a {
     font-size: 14px;
     font-weight: bold;
     text-align: left;
-    
     color: #000;
     margin: 10px 45px 10px 5px;
     padding-left: 5px;
-    width: 450px;
+    width: 80%;
 }
 .smliser-admin-view-page-body-item a {
     text-decoration: none;
+    color: #896eeb;
 }
 .smliser-admin-view-page-body-item p:hover,
 .smliser-admin-view-page-body-item a:hover {

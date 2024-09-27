@@ -239,9 +239,7 @@ class Smliser_license {
         ?>
         <div class="smliser-key-div">
             <!-- The container for the partially hidden key -->
-            <div class="smliser-partially-hidden-license-key-container">
-                <p><?php echo esc_html( substr( $license_key, 0, 16 ) . 'xxxxxxxxxxxxxxxxxxxxxxx' ); ?></p>
-            </div>
+            <p class="smliser-partially-hidden-license-key-container"><?php echo esc_html( substr( $license_key, 0, 16 ) . 'xxxxxxxxxxxxx' ); ?></p>
             
             <!-- Container for the fully displayed and copyable license key -->
             <div class="smliser-visible-license-key" style="display: none;">
@@ -251,7 +249,6 @@ class Smliser_license {
                 <button class="smliser-to-copy">Copy<span class="dashicons dashicons-clipboard"></span></button>
             </div>
             
-            <!-- An element to toggle between password visibility -->
             <label>
                 <input type="checkbox" class="smliser-show-license-key"> Show License Key
             </label>

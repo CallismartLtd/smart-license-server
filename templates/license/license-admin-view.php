@@ -42,31 +42,38 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
 
     <div class="smliser-admin-view-page-body">
         <div class="smliser-admin-view-page-body-item">
-            <p>License ID: <p><?php echo esc_html( absint( $license->get_id() ) ) ?></p></p>
+            <p>License ID:</p>
+            <p><?php echo esc_html( absint( $license->get_id() ) ) ?></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Plugin Name: <p><a href="<?php echo ! empty( $licensed_plugin ) ? esc_url( smliser_repository_admin_action_page( 'view', $licensed_plugin->get_item_id() ) ) : '#' ?>"><?php echo esc_html( ! empty($licensed_plugin ) ? $licensed_plugin->get_name() : 'N/L' )?></a></p></p>
+            <p>Plugin Name:</p>
+            <a href="<?php echo ! empty( $licensed_plugin ) ? esc_url( smliser_repository_admin_action_page( 'view', $licensed_plugin->get_item_id() ) ) : '#' ?>"><?php echo esc_html( ! empty($licensed_plugin ) ? $licensed_plugin->get_name() : 'N/L' )?></a>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Service ID: <p><?php echo esc_html( $license->get_service_id() ) ?></p></p>
+            <p>Service ID:</p>
+            <p><?php echo esc_html( $license->get_service_id() ) ?></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Start Date: <p><?php echo esc_html( smliser_check_and_format( $license->get_start_date() ) ) ?></p></p>
+            <p>Start Date:</p>
+            <p><?php echo esc_html( smliser_check_and_format( $license->get_start_date() ) ) ?></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>End Date: <p><?php echo esc_html( smliser_check_and_format( $license->get_end_date() ) ) ?></p></p>
+            <p>End Date:</p>
+            <p><?php echo esc_html( smliser_check_and_format( $license->get_end_date() ) ) ?></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>Activated on: <p><?php echo esc_html( $license->get_active_sites() ) ?></p></p>
+            <p>Activated on:</p>
+            <p><?php echo esc_html( $license->get_active_sites() ) ?></p>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
-            <p>License Key: <p><?php echo wp_kses_post( $license->get_copyable_Lkey() ) ?></p></p>
+            <p>License Key:</p>
+            <?php echo wp_kses_post( $license->get_copyable_Lkey() ) ?>
         </div>
     </div>
 

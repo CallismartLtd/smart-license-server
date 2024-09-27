@@ -11,11 +11,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (showLicenseKeyCheckbox) {
             showLicenseKeyCheckbox.addEventListener('change', function () {
                 if (this.checked) {
-                    visibleLicenseKeyDiv.style.display          = 'block';
+                    // visibleLicenseKeyDiv.style.display          = 'block';
+                    jQuery(visibleLicenseKeyDiv).fadeIn().css('display', 'block')
                     partiallyHiddenLicenseKeyDiv.style.display  = 'none';
                 } else {
                     visibleLicenseKeyDiv.style.display          = 'none';
-                    partiallyHiddenLicenseKeyDiv.style.display  = 'block';
+                    jQuery(partiallyHiddenLicenseKeyDiv).fadeIn().css('display', 'block');
+
                 }
             });
 
@@ -142,6 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
 });
 
 
