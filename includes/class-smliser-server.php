@@ -109,12 +109,12 @@ class Smliser_Server{
         }
         
         // Extract task data.
-        $callback_url   = isset( $highest_priority_task['callback_url'] ) ? sanitize_text_field( $highest_priority_task['callback_url'] ) : '';
-        $license_key    = isset( $highest_priority_task['license_key'] ) ? sanitize_text_field( $highest_priority_task['license_key'] ) : '';
+        $callback_url   = isset( $highest_priority_task['callback_url'] ) ? sanitize_text_field( wp_unslash( $highest_priority_task['callback_url'] ) ) : '';
+        $license_key    = isset( $highest_priority_task['license_key'] ) ? sanitize_text_field( wp_unslash( $highest_priority_task['license_key'] ) ) : '';
         $license_id     = isset( $highest_priority_task['license_id'] ) ? absint( $highest_priority_task['license_id'] ) : 0;
-        $token          = isset( $highest_priority_task['token'] ) ? sanitize_text_field( $highest_priority_task['token'] ) : '';
-        $data           = isset( $highest_priority_task['data'] ) ? sanitize_text_field( $highest_priority_task['data'] ) : '';
-        $end_date       = isset( $highest_priority_task['end_date'] ) ? sanitize_text_field( $highest_priority_task['end_date'] ) : '' ;
+        $token          = isset( $highest_priority_task['token'] ) ? sanitize_text_field( wp_unslash( $highest_priority_task['token'] ) ) : '';
+        $data           = isset( $highest_priority_task['data'] ) ? sanitize_text_field( wp_unslash( $highest_priority_task['data'] ) ) : '';
+        $end_date       = isset( $highest_priority_task['end_date'] ) ? sanitize_text_field( wp_unslash( $highest_priority_task['end_date'] ) ) : '' ;
     
         // Ensure task data is valid.
         if ( empty( $license_key ) || empty( $token ) || empty( $data ) ) {
@@ -127,8 +127,6 @@ class Smliser_Server{
             return;
         }
 
-        $expires_after  = DAY_IN_SECONDS; // Need to reauth within 24hrs.
-
         $request = array(
             'headers'   => array( 
                 'Content-Type' => 'application/json',
@@ -136,17 +134,18 @@ class Smliser_Server{
             ),
 
             'body'      =>  $data,
-            'timeout'   => 15,
+            'timeout'   => 30,
 
         );
 
+        $token_expiry   = wp_date( 'Y-m-d', time() + DAY_IN_SECONDS ); // The plugin needs to reauthenticate within 24hrs.
         $params = http_build_query( 
             array(
                 'action'        => 'smliser_verified_license_action',
-                'last_updated'  => $expires_after,
-                'token_expiry'  => $expires_after,
+                'last_updated'  => $end_date,
+                'API_KEY'       => smliser_generate_item_token( $license->get_item_id(), $license_key, 40 * HOUR_IN_SECONDS ), // API key will be invalidated 1 day and 16hrs, allowing 16hrs for reauth.
+                'token_expiry'  => $token_expiry,
                 'token'         => $token,
-                'API_KEY'       => smliser_generate_item_token( $license->get_item_id(), $license_key ),
             ) 
         );
 
@@ -155,20 +154,25 @@ class Smliser_Server{
         // Check if remote request was successful
         if ( is_wp_error( $response ) ) {
             delete_transient( 'smliser_server_doing_post' );
-            $this->move_to_missed_schedules( $highest_priority_task, array( 'reason' => $response->get_error_message(), 'status_code' => $response->get_error_code() ) );
+            $this->log_executed_task( $highest_priority_task, array( 'comment' => $response->get_error_message(), 'status_code' => $response->get_error_code() ) );
+            return;
         }
 
         $status_code    = wp_remote_retrieve_response_code( $response );
+        $response_data  = json_decode( wp_remote_retrieve_body( $response ), true );
+
         if ( 200 === $status_code ) {
             $license->update_active_sites( smliser_get_base_address( $callback_url ) );
+            $this->log_executed_task( $highest_priority_task, array(
+                'comment'       => ! empty( $response_data['data'] ) ? sanitize_text_field( wp_unslash( $response_data['data']['message'] ) ) : 'License Activated, no response from client.', 
+                'status_code' => $status_code ) );
         
         } else {
-            $response_data  = json_decode( wp_remote_retrieve_body( $response ), true );
             $reasons        = array( 
-                'reason' => ! empty( $response_data['data'] ) ? sanitize_text_field( wp_unslash( $response_data['data']['message'] ) ) : 'No response from host', 
-                'status_code' => $status_code
+                'comment'       => ! empty( $response_data['data'] ) ? sanitize_text_field( wp_unslash( $response_data['data']['message'] ) ) : 'No response from host', 
+                'status_code'   => $status_code
             );
-            $this->move_to_missed_schedules( $highest_priority_task, $reasons );
+            $this->log_executed_task( $highest_priority_task, $reasons );
         }
 
         delete_transient( 'smliser_server_doing_post' );
@@ -224,8 +228,7 @@ class Smliser_Server{
              
             } else {
 
-                // move expired tasks to missed schedules.
-                $this->move_to_missed_schedules( $task_queue[$timestamp], array( 'reason' => 'Task time elapsed' ) );
+                $this->log_executed_task( $task_queue[$timestamp], array( 'comment' => 'Task time elapsed' ) );
                 // Remove expired tasks from the task queue
                 unset( $task_queue[ $timestamp ] );
                 update_option( 'smliser_task_queue', $task_queue ); // Update the task queue after removal.
@@ -237,31 +240,38 @@ class Smliser_Server{
     }
 
     /**
-     * Move tasks from the task queue to the 'smliser_missed_schedules' option.
+     * Move tasks from the task queue to the 'smliser_task_log' option.
      * 
      * @param array $the_task Associative contanining the missed task.
-     * @param array $reason    Reason for the missed task.
+     * @param array $comment    Comment on logged data.
      * @return void
      */
-    public function move_to_missed_schedules( $the_task, $reason = array() ) {
-        $missed_schedules = $this->get_missed_schedules();
+    public function log_executed_task( $the_task, $comment = array() ) {
+        $missed_schedules = $this->get_task_logs();
         
         $missed_schedules[ current_time( 'mysql' ) ] = array(
             'license_id'    => $the_task['license_id'],
             'ip_address'    => $the_task['IP Address'],
             'website'       => $the_task['callback_url'],
-            'reason'        => ! empty( $reason['reason'] ) ? $reason['reason'] : 'N/A',
-            'status_code'   => ! empty( $reason['status_code'] ) ? $reason['status_code'] : 'N/A',
+            'comment'        => ! empty( $comment['comment'] ) ? $comment['comment'] : 'N/A',
+            'status_code'   => ! empty( $comment['status_code'] ) ? $comment['status_code'] : 'N/A',
         );
         
-        update_option( 'smliser_missed_schedules', $missed_schedules );
+        update_option( 'smliser_task_log', $missed_schedules );
     }
 
     /**
-     * Get missed task for the last 24hrs
+     * Get license verification log for the last one week.
+     * 
+     * @return array An array of task logs
      */
-    public function get_missed_schedules() {
-        $schedules = get_option( 'smliser_missed_schedules', false );
+    public function get_task_logs() {
+        $old_log    = get_option( 'smliser_missed_schedules', false );
+        if ( $old_log ) {
+            update_option( 'smliser_task_log', $old_log );
+            delete_option( 'smliser_missed_schedules' );
+        }
+        $schedules  = get_option( 'smliser_task_log', false );
         
         if ( false === $schedules ) {
             return array(); // Returns empty array.
@@ -272,11 +282,11 @@ class Smliser_Server{
 
         foreach ( $schedules as $time => $schedule ) {
             $timestamp = strtotime( $time );
-            $expiration = time() - ( 24 * HOUR_IN_SECONDS );
+            $expiration = time() - WEEK_IN_SECONDS;
 
             if ( $timestamp < $expiration ) {
                 unset( $schedules[$time] );
-                update_option( 'smliser_missed_schedules', $schedules );
+                update_option( 'smliser_task_log', $schedules );
             }
 
             $missed_tasks[$time] = $schedule;
