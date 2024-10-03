@@ -86,7 +86,7 @@ defined( 'ABSPATH' ) ||  exit;
         <div class="smliser-form-row">
             <label for="end_date" class="smliser-form-label">End Date</label>
             <span class="smliser-form-description" title="Choose the expiration date for this license">?</span>
-            <input type="date" class="smliser-form-input" name="end_date" id="end_date" value="<?php echo esc_attr( $license->get_end_date() ); ?>">
+            <input type="date" class="smliser-form-input" name="end_date" id="end_date" value="<?php echo esc_attr( $license->get_end_date( 'edit' ) ); ?>">
         </div>
 
         <input type="submit" name="smliser_license_edit" class="button action smliser-bulk-action-button" value="Update">
