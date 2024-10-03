@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 
 <div class="smliser-task-main">
     <h1>License Activation Schedules</h1>
-    <a href="<?php echo esc_url( admin_url( 'admin.php?page=tasks&path=missed-schedules' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-controls-forward"></span> Missed Schedules</a>
+    <a href="<?php echo esc_url( admin_url( 'admin.php?page=tasks&path=task-logs' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-visibility"></span> Logs</a>
     <table class="smliser-table">
         <tr>
             <th>Client Wait Period</th>
