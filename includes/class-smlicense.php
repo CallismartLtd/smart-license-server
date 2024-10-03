@@ -306,8 +306,13 @@ class Smliser_license {
     /**
      * Get the end date
      */
-    public function get_end_date() {
+    public function get_end_date( $context = 'view' ) {
+        // Empty license end date means it's a lifetime license.
+        if ( 'view' === $context && smliser_is_empty_date( $this->end_date ) ) {
+            $this->end_date = '2038-01-19';
+        }
         return $this->end_date;
+
     }
 
     /**
@@ -462,7 +467,7 @@ class Smliser_license {
             'allowed_sites' => ! empty( $this->allowed_sites ) ? $this->get_allowed_sites() : 0,
             'status'        => ! empty( $this->get_status() ) ? $this->get_status() : '',
             'start_date'    => ! empty( $this->get_start_date() ) ? $this->get_start_date() : '',
-            'end_date'      => ! empty( $this->get_end_date() ) ? $this->get_end_date() : '',
+            'end_date'      => ! empty( $this->end_date ) ? $this->get_end_date( 'save' ) : '0000-00-00',
         );
 
         // Prepare data format.
@@ -504,7 +509,7 @@ class Smliser_license {
             'allowed_sites' => ! empty( $this->allowed_sites ) ? absint( $this->get_allowed_sites() ) : 0,
             'status'        => ! empty( $this->status ) ? sanitize_text_field( $this->get_status() ) : '',
             'start_date'    => ! empty( $this->start_date ) ? sanitize_text_field( $this->get_start_date() ) : '',
-            'end_date'      => ! empty( $this->end_date ) ? sanitize_text_field( $this->get_end_date() ) : '',
+            'end_date'      => ! empty( $this->end_date ) ? sanitize_text_field( $this->end_date ) : '0000-00-00',
         );
 
         // Data format.
@@ -944,7 +949,7 @@ class Smliser_license {
      */
     public function generate_license_key( $prefix = '' ) {
         if ( empty( $prefix ) ) {
-            $prefix = get_option( 'smliser_license_prefix', 'SMALISER' );
+            $prefix = get_option( 'smliser_license_prefix', 'SMLISER' );
         }
 
         $uid            = sha1( uniqid( '', true ) );
