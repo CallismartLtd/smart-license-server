@@ -211,7 +211,7 @@ class Smliser_REST_Authentication {
         $token          = self::$instance->extract_token( $request );
         $service_id     = sanitize_text_field( urldecode( $request->get_param( 'service_id' ) ) );
         $license_key    = sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) );
-        $callback_url   = sanitize_text_field( smliser_get_base_address( urldecode( $request->get_param( 'callback_url' ) ) ) );
+        $callback_url   = sanitize_text_field( smliser_get_base_address( rawurldecode( $request->get_param( 'callback_url' ) ) ) );
 
         // Check if license is still valid.
         $license_obj    = new Smliser_license();
@@ -250,17 +250,14 @@ class Smliser_REST_Authentication {
         }
 
         $license_end_date   = $the_license->get_end_date();
-        $expires_after      = strtotime( $license_end_date ) - time();
-        
-        if ( smliser_is_empty_date( $license_end_date ) ) {
-            $expires_after  = MONTH_IN_SECONDS;
-        }
 
+        error_log( 'Plugin has reauthenticated ' . $item_id );
+        $two_weeks = 2 * WEEK_IN_SECONDS;
         $response_data = array(
             'success'       => true,
-            'API_KEY'       => smliser_generate_item_token( $item_id, $license_key ),
-            'token_expiry'  => wp_date( 'Y-m-d H:i:s', time() + ( 10 * DAY_IN_SECONDS) ),
-            'last_updated'  => $expires_after
+            'API_KEY'       => smliser_generate_item_token( $item_id, $license_key, $two_weeks ),
+            'token_expiry'  => wp_date( 'Y-m-d', time() + $two_weeks ),
+            'last_updated'  => $license_end_date
         );
         $response = new WP_REST_Response( $response_data, 200 );
         $response->header( 'content-type', 'application/json' );
