@@ -246,11 +246,6 @@ class SmartLicense_config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
         do_action( 'smliser_loaded' );
-
-        // wp_send_json_success( array( 'token' => base64_encode( 'youfrhdn' ) ) );
-        // var_dump( smliser_verify_item_token( 'c21saXNlcl80OGUwMDg0NWQwODNlN2YzOWE3NTUzZmVlOGU2ZWI3Y2VhZDBkMDZjNGQ3YTRmMmJiNDY0NGFkOGMzMTdiN2My', 1 ) );
-        // var_dump( 1724971680 < time() );
-
     }
 
     /**
