@@ -295,8 +295,8 @@ class Smliser_admin_menu {
     public function task_page_controller() {
         $path = isset( $_GET['path'] ) ? sanitize_key( $_GET['path'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         
-        if ( 'missed-schedules' === $path ) {
-            $this->missed_task_page( 'missed-schedules' );
+        if ( 'task-logs' === $path ) {
+            $this->task_log_page();
             return;
         }
         $this->task_page();
@@ -321,14 +321,14 @@ class Smliser_admin_menu {
     /**
      * Missed task page.
      */
-    public function missed_task_page() {
+    public function task_log_page() {
         $obj            = new Smliser_Server();
-        $all_tasks      = $obj->get_missed_schedules();
+        $all_tasks      = $obj->get_task_logs();
         $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
         $cron_timestamp = $cron_handle ? $cron_handle->timestamp : 0;
         $next_date      = smliser_tstmp_to_date( $cron_timestamp );
 
-        include_once SMLISER_PATH . 'templates/tasks/missed-tasks.php';
+        include_once SMLISER_PATH . 'templates/tasks/task-log.php';
         return;
     }
 
