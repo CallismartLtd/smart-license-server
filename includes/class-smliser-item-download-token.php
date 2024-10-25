@@ -263,8 +263,6 @@ class Smliser_Plugin_Download_Token {
             $converted_date     = strtotime( sanitize_text_field( wp_unslash( $_POST['expiry'] ) ) );
             $duration           = $converted_date ? max( 0, $converted_date - time() ): 0;
             $_POST['expiry']    = $duration;
-
-            error_log( 'modified date ' . $_POST['expiry'] );
         }
         $token = self::insert_helper( $_POST );
 
