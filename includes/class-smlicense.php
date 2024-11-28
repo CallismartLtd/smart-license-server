@@ -1013,12 +1013,12 @@ class Smliser_license {
     public function can_serve_license( $item_id, $context = '' ) {
         
         if ( ! $this ) {
-            return new WP_Error( 'license_error', 'Invalid License key or service ID.' );    
+            return new WP_Error( 'license_error', 'Invalid license key or service ID.' );    
              
         }
 
         if ( absint( $item_id ) !== absint( $this->get_item_id() ) ) {
-            return new WP_Error( 'license_error', 'Invalid license or service ID.' ); 
+            return new WP_Error( 'license_error', 'Invalid license key or service ID.' ); 
             
         }
     
