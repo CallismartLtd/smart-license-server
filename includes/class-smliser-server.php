@@ -53,7 +53,7 @@ class Smliser_Server{
         add_action( 'template_redirect', array( $this, 'serve_package_download' ) );
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
-
+        
     }
 
     /*
@@ -432,6 +432,7 @@ class Smliser_Server{
      * @param WP_REST_Request $request The current request object.
      */
     public static function validation_response( WP_REST_Request $request ) {
+
         $request_params = $request->get_params();
         $service_id     = $request_params['service_id'];
         $license_key    = $request_params['license_key'];
@@ -444,7 +445,7 @@ class Smliser_Server{
         if ( ! $license ) {
             $response_data = array(
                 'code'      => 'license_error',
-                'message'   => 'Invalid License key or service ID.'
+                'message'   => 'Invalid license key or service ID.'
             );
             $response = new WP_REST_Response( $response_data, 404 );
             $reasons = array(
