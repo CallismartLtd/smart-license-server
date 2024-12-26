@@ -300,7 +300,6 @@ function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry =
  * @param int    $item_id   The ID of the liensed plugin.
  */
 function smliser_verify_item_token( $token, $item_id ) {
-    // $token  = smliser_safe_base64_decode( $token );
     $t_obj  = new Smliser_Plugin_Download_Token();
     $t_data =  $t_obj->get_token( $token );
 
