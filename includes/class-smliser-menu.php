@@ -108,6 +108,7 @@ class Smliser_admin_menu {
      * Dashboard Callback method
      */
     public function admin_menu() {
+        
         $stats          = new Smliser_Stats();
         $status_codes   = $stats->get_status_codes_distribution();
         $error_codes    = $stats->get_top_errors( wp_rand( 50, 100 ) );
