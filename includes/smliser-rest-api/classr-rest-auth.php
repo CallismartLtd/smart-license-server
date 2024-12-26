@@ -251,7 +251,6 @@ class Smliser_REST_Authentication {
 
         $license_end_date   = $the_license->get_end_date();
 
-        error_log( 'Plugin has reauthenticated ' . $item_id );
         $two_weeks = 2 * WEEK_IN_SECONDS;
         $response_data = array(
             'success'       => true,
