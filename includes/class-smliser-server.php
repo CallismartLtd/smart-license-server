@@ -339,6 +339,7 @@ class Smliser_Server{
          * the license validation cannot proceed.
          */
         if ( empty( $authorization_header ) ) {
+            
             $reasons = array(
                 '',
                 array( 
@@ -358,6 +359,7 @@ class Smliser_Server{
          * The authorization token should be prefixed with Bearer string. 
          */
         if ( count( $authorization_parts ) !== 2 && $authorization_parts[0] !== 'Bearer' ) {
+            
             $reasons = array(
                 '',
                 array( 
@@ -396,26 +398,7 @@ class Smliser_Server{
                     )
                 );
                 do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-            return false;
-        }
-
-        // We need to ensure the param inputs are not ill-intended.
-         if ( 
-            $service_id !== sanitize_text_field( $service_id )
-            || $item_id !== sanitize_text_field( $item_id )
-            || $license_key !== sanitize_text_field( $license_key ) 
-            || ! filter_var( $callback_url, FILTER_VALIDATE_URL )
-        ) {
-            $reasons = array(
-                '',
-                array( 
-                    'route'         => Smliser_Stats::$license_activation,
-                    'status_code'   => 401,
-                    'request_data'  => 'license validation',
-                    'response_data' => array( 'reason' => 'Suspicious parameters supplied.' )
-                )
-            );
-            do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
+                
             return false;
         }
         
@@ -432,7 +415,6 @@ class Smliser_Server{
      * @param WP_REST_Request $request The current request object.
      */
     public static function validation_response( WP_REST_Request $request ) {
-
         $request_params = $request->get_params();
         $service_id     = $request_params['service_id'];
         $license_key    = $request_params['license_key'];
