@@ -17,7 +17,7 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 
-            </div> <!-- .smliser-auth-content -->
+        </div> <!-- .smliser-auth-content -->
         <footer class="smliser-auth-footer">
             <p>&copy;<?php echo esc_html( get_bloginfo( 'name' ) );?> <?php echo esc_html( date( 'Y' ) ); ?> powered by <?php esc_html_e( 'Smart License Server', 'smliser' ); ?></p>
         </footer>
