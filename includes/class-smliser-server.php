@@ -10,6 +10,10 @@
 
 defined( 'ABSPATH'  ) || exit;
 
+/**
+ * The Smliser_Server class handles most of the API requests for this plugin.
+ * It's core purpose is to serve requests for the licenses and plugins on this server.
+ */
 class Smliser_Server{
 
     /**
@@ -20,11 +24,32 @@ class Smliser_Server{
     private $tasks = array();
 
     /**
-     * Single instance of current class.
+     * Single instance of this class.
      * 
      * @var Smliser_Server $instance Instance.
      */
-    private static $instance;
+    private static $instance = null;
+
+    /**
+     * Our registered namespace
+     * 
+     * @var string $namespace
+     */
+    protected $namespace = '';
+
+    /**
+     * Instance of the Plugin class.
+     * 
+     * @var Smliser_Plugin $plugin Instance of our plugin class.
+     */
+    protected $plugin = null;
+
+    /**
+     * Instance of our license class.
+     * 
+     * @var Smliser_license $license
+     */
+    protected $license = null;
 
     /**
      * Authorization token.
@@ -39,9 +64,9 @@ class Smliser_Server{
     private $authorization_type = '';
 
     /**
-     * Resource Requested
+     * Permission
      * 
-     * @var object $resource
+     * @var string $permission
      */
     private $permission = '';
 
@@ -49,11 +74,12 @@ class Smliser_Server{
      * Class constructor.
      */
     public function __construct() {
+        $this->namespace = SmartLicense_config::instance()->namespace();
         add_action( 'smliser_validate_license', array( $this, 'remote_validate' ) );
         add_action( 'template_redirect', array( $this, 'serve_package_download' ) );
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
-        
+        add_filter( 'rest_request_before_callbacks', array( __CLASS__, 'set_props' ), 10, 3 );
     }
 
     /*
@@ -84,6 +110,31 @@ class Smliser_Server{
             // The first value should always be the authentication type;
             $this->authorization_type = sanitize_text_field( wp_unslash( $parts[0] ) );
         }
+    }
+
+    /**
+     * Set Props
+	 * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response Result to send to the client.
+	 *                                                                   Usually a WP_REST_Response or WP_Error.
+	 * @param array                                            $handler  Route handler used for the request.
+	 * @param WP_REST_Request                                  $request  Request used to generate the response.
+     */
+    public static function set_props( $response, $handler, $request ) {
+        // Ensure this request is for our route
+        if ( ! str_contains( $request->get_route(), self::instance()->namespace ) ) {
+            return $response;
+        }
+
+        if ( is_null( self::instance()->plugin ) ) {
+            self::instance()->plugin   = Smliser_Plugin::instance();            
+        }
+
+        if ( is_null( self::instance()->license ) ) {
+            self::instance()->license  = Smliser_license::instance();
+
+        }
+
+        return $response;
     }
     /*
     |--------------------------------------------------
@@ -261,38 +312,35 @@ class Smliser_Server{
     }
 
     /**
-     * Get license verification log for the last one week.
+     * Get license verification log for the last three month.
      * 
-     * @return array An array of task logs
+     * @return array $schedules An array of task logs
      */
     public function get_task_logs() {
-        $old_log    = get_option( 'smliser_missed_schedules', false );
-        if ( $old_log ) {
-            update_option( 'smliser_task_log', $old_log );
-            delete_option( 'smliser_missed_schedules' );
-        }
         $schedules  = get_option( 'smliser_task_log', false );
         
         if ( false === $schedules ) {
             return array(); // Returns empty array.
         }
+
+        if ( ! is_array( $schedules ) ) {
+            $schedules = (array) $schedules;
+        }
+
         ksort( $schedules );
 
-        $missed_tasks  = array();
-
         foreach ( $schedules as $time => $schedule ) {
-            $timestamp = strtotime( $time );
-            $expiration = time() - WEEK_IN_SECONDS;
+            $timestamp  = strtotime( $time );
+            $expiration = time() - ( 3 * MONTH_IN_SECONDS );
 
             if ( $timestamp < $expiration ) {
                 unset( $schedules[$time] );
                 update_option( 'smliser_task_log', $schedules );
             }
 
-            $missed_tasks[$time] = $schedule;
         }
 
-        return $missed_tasks;
+        return $schedules;
     }
 
 
@@ -668,90 +716,62 @@ class Smliser_Server{
     */
 
     /**
-     * Plugin update permission checker.
+     * Handles permission when we serve updates informations for a plugin hosted here.
+     * 
+     * @param WP_REST_Request $request The REST API request object.
      */
-    public static function update_permission( $request ) {
+    public static function software_update_permission_checker( WP_REST_Request $request ) {
+        // Either provide the plugin ID(item_id) or the plugin slug.
         $item_id    = absint( $request->get_param( 'item_id' ) );
-        $api_key    = sanitize_text_field( self::$instance->extract_token( $request, 'raw' ) );
+        $slug       = $request->get_param( 'slug' );
 
-        if ( ! smliser_verify_item_token( $api_key, absint( $item_id ) ) ) {
-            $reasons = array(
-                '',
-                array( 
-                    'route'         => Smliser_Stats::$plugin_update,
-                    'status_code'   => 401,
-                    'request_data'  => 'update permission check',
-                    'response_data' => array( 'reason' => 'Unauthorized plugin download' )
-                )
-            );
-            do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-            return false;
-        }
+        // Let's identify the plugin.
+        $plugin =  self::$instance->plugin->get_plugin( $item_id ) ? self::$instance->plugin->get_plugin( $item_id ) : self::$instance->plugin->get_plugin_by( 'slug', $slug );
 
-        return true;
-    }
-
-    /**
-     * Update response route handler
-     */
-    public static function update_response( $request ) {
-        $item_id    = absint( $request->get_param( 'item_id' ) );
-        
-        /**
-         * Determine if the resource is licensed.
-         */
-        if ( self::$instance->is_licensed( $item_id ) ) {
-            $license_key    = sanitize_text_field( $request->get_param( 'license_key' ) );
-            $service_id     = sanitize_text_field( $request->get_param( 'service_id' ) );
-            $instance       = Smliser_license::instance();
-            $license        = $instance->get_license_data( $service_id, $license_key );
-    
-            if ( empty( $license ) || is_wp_error( $license->can_serve_license( $item_id ) ) ) {
-                $response_data = array(
-                    'code'      => 'license_error',
-                    'message'   => 'You are not allowed to perform updates'
-                );
-                $reasons = array(
-                    '',
-                    array( 
-                        'route'         => Smliser_Stats::$plugin_update,
-                        'status_code'   => 403,
-                        'request_data'  => 'Plugin Update response',
-                        'response_data' => array( 'reason' => $response_data['message'] )
-                    )
-                );
-                do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-                $response = new WP_REST_Response( $response_data, 403 );
-                $response->header( 'content-type', 'application/json' );
-        
-                return $response;
-            }
-        }
-
-        $plugin_id  = $item_id;
-        $pl_obj     = new Smliser_Plugin();
-        $the_plugin = $pl_obj->get_plugin( $plugin_id );
-
-        if ( ! $the_plugin ){
-            $response_data = array(
-                'code'      => 'plugin_not_found',
-                'message'   => 'The plugin was not found'
-            );
-            $response = new WP_REST_Response( $response_data, 404 );
+        if ( ! $plugin ) {
+            
             $reasons = array(
                 '',
                 array( 
                     'route'         => Smliser_Stats::$plugin_update,
                     'status_code'   => 403,
                     'request_data'  => 'Plugin update response',
-                    'response_data' => array( 'reason' => $response_data['message'] )
+                    'response_data' => array( 'reason' => 'The requested plugin does not exists.' )
                 )
             );
             do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-            $response->header( 'content-type', 'application/json' );
-    
-            return $response;
+
+            return new WP_Error( 'smliser_rest_error_invalid_plugin', 'The requested plugin does not exists.', array( 'status' => 404 ) );
         }
+
+        if ( self::$instance->is_licensed( $plugin->get_item_id() ) ) {
+            $api_key    = sanitize_text_field( self::$instance->extract_token( $request, 'raw' ) );
+            
+            if ( ! smliser_verify_item_token( $api_key, absint( $plugin->get_item_id() ) ) ) {
+                $reasons = array(
+                    '',
+                    array( 
+                        'route'         => Smliser_Stats::$plugin_update,
+                        'status_code'   => 401,
+                        'request_data'  => 'update permission check',
+                        'response_data' => array( 'reason' => 'Unauthorized plugin download' )
+                    )
+                );
+                do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
+    
+                return new WP_Error( 'smliser_rest_error', 'Licensed plugin, provide a valid authorization key.', array( 'status' => 401 ) );
+            }
+        }
+        self::$instance->plugin = $plugin;
+        return true;
+    }
+
+    /**
+     * Update response route handler
+     */
+    public static function software_update_response( $request ) {
+
+        $the_plugin = self::$instance->plugin;
         
         /**
          * Fires for stats syncronization.
@@ -762,6 +782,7 @@ class Smliser_Server{
         do_action( 'smliser_stats', 'plugin_update', $the_plugin );
         $response = new WP_REST_Response( $the_plugin->formalize_response(), 200 );
         $response->header( 'content-type', 'application/json' );
+        
         return $response;
 
     }
@@ -1076,11 +1097,15 @@ class Smliser_Server{
 
     /**
      * Instance of Smiliser_Server
+     * 
+     * @return self
      */
     public static function instance() {
         if ( is_null( self::$instance ) ) {
             self::$instance = new self();
         }
+
+        return self::$instance;
     }
 
     /**
