@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 <div class="smliser-task-main">
     <h1>License Activation Log</h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=tasks' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-share-alt"></span> Tasks</a>
-    <p>Logs over one week are automatically deleted.</p>
+    <p>Logs over three months are automatically deleted</p>
     <table class="smliser-table">
         <tr>
             <th>Date</th>
