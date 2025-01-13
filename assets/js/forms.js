@@ -521,8 +521,6 @@ function smilerClientToken(itemid, licensekey, expiry) {
         spinner.style.setProperty('display', 'block', 'important');
         spinner.style.setProperty('border', '5px dotted #000', 'important');
 
-        console.log('Item ID: ' + itemid, 'License KEY: ' + licensekey, 'Expiry: ' + expiry);
-
         jQuery.ajax({
             type: "POST",
             url: smliser_var.smliser_ajax_url,
