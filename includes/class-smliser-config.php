@@ -116,6 +116,7 @@ class SmartLicense_config {
         add_action( 'wp_ajax_smliser_generate_item_token', array( 'Smliser_Plugin_Download_Token', 'get_new_token' ) );
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
+        add_action( 'smliser_clean', array( 'Smliser_Plugin_Download_Token', 'clean_expired_tokens' ) );
     }
 
     /** Load or Register our Rest route */
@@ -138,8 +139,20 @@ class SmartLicense_config {
         /** Register the software update route */
         register_rest_route( $this->namespace, $this->update_route, array(
             'methods'             => 'GET',
-            'callback'            => array( 'Smliser_Server', 'update_response' ),
-            'permission_callback' => array( 'Smliser_Server', 'update_permission' ),
+            'callback'            => array( 'Smliser_Server', 'software_update_response' ),
+            'permission_callback' => array( 'Smliser_Server', 'software_update_permission_checker' ),
+            'args'                  => array(
+                'item_id'   => array(
+                    'required'      => false,
+                    'type'          => 'int',
+                    'description'   => 'The plugin ID'
+                ),
+                'slug'      => array(
+                    'required'      => false,
+                    'type'          => 'string',
+                    'description'   => 'The plugin slug eg. plugin-slug/plugin-slug'
+                ),
+            ),
         ) );
 
         /**Register REST API route for querying entire repository*/
@@ -203,7 +216,7 @@ class SmartLicense_config {
      * @param WP_REST_Request  $request  The REST request object.
      * @return WP_REST_Response Modified REST API response object.
      */
-    public function rest_signature_headers( $response, $server, $request ) {
+    public function rest_signature_headers( WP_REST_Response $response, WP_REST_Server $server, WP_REST_Request $request ) {
         
         if ( strpos( $request->get_route(), $this->namespace )  ) {
             $response->header( 'x-plugin-name', 'Smart License Server' );
@@ -218,11 +231,21 @@ class SmartLicense_config {
 
     /**
      * Instanciate the current class.
+     * @return self
      */
     public static function instance() {
         if ( is_null( self::$instance ) ) {
             self::$instance = new self();
         }
+
+        return self::$instance;
+    }
+
+    /**
+     * Get the namespace
+     */
+    public static function namespace() {
+        return self::instance()->namespace;
     }
 
     /**
@@ -231,14 +254,15 @@ class SmartLicense_config {
     public function include() {
         require_once SMLISER_PATH . 'includes/utils/smliser-functions.php';
         require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
-        require_once SMLISER_PATH . 'includes/class-smliser-server.php';
+        require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
         require_once SMLISER_PATH . 'includes/class-smliser-menu.php';
         require_once SMLISER_PATH . 'includes/class-smliser-repository.php';
         require_once SMLISER_PATH . 'includes/class-smliser-plugin.php';
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
+        require_once SMLISER_PATH . 'includes/class-smliser-server.php';
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
         require_once SMLISER_PATH . 'includes/class-smliser-api-cred.php';
-        require_once SMLISER_PATH . 'includes/class-smliser-item-download-token.php';
+        require_once SMLISER_PATH . 'includes/class-smliser-plugin-download-token.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/classr-rest-auth.php';
 
         add_action( 'wp_enqueue_scripts', array( $this, 'load_styles' ) );
@@ -342,10 +366,17 @@ class SmartLicense_config {
      * Register cron.
      */
     public function register_cron( $schedules ) {
+        $schedules = array();
         /** Add a new cron schedule interval for every 3 minutes. */
         $schedules['smliser_three_minutely'] = array(
             'interval' => 3 * MINUTE_IN_SECONDS,
             'display'  => 'Smliser Three Minutely',
+        );
+
+        /** Add a new cron schedule interval for every 4 hours. */
+        $schedules['smliser_4_hourly'] = array(
+            'interval' => 4 * HOUR_IN_SECONDS,
+            'display'  => 'Smliser Four Hourly',
         );
         return $schedules;
     }
@@ -354,10 +385,13 @@ class SmartLicense_config {
      * Schedule event.
      */
     public function run_automation() {
-
         if ( ! wp_next_scheduled( 'smliser_validate_license' ) ) {
 			wp_schedule_event( time(), 'smliser_three_minutely', 'smliser_validate_license' );
 		}
+
+        if ( ! wp_next_scheduled( 'smliser_clean' ) ) {
+            wp_schedule_event( time(), 'smliser_4_hourly', 'smliser_clean' );
+        }
 
     }
 
