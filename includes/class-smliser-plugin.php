@@ -11,6 +11,10 @@ defined( 'ABSPATH' ) || exit;
  * Class representation of plugin meta data
  */
 class Smliser_Plugin {
+    /**
+     * A singleton instance of this class
+     */
+    protected static $instance = null;
 
     /**
      * Item ID.
@@ -149,6 +153,16 @@ class Smliser_Plugin {
      * Class constructor.
      */
     public function __construct() {}
+
+    /**
+     * Instanciate a single instance of this class
+     */
+    public static function instance() {
+        if ( is_null( self::$instance ) ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
 
     /*
     |----------
@@ -445,10 +459,22 @@ class Smliser_Plugin {
     */
 
     /**
-     * Get a Plugin data by a given column name
+     * Get one or more Plugins data by a given column name.
+     * 
+     * @param string $column_name       The column name in the database table.
+     * @param string|float|int $value   The value to search for in the given column.
+     * @param bool $single              Whether to fetch a single or multiple rows, defaults to true.
+     * @return self|self[]|false|array  A single instance or an array of Smliser_Plugin objects, or false for invalid input.
      */
-    public function get_plugin_by( $column_name = '', $value = '' ) {
 
+    public function get_plugin_by( $column_name = '', $value = '', $single = true ) {
+        // Prepare the default return data.
+        $data = $single ? false : array();
+
+        if ( empty( $column_name ) || empty( $value ) ) {
+            return $data;
+        }
+        
         $allowed_columns = array( 
             'name', 'license_key', 
             'slug', 'version', 'author', 
@@ -462,27 +488,47 @@ class Smliser_Plugin {
 
         // Validate the column name.
         if ( ! in_array( $column_name, $allowed_columns, true ) ) {
-            return false; // Invalid column name.
+            return $data; // Invalid column name.
         }
 
-        // Sanitize the value.
-        $value = sanitize_text_field( $value );
+        // Sanitize and validate the value.
+        if ( is_array( $value ) ) {
+            return $data; // Invalid data type.
 
-        // Check if the value is empty.
-        if ( empty( $value ) ) {
-            return false;
+        } elseif ( is_float( $value ) ) {
+            $value = floatval( $value );
+
+        } elseif ( is_int( $value ) ) {
+            $value = absint( $value );
+        } else {
+            $value = sanitize_text_field( wp_unslash( $value ) );
+        }
+
+        // Normalize the slug.
+        if( 'slug' === $column_name ) {
+            $value = self::normalize_slug( $value );
         }
 
         // phpcs:disable
         global $wpdb;
         // Prepare and execute the query.
-        $query = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE {$column_name} = %s", $value );
-        $result = $wpdb->get_row( $query, ARRAY_A );
-         if ( $result ){
-            return self::convert_db_result( $result );
-            // phpcs:enable
+        $query = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE `" . esc_sql( $column_name ) . "` = %s", $value );
+        
+        $results = $single ? $wpdb->get_row( $query, ARRAY_A ) : $wpdb->get_results( $query, ARRAY_A );
+        // phpcs:enable
+
+        if ( ! empty( $results ) ){
+
+            if ( $single ) {
+                $data = self::convert_db_result( $results );
+            } else {
+                foreach ( $results as $plugin ) {
+                    $data[] = self::convert_db_result( $plugin );
+                }
+            }
         }
-        return false;
+
+        return $data;
     }
 
     /**
@@ -942,6 +988,34 @@ class Smliser_Plugin {
         $download_slug  = smliser_get_download_slug();
         $download_url   = site_url( $download_slug . '/' . $slug_parts[0] . '/{download_token}/'. $slug_parts[1] );
         return $download_url;
+    }
+
+    /**
+     * Normalize a plugin slug
+     * 
+     * @param string $slug The slug
+     */
+    public static function normalize_slug( $slug ) {
+        // Check whether the slug contains forward slash as plugin-slug/plugin-slug.
+        $parts = explode( '/', $slug );
+        if ( 1 === count( $parts ) ) {
+            if ( str_contains( $parts[0], '.' ) ) {
+                $slug = substr( $parts[0], strpos( $parts[0], '.' ) );
+            }
+
+            $slug = trailingslashit( $slug ) . $slug;
+        }
+        
+        if ( ! str_ends_with( $slug, '.zip' ) ) {
+            if ( str_contains( $slug, '.' ) ) {
+                
+                $slug = substr( $slug, 0, strpos( $slug, '.' ) );
+            }
+            
+            $slug = $slug . '.zip';
+        }
+
+        return sanitize_and_normalize_path( $slug );
     }
 
     /*
