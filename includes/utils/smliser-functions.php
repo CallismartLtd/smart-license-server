@@ -274,14 +274,13 @@ function smliser_get_auth_token( WP_REST_Request $request ) {
  * 
  * @param int $item_id    The item ID associated with the license.
  * @param string $license_key License Key associated with the item.
- * @param string $expiry The expiry date for the token.
- * @return string $token base64 encoded string.
+ * @param int $expiry The expiry date for the token.
  */
 function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry = 0 ) {
     $key_props  = array(
-        'item_id'       => $item_id,
-        'license_key'   => $license_key,
-        'expiry'        => ! empty( $expiry ) ? $expiry : 10 * DAY_IN_SECONDS,
+        'item_id'       => absint( $item_id ),
+        'license_key'   => sanitize_text_field( wp_unslash( $license_key ) ),
+        'expiry'        => ! empty( $expiry ) ? absint( $expiry ) : 10 * DAY_IN_SECONDS,
     );
 
     $token = Smliser_Plugin_Download_Token::insert_helper( $key_props );
@@ -294,10 +293,11 @@ function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry =
 }
 
 /**
- * Verify licensed plugin download token.
+ * Verify a licensed plugin download token.
  * 
  * @param string $token     The Download token.
  * @param int    $item_id   The ID of the liensed plugin.
+ * @return bool True if item ID associated with token matches with provided item ID, false otherwise.
  */
 function smliser_verify_item_token( $token, $item_id ) {
     $t_obj  = new Smliser_Plugin_Download_Token();
@@ -317,7 +317,7 @@ function smliser_verify_item_token( $token, $item_id ) {
 }
 
 /**
- * Validate and decode Base64-encoded token.
+ * Validate and decode Base64-encoded token prefixed with "smliser_".
  * 
  * @param string $encoded_token The Base64-encoded token.
  * @return string|null The decoded token if valid, null otherwise.
