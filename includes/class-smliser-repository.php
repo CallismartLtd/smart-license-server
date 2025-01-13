@@ -61,8 +61,9 @@ class Smliser_Repository {
      */
     public static function instance() {
         if ( is_null( self::$instance ) ) {
-            return self::$instance = new self();
+            self::$instance = new self();
         }
+        return self::$instance;
     }
 
     /*
