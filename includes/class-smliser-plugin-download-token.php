@@ -143,9 +143,7 @@ class Smliser_Plugin_Download_Token {
             return new WP_Error( 'smliser_db_error', 'Check missing requirement.' );
         }
 
-        if ( isset( $data['item_id'] ) ) {
-            $self->item_id = sanitize_text_field( $data['item_id'] );
-        }
+        $self->item_id = absint( $data['item_id'] );
 
         if ( isset( $data['license_key'] ) ) {
             $self->license_key = sanitize_text_field( $data['license_key'] );
@@ -344,5 +342,14 @@ class Smliser_Plugin_Download_Token {
                 }
             }
         }
+    }
+
+    /**
+     * Delete and invalidate all item tokens when the associated license is either deleted, revoked and deactivated.
+     * 
+     * @param string $license_key The license key that is associated with token(s).
+     */
+    public static function mass_invalidate( $license_key ) {
+
     }
 }
