@@ -354,13 +354,13 @@ class Smliser_license {
      * 
      * @param string $service_id The service ID associated with the License.
      * @param string $license_key The license key.
-     * @return object|null The license data or null if not found.
+     * @return self|false The license data or null if not found.
      */
     public function get_license_data( $service_id, $license_key ) {
         global $wpdb;
 
-        $service_id  = sanitize_text_field( $service_id );
-        $license_key = sanitize_text_field( $license_key );
+        $service_id  = sanitize_text_field( wp_unslash( $service_id ) );
+        $license_key = sanitize_text_field( wp_unslash( $license_key ) );
 
         // phpcs:disable
         $query = $wpdb->prepare( 
@@ -376,7 +376,7 @@ class Smliser_license {
             return self::return_db_results( $result );
         }
 
-        return array();
+        return false;
     }
 
     /**
@@ -449,13 +449,13 @@ class Smliser_license {
      * Save Licensed data into the database.
      */
     public function save() {
-        if ( defined( __CLASS__ .'saving' ) ) {
-            return;
-        }
-        define( __CLASS__ .'saving', true );
         global $wpdb;
         if ( empty( $this->license_key ) ) {
-            return new WP_Error( 'missing_license_key', __( 'License key is required', 'smliser' ) );
+            return false;
+        }
+
+        if ( ! empty( $this->id ) ) {
+            return $this->update();
         }
 
         // Prepare data.
@@ -742,14 +742,10 @@ class Smliser_license {
             $data = $this ? absint( $this->get_id() ) : 0;
         }
 
-        if ( ! $data && defined( 'DOING_AJAX' ) ) {
-            wp_send_json_error( array( 'message' => 'Invalid Lincense' ) );
-        }
-
         global $wpdb;
         // phpcs:disable
-		$deleted = $wpdb->delete( SMLISER_LICENSE_TABLE, array( 'id' => $data ), array( '%d' ) );
-		$deleted_meta = $wpdb->delete( SMLISER_LICENSE_META_TABLE, array( 'license_id' => $data ), array( '%d' ) );
+		$deleted        = $wpdb->delete( SMLISER_LICENSE_TABLE, array( 'id' => $data ), array( '%d' ) );
+		$deleted_meta   = $wpdb->delete( SMLISER_LICENSE_META_TABLE, array( 'license_id' => $data ), array( '%d' ) );
 		// phpcs:enable
 		if ( false === $deleted && false === $deleted_meta ) {
 			return $deleted;
@@ -836,7 +832,7 @@ class Smliser_license {
         $action     = $this->get_action();
         $new_status = '';
 
-        switch ( $action ) {
+        switch ( strtolower( $action ) ) {
 
             case 'deactivate':
                 $new_status = 'Deactivated';
