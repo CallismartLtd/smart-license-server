@@ -305,15 +305,15 @@ class Smliser_Plugin {
      */
     public function set_section( $section_data ) {
         if ( isset( $section_data['description'] ) ) {
-            $this->sections['description'] = sanitize_text_field( $section_data['description'] );
+            $this->sections['description'] = $section_data['description'];
         } 
         
         if ( isset( $section_data['installation'] ) ) {
-            $this->sections['installation'] = sanitize_text_field( $section_data['installation'] );
+            $this->sections['installation'] = $section_data['installation'];
         } 
         
         if ( isset( $section_data['changelog'] ) ) {
-            $this->sections['changelog'] = sanitize_text_field( $section_data['changelog'] );
+            $this->sections['changelog'] = $section_data['changelog'];
         }
     }
 
@@ -935,25 +935,22 @@ class Smliser_Plugin {
         $data = array(
             'name'      => $this->get_name(),
             'id'        => $pseudo_slug,
-            'slug'      => $this->get_slug(),
+            'slug'      => $pseudo_slug ,
             'plugin'    => $this->get_slug(),
             'version'   => $this->get_version(),
-            'author'    => $this->get_author(),
+            'author'    => '<a href="' . esc_url( $this->get_author_profile() ) . '">' . $this->get_author() . '</a>',
             'author_profile' => $this->get_author_profile(),
-            'url'       => $this->get_url(),
+            'homepage'  => $this->get_url(),
             'package'   => $this->get_download_link(),
-            'icons'     => array(
-                '2x'        => '',
-                '1x'        => '',
-            ),
             'banners'   => array(
-                '2x'        => '',
-                '1x'        => '',
+                'low'        => '',
+                'high'        => '',
             ),
             'requires'      => $this->get_required(),
             'tested'        => $this->get_tested(),
             'requires_php'  => $this->get_required_php(),
             'requires_plugins'  => '',
+            'added'         => $this->get_date_created(),
             'last_updated'  => $this->get_last_updated(),
             'sections'      => $this->get_sections(),
         );
