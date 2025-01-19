@@ -283,13 +283,10 @@ function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry =
         'expiry'        => ! empty( $expiry ) ? absint( $expiry ) : 10 * DAY_IN_SECONDS,
     );
 
-    $token = Smliser_Plugin_Download_Token::insert_helper( $key_props );
+    $token          = Smliser_Plugin_Download_Token::insert_helper( $key_props );
+    $encrypt_obj    = new Callismart\Utilities\Encryption();
 
-    if ( is_wp_error( $token ) || false === $token ) {
-        return $token;
-    }
-
-    return base64_encode( $token );
+    return $encrypt_obj::encrypt( $token );
 }
 
 /**
