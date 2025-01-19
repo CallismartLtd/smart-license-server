@@ -27,21 +27,29 @@ class Smliser_Repository {
      * @var Smliser_Repository
      */
     protected static $instance = null;
+    
+    /**
+     * @var wp_filesystem $repo The WordPress filesystem class.
+     */
+    protected $repo = null;
 
     /**
      * Class constructor
      */
     public function __construct() {
+        global $wp_filesystem;
         $this->repo_dir = SMLISER_REPO_DIR;
         $this->initialize_filesystem();
+
+        if ( $this->is_loaded ) {
+            $this->repo = $wp_filesystem;
+        }
     }
 
     /**
      * Initialize the WordPress filesystem.
      */
     private function initialize_filesystem() {
-        global $wp_filesystem;
-
         if ( ! function_exists( 'request_filesystem_credentials' ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
         }
@@ -247,17 +255,147 @@ class Smliser_Repository {
     }
 
     /**
-     * Get plugin description
+     * Open the zip file and get the plugin's readme.txt file.
+     *
+     * Assumes the file is located at "plugin-folder/readme.txt" within the zip archive.
+     *
+     * @param string $path The absolute path to the zip file.
+     * @return string|WP_Error The contents of the readme.txt file or a WP_Error object on failure.
+     */
+    public function get_readme_txt( $path ) {
+        // Check if the file exists in the repository.
+        if ( ! $this->repo->exists( $path ) ) {
+            return new WP_Error( 
+                'smliser_repo_error', 
+                sprintf( __( 'File does not exist at path: %s', 'smart-license-server' ), esc_html( $path ) ), 
+                array( 'status' => 404 ) 
+            );
+        }
+
+        $zip = new ZipArchive();
+        $opened = $zip->open( $path );
+        if ( true !== $opened ) {
+            return new WP_Error( 
+                'smliser_repo_error', 
+                __( 'Failed to open the zip file.', 'smart-license-server' ), 
+                array( 'status' => 500 ) 
+            );
+        }
+
+        // Get the folder name from the zip file by examining the first entry.
+        $first_file_name = $zip->getNameIndex( 0 );
+        $plugin_folder   = strstr( $first_file_name, '/', true );
+
+        if ( ! $plugin_folder ) {
+            $zip->close();
+            return new WP_Error( 
+                'smliser_repo_error', 
+                __( 'Failed to determine the plugin folder in the zip archive.', 'smart-license-server' ), 
+                array( 'status' => 500 ) 
+            );
+        }
+
+        // Construct the expected path to the readme.txt file.
+        $readme_path = $plugin_folder . '/readme.txt';
+        $readme_contents = $zip->getFromName( $readme_path );
+
+        $zip->close();
+
+        if ( false === $readme_contents ) {
+            return new WP_Error( 
+                'smliser_repo_error', 
+                __( 'The readme.txt file does not exist in the expected location.', 'smart-license-server' ), 
+                array( 'status' => 404 ) 
+            );
+        }
+
+        return $readme_contents;
+    }
+
+
+    /**
+     * Get the plugin info (index text) from the readme.txt file in the plugin zip.
      *
      * @param string $plugin_slug The slug of the plugin zip file.
      * @return string The plugin description or an error message.
      */
     public function get_description( $plugin_slug ) {
+        $plugin_slug      = Smliser_Plugin::normalize_slug( $plugin_slug );
+        $repo_dir         = $this->get_repo_dir();
+        $zipped_file_path = trailingslashit( $repo_dir ) . $plugin_slug;
+
+        if ( ! $this->repo->exists( $zipped_file_path ) || ! $this->is_readable( $zipped_file_path ) ) {
+            return 'Plugin file does not exist or is not readable.';
+        }
+
+        $readme_contents = $this->get_readme_txt( $zipped_file_path );
+        if ( is_wp_error( $readme_contents ) ) {
+            return '';
+        }
+
+        $lines        = explode( "\n", $readme_contents );
+        $render_text  = '';
+        $exclude      = false;
+
+        foreach ( $lines as $line ) {
+            $line = trim( $line );
+            // Skip the plugin name
+            if ( str_starts_with( $line, '===' ) && str_ends_with( $line, '===' ) ) {
+                continue;
+            }
+            // Skip metadata lines
+            $meta_data = array( 'Contributors:', 'Tags:', 'Stable tag:', 'Requires PHP:', 'License:', 'License URI:', 'Requires at least:', 'tested:', 'tested up to:' );
+            foreach( $meta_data as $unwanted ) {
+                if ( strpos( $line, $unwanted ) !== false ) {
+                    $exclude = true;
+                    break;
+                }
+            }
+
+            // Match section headers
+            if ( preg_match( '/^==\s*(.*?)\s*==$/', $line, $matches ) ) {
+                $section_title = strtolower( $matches[1] );
+
+                // Determine if the section should be excluded
+                if ( in_array( $section_title, [ 'installation', 'changelog', 'frequently asked questions', 'screenshots' ] ) ) {
+                    $exclude = true;
+                } else {
+                    $exclude = false;
+                }
+
+                // Always include section headers unless excluded
+                if ( ! $exclude ) {
+                    $render_text .= ltrim( $line . "\n" );
+                }
+
+                continue;
+            }
+
+            // Include content if not in an excluded section
+            if ( ! $exclude ) {
+                $render_text .= $line . "\n";
+            }
+        }
+
+        return $this->parse( esc_html( trim( $render_text ) ) );
+
+        return 'Unable to read plugin file.';
+    }
+
+
+    /**
+     * Get plugin short description
+     *
+     * @param string $plugin_slug The slug of the plugin zip file.
+     * @return string The plugin description or an error message.
+     */
+    public function get_short_description( $plugin_slug ) {
+        $plugin_slug        = Smliser_Plugin::normalize_slug( $plugin_slug );
         $repo_dir           = $this->get_repo_dir();
         $zipped_file_path   = trailingslashit( $repo_dir ) . $plugin_slug;
         $zip                = new ZipArchive;
 
-        if ( $zip->open( $zipped_file_path ) === TRUE ) {
+        if ( @$zip->open( $zipped_file_path ) === TRUE ) {
             // Loop through the files in the zip archive
             for ( $i = 0; $i < $zip->numFiles; $i++ ) {
                 $file_name = $zip->getNameIndex( $i );
@@ -272,7 +410,7 @@ class Smliser_Repository {
 
                     // Look for the "== Description ==" section in the readme.txt
                     if ( preg_match( '/==\s*Description\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
-                        return nl2br( esc_html( trim( $matches[1] ) ) );
+                        return $this->parse( esc_html( trim( $matches[1] ) ) );
                     } else {
                         return 'Description section not found in the readme.txt file.';
                     }
@@ -293,6 +431,7 @@ class Smliser_Repository {
      * @return string The plugin changelog or an error message.
      */
     public function get_changelog( $plugin_slug ) {
+        $plugin_slug        = Smliser_Plugin::normalize_slug( $plugin_slug );
         $repo_dir = $this->get_repo_dir();
         $zipped_file_path = trailingslashit( $repo_dir ) . $plugin_slug;
         $zip = new ZipArchive;
@@ -312,7 +451,7 @@ class Smliser_Repository {
 
                     // Look for the "== Changelog ==" section in the readme.txt
                     if ( preg_match( '/==\s*Changelog\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
-                        return nl2br( esc_html( trim( $matches[1] ) ) );
+                        return $this->parse( esc_html( trim( $matches[1] ) ) );
                     } else {
                         return 'Changelog section not found in the readme.txt file.';
                     }
@@ -333,9 +472,10 @@ class Smliser_Repository {
      * @return string The plugin installation text or an error message.
      */
     public function get_installation_text( $plugin_slug ) {
-        $repo_dir = $this->get_repo_dir();
-        $zipped_file_path = trailingslashit( $repo_dir ) . $plugin_slug;
-        $zip = new ZipArchive;
+        $plugin_slug        = Smliser_Plugin::normalize_slug( $plugin_slug );
+        $repo_dir           = $this->get_repo_dir();
+        $zipped_file_path   = trailingslashit( $repo_dir ) . $plugin_slug;
+        $zip                = new ZipArchive;
 
         if ( $zip->open( $zipped_file_path ) === TRUE ) {
             // Loop through the files in the zip archive
@@ -352,7 +492,7 @@ class Smliser_Repository {
 
                     // Look for the "== Changelog ==" section in the readme.txt
                     if ( preg_match( '/==\s*Installation\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
-                        return nl2br( esc_html( trim( $matches[1] ) ) );
+                        return $this->parse( esc_html( trim( $matches[1] ) ) );
                     } else {
                         return 'Changelog section not found in the readme.txt file.';
                     }
@@ -366,6 +506,13 @@ class Smliser_Repository {
         }
     }
 
+    /**
+     * Markdown to html parser
+     */
+    public function parse( $text ) {
+        global $smliser_md_html;
+        return $smliser_md_html->parse( $text );
+    }
 
     /*
     |----------
@@ -391,8 +538,7 @@ class Smliser_Repository {
      * @param $file Full path to the file
      */
     public function size( $file ) {
-        global $wp_filesystem;
-        return $wp_filesystem->size( $file );
+        return $this->repo->size( $file );
     }
 
     /**
@@ -402,8 +548,17 @@ class Smliser_Repository {
      * @uses $wp_filesystem::is_readable
      */
     public function is_readable( $file ) {
-        global $wp_filesystem;
-        return $wp_filesystem->is_readable( $file );
+        return $this->repo->is_readable( $file );
+    }
+
+    /**
+     * Check if a given file exists
+     * 
+     * @param string $file
+     * @return bool  True when file exists, false otherwise.
+     */
+    public function exists( $file ) {
+        return $this->repo->exists( $file );
     }
 
     /**
@@ -463,4 +618,12 @@ class Smliser_Repository {
     }
 }
 
+/**
+ * Global instance of the Smliser Repository class.
+ *
+ * This holds a singleton instance of the Smliser_Repository class,
+ * which is used to manage repository-related operations across the application.
+ *
+ * @global Smliser_Repository $smliser_repo Singleton instance of the repository handler.
+ */
 $GLOBALS['smliser_repo'] = Smliser_Repository::instance();
