@@ -2,14 +2,15 @@
 
 ## Description
 
-Smart License Server is a License Key and Update Server for developers who wish to serve updates for their premium and free WordPress plugins and themes. It includes a license key management feature to ensure premium plugins and themes remain private and only accessible to verified license key holders.
+Smart License Server is a License Key and Update Server for developers who desire to serve updates for their premium and free WordPress plugins and themes. It includes a license key management feature to ensure premium plugins and themes remain private and only accessible to verified license key holders.
 
 ## Features
 
-- License key management
-- Update server for plugins and themes
-- Support for both premium and free plugins/themes
-- Secure access for verified license key holders
+- License key management.
+- Update server for plugins and themes.
+- Support for both premium and free plugins/themes.
+- Secure access for verified license key holders.
+- OAUTH implementation to allow authorized client access.
 
 ## Installation
 
@@ -24,12 +25,6 @@ Smart License Server is a License Key and Update Server for developers who wish 
 3. Integrate the license key verification in your plugins/themes.
 
 ## Frequently Asked Questions
-
-**Q: How do I generate a license key?**
-A: Navigate to the License Keys section in the Smart License Server settings and click on "Add New".
-
-**Q: How do I verify a license key in my plugin/theme?**
-A: Use the provided API endpoint to verify the license key from your plugin/theme.
 
 ## Changelog
 
