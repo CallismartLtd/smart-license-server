@@ -272,7 +272,6 @@ class Smliser_install {
         $htaccess_path = $repo_dir . '/.htaccess';
     
         if ( ! $wp_filesystem->exists( $htaccess_path ) ) {
-
             $wp_filesystem->put_contents( $htaccess_path, $htaccess_content, FS_CHMOD_FILE );         
         }
     }
