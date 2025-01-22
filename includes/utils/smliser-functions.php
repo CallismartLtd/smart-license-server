@@ -352,38 +352,35 @@ function smliser_safe_base64_decode( $encoded_token ) {
  * @return string|WP_Error The sanitized and normalized path, or WP_Error on failure.
  */
 function sanitize_and_normalize_path( $path ) {
-    // Remove any null bytes.
-    $path = str_replace( "\0", '', $path );
+    $original_path = $path;
 
-    // Normalize to forward slashes.
-    $path = str_replace( '\\', '/', $path );
+    // Normalize slashes first. This handles mixed slashes and makes other checks easier.
+    $path = str_replace( array( '\\', '/' ), DIRECTORY_SEPARATOR, $path );
+    $parts = explode( DIRECTORY_SEPARATOR, $path );
 
-    // Split the path into segments.
-    $segments = explode( '/', $path );
-    $sanitized_segments = array();
-
-    foreach ( $segments as $segment ) {
-        // Remove any empty segments or current directory references.
-        if ( $segment === '' || $segment === '.' ) {
+    $new_path = array();
+    foreach ( $parts as $part ) {
+        $part = trim($part);
+        if ( '.' === $part || '..' === $part || empty( $part ) ) {
             continue;
         }
 
-        // Remove any parent directory references.
-        if ( $segment === '..' ) {
-            array_pop( $sanitized_segments );
-        }
-
-        // Sanitize each segment.
-        $sanitized_segment = sanitize_file_name( $segment );
-        $sanitized_segments[] = $sanitized_segment;
-        
+        $new_path[] = sanitize_text_field( $part );
     }
 
-    // Rejoin the sanitized segments.
-    $sanitized_path = implode( '/', $sanitized_segments );
+    $normalized_path = wp_normalize_path( implode( DIRECTORY_SEPARATOR, $new_path ) );
 
-    // Return the sanitized and normalized path.
-    return $sanitized_path;
+    // Check for null bytes *after* normalization to prevent bypasses.
+    if ( preg_match( '/\0/', $normalized_path ) ) {
+        return new WP_Error( 'invalid_path', 'invalid path provided' );
+    }
+
+    //Check if the path contains any encoded characters after normalization.
+    if ( preg_match( '/(%|&#)/i', $normalized_path ) ) {
+        return new WP_Error( 'invalid_chars', 'Path contains invalid characters' );
+    }
+
+    return $normalized_path;
 }
 
 /**
