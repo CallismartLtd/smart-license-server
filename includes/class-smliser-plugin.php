@@ -582,7 +582,7 @@ class Smliser_Plugin {
         $file = $this->file;
 
         if ( empty( $file ) ) {
-            return new WP_Error( 'missing_plugin', 'No plugin uploaded' );
+            return new WP_Error( 'missing_plugin', 'No plugin file found.' );
         }
 
         global $smliser_repo, $wpdb;
@@ -933,26 +933,24 @@ class Smliser_Plugin {
     public function formalize_response() {
         $pseudo_slug    = explode( '/', $this->get_slug() )[0];
         $data = array(
-            'name'      => $this->get_name(),
-            'id'        => $pseudo_slug,
-            'slug'      => $pseudo_slug ,
-            'plugin'    => $this->get_slug(),
-            'version'   => $this->get_version(),
-            'author'    => '<a href="' . esc_url( $this->get_author_profile() ) . '">' . $this->get_author() . '</a>',
-            'author_profile' => $this->get_author_profile(),
-            'homepage'  => $this->get_url(),
-            'package'   => $this->get_download_link(),
-            'banners'   => array(
-                'low'        => '',
-                'high'        => '',
+            'name'              => $this->get_name(),
+            'slug'              => $pseudo_slug ,
+            'version'           => $this->get_version(),
+            'author'            => '<a href="' . esc_url( $this->get_author_profile() ) . '">' . $this->get_author() . '</a>',
+            'author_profile'    => $this->get_author_profile(),
+            'homepage'          => $this->get_url(),
+            'package'           => $this->get_download_link(),
+            'banners'           => array(
+                'low'   => '',
+                'high'  => '',
             ),
-            'requires'      => $this->get_required(),
-            'tested'        => $this->get_tested(),
-            'requires_php'  => $this->get_required_php(),
+            'requires'          => $this->get_required(),
+            'tested'            => $this->get_tested(),
+            'requires_php'      => $this->get_required_php(),
             'requires_plugins'  => '',
-            'added'         => $this->get_date_created(),
-            'last_updated'  => $this->get_last_updated(),
-            'sections'      => $this->get_sections(),
+            'added'             => $this->get_date_created(),
+            'last_updated'      => $this->get_last_updated(),
+            'sections'          => $this->get_sections(),
         );
 
         return $data;
@@ -988,24 +986,33 @@ class Smliser_Plugin {
     }
 
     /**
-     * Normalize a plugin slug
+     * Normalize a plugin slug as plugin-slug/plugin-slug.
      * 
-     * @param string $slug The slug
+     * @param string $slug The slug.
      */
     public static function normalize_slug( $slug ) {
-        // Check whether the slug contains forward slash as plugin-slug/plugin-slug.
+        if ( empty( $slug ) || ! is_string( $slug ) ) {
+            return '';
+        }
+
+        // Check whether the slug contains forward slash
         $parts = explode( '/', $slug );
+
         if ( 1 === count( $parts ) ) {
             if ( str_contains( $parts[0], '.' ) ) {
-                $slug = substr( $parts[0], strpos( $parts[0], '.' ) );
+                $slug = substr( $parts[0], 0, strpos( $parts[0], '.' ) );
             }
 
             $slug = trailingslashit( $slug ) . $slug;
+        } elseif ( count( $parts ) >= 2) {
+            if ( $parts[1] !== $parts[0] ) {
+                // assumming the first string is actual slug.
+                $slug = trailingslashit ( $parts[0] ) . $parts[0];
+            }
         }
         
         if ( ! str_ends_with( $slug, '.zip' ) ) {
             if ( str_contains( $slug, '.' ) ) {
-                
                 $slug = substr( $slug, 0, strpos( $slug, '.' ) );
             }
             
@@ -1056,8 +1063,8 @@ class Smliser_Plugin {
     public static function plugin_upload_controller () {
         if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
             global $smliser_repo;
-            $is_new     = isset( $_POST['smliser_plugin_upload_new'] ) ? true : false;
-            $is_update  = isset( $_POST['smliser_plugin_upload_update'] ) ? true : false;
+            $is_new     = isset( $_POST['smliser_plugin_upload_new'] );
+            $is_update  = isset( $_POST['smliser_plugin_upload_update'] );
 
             if ( $is_new ) {
                 $self = new self();
@@ -1090,17 +1097,21 @@ class Smliser_Plugin {
             }
             
             if ( $is_update ) {
-                $update = $self->update();
-                if ( is_wp_error( $update ) ) {
-                    set_transient( 'smliser_form_validation_message', $update->get_error_message(), 5 );
+                $item_id = $self->update();
+                if ( is_wp_error( $item_id ) ) {
+                    set_transient( 'smliser_form_validation_message', $item_id->get_error_message(), 5 );
+                } else {
+                    set_transient( 'smliser_form_success', true, 4 );
+
                 }
                 
-                set_transient( 'smliser_form_success', true, 4 );
                 wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $id ) );
                 exit;
             }
 
         }
+        wp_safe_redirect( smliser_repository_admin_action_page() );
+        exit;
     }
 
 }
