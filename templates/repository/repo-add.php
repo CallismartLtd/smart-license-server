@@ -30,8 +30,8 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
             <label for="smliser-plugin-file" class="smliser-form-label">Plugin File (.zip):</label>
             <span class="smliser-form-description" title="Upload the plugin zip file, Max Upload Size <?php echo esc_html( $max_upload_size_mb ) . 'MB';?>">?</span>
             <div class="smliser-form-file-row">
-            <input type="file" name="smliser_plugin_file" id="smliser-plugin-file" class="smliser-form-inpu" accept=".zip" required>
-            <p class="smliser-file-size"></p>
+                <input type="file" name="smliser_plugin_file" id="smliser-plugin-file" class="smliser-form-inpu" accept=".zip" required>
+                <p class="smliser-file-size"></p>
             </div>
         </div>
 
