@@ -39,8 +39,10 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
             <label for="smliser-plugin-file" class="smliser-form-label">Plugin File (.zip):</label>
             <span class="smliser-form-description" title="If you upload a new zip file, the old file will be deleted and replaced with the uploaded version. The older version will not be recoverable, so be sure to use version control to track your plugin update history or skip upload to use current file. Max Upload Size: <?php echo esc_html( $max_upload_size_mb ) . 'MB'; ?>">?</span>
             <div class="smliser-form-file-row">
-                <input type="file" name="smliser_plugin_file" id="smliser-plugin-file" class="smliser-form-inpu" accept=".zip">
-                <p class="smliser-file-size"></p>
+                <span class="dashicons dashicons-remove" id="smliser-file-remove" style="display: none;" title="remove file"></span>
+                <input type="file" name="smliser_plugin_file" id="smliser-plugin-file"  style="display: none;">
+                <div class="smliser-file-info" wp-max-upload-size= "<?php echo absint( $max_upload_size_mb ) ?>">No plugin file selected.</div>
+                <div class="smliser-upload-btn"><span class="dashicons dashicons-upload"></span> Upload Plugin</div>
             </div>
         </div>
 
