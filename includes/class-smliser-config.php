@@ -89,6 +89,9 @@ class SmartLicense_config {
         define( 'SMLISER_API_ACCESS_LOG_TABLE', $wpdb->prefix . 'smliser_api_access_logs' );
         define( 'SMLISER_API_CRED_TABLE', $wpdb->prefix . 'smliser_api_creds' );
         define( 'SMLISER_REPO_DIR', WP_CONTENT_DIR . '/premium-repository' );
+        define( 'SMLISER_NEW_REPO_DIR', WP_CONTENT_DIR . '/smliser-repo' );
+        define( 'SMLISER_PLUGINS_REPO_DIR', SMLISER_NEW_REPO_DIR . '/plugins' );
+        define( 'SMLISER_THEMES_REPO_DIR', SMLISER_NEW_REPO_DIR . '/themes' );
         define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_item_download_token' );
         
         register_activation_hook( SMLISER_FILE, array( 'Smliser_install', 'install' ) );
@@ -106,8 +109,10 @@ class SmartLicense_config {
         add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller' ) );
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
         add_action( 'admin_post_smliser_admin_download_plugin', array( 'Smliser_Server', 'serve_admin_download' ) );
+        add_action( 'admin_notices', array( __CLASS__, 'print_notice' ) );
         add_filter( 'query_vars', array( $this, 'query_vars') );
-        add_action( 'admin_post_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler' ) );
+        add_action( 'wp_ajax_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler' ) );
+        add_action( 'wp_ajax_smliser_upgrade', array( 'Smliser_Install', 'ajax_update' ) );
         add_action( 'admin_post_nopriv_smliser_oauth_login', array( 'Smliser_API_Cred', 'oauth_login_form_handler' ) );
         add_action( 'smliser_stats', array( 'Smliser_Stats', 'action_handler' ), 10, 4 );
         add_action( 'wp_ajax_smliser_key_generate', array( 'Smliser_API_Cred', 'admin_create_cred_form' ) );
@@ -356,7 +361,7 @@ class SmartLicense_config {
      * Load Scripts
      */
     public function load_scripts() {
-        wp_enqueue_script( 'smliser-script', SMLISER_URL . 'assets/js/forms.js', array( 'jquery' ), SMLISER_VER, true );
+        wp_enqueue_script( 'smliser-script', SMLISER_URL . 'assets/js/main-script.js', array( 'jquery' ), SMLISER_VER, true );
         if ( defined( 'SMLISER_ADMIN_PAGE' ) ) {
             wp_enqueue_script( 'smliser-chart', SMLISER_URL . 'assets/js/chart.js', array(), SMLISER_VER, true );
         }
@@ -553,6 +558,22 @@ class SmartLicense_config {
 
         // Allow only http and https schemes
         return in_array( strtolower( $parsed_url['scheme'] ), [ 'http', 'https' ], true );
+    }
+
+    /**
+     * Print admin notices
+     */
+    public static function print_notice() {
+        $repo_version = get_option( 'smliser_repo_version', 0 );
+        if ( SMLISER_VER === $repo_version ) {
+            return;
+        }
+        ?>
+        <div class="notice notice-info">
+            <p>Smart License Server requires an update, click <a id="smliser-update-btn" style="cursor: pointer;">HERE</a> to update now.</p>
+            <p id="smliser-click-notice" style="display: none">Update started in the backgroud <span class="dashicons dashicons-yes-alt" style="color: blue"></span></p>
+        </div>
+        <?php
     }
 }
 
