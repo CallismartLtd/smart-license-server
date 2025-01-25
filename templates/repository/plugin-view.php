@@ -11,8 +11,8 @@ defined( 'ABSPATH' ) || exit;
 ?>
 <h1><?php echo esc_html( $plugin->get_name() ) ?></h1>
 <a href="<?php echo esc_url( smliser_repository_admin_action_page( 'edit', $plugin->get_item_id() ) ) ?>" class="button action smliser-nav-btn">Edit Plugin</a>
-<a href="<?php echo esc_url( $delete_link ) ?>" class="button action smliser-nav-btn" id="smliser-license-delete-button">Delete Plugin</a>
-<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=smliser_admin_download_plugin&item_id=' . $plugin->get_item_id() ), 'smliser_download_token', 'download_token' ) ) ?>" class="button action smliser-nav-btn" id="smliser-license-delete-button">Download Plugin <span class="dashicons dashicons-download"></span></a>
+<a class="button action smliser-nav-btn" id="smliser-plugin-delete-button" item-id="<?php echo absint( $plugin->get_item_id() ); ?>">Delete Plugin</a>
+<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=smliser_admin_download_plugin&item_id=' . $plugin->get_item_id() ), 'smliser_download_token', 'download_token' ) ) ?>" class="button action smliser-nav-btn">Download Plugin <span class="dashicons dashicons-download"></span></a>
 <div class="smliser-admin-view-page-wrapper">
     <div class="smliser-admin-view-page-header"> 
         <div class="smliser-admin-view-page-header-child">
@@ -80,4 +80,5 @@ defined( 'ABSPATH' ) || exit;
             <p>Public Download URL: <p><?php echo $plugin->is_licensed() ? $plugin->licensed_download_url() : esc_html( $plugin->get_download_link()  ); ?></p></p>
         </div>
     </div>
+    
 </div>
