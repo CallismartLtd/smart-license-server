@@ -820,8 +820,8 @@ class Smliser_Server{
 
             }
 
-            $slug           = sanitize_and_normalize_path( trailingslashit( $plugin_slug ) . $plugin_file . '.zip' );
-            $plugin_path    = trailingslashit( $smliser_repo->get_repo_dir() ) . $slug;       
+            $slug           = $plugin->normalize_slug( trailingslashit( $plugin_slug ) . $plugin_file );
+            $plugin_path    = $smliser_repo->get_plugin( $slug );       
             
             if ( ! $smliser_repo->exists( $plugin_path ) ) {
                 wp_die( 'Plugin file does not exist.', 404 );
@@ -877,7 +877,7 @@ class Smliser_Server{
         }
 
         $slug       = $the_plugin->get_slug();
-        $file_path  = trailingslashit( $smliser_repo->get_repo_dir() ) . $slug;
+        $file_path  = $smliser_repo->get_plugin( $slug );
         
         if ( ! $smliser_repo->exists( $file_path ) ) {
             wp_die( 'Plugin file does not exist.', 404 );
