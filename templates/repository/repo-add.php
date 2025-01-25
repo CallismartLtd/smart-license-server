@@ -30,8 +30,10 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
             <label for="smliser-plugin-file" class="smliser-form-label">Plugin File (.zip):</label>
             <span class="smliser-form-description" title="Upload the plugin zip file, Max Upload Size <?php echo esc_html( $max_upload_size_mb ) . 'MB';?>">?</span>
             <div class="smliser-form-file-row">
-                <input type="file" name="smliser_plugin_file" id="smliser-plugin-file" class="smliser-form-inpu" accept=".zip" required>
-                <p class="smliser-file-size"></p>
+                <span class="dashicons dashicons-remove" id="smliser-file-remove" style="display: none;" title="remove file"></span>
+                <input type="file" name="smliser_plugin_file" id="smliser-plugin-file"  style="display: none;" required>
+                <div class="smliser-file-info" wp-max-upload-size= "<?php echo absint( $max_upload_size_mb ) ?>">No plugin file selected.</div>
+                <div class="smliser-upload-btn"><span class="dashicons dashicons-upload"></span> Upload Plugin</div>
             </div>
         </div>
 
@@ -69,7 +71,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
             <input type="text" name="smliser_plugin_requires_php" id="smliser-plugin-requires-php" class="smliser-form-input">
         </div>
 
-        <input type="submit" class="button action smliser-bulk-action-button" name="smliser_plugin_upload_new" value="Upload Plugin"/>
+        <input type="submit" id="smliser-repo-submit-btn" class="button action smliser-bulk-action-button" name="smliser_plugin_upload_new" value="Upload Plugin"/>
     </form>
 
 </div>
