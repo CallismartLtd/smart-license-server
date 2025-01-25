@@ -7,6 +7,7 @@
  * Author URI: https://callismart.com.ng/callistus
  * Version: 0.0.1
  */
+
 defined( 'ABSPATH' ) || exit;
 
 if ( defined( 'SMLISER_PATH' ) ) {
