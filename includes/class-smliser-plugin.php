@@ -440,9 +440,35 @@ class Smliser_Plugin {
      * @return string The particular section name
      */
     public function get_section( $name ) {
-        return $this->section[$name];
+        return isset($this->sections[$name] ) ? $this->sections[$name] : '';
     }
 
+    /**
+     * Get plugin descripion
+     * 
+     * @return string a parsed HTML string from the readme file.
+     */
+    public function get_description() {
+        return $this->get_section( 'description' );
+    }
+
+    /**
+     * Get the plugin installation text.
+     * 
+     * @return string a parsed HTML string from the readme file.
+     */
+    public function get_installation() {
+        return $this->get_section( 'installation' );
+    }
+
+    /**
+     * Get the plugin changelog from the readme.txt file.
+     * 
+     * @return string a parsed HTML string from the readme file.
+     */
+    public function get_changelog() {
+        return $this->get_section( 'changlog' );
+    }
     /**
      * Get Sections
      * 
@@ -585,8 +611,11 @@ class Smliser_Plugin {
             return new WP_Error( 'missing_plugin', 'No plugin file found.' );
         }
 
+        // Correct the file name to correspond to plugin-name
+        $correct_file_name = strtolower( str_replace( ' ', '-', $this->get_name() ) );
+
         global $smliser_repo, $wpdb;
-        $slug = $smliser_repo->upload_to_repository( $file );
+        $slug = $smliser_repo->upload_to_repository( $file, $correct_file_name );
 
         if ( is_wp_error( $slug ) ) {
             return $slug;
@@ -634,7 +663,7 @@ class Smliser_Plugin {
         global $smliser_repo, $wpdb;
         $file = $this->file;
     
-        if ( ! empty( $file['name'] ) ) {
+        if ( ! empty( $this->file ) ) {
             $slug = $smliser_repo->update_plugin( $file, $this->get_slug() );
             if ( is_wp_error( $slug ) ) {
                 return $slug;
@@ -710,25 +739,18 @@ class Smliser_Plugin {
         }
     
         global $smliser_repo, $wpdb;
-        try {
-            $item_id        = $this->get_item_id();
-            $file_delete    = $smliser_repo->delete( $this->get_slug() );
-    
-            if ( is_wp_error( $file_delete ) ) {
-                throw new Exception( $file_delete->get_error_message() );
-            }
-    
-            $plugin_deletion    = $wpdb->delete( SMLISER_PLUGIN_ITEM_TABLE, array( 'id' => $item_id ), array( '%d' ) );
-            $meta_deletion      = $wpdb->delete( SMLISER_PLUGIN_META_TABLE, array( 'plugin_id' => $item_id ), array( '%d' ) );
-    
-            if ( false === $plugin_deletion || false === $meta_deletion ) {
-                throw new Exception( 'An issue occurred during the deletion' );
-            }
-        } catch ( Exception $e ) {
-            return false;
+        
+        $item_id        = $this->get_item_id();
+        $file_delete    = $smliser_repo->delete( $this->get_slug() );
+
+        if ( is_wp_error( $file_delete ) ) {
+            return $file_delete;
         }
-    
-        return true;
+
+        $plugin_deletion    = $wpdb->delete( SMLISER_PLUGIN_ITEM_TABLE, array( 'id' => $item_id ), array( '%d' ) );
+        $meta_deletion      = $wpdb->delete( SMLISER_PLUGIN_META_TABLE, array( 'plugin_id' => $item_id ), array( '%d' ) );
+
+        return $plugin_deletion && $meta_deletion !== false;
     }
 
     /**
@@ -1029,11 +1051,18 @@ class Smliser_Plugin {
     */
 
     /**
-     * Syncronise License data with the plugin.
-     * 
-     * @param Smliser_license.
+     * Plugin ajax action handler
      */
     public static function action_handler() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+        }
+
+        if ( ! current_user_can( 'install_plugins' ) ) {
+            wp_send_json_error( array( 'message' => 'You do not have the required permission to dothis.' ), 403 );
+
+        }
+        
         $item_id = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
         $action  = isset( $_GET['real_action'] ) ? sanitize_text_field( $_GET['real_action'] ) : '';
 
@@ -1050,11 +1079,17 @@ class Smliser_Plugin {
 
         switch ( $action ) {
             case 'delete':
-                $self->delete();
+                $result = $self->delete();
+                $message = 'Plugin deleted';
                 break;
         }
-        wp_safe_redirect( smliser_repo_page() );
-        exit;
+
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        }
+
+        wp_send_json_success( array( 'message' => $message, 'redirect_url' => smliser_repo_page() ) );
+       
     }
 
     /**
