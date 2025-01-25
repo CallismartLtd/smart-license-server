@@ -21,9 +21,12 @@ class Smliser_install {
         $result = self::create_directory();
         if ( is_wp_error( $result ) ) {
             update_option( 'smliser_directory_error', $result->get_error_message() );
+        } else {
+            delete_option( 'smliser_directory_error' );
         }
 
         self::create_tables();
+        return true;
        
     }
 
@@ -242,37 +245,172 @@ class Smliser_install {
     }
 
     /**
-     * Create Premium plugins directory.
+     * Create the repository folders and protect them with .htaccess.
+     *
+     * @return bool|WP_Error True on success, WP_Error on failure.
      */
     private static function create_directory() {
         global $wp_filesystem;
-    
+
         if ( ! function_exists( 'request_filesystem_credentials' ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
         }
-    
-        // Request filesystem credentials (this will handle FTP/SSH details if required).
+
+        // Request filesystem credentials (handles FTP/SSH details if required).
+        ob_start();
         $creds = request_filesystem_credentials( '', '', false, false, null );
-        
+        ob_get_clean(); // The credential form.
+
         // Initialize the filesystem.
         if ( ! WP_Filesystem( $creds ) ) {
-            return new WP_Error( 'filesystem_init_failed', __( 'Failed to initialize filesystem', 'smliser' ) );
+            return new WP_Error( 'filesystem_init_failed', __( 'Failed to initialize filesystem.', 'smliser' ) );
         }
-    
-        $repo_dir = SMLISER_REPO_DIR;
-    
-        if ( ! $wp_filesystem->is_dir( $repo_dir ) ) {
-            if ( ! $wp_filesystem->mkdir( $repo_dir, 0755 ) ) {
-                return new WP_Error( 'directory_creation_failed', 'Failed to create directory: ' . esc_html( $repo_dir ) );
+
+        $directories = [
+            'repo'   => SMLISER_NEW_REPO_DIR,
+            'plugin' => SMLISER_PLUGINS_REPO_DIR,
+            'theme'  => SMLISER_THEMES_REPO_DIR,
+        ];
+
+        foreach ( $directories as $type => $dir ) {
+            if ( ! $wp_filesystem->is_dir( $dir ) ) {
+                if ( ! $wp_filesystem->mkdir( $dir ) ) {
+                    return new WP_Error( 
+                        'directory_creation_failed',
+                        sprintf( __( 'Failed to create %s directory: %s', 'smliser' ), $type, esc_html( $dir ) )
+                    );
+                }
+                
+                // Set directory permissions manually.
+                $wp_filesystem->chmod( $dir, FS_CHMOD_DIR, true );
             }
         }
-    
-        // Protect the directory with an .htaccess file
+
+        // Protect the repository directory with an .htaccess file.
         $htaccess_content = "Deny from all";
-        $htaccess_path = $repo_dir . '/.htaccess';
-    
+        $htaccess_path    = $directories['repo'] . '/.htaccess';
+
         if ( ! $wp_filesystem->exists( $htaccess_path ) ) {
-            $wp_filesystem->put_contents( $htaccess_path, $htaccess_content, FS_CHMOD_FILE );         
+            $wp_filesystem->put_contents( $htaccess_path, $htaccess_content, FS_CHMOD_FILE );
+        }
+
+        return true; // Indicate success.
+    }
+
+    /**
+     * Update the repository directory structure to support themes
+     * 
+     * @since 0.0.2
+     */
+    private static function update_repo_structure_002() {
+        global $smliser_repo;
+        $old_plugin_dir     = wp_normalize_path( SMLISER_REPO_DIR );
+        $old_plugin_folders = scandir( $old_plugin_dir );
+        $abs_folders        = array();
+        $all_plugins        = array();
+        foreach( $old_plugin_folders as $folder ) {
+            if ( str_starts_with( $folder, '.' ) ) {
+                continue;
+            }
+    
+            $abs_folders[] = trailingslashit( $old_plugin_dir ) . $folder;
+        }
+        // We have the plugin folders, let's get the files.
+        foreach( $abs_folders as $folder ) {
+            if ( ! $smliser_repo->repo->is_dir( $folder ) ) {
+                continue;
+            }
+    
+            $contents =  scandir( $folder );
+            
+            foreach ( $contents as $file ) {
+                if ( ! str_ends_with( trailingslashit( $folder ) . $file, '.zip' ) ) {
+                    continue;
+                }
+    
+                $all_plugins[] = trailingslashit( $folder ) . $file;
+            }   
+        }
+
+        $repo_struct = self::migrate_helper_002( $all_plugins );
+       
+        $files          = array();
+        foreach ( $repo_struct as $data ) {
+            $path_to_old_file   = $data['old_path'];
+            $path_to_new_file   = $data['new_path'];
+            $dir_name           = $data['dir_name'];
+    
+            if ( ! $smliser_repo->repo->is_dir( $dir_name ) && ! $smliser_repo->repo->mkdir( $dir_name ) ) {
+                continue;
+            }
+    
+            // Migrate the files.
+            $migrated = $smliser_repo->repo->copy( $path_to_old_file, $path_to_new_file, true );
+            if ( ! $migrated ) {
+                error_log( 'Unable to migrate file from ' . $path_to_old_file . ' to ' . $path_to_new_file );
+                continue;
+            }
+    
+            $files[] = $data['name'];
+    
         }
     }
+
+    /**
+     * Version 0.0.2 Repository migration helper method to construct the repo structure.
+     * 
+     * @param array $file_paths Array containing path to all files in the repo.
+     * @return array $data An array of constructed repo data for new and old structure.
+     * @since 0.0.2
+     */
+    private static function migrate_helper_002( $file_paths ) {
+        global $smliser_repo;
+        $data   = array();
+    
+        foreach ( $file_paths as $file_path ) {
+            $pathinfo   = pathinfo( $file_path );
+            $file_name  = basename( $file_path );
+            $file_size  = filesize( $file_path );
+            $file_type  = mime_content_type( $file_path );
+            $dirname    = $pathinfo['filename'];
+            $new_path   = $smliser_repo->set_path( trailingslashit( $dirname ) . $file_name );
+    
+            if ($file_type === false){
+                $file_type = 'application/octet-stream'; //Fallback
+            }
+    
+            $data[] = array(
+                'name'      => $file_name,
+                'type'      => $file_type,
+                'old_path'  => $file_path,
+                'new_path'  => $new_path,
+                'dir_name'  => $smliser_repo->set_path( trailingslashit( $dirname ) ),
+                
+            );
+        }
+        return $data;
+    }
+
+    /**
+     * Handle ajax update
+     */
+    public static function ajax_update() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+        }
+
+        $repo_version = get_option( 'smliser_repo_version', 0 );
+        if ( SMLISER_VER === $repo_version ) {
+            wp_send_json_error( array( 'message' => 'No upgrade needed' ) );
+        }
+
+        if ( self::install() )  {
+            self::update_repo_structure_002();
+           
+        }
+        update_option( 'smliser_repo_version', SMLISER_VER );
+
+        wp_send_json_success( array( 'message' => 'The repository has been updated from version "' . $repo_version . '" to version "' . SMLISER_VER ) );
+    }
+
 }
