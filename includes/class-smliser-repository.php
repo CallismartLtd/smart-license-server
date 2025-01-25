@@ -19,6 +19,11 @@ class Smliser_Repository {
      * @var bool Whether we can access the filesystem.
      */
     protected $is_loaded = false;
+    
+    /**
+     * @var string $errors
+     */
+    protected $errors = [];
 
     /**
      * @var string The directory for the repository.
@@ -41,8 +46,14 @@ class Smliser_Repository {
      */
     public function __construct() {
         global $wp_filesystem;
-        $this->repo_dir = SMLISER_REPO_DIR;
         $this->initialize_filesystem();
+
+        if ( ! empty( $this->errors ) ) {
+            $this->add_notice();
+            return;
+        }
+
+        $this->repo_dir = SMLISER_NEW_REPO_DIR;
 
         if ( $this->is_loaded ) {
             $this->repo = $wp_filesystem;
@@ -62,11 +73,14 @@ class Smliser_Repository {
         ob_get_clean();
 
         if ( ! WP_Filesystem( $creds ) ) {
-            $this->add_connection_notice();
-        } else {
-            $this->is_loaded = true;
+            $this->errors['smliser_filesys_error'] = 'Your server\'s cannot be accessed. In other to use Smart License Server, you will need to configure it to use FTP credentials.';
         }
 
+        if ( $dir_erro = get_option( 'smliser_directory_error', false ) ) {
+            $this->errors['smliser_directory_error'] = $dir_erro;
+        }
+
+        $this->is_loaded = empty( $this->errors );
     }
 
    /**
@@ -94,6 +108,24 @@ class Smliser_Repository {
         return $this->repo_dir;
     }
 
+    /**
+     * Get the repo directory for plugins.
+     * 
+     * @return string The Absolute path to the repository directory for plugins.
+     */
+    public function get_plugins_dir() {
+        return SMLISER_PLUGINS_REPO_DIR;
+    }
+
+    /**
+     * Get the repo directory for themes
+     * 
+     * @return string The absolute path tothe theme directory
+     */
+    public function get_themes_dir() {
+        return SMLISER_THEMES_REPO_DIR;
+    }
+
     /*
     |--------------
     | CRUD methods
@@ -106,11 +138,11 @@ class Smliser_Repository {
      * @return array|WP_Error List of files or WP_Error on failure.
      */
     public function list_repo() {
-        if ( ! $this->repo->is_dir( $this->repo_dir ) ) {
+        if ( ! $this->repo->is_dir( $this->get_repo_dir() ) ) {
             return new WP_Error( 'directory_not_found', __( 'Repository directory not found', 'smart-license-server' ) );
         }
 
-        $folders = $this->repo->dirlist( $this->repo_dir, false );
+        $folders = $this->repo->dirlist( $this->get_repo_dir(), false );
 
         if ( ! is_array( $folders ) ) {
             return new WP_Error( 'directory_read_failed', __( 'Failed to read directory', 'smart-license-server' ) );
@@ -145,7 +177,7 @@ class Smliser_Repository {
 
 
     /**
-     * Get a plugin from the repository.
+     * Get the absolute path to the plugin zip file from the repository.
      *
      * @param string $plugin_slug The slug of the plugin (e.g., plugin-folder/plugin-file.zip).
      * @return string|WP_Error Absolute file path or WP_Error on failure.
@@ -164,7 +196,7 @@ class Smliser_Repository {
         $slug   = Smliser_Plugin::normalize_slug( $plugin_slug );
 
         // Construct the absolute file path.
-        $file_path = $this->set_path( $slug );
+        $file_path = $this->set_path( $slug, 'plugins' );
 
         // Check if the file exists in the repository
         if ( ! $this->repo->exists( $file_path ) ) {
@@ -203,16 +235,17 @@ class Smliser_Repository {
      * Safely upload a plugin into the repository.
      *
      * @param array $file The uploaded file details.
+     * @param string $new_name The new name of the file.
      * @return true|WP_Error True on success or WP_Error on failure.
      */
-    public function upload_to_repository( $file ) {
+    public function upload_to_repository( $file, $new_name ) {
         $tmp_name   = $file['tmp_name'];
 
         if ( ! is_uploaded_file( $tmp_name ) ) {
             return new WP_Error( 'invalid_temp_file', 'The temporary file is not valid.' );
         }
 
-        $repo_dir       = $this->repo_dir;
+        $plugin_dir     = $this->get_plugins_dir();
         $file_name      = $this->valid_filename( $file['name'] );
         $file_type_info = wp_check_filetype( $file_name );
 
@@ -220,13 +253,15 @@ class Smliser_Repository {
             return new WP_Error( 'invalid_file_type', 'Invalid file type, the plugin must be in zip format.' );
         }
 
+        $file_name = str_ends_with( $new_name, $file_type_info['ext'] ) ? $new_name: $new_name . '.' .$file_type_info['ext'];
+
         // Create a base folder.
         $folder_parts   = explode( '.', $file_name );
         $base_name      = sanitize_file_name( $folder_parts[0] );
-        $base_folder    = trailingslashit( $repo_dir ) . $base_name;
+        $base_folder    = trailingslashit( $plugin_dir ) . $base_name;
 
         if ( ! $this->repo->is_dir( $base_folder )  && ! $this->repo->mkdir( $base_folder, FS_CHMOD_FILE  ) ) {
-            return new WP_Error( 'smliser_repo_error', 'Unable to create a make directory' );
+            return new WP_Error( 'smliser_repo_error', 'Unable to create a directory' );
         }
 
         $new_path = trailingslashit( $base_folder ) . sanitize_file_name( $file_name );
@@ -266,8 +301,8 @@ class Smliser_Repository {
         }
 
         // Attempt to replicate the original plugin path with and check if the upload will affect unintended plugin.
-        $pseudo_folder      = explode( '.', $file_name );
-        $new_path    = $this->set_path( sanitize_and_normalize_path( $pseudo_folder[0] . '/' . $file_name ) ); 
+        $pseudo_folder  = explode( '.', $file_name );
+        $new_path       = $this->set_path(  $pseudo_folder[0] . '/' . $file_name, 'plugins' ); 
 
         if ( $new_path !==  $original_plugin_path ) {
             return new WP_Error( 'smliser_repo_error_file_mismatch', 'The uploaded plugin file "' . $file_name . '" does not match the file "' . basename( $original_plugin_path ) . '" on this repository.' );
@@ -296,7 +331,7 @@ class Smliser_Repository {
         if ( ! $this->repo->exists( $path ) ) {
             return new WP_Error( 
                 'smliser_repo_error', 
-                sprintf( __( 'File does not exist at path: %s', 'smart-license-server' ), esc_html( $path ) ), 
+                __( 'File does not exist at path', 'smart-license-server' ), 
                 array( 'status' => 404 ) 
             );
         }
@@ -350,16 +385,15 @@ class Smliser_Repository {
      */
     public function get_description( $plugin_slug ) {
         $plugin_slug      = Smliser_Plugin::normalize_slug( $plugin_slug );
-        $repo_dir         = $this->get_repo_dir();
-        $zipped_file_path = trailingslashit( $repo_dir ) . $plugin_slug;
+        $zipped_file_path = $this->get_plugin( $plugin_slug );
 
-        if ( ! $this->repo->exists( $zipped_file_path ) || ! $this->is_readable( $zipped_file_path ) ) {
-            return 'Plugin file does not exist or is not readable.';
+        if ( is_wp_error( $zipped_file_path ) ) {
+            return '';
         }
 
         $readme_contents = $this->get_readme_txt( $zipped_file_path );
         if ( is_wp_error( $readme_contents ) ) {
-            return $readme_contents->get_error_message();
+            return '';
         }
 
         $lines        = explode( "\n", $readme_contents );
@@ -420,13 +454,17 @@ class Smliser_Repository {
      */
     public function get_short_description( $plugin_slug ) {
         $plugin_slug      = Smliser_Plugin::normalize_slug( $plugin_slug );
-        $repo_dir         = $this->get_repo_dir();
-        $zipped_file_path = trailingslashit( $repo_dir ) . $plugin_slug;
+        $zipped_file_path = $this->get_plugin( $plugin_slug );
+
+        if ( is_wp_error( $zipped_file_path ) ) {
+            return '';
+        }
+
         $readme_contents  = $this->get_readme_txt( $zipped_file_path );
 
         // Check if we successfully retrieved the readme.txt contents.
         if ( is_wp_error( $readme_contents ) || empty( $readme_contents ) ) {
-            return 'Unable to retrieve readme.txt contents.';
+            return '';
         }
 
         $lines           = preg_split( '/\r\n|\r|\n/', $readme_contents );
@@ -472,12 +510,16 @@ class Smliser_Repository {
      */
     public function get_changelog( $plugin_slug ) {
         $plugin_slug    = Smliser_Plugin::normalize_slug( $plugin_slug );
-        $repo_dir       = $this->get_repo_dir();
-        $file_path      = trailingslashit( $repo_dir ) . $plugin_slug;
+        $file_path      = $this->get_plugin( $plugin_slug );
+
+        if ( is_wp_error( $file_path ) ) {
+            return '';
+        }
+
         $raw_text       = $this->get_readme_txt( $file_path );
 
         if ( is_wp_error( $raw_text ) ) {
-            return $raw_text->get_error_message();
+            return '';
         }
 
         // Look for the "== Changelog ==" section in the readme.txt
@@ -485,7 +527,7 @@ class Smliser_Repository {
             return $this->parse( esc_html( trim( $matches[1] ) ) );
         }
 
-        return 'Changelog section not found in the readme.txt file.';
+        return '';
     }
 
     /**
@@ -496,12 +538,16 @@ class Smliser_Repository {
      */
     public function get_installation_text( $plugin_slug ) {
         $plugin_slug        = Smliser_Plugin::normalize_slug( $plugin_slug );
-        $repo_dir           = $this->get_repo_dir();
-        $zipped_file_path   = trailingslashit( $repo_dir ) . $plugin_slug;
+        $zipped_file_path   = $this->get_plugin( $plugin_slug );
+
+        if ( is_wp_error( $zipped_file_path  ) ) {
+            return '';
+        }
+
         $readme_contents    = $this->get_readme_txt( $zipped_file_path );
 
         if ( is_wp_error( $readme_contents ) ) {
-            return $readme_contents->get_error_message();
+            return '';
         }
         // Look for the "== Changelog ==" section in the readme.txt
         if ( preg_match( '/==\s*Installation\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
@@ -519,9 +565,18 @@ class Smliser_Repository {
 
     /**
      * Construct a path to a resource in the repository.
+     * 
+     * @param string $slug  The file slug.
+     * @param string $dir   The directory being accessed {
+     *                          valid values are themes and plugins, defaults to `plugins`
+     * }
      */
-    public function set_path( $path ) {
-        $path = trailingslashit( $this->repo_dir ) . $path;
+    public function set_path( $path, $dir = 'plugins' ) {
+        if ( 'themes' === $dir ) {
+            $path = trailingslashit( $this->repo_dir ) . $dir . '/' . $path;
+        } else {
+            $path = trailingslashit( $this->repo_dir ) . 'plugins/' . $path;
+        }
 
         return sanitize_and_normalize_path( $path );
     }
@@ -547,13 +602,17 @@ class Smliser_Repository {
     /**
      * Add a notice if file system is not direct.
      */
-    private function add_connection_notice() {
+    private function add_notice() {
+        $errors = $this->errors;
         add_action( 'admin_notices', function() {
-            $message = '<div class="notice notice-warning"><p>
-            Your server filesystem configuration requires authentication. In other to use Smart License Server, you will
-            need to configure it to use FTP credentials.</p></div>';
-            echo wp_kses_post( $message );
-        }  );
+            $notice = '<div class="notice notice-warning">';
+            foreach( $errors as $code => $error ) {
+                $notice .= "<p>[$code] $error</p>";
+            }
+            $notice .= '</div>';
+
+            echo wp_kses_post( $notice );
+        });
     }
 
     /**
@@ -582,6 +641,9 @@ class Smliser_Repository {
      * @return bool  True when file exists, false otherwise.
      */
     public function exists( $file ) {
+        if ( ! is_string( $file ) ) {
+            return false;
+        }
         return $this->repo->exists( $file );
     }
 
