@@ -257,6 +257,7 @@ function smliser_allowed_html( $wp_html, $context ) {
             'style' => array(),
             'id' => array(),
             'target' => array(),
+            'item-id'   => array()
         ),
         'span' => array(
             'class' => array(),
