@@ -50,14 +50,11 @@ class Smliser_Repository {
 
         if ( ! empty( $this->errors ) ) {
             $this->add_notice();
-            return;
         }
 
         $this->repo_dir = SMLISER_NEW_REPO_DIR;
 
-        if ( $this->is_loaded ) {
-            $this->repo = $wp_filesystem;
-        }
+        $this->repo = $wp_filesystem;
     }
 
     /**
@@ -606,7 +603,7 @@ class Smliser_Repository {
         $errors = $this->errors;
         add_action( 'admin_notices', function() {
             $notice = '<div class="notice notice-warning">';
-            foreach( $errors as $code => $error ) {
+            foreach( $this->errors as $code => $error ) {
                 $notice .= "<p>[$code] $error</p>";
             }
             $notice .= '</div>';
