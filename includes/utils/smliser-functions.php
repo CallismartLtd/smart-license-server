@@ -353,8 +353,8 @@ function smliser_safe_base64_decode( $encoded_token ) {
  */
 function sanitize_and_normalize_path( $path ) {
     $original_path = $path;
-
-    // Normalize slashes first. This handles mixed slashes and makes other checks easier.
+    
+    $is_absolute = str_starts_with( $path, '/' );
     $path = str_replace( array( '\\', '/' ), DIRECTORY_SEPARATOR, $path );
     $parts = explode( DIRECTORY_SEPARATOR, $path );
 
@@ -380,6 +380,11 @@ function sanitize_and_normalize_path( $path ) {
         return new WP_Error( 'invalid_chars', 'Path contains invalid characters' );
     }
 
+    // Restore absolute paths (Linux)
+    if ( $is_absolute ) {
+        $normalized_path = '/' . $normalized_path;
+    }
+    
     return $normalized_path;
 }
 
