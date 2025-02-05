@@ -333,7 +333,7 @@ class Smliser_license {
      * Get All active licensed Websites.
      */
     public function get_active_sites() {
-        $all_sites = $this->get_meta( 'websites activated on', 'N/L' );
+        $all_sites = $this->get_meta( 'activated_on', 'N/L' );
         if ( is_array( $all_sites ) ) {
             $all_sites = implode( ', ', $all_sites );
         }
@@ -661,19 +661,19 @@ class Smliser_license {
      * Get total sites license has been activated
      */
     public function get_total_active_sites() {
-        return count( $this->get_meta( 'websites activated on', array() ) );
+        return count( $this->get_meta( 'activated_on', array() ) );
     }
 
     /**
      * Update Activated sites
      */
     public function update_active_sites( $site_name ) {
-        $sites              = $this->get_meta( 'websites activated on' );
+        $sites              = $this->get_meta( 'activated_on' );
         $activated_sites    = null;
 
         if ( is_null( $sites ) ) {
             $activated_sites = array( $site_name );
-            return $this->update_meta( 'websites activated on', $activated_sites );
+            return $this->update_meta( 'activated_on', $activated_sites );
 
         } elseif ( is_string( $sites ) ) {
             $sites = is_serialized( $sites ) ? unserialize( $sites ) : (array) $sites;
@@ -682,7 +682,7 @@ class Smliser_license {
         array_splice( $sites, count( $sites ), 0, $site_name );
         $activated_sites    = array_unique( $sites );
         
-        return $this->update_meta( 'websites activated on', $activated_sites );
+        return $this->update_meta( 'activated_on', $activated_sites );
     }
 
     /**
@@ -691,7 +691,7 @@ class Smliser_license {
      * @param $website_name The name of the website.
      */
     public function remove_activated_website( $website_name ) {
-        $sites  = $this->get_meta( 'websites activated on' );
+        $sites  = $this->get_meta( 'activated_on' );
 
         if ( empty( $sites ) ) {
             return false;
@@ -702,7 +702,7 @@ class Smliser_license {
                 unset( $sites[$k] );
             }
         }
-        return $this->update_meta( 'websites activated on', $sites );
+        return $this->update_meta( 'activated_on', $sites );
     }
 
     /**
