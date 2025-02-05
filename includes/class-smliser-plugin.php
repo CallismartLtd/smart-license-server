@@ -145,7 +145,7 @@ class Smliser_Plugin {
     /**
      * Plugin zip file.
      * 
-     * @var string $file The plugin file.
+     * @var array|null $file The plugin file.
      */
     protected $file;
 
@@ -291,7 +291,7 @@ class Smliser_Plugin {
     /**
      *  Set the file
      * 
-     * @param array $file
+     * @param array|null $file
      */
     public function set_file( $file ) {
         $this->file = $file;
@@ -1109,7 +1109,7 @@ class Smliser_Plugin {
                 $self = $obj->get_plugin( $id );
             }
 
-            $file = isset( $_FILES['smliser_plugin_file'] ) ? $_FILES['smliser_plugin_file'] : '';
+            $file = isset( $_FILES['smliser_plugin_file'] ) && UPLOAD_ERR_OK === $_FILES['smliser_plugin_file']['error'] ? $_FILES['smliser_plugin_file'] : null;
             $self->set_file( $file );
             $self->set_name( isset( $_POST['smliser_plugin_name']  ) ? sanitize_text_field( $_POST['smliser_plugin_name'] ) : '' );
             $self->set_author( isset( $_POST['smliser_plugin_author']  ) ? sanitize_text_field( $_POST['smliser_plugin_author'] ) : '' );
