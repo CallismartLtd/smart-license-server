@@ -23,7 +23,7 @@ class Encryption {
      * 
      * @var string $salt The WordPress salt.
      */
-    private static $salt        = SECURE_AUTH_SALT;
+    private static $salt    = SECURE_AUTH_SALT;
 
     /**
      * IV Length
