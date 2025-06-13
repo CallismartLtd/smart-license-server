@@ -777,39 +777,31 @@ class Smliser_Server{
             }
 
             if ( $plugin_slug !== $plugin_file ) {
-                $wp_query->set_404();
-                status_header( 404, 'File not found' );
-                include( get_query_template( '404' ) );
-                exit;
+                wp_die( 'Invalid plugin slug construct.', 400 );
             }
 
             $plugin_obj = new Smliser_Plugin();
             $plugin     = $plugin_obj->get_plugin_by( 'slug', sanitize_and_normalize_path( $plugin_slug . '/' . $plugin_file . '.zip' ) );
 
             if ( ! $plugin ) {
-                $wp_query->set_404();
-                status_header( 404, 'File not found' );
-                include( get_query_template( '404' ) );
-                exit;
+                wp_die( 'Plugin not found.', 404 );
             }
 
             /**
              * Serve download for licensed plugin
              */
             if ( $this->is_licensed( $plugin ) ) {
-                $api_key    = ! empty( $wp_query->query_vars['download_token'] ) ? sanitize_text_field( wp_unslash( $wp_query->query_vars['download_token'] ) ) : '';
+                $api_key    = '';
+                $authorization = smliser_get_authorization_header();
 
-                // If not provided in the url, we check in the header.
-                if ( empty( $api_key ) ) {
-                    $authorization = smliser_get_authorization_header();
-                    if ( $authorization ) {
-                        $parts = explode( ' ', $authorization );
-                        $api_key = $parts[1];
-                    }
+                if ( $authorization ) {
+                    $parts = explode( ' ', $authorization );
+                    $api_key = $parts[1];
                 }
+                
 
                 if ( empty( $api_key ) ) {
-                    wp_die( 'Licensed plugin, please provide token', 401 );
+                    wp_die( 'Licensed plugin, please provide download token.', 401 );
                 }
 
                 $item_id = $plugin->get_item_id();
