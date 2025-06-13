@@ -427,13 +427,6 @@ class SmartLicense_config {
             'top'
         );
 
-        /**Licensed Plugin Download URI Rule */
-        add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/([^/]+)/([^/]+)\.zip/?$',
-            'index.php?smliser_repository_download_page=1&plugin_slug=$matches[1]&download_token=$matches[2]&plugin_file=$matches[3]',
-            'top'
-        );
-
         /**OAUTH authorization endpoint */
         add_rewrite_rule(
             '^smliser-auth/v1/authorize$',
@@ -494,7 +487,6 @@ class SmartLicense_config {
 
         $vars[] = 'smliser_repository_download_page';
         $vars[] = 'plugin_slug';
-        $vars[] = 'download_token';
         $vars[] = 'plugin_file';
         $vars[] = 'smliser_auth';
         
