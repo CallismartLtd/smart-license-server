@@ -208,7 +208,6 @@ class Smliser_REST_Authentication {
      */
     public static function item_download_reauth( WP_REST_Request $request ) {
         $item_id        = sanitize_text_field( urldecode( $request->get_param( 'item_id' ) ) );
-        $token          = self::$instance->extract_token( $request );
         $service_id     = sanitize_text_field( urldecode( $request->get_param( 'service_id' ) ) );
         $license_key    = sanitize_text_field( urldecode( $request->get_param( 'license_key' ) ) );
         $callback_url   = sanitize_text_field( smliser_get_base_address( rawurldecode( $request->get_param( 'callback_url' ) ) ) );
@@ -296,18 +295,14 @@ class Smliser_REST_Authentication {
     public function extract_token( WP_REST_Request $request, $context = 'decode' ) {
 
         // Get the authorization header.
-        $header = $request->get_header( 'authorization' );
+        $access_token = smliser_get_auth_token( $request );
         
-        if ( ! empty( $header ) ) {
-            $parts  = explode( ' ', $header );
-            if ( 2 === count( $parts ) && 'Bearer' === $parts[0] ) {
-                if ( 'raw' === $context ) {
-                    return $parts[1];
-                }
-                
-                return smliser_safe_base64_decode( $parts[1] );
-
-            }            
+        if ( ! empty( $access_token ) ) {
+            if ( 'raw' === $context ) {
+                return $access_token;
+            }
+            
+            return smliser_safe_base64_decode( $access_token );       
         }
 
         // Return null if no valid token is found.
