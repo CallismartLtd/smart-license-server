@@ -332,14 +332,15 @@ class Smliser_license {
     /**
      * Get All active licensed Websites.
      */
-    public function get_active_sites() {
-        $all_sites = $this->get_meta( 'activated_on', 'N/L' );
-        if ( is_array( $all_sites ) ) {
-            $all_sites = implode( ', ', $all_sites );
+    public function get_active_sites( $context = 'view' ) {
+        $all_sites = $this->get_meta( 'activated_on', array() );
+
+        if ( 'view' === $context && is_array( $all_sites ) ) {
+            $all_sites = array_keys( $all_sites );
+            $all_sites = ! empty( $all_sites ) ? implode( ', ', $all_sites ) : 'N/A';
         }
 
-        
-        return ! empty( $all_sites ) ? $all_sites : 'N/L';
+        return $all_sites;
         
     }
 
@@ -497,7 +498,7 @@ class Smliser_license {
      */
     public function update() {
         if ( ! $this->id ) {
-            return new WP_Error( 'invalid_data', 'The license does not exist' );
+            return false;
         }
 
         global $wpdb;
@@ -538,8 +539,8 @@ class Smliser_license {
             SMLISER_LICENSE_TABLE, $data, $where, $data_format, $where_format 
         );
         // phpcs:enable
-        if ( $result ) {
-            do_action( 'smliser_license_saved', $this->get_by_id( $this->id ) );
+        if ( $result !== false ) {
+            do_action( 'smliser_license_saved', $this );
             return true;
         }
 
@@ -665,40 +666,43 @@ class Smliser_license {
     }
 
     /**
-     * Update Activated sites
+     * Update Activated sites.
+     * 
+     * @param string $site_name The name of the site to be added.
+     * @param string $site_secret The secret key for the site.
      */
-    public function update_active_sites( $site_name ) {
-        $sites              = $this->get_meta( 'activated_on' );
-        $activated_sites    = null;
-
-        if ( is_null( $sites ) ) {
-            $activated_sites = array( $site_name );
-            return $this->update_meta( 'activated_on', $activated_sites );
-
-        } elseif ( is_string( $sites ) ) {
-            $sites = is_serialized( $sites ) ? unserialize( $sites ) : (array) $sites;
+    public function update_active_sites( $site_name, $site_secret ) {
+        $sites  = $this->get_meta( 'activated_on', array() );
+        if ( ! is_array( $sites ) ) {
+            $sites = array();
         }
         
-        array_splice( $sites, count( $sites ), 0, $site_name );
-        $activated_sites    = array_unique( $sites );
-        
-        return $this->update_meta( 'activated_on', $activated_sites );
+        $site_name  = sanitize_url( $site_name, array( 'https', 'http' ) );
+        $domain     = wp_parse_url( $site_name, PHP_URL_HOST );
+        $sites[$domain] = array(
+            'name'      => $site_name,
+            'secret'    => $site_secret,
+        );
+
+        return $this->update_meta( 'activated_on', $sites );
     }
 
     /**
      * Remove Activated website
      * 
-     * @param $website_name The name of the website.
+     * @param $site_name The name of the website.
      */
-    public function remove_activated_website( $website_name ) {
+    public function remove_activated_website( $site_name ) {
         $sites  = $this->get_meta( 'activated_on' );
 
         if ( empty( $sites ) ) {
             return false;
         }
         
+        $site_name  = sanitize_url( $site_name, array( 'https', 'http' ) );
+        $domain     = wp_parse_url( $site_name, PHP_URL_HOST );
         foreach ( (array) $sites as $k => $v ) {
-            if ( $v === $website_name ) {
+            if ( $k === $domain ) {
                 unset( $sites[$k] );
             }
         }
@@ -987,19 +991,22 @@ class Smliser_license {
         return $result;
     }
 
+    /*
+    |---------------
+    | CONDITIONALS
+    |---------------
+    */
+
     /**
      * Whether license has reached max allowed websites.
      */
     public function has_reached_max_allowed_sites() {
-        if ( $this->get_total_active_sites() >= $this->get_allowed_sites() ) {
-            return true;
-        }
-
-        return false;
+       return $this->get_total_active_sites() >= $this->get_allowed_sites();
+         
     }
 
     /**
-     * Check if license is has item
+     * Check if license is associated with an item.
      */
     public function has_item() {
         return ! empty( $this->get_item_id() );
@@ -1007,42 +1014,169 @@ class Smliser_license {
 
     /**
      * Check if we can serve license.
+     *
+     * @param int    $item_id The item ID associated with the license.
+     * @return true|WP_Error True if license can be served, otherwise WP_Error.
      */
-    public function can_serve_license( $item_id, $context = '' ) {
-        
+    public function can_serve_license( $item_id ) {
+        $error = null;
+
         if ( ! $this ) {
-            return new WP_Error( 'license_error', 'Invalid license key or service ID.' );    
-             
+            $error = new WP_Error( 'license_error', 'Invalid license key or service ID.', array( 'status' => 400 ) );
+        } elseif ( absint( $item_id ) !== absint( $this->get_item_id() ) ) {
+            $error = new WP_Error( 'license_error', 'Invalid license key or service ID.', array( 'status' => 400 ) );
+        } elseif ( 'Expired' === $this->get_status() ) {
+            $error = new WP_Error( 'license_expired', 'This license has expired. Please renew it.', array( 'status' => 403 ) );
+        } elseif ( 'Suspended' === $this->get_status() ) {
+            $error = new WP_Error( 'license_suspended', 'This license has been suspended. Please contact support if you need further assistance.', array( 'status' => 403 ) );
+        } elseif ( 'Revoked' === $this->get_status() ) {
+            $error = new WP_Error( 'license_revoked', 'This license has been revoked. Please contact support if you need further assistance.', array( 'status' => 403 ) );
+        } elseif ( 'Deactivated' === $this->get_status() ) {
+            $error = new WP_Error( 'license_deactivated', 'This license has been deactivated. Please reactivate it or contact support if you need further assistance.', array( 'status' => 403 ) );
         }
 
-        if ( absint( $item_id ) !== absint( $this->get_item_id() ) ) {
-            return new WP_Error( 'license_error', 'Invalid license key or service ID.' ); 
-            
-        }
-    
-        if ( 'Expired' === $this->get_status() ) {
-            return new WP_Error( 'license_expired', 'License has expired, log into you account to renew your license.' );
-        }
-
-        if ( 'Suspended' === $this->get_status() ) {
-            return new WP_Error( 'license_suspended', 'License has been suspended, log into you account to resolve issues.' );
-        }
-
-        if ( 'Revoked' === $this->get_status() ) {
-            $response_data = array(
-                'code'      => 'license_revoked',
-                'message'   => 'License is currently revoked, log into you account to resolve issues.'
-            );
-            return new WP_Error( 'license_revoked', 'License is currently revoked, log into you account to resolve issues.' );
-        }
-
-        if ( 'Deactivated' === $this->get_status() ) {
-            return new WP_Error( 'license_deactivated', 'License has been deactivated, log into you account to reactivate it or purchase new one.' );
-        }
-
-        if ( 'license activation' === $context && $this->has_reached_max_allowed_sites() ) {
-            return new WP_Error( 'max_allowed_reached', 'License has reached maximum allowed activation' );
-        }
-        return true;
+        return $error ?: true;
     }
+
+    /**
+     * Checks whether the a given domain is a new domain
+     * 
+     * @param string $domain The name of the website.
+     */
+    public function is_new_domain( $domain ) {
+        $domain         = sanitize_url( $domain, array( 'http', 'https' ) );
+        $domain         = wp_parse_url( $domain, PHP_URL_HOST );
+        $all_sites      = $this->get_active_sites( 'edit' );
+        // wp_send_json( $all_sites );
+        return ! isset( $all_sites[$domain] );
+    }
+
+
+    /*
+    |------------------------------------------
+    | LICENSE TASK QUEUE METHODS
+    |------------------------------------------
+    */
+    
+    /**
+     * Add validation tasks to queue.
+     * 
+     * @param int $wait_period Wait period.
+     * @param array $value an associative array containing task data.
+     * @return bool true on success, false otherwise.
+     */
+    public static function add_task_queue( $duration, $value ) {
+        // add the duration which is in seconds to the current timestamp to enable us calculate expiry later.
+        $duration   = current_time( 'timestamp' ) + $duration;
+        $task_queue = get_option( 'smliser_task_queue', array() );
+        
+        $task_queue[ $duration ] = $value;
+       return update_option( 'smliser_task_queue', $task_queue );
+    }
+
+   /**
+     * Fetch the highest priority task from the task queue based on current timestamp.
+     *
+     * @return mixed|null Highest priority task value, or null if no valid task is found.
+     */
+    public static function fetch_highest_priority_task() {
+        // Retrieve the current timestamp
+        $current_time   = current_time( 'timestamp' );
+        $task_queue     = get_option( 'smliser_task_queue', array() );
+        $the_task       = array();
+        $highest_timest = PHP_INT_MAX;
+        ksort( $task_queue );
+
+        foreach ( $task_queue as $timestamp => $tasks ) {
+    
+            if ( $timestamp >= $current_time ) {
+
+                if ( $timestamp < $highest_timest ) {
+                    $the_task = reset( $task_queue );
+                    unset( $task_queue[$timestamp] );
+                    update_option( 'smliser_task_queue', $task_queue );
+                    $highest_timest = $timestamp;
+                }
+             
+            } else {
+
+               self::log_executed_task( $task_queue[$timestamp], array( 'comment' => 'Task time elapsed' ) );
+                // Remove expired tasks from the task queue
+                unset( $task_queue[ $timestamp ] );
+                update_option( 'smliser_task_queue', $task_queue ); // Update the task queue after removal.
+            }
+        }
+
+        // Return the highest priority task (if found)
+        return  $the_task;
+    }
+
+    /**
+     * Record a license activation.
+     * 
+     * @param array $data Associative contanining the executed task.
+     * @return void
+     */
+    public static function log_activation( $data ) {
+        $logs = self::get_task_logs();
+        
+        $logs[ current_time( 'mysql' ) ] = array(
+            'license_id'    => $data['license_id'] ?? 'N/A',
+            'ip_address'    => $data['ip_address'] ?? 'N/A',
+            'website'       => $data['website'] ?? 'N/A',
+            'comment'       => $data['comment'] ?? 'N/A',
+            'duration'      => $data['duration'] ?? 'N/A',
+        );
+        
+        update_option( 'smliser_task_log', $logs );
+    }
+
+    /**
+     * Get license verification log for the last three month.
+     * 
+     * @return array $schedules An array of task logs
+     */
+    public static function get_task_logs() {
+        $schedules  = get_option( 'smliser_task_log', false );
+        
+        if ( false === $schedules ) {
+            return array(); // Returns empty array.
+        }
+
+        if ( ! is_array( $schedules ) ) {
+            $schedules = (array) $schedules;
+        }
+
+        ksort( $schedules );
+
+        foreach ( $schedules as $time => $schedule ) {
+            $timestamp  = strtotime( $time );
+            $expiration = time() - ( 3 * MONTH_IN_SECONDS );
+
+            if ( $timestamp < $expiration ) {
+                unset( $schedules[$time] );
+                update_option( 'smliser_task_log', $schedules );
+            }
+
+        }
+
+        return $schedules;
+    }
+
+
+    /**
+     * Fetch all scheduled tasks from the task queue.
+     *
+     * @return array Array of all scheduled tasks with their expiration timestamps.
+     */
+    public function scheduled_tasks() {
+        // Retrieve the task queue from the WordPress options
+        $task_queue = get_option( 'smliser_task_queue', array() );
+        if ( ! empty( $task_queue ) ) {
+            ksort( $task_queue );
+        }
+        
+        return $task_queue;
+    }
+
 }
