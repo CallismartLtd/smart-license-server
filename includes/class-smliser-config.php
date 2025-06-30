@@ -20,25 +20,25 @@ class SmartLicense_config {
     private $namespace  = 'smliser/v1';
 
     /** 
-     * Plugin update REST API route.
+     * Plugin info REST API route.
      * 
      * @var string
      */
-    private $update_route   = '/plugin-info/';
+    private $plugin_info   = '/plugin-info/';
 
     /** 
      * License activation REST API route.
      * 
      * @var string
      */
-    private $activation_route = '/license-validator/';
+    private $activation_route = '/license-activation/';
 
     /** 
      * License deactivation REST API route
      * 
      * @var string
      */
-    private $deactivation_route = '/license-deactivator/';
+    private $deactivation_route = '/license-deactivation/';
 
     /** 
      * Repository REST API route.
@@ -99,7 +99,7 @@ class SmartLicense_config {
         // Register REST endpoints.
         add_action( 'rest_api_init', array( $this, 'rest_load' ) );
         add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
-        add_filter( 'rest_post_dispatch', array( $this, 'rest_signature_headers' ), 10, 3 );
+        add_filter( 'rest_post_dispatch', array( $this, 'filter_rest_response' ), 10, 3 );
         add_filter( 'redirect_canonical', array( $this, 'disable_redirect_on_downloads' ), 10, 2 );
         add_action( 'plugins_loaded', array( $this, 'include' ) );
         add_action( 'init', array( $this, 'init_hooks' ) );
@@ -130,100 +130,93 @@ class SmartLicense_config {
         /** 
          * Register the license activation route. 
          */
-        register_rest_route( $this->namespace, $this->activation_route, array(
-            'methods'             => 'GET',
-            'callback'            =>  array( 'Smliser_Server', 'license_activation_response' ),
-            'args'  => array(
-                'item_id'   => array(
-                    'required'          => true,
-                    'type'              => 'int',
-                    'description'       => 'The item ID or plugin ID associated with the license',
-                    'sanitize_callback' => 'absint',
-                    'validate_callback' => array( __CLASS__, 'not_empty' ),
+        register_rest_route( $this->namespace, $this->activation_route, 
+            array(
+                'methods'             => 'POST',
+                'callback'            =>  array( 'Smliser_License_Rest_API', 'license_activation_response' ),
+                'permission_callback' => array( 'Smliser_License_Rest_API', 'license_activation_permission_callback'),
+                'args'  => array(
+                    'item_id'   => array(
+                        'required'          => true,
+                        'type'              => 'integer',
+                        'description'       => 'The ID of the item associated with the license.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'is_int' ),
+                    ),
+
+                    'service_id'    => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The service id associated with the license key',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    ),
+
+                    'license_key'   => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The license key to verify',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    ),
+
+                    'domain'  => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The ID of the item associated with the license.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize_url' ),
+                        'validate_callback' => array( __CLASS__, 'is_url' ),
+                    )
                 ),
-
-                'service_id'    => array(
-                    'required'          => true,
-                    'type'              => 'string',
-                    'description'       => 'The service id associated with the license key',
-                    'sanitize_callback' => array( __CLASS__, 'sanitize' ),
-                    'validate_callback' => array( __CLASS__, 'not_empty' ),
-
-                ),
-
-                'license_key'   => array(
-                    'required'          => true,
-                    'type'              => 'string',
-                    'description'       => 'The license key to verify',
-                    'sanitize_callback' => array( __CLASS__, 'sanitize' ),
-                    'validate_callback' => array( __CLASS__, 'not_empty' ),
-                ),
-
-                'callback_url'  => array(
-                    'required'          => true,
-                    'type'              => 'string',
-                    'description'       => 'The URL we will post the license verification result to.',
-                    'sanitize_callback' => 'sanitize_url',
-                    'validate_callback' => array( __CLASS__, 'is_url' ),
-                ),
-            ),
-            'permission_callback' => array( 'Smliser_Server', 'license_activation_permission_callback'),
-            
-
-        ) );
+            )
+        );
 
         /**
          * Register the license deactivation route
          */
-        register_rest_route( $this->namespace, $this->deactivation_route, array(
-            'methods'             => 'GET',
-            'callback'            => array( 'Smliser_Server', 'license_deactivation_response' ),
-            'args'  => array(
-                'item_id' => array(
-                    'required'          => true,
-                    'type'              => 'int',
-                    'description'       => 'The item ID or plugin ID associated with the license',
-                    'sanitize_callback' => 'absint',
-                    'validate_callback' => array( __CLASS__, 'not_empty' ),
-                ),
+        register_rest_route( $this->namespace, $this->deactivation_route, 
+            array(
+                'methods'             => 'POST',
+                'callback'            => array( 'Smliser_License_Rest_API', 'license_deactivation_response' ),
+                'permission_callback' => array( 'Smliser_License_Rest_API', 'license_deactivation_permission' ),
+                'args'  => array(
+                    'license_key'   => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The license key to deactivate.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    ),
 
-                'license_key'   => array(
-                    'required'          => true,
-                    'type'              => 'string',
-                    'description'       => 'The license key to deactivate.',
-                    'sanitize_callback' => array( __CLASS__, 'sanitize' ),
-                    'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    'service_id'    => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The service ID associated with the license.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    ),
+                    'domain'  => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The URL of the website where the license is currently activated.',
+                        'sanitize_callback' => 'sanitize_url',
+                        'validate_callback' => array( __CLASS__, 'is_url' ),
+                    )
                 ),
-
-                'service_id'    => array(
-                    'required'          => true,
-                    'type'              => 'string',
-                    'description'       => 'The service ID associated with the license.',
-                    'sanitize_callback' => array( __CLASS__, 'sanitize' ),
-                    'validate_callback' => array( __CLASS__, 'not_empty' ),
-                ),
-                'callback_url'  => array(
-                    'required'          => true,
-                    'type'              => 'string',
-                    'description'       => 'The URL of the website where the license is currently activated.',
-                    'sanitize_callback' => 'sanitize_url',
-                    'validate_callback' => array( __CLASS__, 'is_url' ),
-                ),
-            ),
-            'permission_callback' => array( 'Smliser_Server', 'license_deactivation_permission' ),
-        ) );
+            )
+        );
 
         /** 
-         * Register the software update route.
+         * Register plugin info route.
          * 
          */
-        register_rest_route( $this->namespace, $this->update_route, array(
+        register_rest_route( $this->namespace, $this->plugin_info, array(
             'methods'             => 'GET',
             'callback'            => array( 'Smliser_Server', 'plugin_update_response' ),
             'args'  => array(
                 'item_id'   => array(
                     'required'          => false,
-                    'type'              => 'int',
+                    'type'              => 'integer',
                     'description'       => 'The plugin ID',
                     'sanitize_callback' => 'absint',
                 ),
@@ -259,12 +252,16 @@ class SmartLicense_config {
             'permission_callback'   => array( 'Smliser_REST_Authentication', 'auth_permission' ),
         ) );
 
-        /** Register licensed plugin download token regeneration route */
-        register_rest_route( $this->namespace, $this->download_reauth, array(
-            'methods'               => 'GET',
-            'callback'              => array( 'Smliser_REST_Authentication', 'item_download_reauth' ),
-            'permission_callback'   => array( 'Smliser_REST_Authentication', 'item_download_reauth_permission' ),
-        ) );
+        /** 
+         * Register download token reauthenticatiion route.
+        */
+        register_rest_route( $this->namespace, $this->download_reauth, 
+            array(
+                'methods'               => 'POST',
+                'callback'              => array( 'Smliser_REST_Authentication', 'item_download_reauth' ),
+                'permission_callback'   => array( 'Smliser_REST_Authentication', 'item_download_reauth_permission' ),
+            )
+        );
     }
 
     /**
@@ -292,25 +289,33 @@ class SmartLicense_config {
     }
 
     /**
-     * Add custom headers to REST API responses.
+     * Filter the REST API response.
      *
      * @param WP_REST_Response $response The REST API response object.
      * @param WP_REST_Server   $server   The REST server object.
      * @param WP_REST_Request  $request  The REST request object.
      * @return WP_REST_Response Modified REST API response object.
      */
-    public function rest_signature_headers( WP_REST_Response $response, WP_REST_Server $server, WP_REST_Request $request ) {
-        
-        if ( strpos( $request->get_route(), $this->namespace )  ) {
-            $response->header( 'x-plugin-name', 'Smart License Server' );
-            $response->header( 'x-api', 'Smart License Server API' );
-            $response->header( 'x-plugin-version', SMLISER_VER );
-            $response->header( 'x-api-version', 'v1' );
-            $response->header( 'x-powered-By', 'Callistus Nwachukwu' );
+    public function filter_rest_response( WP_REST_Response $response, WP_REST_Server $server, WP_REST_Request $request ) {
+
+        if ( false !== strpos( $request->get_route(), $this->namespace ) ) {
+
+            $response->header( 'X-Plugin-Name', 'Smart License Server' );
+            $response->header( 'X-API', 'Smart License Server API' );
+            $response->header( 'X-Plugin-Version', SMLISER_VER );
+            $response->header( 'X-API-Version', 'v1' );
+
+            $data = $response->get_data();
+
+            if ( is_array( $data ) ) {
+                $data = array( 'success' => ! $response->is_error() ) + $data;
+                $response->set_data( $data );
+            }
         }
 
         return $response;
     }
+
 
     /**
      * Instanciate the current class.
@@ -347,7 +352,8 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
         require_once SMLISER_PATH . 'includes/class-smliser-api-cred.php';
         require_once SMLISER_PATH . 'includes/class-smliser-plugin-download-token.php';
-        require_once SMLISER_PATH . 'includes/smliser-rest-api/classr-rest-auth.php';
+        require_once SMLISER_PATH . 'includes/smliser-rest-api/class-rest-auth.php';
+        require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-license-rest-api.php';
 
         add_action( 'wp_enqueue_scripts', array( $this, 'load_styles' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
@@ -513,43 +519,91 @@ class SmartLicense_config {
     }
 
     /**
-     * Encapsulted sanitization function.
+     * Encapsulted sanitization function for REST param.
      * 
-     * @param string $value The value to sanitize.
+     * @param mixed $value The value to sanitize.
      */
     public static function sanitize( $value ) {
-        return sanitize_text_field( wp_unslash( $value ) );
+        if ( empty( $value ) ) {
+            $value = new WP_Error( 'rest_invalid_param', __( 'The value cannot be empty.', 'smliser' ), array( 'status' => 400 ) );
+        }elseif ( is_string( $value ) ) {
+            $value = sanitize_text_field( wp_unslash( $value ) );
+        } elseif ( is_array( $value ) ) {
+            $value = array_map( 'sanitize_text_field', wp_unslash( $value ) );
+        } elseif ( is_int( $value ) || is_float( $value ) ) {
+            $value = absint( $value );
+        } else {
+            $value = new WP_Error( 'rest_invalid_param', __( 'Invalid parameter type.', 'smliser' ), array( 'status' => 400 ) );
+        }
+
+        return $value;
     }
 
     /**
-     * Check whether a value is empty
+     * Sanitize a URL for REST API validation.
+     * 
+     * @param string $url The URL to sanitize.
+     * @return string Sanitized URL.
+     */
+    public static function sanitize_url( $url ) {
+        $url = esc_url_raw( $url );
+        if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+            return new WP_Error( 'rest_invalid_param', __( 'Invalid URL format.', 'smliser' ), array( 'status' => 400 ) );
+        }
+        return $url;
+    }
+
+    /**
+     * Check whether a value is empty for REST API validation.
      * @param string $value The value to check.
      * @return bool true if not empty, false otherwise.
      */
     public static function not_empty( $value ) {
-        return ! empty( $value );
+        if ( empty( $value ) ) {
+            return new WP_Error( 'rest_invalid_param', __( 'The value cannot be empty.', 'smliser' ), array( 'status' => 400 ) );
+        }
+        return true;
     }
 
     /**
      * Validate if the given URL is an HTTP or HTTPS URL.
      *
      * @param string $url The URL to validate.
-     * @return bool True if valid, false otherwise.
+     * @param WP_REST_Request $request The request object.
+     * @param string $param The parameter name.
+     * @return true|WP_Error
      */
-    public static function is_url( $url ) {
-        // Ensure the URL is a valid string
-        if ( ! is_string( $url ) || empty( $url ) ) {
-            return false;
+    public static function is_url( $url, $request, $param ) {
+        if ( empty( $url ) ) {
+            return new WP_Error( 'rest_invalid_param', __( 'The domain parameter is required.', 'smliser' ), array( 'status' => 400 ) );
         }
 
-        // Parse the URL and check for scheme
+        $url        = self::sanitize_url( $url );
         $parsed_url = wp_parse_url( $url );
         if ( ! is_array( $parsed_url ) || empty( $parsed_url['scheme'] ) ) {
-            return false;
+            return new WP_Error( 'rest_invalid_param', __( 'Invalid URL format.', 'smliser' ), array( 'status' => 400 ) );
         }
 
-        // Allow only http and https schemes
-        return in_array( strtolower( $parsed_url['scheme'] ), [ 'http', 'https' ], true );
+        if ( ! in_array( strtolower( $parsed_url['scheme'] ), array( 'http', 'https' ), true ) ) {
+            return new WP_Error( 'rest_invalid_param', __( 'Only HTTP and HTTPS URLs are allowed.', 'smliser' ), array( 'status' => 400 ) );
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate if a given REST API parameter is an integer.
+     * 
+     * @param mixed $value The value to validate.
+     * @param WP_REST_Request $request The request object.
+     * @param string $key The parameter name.
+     * @return true|WP_Error Returns true if the value is an integer, otherwise returns a WP_Error object.
+     */
+    public static function is_int( $value, $request, $key ) {
+        if ( ! is_numeric( $value ) || intval( $value ) != $value ) {
+            return new WP_Error( 'rest_invalid_param', __( 'The value must be an integer.', 'smliser' ), array( 'status' => 400 ) );
+        }
+        return true;
     }
 
     /**
