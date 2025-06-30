@@ -323,8 +323,7 @@ class Smliser_admin_menu {
      * Missed task page.
      */
     public function task_log_page() {
-        $obj            = new Smliser_Server();
-        $all_tasks      = $obj->get_task_logs();
+        $all_tasks      = Smliser_license::get_task_logs();
         $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
         $cron_timestamp = $cron_handle ? $cron_handle->timestamp : 0;
         $next_date      = smliser_tstmp_to_date( $cron_timestamp );
