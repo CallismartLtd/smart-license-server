@@ -262,6 +262,8 @@ function smliser_get_auth_token( WP_REST_Request $request ) {
         // Extract the token using a regex match for Bearer token.
         if ( preg_match( '/Bearer\s(\S+)/', $auth_header, $matches ) ) {
             return $matches[1]; // Return the token.
+        } else {
+            $auth_header;
         }
     }
     
@@ -394,7 +396,7 @@ function sanitize_and_normalize_path( $path ) {
  * @param string $url The URL to parse.
  * @return string The base website address.
  */
-function smliser_get_base_address( $url ) {
+function smliser_get_base_url( $url ) {
     $parts = parse_url( $url );
 
     if ( ! isset( $parts['scheme'], $parts['host'] ) ) {
