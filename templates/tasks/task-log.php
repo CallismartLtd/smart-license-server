@@ -21,7 +21,7 @@ defined( 'ABSPATH' ) || exit;
             <th>License ID</th>
             <th>IP Address</th>
             <th>Comment</th>
-            <th>Status Code</th>
+            <th>Duration</th>
             <th>Website</th>
         </tr>
         <?php if ( empty( $all_tasks ) ):?>
@@ -34,8 +34,8 @@ defined( 'ABSPATH' ) || exit;
             <td><?php echo esc_html( $task_data['license_id'] );?></td>
             <td><?php echo esc_html( $task_data['ip_address'] );?></td>
             <td><?php echo esc_html( $task_data['comment'] );?></td>
-            <td><?php echo esc_html( $task_data['status_code'] );?></td>
-            <td><?php echo esc_html( smliser_get_base_address( $task_data['website'] ) );?></td>
+            <td><?php echo esc_html( smliser_readable_duration( $task_data['duration'] ) );?></td>
+            <td><?php echo esc_html( smliser_get_base_url( $task_data['website'] ) );?></td>
         </tr>
         <?php endforeach; endif;?>
     </table>
