@@ -87,70 +87,75 @@ function smliser_time_diff_string( $start_date, $end_date ) {
 }
 
 /**
- * Convert duration to a readable date.
- * 
+ * Convert duration to a readable format, including milliseconds.
+ *
  * @param int|float $duration The duration in seconds.
- * @return string|bool $readable_format A formatted string from year to seconds or false. 
+ * @return string|bool $readable_format A formatted string from years to milliseconds or false.
  */
 function smliser_readable_duration( $duration ) {
-    if ( is_string( $duration ) ) {
-        return $duration;
-    }
-    
-    if ( ! is_int( $duration ) && ! is_float( $duration ) ) {
-        return false;
-    }
-    
-    if ( $duration <= 0 ) {
-        return 'Now';
-    }
+	if ( is_string( $duration ) ) {
+		return $duration;
+	}
 
-    $duration = round( $duration );
-    $years      = floor( $duration / ( 365 * 24 * 3600 ) );
-    $duration   %= ( 365 * 24 * 3600 );
-    $months     = floor( $duration / ( 30 * 24 * 3600 ) );
-    $duration   %= ( 30 * 24 * 3600 );
-    $weeks      = floor( $duration / ( 7 * 24 * 3600 ) );
-    $duration   %= ( 7 * 24 * 3600 );
-    $days       = floor( $duration / ( 24 * 3600 ) );
-    $duration   %= ( 24 * 3600 );
-    $hours      = floor( $duration / 3600 );
-    $duration   %= 3600;
-    $minutes    = floor( $duration / 60 );
-    $seconds    = $duration % 60;
+	if ( ! is_int( $duration ) && ! is_float( $duration ) ) {
+		return false;
+	}
 
-    $readable_parts = array();
-    if ( $years > 0 ) {
-        $readable_parts[] = $years . ' year' . ( $years > 1 ? 's' : '' );
-    }
+	if ( $duration <= 0 ) {
+		return 'Now';
+	}
 
-    if ( $months > 0 ) {
-        $readable_parts[] = $months . ' month' . ( $months > 1 ? 's' : '' );
-    }
+	$milliseconds = round( ( $duration - floor( $duration ) ) * 1000 );
+	$duration     = floor( $duration );
 
-    if ( $weeks > 0 ) {
-        $readable_parts[] = $weeks . ' week' . ( $weeks > 1 ? 's' : '' );
-    }
+	$years   = floor( $duration / ( 365 * 24 * 3600 ) );
+	$duration %= ( 365 * 24 * 3600 );
 
-    if ( $days > 0 ) {
-        $readable_parts[] = $days . ' day' . ( $days > 1 ? 's' : '' );
-    }
+	$months  = floor( $duration / ( 30 * 24 * 3600 ) );
+	$duration %= ( 30 * 24 * 3600 );
 
-    if ( $hours > 0 ) {
-        $readable_parts[] = $hours . ' hour' . ( $hours > 1 ? 's' : '' );
-    }
+	$weeks   = floor( $duration / ( 7 * 24 * 3600 ) );
+	$duration %= ( 7 * 24 * 3600 );
 
-    if ( $minutes > 0 ) {
-        $readable_parts[] = $minutes . ' minute' . ( $minutes > 1 ? 's' : '' );
-    }
+	$days    = floor( $duration / ( 24 * 3600 ) );
+	$duration %= ( 24 * 3600 );
 
-    if ( $seconds > 0 ) {
-        $readable_parts[] = $seconds . ' second' . ( $seconds > 1 ? 's' : '' );
-    }
+	$hours   = floor( $duration / 3600 );
+	$duration %= 3600;
 
-    $readable_format = implode( ', ', $readable_parts );
-    return $readable_format;
+	$minutes = floor( $duration / 60 );
+	$seconds = $duration % 60;
+
+	$readable_parts = array();
+
+	if ( $years > 0 ) {
+		$readable_parts[] = $years . ' year' . ( $years > 1 ? 's' : '' );
+	}
+	if ( $months > 0 ) {
+		$readable_parts[] = $months . ' month' . ( $months > 1 ? 's' : '' );
+	}
+	if ( $weeks > 0 ) {
+		$readable_parts[] = $weeks . ' week' . ( $weeks > 1 ? 's' : '' );
+	}
+	if ( $days > 0 ) {
+		$readable_parts[] = $days . ' day' . ( $days > 1 ? 's' : '' );
+	}
+	if ( $hours > 0 ) {
+		$readable_parts[] = $hours . ' hour' . ( $hours > 1 ? 's' : '' );
+	}
+	if ( $minutes > 0 ) {
+		$readable_parts[] = $minutes . ' minute' . ( $minutes > 1 ? 's' : '' );
+	}
+	if ( $seconds > 0 ) {
+		$readable_parts[] = $seconds . ' second' . ( $seconds > 1 ? 's' : '' );
+	}
+	if ( $milliseconds > 0 ) {
+		$readable_parts[] = $milliseconds . ' millisecond' . ( $milliseconds > 1 ? 's' : '' );
+	}
+
+	return implode( ', ', $readable_parts );
 }
+
 
 
 /**
