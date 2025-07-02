@@ -83,7 +83,6 @@ class Smliser_Plugin_Download_Token {
      */
     private static function convert_db_result( $result ) {
         $self           = new self();
-        $encrypt_obj    = new Callismart\Utilities\Encryption();
         $self->id           = isset( $result['id'] ) ? absint( $result['id'] ) : 0;
         $self->item_id      = isset( $result['item_id'] ) ? sanitize_text_field( $result['item_id'] ) : '';
         $self->license_key  = isset( $result['license_key'] ) ? sanitize_text_field( $result['license_key'] ) : '';
@@ -171,12 +170,6 @@ class Smliser_Plugin_Download_Token {
      */
     public function get_token( $token ) {
         global $wpdb;
-        $encrypt_obj    = new Callismart\Utilities\Encryption();
-        $token          = $encrypt_obj::decrypt( $token );
-
-        if ( is_wp_error( $token ) ) {
-            return false;
-        }
         
         $sql    = $wpdb->prepare( "SELECT * FROM {$this->db_name} WHERE `token` = %s", $token );
         $result = $wpdb->get_row( $sql, ARRAY_A );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
