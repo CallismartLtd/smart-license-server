@@ -148,7 +148,7 @@ class Smliser_Server{
      * 
      * @param WP_REST_Request $request The REST API request object.
      */
-    public static function plugin_update_permission_checker( WP_REST_Request $request ) {
+    public static function plugin_info( WP_REST_Request $request ) {
         // Either provide the plugin ID(item_id) or the plugin slug.
         $item_id    = absint( $request->get_param( 'item_id' ) );
         $slug       = $request->get_param( 'slug' );
