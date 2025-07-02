@@ -75,7 +75,6 @@ class Smliser_License_Rest_API {
      * @param WP_REST_Request $request The current request object.
      */
     public static function license_activation_permission_callback( WP_REST_Request $request ) {
-        
         self::instance();
         self::$instance->start_time = microtime( true );
         $service_id     = $request->get_param( 'service_id' );
@@ -274,6 +273,96 @@ class Smliser_License_Rest_API {
         return $response;
     }
 
+    /**
+     * Download token reauthentication for licensed plugins.
+     */
+    public static function item_download_reauth_permission( WP_REST_Request $request ) {
+        self::instance();
+        self::$instance->start_time = microtime( true );
+        $service_id     = $request->get_param( 'service_id' );
+        $license_key    = $request->get_param( 'license_key' );
+
+
+        $license        = self::$instance->license->get_license_data( $service_id, $license_key );
+
+        if ( ! $license ) {
+ 
+            $response = new WP_Error( 'license_error', 'Invalid license', array( 'status' => 404 ) );
+            $reasons = array(
+                '',
+                array( 
+                    'route'         => Smliser_Stats::$license_activation,
+                    'status_code'   => 404,
+                    'request_data'  => 'license validation response',
+                    'response_data' => array( 'reason' => $response->get_error_message() )
+                )
+            );
+            do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
+    
+            return $response;
+        }
+
+        self::$instance->license = $license;
+        $item_id        = $request->get_param( 'item_id' );
+        $domain         = $request->get_param( 'domain' );
+        $status_access  = $license->can_serve_license( $item_id, 'license activation', $domain );
+        $domain_access  = self::verify_domain( $request );
+        $has_error      = is_wp_error( $status_access ) || is_wp_error( $domain_access );
+
+        if ( $has_error ) {
+            $error = is_wp_error( $status_access ) ? $status_access : $domain_access;
+            $reasons = array(
+                '',
+                array( 
+                    'route'         => Smliser_Stats::$license_activation,
+                    'status_code'   => $error->get_error_data( 'status' ) ?: 403,
+                    'request_data'  => 'Donwload token reauthentication',
+                    'response_data' => array( 'reason' => $error->get_error_message() )
+                )
+            );
+            do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
+    
+            return $error;
+        
+        }
+
+        $download_token = $request->get_param( 'download_token' );
+        return smliser_verify_item_token( $download_token, absint( $item_id ) );
+    }
+
+    /**
+     * Re-issue donwload token.
+     * 
+     * @param WP_REST_Request $request.
+     */
+    public static function item_download_reauth( WP_REST_Request $request ) {
+        $item_id        = $request->get_param( 'item_id' );
+        $license_key    = $request->get_param( 'license_key' );
+        $download_token = $request->get_param( 'download_token' );
+
+        $decrypted = Callismart\Utilities\Encryption::decrypt( $download_token );
+
+        list( $decoy, $raw_token ) = explode( '|', $decrypted, 2 );
+        $t_obj  = new Smliser_Plugin_Download_Token();
+        $token = $t_obj->get_token( $raw_token );
+        
+        // Invalidate the old token.
+        if ( $token ) {
+            $token->delete();
+        }
+
+        $two_weeks = 2 * WEEK_IN_SECONDS;
+        $response_data = array(
+            'download_token'    => smliser_generate_item_token( $item_id, $license_key, $two_weeks ),
+            'token_expiry'      => wp_date( 'Y-m-d', time() + $two_weeks ),
+        );
+        $response = new WP_REST_Response( $response_data, 200 );
+        $response->header( 'content-type', 'application/json' );
+
+        return $response;
+
+    }
+
 
     /**
      * Whether or not to restrict a domain from activating a license
@@ -292,7 +381,19 @@ class Smliser_License_Rest_API {
             
         }
 
+        $result = self::verify_domain( $request );
+        return is_wp_error( $result ) ? $result : false;        
+    }
 
+    /**
+     * Verify that a domain can access the license REST API endpoint.
+     * 
+     * @param WP_REST_Request $request The WordPress REST API request object.
+     * @return WP_Error|true WordPress error object on failure, true otherwise.
+     */
+    public static function verify_domain( WP_REST_Request $request ) {
+        $license        = self::$instance->license;
+        $domain         = $request->get_param( 'domain' );
         $domain         = wp_parse_url( $domain, PHP_URL_HOST );
         $known_domains  = $license->get_active_sites( 'edit' );
         $domain_data    = isset( $known_domains[$domain] ) ? $known_domains[$domain] : false;
@@ -317,8 +418,7 @@ class Smliser_License_Rest_API {
         if ( ! hash_equals( $known_secret, $client_secret ) ) {
             return new WP_Error( 'authorization_failed', 'Invalid authorization token', array( 'status' => 401 ) );
         }
-        // If we reach here, it means the domain is allowed.
-        return false;
-        
+
+        return true;
     }
 }
