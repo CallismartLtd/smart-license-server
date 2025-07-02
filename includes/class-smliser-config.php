@@ -66,7 +66,7 @@ class SmartLicense_config {
      * 
      * @var string
      */
-    private $download_reauth = '/item-token-reauth/';
+    private $download_reauth = '/download-token-reauthentication/';
 
     /** 
      * Instance of current class.
@@ -199,7 +199,7 @@ class SmartLicense_config {
                         'required'          => true,
                         'type'              => 'string',
                         'description'       => 'The URL of the website where the license is currently activated.',
-                        'sanitize_callback' => 'sanitize_url',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize_url' ),
                         'validate_callback' => array( __CLASS__, 'is_url' ),
                     )
                 ),
@@ -227,7 +227,7 @@ class SmartLicense_config {
                     'sanitize_callback' => array( __CLASS__, 'sanitize' )
                 ),
             ),
-            'permission_callback' => array( 'Smliser_Server', 'plugin_update_permission_checker' ),
+            'permission_callback' => array( 'Smliser_Server', 'plugin_info' ),
 
         ) );
 
@@ -258,8 +258,45 @@ class SmartLicense_config {
         register_rest_route( $this->namespace, $this->download_reauth, 
             array(
                 'methods'               => 'POST',
-                'callback'              => array( 'Smliser_REST_Authentication', 'item_download_reauth' ),
-                'permission_callback'   => array( 'Smliser_REST_Authentication', 'item_download_reauth_permission' ),
+                'callback'              => array( 'Smliser_License_Rest_API', 'item_download_reauth' ),
+                'permission_callback'   => array( 'Smliser_License_Rest_API', 'item_download_reauth_permission' ),
+                'args'  => array(
+                    'domain'    => array(
+                        'required'  => true,
+                        'type'      => 'string',
+                        'description'   => 'The domain where the plugin is installed.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize_url' ),
+                        'validate_callback' => array( __CLASS__, 'is_url' )
+                    ),
+                    'license_key'           => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The license key to reauthenticate.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' )
+                    ),
+                    'item_id'   => array(
+                        'required'          => true,
+                        'type'              => 'integer',
+                        'description'       => 'The ID of the item associated with the license.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'is_int' ),
+                    ),
+                    'download_token'    => array(
+                        'required'         => true,
+                        'type'              => 'string',
+                        'description'       => 'The base64 encoded download token issued during license activation.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    ),
+                    'service_id'    => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The service ID associated with the license.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' )
+                    )
+                )
             )
         );
     }
