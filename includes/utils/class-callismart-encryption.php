@@ -1,39 +1,27 @@
 <?php
 namespace Callismart\Utilities;
+
 /**
- * Utility class for encrypting and decrypting API keys.
+ * Utility class for encrypting and decrypting data securely and URL-safely.
  */
 class Encryption {
+
     /**
-     * Encryption method
-     * 
-     * @var string $cipher_algo The encryption algorithm.
+     * The encryption cipher algorithm.
+     *
+     * @var string
      */
     private static $cipher_algo = 'AES-256-CBC';
 
     /**
-     * Secret Key for encryption.
-     * 
-     * @var string $secret_key The WordPress Secure Auth Key.
+     * Initialization vector length.
+     *
+     * @var int
      */
-    private static $secret_key  = SECURE_AUTH_KEY;
+    private static $iv_length;
 
     /**
-     * The encryption salt.
-     * 
-     * @var string $salt The WordPress salt.
-     */
-    private static $salt    = SECURE_AUTH_SALT;
-
-    /**
-     * IV Length
-     * 
-     * @var int $iv_length The initialization vector length.
-     */
-    private static $iv_length; // IV length based on the encryption method.
-
-    /**
-     * Static initializer for the class.
+     * Initialize any dynamic/static values.
      */
     private static function initialize() {
         if ( is_null( self::$iv_length ) ) {
@@ -42,73 +30,53 @@ class Encryption {
     }
 
     /**
-     * Encrypt data.
+     * Encrypt the given string data into a URL-safe base64 string.
      *
-     * @param string $data The data to encrypt.
-     * @return string|WP_Error Encrypted data or WP_Error on failure.
+     * @param string $data Plain text data to encrypt.
+     * @return string|\WP_Error URL-safe encrypted string or WP_Error on failure.
      */
     public static function encrypt( $data ) {
         self::initialize();
 
         if ( ! is_string( $data ) || empty( $data ) ) {
-            return new \WP_Error( 'invalid_input', 'Data must be a string.' );
+            return new \WP_Error( 'invalid_input', 'Data must be a non-empty string.' );
         }
 
-        $iv = random_bytes( self::$iv_length );
-
-        $encryption_key = self::derive_key();
-
-        $encrypted = openssl_encrypt(
-            $data,
-            self::$cipher_algo,
-            $encryption_key,
-            0,
-            $iv
-        );
+        $iv             = random_bytes( self::$iv_length );
+        $key            = self::derive_key();
+        $encrypted      = openssl_encrypt( $data, self::$cipher_algo, $key, OPENSSL_RAW_DATA, $iv );
 
         if ( false === $encrypted ) {
-            return new \WP_Error( 'encryption_failed', 'Failed to encrypt the data.' );
+            return new \WP_Error( 'encryption_failed', 'Unable to encrypt the data.' );
         }
 
-        // Store IV with the encrypted data (base64-encoded for storage)
-        return base64_encode( $iv . $encrypted );
+        return self::base64url_encode( $iv . $encrypted );
     }
 
     /**
-     * Decrypt an encrypted data.
+     * Decrypt the previously encrypted string.
      *
-     * @param string $encrypted_data The encrypted data.
-     * @return string|WP_Error Decrypted data or WP_Error on failure.
+     * @param string $encrypted_data The URL-safe encrypted string.
+     * @return string|\WP_Error The decrypted plain text or WP_Error on failure.
      */
     public static function decrypt( $encrypted_data ) {
         self::initialize();
 
         if ( ! is_string( $encrypted_data ) || empty( $encrypted_data ) ) {
-            return new \WP_Error( 'invalid_input', 'Encrypted data must be a string.' );
+            return new \WP_Error( 'invalid_input', 'Encrypted data must be a non-empty string.' );
         }
 
-        $decoded_data = base64_decode( $encrypted_data );
+        $decoded_data = self::base64url_decode( $encrypted_data );
 
-        if ( false === $decoded_data ) {
-            return new \WP_Error( 'decoding_failed', 'Failed to decode the encrypted data.' );
+        if ( false === $decoded_data || strlen( $decoded_data ) <= self::$iv_length ) {
+            return new \WP_Error( 'invalid_encrypted_data', 'The encrypted data is malformed or too short.' );
         }
 
-        $iv = substr( $decoded_data, 0, self::$iv_length );
-        $encrypted_string = substr( $decoded_data, self::$iv_length );
+        $iv                 = substr( $decoded_data, 0, self::$iv_length );
+        $encrypted_string   = substr( $decoded_data, self::$iv_length );
+        $key                = self::derive_key();
 
-        if ( empty( $iv ) || empty( $encrypted_string ) ) {
-            return new \WP_Error( 'invalid_encrypted_data', 'The encrypted data is malformed.' );
-        }
-
-        $decryption_key = self::derive_key();
-
-        $decrypted = openssl_decrypt(
-            $encrypted_string,
-            self::$cipher_algo,
-            $decryption_key,
-            0,
-            $iv
-        );
+        $decrypted = openssl_decrypt( $encrypted_string, self::$cipher_algo, $key, OPENSSL_RAW_DATA, $iv );
 
         if ( false === $decrypted ) {
             return new \WP_Error( 'decryption_failed', 'Failed to decrypt the data.' );
@@ -118,11 +86,39 @@ class Encryption {
     }
 
     /**
-     * Derive a cryptographically secure key from the secret and salt.
+     * Derive a secure key using HKDF with WordPress salts.
      *
-     * @return string Derived key.
+     * @return string 32-byte encryption key.
      */
     private static function derive_key() {
-        return hash_hkdf( 'sha256', self::$secret_key, 32, '', self::$salt );
+        $secret = defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : wp_salt();
+        $salt   = defined( 'SECURE_AUTH_SALT' ) ? SECURE_AUTH_SALT : wp_salt();
+
+        return hash_hkdf( 'sha256', $secret, 32, '', $salt );
+    }
+
+    /**
+     * Encode binary data into URL-safe base64.
+     *
+     * @param string $data The binary data to encode.
+     * @return string Base64url-encoded string.
+     */
+    private static function base64url_encode( $data ) {
+        return rtrim( strtr( base64_encode( $data ), '+/', '-_' ), '=' );
+    }
+
+    /**
+     * Decode URL-safe base64 string into raw binary.
+     *
+     * @param string $data The base64url-encoded string.
+     * @return string|false Decoded binary string or false on failure.
+     */
+    private static function base64url_decode( $data ) {
+        $data = strtr( $data, '-_', '+/' );
+        $pad = strlen( $data ) % 4;
+        if ( $pad > 0 ) {
+            $data .= str_repeat( '=', 4 - $pad );
+        }
+        return base64_decode( $data );
     }
 }
