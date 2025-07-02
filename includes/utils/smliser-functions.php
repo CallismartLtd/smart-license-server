@@ -272,35 +272,60 @@ function smliser_get_auth_token( WP_REST_Request $request ) {
 }
 
 /**
- * Generate Api key for license interaction.
+ * Generate a download token for the given licensed item.
  * 
  * @param int $item_id    The item ID associated with the license.
  * @param string $license_key License Key associated with the item.
  * @param int $expiry The expiry date for the token.
  */
 function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry = 0 ) {
-    $key_props  = array(
-        'item_id'       => absint( $item_id ),
-        'license_key'   => sanitize_text_field( wp_unslash( $license_key ) ),
-        'expiry'        => ! empty( $expiry ) ? absint( $expiry ) : 10 * DAY_IN_SECONDS,
+    $item_id        = absint( $item_id );
+    $license_key    = sanitize_text_field( wp_unslash( $license_key ) );
+    $expiry         = ! empty( $expiry ) ? absint( $expiry ) : time() + ( 10 * DAY_IN_SECONDS );
+
+    $key_props = array(
+        'item_id'     => $item_id,
+        'license_key' => $license_key,
+        'expiry'      => $expiry,
     );
 
-    $token          = Smliser_Plugin_Download_Token::insert_helper( $key_props );
-    $encrypt_obj    = new Callismart\Utilities\Encryption();
+    $raw_token = Smliser_Plugin_Download_Token::insert_helper( $key_props );
 
-    return $encrypt_obj::encrypt( $token );
+    if ( empty( $raw_token ) ) {
+        return false;
+    }
+
+    $signature  = substr( $license_key, 0, 8 );
+    $payload    = $signature . '|' . $raw_token;
+
+    $token = Callismart\Utilities\Encryption::encrypt( $payload );
+
+    return is_wp_error( $token ) ? false : $token;
 }
+
 
 /**
  * Verify a licensed plugin download token.
- * 
- * @param string $token     The Download token.
- * @param int    $item_id   The ID of the liensed plugin.
- * @return bool True if item ID associated with token matches with provided item ID, false otherwise.
+ *
+ * @param string $token     The encrypted download token.
+ * @param int    $item_id   The expected item ID.
+ * @return bool             True if the token is valid and matches the item ID.
  */
 function smliser_verify_item_token( $token, $item_id ) {
+    if ( empty( $token ) || empty( $item_id ) ) {
+        return false;
+    }
+
+    $decrypted = Callismart\Utilities\Encryption::decrypt( $token );
+
+    if ( is_wp_error( $decrypted ) || ! str_contains( $decrypted, '|' ) ) {
+        return false;
+    }
+
+    list( $signature, $raw_token ) = explode( '|', $decrypted, 2 );
+
     $t_obj  = new Smliser_Plugin_Download_Token();
-    $t_data =  $t_obj->get_token( $token );
+    $t_data = $t_obj->get_token( $raw_token );
 
     if ( ! $t_data ) {
         return false;
@@ -308,12 +333,9 @@ function smliser_verify_item_token( $token, $item_id ) {
 
     $key_item_id = absint( $t_data->get_item_id() );
 
-    if ( ! empty( $key_item_id ) ) {
-        return $key_item_id === absint( $item_id );
-    }
-    
-    return false;
+    return $key_item_id === absint( $item_id );
 }
+
 
 /**
  * Validate and decode Base64-encoded token prefixed with "smliser_".
