@@ -295,8 +295,8 @@ function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry =
         return false;
     }
 
-    $signature  = substr( $license_key, 0, 8 );
-    $payload    = $signature . '|' . $raw_token;
+    $decoy  = substr( $license_key, 0, 8 );
+    $payload    = $decoy . '|' . $raw_token;
 
     $token = Callismart\Utilities\Encryption::encrypt( $payload );
 
@@ -322,7 +322,7 @@ function smliser_verify_item_token( $token, $item_id ) {
         return false;
     }
 
-    list( $signature, $raw_token ) = explode( '|', $decrypted, 2 );
+    list( $decoy, $raw_token ) = explode( '|', $decrypted, 2 );
 
     $t_obj  = new Smliser_Plugin_Download_Token();
     $t_data = $t_obj->get_token( $raw_token );
@@ -466,7 +466,7 @@ function smliser_load_auth_footer() {
  * Get the slug for file downloads
  */
 function smliser_get_download_slug() {
-    return apply_filters( 'smliser_download_slug', 'smliser-download' );
+    return apply_filters( 'smliser_download_slug', 'downloads' );
 }
 
 
@@ -501,4 +501,22 @@ function smliser_get_authorization_header() {
     }
 
     return null;
+}
+
+/**
+ * Get the value of a URL query parameter.
+ * @param string $param The name of the query parameter.
+ * @param mixed $default The default value to return.
+ * @param callable $sanitize_callback Optional. A callback function to sanitize the parameter value, defaults to sanitize_text_field( wp_unslash() ).
+ * @return mixed The sanitized value of the query parameter, or null if not found.
+ */
+function smliser_get_query_param( $param, $default = null, $sanitize_callback = 'sanitize_text_field' ) {
+    if ( isset( $_GET[ $param ] ) ) {
+        $value = wp_unslash( $_GET[ $param ] );
+        if ( is_callable( $sanitize_callback ) ) {
+            return call_user_func( $sanitize_callback, $value );
+        }
+        return sanitize_text_field( $value );
+    }
+    return $default;
 }
