@@ -13,7 +13,7 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
 <h1>License Details</h1>
 <a href="<?php echo esc_url( smliser_license_admin_action_page( 'edit', $license->get_id() ) ); ?>" class="button action smliser-nav-btn">Edit License</a>
 <?php if ( $license->has_item() ):?>
-    <a data-item-id="<?php echo absint( $license->get_item_id() ); ?>" data-license-key="<?php echo esc_attr( $license->get_license_key() ); ?>" class="button action smliser-nav-btn" id="smliserDownloadTokenBtn">Generate Download Token</a>
+    <a data-item-id="<?php echo absint( $license->get_item_id() ); ?>" data-license-key="<?php echo esc_attr( $license->get_license_key() ); ?>" data-plugin-name="<?php echo esc_html( $plugin_name ); ?>" class="button action smliser-nav-btn" id="smliserDownloadTokenBtn">Generate Download Token</a>
 <?php endif;?>
 <a href="<?php echo esc_url( $delete_link ); ?>" class="button action smliser-nav-btn" id="smliser-license-delete-button">Delete License</a>
 <div class="smliser-admin-view-page-wrapper">
