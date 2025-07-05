@@ -412,7 +412,7 @@ class Smliser_License_Rest_API {
         $client_secret = base64_decode( $client_secret );
 
         if ( ! $client_secret ) {
-            return new WP_Error( 'invalid_token_format', 'Token could not be decoded properly', array( 'status' => 400 ) );
+            return new WP_Error( 'invalid_token_format', 'Token could not be decoded properly, please be sure that the token is base64 encoded or not double encoding it.', array( 'status' => 400 ) );
         }
 
         if ( ! hash_equals( $known_secret, $client_secret ) ) {
