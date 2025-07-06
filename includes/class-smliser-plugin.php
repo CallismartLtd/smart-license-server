@@ -283,7 +283,7 @@ class Smliser_Plugin {
     public function set_download_link() {
         $slug           = $this->get_slug();
         $download_slug  = smliser_get_download_slug();
-        $download_link  = site_url( '/'. $download_slug  . '/' . $slug );
+        $download_link  = site_url( $download_slug  . '/plugins/' . basename( $slug ));
 
         $this->download_link = sanitize_url( $download_link );
     }
@@ -400,10 +400,17 @@ class Smliser_Plugin {
     }
 
     /**
+     * Get Download URL.
+     */
+    public function get_download_url() {
+        return $this->download_link;
+    }
+
+    /**
      * Get Download link.
      */
     public function get_download_link() {
-        return $this->download_link;
+        return $this->get_download_url();
     }
 
     /**
@@ -1000,10 +1007,7 @@ class Smliser_Plugin {
      * Get a sample of download URL for licensed plugin
      */
     public function licensed_download_url() {
-        $slug           = $this->slug;
-        $slug_parts     = explode( '/', untrailingslashit( $slug ) );
-        $download_slug  = smliser_get_download_slug();
-        $download_url   = site_url( $download_slug . '/' . $slug_parts[0] . '/{download_token}/'. $slug_parts[1] );
+        $download_url   = add_query_arg( array( 'download_token' => '{token}' ), $this->get_download_url() );
         return $download_url;
     }
 
