@@ -1,38 +1,3 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const licenseKeyContainers = document.querySelectorAll('.smliser-key-div');
-
-    licenseKeyContainers.forEach(container => {
-        const licenseKeyField = container.querySelector('.smliser-license-key-field');
-        const showLicenseKeyCheckbox = container.querySelector('.smliser-show-license-key');
-        const visibleLicenseKeyDiv = container.querySelector('.smliser-visible-license-key');
-        const partiallyHiddenLicenseKeyDiv = container.querySelector('.smliser-partially-hidden-license-key-container');
-        const copyButton = container.querySelector('.smliser-to-copy');
-
-        if (showLicenseKeyCheckbox) {
-            showLicenseKeyCheckbox.addEventListener('change', function () {
-                if (this.checked) {
-                    // visibleLicenseKeyDiv.style.display          = 'block';
-                    jQuery(visibleLicenseKeyDiv).fadeIn().css('display', 'block')
-                    partiallyHiddenLicenseKeyDiv.style.display  = 'none';
-                } else {
-                    visibleLicenseKeyDiv.style.display          = 'none';
-                    jQuery(partiallyHiddenLicenseKeyDiv).fadeIn().css('display', 'block');
-
-                }
-            });
-
-            copyButton.addEventListener('click', function ( event ) {
-                event.preventDefault();
-                
-                navigator.clipboard.writeText(licenseKeyField.value).then(function() {
-                    smliserNotify('copied', 2000)
-                }).catch(function(error) {
-                    smliserNotify( error, 2000)
-                });
-            });
-        }
-    });
-});
 
 // Countdown Timer
 function startCountdown(duration, display) {
@@ -94,13 +59,179 @@ function smliserNotify(message, duration) {
     }
 }
 
+// Function to copy text to clipboard using Clipboard API
+function smliserCopyToClipboard(text) {
+    navigator.clipboard.writeText(text).then( () => {
+        smliserNotify('Copied to clipboard: ', 3000);
+    }).catch( (err) => {
+        console.error('Could not copy text: ', err);
+    });
+}
 
-document.addEventListener('DOMContentLoaded', function () {
-    const searchInput = document.getElementById('smliser-search');
-    const tableRows = document.querySelectorAll('.smliser-table tbody tr');
-    const tableBody = document.querySelector('.smliser-table tbody');
+document.addEventListener( 'DOMContentLoaded', function() {
+    let tokenBtn                = document.getElementById( 'smliserDownloadTokenBtn' );
+    let licenseKeyContainers    = document.querySelectorAll( '.smliser-key-div' );
+    let searchInput             = document.getElementById('smliser-search');
+    let tooltips                = document.querySelectorAll('.smliser-form-description, .smliser-tooltip');
+    let deleteBtn               = document.getElementById( 'smliser-license-delete-button' );
+    let updateBtn               = document.querySelector('#smliser-update-btn');
+    let fileInput               = document.getElementById( 'smliser-plugin-file' );
+    let deletePluginBtn         = document.querySelector( '#smliser-plugin-delete-button' );
+    let selectAllCheckbox       = document.getElementById('smliser-select-all');
+    let dashboardPage           = document.getElementById( 'smliser-admin-dasboard-wrapper' );
+    let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
+    let revokeBtns              = document.querySelectorAll( '.smliser-revoke-btn' );
 
-    if (searchInput) {
+    if ( deleteBtn ) {
+        deleteBtn.addEventListener( 'click', function( event ) {
+            const userConfirmed = confirm( 'You are about to delete this license, be careful action cannot be reversed' );
+            if ( ! userConfirmed ) {
+                event.preventDefault();
+            }
+        });
+    }
+
+    if ( tokenBtn ) {
+        let spinnerDiv          = document.querySelector( '.smliser-loader-container' );
+        let licenseKey          = tokenBtn.getAttribute( 'data-license-key' );
+        let itemId              = tokenBtn.getAttribute( 'data-item-id' );
+        let pluginName          = tokenBtn.getAttribute( 'data-plugin-name' );
+        let contentContainner   = document.getElementById( 'ajaxContentContainer' );
+        let templateContainer   = document.createElement( 'div' );
+        templateContainer.classList.add( 'smliser-gen-token-form-container' )
+
+        let bodyContent = `
+        <div class="smliser-token-body" id="smliser-token-body">
+            <span id="remove">&times;</span>
+            <h2>Generate Download Token</h2>
+            <hr>
+
+            <span class="smliser-loader" style="display: none; color:#000000;" id="spinner"></span>
+        
+            <p>The token will be valid to download "<strong>${pluginName}</strong>", token will expire in 10 days if no expiry date is selected</p>
+            <div id="smliserNewToken"></div>
+            <div class="smliser-token-expiry-field" id="formBody">
+                <label for="expiryDate">Choose Expiry Date</label>
+                <input type="datetime-Local" id="expiryDate" />
+                <input type="hidden" id="pop-up-license-key" name="license_key" value="${licenseKey}"/>
+                <input type="hidden" id="popup-item-id" name="item_id" value="${itemId}"/>
+            </div>
+            <button id="createToken" class="button action smliser-nav-btn">generate token</button>
+        </div>`;
+        templateContainer.innerHTML = bodyContent;
+        jQuery( contentContainner ).hide();
+        contentContainner.appendChild( templateContainer );
+        
+        tokenBtn.addEventListener( 'click', (event) => {
+            event.preventDefault();
+            jQuery( contentContainner ).fadeIn();
+            
+        });
+
+        let removeBtn = document.getElementById( 'remove' );
+        let createTokenBtn = document.getElementById( 'createToken' );
+        let removeModal = () =>{
+            jQuery( contentContainner ).fadeOut();
+        }
+
+        removeBtn.addEventListener( 'click', removeModal );
+        createTokenBtn.addEventListener( 'click', (event) => {
+            event.preventDefault();
+            let spinner = document.getElementById('spinner');
+            
+            let expiryDate = document.getElementById( 'expiryDate' ).value;
+            let licenseKey = document.getElementById( 'pop-up-license-key' ).value;
+            let itemId     = document.getElementById( 'popup-item-id' ).value;
+            
+            spinner.setAttribute( 'style', 'display: block; border: 5px dotted #000' );
+
+            if ( ! expiryDate ) {
+                expiryDate = '';
+            }
+            let url = new URL( smliser_var.smliser_ajax_url );
+            let payLoad = new FormData();
+            payLoad.set( 'action', 'smliser_generate_item_token' );
+            payLoad.set( 'security', smliser_var.nonce );
+            payLoad.set( 'expiry', expiryDate );
+            payLoad.set( 'license_key', licenseKey );
+            payLoad.set( 'item_id', itemId );
+            fetch(url, {
+                method: 'POST',
+                body: payLoad,
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(response.statusText);
+                }
+                return response.json();
+            }).then(data => {
+                if (data.success) {
+                    downloadToken = data.data.token;
+                    var credentialsDiv = document.createElement('div');
+                    credentialsDiv.classList.add( 'smliser-token-body' );
+                    credentialsDiv.classList.add( 'added' );
+                    let htmlContent = `<p><strong>New token:</strong> ${downloadToken} <span class="dashicons dashicons-admin-page"></span></p>`;
+                    htmlContent += '<p><strong>Note:</strong> This is the last time this token will be revealed. Please copy and save it securely.</p>';
+                    credentialsDiv.innerHTML = htmlContent;
+
+                    jQuery( '#smliserNewToken' ).html( credentialsDiv );
+                    document.getElementById( 'formBody' ).remove();
+                    createTokenBtn.remove();
+                    
+                    let copyButton = credentialsDiv.querySelector( 'span.dashicons' );
+                    copyButton.addEventListener( 'click', () =>{
+                        smliserCopyToClipboard( downloadToken );
+                    });
+                    
+                } else {
+                    let errorMessage = data.data && data.data.message ? data.data.message : 'An error occurred';
+                    smliserNotify(errorMessage, 5000);
+                }
+            }).catch(error => {
+                smliserNotify(error.message || 'An unexpected error occurred', 5000);
+            }).finally(() => {
+                spinner.setAttribute( 'style', 'display: none;' );
+            });
+            
+        });
+    }
+
+    if ( licenseKeyContainers.length ) {
+        licenseKeyContainers.forEach(container => {
+            const licenseKeyField = container.querySelector('.smliser-license-key-field');
+            const showLicenseKeyCheckbox = container.querySelector('.smliser-show-license-key');
+            const visibleLicenseKeyDiv = container.querySelector('.smliser-visible-license-key');
+            const partiallyHiddenLicenseKeyDiv = container.querySelector('.smliser-partially-hidden-license-key-container');
+            const copyButton = container.querySelector('.smliser-to-copy');
+
+            if (showLicenseKeyCheckbox) {
+                showLicenseKeyCheckbox.addEventListener('change', function () {
+                    if (this.checked) {
+                        // visibleLicenseKeyDiv.style.display          = 'block';
+                        jQuery(visibleLicenseKeyDiv).fadeIn().css('display', 'block')
+                        partiallyHiddenLicenseKeyDiv.style.display  = 'none';
+                    } else {
+                        visibleLicenseKeyDiv.style.display          = 'none';
+                        jQuery(partiallyHiddenLicenseKeyDiv).fadeIn().css('display', 'block');
+
+                    }
+                });
+
+                copyButton.addEventListener('click', function ( event ) {
+                    event.preventDefault();
+                    
+                    navigator.clipboard.writeText(licenseKeyField.value).then(function() {
+                        smliserNotify('copied', 2000)
+                    }).catch(function(error) {
+                        smliserNotify( error, 2000)
+                    });
+                });
+            }
+        });
+    }
+
+        if (searchInput) {
+        let tableRows = document.querySelectorAll('.smliser-table tbody tr');
+        let tableBody = document.querySelector('.smliser-table tbody');
         searchInput.addEventListener('input', function () {
             const searchTerm = searchInput.value.toLowerCase();
             let noMatchFound = true;
@@ -145,69 +276,95 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-});
+    if ( tooltips.length ) {
+        tooltips.forEach(function(tooltip) {
+            tooltip.addEventListener('mouseenter', function() {
+                var title = this.getAttribute('title');
+                if (title) {
+                    this.setAttribute('data-title', title);
+                    this.removeAttribute('title');
 
+                    var tooltipElement = document.createElement('div');
+                    tooltipElement.className = 'custom-tooltip';
+                    tooltipElement.innerText = title;
+                    document.body.appendChild(tooltipElement);
 
-document.addEventListener('DOMContentLoaded', function() {
-    var tooltips = document.querySelectorAll('.smliser-form-description, .smliser-tooltip');
+                    var rect = this.getBoundingClientRect();
+                    tooltipElement.style.top = rect.top + window.scrollY - tooltipElement.offsetHeight - 5 + 'px';
+                    tooltipElement.style.left = rect.left + window.scrollX + (rect.width / 2) - (tooltipElement.offsetWidth / 2) + 'px';
+                    
+                    tooltipElement.classList.add('show');
 
-    tooltips.forEach(function(tooltip) {
-        tooltip.addEventListener('mouseenter', function() {
-            var title = this.getAttribute('title');
-            if (title) {
-                this.setAttribute('data-title', title);
-                this.removeAttribute('title');
+                    this._tooltipElement = tooltipElement;
+                }
+            });
 
-                var tooltipElement = document.createElement('div');
-                tooltipElement.className = 'custom-tooltip';
-                tooltipElement.innerText = title;
-                document.body.appendChild(tooltipElement);
-
-                var rect = this.getBoundingClientRect();
-                tooltipElement.style.top = rect.top + window.scrollY - tooltipElement.offsetHeight - 5 + 'px';
-                tooltipElement.style.left = rect.left + window.scrollX + (rect.width / 2) - (tooltipElement.offsetWidth / 2) + 'px';
-                
-                tooltipElement.classList.add('show');
-
-                this._tooltipElement = tooltipElement;
-            }
-        });
-
-        tooltip.addEventListener('mouseleave', function() {
-            var tooltipElement = this._tooltipElement;
-            if (tooltipElement) {
-                tooltipElement.classList.remove('show');
-                setTimeout(function() {
-                    document.body.removeChild(tooltipElement);
-                }, 300);
-                this.setAttribute('title', this.getAttribute('data-title'));
-                this.removeAttribute('data-title');
-                this._tooltipElement = null;
-            }
-        });
-    });
-});
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    const fileInput         = document.getElementById('smliser-plugin-file');
-    const fileInfo          = document.querySelector('.smliser-file-info');
-    let   uploadBtn         = document.querySelector('.smliser-upload-btn');
-    const deleteBtn         = document.getElementById( 'smliser-license-delete-button' );
-    let   submitBtn         = document.querySelector('#smliser-repo-submit-btn');
-    let   deletePluginBtn   = document.querySelector('#smliser-plugin-delete-button');
-    let   updateBtn         = document.querySelector('#smliser-update-btn');
-    let   updateClickedNotice = document.querySelector('#smliser-click-notice');
-    if ( deleteBtn ) {
-        deleteBtn.addEventListener( 'click', function( event ) {
-            const userConfirmed = confirm( 'You are about to delete this license, be careful action cannot be reversed' );
-            if ( ! userConfirmed ) {
-                event.preventDefault();
-            }
+            tooltip.addEventListener('mouseleave', function() {
+                var tooltipElement = this._tooltipElement;
+                if (tooltipElement) {
+                    tooltipElement.classList.remove('show');
+                    setTimeout(function() {
+                        document.body.removeChild(tooltipElement);
+                    }, 300);
+                    this.setAttribute('title', this.getAttribute('data-title'));
+                    this.removeAttribute('data-title');
+                    this._tooltipElement = null;
+                }
+            });
         });
     }
 
-    if ( fileInput && uploadBtn  ) {
+    if ( updateBtn ) {
+        let   updateClickedNotice = document.querySelector('#smliser-click-notice');
+        updateBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            updateBtn.parentElement.style.display = 'none';
+            updateClickedNotice.style.display ='block';
+            let dismissBtn = document.createElement( 'span' );
+            dismissBtn.classList.add( 'dashicons', 'dashicons-dismiss' );
+            dismissBtn.style.color = 'red';
+            dismissBtn.style.float = 'right';
+            dismissBtn.addEventListener( 'click', ()=>{
+                dismissBtn.parentElement.parentElement.remove();
+            });
+            
+            updateClickedNotice.appendChild(dismissBtn);
+            
+            // Construct the URL
+            let updateUrl = new URL( smliser_var.smliser_ajax_url );
+            updateUrl.searchParams.set( 'action', 'smliser_upgrade' );
+            updateUrl.searchParams.set( 'security', smliser_var.nonce );
+        
+            // Fetch request
+            fetch( updateUrl )
+                .then(response => {
+                    // Check if the response is ok
+                    if (!response.ok) {
+                        throw new Error(response.statusText);
+                    }
+                    return response.json(); // Parse the JSON body
+                })
+                .then(data => {
+                    if (data.success) {
+                        smliserNotify(data.data.message || 'Upgrade successful!', 5000);
+                        updateBtn.parentElement.style.display = 'none'; // Update UI only if successful
+                        updateClickedNotice.style.display = 'block';
+                    } else {
+                        smliserNotify(data.data?.message || 'An error occurred', 5000);
+                    }
+                })
+                .catch(error => {
+                    // Handle fetch or JSON parsing errors
+                    smliserNotify(error.message || 'An unexpected error occurred', 5000);
+                });
+        });
+    }
+
+    if ( fileInput  ) {
+        let uploadBtn       = document.querySelector('.smliser-upload-btn');
+        let fileInfo        = document.querySelector('.smliser-file-info');
+        let submitBtn     = document.querySelector('#smliser-repo-submit-btn');
+
         fileInput.accept = '.zip';
         let clearFileInputBtn = document.querySelector('#smliser-file-remove');
         uploadBtn .addEventListener('click', ()=>{
@@ -258,25 +415,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Handle "select all" checkbox
-    const selectAllCheckbox = document.getElementById('smliser-select-all');
-    const checkboxes = document.querySelectorAll('.smliser-license-checkbox');
-
-    if (selectAllCheckbox ) {
-        selectAllCheckbox.addEventListener('change', function () {
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-        });
-    
-        // Prevent row click when individual checkbox is clicked
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('click', function (event) {
-                event.stopPropagation();
-            });
-        });
-    }
-
     if ( deletePluginBtn ) {
         deletePluginBtn.addEventListener('click', (e)=>{
             let confirmed = confirm('You are about to delete this plugin from the repository, this action cannot be reversed!');
@@ -312,59 +450,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if ( updateBtn ) {
-        updateBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            updateBtn.parentElement.style.display = 'none';
-            updateClickedNotice.style.display ='block';
-            let dismissBtn = document.createElement( 'span' );
-            dismissBtn.classList.add( 'dashicons', 'dashicons-dismiss' );
-            dismissBtn.style.color = 'red';
-            dismissBtn.style.float = 'right';
-            dismissBtn.addEventListener( 'click', ()=>{
-                dismissBtn.parentElement.parentElement.remove();
+    if ( selectAllCheckbox ) {
+        let  checkboxes = document.querySelectorAll( '.smliser-license-checkbox' );
+        selectAllCheckbox.addEventListener('change', function () {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
             });
-            
-            updateClickedNotice.appendChild(dismissBtn);
-            
-            // Construct the URL
-            let updateUrl = new URL( smliser_var.smliser_ajax_url );
-            updateUrl.searchParams.set( 'action', 'smliser_upgrade' );
-            updateUrl.searchParams.set( 'security', smliser_var.nonce );
-        
-            // Fetch request
-            fetch( updateUrl )
-                .then(response => {
-                    // Check if the response is ok
-                    if (!response.ok) {
-                        throw new Error(response.statusText);
-                    }
-                    return response.json(); // Parse the JSON body
-                })
-                .then(data => {
-                    if (data.success) {
-                        smliserNotify(data.data.message || 'Upgrade successful!', 5000);
-                        updateBtn.parentElement.style.display = 'none'; // Update UI only if successful
-                        updateClickedNotice.style.display = 'block';
-                    } else {
-                        smliserNotify(data.data?.message || 'An error occurred', 5000);
-                    }
-                })
-                .catch(error => {
-                    // Handle fetch or JSON parsing errors
-                    smliserNotify(error.message || 'An unexpected error occurred', 5000);
-                });
+        });
+    
+        // Prevent row click when individual checkbox is clicked
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('click', function (event) {
+                event.stopPropagation();
+            });
         });
     }
-    
-});
 
-
-
-document.addEventListener('DOMContentLoaded', function () {
-    var dashboardPage = document.getElementById( 'smliser-admin-dasboard-wrapper' );
-
-    if( dashboardPage ) {
+    if ( dashboardPage ) {
         var ctx1 = document.getElementById('pluginUpdateChart').getContext('2d');
         var ctx2 = document.getElementById('licenseActivationChart').getContext('2d');
         var ctx3 = document.getElementById('licenseDeactivationChart').getContext('2d');
@@ -429,265 +531,107 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-
-});
-
-
-document.addEventListener('DOMContentLoaded', function () {
-    var apiKeyForm = document.getElementById('smliser-api-key-generation-form');
-    var spinnerOverlay = document.querySelector('.spinner-overlay');
-
-    if (apiKeyForm) {
-        apiKeyForm.addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            // Show full-page spinner overlay
+    
+    if ( apiKeyForm ) {
+        let spinnerOverlay = document.querySelector( '.spinner-overlay' );
+        apiKeyForm.addEventListener('submit', ( e ) => {
+            e.preventDefault();
             spinnerOverlay.classList.add('show');
-
-            // Serialize form data
-            var formData = new FormData(apiKeyForm);
-
-            // Append additional data
-            formData.append('action', 'smliser_key_generate');
-            formData.append('security', smliser_var.nonce );
-
-            // Send AJAX request
-            jQuery.ajax({
-                type: 'POST',
-                url: smliser_var.smliser_ajax_url,
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.success) {
-                        var consumer_public = response.data ? response.data.consumer_public : '';
-                        var consumer_secret = response.data ? response.data.consumer_secret : '';
-                        var description = response.data ? response.data.description : '';
-
-                        // Create a div to display the credentials
-                        var credentialsDiv = document.createElement('div');
-                        credentialsDiv.style.border = '1px solid #ccc';
-                        credentialsDiv.style.borderRadius = '9px';
-                        credentialsDiv.style.padding = '10px';
-                        credentialsDiv.style.margin = '20px auto';
-                        credentialsDiv.style.backgroundColor = '#fff';
-                        credentialsDiv.style.width = '50%';
-
-                        var htmlContent = '<h2 style="text-align:center;">API Credentials</h2>';
-                        htmlContent += '<p><strong>Description:</strong> ' + description + '</p>';
-                        htmlContent += '<p><strong>Consumer Public:</strong> ' + consumer_public + '  <span onclick="smliserCopyToClipboard(\'' + consumer_public + '\')" class="dashicons dashicons-admin-page"></span></p>';
-                        htmlContent += '<p><strong>Consumer Secret:</strong> ' + consumer_secret + '  <span onclick="smliserCopyToClipboard(\'' + consumer_secret + '\')" class="dashicons dashicons-admin-page"></span></p>';
-                        htmlContent += '<p><strong>Note:</strong> This is the last time these credentials will be revealed. Please copy and save them securely.</p>';
-
-                        credentialsDiv.innerHTML = htmlContent;
-
-                        // Append the credentials div after the form
-                        apiKeyForm.parentNode.insertBefore(credentialsDiv, apiKeyForm.nextSibling);
-                    } else {
-                        var errorMessage = response.data && response.data.message ? response.data.message : 'An unknown error occurred.';
-                        console.log(errorMessage);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error(error); // Log detailed error information
-                },
-                complete: function () {
-                    spinnerOverlay.classList.remove('show');
-                    apiKeyForm.style.display = 'none';
+            
+            let formData = new FormData( apiKeyForm );
+            formData.append( 'action', 'smliser_key_generate' );
+            formData.append( 'security', smliser_var.nonce );
+            fetch( smliser_var.smliser_ajax_url, {
+                method: 'POST',
+                body: formData,
+            }).then( response => {
+                if ( ! response.ok ) {
+                    throw new Error( response.statusText );
                 }
+                return response.json();
+            }).then( response => {
+                if (response.success) {
+                    let consumer_public = response.data ? response.data.consumer_public : '';
+                    let consumer_secret = response.data ? response.data.consumer_secret : '';
+                    let description = response.data ? response.data.description : '';
+
+                    // Create a div to display the credentials
+                    var credentialsDiv = document.createElement('div');
+                    credentialsDiv.style.border = '1px solid #ccc';
+                    credentialsDiv.style.borderRadius = '9px';
+                    credentialsDiv.style.padding = '10px';
+                    credentialsDiv.style.margin = '20px auto';
+                    credentialsDiv.style.backgroundColor = '#fff';
+                    credentialsDiv.style.width = '50%';
+
+                    var htmlContent = '<h2 style="text-align:center;">API Credentials</h2>';
+                    htmlContent += '<p><strong>Description:</strong> ' + description + '</p>';
+                    htmlContent += '<p><strong>Consumer Public:</strong> ' + consumer_public + '  <span onclick="smliserCopyToClipboard(\'' + consumer_public + '\')" class="dashicons dashicons-admin-page"></span></p>';
+                    htmlContent += '<p><strong>Consumer Secret:</strong> ' + consumer_secret + '  <span onclick="smliserCopyToClipboard(\'' + consumer_secret + '\')" class="dashicons dashicons-admin-page"></span></p>';
+                    htmlContent += '<p><strong>Note:</strong> This is the last time these credentials will be revealed. Please copy and save them securely.</p>';
+
+                    credentialsDiv.innerHTML = htmlContent;
+                    jQuery( credentialsDiv ).hide();
+                    jQuery ( apiKeyForm ).fadeOut( 'slow', () =>{
+                        apiKeyForm.parentNode.insertBefore( credentialsDiv, apiKeyForm.nextSibling );
+                        jQuery( credentialsDiv ).fadeIn( 'slow' );
+                    })
+                    
+                } else {
+                    var errorMessage = response.data && response.data.message ? response.data.message : 'An unknown error occurred.';
+                    console.error(errorMessage);
+                    smliserNotify( errorMessage, 3000 );
+                }
+            }).catch( error => {
+                console.error(error);
+                
+            }).finally( () => {
+                spinnerOverlay.classList.remove('show');
+                apiKeyForm.reset();
             });
         });
     }
-});
 
-// Function to copy text to clipboard using Clipboard API
-function smliserCopyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        smliserNotify('Copied to clipboard: ', 3000);
-    }).catch(function(err) {
-        console.error('Could not copy text: ', err);
-    });
-}
-
-document.addEventListener( 'DOMContentLoaded', function() {
-    var revokeBtns = document.querySelectorAll( '.smliser-revoke-btn' );
-    var spinnerOverlay = document.querySelector('.spinner-overlay');
     if ( revokeBtns ) {
+        let spinnerOverlay = document.querySelector( '.spinner-overlay' );
         revokeBtns.forEach( function( revokeBtn ){
-            var apiKeyId       = revokeBtn.dataset.keyId;
+            let apiKeyId = revokeBtn.getAttribute( 'data-key-id' );
 
-            revokeBtn.addEventListener( 'click', function( event ) {
-             
+            revokeBtn.addEventListener( 'click', () => {
                 const userConfirmed = confirm( 'You are about to revoke this license, connected app will not be able to access resource on this server, be careful action cannot be reversed' );
-                if ( userConfirmed ) {
-                    spinnerOverlay.classList.add('show');
-    
-                    jQuery.ajax( {
-                        type: 'GET',
-                        url: smliser_var.smliser_ajax_url,
-                        data: { 
-                            action: 'smliser_revoke_key',
-                            security: smliser_var.nonce,
-                            api_key_id: apiKeyId,
-    
-                        },
-                        success: function( response ) {
-                            if ( response.success ) {
-                                var feedback = response.data ? response.data.message : '';
-                                smliserNotify(feedback, 3000);
-                                location.reload();
-                            } else {
-                                var errorMessage = response.data && response.data.message ? response.data.message : 'An unknown error occurred.';
-                                console.log(errorMessage);
-                                smliserNotify(errorMessage, 3000);
-                            }
-                        },
-                        error: function(xhr, status, error) {
-                            console.error(error); // Log detailed error information
-                        },
-                        complete: function () {
-                            spinnerOverlay.classList.remove('show');
-                        }
-                    })
+                if ( ! userConfirmed ) {
+                    return;
                 }
+                spinnerOverlay.classList.add('show');
+                let url = new URL( smliser_var.smliser_ajax_url );
+                url.searchParams.set( 'action', 'smliser_revoke_key' );
+                url.searchParams.set( 'security', smliser_var.nonce );
+                url.searchParams.set( 'api_key_id', apiKeyId );
+
+                fetch( url, {
+                    method: 'GET',
+                }).then( response =>{
+                    if ( ! response.ok ) {
+                        throw new Error( response.statusText );
+                    }
+                    return response.json();
+                }).then( responseJson =>{
+                    if ( responseJson.success ) {
+                        let feedback = responseJson.data ? responseJson.data.message : '';
+                        smliserNotify(feedback, 3000);
+                        location.reload();
+                    } else {
+                        let errorMessage = responseJson.data && responseJson.data.message ? responseJson.data.message : 'An unknown error occurred.';
+                        console.log( errorMessage );
+                        smliserNotify(errorMessage, 3000);
+                    }
+                }).catch( error =>{
+                    console.error(error); // Log detailed error information
+                    
+                }).finally( () =>{
+                    spinnerOverlay.classList.remove('show');
+                });
             });
         } );
-    }
+    }    
 });
-
-document.addEventListener( 'DOMContentLoaded', function() {
-    var tokenBtn    = document.getElementById( 'smliserDownloadTokenBtn' );
-    
-    
-    if ( tokenBtn ) {
-        let spinnerDiv          = document.querySelector( '.smliser-loader-container' );
-        let licenseKey          = tokenBtn.dataset.licenseKey;
-        let itemId              = tokenBtn.dataset.itemId;
-        let contentContainner   = document.getElementById( 'ajaxContentContainer' );
-        
-        tokenBtn.addEventListener( 'click', function(event) {
-            spinnerDiv.style.display = "block";
-
-            jQuery.ajax( {
-                type : 'GET',
-                url: smliser_var.smliser_ajax_url,
-                data: {
-                    action: 'smliser_token_gen_form',
-                    security: smliser_var.nonce,
-                    license_key: licenseKey,
-                    item_id: itemId,
-                },
-                success: function( response ) {
-                    
-                    jQuery( contentContainner ).html( response );
-                    var removeBtn  = document.getElementById( 'remove' );
-                    var theForm = document.getElementById('smliser-token-body');
-                    var expiry  = document.getElementById( 'expiryDate' );
-                    var itemID   = document.getElementById( 'popup-item-id' );
-                    var licenseK = document.getElementById( 'pop-up-license-key' );
-                    var submitBtn = document.getElementById( 'createToken' );
-                    submitBtn.addEventListener( 'click', function() {
-                        
-                        smilerClientToken(itemID.value, licenseK.value, expiry.value)
-                            .then(function(downloadToken) {
-                                if ( downloadToken ) {
-                                    // Create a div to display the credentials
-                                    var credentialsDiv = document.createElement('div');
-                                    credentialsDiv.classList.add( 'smliser-token-body' );
-                                    credentialsDiv.classList.add( 'added' );
-                                    let htmlContent = '<p><strong>New token:</strong> ' + smliserWrapText( downloadToken, 16 ) + ' <span onclick="smliserCopyToClipboard(\'' + downloadToken + '\')" class="dashicons dashicons-admin-page"></span></p>';
-                                    htmlContent += '<p><strong>Note:</strong> This is the last time this token will be revealed. Please copy and save it securely.</p>';
-                                    credentialsDiv.innerHTML = htmlContent;
-
-                                    // Append the credentials div after the form
-                                    jQuery( '#smliserNewToken' ).html( credentialsDiv );
-                                    document.getElementById( 'formBody' ).remove();
-                                    submitBtn.remove();
-                                }
-                                
-                            })
-                            
-                            .catch(function(error) {
-                                console.error('Error generating token:', error);
-                                smliserNotify( error );
-                            });
-                            
-                    });
-
-                    removeBtn.addEventListener( 'click', function(){
-                        theForm.remove();
-                        contentContainner.style.display = "none";
-                    });
-
-                    //startCountdown( 30, timerId );
-
-                },
-                error: function(xhr, status, error) {
-                    console.error(error);
-                },
-                complete: function() {
-                    spinnerDiv.style.display = "none";
-                    contentContainner.style.display = "";
-
-                }
-            });
-            
-        });
-
-    }
-});
-
-function smilerClientToken(itemid, licensekey, expiry) {
-    return new Promise((resolve, reject) => {
-        let spinner = document.getElementById('spinner');
-
-        // Force the display of the spinner with !important
-        spinner.style.setProperty('display', 'block', 'important');
-        spinner.style.setProperty('border', '5px dotted #000', 'important');
-
-        jQuery.ajax({
-            type: "POST",
-            url: smliser_var.smliser_ajax_url,
-            data: {
-                action: 'smliser_generate_item_token',
-                security: smliser_var.nonce,
-                license_key: licensekey,
-                item_id: itemid,
-                expiry: expiry,
-            },
-            success: function(response) {
-                if (response.success) {
-                    resolve(response.data.token);  // Resolve the promise with the token
-                } else {
-                    reject('Error! ' + response.data.message);  // Reject the promise with an error message
-                }
-            },
-            error: function(xhr, status, error) {
-                reject('Could not generate token, please refresh the current page. Error: ' + error);  // Reject the promise with an error message
-                console.log(error);
-            },
-            complete: function() {
-                spinner.style.display = "none";
-            }
-        });
-    });
-}
-
-
-function smliserWrapText(text, maxLength) {
-    let wrappedText = '';
-    let words = text.split(' ');
-
-    let line = '';
-    for (let i = 0; i < words.length; i++) {
-        if ((line + words[i]).length > maxLength) {
-            wrappedText += line.trim() + '\n';
-            line = '';
-        }
-        line += words[i] + ' ';
-    }
-
-    // Add the last line to the wrapped text
-    wrappedText += line.trim();
-    return wrappedText;
-}
