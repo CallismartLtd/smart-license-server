@@ -405,6 +405,7 @@ class Smliser_license {
      * Get a license by id.
      * 
      * @param int $id The ID.
+     * @return Smliser_license|false
      */
     public static function get_by_id( $id ) {
         
