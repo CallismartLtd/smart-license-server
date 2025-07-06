@@ -24,7 +24,7 @@ class Smliser_admin_menu {
      */
     public function __construct() {
         add_action( 'admin_post_smliser_options', array( $this, 'options_form_handler' ) );
-        add_action( 'admin_menu', array( $this, 'menus') );        
+        // add_action( 'admin_menu', array( $this, 'menus') );  
     }
 
     /**
@@ -34,17 +34,14 @@ class Smliser_admin_menu {
         if ( is_null( self::$instance ) ) {
             self::$instance = new self();
         }
+
+        return self::$instance;
     }
 
     /**
      * Admin menus
      */
-    public function menus() {
-        if ( ! defined( 'SMLISER_ADMIN_PAGE' ) ) {
-            define( 'SMLISER_ADMIN_PAGE', 'yes' );
-        }
-        global $menu;
-	
+    public function menus() {	
         $dashboard = add_menu_page(
             'Smart License Server',
             'Dashboard',
@@ -95,13 +92,6 @@ class Smliser_admin_menu {
             array( $this, 'options_page_controller' )
         );
 
-        foreach ( $menu as $index => $data ) {
-            if ( $data[2] === 'smliser-admin' ) {
-                $menu[$index][0] = 'Smart Licenses';
-                break;
-            }
-        }
-
     }
 
     /**
@@ -126,7 +116,6 @@ class Smliser_admin_menu {
         $license_deactivation_unique_visitors   = $stats->get_unique_ips( $stats::$license_deactivation );
 
         include_once SMLISER_PATH . 'templates/admin-dashboard.php';
-        return;
     }
 
     /**
@@ -285,7 +274,7 @@ class Smliser_admin_menu {
         $plugin_obj         = new Smliser_Plugin();
         $licensed_plugin    = $license->has_item() ? $plugin_obj->get_plugin( $license->get_item_id() ) : false;
         $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
-        
+        $plugin_name        = $licensed_plugin ? $licensed_plugin->get_name() : 'N/A';
         include_once SMLISER_PATH . 'templates/license/license-admin-view.php';
         return;        
     }
@@ -535,8 +524,6 @@ class Smliser_admin_menu {
      */
     public function pages_options() {
         
-
-
         include_once SMLISER_PATH . '/templates/options/pages-setup.php';
     }
 
