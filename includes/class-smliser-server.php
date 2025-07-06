@@ -73,7 +73,7 @@ class Smliser_Server{
      */
     public function __construct() {
         $this->namespace = SmartLicense_config::instance()->namespace();
-        add_action( 'template_redirect', array( $this, 'serve_package_download' ) );
+        add_action( 'template_redirect', array( $this, 'download_server' ) );
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
         add_filter( 'rest_request_before_callbacks', array( __CLASS__, 'initialize_plugin_context' ), -1, 3 );
@@ -137,83 +137,36 @@ class Smliser_Server{
         return $response;
     }
 
+    /**
+     * Call the correct item download handler.
+     */
+    public static function download_server() {
+        if ( 'smliser-downloads' === get_query_var( 'pagename' ) ) {
+            $category = get_query_var( 'software_category' );
+            switch ( $category ) {
+                case 'plugins':
+                    self::instance()->serve_package_download();
+                    break;
+                case 'themes':
+                    // Handle themes download.
+                    break;
+                case 'software':
+                    // Handle software download.
+                    break;
+                case 'documents':
+                    self::instance()->serve_license_document_download();
+                    break;
+                default:
+                    //redirect to repository page.
+            }
+        }
+    }
+
     /*
     |-----------------------------------------
     | REPOSITORY RESOURCE SERVER METHODS
     |-----------------------------------------
     */
-
-    /**
-     * Handles permission when we serve updates informations for a plugin hosted here.
-     * 
-     * @param WP_REST_Request $request The REST API request object.
-     */
-    public static function plugin_info( WP_REST_Request $request ) {
-        // Either provide the plugin ID(item_id) or the plugin slug.
-        $item_id    = absint( $request->get_param( 'item_id' ) );
-        $slug       = $request->get_param( 'slug' );
-
-        // Let's identify the plugin.
-        $plugin =  self::$instance->plugin->get_plugin( $item_id ) ? self::$instance->plugin->get_plugin( $item_id ) : self::$instance->plugin->get_plugin_by( 'slug', $slug );
-
-        if ( ! $plugin ) {
-            
-            $reasons = array(
-                '',
-                array( 
-                    'route'         => Smliser_Stats::$plugin_update,
-                    'status_code'   => 403,
-                    'request_data'  => 'Plugin update response',
-                    'response_data' => array( 'reason' => 'The requested plugin does not exists.' )
-                )
-            );
-            do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-
-            return new WP_Error( 'smliser_rest_error_invalid_plugin', 'The requested plugin does not exists.', array( 'status' => 404 ) );
-        }
-
-        if ( self::$instance->is_licensed( $plugin->get_item_id() ) ) {
-            $api_key    = sanitize_text_field( self::$instance->extract_token( $request, 'raw' ) );
-            
-            if ( ! smliser_verify_item_token( $api_key, absint( $plugin->get_item_id() ) ) ) {
-                $reasons = array(
-                    '',
-                    array( 
-                        'route'         => Smliser_Stats::$plugin_update,
-                        'status_code'   => 401,
-                        'request_data'  => 'update permission check',
-                        'response_data' => array( 'reason' => 'Unauthorized plugin download' )
-                    )
-                );
-                do_action( 'smliser_stats', 'denied_access', '', '', $reasons );
-    
-                return new WP_Error( 'smliser_rest_error_invalid_authorization', 'Licensed plugin, provide a valid authorization key.', array( 'status' => 401 ) );
-            }
-        }
-        self::$instance->plugin = $plugin;
-        return true;
-    }
-
-    /**
-     * Update response route handler
-     */
-    public static function plugin_update_response( $request ) {
-
-        $the_plugin = self::$instance->plugin;
-        
-        /**
-         * Fires for stats syncronization.
-         * 
-         * @param string $context The context which the hook is fired.
-         * @param Smliser_Plugin.
-         */
-        do_action( 'smliser_stats', 'plugin_update', $the_plugin );
-        $response = new WP_REST_Response( $the_plugin->formalize_response(), 200 );
-        $response->header( 'content-type', 'application/json' );
-        
-        return $response;
-
-    }
 
     /**
      * Repository REST API Route permission handler
@@ -303,86 +256,211 @@ class Smliser_Server{
 
     /**
      * Serve plugin Download.
+     * 
+     * The expected URL should be siteurl/donloads-page/plugins/plugin_slug.zip
+     * Additionally for licensed plugins, append the download token to the URL query parameter like
+     * siteurl/donloads-page/plugins/plugin_slug.zip?download_token={{token}} or
+     * in the http authorization bearer header.
      */
-    public function serve_package_download() {
-        global $wp_query, $smliser_repo;
+    private function serve_package_download() {
+        global $smliser_repo;
 
-        if ( isset( $wp_query->query_vars['smliser_repository_download_page'] ) ) {
+        error_log( 'Serving plugin download' );
+        if ( 'plugins' !== get_query_var( 'software_category' ) ) {
+            return;
+        }
             
-            $plugin_slug    = ! empty( $wp_query->query_vars['plugin_slug'] ) ? sanitize_text_field( wp_unslash( $wp_query->query_vars['plugin_slug'] ) ) : '';
-            $plugin_file    = ! empty( $wp_query->query_vars['plugin_file'] ) ? sanitize_text_field( wp_unslash( $wp_query->query_vars['plugin_file'] ) ) : '';
-            
-            if ( empty( $plugin_slug ) || empty( $plugin_file ) ) {
-                wp_die( 'Plugin slug missing', 400 );
-            }
+        $plugin_slug    = sanitize_and_normalize_path( get_query_var( 'file_slug' ) );        
+        if ( empty( $plugin_slug ) ) {
+            wp_die( 'Plugin slug missing', 'Download Error', 400 );
+        }
 
-            if ( $plugin_slug !== $plugin_file ) {
-                wp_die( 'Invalid plugin slug construct.', 400 );
-            }
+        $plugin_obj = new Smliser_Plugin();
+        $plugin     = $plugin_obj->get_plugin_by( 'slug', $plugin_slug );
 
-            $plugin_obj = new Smliser_Plugin();
-            $plugin     = $plugin_obj->get_plugin_by( 'slug', sanitize_and_normalize_path( $plugin_slug . '/' . $plugin_file . '.zip' ) );
+        if ( ! $plugin ) {
+            wp_die( 'Plugin not found.', 'File not found', 404 );
+        }
 
-            if ( ! $plugin ) {
-                wp_die( 'Plugin not found.', 404 );
-            }
+        /**
+         * Serve download for licensed plugin
+         */
+        if ( $this->is_licensed( $plugin ) ) {
+            $download_token    = smliser_get_query_param( 'download_token' );
 
-            /**
-             * Serve download for licensed plugin
-             */
-            if ( $this->is_licensed( $plugin ) ) {
-                $api_key    = '';
+            if ( empty( $download_token ) ) { // fallback to authorization header.
                 $authorization = smliser_get_authorization_header();
 
                 if ( $authorization ) {
                     $parts = explode( ' ', $authorization );
-                    $api_key = $parts[1];
+                    $download_token = sanitize_text_field( wp_unslash( $parts[1] ) );
                 }
-                
-
-                if ( empty( $api_key ) ) {
-                    wp_die( 'Licensed plugin, please provide download token.', 401 );
-                }
-
-                $item_id = $plugin->get_item_id();
-
-                if ( ! smliser_verify_item_token( $api_key, $item_id ) ) {
-                    wp_die( 'Invalid token, you may need to purchase a license for this plugin.', 401 );
-                }
-
-            }
-
-            $slug           = $plugin->normalize_slug( trailingslashit( $plugin_slug ) . $plugin_file );
-            $plugin_path    = $smliser_repo->get_plugin( $slug );       
             
-            if ( ! $smliser_repo->exists( $plugin_path ) ) {
-                wp_die( 'Plugin file does not exist.', 404 );
             }
-    
-            // Serve the file for download.
-            if ( $smliser_repo->is_readable( $plugin_path ) ) {
 
-                /**
-                 * Fires for download stats syncronization.
-                 * 
-                 * @param string $context The context which the hook is fired.
-                 * @param Smliser_Plugin The plugin object (optional).
-                 */
-                do_action( 'smliser_stats', 'plugin_download', $plugin );
-
-                header( 'content-description: File Transfer' );
-                header( 'content-type: application/zip' );
-                header( 'content-disposition: attachment; filename="' . basename( $plugin_path ) . '"' );
-                header( 'expires: 0' );
-                header( 'cache-control: must-revalidate' );
-                header( 'pragma: public' );
-                header( 'content-length: ' . $smliser_repo->size( $plugin_path ) );
-                $smliser_repo->readfile( $plugin_path );
-                exit;
-            } else {
-                wp_die( 'Error: The file cannot be read.' );
+            if ( empty( $download_token ) ) {
+                wp_die( 'Licensed plugin, please provide download token.', 'Download Token Required', 400 );
             }
+
+            $item_id = $plugin->get_item_id();
+
+            if ( ! smliser_verify_item_token( $download_token, $item_id ) ) {
+                wp_die( 'Invalid token, you may need to purchase a license for this plugin.', 'Unauthorized', 401 );
+            }
+
         }
+
+        $slug           = $plugin->get_slug();
+        $plugin_path    = $smliser_repo->get_plugin( $slug );       
+        
+        if ( ! $smliser_repo->exists( $plugin_path ) ) {
+            wp_die( 'Plugin file does not exist.', 'File not found', 404 );
+        }
+
+        // Serve the file for download.
+        if ( $smliser_repo->is_readable( $plugin_path ) ) {
+
+            /**
+             * Fires for download stats syncronization.
+             * 
+             * @param string $context The context which the hook is fired.
+             * @param Smliser_Plugin The plugin object (optional).
+             */
+            do_action( 'smliser_stats', 'plugin_download', $plugin );
+
+            status_header( 200 );
+            header( 'x-content-type-options: nosniff' );
+            header( 'x-Robots-tag: noindex, nofollow', true );
+            header( 'content-description: file transfer' );
+            if ( isset($_SERVER['HTTP_USER_AGENT'] ) && strpos( $_SERVER['HTTP_USER_AGENT'], 'MSIE' ) ) {
+                header( 'content-Type: application/force-download' );
+            } else {
+                header( 'content-Type: application/zip' );
+            }
+            
+            header( 'content-disposition: attachment; filename="' . basename( $plugin_path ) . '"' );
+            header( 'expires: 0' );
+            header( 'cache-control: must-revalidate' );
+            header( 'pragma: public' );
+            header( 'content-length: ' . $smliser_repo->size( $plugin_path ) );
+            header( 'content-transfer-encoding: binary' );
+            
+            $smliser_repo->readfile( $plugin_path );
+            exit;
+        } else {
+            wp_die( 'Error: The file cannot be read.', 'File Reading Error', 500 );
+        }
+        
+    }
+
+    /**
+     * Serve license document download.
+     * 
+     * The expected URL should be siteurl/downloads-page/documents/licence_id/
+     * The download token is required, and must be in the url query parameter like
+     * siteurl/downloads-page/documents/licence_id/?download_token={{token}} or in the
+     * http authorization bearer header.
+     */
+    private function serve_license_document_download() {
+        $license_id = absint( get_query_var( 'license_id' ) );
+
+        if ( ! $license_id ) {
+            wp_die( __( 'Please provide the correct license ID', 'smliser' ), 'License ID Required',  400 );
+        }
+
+        $download_token = smliser_get_query_param( 'download_token' );
+        if ( empty( $download_token ) ) { // fallback to authorization header.
+            $authorization = smliser_get_authorization_header();
+
+            if ( $authorization ) {
+                $parts = explode( ' ', $authorization );
+                $download_token = sanitize_text_field( wp_unslash( $parts[1] ) );
+            }
+        
+        }
+
+        if ( empty( $download_token ) ) {
+            wp_die( __( 'Download token is required', 'smliser' ), 'Missing token', 401 );
+        }
+
+        $license = Smliser_license::get_by_id( $license_id );
+
+        if ( ! $license ) {
+            wp_die( __( 'License was not found', 'smliser' ), 'Not found', 404 );
+        }
+
+        $item_id = $license->get_item_id();
+        if ( ! smliser_verify_item_token( $download_token, $item_id ) ) {
+            wp_die( __( 'Token verification failed.', 'smliser' ), 'Unauthorized', 403 );
+        }
+
+        $license_key    = $license->get_license_key();
+        $service_id     = $license->get_service_id();
+        $issued         = $license->get_start_date();
+        $expiry         = $license->get_end_date();
+        $company_name   = get_option( 'smliser_company_name', get_bloginfo( 'name' ) );
+        $terms_url      = get_option( 'smliser_license_terms_url', 'https://callismart.com.ng/terms/' );
+        $today          = date_i18n( 'Y-m-d H:i:s' );
+        $site_limit     = $license->get_allowed_sites();
+        
+        $document = <<<EOT
+        ========================================
+        SOFTWARE LICENSE CERTIFICATE
+        Issued by {$company_name}
+        ========================================
+        ----------------------------------------
+        License Details
+        ----------------------------------------
+        Service ID:     {$service_id}
+        License Key:    {$license_key}
+        (Ref: Item ID {$item_id})
+
+        ----------------------------------------
+        License Validity
+        ----------------------------------------
+        Start Date:     {$issued}
+        End Date:       {$expiry}
+        Allowed Sites:  {$site_limit}
+
+        ----------------------------------------
+        Activation Guide
+        ----------------------------------------
+        Use the Service ID and License Key above to activate this software.
+
+        Note:
+        - The software already includes its internal ID.
+        - Activation may vary by product. Refer to product documentation.
+
+        ----------------------------------------
+        License Terms (Summary)
+        ----------------------------------------
+        ✔ Use on up to {$site_limit} site(s)
+        ✔ Allowed for personal or client projects
+        ✘ Not allowed to resell, redistribute, or modify for resale
+
+        Full License Agreement:
+        {$terms_url}
+
+        ----------------------------------------
+        Issued By:      Smart Woo Licensing System
+        Generated On:   {$today}
+        ========================================
+        EOT;
+       
+        
+        status_header( 200 );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'X-Robots-Tag: noindex, nofollow' );
+        header( 'Content-Description: File Transfer' );
+        header( 'Content-Type: text/plain; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="license-document.txt"' );
+        header( 'Expires: 0' );
+        header( 'Cache-Control: must-revalidate' );
+        header( 'Pragma: public' );
+        header( 'Content-Length: ' . strlen( $document ) );
+        header( 'Content-Transfer-encoding: binary' );
+        echo $document;
+        exit;
     }
 
     /**
