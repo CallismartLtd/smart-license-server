@@ -101,6 +101,9 @@ class SmartLicense_config {
         add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
         add_filter( 'rest_post_dispatch', array( $this, 'filter_rest_response' ), 10, 3 );
         add_filter( 'redirect_canonical', array( $this, 'disable_redirect_on_downloads' ), 10, 2 );
+        add_filter( 'query_vars', array( $this, 'query_vars') );
+        add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
+
         add_action( 'plugins_loaded', array( $this, 'include' ) );
         add_action( 'init', array( $this, 'init_hooks' ) );
         add_action( 'admin_post_smliser_bulk_action', array( 'Smliser_license', 'bulk_action') );
@@ -110,7 +113,6 @@ class SmartLicense_config {
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
         add_action( 'admin_post_smliser_admin_download_plugin', array( 'Smliser_Server', 'serve_admin_download' ) );
         add_action( 'admin_notices', array( __CLASS__, 'print_notice' ) );
-        add_filter( 'query_vars', array( $this, 'query_vars') );
         add_action( 'wp_ajax_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler' ) );
         add_action( 'wp_ajax_smliser_upgrade', array( 'Smliser_Install', 'ajax_update' ) );
         add_action( 'admin_post_nopriv_smliser_oauth_login', array( 'Smliser_API_Cred', 'oauth_login_form_handler' ) );
@@ -212,7 +214,8 @@ class SmartLicense_config {
          */
         register_rest_route( $this->namespace, $this->plugin_info, array(
             'methods'             => 'GET',
-            'callback'            => array( 'Smliser_Server', 'plugin_update_response' ),
+            'permission_callback' => array( 'Smliser_Plugin_REST_API', 'plugin_info_permission_callback' ),
+            'callback'            => array( 'Smliser_Plugin_REST_API', 'plugin_info' ),
             'args'  => array(
                 'item_id'   => array(
                     'required'          => false,
@@ -227,7 +230,7 @@ class SmartLicense_config {
                     'sanitize_callback' => array( __CLASS__, 'sanitize' )
                 ),
             ),
-            'permission_callback' => array( 'Smliser_Server', 'plugin_info' ),
+            
 
         ) );
 
@@ -326,6 +329,34 @@ class SmartLicense_config {
     }
 
     /**
+     * Set Props
+	 * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response Result to send to the client.
+	 *                                                                   Usually a WP_REST_Response or WP_Error.
+	 * @param array                                            $handler  Route handler used for the request.
+	 * @param WP_REST_Request                                  $request  Request used to generate the response.
+     */
+    public static function initialize_plugin_context( $response, $handler, $request ) {
+        // Ensure this request is for our route
+        if ( ! str_contains( $request->get_route(), self::instance()->namespace ) ) {
+            return $response;
+        }
+
+        if ( is_wp_error( $response ) ) {
+            remove_filter( 'rest_post_dispatch', 'rest_send_allow_header' );
+        }
+        if ( is_null( self::instance()->plugin ) ) {
+            self::instance()->plugin   = Smliser_Plugin::instance();            
+        }
+
+        if ( is_null( self::instance()->license ) ) {
+            self::instance()->license  = Smliser_license::instance();
+
+        }
+
+        return $response;
+    }
+
+    /**
      * Filter the REST API response.
      *
      * @param WP_REST_Response $response The REST API response object.
@@ -380,7 +411,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/utils/smliser-functions.php';
         require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
-        require_once SMLISER_PATH . 'includes/class-smliser-menu.php';
+        require_once SMLISER_PATH . 'includes/admin/class-menu.php';
         require_once SMLISER_PATH . 'includes/class-callismart-markdown-parser.php';
         require_once SMLISER_PATH . 'includes/class-smliser-repository.php';
         require_once SMLISER_PATH . 'includes/class-smliser-plugin.php';
@@ -391,7 +422,8 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/class-smliser-plugin-download-token.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-rest-auth.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-license-rest-api.php';
-
+        require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-plugin-rest-api.php';
+        
         add_action( 'wp_enqueue_scripts', array( $this, 'load_styles' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
@@ -433,7 +465,8 @@ class SmartLicense_config {
      * Init hooks
      */
     public function init_hooks() {
-        $repo_base_url = get_option( 'smliser_repo_base_perma', 'plugins' );
+        $this->run_automation();
+        $repo_base_url = get_option( 'smliser_repo_base_perma', 'repository' );
     
         add_rewrite_rule(
             '^' . $repo_base_url . '$',
@@ -449,38 +482,72 @@ class SmartLicense_config {
 
         /*
         |------------------------
-        | Plugin download rules
+        | Software download rules
         |------------------------
         */
 
         $download_slug = smliser_get_download_slug();
+
         /**
-         * Plugin download base pagename.
+         * The base downloads page 
          */
         add_rewrite_rule(
-            '^' . $download_slug . '$',
-            'index.php?smliser_repository_download_page=1',
-            'top'
-        );
-        
-        /** Plugin Download URI Rule */
-        add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/([^/]+)\.zip/?$',
-            'index.php?smliser_repository_download_page=1&plugin_slug=$matches[1]&plugin_file=$matches[2]',
+            '^' . $download_slug . '/?$',
+            'index.php?pagename=smliser-downloads',
             'top'
         );
 
+        /**
+         * Downloads category page
+         */
+        add_rewrite_rule(
+            '^' . $download_slug . '/([^/]+)/?$',
+            'index.php?pagename=smliser-downloads&software_category=$matches[1]',
+            'top'
+        );
+        
+        /** 
+         * File Download URI Rule 
+         */
+        add_rewrite_rule(
+            '^' . $download_slug . '/([^/]+)/([^/]+)\.zip/?$',
+            'index.php?pagename=smliser-downloads&software_category=$matches[1]&file_slug=$matches[2]',
+            'top'
+        );
+
+        add_rewrite_rule(
+            '^' . $download_slug . '/([^/]+)/([^/]+)/?$',
+            'index.php?pagename=smliser-downloads&software_category=$matches[1]&license_id=$matches[2]',
+            'top'
+        );
+        
         /**OAUTH authorization endpoint */
         add_rewrite_rule(
             '^smliser-auth/v1/authorize$',
             'index.php?smliser_auth=$matches[1]',
             'top'
         );
-        
-        
-        add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
-        $this->run_automation();
     }
+
+    /**
+     * Plugin Query Variables
+     *
+     * Adds custom query variables to WordPress recognized query variables.
+     *
+     * @param array $vars The existing array of query variables.
+     * @return array Modified array of query variables.
+     */
+    public function query_vars( $vars ) {
+        
+        $vars[] = 'smliser_repository';
+        $vars[] = 'smliser_repository_plugin_slug';
+        $vars[] = 'file_slug';
+        $vars[] = 'license_id';
+        $vars[] = 'software_category';
+        $vars[] = 'smliser_auth';
+        
+        return $vars;
+    }    
 
     /**
      * Register cron.
@@ -513,27 +580,6 @@ class SmartLicense_config {
             wp_schedule_event( time(), 'smliser_4_hourly', 'smliser_clean' );
         }
 
-    }
-
-    /**
-     * Plugin Query Variables
-     *
-     * Adds custom query variables to WordPress recognized query variables.
-     *
-     * @param array $vars The existing array of query variables.
-     * @return array Modified array of query variables.
-     */
-    public function query_vars( $vars ) {
-        
-        $vars[] = 'smliser_repository';
-        $vars[] = 'smliser_repository_plugin_slug';
-
-        $vars[] = 'smliser_repository_download_page';
-        $vars[] = 'plugin_slug';
-        $vars[] = 'plugin_file';
-        $vars[] = 'smliser_auth';
-        
-        return $vars;
     }
     
     /**
