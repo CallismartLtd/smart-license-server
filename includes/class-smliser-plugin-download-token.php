@@ -279,37 +279,31 @@ class Smliser_Plugin_Download_Token {
      * Ajax token generate
      */
     public static function get_new_token() {
-        
         check_ajax_referer( 'smliser_nonce', 'security' );
         if ( ! current_user_can( 'install_plugins' ) ) {
             wp_send_json_error( array( 'message' => 'You do not have the required permission to do this.') );
         }
         
-        if ( isset( $_POST['expiry'] ) && ! empty( $_POST['expiry'] ) ) {
-            $converted_date     = strtotime( sanitize_text_field( wp_unslash( $_POST['expiry'] ) ) );
+        $item_id    = isset( $_POST['item_id'] ) ? absint( $_POST['item_id'] ) : wp_send_json_error( array( 'message' => 'Item ID is required.' ) );
+        $license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( wp_unslash( $_POST['license_key'] ) ) : wp_send_json_error( array( 'message' => 'License key is required.' ) );
+        $expiry     = isset( $_POST['expiry'] ) ? sanitize_text_field( wp_unslash(  $_POST['expiry'] ) ): 0;
 
-            if ( $converted_date < time() ) {
-                wp_send_json_error( array( 'message' => 'Expiration date cannot be in the past, choose a date in the future.') );
+        if ( ! empty( $expiry ) ) {
+            $xpiry = strtotime( $expiry );
+            if ( ! $xpiry || $xpiry < time() ) {
+                $expiry = 0;
+            } else {
+                $expiry = $xpiry - time();
             }
-
-            $duration           = $converted_date - time();
-            $_POST['expiry']    = $duration;
         }
-
-        $needed     = array( 'expiry', 'license_key', 'item_id' );
-        $token_data = array_intersect_key( $_POST, array_flip( $needed ) );
-        $token      = self::insert_helper( $token_data );
-
-        if ( is_wp_error( $token ) ) {
-            wp_send_json_error( array( 'message' => $token->get_error_message() ) );
-        }
+        
+        $token = smliser_generate_item_token( $item_id, $license_key, $expiry );
 
         if ( ! $token ) {
             wp_send_json_error( array( 'message' => 'An error occured during token creation.' ) );
         }
-        $encrypt_obj    = new Callismart\Utilities\Encryption();
         
-        wp_send_json_success( array( 'token' => $encrypt_obj::encrypt( $token ) ) );
+        wp_send_json_success( array( 'token' => $token ) );
 
     }
 
