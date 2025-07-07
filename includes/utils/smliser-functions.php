@@ -95,7 +95,7 @@ function smliser_not_found_container( $text ) {
     ob_start();
     ?>
     <div class="smliser-not-found-container">
-        <p><?php echo esc_html( $text ) ?> </p>
+        <p><?php echo wp_kses_post( $text ) ?> </p>
     </div>
 
     <?php
@@ -153,12 +153,12 @@ function smliser_is_empty_date( $date_string ) {
 function smliser_license_admin_action_page( $action = 'add-new', $license_id = '' ) {
     if ( 'edit' === $action || 'view' === $action ) {
         $url = add_query_arg( array(
-            'action'        => $action,
+            'tab'        => $action,
             'license_id'    => $license_id,
         ), smliser_license_page() );
     } else {
         $url = add_query_arg( array(
-            'action'    => $action,
+            'tab'    => $action,
         ), smliser_license_page() );
     }
     return $url;
@@ -173,12 +173,12 @@ function smliser_license_admin_action_page( $action = 'add-new', $license_id = '
 function smliser_repository_admin_action_page( $action = 'add-new', $item_id = '' ) {
     if ( 'edit' === $action || 'view' === $action ) {
         $url = add_query_arg( array(
-            'action'        => $action,
+            'tab'        => $action,
             'item_id'       => $item_id,
         ), smliser_repo_page() );
     } else {
         $url = add_query_arg( array(
-            'action'    => $action,
+            'tab'    => $action,
         ), smliser_repo_page() );
     }
     return $url;
