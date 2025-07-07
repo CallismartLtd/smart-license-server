@@ -252,7 +252,6 @@ class Smliser_admin_menu {
 
         $user_id    = ! empty( $license->get_user_id() ) ? $license->get_user_id() : 0;
         include_once SMLISER_PATH . 'templates/license/license-edit.php';
-        return;
     }
 
     /**
@@ -276,7 +275,6 @@ class Smliser_admin_menu {
         $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
         $plugin_name        = $licensed_plugin ? $licensed_plugin->get_name() : 'N/A';
         include_once SMLISER_PATH . 'templates/license/license-admin-view.php';
-        return;        
     }
 
     /**
@@ -305,19 +303,6 @@ class Smliser_admin_menu {
         $next_date      = smliser_tstmp_to_date( $cron_timestamp );
 
         include_once SMLISER_PATH . 'templates/tasks/tasks.php';
-        return;
-    }
-
-    /**
-     * Missed task page.
-     */
-    public function task_log_page() {
-        $all_tasks      = Smliser_license::get_task_logs();
-        $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
-        $cron_timestamp = $cron_handle ? $cron_handle->timestamp : 0;
-        $next_date      = smliser_tstmp_to_date( $cron_timestamp );
-
-        include_once SMLISER_PATH . 'templates/tasks/task-log.php';
         return;
     }
 
@@ -427,7 +412,6 @@ class Smliser_admin_menu {
      */
     private function upload_plugin_page() {
         include_once SMLISER_PATH . 'templates/repository/repo-add.php';
-        return;
     }
 
     /**
@@ -445,8 +429,6 @@ class Smliser_admin_menu {
         }
 
         include_once SMLISER_PATH . 'templates/repository/plugin-edit.php';
-        return;
-
     }
 
     /**
@@ -461,14 +443,12 @@ class Smliser_admin_menu {
         $obj    = new Smliser_Plugin();
         $plugin = $obj->get_plugin( $id );
 
-        if ( empty( $plugin ) ) {
-            return smliser_not_found_container( 'Invalid or deleted plugin' );
+        if ( ! empty( $plugin ) ) {
+            $delete_link    = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_plugin_action', 'real_action' => 'delete', 'item_id' => $id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
         }
-        $delete_link    = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_plugin_action', 'real_action' => 'delete', 'item_id' => $id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
-        $stats          = new Smliser_Stats();
-        ob_start();
+        
+        $stats = new Smliser_Stats();
         include_once SMLISER_PATH . 'templates/repository/plugin-view.php';
-        return ob_get_clean();
     }
 
     /**
