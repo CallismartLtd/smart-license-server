@@ -81,20 +81,38 @@ class Menu {
             'Dashboard',
             'manage_options',
             'smliser-admin',
-            array( self::$instance, 'dashboard_page_controller' ),
+            array( __NAMESPACE__ . '\\Admin_Dashboard_Page', 'router' ),
             'dashicons-database-view',
             3.1
         );
+
+        self::$repository_page_id = add_submenu_page(
+            'smliser-admin',
+            'Repository',
+            'Repository',
+            'manage_options',
+            'repository',
+            array( __NAMESPACE__ . '\\Admin_Repository_Page', 'router' )
+        );
+
+        self::$license_page_id = add_submenu_page(
+            'smliser-admin',
+            'Licenses',
+            'Licenses',
+            'manage_options',
+            'licenses',
+            array( __NAMESPACE__ . '\\Admin_License_Page', 'router' )
+        );
+
+        self::$options_page_id = add_submenu_page(
+            'smliser-admin',
+            'Settings',
+            'Settings',
+            'manage_options',
+            'smliser-options',
+            array( __NAMESPACE__ . '\\Admin_Options_Page', 'router' )
+        );
     }
-
-    /**
-     * Dashboard page controller
-     */
-    public function dashboard_page_controller() {
-        
-    }
-
-
 
 }
 
