@@ -412,6 +412,10 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
         require_once SMLISER_PATH . 'includes/admin/class-menu.php';
+        require_once SMLISER_PATH . 'includes/admin/class-admin-dashboard.php';
+        require_once SMLISER_PATH . 'includes/admin/class-admin-repository-page.php';
+        require_once SMLISER_PATH . 'includes/admin/class-admin-license-page.php';
+        require_once SMLISER_PATH . 'includes/admin/class-admin-options-page.php';
         require_once SMLISER_PATH . 'includes/class-callismart-markdown-parser.php';
         require_once SMLISER_PATH . 'includes/class-smliser-repository.php';
         require_once SMLISER_PATH . 'includes/class-smliser-plugin.php';
@@ -437,7 +441,7 @@ class SmartLicense_config {
      */
     public function load_scripts() {
         wp_enqueue_script( 'smliser-script', SMLISER_URL . 'assets/js/main-script.js', array( 'jquery' ), SMLISER_VER, true );
-        if ( defined( 'SMLISER_ADMIN_PAGE' ) ) {
+        if ( is_admin() ) {
             wp_enqueue_script( 'smliser-chart', SMLISER_URL . 'assets/js/chart.js', array(), SMLISER_VER, true );
         }
 
