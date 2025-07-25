@@ -264,8 +264,6 @@ class Smliser_Server{
      */
     private function serve_package_download() {
         global $smliser_repo;
-
-        error_log( 'Serving plugin download' );
         if ( 'plugins' !== get_query_var( 'software_category' ) ) {
             return;
         }
