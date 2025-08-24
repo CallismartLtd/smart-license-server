@@ -28,8 +28,6 @@ Smart License Server is a License Key and Update Server for developers who desir
 
 ## Changelog
 
-### 1.0.0
-- Initial release
 
 ## Support
 
