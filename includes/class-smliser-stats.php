@@ -708,7 +708,6 @@ class Smliser_Stats {
 
         } elseif ( 'license_deactivation' === $context ) {
             $website = $license->get_action();
-            $license->remove_activated_website( $website );
             self::log_access( self::$license_deactivation, array( 
                 'request_data' => array( 
                     'license_id' => $license->get_id(), 
