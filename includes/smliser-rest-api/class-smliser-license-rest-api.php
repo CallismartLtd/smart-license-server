@@ -204,8 +204,7 @@ class Smliser_License_Rest_API {
     
     /**
      * License deactivation permission.
-     * We issued an api key as part of the license document during activation and subsequent reauth, same key will be required
-     * during remote deactivation.
+     * The license key and service ID are required to deactivate a license.
      * 
      * @param WP_REST_Request $request
      */
@@ -218,11 +217,12 @@ class Smliser_License_Rest_API {
         $license        = self::$instance->license->get_license_data( $service_id, $license_key );
         
         if ( ! $license ) {
-            return new WP_Error( 'invalid_license', 'The provided license does not exists.', array( 'status' => 404 ) );
+            return new WP_Error( 'invalid_license', 'The provided license does not exist.', array( 'status' => 404 ) );
         }
 
         self::$instance->license = $license;
-        return true;
+        
+        return self::verify_domain( $request );
     }
 
     /**
@@ -231,8 +231,6 @@ class Smliser_License_Rest_API {
      * @param WP_REST_Request $request
      */
     public static function license_deactivation_response( WP_REST_Request $request ) {
-        $license_key    = $request->get_param( 'license_key' );
-        $service_id     = $request->get_param( 'service_id' );
         $website_name   = smliser_get_base_url( $request->get_param( 'domain' ) );
         $obj            = self::instance()->license;
         $original_status = $obj->get_status();
@@ -240,9 +238,8 @@ class Smliser_License_Rest_API {
         
         if ( $obj->save() ) {
             $response_data = array(
-                'success'   => true,
                 'message'   => 'License has been deactivated',
-                'data'  => array(
+                'data'      => array(
                     'license_status'    => $obj->get_status(),
                     'date'              => gmdate( 'Y-m-d' )
                 ),
@@ -259,7 +256,6 @@ class Smliser_License_Rest_API {
             do_action( 'smliser_stats', 'license_deactivation', '', $obj, $additional );
         } else {
             $response_data = array(
-                'success'    => false,
                 'message'   => 'Unable to process this request at the moment.',
                 'data'  => array(
                     'license_status'    => $original_status,
@@ -274,6 +270,104 @@ class Smliser_License_Rest_API {
     }
 
     /**
+     * License unistallation permission callback.
+     * 
+     * @param WP_REST_Request $request The REST Request Object
+     */
+    public static function license_uninstallation_permission( WP_REST_Request $request ) {
+        return self::license_deactivation_permission( $request );
+    }
+
+    /**
+     * Uninstall or remove th given domain from the list of activated domains for this license.
+     * 
+     * @param WP_REST_Request $request The REST Request Object
+     */
+    public static function license_uninstallation_response( WP_REST_Request $request ) {
+        $website_name   = smliser_get_base_url( $request->get_param( 'domain' ) );
+        $response_data  = array(
+            'data'      => array(
+                'license status'    => self::instance()->license->get_status(),
+                'activated on'      => self::instance()->license->get_total_active_sites()
+            )
+        );
+
+        $domain = sanitize_url( $website_name, array( 'http', 'https' ) );
+        $domain = wp_parse_url( $domain, PHP_URL_HOST );
+        if ( self::instance()->license->remove_activated_website( $website_name ) ) {
+            $response_data['message'] = sprintf( 'Your domain %s has been uninstalled successfully.', $domain );
+
+        } else {
+            $response_data['message'] = sprintf( 'Unable to unstall %s please try again later.', $website_name );
+         
+        }
+
+        $response = new WP_REST_Response( $response_data, 200 );
+
+        return $response;
+    }
+
+    /**
+     * License validity test permission callback
+     * 
+     * @param WP_REST_Request $request The REST API request object.
+     */
+    public static function license_validity_test_permission( WP_REST_Request $request ) {
+        self::instance();
+        self::$instance->start_time = microtime( true );
+        $service_id     = $request->get_param( 'service_id' );
+        $license_key    = $request->get_param( 'license_key' );
+
+        $license        = self::$instance->license->get_license_data( $service_id, $license_key );
+        
+        if ( ! $license ) {
+            return new WP_Error( 'invalid_license', 'The provided license does not exist.', array( 'status' => 404 ) );
+        }
+
+        self::$instance->license = $license;
+
+        $domain_access = self::verify_domain( $request );
+        if ( is_wp_error( $domain_access ) ) {
+            return $domain_access;
+        }
+
+        $download_token = $request->get_header( 'x-download-token' );
+
+        if ( ! $download_token ) {
+            return new WP_Error( 'missing_download_token', 'Please provide the X-Download-Token header value', array( 'status' => 400 ) );
+        }
+
+        return true;
+    }
+
+    /**
+     * Perform data validation test.
+     * This operation will test for:
+     * - License document validity.
+     * - Domain validity.
+     * - Download token validity.
+     */
+    public static function license_validity_test( WP_REST_Request $request ) {
+        $license        = self::$instance->license;
+        $item_id        = $request->get_param( 'item_id' );
+        $download_token = $request->get_header( 'x-download-token' );
+        
+        $response_data = array(
+            'license' => array(
+                'status'        => $license->get_status(),
+                'expiry_date'   => $license->get_end_date()
+            ),
+            'token_validity'    => smliser_verify_item_token( $download_token, absint( $item_id ) ) ? 'Valid' : 'Invalid',
+
+        );
+
+        $response = new WP_REST_Response( array( 'data' => $response_data ), 200 );
+
+        return $response;
+
+    }
+
+    /**
      * Download token reauthentication for licensed plugins.
      */
     public static function item_download_reauth_permission( WP_REST_Request $request ) {
@@ -281,8 +375,6 @@ class Smliser_License_Rest_API {
         self::$instance->start_time = microtime( true );
         $service_id     = $request->get_param( 'service_id' );
         $license_key    = $request->get_param( 'license_key' );
-
-
         $license        = self::$instance->license->get_license_data( $service_id, $license_key );
 
         if ( ! $license ) {
@@ -363,7 +455,6 @@ class Smliser_License_Rest_API {
 
     }
 
-
     /**
      * Whether or not to restrict a domain from activating a license
      * 
@@ -399,7 +490,7 @@ class Smliser_License_Rest_API {
         $domain_data    = isset( $known_domains[$domain] ) ? $known_domains[$domain] : false;
 
         if ( ! isset( $domain_data['secret'] ) ) {
-            return new WP_Error( 'site_token_missing', 'Your domain\'s secure token is missing', array( 'status' => 401 ) );
+            return new WP_Error( 'site_token_missing', sprintf( 'Invalid domain, please activate the domain %s to access this route', $domain ), array( 'status' => 401 ) );
         }
 
         $known_secret   = $domain_data['secret'];
