@@ -1048,7 +1048,6 @@ class Smliser_license {
         $domain         = sanitize_url( $domain, array( 'http', 'https' ) );
         $domain         = wp_parse_url( $domain, PHP_URL_HOST );
         $all_sites      = $this->get_active_sites( 'edit' );
-        // wp_send_json( $all_sites );
         return ! isset( $all_sites[$domain] );
     }
 
