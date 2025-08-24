@@ -40,6 +40,20 @@ class SmartLicense_config {
      */
     private $deactivation_route = '/license-deactivation/';
 
+    /**
+     * License uninstallation route.
+     * 
+     * @var string
+     */
+    private $license_uninstallation_route = '/license-uninstallation/';
+
+    /**
+     * License validity route.
+     * 
+     * @var string
+     */
+    private $license_validity_route = '/license-validity-test/';
+
     /** 
      * Repository REST API route.
      * 
@@ -134,7 +148,7 @@ class SmartLicense_config {
          */
         register_rest_route( $this->namespace, $this->activation_route, 
             array(
-                'methods'             => 'POST',
+                'methods'             => WP_REST_Server::CREATABLE,
                 'callback'            =>  array( 'Smliser_License_Rest_API', 'license_activation_response' ),
                 'permission_callback' => array( 'Smliser_License_Rest_API', 'license_activation_permission_callback'),
                 'args'  => array(
@@ -178,7 +192,7 @@ class SmartLicense_config {
          */
         register_rest_route( $this->namespace, $this->deactivation_route, 
             array(
-                'methods'             => 'POST',
+                'methods'             => WP_REST_Server::EDITABLE,
                 'callback'            => array( 'Smliser_License_Rest_API', 'license_deactivation_response' ),
                 'permission_callback' => array( 'Smliser_License_Rest_API', 'license_deactivation_permission' ),
                 'args'  => array(
@@ -208,12 +222,89 @@ class SmartLicense_config {
             )
         );
 
+        /**
+         * Register license unstallation route.
+         */
+        register_rest_route( $this->namespace, $this->license_uninstallation_route, 
+            array(
+                'methods'             => WP_REST_Server::EDITABLE,
+                'callback'            => array( 'Smliser_License_Rest_API', 'license_uninstallation_response' ),
+                'permission_callback' => array( 'Smliser_License_Rest_API', 'license_uninstallation_permission' ),
+                'args'  => array(
+                    'license_key'   => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The license key to uninstall.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    ),
+
+                    'service_id'    => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The service ID associated with the license.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    ),
+                    'domain'  => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The URL of the website where the license is currently activated.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize_url' ),
+                        'validate_callback' => array( __CLASS__, 'is_url' ),
+                    )
+                ),
+            )
+        );
+
+        /**
+         * Register license validity route.
+         */
+        register_rest_route( $this->namespace, $this->license_validity_route, 
+            array(
+                'methods'             => 'POST',
+                'callback'            => array( 'Smliser_License_Rest_API', 'license_validity_test' ),
+                'permission_callback' => array( 'Smliser_License_Rest_API', 'license_validity_test_permission' ),
+                'args'  => array(
+                    'license_key'   => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The license key to validate.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    ),
+
+                    'service_id'    => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The service ID associated with the license.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'not_empty' ),
+                    ),
+                    'domain'  => array(
+                        'required'          => true,
+                        'type'              => 'string',
+                        'description'       => 'The URL of the website where the license is currently activated.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize_url' ),
+                        'validate_callback' => array( __CLASS__, 'is_url' ),
+                    ),
+                    'item_id'       => array(
+                        'required'          => true,
+                        'type'              => 'integer',
+                        'description'       => 'The ID of the software this license is associated with.',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => array( __CLASS__, 'is_int' ),
+                    )
+                ),
+            )
+        );
+
         /** 
          * Register plugin info route.
          * 
          */
         register_rest_route( $this->namespace, $this->plugin_info, array(
-            'methods'             => 'GET',
+            'methods'             => WP_REST_Server::READABLE,
             'permission_callback' => array( 'Smliser_Plugin_REST_API', 'plugin_info_permission_callback' ),
             'callback'            => array( 'Smliser_Plugin_REST_API', 'plugin_info' ),
             'args'  => array(
@@ -617,8 +708,10 @@ class SmartLicense_config {
             $value = sanitize_text_field( wp_unslash( $value ) );
         } elseif ( is_array( $value ) ) {
             $value = array_map( 'sanitize_text_field', wp_unslash( $value ) );
-        } elseif ( is_int( $value ) || is_float( $value ) ) {
+        } elseif ( is_int( $value ) ) {
             $value = absint( $value );
+        } elseif ( is_float( $value ) ) {
+            $value = floatval( $value );
         } else {
             $value = new WP_Error( 'rest_invalid_param', __( 'Invalid parameter type.', 'smliser' ), array( 'status' => 400 ) );
         }
