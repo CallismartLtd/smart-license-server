@@ -71,6 +71,9 @@ defined( 'ABSPATH' ) || exit; ?>
             <div class="smliser-admin-view-page-body-item">
                 <p>Tested WP version: <p> <?php echo esc_html( $plugin->get_tested() ) ?></p></p>
             </div>
+            <div class="smliser-admin-view-page-body-item">
+                <p>Support URL: <p><?php echo esc_html( $plugin->get_support_url() ?: 'N/A' ) ?></p></p>
+            </div>
 
             <div class="smliser-admin-view-page-body-item">
                 <p>Date Created: <p><?php echo esc_html( smliser_check_and_format( $plugin->get_date_created(), true ) ) ?></p></p>
