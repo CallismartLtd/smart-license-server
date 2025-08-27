@@ -325,19 +325,16 @@ class SmartLicense_config {
 
         ) );
 
-        /**Register REST API route for querying entire repository*/
-        register_rest_route( $this->namespace, $this->repository_route, array(
-            'methods'               => array( 'GET', 'POST'),
-            'callback'              => array( 'Smliser_Server', 'repository_response' ),
-            'permission_callback'   => array( 'Smliser_Server', 'repository_access_permission' ),
-        ) );
-
-        /** Register REST API Route for querying a specific plugin */
-        register_rest_route( $this->namespace, $this->repository_plugin_route, array(
-            'methods'               => array( 'GET', 'POST'),
-            'callback'              => array( 'Smliser_Server', 'repository_response' ),
-            'permission_callback'   => array( 'Smliser_Server', 'repository_access_permission' ),
-        ) );
+        /** 
+         * Register REST API route for querying entire repository
+         */
+        register_rest_route( $this->namespace, $this->repository_route, 
+            array(
+                'methods'               => WP_REST_Server::READABLE,
+                'callback'              => array( 'Smliser_Repository_Rest_API', 'repository_response' ),
+                'permission_callback'   => array( 'Smliser_Repository_Rest_API', 'repository_access_permission' ),
+            )
+        );
 
         /** Register Oauth client authentication route */
         register_rest_route( $this->namespace, $this->app_reauth, array(
@@ -518,6 +515,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-rest-auth.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-license-rest-api.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-plugin-rest-api.php';
+        require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-repository-rest-api.php';
         
         add_action( 'wp_enqueue_scripts', array( $this, 'load_styles' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
