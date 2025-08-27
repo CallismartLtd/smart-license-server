@@ -162,98 +162,6 @@ class Smliser_Server{
         }
     }
 
-    /*
-    |-----------------------------------------
-    | REPOSITORY RESOURCE SERVER METHODS
-    |-----------------------------------------
-    */
-
-    /**
-     * Repository REST API Route permission handler
-     * 
-     * @param WP_REST_Request $request The current request object.
-     */
-    public static function repository_access_permission( WP_REST_Request $request ) {
-        $authorization = self::$instance->extract_token( $request );
-        self::$instance->set_oauth_token( $authorization );
-        self::$instance->set_auth_type( $request );
-
-        if ( 'Bearer' !== self::$instance->authorization_type ) {
-            return new WP_Error( 'unsupported_auth_type', "The '" . self::$instance->authorization_type . "' authorization type is not supported.", array( 'status' => 400 ) );
-        }
-       
-        return self::$instance->validate_token() && self::$instance->permission_check( $request );
-    }
-
-    /**
-     * Repository REST API handler
-     * 
-     * @param WP_REST_Request $request The current request object.
-
-     */
-    public static function repository_response( $request ) {
-        $route          = $request->get_route();
-        $slug           = sanitize_text_field( $request->get_param( 'slug' ) );
-        $scope          = sanitize_text_field( $request->get_param( 'scope' ) );
-        $is_entire_repo = false;
-        $single_plugin  = false;
-
-        if ( empty( $slug ) && empty( $scope ) ) {
-            $is_entire_repo = true;
-        } elseif ( ! empty( $slug ) && ! empty( $scope ) ) {
-            $single_plugin  = true;
-        }
-    
-        /**
-         * Handle request to read entire repository
-         */
-        if ( $is_entire_repo && 'GET' === $request->get_method() ) {
-            $plugin_obj     = new Smliser_plugin();
-            $all_plugins    = $plugin_obj->get_plugins();
-            $plugins_info   = array();
-            if ( ! empty( $all_plugins ) ) {
-                foreach ( $all_plugins  as $plugin ) {
-                    $plugins_info[] = $plugin->formalize_response();
-                }
-            }
-            
-            $response = array(
-                'success'   => true,
-                'plugins'   => $plugins_info,
-
-            );
-        
-            return new WP_REST_Response( $response, 200 );
-        }
-
-        if ( $single_plugin && 'GET' === $request->get_method() ) {
-            $plugin_obj = new Smliser_plugin();
-            $real_slug  = trailingslashit( $slug ) . $slug . '.zip';
-            $the_plugin = $plugin_obj->get_plugin_by( 'slug', $real_slug );
-            
-            if ( ! $the_plugin ){
-                $response_data = array(
-                    'success'      => false,
-                    'message'   => 'The plugin was not found'
-                );
-                $response = new WP_REST_Response( $response_data, 404 );
-                $response->header( 'content-type', 'application/json' );
-        
-                return $response;
-            }
-            $response_data = array(
-                'success'   => true,
-                'plugin'    => $the_plugin->formalize_response(),
-            );
-            
-            $response = new WP_REST_Response( $response_data, 200 );
-            $response->header( 'content-type', 'application/json' );
-            return $response;
-        }
-
-    }
-
-
     /**
      * Serve plugin Download.
      * 
@@ -270,11 +178,10 @@ class Smliser_Server{
             
         $plugin_slug    = sanitize_and_normalize_path( get_query_var( 'file_slug' ) );        
         if ( empty( $plugin_slug ) ) {
-            wp_die( 'Plugin slug missing', 'Download Error', 400 );
+            wp_die( 'File slug or extension missing', 'Download Error', 400 );
         }
 
-        $plugin_obj = new Smliser_Plugin();
-        $plugin     = $plugin_obj->get_plugin_by( 'slug', $plugin_slug );
+        $plugin = Smliser_Plugin::get_plugin_by( 'slug', $plugin_slug );
 
         if ( ! $plugin ) {
             wp_die( 'Plugin not found.', 'File not found', 404 );
@@ -618,14 +525,13 @@ class Smliser_Server{
 
         $item_id = 0;
         if ( $plugin instanceof Smliser_Plugin ) {
-            $item_id = absint( $plugin->get_item_id() );
+            $item_id = $plugin->get_item_id();
         } elseif ( is_int( $plugin ) ) {
             $item_id = absint( $plugin );
         } elseif ( is_string( $plugin ) ) {
-            $plugin_slug = sanitize_text_field( $plugin );
+            $plugin_slug = sanitize_text_field( wp_unslash( $plugin ) );
             if ( strpos( $plugin_slug, '/' ) !== false ) {
-                $obj        = new Smliser_Plugin();
-                $plugin     = $obj->get_plugin_by( 'slug', $plugin_slug );
+                $plugin     = Smliser_Plugin::get_plugin_by( 'slug', $plugin_slug );
                 $item_id    = ! empty( $plugin ) ? $plugin->get_item_id() : 0;
             }
         }
