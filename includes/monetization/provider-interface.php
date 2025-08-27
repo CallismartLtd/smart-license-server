@@ -12,7 +12,20 @@ namespace Smart_License_Server\Monetization;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The monetization provider interface defines the contract all providers must follow.
+ * Monetization Provider Interface
+ *
+ * Defines the contract all monetization providers must follow.
+ * 
+ * A provider is an external system or platform responsible for 
+ * handling pricing, currency, checkout, and product data.
+ *
+ * Examples:
+ * - WooCommerce store
+ * - EDD store
+ * - SureCart
+ * - Freemius
+ * - Gumroad
+ * - Local Smart License Server provider
  */
 interface Monetization_Provider_Interface {
 
