@@ -648,22 +648,20 @@ class Smliser_Repository {
      * Outputs a file.
      * 
      * @param $file Full path to file
+     * @param int $start The start byte.
+     * @param int $length The length of bytes to read.
      */
-    public function readfile( $file ) {
-        
-        if ( ! defined( 'SMLISER_CHUNK_SIZE' ) ) {
-			define( 'SMLISER_CHUNK_SIZE', 1024 * 1024 );
-		}
+    public function readfile( $file, $start = 0, $length = 0 ) {
         // phpcs:disable
-		$handle = @fopen( $file, 'r' );
+		$handle = @fopen( $file, 'rb' );
 
 		if ( false === $handle ) {
 			return false;
 		}
 
         $start          = 0;
-        $length         = @filesize( $file ); 
-		$read_length    = (int) SMLISER_CHUNK_SIZE;
+        $length         = $length ? $length : @filesize( $file ); 
+		$read_length    = defined( 'SMLISER_CHUNK_SIZE' ) ? (int) SMLISER_CHUNK_SIZE : 1024 * 1024;
 
 		if ( $length ) {
 			$end = $start + $length - 1;
@@ -672,7 +670,7 @@ class Smliser_Repository {
 			$p = @ftell( $handle ); 
 
 			while ( ! @feof( $handle ) && $p <= $end ) { 
-				// Don't run past the end of file.
+				// Must not exceed file length.
 				if ( $p + $read_length > $end ) {
 					$read_length = $end - $p + 1;
 				}
