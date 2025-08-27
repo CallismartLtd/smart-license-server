@@ -7,11 +7,11 @@
 $max_upload_size_bytes = wp_max_upload_size();
 $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 ?>
+
+<h1>Edit Plugin <span class="dashicons dashicons-plugins-checked"></span></h1>
 <?php if ( get_transient( 'smliser_form_success' ) ):?>
     <div class="notice notice-success is-dismissible"><p>Saved!</p></div>
 <?php endif;?>
-
-<h1>Edit Plugin <span class="dashicons dashicons-plugins-checked"></span></h1>
 <?php if ( ! $plugin ) : ?>
     <?php echo wp_kses_post( smliser_not_found_container( 'Invalid or deleted plugin <a href="' . smliser_repo_page() . '">Back</a>' ) ); ?>
 <?php else: ?>
@@ -40,10 +40,12 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                 <label for="smliser-plugin-file" class="smliser-form-label">Plugin File (.zip):</label>
                 <span class="smliser-form-description" title="If you upload a new zip file, the old file will be deleted and replaced with the uploaded version. The older version will not be recoverable, so be sure to use version control to track your plugin update history or skip upload to use current file. Max Upload Size: <?php echo esc_html( $max_upload_size_mb ) . 'MB'; ?>">?</span>
                 <div class="smliser-form-file-row">
-                    <span class="dashicons dashicons-remove" id="smliser-file-remove" style="display: none;" title="remove file"></span>
                     <input type="file" name="smliser_plugin_file" id="smliser-plugin-file"  style="display: none;">
-                    <div class="smliser-file-info" wp-max-upload-size= "<?php echo absint( $max_upload_size_mb ) ?>">No plugin file selected.</div>
-                    <div class="smliser-upload-btn"><span class="dashicons dashicons-upload"></span> Upload Plugin</div>
+                    <div class="smliser-file-info" wp-max-upload-size= "<?php echo absint( $max_upload_size_mb ) ?>">
+                        <span>No plugin file selected.</span>
+                    </div>
+                    <button type="button" class="smliser-upload-btn button"><span class="dashicons dashicons-media-archive"></span> Upload Plugin</button>
+                    <button type="button" class="smliser-file-remove button smliser-hide"><span class="dashicons dashicons-remove" title="remove file"></span> Clear</button>
                 </div>
             </div>
 
@@ -65,7 +67,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
             <div class="smliser-form-row">
                 <label for="smliser-plugin-author-profile" class="smliser-form-label">Author Profile:</label>
                 <span class="smliser-form-description" title="Author URL">?</span>
-                <input type="url" name="smliser_plugin_author_profile" id="smliser-plugin-author-profile" class="smliser-form-input" value="<?php echo esc_attr( $plugin->get_author_profile() ) ?>">
+                <input type="text" name="smliser_plugin_author_profile" id="smliser-plugin-author-profile" class="smliser-form-input" value="<?php echo esc_attr( $plugin->get_author_profile() ) ?>">
             </div>
 
             <!--Required WordPress Version-->
@@ -87,6 +89,20 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                 <label for="smliser-plugin-requires-php" class="smliser-form-label">Requires PHP Version:</label>
                 <span class="smliser-form-description" title="Minimum required PHP version">?</span>
                 <input type="text" name="smliser_plugin_requires_php" id="smliser-plugin-requires-php" class="smliser-form-input" value="<?php echo esc_attr( $plugin->get_required_php() )?>">
+            </div>
+
+            <!-- Support URL -->
+            <div class="smliser-form-row">
+                <label for="smliser-plugin-support" class="smliser-form-label">Support URL:</label>
+                <span class="smliser-form-description" title="Link to plugin support page">?</span>
+                <input type="text" name="smliser_plugin_support_url" id="smliser-plugin-support" class="smliser-form-input" value="<?php echo esc_attr( $plugin->get_support_url() ) ?>">
+            </div>
+
+            <!-- Download link -->
+            <div class="smliser-form-row">
+                <label for="smliser-plugin-download-link" class="smliser-form-label">Download Link:</label>
+                <span class="smliser-form-description" title="Direct download link to the plugin zip file. If you upload a new file, this link will be replaced with the new file link.">?</span>
+                <input type="text" name="smliser_plugin_download_link" id="smliser-plugin-download-link" class="smliser-form-input" value="<?php echo esc_attr( $plugin->get_download_link() ) ?>">
             </div>
 
             <input type="submit" class="button action smliser-bulk-action-button" name="smliser_plugin_upload_update" value="Update Plugin"/>
