@@ -363,31 +363,47 @@ document.addEventListener( 'DOMContentLoaded', function() {
     if ( fileInput  ) {
         let uploadBtn       = document.querySelector('.smliser-upload-btn');
         let fileInfo        = document.querySelector('.smliser-file-info');
-        let submitBtn     = document.querySelector('#smliser-repo-submit-btn');
+        let submitBtn       = document.querySelector('#smliser-repo-submit-btn');
+        let originalText    = fileInfo.textContent;
 
-        fileInput.accept = '.zip';
-        let clearFileInputBtn = document.querySelector('#smliser-file-remove');
-        uploadBtn .addEventListener('click', ()=>{
-            fileInput.click();
+        let clearFileInputBtn   = document.querySelector( '.smliser-file-remove' );
+        
+        uploadBtn.addEventListener( 'click', ()=> fileInput.click() );
+        clearFileInputBtn.addEventListener( 'click', ()=>{
+            fileInput.value = '';
+            fileInfo.innerHTML = '<span>No plugin file selected.</span>';
+            clearFileInputBtn.classList.add( 'smliser-hide' );
+            uploadBtn.classList.remove( 'smliser-hide' );
         });
-        const originalText = fileInfo.textContent;
+
+        fileInput.setAttribute( 'accept', '.zip' );
 
         fileInput.addEventListener('change', function(event) {
-            
             const file = event.target.files[0];
             if (file) {
-                let maxUploadSize = fileInfo.getAttribute('wp-max-upload-size');
-                let fileSizeElement = document.createElement('p');
-                let fileNameElement = document.createElement('p');
+                let maxUploadSize   = parseFloat( fileInfo.getAttribute('wp-max-upload-size') );
                 const fileSizeMB = (file.size / 1024 / 1024).toFixed(2); // Convert size to MB and round to 2 decimal places
-                fileInfo.innerHTML = '';
-                fileSizeElement.innerHTML = maxUploadSize > fileSizeMB
-                ? `File size: ${fileSizeMB} MB <span class="dashicons dashicons-yes-alt"></span>`
-                : `File size: ${fileSizeMB} MB <span class="dashicons dashicons-no" style="color: red;"></span>`;
-                fileNameElement.textContent = `File name: ${file.name}`;
-                fileInfo.append(fileNameElement, fileSizeElement);
-                clearFileInputBtn.style.display = "block";
-
+                fileInfo.innerHTML = `
+                    <table class="widefat fixed striped">
+                        <tr>
+                            <th>File Name:</th>
+                            <td>${file.name}</td>
+                        </tr>
+                        <tr>
+                            <th>File Size:</th>
+                            <td>
+                                ${fileSizeMB} MB 
+                                ${ maxUploadSize < fileSizeMB 
+                                    ? `<span class="dashicons dashicons-no" style="color: red;" title="File size exceeds the maximum upload limit of ${maxUploadSize} MB"></span>` 
+                                    : `<span class="dashicons dashicons-yes" style="color: green;" title="File size is within the acceptable limit"></span>`
+                                }
+                            </td>
+                        </tr>
+                    </table>
+                `;
+                clearFileInputBtn.classList.remove( 'smliser-hide' );
+                uploadBtn.classList.add( 'smliser-hide' );
+      
                 if ( maxUploadSize < fileSizeMB ) {
                     smliserNotify('The uploaded file is higher than the max_upload_size, this server cannot process this request', 6000);
                 }
@@ -396,13 +412,6 @@ document.addEventListener( 'DOMContentLoaded', function() {
             } else {
                 fileInfo.innerHTML = originalText;
             }
-        });
-        
-        clearFileInputBtn.addEventListener('click', ()=>{
-            clearFileInputBtn.style.display = "none";
-            fileInput.value = '';
-            fileInfo.innerHTML = originalText;
-
         });
 
         if ( submitBtn ) {
