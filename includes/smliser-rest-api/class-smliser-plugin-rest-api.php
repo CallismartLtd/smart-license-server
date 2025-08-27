@@ -72,7 +72,7 @@ class Smliser_Plugin_REST_API {
         $item_id = $request->get_param( 'item_id' );
         $slug    = $request->get_param( 'slug' );
 
-        if (  empty( $item_id ) && empty( $slug ) ) {
+        if ( empty( $item_id ) && empty( $slug ) ) {
             return new WP_Error(
                 'smliser_plugin_info_error',
                 __( 'You must provide either the item ID or the plugin slug.', 'smliser' ),
@@ -81,7 +81,7 @@ class Smliser_Plugin_REST_API {
         }
 
         // Let's identify the plugin.
-        $plugin =  self::$instance->plugin->get_plugin( $item_id ) ? self::$instance->plugin->get_plugin( $item_id ) : self::$instance->plugin->get_plugin_by( 'slug', $slug );
+        $plugin =  self::$instance->plugin->get_plugin( $item_id ) ? self::$instance->plugin->get_plugin( $item_id ) : self::$instance->plugin::get_plugin_by( 'slug', $slug );
 
         if ( ! $plugin ) {
             $message = __( 'The plugin does not exist, please check the typography or the plugin slug.', 'smliser' );
