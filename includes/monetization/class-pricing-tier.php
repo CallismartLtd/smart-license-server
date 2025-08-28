@@ -29,6 +29,13 @@ class Pricing_Tier {
     protected $id;
 
     /**
+     * The monetization ID this tier belongs to.
+     * 
+     * @var int $monetization_id
+     */
+    protected $monetization_id;
+
+    /**
      * The display name of the pricing tier (e.g., "Single Site", "Pro", "Lifetime").
      *
      * @var string
@@ -55,7 +62,7 @@ class Pricing_Tier {
      *
      * @var string
      */
-    protected $billing_cycle = 'lifetime';
+    protected $billing_cycle = '';
 
     /**
      * The maximum number of sites this license tier supports.
@@ -73,18 +80,14 @@ class Pricing_Tier {
 
     /**
      * Constructor.
-     *
-     * @param int        $id          Unique identifier for the pricing tier.
-     * @param string     $name        The name of the pricing tier.
-     * @param int|string $product_id  The product ID this tier belongs to.
-     * @param string     $provider_id The monetization provider ID.
      */
-    public function __construct( $id, $name, $product_id, $provider_id ) {
-        $this->id          = $id;
-        $this->name        = $name;
-        $this->product_id  = $product_id;
-        $this->provider_id = $provider_id;
-    }
+    public function __construct() {}
+
+    /*
+    |-----------
+    | GETTERS
+    |-----------
+    */
 
     /** 
      *  The unique identifier for this pricing tier.
@@ -93,6 +96,15 @@ class Pricing_Tier {
      */
     public function get_id() { 
         return $this->id;
+    }
+
+    /**
+     * Get monetization ID this tier belongs to.
+     * 
+     * @return int
+     */
+    public function get_monetization_id() {
+        return $this->monetization_id;
     }
 
     /** 
@@ -118,7 +130,9 @@ class Pricing_Tier {
      * 
      * @return string 
      */
-    public function get_provider_id() { return $this->provider_id; }
+    public function get_provider_id() {
+        return $this->provider_id;
+    }
 
     /** 
      * The billing cycle for this pricing tier.
@@ -134,14 +148,78 @@ class Pricing_Tier {
      * 
      * @return int
      */
-    public function get_max_sites() { return $this->max_sites; }
+    public function get_max_sites() {
+        return $this->max_sites;
+    }
 
     /**
      * Get the features included in this pricing tier.
      * 
      * @return array
      */
-    public function get_features() { return $this->features; }
+    public function get_features() {
+        return $this->features;
+    }
+
+    /*-----------
+    | SETTERS
+    |-----------
+    */
+
+    /**
+     * Set ID
+     * 
+     * @param int $id
+     * @return self
+     */
+    public function set_id( $id ) {
+        $this->id = absint( $id );
+        return $this;
+    }
+
+    /**
+     * Set monetization ID this tier belongs to.
+     * 
+     * @param int $monetization_id
+     * @return self
+     */
+    public function set_monetization_id( $monetization_id ) {
+        $this->monetization_id = absint( $monetization_id );
+        return $this;
+    }
+
+    /**
+     * Set the name of this pricing tier.
+     *
+     * @param string $name The name of the pricing tier.
+     * @return self
+     */
+    public function set_name( $name ) {
+        $this->name = sanitize_text_field( wp_unslash( $name ) );
+        return $this;
+    }
+
+    /**
+     * Set the product ID this tier belongs to.
+     *
+     * @param int|string $product_id The product ID.
+     * @return self
+     */
+    public function set_product_id( $product_id ) {
+        $this->product_id = is_numeric( $product_id ) ? absint( $product_id ) : sanitize_text_field( wp_unslash( $product_id ) );
+        return $this;
+    }
+
+    /**
+     * Set the monetization provider ID for this tier.
+     *
+     * @param string $provider_id The provider ID (e.g., 'woocommerce', 'edd').
+     * @return self
+     */    
+    public function set_provider_id( $provider_id ) {
+        $this->provider_id = sanitize_text_field( wp_unslash( $provider_id ) );
+        return $this;
+    }
 
     /**
      * Set the billing cycle for this tier.
@@ -175,4 +253,144 @@ class Pricing_Tier {
         $this->features = $features;
         return $this;
     }
+
+    /*
+    |---------------------------
+    | CRUD METHODS
+    |---------------------------
+    */
+
+    /**
+     * Save or update this pricing tier in the database.
+     * 
+     * @return bool True on success, false on failure.
+     */
+    public function save() {
+        global $wpdb;
+
+        $data = [
+            'monetization_id' => $this->monetization_id,
+            'name'            => $this->name,
+            'product_id'      => $this->product_id,
+            'provider_id'     => $this->provider_id,
+            'billing_cycle'   => $this->billing_cycle,
+            'max_sites'       => $this->max_sites,
+            'features'        => maybe_serialize( $this->features ),
+        ];
+
+        if ( $this->id ) {
+            // Update existing tier
+            $updated = $wpdb->update(
+                SMLISER_PRICING_TIER_TABLE,
+                $data,
+                [ 'id' => $this->id ],
+                [ '%d', '%s', '%s', '%s', '%s', '%d', '%s' ],
+                [ '%d' ]
+            );
+
+            return false !== $updated;
+        } else {
+            // Insert new tier
+            $inserted = $wpdb->insert(
+                SMLISER_PRICING_TIER_TABLE,
+                $data,
+                [ '%d', '%s', '%s', '%s', '%s', '%d', '%s' ]
+            );
+
+            if ( $inserted ) {
+                $this->set_id( $wpdb->insert_id );
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    /**
+     * Delete this pricing tier from the database.
+     * 
+     * @return bool True on success, false on failure.
+     */
+    public function delete() {
+        global $wpdb;
+
+        if ( ! $this->id ) {
+            return false;
+        }
+
+        $deleted = $wpdb->delete(
+            SMLISER_PRICING_TIER_TABLE,
+            [ 'id' => $this->id ],
+            [ '%d' ]
+        );
+
+        return false === $deleted ? false : true;
+    }
+
+    /**
+     * Get a pricing tier by its ID.
+     * 
+     * @param int $id The ID of the pricing tier.
+     * @return Pricing_Tier|null The Pricing_Tier object if found, null otherwise.
+     */
+    public static function get_by_id( $id ) {
+        global $wpdb;
+
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . SMLISER_PRICING_TIER_TABLE . " WHERE id = %d", absint( $id ) ) );
+
+        if ( null === $row ) {
+            return null;
+        }
+
+        $tier = new self();
+        $tier->set_monetization_id( $row->monetization_id )
+            ->set_id( $row->id )
+            ->set_name( $row->name )
+            ->set_product_id( $row->product_id )
+            ->set_provider_id( $row->provider_id )
+            ->set_billing_cycle( $row->billing_cycle )
+            ->set_max_sites( $row->max_sites )
+            ->set_features( maybe_unserialize( $row->features ) );
+
+        return $tier;
+    }
+
+    /**
+     * Get all pricing tiers by monetization ID.
+     *
+     * @param int $monetization_id The monetization ID.
+     * @return Pricing_Tier[] Array of Pricing_Tier objects.
+     */
+    public static function get_by_monetization_id( $monetization_id ) {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM " . SMLISER_PRICING_TIER_TABLE . " WHERE monetization_id = %d",
+                absint( $monetization_id )
+            )
+        );
+
+        if ( empty( $rows ) ) {
+            return [];
+        }
+
+        $tiers = [];
+        foreach ( $rows as $row ) {
+            $tier = new self();
+            $tier->set_id( $row->id )
+                ->set_monetization_id( $row->monetization_id )
+                ->set_name( $row->name )
+                ->set_product_id( $row->product_id )
+                ->set_provider_id( $row->provider_id )
+                ->set_billing_cycle( $row->billing_cycle )
+                ->set_max_sites( $row->max_sites )
+                ->set_features( maybe_unserialize( $row->features ) );
+
+            $tiers[] = $tier;
+        }
+
+        return $tiers;
+    }
+
 }
