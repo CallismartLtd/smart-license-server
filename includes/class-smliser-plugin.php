@@ -643,7 +643,7 @@ class Smliser_Plugin {
      * 
      * @param int $id The plugin ID
      */
-    public function get_plugin( $id = 0 ) {
+    public static function get_plugin( $id = 0 ) {
         $id = absint( $id );
         if ( empty( $id ) ) {
             return false;
