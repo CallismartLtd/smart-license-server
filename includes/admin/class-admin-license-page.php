@@ -6,14 +6,14 @@
  * @package Smliser\class
  */
 
-namespace Callismart\Smliser\admin;
+namespace SmartLicenseServer\admin;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * The admin license page class
  */
-class Admin_License_Page {
+class License_Page {
     /**
      * Page router
      */
