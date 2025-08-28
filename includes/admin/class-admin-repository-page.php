@@ -6,12 +6,12 @@
  * @package Smliser\class
  */
 
-namespace Callismart\Smliser\admin;
+namespace SmartLicenseServer\admin;
 
 /**
  * The Admin repository page handler
  */
-class Admin_Repository_Page {
+class Repository_Page {
     /**
      * Page router
      */
