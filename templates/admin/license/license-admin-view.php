@@ -49,7 +49,7 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
 
         <div class="smliser-admin-view-page-body-item">
             <p>Plugin Name:</p>
-            <a href="<?php echo ! empty( $licensed_plugin ) ? esc_url( smliser_repository_admin_action_page( 'view', $licensed_plugin->get_item_id() ) ) : '#' ?>"><?php echo esc_html( ! empty($licensed_plugin ) ? $licensed_plugin->get_name() : 'N/L' )?></a>
+            <a href="<?php echo ! empty( $licensed_plugin ) ? esc_url( smliser_admin_repo_tab( 'view', $licensed_plugin->get_item_id() ) ) : '#' ?>"><?php echo esc_html( ! empty($licensed_plugin ) ? $licensed_plugin->get_name() : 'N/L' )?></a>
         </div>
 
         <div class="smliser-admin-view-page-body-item">
