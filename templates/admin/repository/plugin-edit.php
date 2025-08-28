@@ -15,7 +15,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 <?php if ( ! $plugin ) : ?>
     <?php echo wp_kses_post( smliser_not_found_container( 'Invalid or deleted plugin <a href="' . smliser_repo_page() . '">Back</a>' ) ); ?>
 <?php else: ?>
-    <a href="<?php echo esc_url( smliser_repository_admin_action_page( 'view', $plugin->get_item_id() ) ) ?>" class="button action smliser-nav-btn">View Plugin</a>
+    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', $plugin->get_item_id() ) ) ?>" class="button action smliser-nav-btn">View Plugin</a>
     <p>If a new file is uploaded, it will replace the existing one in the repository, so be sure to have a backup of the earlier version.</p>
     <p>Note: Incrementing the version number will cause an update prompt on the websites where this plugin is currently installed.</p>
     <div class="smliser-form-container">
