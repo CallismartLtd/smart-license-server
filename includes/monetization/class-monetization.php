@@ -289,7 +289,7 @@ class Monetization {
             }
         } else {
             $data['created_at'] = current_time( 'mysql' );
-            $inserted = $wpdb->insert(
+            $inserted           = $wpdb->insert(
                 SMLISER_MONETIZATION_TABLE,
                 $data,
                 [ '%s', '%s', '%d', '%s', '%s' ]
