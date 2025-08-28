@@ -71,8 +71,7 @@ function smliser_license_page() {
 }
 
 /**
- * The Product page url function
- * can be useful to get the url to the product page in all scenerio
+ * The repository page url function
  */
 function smliser_repo_page() {
 
@@ -165,16 +164,16 @@ function smliser_license_admin_action_page( $action = 'add-new', $license_id = '
 }
 
 /**
- * Action url constructor for admin product page
+ * Action url constructor for admin repository tabs.
  * 
  * @param string $action Action query variable for the page.
  * @param int $license_id   The ID of the license. 
  */
-function smliser_repository_admin_action_page( $action = 'add-new', $item_id = '' ) {
-    if ( 'edit' === $action || 'view' === $action ) {
+function smliser_admin_repo_tab( $action = 'add-new', $item_id = '' ) {
+    if ( 'add-new' !== $action ) {
         $url = add_query_arg( array(
-            'tab'        => $action,
-            'item_id'       => $item_id,
+            'tab'       => $action,
+            'item_id'   => $item_id,
         ), smliser_repo_page() );
     } else {
         $url = add_query_arg( array(
