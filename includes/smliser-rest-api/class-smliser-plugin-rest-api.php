@@ -81,7 +81,7 @@ class Smliser_Plugin_REST_API {
         }
 
         // Let's identify the plugin.
-        $plugin =  self::$instance->plugin->get_plugin( $item_id ) ? self::$instance->plugin->get_plugin( $item_id ) : self::$instance->plugin::get_plugin_by( 'slug', $slug );
+        $plugin = self::$instance->plugin->get_plugin( $item_id ) ? self::$instance->plugin->get_plugin( $item_id ) : self::$instance->plugin::get_by_slug( $slug );
 
         if ( ! $plugin ) {
             $message = __( 'The plugin does not exist, please check the typography or the plugin slug.', 'smliser' );
