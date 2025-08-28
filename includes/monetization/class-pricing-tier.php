@@ -3,12 +3,12 @@
  * Pricing Tier Class file
  * 
  * @author Callistus Nwachukwu
- * @package Smart_License_Server
+ * @package SmartLicenseServer
  * @subpackage Monetization
  * @since 1.0.0
  */
 
-namespace Smart_License_Server\Monetization;
+namespace SmartLicenseServer\Monetization;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -24,7 +24,7 @@ class Pricing_Tier {
     /**
      * Unique identifier for the pricing tier.
      *
-     * @var int|string
+     * @var int
      */
     protected $id;
 
@@ -74,7 +74,7 @@ class Pricing_Tier {
     /**
      * Constructor.
      *
-     * @param int|string $id          Unique identifier for the pricing tier.
+     * @param int        $id          Unique identifier for the pricing tier.
      * @param string     $name        The name of the pricing tier.
      * @param int|string $product_id  The product ID this tier belongs to.
      * @param string     $provider_id The monetization provider ID.
