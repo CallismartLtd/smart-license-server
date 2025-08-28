@@ -611,76 +611,31 @@ class Smliser_Plugin {
     */
 
     /**
-     * Get one or more Plugins data by a given column name.
+     * Get one or more Plugins data by slug.
      * 
-     * @param string $column_name       The column name in the database table.
      * @param string|float|int $value   The value to search for in the given column.
-     * @param bool $single              Whether to fetch a single or multiple rows, defaults to true.
-     * @return self|self[]|false|array  A single instance or an array of Smliser_Plugin objects, or false for invalid input.
+     * @return self|false  A single instance false for invalid input.
      */
 
-    public static function get_plugin_by( $column_name = '', $value = '', $single = true ) {
-        // Prepare the default return data.
-        $data = $single ? false : array();
-
-        if ( empty( $column_name ) || empty( $value ) ) {
-            return $data;
-        }
-        
-        $allowed_columns = array( 
-            'name', 'license_key', 
-            'slug', 'version', 'author', 
-            'author_profile', 'requires', 
-            'tested', 'requires_php', 
-            'download_link', 'created_at', 'last_updated',
-        );
-
-        // Sanitize the column name.
-        $column_name = sanitize_key( $column_name );
-
-        // Validate the column name.
-        if ( ! in_array( $column_name, $allowed_columns, true ) ) {
-            return $data; // Invalid column name.
-        }
-
-        // Sanitize and validate the value.
-        if ( is_array( $value ) ) {
-            return $data; // Invalid data type.
-
-        } elseif ( is_float( $value ) ) {
-            $value = floatval( $value );
-
-        } elseif ( is_int( $value ) ) {
-            $value = absint( $value );
-        } else {
-            $value = sanitize_text_field( wp_unslash( $value ) );
-        }
-
-        // Normalize the slug.
-        if( 'slug' === $column_name ) {
-            $value = self::normalize_slug( $value );
-        }
-
-        // phpcs:disable
+    public static function get_by_slug( $value ) {
         global $wpdb;
-        // Prepare and execute the query.
-        $query = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE `" . esc_sql( $column_name ) . "` = %s", $value );
-        
-        $results = $single ? $wpdb->get_row( $query, ARRAY_A ) : $wpdb->get_results( $query, ARRAY_A );
+
+        $value = self::normalize_slug( $value );
+
+        if ( ! is_string( $value ) || empty( $value ) ) {
+            return false;
+        }        
+    
+        // phpcs:disable 
+        $query      = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE `slug` = %s", $value );
+        $result = $wpdb->get_row( $query, ARRAY_A );
         // phpcs:enable
 
-        if ( ! empty( $results ) ){
-
-            if ( $single ) {
-                $data = self::convert_db_result( $results );
-            } else {
-                foreach ( $results as $plugin ) {
-                    $data[] = self::convert_db_result( $plugin );
-                }
-            }
+        if ( ! empty( $result ) ){
+            return self::convert_db_result( $result );
         }
 
-        return $data;
+        return false;
     }
 
     /**
@@ -725,7 +680,7 @@ class Smliser_Plugin {
         $offset     = ( absint( $parsed_args['page'] ) - 1 ) * absint( $parsed_args['limit'] );
         $table_name = SMLISER_PLUGIN_ITEM_TABLE;
 
-        $query      = $wpdb->prepare( "SELECT * FROM {$table_name} ORDER BY id DESC LIMIT %d OFFSET %d", absint( $parsed_args['limit'] ), absint( $offset ) );
+        $query      = $wpdb->prepare( "SELECT * FROM {$table_name} ORDER BY id ASC LIMIT %d OFFSET %d", absint( $parsed_args['limit'] ), absint( $offset ) );
         $results    = $wpdb->get_results( $query, ARRAY_A );
         $plugins    = array();
 
@@ -1108,12 +1063,26 @@ class Smliser_Plugin {
             'ratings'           => $this->get_ratings(),
             'support_url'       => $this->get_support_url(),
             'active_installs'   => $this->get_active_installs(),
-            'is_licensed'       => $this->is_licensed(),
-            'commerce'          => [], // Future use
+            'is_monetized'       => $this->is_monetized(),
+            'monetization'      => [], // Future use
         );
 
         return $data;
     }
+
+    /**
+     * Check if this plugin is monetized.
+     * 
+     * @return bool true if monetized, false otherwise.
+     */
+    public function is_monetized() {
+        global $wpdb;
+        $table_name = SMLISER_MONETIZATION_TABLE;
+        $query = $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = %s AND `item_id` = %d", 'plugin', absint( $this->item_id ) );
+
+        return $wpdb->get_var( $query ) > 0; // phpcs:disable
+    }
+
 
     /**
      * Check if a given plugin is licensed.
@@ -1258,11 +1227,11 @@ class Smliser_Plugin {
                 $item_id = $self->save();
                 if ( is_wp_error( $item_id ) ) {
                     set_transient( 'smliser_form_validation_message', $item_id->get_error_message(), 15 );
-                    wp_safe_redirect( smliser_repository_admin_action_page() );
+                    wp_safe_redirect( smliser_admin_repo_tab() );
                     exit;
                 }
                 set_transient( 'smliser_form_success', true, 4 );
-                wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $item_id ) );
+                wp_safe_redirect( smliser_admin_repo_tab( 'edit', $item_id ) );
                 exit;
             }
             
@@ -1276,12 +1245,12 @@ class Smliser_Plugin {
 
                 }
                 
-                wp_safe_redirect( smliser_repository_admin_action_page( 'edit', $id ) );
+                wp_safe_redirect( smliser_admin_repo_tab( 'edit', $id ) );
                 exit;
             }
 
         }
-        wp_safe_redirect( smliser_repository_admin_action_page() );
+        wp_safe_redirect( smliser_admin_repo_tab() );
         exit;
     }
 
