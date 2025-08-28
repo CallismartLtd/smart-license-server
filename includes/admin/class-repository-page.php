@@ -27,6 +27,9 @@ class Repository_Page {
             case 'view':
                 self::view_page();
                 break;
+            case 'monetization':
+                self::monetization_page();
+                break;
             default:
             self::dashboard();
         }
@@ -75,5 +78,12 @@ class Repository_Page {
 
         $stats = new \Smliser_Stats();
         include_once SMLISER_PATH . 'templates/admin/repository/plugin-view.php';
+    }
+
+    /**
+     * Manage plugin monetization page
+     */
+    public static function monetization_page() {
+        
     }
 }
