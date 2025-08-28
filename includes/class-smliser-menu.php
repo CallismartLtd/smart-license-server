@@ -345,7 +345,7 @@ class Smliser_admin_menu {
         $plugins     = Smliser_Plugin::get_plugins();
         $table_html  = '<div class="smliser-table-wrapper">';
         $table_html .= '<h1>Plugin Repository</h1>';
-        $add_url     = smliser_repository_admin_action_page( 'add-new' );
+        $add_url     = smliser_admin_repo_tab( 'add-new' );
         $table_html .= '<a href="'. esc_url( $add_url ) . '" class="button action smliser-nav-btn">Upload New Plugin</a>';
     
         if ( empty( $plugins ) ) {
@@ -380,8 +380,8 @@ class Smliser_admin_menu {
         $table_html .= '<tbody>';
     
         foreach ( $plugins as $plugin ) {
-            $plugin_edit_url    = smliser_repository_admin_action_page( 'edit', $plugin->get_item_id() );
-            $plugin_view_url    = smliser_repository_admin_action_page( 'view', $plugin->get_item_id() );
+            $plugin_edit_url    = smliser_admin_repo_tab( 'edit', $plugin->get_item_id() );
+            $plugin_view_url    = smliser_admin_repo_tab( 'view', $plugin->get_item_id() );
     
             $table_html .= '<tr>';
             $table_html .= '<td class="smliser-edit-row">';
