@@ -43,6 +43,8 @@ class Smliser_install {
             SMLISER_API_ACCESS_LOG_TABLE,
             SMLISER_API_CRED_TABLE,
             SMLISER_DOWNLOAD_TOKEN_TABLE,
+            SMLISER_MONETIZATION_TABLE,
+            SMLISER_PRICING_TIER_TABLE,
         );
 
         foreach( $tables as $table ) {
@@ -190,6 +192,39 @@ class Smliser_install {
         );
         self::run_db_delta( $dToken_table, $dToken_columns );
 
+        /**
+         * Monetization table
+         */
+        $monetization_table   = SMLISER_MONETIZATION_TABLE;
+        $monetization_columns = array(
+            'id BIGINT AUTO_INCREMENT PRIMARY KEY',
+            'item_type VARCHAR(50) NOT NULL',
+            'item_id BIGINT NOT NULL',
+            'enabled TINYINT(1) DEFAULT 0',
+            'created_at DATETIME DEFAULT NULL',
+            'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            'UNIQUE KEY unique_item_monetization (item_type, item_id)'
+        );
+        self::run_db_delta( $monetization_table, $monetization_columns );
+
+        /**
+         * Pricing Tier table
+         */
+        $pricing_tier_table   = SMLISER_PRICING_TIER_TABLE;
+        $pricing_tier_columns = array(
+            'id BIGINT AUTO_INCREMENT PRIMARY KEY',
+            'monetization_id BIGINT NOT NULL',
+            'name VARCHAR(255) NOT NULL',
+            'product_id VARCHAR(191) NOT NULL',
+            'provider_id VARCHAR(50) NOT NULL',
+            'billing_cycle VARCHAR(50) DEFAULT NULL',
+            'max_sites INT DEFAULT 1',
+            'features TEXT DEFAULT NULL',
+            'created_at DATETIME DEFAULT NULL',
+            'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            'INDEX monetization_id_index (monetization_id)',
+        );
+        self::run_db_delta( $pricing_tier_table, $pricing_tier_columns );
     }
 
 
