@@ -138,6 +138,11 @@ class SmartLicense_config {
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
         add_action( 'smliser_clean', array( 'Smliser_Plugin_Download_Token', 'clean_expired_tokens' ) );
+
+        add_action( 'wp_enqueue_scripts', array( $this, 'load_styles' ) );
+        add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
     }
 
     /** Load or Register our Rest route */
@@ -516,11 +521,12 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-license-rest-api.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-plugin-rest-api.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-repository-rest-api.php';
+        require_once SMLISER_PATH . 'includes/monetization/class-monetization.php';
+        require_once SMLISER_PATH . 'includes/monetization/class-pricing-tier.php';
+        require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
+        require_once SMLISER_PATH . 'includes/monetization/provider-collection.php';
         
-        add_action( 'wp_enqueue_scripts', array( $this, 'load_styles' ) );
-        add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
+        
         do_action( 'smliser_loaded' );
         
     }
