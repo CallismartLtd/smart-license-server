@@ -14,7 +14,8 @@ defined( 'ABSPATH' ) || exit; ?>
 <?php else : ?>
     <h1><?php echo esc_html( $plugin->get_name() ) ?></h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-database"></span> Repository</a>
-    <a href="<?php echo esc_url( smliser_repository_admin_action_page( 'edit', $plugin->get_item_id() ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-edit"></span> Edit Plugin</a>
+    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'monetization', $plugin->get_item_id() ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-money-alt"></span> Monetization</a>
+    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', $plugin->get_item_id() ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-edit"></span> Edit Plugin</a>
     <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=smliser_admin_download_plugin&item_id=' . $plugin->get_item_id() ), 'smliser_download_token', 'download_token' ) ) ?>" download class="button action smliser-nav-btn"><span class="dashicons dashicons-download"></span> Download Plugin</a>
     <a class="button action smliser-nav-btn" id="smliser-plugin-delete-button" item-id="<?php echo absint( $plugin->get_item_id() ); ?>"><span class="dashicons dashicons-trash"></span> Delete Plugin</a>
     <div class="smliser-admin-view-page-wrapper">
@@ -57,7 +58,7 @@ defined( 'ABSPATH' ) || exit; ?>
             </div>
 
             <div class="smliser-admin-view-page-body-item">
-                <p>License Status: <p><?php echo esc_html( $plugin->is_licensed() ? 'Licensed' : 'Not Licensed' );?></p></p>
+                <p>Monetization Status: <p><?php echo esc_html( $plugin->is_monetized() ? 'Monetized' : 'Not Monetized' );?></p></p>
             </div>
 
             <div class="smliser-admin-view-page-body-item">
@@ -84,7 +85,7 @@ defined( 'ABSPATH' ) || exit; ?>
             </div>
 
             <div class="smliser-admin-view-page-body-item">
-                <p>Public Download URL: <p><?php echo $plugin->is_licensed() ? $plugin->licensed_download_url() : esc_html( $plugin->get_download_url()  ); ?></p></p>
+                <p>Public Download URL: <p><?php echo $plugin->is_monetized() ? $plugin->licensed_download_url() : esc_html( $plugin->get_download_url()  ); ?></p></p>
             </div>
         </div>
     </div>
