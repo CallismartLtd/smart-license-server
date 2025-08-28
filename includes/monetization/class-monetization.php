@@ -2,12 +2,12 @@
 /**
  * Monetization Class file
  * 
- * @package Smart_License_Server
+ * @package SmartLicenseServer
  * @subpackage Monetization
  * @since 1.0.0
  */
 
-namespace Smart_License_Server\Monetization;
+namespace SmartLicenseServer\Monetization;
 
 defined( 'ABSPATH' ) || exit;
 
