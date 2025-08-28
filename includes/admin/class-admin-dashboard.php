@@ -6,14 +6,14 @@
  * @package Smliser\classes
  */
 
-namespace Callismart\Smliser\admin;
+namespace SmartLicenseServer\admin;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * The admin dashboard page handler.
  */
-class Admin_Dashboard_Page {
+class Dashboard_Page {
 
     /**
      * Page router
