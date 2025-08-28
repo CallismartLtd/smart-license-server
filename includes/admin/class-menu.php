@@ -6,7 +6,7 @@
  * @package Smliser\classes
  */
 
-namespace Callismart\Smliser\admin;
+namespace SmartLicenseServer\admin;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -81,7 +81,7 @@ class Menu {
             'Dashboard',
             'manage_options',
             'smliser-admin',
-            array( __NAMESPACE__ . '\\Admin_Dashboard_Page', 'router' ),
+            array( Dashboard_Page::class, 'router' ),
             'dashicons-database-view',
             3.1
         );
@@ -92,7 +92,7 @@ class Menu {
             'Repository',
             'manage_options',
             'repository',
-            array( __NAMESPACE__ . '\\Admin_Repository_Page', 'router' )
+            array( Repository_Page::class, 'router' )
         );
 
         self::$license_page_id = add_submenu_page(
@@ -101,7 +101,7 @@ class Menu {
             'Licenses',
             'manage_options',
             'licenses',
-            array( __NAMESPACE__ . '\\Admin_License_Page', 'router' )
+            array( License_Page::class, 'router' )
         );
 
         self::$options_page_id = add_submenu_page(
@@ -110,7 +110,7 @@ class Menu {
             'Settings',
             'manage_options',
             'smliser-options',
-            array( __NAMESPACE__ . '\\Admin_Options_Page', 'router' )
+            array( Options_Page::class, 'router' )
         );
     }
 
