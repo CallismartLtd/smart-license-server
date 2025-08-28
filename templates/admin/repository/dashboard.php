@@ -40,7 +40,7 @@ defined( 'ABSPATH' ) || exit; ?>
                     <tr>
                         <td class="smliser-edit-row">
                             <?php echo absint( $plugin->get_item_id() ); ?>
-                            <div class="smliser-edit-link"><p><a href="<?php echo esc_url( smliser_repository_admin_action_page( 'edit', $plugin->get_item_id() ) ); ?>">edit</a> | <a href="<?php echo esc_url( smliser_repository_admin_action_page( 'view', $plugin->get_item_id() ) ); ?>">view</a> </p></div>
+                            <div class="smliser-edit-link"><p><a href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', $plugin->get_item_id() ) ); ?>">edit</a> | <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', $plugin->get_item_id() ) ); ?>">view</a> </p></div>
                         </td>
                         <td><?php echo esc_html( $plugin->get_name() ); ?></td>
                         <td><?php echo $plugin->get_author(); ?></td>
