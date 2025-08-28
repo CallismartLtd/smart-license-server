@@ -5,11 +5,11 @@
  * @author Callistus Nwachukwu
  * @package Smliser\classes
  */
-namespace Callismart\Smliser\admin;
+namespace SmartLicenseServer\admin;
 
 defined( 'ABSPATH' ) || exit;
 
-class Admin_Options_Page {
+class Options_Page {
     /**
      * Page router
      */
