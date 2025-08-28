@@ -190,6 +190,16 @@
     margin-top: 10px;
 }
 
+.smliser-nav-btn {
+    display: inline-flex !important;
+    line-height: 2 !important;
+    justify-content: center;
+    align-items: center;
+    margin: 10px 5px;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
 .smliser-bulk-action-select {
     margin-right: 10px;    
 }
