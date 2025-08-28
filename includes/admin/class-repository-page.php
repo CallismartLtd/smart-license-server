@@ -7,6 +7,7 @@
  */
 
 namespace SmartLicenseServer\admin;
+use \Smliser_Plugin, \Smliser_Stats;
 
 /**
  * The Admin repository page handler
@@ -39,7 +40,7 @@ class Repository_Page {
      * The repository dashboard page
      */
     private static function dashboard() {
-        $plugins     = \Smliser_Plugin::get_plugins();
+        $plugins     = Smliser_Plugin::get_plugins();
         $add_url     = smliser_admin_repo_tab( 'add-new' );
         include SMLISER_PATH . 'templates/admin/repository/dashboard.php';
 
@@ -57,8 +58,7 @@ class Repository_Page {
      */
     private static function edit_page() {
         $id     = smliser_get_query_param( 'item_id' );
-        $obj    = new \Smliser_Plugin();
-        $plugin = $obj->get_plugin( $id );
+        $plugin = Smliser_Plugin::get_plugin( $id );
 
         include_once SMLISER_PATH . 'templates/admin/repository/plugin-edit.php';
     }
@@ -69,21 +69,22 @@ class Repository_Page {
     private static function view_page() {
         $id     = smliser_get_query_param( 'item_id' );
 
-        $obj    = new \Smliser_Plugin();
-        $plugin = $obj->get_plugin( $id );
+        $plugin = Smliser_Plugin::get_plugin( $id );
 
         if ( ! empty( $plugin ) ) {
             $delete_link    = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_plugin_action', 'real_action' => 'delete', 'item_id' => $id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
         }
 
-        $stats = new \Smliser_Stats();
+        $stats = new Smliser_Stats();
         include_once SMLISER_PATH . 'templates/admin/repository/plugin-view.php';
     }
 
     /**
      * Manage plugin monetization page
      */
-    public static function monetization_page() {
+    private static function monetization_page() {
+
+        include_once SMLISER_PATH . 'templates/admin/monetization.php';
         
     }
 }
