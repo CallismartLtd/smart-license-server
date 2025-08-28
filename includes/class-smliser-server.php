@@ -181,7 +181,7 @@ class Smliser_Server{
             wp_die( 'File slug or extension missing', 'Download Error', 400 );
         }
 
-        $plugin = Smliser_Plugin::get_plugin_by( 'slug', $plugin_slug );
+        $plugin = Smliser_Plugin::get_by_slug( $plugin_slug );
 
         if ( ! $plugin ) {
             wp_die( 'Plugin not found.', 'File not found', 404 );
@@ -190,7 +190,7 @@ class Smliser_Server{
         /**
          * Serve download for licensed plugin
          */
-        if ( $this->is_licensed( $plugin ) ) {
+        if ( $plugin->is_monetized() ) {
             $download_token    = smliser_get_query_param( 'download_token' );
 
             if ( empty( $download_token ) ) { // fallback to authorization header.
@@ -422,7 +422,7 @@ class Smliser_Server{
             wp_die( 'Error: The file cannot be read.' );
         }
 
-        wp_safe_redirect( smliser_repository_admin_action_page( 'view', $item_id ) );
+        wp_safe_redirect( smliser_admin_repo_tab( 'view', $item_id ) );
         exit;
     }
 
