@@ -102,11 +102,14 @@ class SmartLicense_config {
         define( 'SMLISER_PLUGIN_ITEM_TABLE', $wpdb->prefix . 'smliser_plugins' );
         define( 'SMLISER_API_ACCESS_LOG_TABLE', $wpdb->prefix . 'smliser_api_access_logs' );
         define( 'SMLISER_API_CRED_TABLE', $wpdb->prefix . 'smliser_api_creds' );
+        define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_item_download_token' );
+        define( 'SMLISER_MONETIZATION_TABLE', $wpdb->prefix . 'smliser_monetization' );
+        define( 'SMLISER_PRICING_TIER_TABLE', $wpdb->prefix . 'smliser_pricing_tiers' );
+
         define( 'SMLISER_REPO_DIR', WP_CONTENT_DIR . '/premium-repository' );
         define( 'SMLISER_NEW_REPO_DIR', WP_CONTENT_DIR . '/smliser-repo' );
         define( 'SMLISER_PLUGINS_REPO_DIR', SMLISER_NEW_REPO_DIR . '/plugins' );
         define( 'SMLISER_THEMES_REPO_DIR', SMLISER_NEW_REPO_DIR . '/themes' );
-        define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_item_download_token' );
         
         register_activation_hook( SMLISER_FILE, array( 'Smliser_install', 'install' ) );
 
@@ -504,12 +507,12 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/utils/smliser-functions.php';
         require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
+        require_once SMLISER_PATH . 'includes/utils/class-callismart-markdown-parser.php';
         require_once SMLISER_PATH . 'includes/admin/class-menu.php';
         require_once SMLISER_PATH . 'includes/admin/class-admin-dashboard.php';
-        require_once SMLISER_PATH . 'includes/admin/class-admin-repository-page.php';
+        require_once SMLISER_PATH . 'includes/admin/class-repository-page.php';
         require_once SMLISER_PATH . 'includes/admin/class-admin-license-page.php';
         require_once SMLISER_PATH . 'includes/admin/class-admin-options-page.php';
-        require_once SMLISER_PATH . 'includes/class-callismart-markdown-parser.php';
         require_once SMLISER_PATH . 'includes/class-smliser-repository.php';
         require_once SMLISER_PATH . 'includes/class-smliser-plugin.php';
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
