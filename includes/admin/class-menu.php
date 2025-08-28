@@ -57,6 +57,7 @@ class Menu {
 
         self::$instance = $this;
         add_action( 'admin_menu', array( self::$instance, 'register_menus' ) );
+        add_action( 'admin_menu', array( __CLASS__, 'modify_sw_menu' ), 999 );
     }
 
     /**
@@ -78,7 +79,7 @@ class Menu {
     public static function register_menus() {
         self::$dasboard_page_id = add_menu_page(
             'Smart License Server',
-            'Dashboard',
+            'Smart License Server',
             'manage_options',
             'smliser-admin',
             array( Dashboard_Page::class, 'router' ),
@@ -114,6 +115,16 @@ class Menu {
         );
     }
 
+    /**
+     * Rename First menu item to Dashboard.
+     */
+    public static function modify_sw_menu() {
+        global $submenu;
+
+        if ( isset( $submenu['smliser-admin'] ) ) {
+            $submenu['smliser-admin'][0][0] = 'Dashboard';
+        }
+    }
 }
 
 Menu::instance();
