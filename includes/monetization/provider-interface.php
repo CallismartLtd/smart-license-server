@@ -7,7 +7,7 @@
  * @since 1.0.0
  */
 
-namespace Smart_License_Server\Monetization;
+namespace SmartLicenseServer\Monetization;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -72,4 +72,12 @@ interface Monetization_Provider_Interface {
      * @return array
      */
     public function get_pricing( $product_id );
+
+    /**
+     * Get a checkout URL for a given pricing tier/product.
+     *
+     * @param string|int $tier_id
+     * @return string|null  Checkout URL, or null if not applicable.
+     */
+    public function get_checkout_url( $tier_id );
 }
