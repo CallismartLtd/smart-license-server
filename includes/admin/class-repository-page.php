@@ -37,7 +37,7 @@ class Repository_Page {
      */
     private static function dashboard() {
         $plugins     = \Smliser_Plugin::get_plugins();
-        $add_url     = smliser_repository_admin_action_page( 'add-new' );
+        $add_url     = smliser_admin_repo_tab( 'add-new' );
         include SMLISER_PATH . 'templates/admin/repository/dashboard.php';
 
     }
