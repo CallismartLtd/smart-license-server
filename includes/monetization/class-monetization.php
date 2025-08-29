@@ -270,7 +270,6 @@ class Monetization {
             'item_type'  => $this->item_type,
             'item_id'    => $this->item_id,
             'enabled'    => $this->enabled ? 1 : 0,
-            'created_at' => $this->created_at,
             'updated_at' => current_time( 'mysql' ),
         ];
 
@@ -311,7 +310,6 @@ class Monetization {
 
         return true;
     }
-
 
     /**
      * Delete this monetization record and its pricing tiers.
@@ -410,5 +408,84 @@ class Monetization {
         $mon->set_tiers( Pricing_Tier::get_by_monetization_id( $row->id ) );
 
         return $mon;
+    }
+
+    /*
+    |---------------------------
+    | CONDITIONAL METHODS
+    |---------------------------
+    */
+
+    /**
+     * Check if this monetization has any pricing tiers.
+     *
+     * @return bool
+     */
+    public function has_tiers() {
+        return ! empty( $this->tiers );
+    }
+
+    /**
+     * Check if this monetization is active (enabled and has tiers).
+     *
+     * @return bool
+     */
+    public function is_active() {
+        return $this->enabled && $this->has_tiers();
+    }
+
+    /**
+     * Check if this monetization exists in the database.
+     * 
+     * @return bool
+     */
+    public function exists() {
+        return ! empty( $this->id ) && self::get_by_id( $this->id ) !== null;
+    }
+
+    /*
+    |---------------------------
+    | UTILITY METHODS
+    |---------------------------
+    */
+
+    /**
+     * Convert this monetization to an associative array.
+     *
+     * @return array
+     */
+    public function to_array() {
+        return [
+            'id'         => $this->id,
+            'item_type'  => $this->item_type,
+            'item_id'    => $this->item_id,
+            'enabled'    => $this->enabled,
+            'tiers'      => array_map( function( $tier ) {
+                return $tier->to_array();
+            }, $this->tiers ),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+
+    /**
+     * Get the Item object this monetization belongs to.
+     * 
+     * @return \SmartLicenseServer\HostedApps\Smliser_Hosted_Apps_Interface|null
+     */
+    public function get_item_object() {
+        if ( empty( $this->item_type ) || empty( $this->item_id ) ) {
+            return null;
+        }
+
+        $class = '\\Smliser_' . ucfirst( sanitize_text_field( wp_unslash( $this->item_type ) ) );
+
+        if ( ! class_exists( $class ) || ! method_exists( $class, 'get_' . $this->item_type ) ) {
+            return null;
+        }
+
+        $method = 'get_' . $this->item_type;
+
+        return call_user_func( [ $class, $method ], $this->item_id );
     }
 }
