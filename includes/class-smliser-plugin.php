@@ -5,12 +5,14 @@
  * @package Smliser\classes
  */
 
+use SmartLicenseServer\HostedApps\Smliser_Hosted_Apps_Interface;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Class representation of plugin meta data
  */
-class Smliser_Plugin {
+class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
     /**
      * A singleton instance of this class
      */
@@ -111,6 +113,13 @@ class Smliser_Plugin {
     );
 
     /**
+     * Short description.
+     * 
+     * @var string $short_description A brief description of the plugin.
+     */
+    protected $short_description = '';
+
+    /**
      * An array of different plugin screenshots.
      * 
      * @var array $screenshots
@@ -181,6 +190,48 @@ class Smliser_Plugin {
             self::$instance = new self();
         }
         return self::$instance;
+    }
+
+    /**
+     * Get application type
+     * @return string
+     */
+    public function get_type() {
+        return 'plugin';
+    }
+
+    /**
+     * Get the application unique identifier.
+     * 
+     * @return int
+     */
+    public function get_id() {
+        return $this->get_item_id();
+    }
+
+    /**
+     * Get the application REST API response data.
+     */
+    public function get_rest_response() {
+        return $this->formalize_response();
+    }
+
+    /**
+     * Get short description
+     * 
+     * @return string
+     */
+    public function get_short_description() {
+        return $this->short_description;
+    }
+
+    /**
+     * Get the homepage URL
+     * 
+     * @return string
+     */
+    public function get_homepage() {
+        return $this->get_url();
     }
 
     /*
@@ -992,6 +1043,11 @@ class Smliser_Plugin {
             'installation'  => $smliser_repo->get_installation_text( $self->get_slug() ),
         );
         $self->set_section( $sections );
+
+        /**
+         * Set short description
+         */
+        $self->short_description = $smliser_repo->get_short_description( $self->get_slug() );
 
         /**
          *  Set other meta information.
