@@ -506,16 +506,67 @@ function smliser_get_authorization_header() {
  * Get the value of a URL query parameter.
  * @param string $param The name of the query parameter.
  * @param mixed $default The default value to return.
- * @param callable $sanitize_callback Optional. A callback function to sanitize the parameter value, defaults to sanitize_text_field( wp_unslash() ).
- * @return mixed The sanitized value of the query parameter, or null if not found.
+ * @return mixed The sanitized value of the query parameter.
  */
-function smliser_get_query_param( $param, $default = null, $sanitize_callback = 'sanitize_text_field' ) {
-    if ( isset( $_GET[ $param ] ) ) {
-        $value = wp_unslash( $_GET[ $param ] );
-        if ( is_callable( $sanitize_callback ) ) {
-            return call_user_func( $sanitize_callback, $value );
-        }
-        return sanitize_text_field( $value );
+function smliser_get_query_param( $param, $default = '' ) {
+    return smliser_get_param( $param, $default, $_GET );
+}
+
+/**
+ * Get the value of a POST parameter.
+ * @param string $param The name of the POST parameter.
+ * @param mixed $default The default value to return.
+ * @return mixed The sanitized value of the POST parameter.
+ */
+function smliser_get_post_param( $param, $default = '' ) {
+    return smliser_get_param( $param, $default, $_POST );
+}
+
+
+/**
+ * Retrieve and sanitize a parameter from a given source array, with automatic type detection.
+ *
+ * This function supports automatic type detection and sanitization for common data types:
+ * - Arrays: sanitized recursively with `sanitize_text_field()`.
+ * - Numeric strings: cast to `int` or `float`.
+ * - Boolean-like values: evaluated with `FILTER_VALIDATE_BOOLEAN` (supports "true", "false", "1", "0", "yes", "no").
+ * - Email addresses: validated and sanitized with `sanitize_email()`.
+ * - URLs: validated with `FILTER_VALIDATE_URL` and sanitized with `esc_url_raw()`.
+ * - All other strings: sanitized with `sanitize_text_field()`.
+ *
+ * @param string $key     The key to retrieve from the source array.
+ * @param mixed  $default Optional. The default value to return if the key is not set. Default ''.
+ * @param array  $source  Optional. The source array to read from (e.g., $_GET or $_POST). Default empty array.
+ *
+ * @return mixed The sanitized value if found, or the default value if the key is not present.
+ */
+function smliser_get_param( $key, $default = '', $source = array() ) {
+    if ( ! isset( $source[ $key ] ) ) {
+        return $default;
     }
-    return $default;
+
+    $value = wp_unslash( $source[ $key ] );
+
+    if ( is_array( $value ) ) {
+        return array_map( 'sanitize_text_field', $value );
+    }
+
+    if ( is_numeric( $value ) ) {
+        return ( strpos( $value, '.' ) !== false ) ? floatval( $value ) : intval( $value );
+    }
+
+    $lower = strtolower( $value );
+    if ( in_array( $lower, [ 'true', 'false', '1', '0', 'yes', 'no' ], true ) ) {
+        return filter_var( $value, FILTER_VALIDATE_BOOLEAN );
+    }
+
+    if ( is_email( $value ) ) {
+        return sanitize_email( $value );
+    }
+
+    if ( filter_var( $value, FILTER_VALIDATE_URL ) ) {
+        return esc_url_raw( $value );
+    }
+
+    return sanitize_text_field( $value );
 }
