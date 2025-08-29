@@ -504,6 +504,8 @@ class SmartLicense_config {
      * Include files
      */
     public function include() {
+        require_once SMLISER_PATH . 'includes/hosted-apps/hosted-apps-interface.php';
+        require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
         require_once SMLISER_PATH . 'includes/utils/smliser-functions.php';
         require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
@@ -526,9 +528,8 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-repository-rest-api.php';
         require_once SMLISER_PATH . 'includes/monetization/class-monetization.php';
         require_once SMLISER_PATH . 'includes/monetization/class-pricing-tier.php';
-        require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
         require_once SMLISER_PATH . 'includes/monetization/provider-collection.php';
-        
+        require_once SMLISER_PATH . 'includes/monetization/class-woocomerce-provider.php';
         
         do_action( 'smliser_loaded' );
         
