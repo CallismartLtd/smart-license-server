@@ -25,6 +25,28 @@ use Smart_License_Server\Monetization\Monetization_Provider_Interface;
  */
 class Provider_Collection {
     /**
+     * Singleton instance.
+     * 
+     * @var Provider_Collection $instance
+     */
+    protected static $instance = null;
+
+    /**
+     * Private constructor to prevent direct instantiation.
+     */
+    private function __construct() {}
+
+    /**
+     * Get the singleton instance of the Provider_Collection.
+     */
+    public static function instance() {
+        if ( self::$instance === null ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    /**
      * Registered providers.
      *
      * @var Monetization_Provider_Interface[]
@@ -83,7 +105,7 @@ class Provider_Collection {
      * @param bool $assoc Whether to preserve keys by provider_id.
      * @return Monetization_Provider_Interface[]
      */
-    public function get_all_providers( $assoc = false ) {
+    public function get_providers( $assoc = false ) {
         return $assoc ? $this->providers : array_values( $this->providers );
     }
 }
