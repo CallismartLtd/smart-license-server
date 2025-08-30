@@ -76,8 +76,8 @@ interface Monetization_Provider_Interface {
     /**
      * Get a checkout URL for a given pricing tier/product.
      *
-     * @param string|int $tier_id
+     * @param string|int $product_id
      * @return string|null  Checkout URL, or null if not applicable.
      */
-    public function get_checkout_url( $tier_id );
+    public function get_checkout_url( $product_id );
 }
