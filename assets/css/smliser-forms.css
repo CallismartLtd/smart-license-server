@@ -226,3 +226,134 @@ display: inline-block;
     transform: rotate(360deg);
   }
 }
+
+.smliser-monetization-ui {
+  background-color: #fff;
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.smliser-monetization-ui table {
+  border-color: #dcdcde;
+}
+
+.smliser-monetization-ui__software-info {
+  flex: 1 1 400px;
+  width: 70%;
+  background-color: #f1f1f1;
+  padding: 10px;
+
+}
+
+.smliser-monetization-ui__monetization-providers {
+  flex: 1 1 200px;
+  border: 1px #dcdcde solid;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.monetization-providers_header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.smliser-monetization-ui__monetization-provider {
+  background-color: #f1f1f1;
+  padding: 10px;
+}
+.smliser-admin-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  height: 100%;
+  width: 100%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+}
+
+.smliser-pricing-tier-info {
+  border: solid 1px #dcdcde;
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  width: 80%;
+  justify-self: flex-end;
+}
+.smliser-pricing-tier-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.smliser-pricing-tier-info p {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-right: 20px;
+  overflow-wrap: anywhere;
+}
+
+.smliser-admin-modal_content {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  min-height: 300px;
+  width: 60%;
+  background-color: #fff;
+  padding: 10px;
+  transform: translate(-50%, -50%);
+}
+
+.smliser-admin-modal_content .remove-modal,
+.smliser-admin-modal_content .remove-button {
+  position: absolute;
+  right: 0;
+  margin: 15px;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.smliser-admin-modal_content-form {
+  background-color: #f1f1f1;
+  margin: 10px auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+  height: 250px;
+  overflow-y: auto;
+}
+
+
+.smliser-admin-modal_content-form label {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  gap: 5px;
+  width: 200px;
+}
+.smliser-admin-modal_content-form label input,
+.smliser-admin-modal_content-form label select,
+.smliser-admin-modal_content-form label textarea {
+  border-color: #dcdcde;
+}
+
+.smliser-admin-modal_content-form label textarea {
+  height: 150px;
+  resize: none;
+}
+
+.smliser-admin-modal_content-form label:has( > textarea) {
+  min-width: 100%;
+  max-width: 100%;
+}
