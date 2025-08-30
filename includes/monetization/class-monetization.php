@@ -340,6 +340,32 @@ class Monetization {
         return false !== $deleted;
     }
 
+    /**
+     * Delete a specific pricing tier and keep this monetization in sync.
+     *
+     * @param int $tier_id
+     * @return bool True if successfully deleted, false otherwise.
+     */
+    public function delete_tier( $tier_id ) {
+        // Make sure tier exists in runtime collection.
+        $tier = $this->get_tier( $tier_id );
+        if ( ! $tier ) {
+            return false;
+        }
+
+        // Delete from DB.
+        if ( ! $tier->delete() ) {
+            return false;
+        }
+
+        // Sync in-memory tiers list.
+        $this->tiers = array_filter( $this->tiers, function( $t ) use ( $tier_id ) {
+            return $t->get_id() !== $tier_id;
+        });
+
+        return true;
+    }
+
 
     /**
      * Get a monetization record by ID.
@@ -426,12 +452,21 @@ class Monetization {
     }
 
     /**
+     * Check if this monetization is enabled.
+     *
+     * @return bool
+     */
+    public function is_enabled() {
+        return $this->enabled;
+    }
+
+    /**
      * Check if this monetization is active (enabled and has tiers).
      *
      * @return bool
      */
     public function is_active() {
-        return $this->enabled && $this->has_tiers();
+        return $this->is_enabled() && $this->has_tiers();
     }
 
     /**
