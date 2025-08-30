@@ -570,3 +570,57 @@ function smliser_get_param( $key, $default = '', $source = array() ) {
 
     return sanitize_text_field( $value );
 }
+
+/**
+ * Renders a reusable, prefixed toggle switch component.
+ *
+ * @param array $attrs Associative array of attributes for the input element.
+ *                     Supported: id, name, value, class, and any custom data-* or aria-* attributes.
+ *                     Example:
+ *                     [
+ *                        'id' => 'autosave_toggle',
+ *                        'name' => 'autosave',
+ *                        'value' => 1, // 1 for checked, 0 for unchecked
+ *                        'data-group' => 'editor',
+ *                        'aria-label' => 'Enable autosave',
+ *                     ]
+ *
+ * @return void
+ */
+function smliser_render_toggle_switch( $attrs = array() ) {
+    $defaults = array(
+        'id'    => uniqid( 'smliser_toggle_' ),
+        'name'  => 'toggle_switch',
+        'value' => 0,
+        'class' => 'smliser_toggle-switch-input',
+    );
+
+    $attrs = wp_parse_args( $attrs, $defaults );
+
+    // Extract value to determine checked state
+    $value = (int) $attrs['value'];
+    unset( $attrs['value'] );
+
+    // Build attribute string
+    $attr_str = '';
+    foreach ( $attrs as $key => $val ) {
+        if ( is_bool( $val ) ) {
+            $attr_str .= $val ? sprintf( ' %s', esc_attr( $key ) ) : '';
+        } else {
+            $attr_str .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $val ) );
+        }
+    }
+
+    printf(
+        '<div class="smliser_toggle-switch-container">
+            <input type="checkbox"%1$s value="1" %2$s />
+            <label for="%3$s" class="smliser_toggle-switch-label">
+                <span class="smliser_toggle-switch-slider"></span>
+            </label>
+        </div>',
+        $attr_str,
+        checked( $value, 1, false ),
+        esc_attr( $attrs['id'] )
+    );
+}
+
