@@ -67,6 +67,83 @@ function smliserCopyToClipboard(text) {
         console.error('Could not copy text: ', err);
     });
 }
+const StringUtils = {
+    /**
+     * Capitalize the first character of a string.
+     * @param {string} str
+     * @returns {string}
+     */
+    ucfirst: function ( str ) {
+        if ( ! str ) return '';
+        return str.charAt( 0 ).toUpperCase() + str.slice( 1 );
+    },
+
+    /**
+     * Capitalize the first character of each word in a string.
+     * @param {string} str
+     * @returns {string}
+     */
+    ucwords: function ( str ) {
+        if ( ! str ) return '';
+        return str
+            .toLowerCase()
+            .split( ' ' )
+            .map( word => word.charAt( 0 ).toUpperCase() + word.slice( 1 ) )
+            .join( ' ' );
+    },
+
+    decodeEntity: function ( html ) {
+        const textarea = document.createElement( 'textarea' );
+        textarea.innerHTML = html;
+        return textarea.value;
+    },
+    
+    /**
+     * Format a number as currency.
+     * @param {number} amount
+     * @param {Object} config
+     * @returns {string}
+     */
+    formatCurrency: function ( amount, config ) {
+        const {
+            symbol = '$',
+            symbol_position = 'left',
+            decimals = 2,
+            decimal_separator = '.',
+            thousand_separator = ','
+        } = config || {};
+    
+        const isNegative = amount < 0;
+        const absAmount = Math.abs( amount );
+    
+        // Format the number
+        let formatted = absAmount
+            .toFixed( decimals )
+            .replace( /\B(?=(\d{3})+(?!\d))/g, thousand_separator )
+            .replace( '.', decimal_separator );
+    
+        // Decode currency symbol (in case it's encoded)
+        const decodedSymbol = StringUtils.decodeEntity( symbol );
+    
+        switch ( symbol_position ) {
+            case 'left':
+                formatted = decodedSymbol + formatted;
+                break;
+            case 'left_space':
+                formatted = decodedSymbol + ' ' + formatted;
+                break;
+            case 'right':
+                formatted = formatted + decodedSymbol;
+                break;
+            case 'right_space':
+                formatted = formatted + ' ' + decodedSymbol;
+                break;
+        }
+    
+        return isNegative ? '-' + formatted : formatted;
+    }
+
+};
 
 document.addEventListener( 'DOMContentLoaded', function() {
     let tokenBtn                = document.getElementById( 'smliserDownloadTokenBtn' );
@@ -81,6 +158,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let dashboardPage           = document.getElementById( 'smliser-admin-dasboard-wrapper' );
     let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
     let revokeBtns              = document.querySelectorAll( '.smliser-revoke-btn' );
+    let monetizationUI          = document.querySelector( '.smliser-monetization-ui' );
 
     if ( deleteBtn ) {
         deleteBtn.addEventListener( 'click', function( event ) {
@@ -642,5 +720,307 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 });
             });
         } );
-    }    
+    }
+    
+    if ( monetizationUI ) {
+        let tierModal   = document.querySelector( '.smliser-admin-modal.pricing-tier' );
+        let tierForm    = document.querySelector( '#tier-form' );
+
+        /**
+         * Utility: Validate and reset field errors
+         */
+        const checkValidity = ( field ) => {
+            if ( ! field.value.trim() ) {
+                let fieldName = field.getAttribute( 'field-name' ) || 'This field';
+                field.setCustomValidity( `${fieldName} is required.` );
+                field.addEventListener( 'input', resetValidity );
+            }
+        };
+        const resetValidity = ( e ) => {
+            e.target.setCustomValidity( '' );
+            e.target.removeEventListener( 'input', resetValidity );
+        };
+        const highlightErrorField = ( fieldId, message ) => {
+            const field = tierForm.querySelector( `#${fieldId}` );
+            if ( field ) {
+                field.setCustomValidity( message );
+                field.reportValidity();
+                field.addEventListener( 'input', resetValidity );
+            }
+        };
+
+        /**
+         * Utility: Fetch wrapper (consistent error parsing)
+         */
+        const smliserFetch = async ( url, options = {} ) => {
+            const response = await fetch( url, options );
+            if ( ! response.ok ) {
+                const contentType = response.headers.get( 'content-type' );
+                let errorMessage = 'An error occurred';
+                let errorField   = null;
+
+                if ( contentType && contentType.includes( 'application/json' ) ) {
+                    const errorData = await response.json();
+                    errorMessage = errorData.data?.message || errorMessage;
+                    errorField   = errorData.data?.field_id || null;
+                    throw { message: errorMessage, field: errorField };
+                } else {
+                    const text = await response.text();
+                    throw { message: text || errorMessage };
+                }
+            }
+            return response.json();
+        };
+
+        /**
+         * Form Submit Handler
+         */
+        const submitForm = ( e ) => {
+            e.preventDefault();
+
+            tierForm.querySelectorAll( '#tier_name, #product_id, #billing_cycle, #provider_id, #features' )
+                .forEach( checkValidity );
+
+            if ( ! tierForm.checkValidity() ) {
+                tierForm.reportValidity();
+                return;
+            }
+
+            const payLoad = new FormData( tierForm );
+            payLoad.set( 'security', smliser_var.nonce );
+
+            smliserFetch( smliser_var.smliser_ajax_url, { method: 'POST', body: payLoad } )
+                .then( responseJson => {
+                    if ( responseJson.success ) {
+                        smliserNotify( responseJson.data?.message || 'Operation successful', 3000 );
+                        setTimeout( () => window.location.reload(), 3000 );
+                    } else {
+                        let errorMessage = responseJson.data?.message || 'An unknown error occurred.';
+                        let errorField   = responseJson.data?.field_id || null;
+                        if ( errorField ) highlightErrorField( errorField, errorMessage );
+                        smliserNotify( errorMessage, 6000 );
+                    }
+                })
+                .catch( error => {
+                    if ( error.field ) highlightErrorField( error.field, error.message );
+                    smliserNotify( error.message || 'An unexpected error occurred', 6000 );
+                });
+        };
+
+        /**
+         * Modal Actions
+         */
+        const smliserModalActions = {
+            addNewTier: () => {
+                tierModal.classList.remove( 'hidden' );
+                tierForm.querySelectorAll( 'input, select, textarea' ).forEach( input => {
+                    if ( 'action' === input.name ) {
+                        input.value = 'smliser_save_monetization_tier';
+                    }
+                    if ( 'hidden' !== input.type ) {
+                        input.value = '';
+                    }
+                });
+            },
+
+            editTier: ( json ) => {
+                let tier = JSON.parse( json );
+                tierModal.classList.remove( 'hidden' );
+
+                // Switch action to update
+                tierForm.querySelector( 'input[name="action"]' ).value = 'smliser_save_monetization_tier';
+                tierForm.querySelector( 'input[name="tier_id"]' ).value = tier.id || '';
+
+                tierForm.querySelector( '#tier_name' ).value     = tier.name || '';
+                tierForm.querySelector( '#product_id' ).value   = tier.product_id || '';
+                tierForm.querySelector( '#billing_cycle' ).value = tier.billing_cycle || '';
+                tierForm.querySelector( '#provider_id' ).value  = tier.provider_id || '';
+                tierForm.querySelector( '#max_sites' ).value    = tier.max_sites || '';
+                tierForm.querySelector( '#features' ).value     = Array.isArray( tier.features ) ? tier.features.join(', ') : ( tier.features || '' );
+            },
+
+            deleteTier: ( json ) => {
+                let tier = JSON.parse( json );
+                if ( confirm( `Are you sure you want to delete tier "${tier.name}"?` ) ) {
+                    const payLoad = new FormData();
+                    payLoad.set( 'action', 'smliser_delete_monetization_tier' );
+                    payLoad.set( 'security', smliser_var.nonce );
+                    payLoad.set( 'monetization_id', tier.monetization_id );
+                    payLoad.set( 'tier_id', tier.id );
+
+                    smliserFetch( smliser_var.smliser_ajax_url, { method: 'POST', body: payLoad } )
+                        .then( responseJson => {
+                            if ( responseJson.success ) {
+                                smliserNotify( responseJson.data?.message || 'Tier deleted', 3000 );
+                                setTimeout( () => window.location.reload(), 2000 );
+                            } else {
+                                smliserNotify( responseJson.data?.message || 'Delete failed', 6000 );
+                            }
+                        })
+                        .catch( error => smliserNotify( error.message || 'Delete failed', 6000 ) );
+                }
+            },
+
+            closeModal: () => {
+                tierModal.classList.add( 'hidden' );
+            },
+
+            viewProductData: ( json ) => {
+                let tier = JSON.parse( json );
+
+                // Remove any existing product-data modal
+                monetizationUI.querySelector( '.smliser-admin-modal.product-data' )?.remove();
+
+                let modal = document.createElement( 'div' );
+                modal.className = 'smliser-admin-modal product-data';
+
+                modal.innerHTML = `
+                    <div class="smliser-admin-modal_content">
+                        <span class="dashicons dashicons-dismiss remove-button" title="remove" data-command="closeModal"></span>
+                        <h2>Product Data for: ${tier.name || ''}</h2>
+                        <table class="widefat striped">
+                            <tbody>
+                                <tr><th scope="row">Product ID</th><td>${tier.product_id}</td></tr>
+                                <tr><th scope="row">Provider</th><td>${tier.provider_id}</td></tr>
+                                <tr><th scope="row">Billing Cycle</th><td>${tier.billing_cycle}</td></tr>
+                                <tr><th scope="row">Price</th><td><span class="price-field">Loading...</span></td></tr>
+                                <tr><th scope="row">Description</th><td><span class="desc-field">Loading...</span></td></tr>
+                            </tbody>
+                        </table>
+                        <div class="spinner-overlay show">
+                            <img src="${smliser_var.admin_url}images/spinner.gif" alt="Loading..." class="spinner-img">
+                        </div>
+                    </div>
+                `;
+                monetizationUI.appendChild( modal );
+
+                // Close handlers
+                modal.querySelector( '.remove-button' ).addEventListener( 'click', () => modal.remove() );
+                modal.addEventListener( 'click', e => {
+                    if ( e.target.classList.contains( 'smliser-admin-modal' ) ) modal.remove();
+                });
+
+                // Fetch provider product
+                const params = new URLSearchParams({
+                    action: 'smliser_get_product_data',
+                    security: smliser_var.nonce,
+                    provider_id: tier.provider_id,
+                    product_id: tier.product_id,
+                });
+
+                smliserFetch( `${smliser_var.smliser_ajax_url}?${params.toString()}`, { method: 'GET' } )
+                    .then( responseJson => {
+                        modal.querySelector( '.spinner-overlay' )?.remove();
+                        if ( ! responseJson.success ) {
+                            smliserNotify( responseJson.data?.message || 'Could not fetch product data', 6000 );
+                            return;
+                        }
+
+                        const product = responseJson.data.product || {};
+                        const pricing = product.pricing || {};
+
+                        let formattedPrice = 'N/A';
+                        if ( pricing.price ) {
+                            formattedPrice = StringUtils.formatCurrency( pricing.price, {
+                                symbol: pricing.currency_symbol || '$',
+                                symbol_position: pricing.currency_position || 'left',
+                                decimals: pricing.decimals || 2,
+                                decimal_separator: pricing.decimal_separator || '.',
+                                thousand_separator: pricing.thousand_separator || ',',
+                            });
+                        }
+
+                        modal.querySelector( '.price-field' ).textContent = formattedPrice;
+                        modal.querySelector( '.desc-field' ).innerHTML   = product.description || '';
+                    })
+                    .catch( error => {
+                        modal.querySelector( '.spinner-overlay' )?.remove();
+                        smliserNotify( error.message || 'An unexpected error occurred', 6000 );
+                    });
+            },
+            'toggleMonetization': ( monetizationId, enabled ) => {
+                const payLoad = new FormData();
+                payLoad.set( 'action', 'smliser_toggle_monetization' );
+                payLoad.set( 'security', smliser_var.nonce );
+                payLoad.set( 'monetization_id', monetizationId );
+                payLoad.set( 'enabled', enabled );
+
+                fetch( smliser_var.smliser_ajax_url, {
+                    method: 'POST',
+                    body: payLoad,
+                })
+                .then( async response => {
+                    if ( ! response.ok ) {
+                        const contentType = response.headers.get( 'content-type' );
+                        let errorMessage = 'An error occurred';
+
+                        if ( contentType && contentType.includes( 'application/json' ) ) {
+                            const errorData = await response.json();
+                            errorMessage = errorData.data?.message || errorMessage;
+                            throw new Error( errorMessage );
+                        } else {
+                            const text = await response.text();
+                            throw new Error( text || errorMessage );
+                        }
+                    }
+                    return response.json();
+                })
+                .then( responseJson => {
+                    if ( responseJson.success ) {
+                        smliserNotify( responseJson.data?.message || 'Monetization updated', 3000 );
+                    } else {
+                        smliserNotify( responseJson.data?.message || 'Update failed', 6000 );
+                    }
+                })
+                .catch( error => {
+                    smliserNotify( error.message || 'An unexpected error occurred', 6000 );
+                });
+            }
+        };
+
+        /**
+         * Delegated Click Handler
+         */
+        monetizationUI.addEventListener( 'click', ( e ) => {
+            // Click outside modal closes it
+            if ( e.target.classList.contains( 'smliser-admin-modal' ) ) {
+                e.preventDefault();
+                smliserModalActions.closeModal();
+                return;
+            }
+
+            // Static modal open/close
+            const modal = e.target.closest( '#add-pricing-tier, .remove-modal' );
+            if ( modal ) {
+                e.preventDefault();
+                const action = modal.getAttribute( 'data-command' );
+                smliserModalActions[action]?.();
+                return;
+            }
+
+            // Tier buttons
+            const tierBtn = e.target.closest( '.smliser-tier-edit, .smliser-tier-delete, .smliser-tier-view' );
+            if ( tierBtn ) {
+                e.preventDefault();
+                const action = tierBtn.getAttribute( 'data-action' );
+                const tierDiv = tierBtn.closest( '.smliser-pricing-tier-info' );
+                smliserModalActions[action]?.( tierDiv.dataset.json );
+            }
+        });
+
+        monetizationUI.addEventListener('change', e => {
+            const input = e.target.closest('.smliser_toggle-switch-input');
+            if ( input && input.dataset.action === 'toggleMonetization' ) {
+                const monetizationId = input.dataset.monetizationId;
+                const enabled = input.checked ? 1 : 0;
+
+                smliserModalActions['toggleMonetization']( monetizationId, enabled );
+            }
+        });
+
+
+        tierForm.addEventListener( 'submit', submitForm );
+    }
+
+
 });
