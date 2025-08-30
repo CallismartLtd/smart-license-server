@@ -530,6 +530,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/monetization/class-pricing-tier.php';
         require_once SMLISER_PATH . 'includes/monetization/provider-collection.php';
         require_once SMLISER_PATH . 'includes/monetization/class-woocomerce-provider.php';
+        require_once SMLISER_PATH . 'includes/monetization/class-controller.php';
         
         do_action( 'smliser_loaded' );
         
@@ -551,6 +552,7 @@ class SmartLicense_config {
             array(
                 'smliser_ajax_url'  => admin_url( 'admin-ajax.php' ),
                 'nonce'             => wp_create_nonce( 'smliser_nonce' ),
+                'admin_url'         => admin_url()
             )
         );
 
