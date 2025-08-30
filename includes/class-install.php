@@ -202,7 +202,7 @@ class Smliser_install {
             'item_id BIGINT NOT NULL',
             'enabled TINYINT(1) DEFAULT 0',
             'created_at DATETIME DEFAULT NULL',
-            'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
             'UNIQUE KEY unique_item_monetization (item_type, item_id)'
         );
         self::run_db_delta( $monetization_table, $monetization_columns );
@@ -221,7 +221,7 @@ class Smliser_install {
             'max_sites INT DEFAULT 1',
             'features TEXT DEFAULT NULL',
             'created_at DATETIME DEFAULT NULL',
-            'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
             'INDEX monetization_id_index (monetization_id)',
         );
         self::run_db_delta( $pricing_tier_table, $pricing_tier_columns );
