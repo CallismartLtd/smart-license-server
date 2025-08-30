@@ -26,16 +26,13 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
      *
      * @var string
      */
-    protected $store_url;
+    protected $store_url = 'https://callismart.local';
 
     /**
      * Construct provider with target store URL.
      *
-     * @param string $store_url WooCommerce store base URL (without trailing slash).
      */
-    public function __construct( $store_url ) {
-        $this->store_url = untrailingslashit( esc_url_raw( $store_url ) );
-    }
+    public function __construct() {}
 
     /**
      * {@inheritdoc}
@@ -83,23 +80,68 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
     }
 
     /**
-     * {@inheritdoc}
+     * Get a single product by ID (with caching and error handling).
+     *
+     * @param string|int $product_id
+     * @param bool       $force_refresh Optional. If true, bypass cache. Default false.
+     * @return array|null
      */
-    public function get_product( $product_id ) {
-        $endpoint = $this->store_url . '/wp-json/wc/store/v1/products/' . absint( $product_id );
-        $response = wp_remote_get( $endpoint );
+    public function get_product( $product_id, $force_refresh = false ) {
+        $product_id   = absint( $product_id );
+        $cache_key    = 'smliser_wc_product_' . md5( $this->store_url . '_' . $product_id );
+        $cache_expiry = HOUR_IN_SECONDS; // Cache for 1 hour
+
+        // Return cached result unless bypassing
+        if ( ! $force_refresh ) {
+            $cached = get_transient( $cache_key );
+            if ( false !== $cached ) {
+                return $cached;
+            }
+        }
+
+        $endpoint = $this->store_url . '/wp-json/wc/store/v1/products/' . $product_id;
+        $response = wp_remote_get( $endpoint, [
+            'timeout' => 10, // 10s max wait
+        ] );
 
         if ( is_wp_error( $response ) ) {
+            error_log( sprintf(
+                'WooCommerce_Provider::get_product() - Request failed for product %d. Error: %s Endpoint: %s',
+                $product_id,
+                $response->get_error_message(),
+                $endpoint
+            ) );
+            return null;
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+        if ( 200 !== $code ) {
+            error_log( sprintf(
+                'WooCommerce_Provider::get_product() - Invalid response (%d) for product %d Endpoint: %s',
+                $code,
+                $product_id,
+                $endpoint
+            ) );
             return null;
         }
 
         $product = json_decode( wp_remote_retrieve_body( $response ), true );
         if ( ! is_array( $product ) ) {
+            error_log( sprintf(
+                'WooCommerce_Provider::get_product() - Failed to decode JSON for product %d',
+                $product_id
+            ) );
             return null;
         }
 
-        return $this->normalize_product( $product );
+        $normalized = $this->normalize_product( $product );
+
+        // Cache normalized product for future requests
+        set_transient( $cache_key, $normalized, $cache_expiry );
+
+        return $normalized;
     }
+
 
     /**
      * {@inheritdoc}
@@ -114,46 +156,65 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
     }
 
     /**
-     * {@inheritdoc}
+     * Get a checkout URL for a given pricing product.
+     *
+     * @param string|int $product_id
+     * @return string  Checkout URL.
      */
-    public function get_checkout_url( $tier_id ) {
-        $endpoint = $this->store_url . '/wp-json/wc/store/v1/products/' . absint( $tier_id );
-        $response = wp_remote_get( $endpoint );
-
-        if ( is_wp_error( $response ) ) {
-            return null;
-        }
-
-        $product = json_decode( wp_remote_retrieve_body( $response ), true );
-
-        return isset( $product['permalink'] ) ? esc_url_raw( $product['permalink'] ) : null;
+    public function get_checkout_url( $product_id = '{{product_id}}' ) {
+        return $this->store_url . '/checkout/?add-to-cart=' . $product_id;
     }
 
-    /**
-     * Normalize a product from the Store API into our expected provider structure.
-     *
-     * @param array $product Product data from WooCommerce Store API.
-     * @return array Normalized product.
-     */
     protected function normalize_product( array $product ) {
+        $prices = $product['prices'] ?? [];
+
         $pricing = [
-            'billing_cycle' => $product['billing_cycle'] ?? '',
-            'sign_up_fee'   => isset( $product['sign_up_fee'] ) ? floatval( $product['sign_up_fee'] ) : 0,
-            'price'         => isset( $product['prices']['price'] ) ? floatval( $product['prices']['price'] ) : 0,
-            'currency'      => $product['prices']['currency_code'] ?? 'USD',
+            'price'         => isset( $prices['price'] ) ? floatval( $prices['price'] ) / pow( 10, $prices['currency_minor_unit'] ?? 2 ) : 0,
+            'regular_price' => isset( $prices['regular_price'] ) ? floatval( $prices['regular_price'] ) / pow( 10, $prices['currency_minor_unit'] ?? 2 ) : 0,
+            'sale_price'    => isset( $prices['sale_price'] ) ? floatval( $prices['sale_price'] ) / pow( 10, $prices['currency_minor_unit'] ?? 2 ) : 0,
+            'currency'      => [
+                'code'              => $prices['currency_code'] ?? 'USD',
+                'symbol'            => $prices['currency_symbol'] ?? '$',
+                'symbol_position'   => $this->determine_symbol_position( $prices ),
+                'decimals'          => $prices['currency_minor_unit'] ?? 2,
+                'decimal_separator' => $prices['currency_decimal_separator'] ?? '.',
+                'thousand_separator'=> $prices['currency_thousand_separator'] ?? ',',
+            ],
         ];
 
         return [
-            'id'          => $product['id'] ?? 0,
-            'name'        => $product['name'] ?? '',
-            'slug'        => $product['slug'] ?? '',
-            'type'        => $product['type'] ?? 'sw_product',
-            'description' => $product['description'] ?? '',
+            'id'                => $product['id'] ?? 0,
+            'name'              => $product['name'] ?? '',
+            'slug'              => $product['slug'] ?? '',
+            'type'              => $product['type'] ?? 'simple',
+            'description'       => $product['description'] ?? '',
             'short_description' => $product['short_description'] ?? '',
-            'permalink'   => $product['permalink'] ?? '',
-            'pricing'     => $pricing,
-            'images'      => $product['images'] ?? [],
-            'categories'  => $product['categories'] ?? [],
+            'permalink'         => $product['permalink'] ?? '',
+            'pricing'           => $pricing,
+            'images'            => $product['images'] ?? [],
+            'categories'        => $product['categories'] ?? [],
         ];
     }
+
+    /**
+     * Infer currency symbol position from Store API fields.
+     *
+     * @param array $prices
+     * @return string one of left, left_space, right, right_space
+     */
+    protected function determine_symbol_position( array $prices ) {
+        $prefix = $prices['currency_prefix'] ?? '';
+        $suffix = $prices['currency_suffix'] ?? '';
+
+        if ( $prefix && trim( $prefix ) ) {
+            return strpos( $prefix, ' ' ) !== false ? 'left_space' : 'left';
+        }
+
+        if ( $suffix && trim( $suffix ) ) {
+            return strpos( $suffix, ' ' ) !== false ? 'right_space' : 'right';
+        }
+
+        return 'left'; // fallback
+    }
+
 }
