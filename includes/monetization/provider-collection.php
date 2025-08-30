@@ -12,8 +12,6 @@ namespace SmartLicenseServer\Monetization;
 
 defined( 'ABSPATH' ) || exit;
 
-use Smart_License_Server\Monetization\Monetization_Provider_Interface;
-
 /**
  * Collection of available monetization providers.
  * 
@@ -38,6 +36,8 @@ class Provider_Collection {
 
     /**
      * Get the singleton instance of the Provider_Collection.
+     * 
+     * @return self
      */
     public static function instance() {
         if ( self::$instance === null ) {
@@ -105,7 +105,22 @@ class Provider_Collection {
      * @param bool $assoc Whether to preserve keys by provider_id.
      * @return Monetization_Provider_Interface[]
      */
-    public function get_providers( $assoc = false ) {
+    public function get_providers( $assoc = true ) {
         return $assoc ? $this->providers : array_values( $this->providers );
     }
+
+    /**
+     * Autoload providers
+     */
+    public static function auto_load() {
+        $classes = get_declared_classes();
+
+        foreach ( $classes as $class ) {
+            if ( in_array( Monetization_Provider_Interface::class, class_implements( $class ) ) ) {
+                self::instance()->register_provider( new $class );
+            }
+        }
+    }
 }
+
+add_action( 'init', array( Provider_Collection::class, 'auto_load' ) );
