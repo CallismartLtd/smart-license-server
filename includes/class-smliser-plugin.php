@@ -206,7 +206,7 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
      * @return int
      */
     public function get_id() {
-        return $this->get_item_id();
+        return $this->item_id;
     }
 
     /**
@@ -1134,7 +1134,7 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
     public function is_monetized() {
         global $wpdb;
         $table_name = SMLISER_MONETIZATION_TABLE;
-        $query = $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = %s AND `item_id` = %d", 'plugin', absint( $this->item_id ) );
+        $query = $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = %s AND `item_id` = %d AND `enabled` = %s", 'plugin', absint( $this->item_id ), '1' );
 
         return $wpdb->get_var( $query ) > 0; // phpcs:disable
     }
