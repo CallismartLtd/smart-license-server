@@ -393,4 +393,35 @@ class Pricing_Tier {
         return $tiers;
     }
 
+    /**
+     * Format pricing tier to array
+     * 
+     * @return array
+     */
+    public function to_array() {
+        $data = array(
+            'id'            => $this->get_id(),
+            'name'          => $this->get_name(),
+            'product_id'    => $this->get_product_id(),
+            'provider_id'   => $this->get_provider_id(),
+            'billing_cycle' => $this->get_billing_cycle(),
+            'max_sites'     => $this->get_max_sites(),
+            'features'      => $this->get_features(),
+            'product'       => [],
+
+        );
+
+        $provider       = Provider_Collection::instance()->get_provider( $this->get_provider_id() );
+        $product_data   = $provider ? $provider->get_product( $this->get_product_id() ) : [];
+        $valid_product  = Provider_Collection::validate_product_data( $product_data );
+
+        if ( ! is_wp_error( $valid_product ) ) {
+            $data['product'] = $valid_product;
+        } else {
+            $data['product_error'] = $valid_product->get_error_message();
+        }
+
+        return $data;
+    }
+
 }
