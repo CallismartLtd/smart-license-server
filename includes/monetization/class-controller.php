@@ -186,6 +186,7 @@ class Controller {
 
         // Resolve provider
         $provider = Provider_Collection::instance()->get_provider( $provider_id );
+        
         if ( ! $provider ) {
             wp_send_json_error( array(
                 'message' => __( 'Invalid provider specified.', 'smliser' ),
@@ -203,9 +204,17 @@ class Controller {
             ) );
         }
 
+        $valid_product = Provider_Collection::validate_product_data( $product );
+
+        if ( is_wp_error( $valid_product ) ) {
+            wp_send_json_error( array(
+                'message' => $valid_product->get_error_message(),
+            ) );
+        }
+
         wp_send_json_success( array(
             'message' => __( 'Product data retrieved successfully.', 'smliser' ),
-            'product' => $product,
+            'product' => $valid_product,
         ) );
     }
 
