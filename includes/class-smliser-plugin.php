@@ -5,7 +5,8 @@
  * @package Smliser\classes
  */
 
-use SmartLicenseServer\HostedApps\Smliser_Hosted_Apps_Interface;
+use SmartLicenseServer\HostedApps\Smliser_Hosted_Apps_Interface,
+SmartLicenseServer\Monetization\Monetization;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -1120,8 +1121,14 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
             'support_url'       => $this->get_support_url(),
             'active_installs'   => $this->get_active_installs(),
             'is_monetized'       => $this->is_monetized(),
-            'monetization'      => [], // Future use
+            'monetization'      => [],
         );
+
+        if ( $this->is_monetized() ) {
+            $monetization = Monetization::get_by_item( $this->get_type(), $this->get_id() );
+
+            $data['monetization'] = $monetization->to_array() ?: [];
+        }
 
         return $data;
     }
