@@ -357,3 +357,18 @@ display: inline-block;
   min-width: 100%;
   max-width: 100%;
 }
+
+.smliser-admin-modal .product-data-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.smliser-admin-modal .product-data-header .product-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #f1f1f1;
+  padding: 2px;
+}
