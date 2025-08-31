@@ -877,7 +877,10 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 modal.innerHTML = `
                     <div class="smliser-admin-modal_content">
                         <span class="dashicons dashicons-dismiss remove-button" title="remove" data-command="closeModal"></span>
-                        <h2>Product Data for: ${tier.name || ''}</h2>
+                        <h2 class="product-data-header">
+                            <span class="product-image-slot"></span>
+                            <span class="product-title">Product Data for: ${tier.name || ''}</span>
+                        </h2>
                         <table class="widefat striped">
                             <tbody>
                                 <tr><th scope="row">Product ID</th><td>${tier.product_id}</td></tr>
@@ -919,15 +922,19 @@ document.addEventListener( 'DOMContentLoaded', function() {
                         const product = responseJson.data.product || {};
                         const pricing = product.pricing || {};
 
+                        // Insert first image if available
+                        if ( product.images && product.images.length > 0 ) {
+                            const img = document.createElement( 'img' );
+                            img.src = product.images[0].src;
+                            img.alt = product.images[0].alt || 'Product Image';
+                            img.className = 'product-thumb';
+                            modal.querySelector( '.product-image-slot' ).appendChild( img );
+                        }
+
+                        // Format price
                         let formattedPrice = 'N/A';
                         if ( pricing.price ) {
-                            formattedPrice = StringUtils.formatCurrency( pricing.price, {
-                                symbol: pricing.currency_symbol || '$',
-                                symbol_position: pricing.currency_position || 'left',
-                                decimals: pricing.decimals || 2,
-                                decimal_separator: pricing.decimal_separator || '.',
-                                thousand_separator: pricing.thousand_separator || ',',
-                            });
+                            formattedPrice = StringUtils.formatCurrency( pricing.price, product.currency );
                         }
 
                         modal.querySelector( '.price-field' ).textContent = formattedPrice;
@@ -938,6 +945,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                         smliserNotify( error.message || 'An unexpected error occurred', 6000 );
                     });
             },
+
             'toggleMonetization': ( monetizationId, enabled ) => {
                 const payLoad = new FormData();
                 payLoad.set( 'action', 'smliser_toggle_monetization' );
