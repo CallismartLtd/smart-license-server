@@ -175,8 +175,8 @@ class Provider_Collection {
             $images = [
                 [
                     'id'        => 0,
-                    'src'       => SMLISER_URL . $placeholder,
-                    'thumbnail' => SMLISER_URL . $placeholder,
+                    'src'       => $placeholder,
+                    'thumbnail' => $placeholder,
                     'srcset'    => '',
                     'sizes'     => '',
                     'name'      => __( 'Placeholder', 'smliser' ),
@@ -189,8 +189,8 @@ class Provider_Collection {
             foreach ( $images as $img ) {
                 $normalized_images[] = [
                     'id'        => $img['id'] ?? 0,
-                    'src'       => $img['src'] ?? SMLISER_URL . $placeholder,
-                    'thumbnail' => $img['thumbnail'] ?? ( $img['src'] ?? SMLISER_URL . $placeholder ),
+                    'src'       => $img['src'] ?? $placeholder,
+                    'thumbnail' => $img['thumbnail'] ?? ( $img['src'] ?? $placeholder ),
                     'srcset'    => $img['srcset'] ?? '',
                     'sizes'     => $img['sizes'] ?? '',
                     'name'      => $img['name'] ?? '',
