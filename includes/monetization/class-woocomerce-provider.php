@@ -56,30 +56,6 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function get_products() {
-        $endpoint = $this->store_url . '/wp-json/wc/store/v1/products?type=sw_product';
-        $response = wp_remote_get( $endpoint );
-
-        if ( is_wp_error( $response ) ) {
-            return [];
-        }
-
-        $products = json_decode( wp_remote_retrieve_body( $response ), true );
-        if ( ! is_array( $products ) ) {
-            return [];
-        }
-
-        $result = [];
-        foreach ( $products as $product ) {
-            $result[] = $this->normalize_product( $product );
-        }
-
-        return $result;
-    }
-
-    /**
      * Get a single product by ID (with caching and error handling).
      *
      * @param string|int $product_id
@@ -101,7 +77,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
 
         $endpoint = $this->store_url . '/wp-json/wc/store/v1/products/' . $product_id;
         $response = wp_remote_get( $endpoint, [
-            'timeout' => 10, // 10s max wait
+            'timeout' => 30,
         ] );
 
         if ( is_wp_error( $response ) ) {
@@ -165,34 +141,52 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
         return $this->store_url . '/checkout/?add-to-cart=' . $product_id;
     }
 
+    /**
+     * Normalize a WooCommerce product into the required format.
+     *
+     * @param array $product Raw product data from WooCommerce Store API.
+     * @return array Normalized product.
+     */
     protected function normalize_product( array $product ) {
         $prices = $product['prices'] ?? [];
 
+        // Currency block
+        $currency = [
+            'code'               => $prices['currency_code'] ?? 'USD',
+            'symbol'             => $prices['currency_symbol'] ?? '$',
+            'symbol_position'    => $this->determine_symbol_position( $prices ),
+            'decimals'           => $prices['currency_minor_unit'] ?? 2,
+            'decimal_separator'  => $prices['currency_decimal_separator'] ?? '.',
+            'thousand_separator' => $prices['currency_thousand_separator'] ?? ',',
+        ];
+
+        // Pricing block
+        $regular = isset( $prices['regular_price'] ) 
+            ? floatval( $prices['regular_price'] ) / pow( 10, $prices['currency_minor_unit'] ?? 2 ) 
+            : 0;
+
+        $sale    = isset( $prices['sale_price'] ) 
+            ? floatval( $prices['sale_price'] ) / pow( 10, $prices['currency_minor_unit'] ?? 2 ) 
+            : 0;
+
+        $price   = isset( $prices['price'] ) 
+            ? floatval( $prices['price'] ) / pow( 10, $prices['currency_minor_unit'] ?? 2 ) 
+            : $regular;
+
         $pricing = [
-            'price'         => isset( $prices['price'] ) ? floatval( $prices['price'] ) / pow( 10, $prices['currency_minor_unit'] ?? 2 ) : 0,
-            'regular_price' => isset( $prices['regular_price'] ) ? floatval( $prices['regular_price'] ) / pow( 10, $prices['currency_minor_unit'] ?? 2 ) : 0,
-            'sale_price'    => isset( $prices['sale_price'] ) ? floatval( $prices['sale_price'] ) / pow( 10, $prices['currency_minor_unit'] ?? 2 ) : 0,
-            'currency'      => [
-                'code'              => $prices['currency_code'] ?? 'USD',
-                'symbol'            => $prices['currency_symbol'] ?? '$',
-                'symbol_position'   => $this->determine_symbol_position( $prices ),
-                'decimals'          => $prices['currency_minor_unit'] ?? 2,
-                'decimal_separator' => $prices['currency_decimal_separator'] ?? '.',
-                'thousand_separator'=> $prices['currency_thousand_separator'] ?? ',',
-            ],
+            'price'         => $price,
+            'regular_price' => $regular,
+            'sale_price'    => $sale,
+            'is_on_sale'    => ( $sale > 0 && $sale < $regular ),
         ];
 
         return [
-            'id'                => $product['id'] ?? 0,
-            'name'              => $product['name'] ?? '',
-            'slug'              => $product['slug'] ?? '',
-            'type'              => $product['type'] ?? 'simple',
-            'description'       => $product['description'] ?? '',
-            'short_description' => $product['short_description'] ?? '',
-            'permalink'         => $product['permalink'] ?? '',
-            'pricing'           => $pricing,
-            'images'            => $product['images'] ?? [],
-            'categories'        => $product['categories'] ?? [],
+            'id'         => $product['id'] ?? 0,
+            'permalink'  => $product['permalink'] ?? '',
+            'currency'   => $currency,
+            'pricing'    => $pricing,
+            'images'     => $product['images'] ?? [],
+            'categories' => $product['categories'] ?? [],
         ];
     }
 
