@@ -110,6 +110,109 @@ class Provider_Collection {
     }
 
     /**
+     * Validate and normalize a product data array against the declared schema.
+     *
+     * @param array $product
+     * @return array|\WP_Error Normalized product array or WP_Error if invalid.
+     */
+    public static function validate_product_data( $product ) {
+        if ( ! is_array( $product ) ) {
+            return new \WP_Error( 'invalid_product', __( 'Product data must be an array.', 'smliser' ) );
+        }
+
+        // Required top-level fields
+        $required_top = [ 'id', 'permalink', 'currency', 'pricing' ];
+        foreach ( $required_top as $key ) {
+            if ( ! array_key_exists( $key, $product ) ) {
+                return new \WP_Error(
+                    'missing_field',
+                    sprintf( __( 'Missing required product field: %s', 'smliser' ), $key )
+                );
+            }
+        }
+
+        // Validate currency block
+        $currency = $product['currency'];
+        if ( ! is_array( $currency ) ) {
+            return new \WP_Error( 'invalid_currency', __( 'Currency must be an array.', 'smliser' ) );
+        }
+
+        $currency_required = [ 'code', 'symbol', 'symbol_position', 'decimals', 'decimal_separator', 'thousand_separator' ];
+        foreach ( $currency_required as $key ) {
+            if ( ! array_key_exists( $key, $currency ) ) {
+                return new \WP_Error(
+                    'missing_currency_field',
+                    sprintf( __( 'Missing required currency field: %s', 'smliser' ), $key )
+                );
+            }
+        }
+
+        // Validate pricing block
+        $pricing = $product['pricing'];
+        if ( ! is_array( $pricing ) ) {
+            return new \WP_Error( 'invalid_pricing', __( 'Pricing must be an array.', 'smliser' ) );
+        }
+
+        $pricing_required = [ 'price', 'regular_price', 'sale_price', 'is_on_sale' ];
+        foreach ( $pricing_required as $key ) {
+            if ( ! array_key_exists( $key, $pricing ) ) {
+                return new \WP_Error(
+                    'missing_pricing_field',
+                    sprintf( __( 'Missing required pricing field: %s', 'smliser' ), $key )
+                );
+            }
+        }
+
+        // Enforce schema: keep only allowed keys
+        $allowed_keys = [ 'id', 'permalink', 'currency', 'pricing', 'images', 'categories' ];
+        $product      = array_intersect_key( $product, array_flip( $allowed_keys ) );
+
+        // Normalize images
+        $images         = $product['images'] ?? [];
+        $placeholder    = SMLISER_URL . 'assets/images/software-placeholder.svg';
+        if ( ! is_array( $images ) || empty( $images ) ) {
+            // Fallback placeholder
+            $images = [
+                [
+                    'id'        => 0,
+                    'src'       => SMLISER_URL . $placeholder,
+                    'thumbnail' => SMLISER_URL . $placeholder,
+                    'srcset'    => '',
+                    'sizes'     => '',
+                    'name'      => __( 'Placeholder', 'smliser' ),
+                    'alt'       => __( 'Product image not available', 'smliser' ),
+                ]
+            ];
+        } else {
+            // Ensure each image has required keys
+            $normalized_images = [];
+            foreach ( $images as $img ) {
+                $normalized_images[] = [
+                    'id'        => $img['id'] ?? 0,
+                    'src'       => $img['src'] ?? SMLISER_URL . $placeholder,
+                    'thumbnail' => $img['thumbnail'] ?? ( $img['src'] ?? SMLISER_URL . $placeholder ),
+                    'srcset'    => $img['srcset'] ?? '',
+                    'sizes'     => $img['sizes'] ?? '',
+                    'name'      => $img['name'] ?? '',
+                    'alt'       => $img['alt'] ?? '',
+                ];
+            }
+            $images = $normalized_images;
+        }
+        $product['images'] = $images;
+
+        // Normalize categories
+        $categories = $product['categories'] ?? [];
+        if ( ! is_array( $categories ) ) {
+            $categories = [];
+        }
+        $product['categories'] = $categories;
+
+        return $product;
+    }
+
+
+    /**
      * Autoload providers
      */
     public static function auto_load() {
