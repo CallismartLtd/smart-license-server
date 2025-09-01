@@ -121,7 +121,7 @@ class Provider_Collection {
         }
 
         // Required top-level fields
-        $required_top = [ 'id', 'permalink', 'currency', 'pricing' ];
+        $required_top = [ 'id', 'permalink', 'currency', 'pricing', 'checkout_url' ];
         foreach ( $required_top as $key ) {
             if ( ! array_key_exists( $key, $product ) ) {
                 return new \WP_Error(
@@ -164,7 +164,7 @@ class Provider_Collection {
         }
 
         // Enforce schema: keep only allowed keys
-        $allowed_keys = [ 'id', 'permalink', 'currency', 'pricing', 'images', 'categories' ];
+        $allowed_keys = [ 'id', 'permalink', 'checkout_url', 'currency', 'pricing', 'images', 'categories' ];
         $product      = array_intersect_key( $product, array_flip( $allowed_keys ) );
 
         // Normalize images
