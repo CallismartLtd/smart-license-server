@@ -37,7 +37,7 @@ class Smliser_Repository_Rest_API {
         }
         
         $response = array(
-            'plugins'   => $plugins_info,
+            'apps'   => $plugins_info,
 
         );
     
