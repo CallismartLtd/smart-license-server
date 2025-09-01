@@ -1055,8 +1055,8 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
          */
         $self->set_banners( 
             array(
-                'low'   => $self->get_meta( 'banner_low', '' ),
-                'high'  => $self->get_meta( 'banner_high', '' ),
+                'low'   => $self->get_meta( 'banner_low', SMLISER_URL . 'assets/images/software-placeholder.svg' ),
+                'high'  => $self->get_meta( 'banner_high', SMLISER_URL . 'assets/images/software-placeholder.svg' ),
             ) 
         );
 
@@ -1101,6 +1101,7 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
         $pseudo_slug    = explode( '/', $this->get_slug() )[0];
         $data = array(
             'name'              => $this->get_name(),
+            'type'              => $this->get_type(),
             'slug'              => $pseudo_slug ,
             'version'           => $this->get_version(),
             'author'            => '<a href="' . esc_url( $this->get_author_profile() ) . '">' . $this->get_author() . '</a>',
@@ -1114,6 +1115,7 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
             'requires_plugins'  => '',
             'added'             => $this->get_date_created(),
             'last_updated'      => $this->get_last_updated(),
+            'short_description' => $this->get_short_description(),
             'sections'          => $this->get_sections(),
             'num_ratings'       => $this->get_num_ratings(),
             'rating'            => $this->get_average_rating(),
