@@ -65,9 +65,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
     public function get_product( $product_id, $force_refresh = false ) {
         $product_id   = absint( $product_id );
         $cache_key    = 'smliser_wc_product_' . md5( $this->store_url . '_' . $product_id );
-        $cache_expiry = HOUR_IN_SECONDS; // Cache for 1 hour
-
-        delete_transient( $cache_key );
+        $cache_expiry = 3 * HOUR_IN_SECONDS;
 
         // Return cached result unless bypassing
         if ( ! $force_refresh ) {
@@ -187,6 +185,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
             'permalink'  => $product['permalink'] ?? '',
             'currency'   => $currency,
             'pricing'    => $pricing,
+            'checkout_url'  => $this->get_checkout_url( $product['id'] ?? '' ),
             'images'     => $product['images'] ?? [],
             'categories' => $product['categories'] ?? [],
         ];
