@@ -67,6 +67,8 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
         $cache_key    = 'smliser_wc_product_' . md5( $this->store_url . '_' . $product_id );
         $cache_expiry = HOUR_IN_SECONDS; // Cache for 1 hour
 
+        delete_transient( $cache_key );
+
         // Return cached result unless bypassing
         if ( ! $force_refresh ) {
             $cached = get_transient( $cache_key );
@@ -177,7 +179,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
             'price'         => $price,
             'regular_price' => $regular,
             'sale_price'    => $sale,
-            'is_on_sale'    => ( $sale > 0 && $sale < $regular ),
+            'is_on_sale'    => $product['on_sale'] ?? false,
         ];
 
         return [
