@@ -56,17 +56,43 @@ class Callismart_Markdown_to_HTML {
      * @param string $text The raw text to parse.
      * @return string The text with headings converted to HTML.
      */
-    protected function parse_headings($text) {
-        // Handle WordPress-style headings
-        $text = preg_replace('/^===\s*(.*?)\s*===$/m', '<h1>$1</h1>', $text); // === Heading ===
-        $text = preg_replace('/^==\s*(.*?)\s*==$/m', '<h2>$1</h2>', $text); // == Heading ==
-        $text = preg_replace('/^=\s*(.*?)\s*=$/m', '<h3>$1</h3>', $text);   // = Heading =
+    protected function parse_headings( $text ) {
+        // --- WordPress-style headings ---
+        $text = preg_replace_callback(
+            '/^===\s*(.+?)\s*===$/m',
+            function( $matches ) {
+                return '<h1>' . trim( $matches[1] ) . '</h1>';
+            },
+            $text
+        );
 
-        // Handle standard Markdown-style headings
-        for ($i = 6; $i >= 1; $i--) {
-            $pattern = '/^' . str_repeat('#', $i) . '\s*(.*?)\s*$/m'; // Matches `# Heading` to `###### Heading`
+        $text = preg_replace_callback(
+            '/^==\s*(.+?)\s*==$/m',
+            function( $matches ) {
+                return '<h2>' . trim( $matches[1] ) . '</h2>';
+            },
+            $text
+        );
+
+        $text = preg_replace_callback(
+            '/^=\s*(.+?)\s*=$/m',
+            function( $matches ) {
+                return '<h3>' . trim( $matches[1], ' =' ) . '</h3>';
+            },
+            $text
+        );
+
+        // --- Standard Markdown-style headings (# to ######) ---
+        for ( $i = 6; $i >= 1; $i-- ) {
+            $pattern = '/^' . str_repeat( '#', $i ) . '\s*(.+?)\s*$/m';
             $replacement = '<h' . $i . '>$1</h' . $i . '>';
-            $text = preg_replace($pattern, $replacement, $text);
+            $text = preg_replace_callback(
+                $pattern,
+                function( $matches ) {
+                    return '<h' . strlen( preg_replace( '/^#+/', '', $matches[0] ) ) . '>' . trim( $matches[1] ) . '</h' . strlen( preg_replace( '/^#+/', '', $matches[0] ) ) . '>';
+                },
+                $text
+            );
         }
 
         return $text;
