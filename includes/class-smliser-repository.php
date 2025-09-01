@@ -375,70 +375,62 @@ class Smliser_Repository {
 
 
     /**
-     * Get the plugin info (index text) from the readme.txt file in the plugin zip.
+     * Get the plugin description (everything that isn't official metadata or section)
      *
-     * @param string $plugin_slug The slug of the plugin zip file.
-     * @return string The plugin description or an error message.
+     * @param string $plugin_slug
+     * @return string
      */
     public function get_description( $plugin_slug ) {
-        $plugin_slug      = Smliser_Plugin::normalize_slug( $plugin_slug );
-        $zipped_file_path = $this->get_plugin( $plugin_slug );
+        $plugin_slug = Smliser_Plugin::normalize_slug( $plugin_slug );
+        $file_path   = $this->get_plugin( $plugin_slug );
 
-        if ( is_wp_error( $zipped_file_path ) ) {
+        if ( is_wp_error( $file_path ) ) {
             return '';
         }
 
-        $readme_contents = $this->get_readme_txt( $zipped_file_path );
-        if ( is_wp_error( $readme_contents ) ) {
+        $raw_text = $this->get_readme_txt( $file_path );
+        if ( is_wp_error( $raw_text ) ) {
             return '';
         }
 
-        $lines        = explode( "\n", $readme_contents );
-        $render_text  = '';
-        $exclude      = false;
+        // Step 1: Start from Description block
+        if ( preg_match('/==\s*Description\s*==\s*(.+)/si', $raw_text, $matches) ) {
+            $description = trim($matches[1]);
 
-        foreach ( $lines as $line ) {
-            $line = trim( $line );
-            // Skip the plugin name
-            if ( str_starts_with( $line, '===' ) && str_ends_with( $line, '===' ) ) {
-                continue;
+            // Step 2: Remove official sections that might appear afterwards
+            $official_sections = ['Installation', 'Changelog', 'Frequently Asked Questions', 'Screenshots', 'Upgrade Notice'];
+            foreach ( $official_sections as $section ) {
+                // Remove everything from == Section == to the next ==
+                $pattern = '/==\s*' . preg_quote($section, '/') . '\s*==.*?(?==\s*\w+\s*==|$)/si';
+                $description = preg_replace( $pattern, '', $description );
             }
-            // Skip metadata lines
-            $meta_data = array( 'Contributors:', 'Tags:', 'Stable tag:', 'Requires PHP:', 'License:', 'License URI:', 'Requires at least:', 'tested:', 'tested up to:' );
-            foreach( $meta_data as $unwanted ) {
-                if ( strpos( $line, $unwanted ) !== false ) {
-                    $exclude = true;
-                    break;
+
+            // Step 3: Optional cleanup of stray metadata lines
+            $lines   = explode("\n", $description);
+            $exclude = ['Contributors:', 'Tags:', 'Stable tag:', 'Requires PHP:', 'License:', 'License URI:', 'Requires at least:', 'Tested up to:', 'WooCommerce tested up to:'];
+            $cleaned = [];
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if ($line === '') continue;
+                $skip = false;
+                foreach ($exclude as $meta) {
+                    if ( stripos($line, $meta) !== false ) {
+                        $skip = true;
+                        break;
+                    }
+                }
+                if (!$skip) {
+                    $cleaned[] = $line;
                 }
             }
 
-            // Match section headers
-            if ( preg_match( '/^==\s*(.*?)\s*==$/', $line, $matches ) ) {
-                $section_title = strtolower( $matches[1] );
-
-                // Determine if the section should be excluded
-                if ( in_array( $section_title, [ 'installation', 'changelog', 'frequently asked questions', 'screenshots' ] ) ) {
-                    $exclude = true;
-                } else {
-                    $exclude = false;
-                }
-
-                // Always include section headers unless excluded
-                if ( ! $exclude ) {
-                    $render_text .= ltrim( $line . "\n" );
-                }
-
-                continue;
-            }
-
-            // Include content if not in an excluded section
-            if ( ! $exclude ) {
-                $render_text .= $line . "\n";
-            }
+            $final_text = implode("\n", $cleaned);
+            return $this->parse( esc_html($final_text) );
         }
 
-        return $this->parse( esc_html( trim( $render_text ) ) );
+        return '';
     }
+
 
 
     /**
