@@ -98,8 +98,12 @@ class SmartLicense_config {
         global $wpdb;
         define( 'SMLISER_LICENSE_TABLE', $wpdb->prefix.'smliser_licenses' );
         define( 'SMLISER_PLUGIN_META_TABLE', $wpdb->prefix . 'smliser_plugin_meta' );
+        define( 'SMLISER_THEME_META_TABLE', $wpdb->prefix . 'smliser_theme_meta' );
         define( 'SMLISER_LICENSE_META_TABLE', $wpdb->prefix . 'smliser_license_meta' );
         define( 'SMLISER_PLUGIN_ITEM_TABLE', $wpdb->prefix . 'smliser_plugins' );
+        define( 'SMLISER_THEME_ITEM_TABLE', $wpdb->prefix . 'smliser_themes' );
+        define( 'SMLISER_APPS_ITEM_TABLE', $wpdb->prefix . 'smliser_applications' );
+        define( 'SMLISER_APPS_META_TABLE', $wpdb->prefix . 'smliser_applications_meta' );
         define( 'SMLISER_API_ACCESS_LOG_TABLE', $wpdb->prefix . 'smliser_api_access_logs' );
         define( 'SMLISER_API_CRED_TABLE', $wpdb->prefix . 'smliser_api_creds' );
         define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_item_download_token' );
@@ -341,6 +345,15 @@ class SmartLicense_config {
                 'methods'               => WP_REST_Server::READABLE,
                 'callback'              => array( 'Smliser_Repository_Rest_API', 'repository_response' ),
                 'permission_callback'   => array( 'Smliser_Repository_Rest_API', 'repository_access_permission' ),
+                'args'  => array(
+                    'search'   => array(
+                        'required'          => false,
+                        'type'              => 'string',
+                        'description'       => 'The search term',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => '__return_true'
+                    )
+                ),
             )
         );
 
@@ -505,6 +518,7 @@ class SmartLicense_config {
      */
     public function include() {
         require_once SMLISER_PATH . 'includes/hosted-apps/hosted-apps-interface.php';
+        require_once SMLISER_PATH . 'includes/hosted-apps/class-software-collection.php';
         require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
         require_once SMLISER_PATH . 'includes/utils/smliser-functions.php';
         require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
@@ -712,9 +726,7 @@ class SmartLicense_config {
      * @param mixed $value The value to sanitize.
      */
     public static function sanitize( $value ) {
-        if ( empty( $value ) ) {
-            $value = new WP_Error( 'rest_invalid_param', __( 'The value cannot be empty.', 'smliser' ), array( 'status' => 400 ) );
-        }elseif ( is_string( $value ) ) {
+        if ( is_string( $value ) ) {
             $value = sanitize_text_field( wp_unslash( $value ) );
         } elseif ( is_array( $value ) ) {
             $value = array_map( 'sanitize_text_field', wp_unslash( $value ) );
@@ -722,8 +734,6 @@ class SmartLicense_config {
             $value = absint( $value );
         } elseif ( is_float( $value ) ) {
             $value = floatval( $value );
-        } else {
-            $value = new WP_Error( 'rest_invalid_param', __( 'Invalid parameter type.', 'smliser' ), array( 'status' => 400 ) );
         }
 
         return $value;
