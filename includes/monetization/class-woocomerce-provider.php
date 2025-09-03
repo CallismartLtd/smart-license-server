@@ -138,7 +138,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
      * @return string  Checkout URL.
      */
     public function get_checkout_url( $product_id = '{{product_id}}' ) {
-        return $this->store_url . '/checkout/?add-to-cart=' . $product_id;
+        return $this->store_url . '/app-store/purchase/' . trailingslashit( $product_id );
     }
 
     /**
