@@ -11,7 +11,17 @@ defined( 'ABSPATH' ) || exit;
 
 class Smliser_install {
 
+    /**
+     * Database version migration callbacks
+     * 
+     * @var array $db_versions
+     */
+    private static $db_versions = array(
+        '0.0.6' => array(
+            [__CLASS__, 'migration_006' ],
 
+        )
+    );
 
     /**
      * Handle plugin activation
@@ -45,6 +55,11 @@ class Smliser_install {
             SMLISER_DOWNLOAD_TOKEN_TABLE,
             SMLISER_MONETIZATION_TABLE,
             SMLISER_PRICING_TIER_TABLE,
+            SMLISER_THEME_ITEM_TABLE,
+            SMLISER_THEME_META_TABLE,
+            SMLISER_APPS_ITEM_TABLE,
+            SMLISER_APPS_META_TABLE,
+
         );
 
         foreach( $tables as $table ) {
@@ -93,6 +108,7 @@ class Smliser_install {
             'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
             'name VARCHAR(255) NOT NULL',
             'slug VARCHAR(300) DEFAULT NULL',
+            'status VARCHAR(300) DEFAULT \'active\'',
             'version VARCHAR(300) DEFAULT NULL',
             'author VARCHAR(255) DEFAULT NULL',
             'author_profile VARCHAR(255) DEFAULT NULL',
@@ -123,6 +139,93 @@ class Smliser_install {
         );
 
         self::run_db_delta( $plugin_meta_table, $plugin_meta_columns );
+
+        /**
+         * Theme table
+         */
+        $theme_table_name    = SMLISER_THEME_ITEM_TABLE;
+        $theme_table_columns = array(
+            'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'name VARCHAR(255) NOT NULL',
+            'slug VARCHAR(300) DEFAULT NULL',
+            'status VARCHAR(55) DEFAULT \'active\'',
+            'version VARCHAR(300) DEFAULT NULL',
+            'author VARCHAR(255) DEFAULT NULL',
+            'author_profile VARCHAR(255) DEFAULT NULL',
+            'requires VARCHAR(9) DEFAULT NULL',         // WordPress min version
+            'tested VARCHAR(9) DEFAULT NULL',           // Tested up to version
+            'requires_php VARCHAR(9) DEFAULT NULL',
+            'template VARCHAR(255) DEFAULT NULL',       // For child themes (parent slug)
+            'tags VARCHAR(500) DEFAULT NULL',           // Theme tags/categories
+            'download_link VARCHAR(400) DEFAULT NULL',
+            'created_at DATETIME DEFAULT NULL',
+            'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            'INDEX slug_index (slug)',
+            'INDEX author_index (author)',
+            'INDEX download_link_index (download_link)',
+        );
+
+        self::run_db_delta( $theme_table_name, $theme_table_columns );
+    
+        /**
+         * Theme metadata table
+         */
+        $theme_meta_table    = SMLISER_THEME_META_TABLE;
+        $theme_meta_columns  = array(
+            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'theme_id BIGINT(20) UNSIGNED NOT NULL',
+            'meta_key VARCHAR(255) NOT NULL',
+            'meta_value LONGTEXT DEFAULT NULL',
+            'INDEX theme_id_index (theme_id)',
+            'INDEX meta_key_index (meta_key)',
+        );
+
+        self::run_db_delta( $theme_meta_table, $theme_meta_columns );
+
+        /**
+         * Other applications table
+         */
+        $other_app_table_name    = SMLISER_APPS_ITEM_TABLE;
+        $other_app_table_columns = array(
+            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'type VARCHAR(50) NOT NULL',                 // e.g. library, saas, desktop, webapp
+            'name VARCHAR(255) NOT NULL',
+            'slug VARCHAR(300) UNIQUE NOT NULL',
+            'status VARCHAR(55) DEFAULT \'active\'',
+            'version VARCHAR(50) DEFAULT NULL',
+            'short_description VARCHAR(500) DEFAULT NULL',
+            'description LONGTEXT DEFAULT NULL',         // Full product description
+            'changelog LONGTEXT DEFAULT NULL',           // Optional: product changelog
+            'author VARCHAR(255) DEFAULT NULL',
+            'author_profile VARCHAR(400) DEFAULT NULL',
+            'homepage VARCHAR(400) DEFAULT NULL',
+            'support_url VARCHAR(400) DEFAULT NULL',
+            'download_link VARCHAR(400) DEFAULT NULL',
+            'platform VARCHAR(100) DEFAULT NULL',        // e.g. "Windows", "Linux", "Web", "Cross-platform"
+            'license VARCHAR(100) DEFAULT NULL',         // e.g. GPL, MIT, Proprietary
+            'created_at DATETIME DEFAULT NULL',
+            'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            'INDEX slug_index (slug)',
+            'INDEX type_index (type)',
+            'INDEX author_index (author)',
+        );
+
+        self::run_db_delta( $other_app_table_name, $other_app_table_columns );
+
+        /**
+         * Other applications metadata table
+         */
+        $other_app_meta_table    = SMLISER_APPS_META_TABLE;
+        $other_app_meta_columns  = array(
+            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'app_id BIGINT(20) UNSIGNED NOT NULL',
+            'meta_key VARCHAR(255) NOT NULL',
+            'meta_value LONGTEXT DEFAULT NULL',
+            'INDEX app_id_index (app_id)',
+            'INDEX meta_key_index (meta_key)',
+        );
+
+        self::run_db_delta( $other_app_meta_table, $other_app_meta_columns );
 
         /**
          * License_metadata table
@@ -427,6 +530,35 @@ class Smliser_install {
     }
 
     /**
+     * Add status column to the plugins table
+     * 
+     * @version 0.0.6
+     */
+    public static function migration_006() {
+        global $wpdb;
+
+        $plugin_table = SMLISER_PLUGIN_ITEM_TABLE;
+
+        // Check if 'status' column already exists
+        $column = $wpdb->get_results(
+            $wpdb->prepare(
+                "SHOW COLUMNS FROM {$plugin_table} LIKE %s",
+                'status'
+            )
+        );
+
+        if ( empty( $column ) ) {
+            // Add 'status' column
+            $wpdb->query(
+                "ALTER TABLE {$plugin_table} 
+                ADD COLUMN status VARCHAR(55) NOT NULL DEFAULT 'active' 
+                AFTER download_link"
+            );
+        }
+    }
+
+
+    /**
      * Handle ajax update
      */
     public static function ajax_update() {
@@ -440,12 +572,18 @@ class Smliser_install {
         }
 
         if ( self::install() )  {
-            self::update_repo_structure_002();
+            $all_func = self::$db_versions[SMLISER_DB_VER] ?? [];
+
+            foreach ( $all_func as $func ) {
+                if ( is_callable( $func ) ) {
+                    call_user_func( $func );
+                }
+            }
            
         }
         update_option( 'smliser_repo_version', SMLISER_VER );
 
-        wp_send_json_success( array( 'message' => 'The repository has been updated from version "' . $repo_version . '" to version "' . SMLISER_VER ) );
+        wp_send_json_success( array( 'message' => 'The repository has been migrated from version "' . $repo_version . '" to version "' . SMLISER_VER ) );
     }
 
 }
