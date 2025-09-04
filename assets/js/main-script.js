@@ -67,6 +67,7 @@ function smliserCopyToClipboard(text) {
         console.error('Could not copy text: ', err);
     });
 }
+
 const StringUtils = {
     /**
      * Capitalize the first character of a string.
@@ -152,13 +153,14 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let tooltips                = document.querySelectorAll('.smliser-form-description, .smliser-tooltip');
     let deleteBtn               = document.getElementById( 'smliser-license-delete-button' );
     let updateBtn               = document.querySelector('#smliser-update-btn');
-    let fileInput               = document.getElementById( 'smliser-plugin-file' );
+    let newAppUploaderForm      = document.getElementById( 'newAppUploaderForm' );
     let deletePluginBtn         = document.querySelector( '#smliser-plugin-delete-button' );
     let selectAllCheckbox       = document.getElementById('smliser-select-all');
     let dashboardPage           = document.getElementById( 'smliser-admin-dasboard-wrapper' );
     let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
     let revokeBtns              = document.querySelectorAll( '.smliser-revoke-btn' );
     let monetizationUI          = document.querySelector( '.smliser-monetization-ui' );
+    const queryParam            = new URLSearchParams( window.location.search );
 
     if ( deleteBtn ) {
         deleteBtn.addEventListener( 'click', function( event ) {
@@ -438,10 +440,11 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-    if ( fileInput  ) {
+    if ( newAppUploaderForm  ) {
         let uploadBtn       = document.querySelector('.smliser-upload-btn');
         let fileInfo        = document.querySelector('.smliser-file-info');
-        let submitBtn       = document.querySelector('#smliser-repo-submit-btn');
+        let submitBtn       = newAppUploaderForm.querySelector( 'button[type="submit"]' );
+        let fileInput       = document.querySelector( '#smliser-file-input' );
         let originalText    = fileInfo.textContent;
 
         let clearFileInputBtn   = document.querySelector( '.smliser-file-remove' );
@@ -449,7 +452,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
         uploadBtn.addEventListener( 'click', ()=> fileInput.click() );
         clearFileInputBtn.addEventListener( 'click', ()=>{
             fileInput.value = '';
-            fileInfo.innerHTML = '<span>No plugin file selected.</span>';
+            fileInfo.innerHTML = '<span>No file selected.</span>';
             clearFileInputBtn.classList.add( 'smliser-hide' );
             uploadBtn.classList.remove( 'smliser-hide' );
         });
@@ -492,14 +495,64 @@ document.addEventListener( 'DOMContentLoaded', function() {
             }
         });
 
-        if ( submitBtn ) {
-            submitBtn.addEventListener( 'click', (e)=>{
-                if ( fileInput && fileInput.required && fileInput.files.length === 0 ) {
-                    e.preventDefault();
-                    smliserNotify('File upload is required.' );
+        submitBtn.addEventListener( 'click', (e)=>{
+            if ( 'add-new' === queryParam.get( 'tab' ) && fileInput.files.length === 0 ) {
+                e.preventDefault();
+                const appType = StringUtils.ucfirst( queryParam.get( 'type' ) );
+                smliserNotify( `A ${appType} file is required.` );
+            }
+        });
+
+        newAppUploaderForm.addEventListener( 'submit', async (e) => {
+            e.preventDefault();
+
+            const payLoad = new FormData( e.currentTarget );
+            payLoad.set( 'security', smliser_var.nonce  );
+            
+            try {
+                const response = await fetch( smliser_var.smliser_ajax_url,
+                    {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        body: payLoad
+                    }
+                );
+
+                if ( ! response.ok ) {
+                    const contentType = response.headers.get( 'Content-Type' );
+                    let errorMessage    = 'Something went wrong!';
+
+                    if ( contentType.includes( 'application/json' ) ) {
+                        const data = await response.json();
+                        errorMessage = data?.data?.message || errorMessage;
+                    } else {
+                        errorMessage = await response.text();
+                    }
+
+                    throw new Error( errorMessage );
                 }
-            });
-        }
+
+                const responseJson = await response.json();
+
+                if ( ! responseJson.success ) {
+                    throw new Error( responseJson.data.message );
+                }
+
+                smliserNotify( responseJson?.data?.message || 'Saved', 6000 );
+                setTimeout( () => {
+                    window.location.href = responseJson.data.redirect_url;
+                })
+
+
+            } catch ( error ) {
+                console.error( error );
+                smliserNotify( error.message, 10000 );
+            }
+
+            
+            
+        });
+        
     }
 
     if ( deletePluginBtn ) {
