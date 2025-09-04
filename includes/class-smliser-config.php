@@ -438,34 +438,6 @@ class SmartLicense_config {
     }
 
     /**
-     * Set Props
-	 * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response Result to send to the client.
-	 *                                                                   Usually a WP_REST_Response or WP_Error.
-	 * @param array                                            $handler  Route handler used for the request.
-	 * @param WP_REST_Request                                  $request  Request used to generate the response.
-     */
-    public static function initialize_plugin_context( $response, $handler, $request ) {
-        // Ensure this request is for our route
-        if ( ! str_contains( $request->get_route(), self::instance()->namespace ) ) {
-            return $response;
-        }
-
-        if ( is_wp_error( $response ) ) {
-            remove_filter( 'rest_post_dispatch', 'rest_send_allow_header' );
-        }
-        if ( is_null( self::instance()->plugin ) ) {
-            self::instance()->plugin   = Smliser_Plugin::instance();            
-        }
-
-        if ( is_null( self::instance()->license ) ) {
-            self::instance()->license  = Smliser_license::instance();
-
-        }
-
-        return $response;
-    }
-
-    /**
      * Filter the REST API response.
      *
      * @param WP_REST_Response $response The REST API response object.
@@ -530,7 +502,9 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/admin/class-admin-license-page.php';
         require_once SMLISER_PATH . 'includes/admin/class-admin-options-page.php';
         require_once SMLISER_PATH . 'includes/class-smliser-repository.php';
-        require_once SMLISER_PATH . 'includes/class-smliser-plugin.php';
+        require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-plugin.php';
+        require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-theme.php';
+        require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-software.php';
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
         require_once SMLISER_PATH . 'includes/class-smliser-server.php';
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
