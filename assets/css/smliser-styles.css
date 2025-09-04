@@ -135,12 +135,14 @@
 
 /* Ensure the edit link is hidden by default */
 .smliser-edit-row .smliser-edit-link {
-    display: none;
+    opacity: 0;
+    display: flex;
+    gap: 5px;
 }
 
 /* Show the edit link when hovering over the table cell */
 .smliser-edit-row:hover .smliser-edit-link {
-    display: block;
+    opacity: 1;
     animation: fadeIn 2s;
 }
 @keyframes fadeIn {
@@ -208,18 +210,17 @@
 
 /********************** Data Not Found Container ***************/
 .smliser-not-found-container {
-    
     margin: 20px auto;
     background-color: #fff;
-    border-radius: 9px;
-    box-shadow:  0 10px 10px rgba(3, 1, 2, 0.2);
-    height: 200px;
-    width: 400px;
+    box-shadow:  1px 1px 10px rgba(0 0 0 /7%);
+    min-height: 60px;
+    max-width: 95%;
+    border-left: 5px solid #c4c4f1;
 }
 .smliser-not-found-container p {
     text-align: center;
     font-weight: bold;
-    padding: 60px;
+    padding: 10px 15px;
     width: 50%;
     margin: 10px auto;
 }
@@ -476,4 +477,61 @@ input.smliser_toggle-switch-input {
 
 .smliser_toggle-switch-input:checked + .smliser_toggle-switch-label .smliser_toggle-switch-slider:before {
     transform: translateX(25px);
+}
+
+/* Pagination wrapper */
+.smliser-tablenav-pages {
+    margin: 1em 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #555;
+}
+
+/* Showing text */
+.smliser-tablenav-pages .smliser-displaying-num {
+    margin-right: 10px;
+    font-style: italic;
+    color: #666;
+}
+
+/* Links wrapper */
+.smliser-tablenav-pages .smliser-pagination-links {
+    display: flex;
+    gap: 3px;
+}
+
+/* Buttons (inherits WP admin .button styles) */
+.smliser-tablenav-pages .button {
+    padding: 2px 8px;
+    min-width: 28px;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+/* Active page */
+.smliser-tablenav-pages .button.current {
+    background: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+    cursor: default;
+}
+
+/* Disabled state */
+.smliser-tablenav-pages .smliser-navspan.button.disabled {
+    background: #f6f7f7;
+    border-color: #dcdcde;
+    color: #a0a5aa;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Hover effects */
+.smliser-tablenav-pages .button:hover:not(.current):not(.disabled) {
+    background: #f0f0f1;
+    border-color: #999;
 }
