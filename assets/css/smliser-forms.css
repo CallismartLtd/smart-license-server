@@ -372,3 +372,170 @@ display: inline-block;
   background: #f1f1f1;
   padding: 2px;
 }
+
+/* Wrapper */
+.smliser-admin-page.smliser-upload-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    font-family: Arial, sans-serif;
+}
+
+/* Page header */
+.smliser-page-header {
+    margin-bottom: 2rem;
+}
+
+.smliser-page-title {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.smliser-page-subtitle {
+    font-size: 1rem;
+    color: #555;
+}
+
+/* Instructions section */
+.smliser-upload-instructions {
+    margin-bottom: 2rem;
+    padding: 1rem 1.5rem;
+    background-color: #f1f1f1;
+    border-left: 4px solid #0073aa; /* WordPress blue */
+}
+
+.smliser-instructions-title {
+    margin-top: 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Upload type section */
+.smliser-upload-types {
+    margin-bottom: 2rem;
+}
+
+.smliser-upload-types-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.smliser-upload-types-subtitle {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 1rem;
+}
+
+/* Upload cards container */
+.smliser-upload-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+/* Individual card */
+.smliser-upload-card {
+    display: block;
+    padding: 1rem;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.smliser-upload-card:hover {
+    border-color: #0073aa;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.smliser-upload-card-title {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.smliser-upload-card-description {
+    font-size: 0.9rem;
+    color: #555;
+}
+
+/* Responsive tweaks */
+@media screen and (max-width: 600px) {
+    .smliser-upload-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+.application-uploader-page {
+  margin: 0;
+  padding: 0;
+  max-width: 98%;
+}
+
+.app-uploader-form {
+  display: block; 
+  background-color: #FFFFFF;
+  padding: 10px;
+
+}
+
+.app-uploader-top-section {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.app-uploader-top-section {
+  margin-bottom: 15px;
+}
+
+.app-uploader-left {
+  flex: 1 1 45%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+
+}
+
+.app-uploader-right {
+  flex: 1 1 45%;
+  justify-self: flex-end;
+  border: 1px solid #dcdcde;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.app-uploader-right .smliser-form-file-row {
+  justify-self: center;
+  margin: 10px;
+  width: 100%;
+}
+.app-uploader-left h3,
+.app-uploader-right h3 {
+  width: 100%;
+  color: #333333;
+
+}
+
+.app-uploader-form-row {
+  flex: 1 1 45%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.app-uploader-form-row span {
+  font-weight: 500;
+  color: #333333;
+}
