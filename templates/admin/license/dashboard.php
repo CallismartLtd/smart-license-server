@@ -36,7 +36,7 @@ defined( 'ABSPATH' ) || exit; ?>
         
             <input type="hidden" name="action" value="smliser_bulk_action">
             <?php wp_nonce_field( 'smliser_table_nonce', 'smliser_table_nonce'); ?>
-            <table class="smliser-table">
+            <table class="widefat striped">
                 <thead>
                 <tr>
                     <th><input type="checkbox" id="smliser-select-all"></th>
@@ -54,7 +54,7 @@ defined( 'ABSPATH' ) || exit; ?>
                         $user               = get_userdata( $license->get_user_id() );
                         $client_full_name   = ( -1 === $license->get_user_id() ) ? 'N/A' : ( is_object( $user ) ? $user->first_name . ' ' . $user->last_name : 'Guest' );
                         ?>        
-                    <tr>
+                        <tr>
                             <td><input type="checkbox" class="smliser-license-checkbox" name="license_ids[]" value="<?php echo esc_attr( $license->get_id() ); ?>"> </td>
                             <td class="smliser-edit-row">
                                 <?php echo esc_html( $license->get_id() ); ?>
@@ -68,7 +68,7 @@ defined( 'ABSPATH' ) || exit; ?>
                             <td><?php echo esc_html( $license->get_service_id() ); ?></td>
                             <td><?php echo esc_html( $license->get_item_id() ); ?></td>
                             <td><?php echo esc_html( $license->get_status() ); ?></td>
-                    </tr>
+                        </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
