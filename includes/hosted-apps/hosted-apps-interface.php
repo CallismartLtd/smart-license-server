@@ -17,6 +17,68 @@ defined( 'ABSPATH' ) || exit;
  * This interface defines the contract all the application types hosted in this repository must follow.
  */
 interface Smliser_Hosted_Apps_Interface {
+
+    /*
+    |----------
+    | SETTERS
+    |----------
+    */
+
+    /**
+     * Set app ID
+     * 
+     * @param int $id
+     */
+    public function set_id( $id );
+
+    /**
+     * Set app name
+     * 
+     * @param string $name
+     */
+    public function set_name( $name );
+
+    /**
+     * Set app author name
+     * 
+     * @param string $name
+     */
+    public function set_author( $name );
+
+    /**
+     * Set app name author profile url
+     * 
+     * @param string $url
+     */
+    public function set_author_profile( $url );
+
+    /**
+     * Set app version
+     * 
+     * @param string $version
+     */
+    public function set_version( $version );
+
+    /**
+     * Set app download url
+     * 
+     * @param string $url
+     */
+    public function set_download_url( $url );
+
+    /**
+     * Set the absolute path to the applications zip file.
+     * 
+     * @param string $path
+     */
+    public function set_file( $path );
+
+    /**
+    |----------------
+    | GETTERS
+    |----------------
+     */
+
     /**
      * Get the application type (e.g., 'plugin', 'theme', 'library').
      * 
@@ -46,27 +108,6 @@ interface Smliser_Hosted_Apps_Interface {
     public function get_version();
 
     /**
-     * Get the application REST API response data.
-     * 
-     * @return array
-     */
-    public function get_rest_response();
-
-    /**
-     * Save or update the application data.
-     * 
-     * @return bool
-     */
-    public function save();
-
-    /**
-     * Delete the application from the repository.
-     * 
-     * @return bool
-     */
-    public function delete();
-
-    /**
      * Get the download URL for the application.
      * 
      * @return string
@@ -79,6 +120,20 @@ interface Smliser_Hosted_Apps_Interface {
      * @return string
      */
     public function get_author();
+
+    /**
+     * Get the application slug (URL-friendly name).
+     * 
+     * @return string
+     */
+    public function get_slug();
+
+    /**
+     * Get the application homepage URL.
+     * 
+     * @return string
+     */
+    public function get_homepage();
 
     /**
      * Get the application description.
@@ -100,22 +155,41 @@ interface Smliser_Hosted_Apps_Interface {
     public function get_changelog();
 
     /**
-     * Get the application slug (URL-friendly name).
-     * 
-     * @return string
-     */
-    public function get_slug();
-
-    /**
-     * Get the application homepage URL.
-     * 
-     * @return string
-     */
-    public function get_homepage();
-
-    /**
      * Get application support URL.
      */
     public function get_support_url();
+
+    /*
+    |--------------
+    | CRUD METHODS
+    |--------------
+    */
+
+    /**
+     * Save or update the application data.
+     * 
+     * @return true|\WP_Error True on success, WordPress Error on failure
+     */
+    public function save();
+
+    /**
+     * Delete the application from the repository.
+     * 
+     * @return bool
+     */
+    public function delete();
+
+    /*
+    |------------------
+    | UTILITY METHODS
+    |------------------
+    */
+
+    /**
+     * Get the application REST API response data.
+     * 
+     * @return array
+     */
+    public function get_rest_response();
 
 }
