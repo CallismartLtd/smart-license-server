@@ -18,6 +18,7 @@ class Repository_Page {
      */
     public static function router() {
         $tab    = smliser_get_query_param( 'tab' );
+        
         switch( $tab ) {
             case 'add-new':
                 self::upload_page();
@@ -40,8 +41,21 @@ class Repository_Page {
      * The repository dashboard page
      */
     private static function dashboard() {
-        $plugins     = Smliser_Plugin::get_plugins();
-        $add_url     = smliser_admin_repo_tab( 'add-new' );
+        $args = array(
+            'page'  => smliser_get_query_param( 'paged', 1 ),
+            'limit' => smliser_get_query_param( 'limit', 25 )
+        );
+
+        $type   = smliser_get_query_param( 'type', null );
+        if ( $type ) {
+            $args['types']   = $type;
+        }
+
+        $result     = \Smliser_Software_Collection::get_apps( $args );
+        $apps       = $result['items'];
+        $pagination = $result['pagination'];
+        
+        $add_url    = smliser_admin_repo_tab( 'add-new' );
         include SMLISER_PATH . 'templates/admin/repository/dashboard.php';
 
     }
@@ -50,7 +64,68 @@ class Repository_Page {
      * The upload page
      */
     private static function upload_page() {
-        include_once SMLISER_PATH . 'templates/admin/repository/repo-add.php';
+        $type = smliser_get_query_param( 'type', null );
+
+        $upload_dash    = SMLISER_PATH . 'templates/admin/repository/upload.php';
+        $uploader_temp  = SMLISER_PATH . 'templates/admin/repository/uploader.php';
+        $file   = $type ? $uploader_temp : $upload_dash;
+        $max_upload_size_bytes = wp_max_upload_size();
+        $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
+
+        $title = $type ? ucfirst( $type ) : '';
+
+        $essential_fields = array(
+            array(
+                'label' => __( 'Name', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'app_name',
+                    'value' => '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Version', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'app_version',
+                    'value' => '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Author Name'),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'app_author',
+                    'value' => '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Author Profile URL', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'app_author_url',
+                    'value' => '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+        );
+        
+        include_once $file;
     }
 
     /**
