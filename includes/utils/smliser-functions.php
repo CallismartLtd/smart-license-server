@@ -166,20 +166,23 @@ function smliser_license_admin_action_page( $action = 'add-new', $license_id = '
 /**
  * Action url constructor for admin repository tabs.
  * 
- * @param string $action Action query variable for the page.
- * @param int $license_id   The ID of the license. 
+ * @param string $tab The tab.
+ * @param array $args An associative array the will be passed to add_query_args. 
  */
-function smliser_admin_repo_tab( $action = 'add-new', $item_id = '' ) {
-    if ( 'add-new' !== $action ) {
-        $url = add_query_arg( array(
-            'tab'       => $action,
-            'item_id'   => $item_id,
-        ), smliser_repo_page() );
-    } else {
-        $url = add_query_arg( array(
-            'tab'    => $action,
-        ), smliser_repo_page() );
+function smliser_admin_repo_tab( $tab = 'add-new', $args = array() ) {
+
+    if ( ! is_array( $args ) ) {
+        if ( is_int( $args ) ) {
+            $args = array( 'item_id' => $args );
+        } else if ( is_string( $args ) ) {
+            $args = array( 'type' => $args );
+        }
     }
+    
+    $args['tab'] = $tab;
+
+    $url = add_query_arg($args, smliser_repo_page()  );
+
     return $url;
 }
 
@@ -624,3 +627,57 @@ function smliser_render_toggle_switch( $attrs = array() ) {
     );
 }
 
+/**
+ * Render form input field
+ *
+ * @param array $args {
+ *     Arguments to render the field.
+ *
+ *     @type string $label Label text.
+ *     @type array  $input {
+ *         Input configuration.
+ *
+ *         @type string $type  Input type. Default 'text'.
+ *         @type string $name  Input name attribute.
+ *         @type string $value Input value.
+ *         @type array  $attr  Extra HTML attributes (key => value).
+ *     }
+ * }
+ */
+function smliser_render_input_field( $args = array() ) {
+    $default_args = array(
+        'label' => '',
+        'input' => array(
+            'type'  => 'text',
+            'name'  => '',
+            'value' => '',
+            'attr'  => array(),
+        ),
+    );
+
+    $parsed_args = wp_parse_args( $args, $default_args );
+    $input       = $parsed_args['input'];
+
+    // Build attributes string
+    $attr_str = '';
+    if ( ! empty( $input['attr'] ) && is_array( $input['attr'] ) ) {
+        foreach ( $input['attr'] as $key => $val ) {
+            $attr_str .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $val ) );
+        }
+    }
+
+    $id = ! empty( $input['attr']['id'] ) ? $input['attr']['id'] : $input['name'];
+
+    printf(
+        '<label for="%1$s" class="app-uploader-form-row">
+            <span>%2$s</span>
+            <input type="%3$s" name="%4$s" id="%1$s" value="%5$s"%6$s>
+        </label>',
+        esc_attr( $id ),
+        esc_html( $parsed_args['label'] ),
+        esc_attr( $input['type'] ),
+        esc_attr( $input['name'] ),
+        esc_attr( $input['value'] ),
+        $attr_str
+    );
+}
