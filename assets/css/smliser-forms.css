@@ -654,6 +654,9 @@ display: inline-block;
   width: 80%;
 }
 
+.app-asset-uploader-body_uploaded-asset:not( .has-image ) .app-asset-uploader-uploaded-image {
+  display: none
+}
 .app-asset-uploader-uploaded-image {
   position: relative;
   width: 100%;
@@ -693,6 +696,9 @@ display: inline-block;
   border-radius: 8px;
   margin-bottom: 10px;
 }
+.app-asset-uploader-body_uploaded-asset.has-image .app-asset-uploader-placeholder {
+  display: none;
+}
 
 .app-asset-uploader-placeholder span {
   position: absolute;
@@ -711,7 +717,8 @@ display: inline-block;
 }
 
 .app-asset-uploader-body:has( #upload-from-url:focus) #app-uploader-asset-url-input,
-#app-uploader-asset-url-input:focus-within {
+#app-uploader-asset-url-input:focus-within,
+#app-uploader-asset-url-input.is-active {
   opacity: 1;
 }
 
