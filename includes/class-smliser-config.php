@@ -529,6 +529,7 @@ class SmartLicense_config {
      */
     public function load_scripts() {
         wp_enqueue_script( 'smliser-script', SMLISER_URL . 'assets/js/main-script.js', array( 'jquery' ), SMLISER_VER, true );
+        wp_register_script( 'smliser-apps-uploader', SMLISER_URL . 'assets/js/apps-uploader.js', array( 'jquery' ), SMLISER_VER, true );
         if ( is_admin() ) {
             wp_enqueue_script( 'smliser-chart', SMLISER_URL . 'assets/js/chart.js', array(), SMLISER_VER, true );
         }
@@ -540,7 +541,9 @@ class SmartLicense_config {
             array(
                 'smliser_ajax_url'  => admin_url( 'admin-ajax.php' ),
                 'nonce'             => wp_create_nonce( 'smliser_nonce' ),
-                'admin_url'         => admin_url()
+                'admin_url'         => admin_url(),
+                'wp_spinner_gif'    => admin_url('images/spinner.gif'),
+                'wp_spinner_gif_2x' => admin_url('images/spinner-2x.gif'),
             )
         );
 
