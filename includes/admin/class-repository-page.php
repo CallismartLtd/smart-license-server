@@ -7,7 +7,7 @@
  */
 
 namespace SmartLicenseServer\admin;
-use \Smliser_Plugin, \Smliser_Stats;
+use \Smliser_Plugin, \Smliser_Stats, SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 
 /**
  * The Admin repository page handler
@@ -69,61 +69,11 @@ class Repository_Page {
         $upload_dash    = SMLISER_PATH . 'templates/admin/repository/upload.php';
         $uploader_temp  = SMLISER_PATH . 'templates/admin/repository/uploader.php';
         $file   = $type ? $uploader_temp : $upload_dash;
-        $max_upload_size_bytes = wp_max_upload_size();
-        $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 
-        $title = $type ? ucfirst( $type ) : '';
+        $title      = $type ? ucfirst( $type ) : '';
+        $type_title = $type ? ucfirst( $type ) : '';
 
-        $essential_fields = array(
-            array(
-                'label' => __( 'Name', 'smliser' ),
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'app_name',
-                    'value' => '',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    )
-                )
-            ),
-            array(
-                'label' => __( 'Version', 'smliser' ),
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'app_version',
-                    'value' => '',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    )
-                )
-            ),
-            array(
-                'label' => __( 'Author Name'),
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'app_author',
-                    'value' => '',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    )
-                )
-            ),
-            array(
-                'label' => __( 'Author Profile URL', 'smliser' ),
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'app_author_url',
-                    'value' => '',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    )
-                )
-            ),
-        );
+        $essential_fields = self::prepare_essential_app_fields();
         
         include_once $file;
     }
@@ -133,9 +83,23 @@ class Repository_Page {
      */
     private static function edit_page() {
         $id     = smliser_get_query_param( 'item_id' );
-        $plugin = Smliser_Plugin::get_plugin( $id );
+        $type   = smliser_get_query_param( 'type' );
+        $class  = \Smliser_Software_Collection::get_app_class( $type );
+        $method = "get_{$type}";
 
-        include_once SMLISER_PATH . 'templates/admin/repository/plugin-edit.php';
+        if ( ! class_exists( $class ) || ! method_exists( $class, $method ) ) {
+            wp_die( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+        }
+
+        $app = $class::$method( $id );
+        
+        if ( ! $app ) {
+            wp_die( smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+        }
+        $essential_fields   = self::prepare_essential_app_fields( $app );
+        $type_title = ucfirst( $type );
+        $file    = SMLISER_PATH . 'templates/admin/repository/edit-' . $type. '.php';
+        include_once $file;
     }
 
     /**
@@ -161,5 +125,63 @@ class Repository_Page {
 
         include_once SMLISER_PATH . 'templates/admin/monetization.php';
         
+    }
+
+    /**
+     * Prepare essential application fields
+     * 
+     * @param Hosted_Apps_Interface|null $app
+     */
+    private static function prepare_essential_app_fields( ?Hosted_Apps_Interface $app = null ) {
+        return array(
+            array(
+                'label' => __( 'Name', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'app_name',
+                    'value' => $app ? $app->get_name() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Version', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'app_version',
+                    'value' => $app ? $app->get_version() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Author Name'),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'app_author',
+                    'value' => $app ? $app->get_author() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Author Profile URL', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'app_author_url',
+                    'value' => $app ? $app->get_author_profile() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+        );
     }
 }
