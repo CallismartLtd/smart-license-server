@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * Hosted Applications interface.
  * This interface defines the contract all the application types hosted in this repository must follow.
  */
-interface Smliser_Hosted_Apps_Interface {
+interface Hosted_Apps_Interface {
 
     /*
     |----------
@@ -44,6 +44,13 @@ interface Smliser_Hosted_Apps_Interface {
      * @param string $name
      */
     public function set_author( $name );
+
+    /**
+     * Set app homepage URL
+     * 
+     * @param string $url
+     */
+    public function set_homepage( $url );
 
     /**
      * Set app name author profile url
@@ -120,6 +127,13 @@ interface Smliser_Hosted_Apps_Interface {
      * @return string
      */
     public function get_author();
+
+    /**
+     * get author profile
+     * 
+     * @return string
+     */
+    public function get_author_profile();
 
     /**
      * Get the application slug (URL-friendly name).
