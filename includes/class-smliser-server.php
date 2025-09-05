@@ -75,6 +75,7 @@ class Smliser_Server{
         $this->namespace = SmartLicense_config::instance()->namespace();
         add_action( 'template_redirect', array( $this, 'download_server' ) );
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
+        add_action( 'admin_post_smliser_download_image', array( __CLASS__, 'proxy_image_download' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
         add_filter( 'rest_request_before_callbacks', array( __CLASS__, 'initialize_plugin_context' ), -1, 3 );
     }
@@ -423,6 +424,49 @@ class Smliser_Server{
         }
 
         wp_safe_redirect( smliser_admin_repo_tab( 'view', $item_id ) );
+        exit;
+    }
+
+    /**
+     * Proxy image download
+     */
+    public static function proxy_image_download() {
+        if ( ! wp_verify_nonce( smliser_get_query_param( 'security' ), 'smliser_nonce' ) ) {
+            wp_die( 'Expired link please refresh current page' );
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'You are not authorized to perform this action.' );
+        }
+
+        $image_url  = smliser_get_query_param( 'image_url', false ) ?: wp_die( 'Image URL is required' );
+
+        $file = download_url( $image_url );
+
+        if ( is_wp_error( $file ) ) {
+            wp_die( $file->get_error_message() );
+        }
+        
+        $content_type = mime_content_type( $file );
+        $allowed_types = array( 'image/png', 'image/jpeg', 'image/gif', 'image/webp' );
+
+        if ( ! in_array( $content_type, $allowed_types, true ) ) {
+            @unlink( $file );
+            wp_die( 'Only valid image types are allowed.' );
+        }
+
+        $filename = basename( parse_url( $image_url, PHP_URL_PATH ) );
+
+        header( 'content-description: File Transfer' );
+        header( 'content-type: ' . $content_type );
+        header( 'content-disposition: inline; filename="' . $filename . '"' );
+        header( 'expires: 0' );
+        header( 'cache-control: must-revalidate' );
+        header( 'pragma: public' );
+        header( 'content-length: ' . filesize( $file ) );
+        readfile( $file );
+
+        @unlink( $file );
         exit;
     }
 
