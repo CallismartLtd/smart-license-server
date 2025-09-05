@@ -472,23 +472,33 @@ class Smliser_Software_Collection {
         }
 
         $app_type   = smliser_get_post_param( 'app_type', null ) ?? wp_send_json_error( array( 'message' => 'Application type is missing' ) );
-        $app_file   = isset( $_FILES['app_file'] ) && UPLOAD_ERR_OK === $_FILES['app_file']['error'] ? $_FILES['app_file'] : null;
         
-        $app_class = self::get_app_class( $app_type );
+        if ( ! self::app_type_is_allowed( $app_type ) ) {
+            wp_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
+        }
+        
+        $app_id         = smliser_get_post_param( 'app_id', 0 );
+        $app_class      = self::get_app_class( $app_type );
+        $init_method    = "get_{$app_type}";
 
-        if ( ! class_exists( $app_class ) ) {
+        if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $init_method ) ) {
             wp_send_json_error( array( 'message' => 'The app type is not supported' ) );
         }
-
-        $name       = smliser_get_post_param( 'app_name', null ) ?? wp_send_json_error( array( 'message' => 'Application name is required' ) );
-        $author     = smliser_get_post_param( 'app_author', null ) ?? wp_send_json_error( array( 'message' => 'Application author name is required' ) );
-    
+        
         /**
          * The app instance
          * 
-         * @var \SmartLicenseServer\HostedApps\Smliser_Hosted_Apps_Interface $class
+         * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $class
          */
-        $class = new $app_class();
+        if ( $app_id ) {
+            $class = $app_class::$init_method( $app_id );
+        } else {
+            $class = new $app_class();
+        }
+        
+        $name       = smliser_get_post_param( 'app_name', null ) ?? wp_send_json_error( array( 'message' => 'Application name is required' ) );
+        $author     = smliser_get_post_param( 'app_author', null ) ?? wp_send_json_error( array( 'message' => 'Application author name is required' ) );
+        $app_file   = isset( $_FILES['app_file'] ) && UPLOAD_ERR_OK === $_FILES['app_file']['error'] ? $_FILES['app_file'] : null;
 
         $author_url = smliser_get_post_param( 'app_author_url', '' );
         $version    = smliser_get_post_param( 'app_version', '' );
@@ -499,6 +509,23 @@ class Smliser_Software_Collection {
         $class->set_version( $version );
         $class->set_file( $app_file );
         $class->set_download_url();
+
+        if ( ! empty( $app_id ) ) {
+            $class->set_id( $app_id );
+
+            $update_method = "update_{$app_type}";
+
+            if ( ! method_exists( __CLASS__, $update_method ) ) {
+                wp_send_json_error( array( 'message' => sprintf( 'The update method for the application type "%s" was not found!', $app_type ) ) );
+            }
+
+            $updated = self::$update_method( $class );
+
+            if ( is_wp_error( $updated ) ) {
+                wp_send_json_error( array( 'message' => $updated->get_error_message() ), 503 );
+            }
+            
+        }
 
         $result = $class->save();
 
@@ -511,9 +538,48 @@ class Smliser_Software_Collection {
     }
 
     /**
-     * Update an existing application.
+     * Update a plugin.
+     * 
+     * @param Smliser_Plugin $class The plugin ID.
+     * @return true|WP_Error
      */
-    public static function update_app() {
+    public static function update_plugin( &$class ) {
+        if ( ! $class instanceof Smliser_Plugin ) {
+            return new WP_Error( 'message', 'Wrong plugin object passed' );
+        }
+
+        $class->set_required_php( smliser_get_post_param( 'app_required_php_version' ) );
+        $class->set_required( smliser_get_post_param( 'app_required_wp_version' ) );
+        $class->set_tested( smliser_get_post_param( 'app_tested_wp_version' ) );
+        $class->set_download_link( smliser_get_post_param( 'app_download_url' ) );
+
+        $class->update_meta( 'support_url', smliser_get_post_param( 'app_support_url' ) );
+        $class->update_meta( 'homepage_url', smliser_get_post_param( 'app_homepage_url', '' ) );
+
+        return true;
+    }
+
+    /**
+     * Handles an application's asset upload
+     */
+    public static function app_asset_upload() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
+        }
+
+        $app_type   = smliser_get_post_param( 'app_type', null ) ?? wp_send_json_error( array( 'message' => 'Application type is missing' ) );
+        if ( ! self::app_type_is_allowed( $app_type ) ) {
+            wp_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
+        }
+
+        $app_slug   = smliser_get_post_param( 'app_slug', null ) ?? wp_send_json_error( array( 'message' => 'Application slug is missing' ) );
+        $asset_file = isset( $_FILES['asset_file'] ) && UPLOAD_ERR_OK === $_FILES['asset_file']['error'] ? $_FILES['asset_file'] : wp_send_json_error( array( 'message' => 'Uploaded file missing or corrupted' ) );
+
+        die();
 
     }
 
@@ -544,9 +610,21 @@ class Smliser_Software_Collection {
         add_action( 'wp_ajax_smliser_save_theme', [__CLASS__, 'save_app'] );
         add_action( 'wp_ajax_smliser_save_software', [__CLASS__, 'save_app'] );
 
-        add_action( 'wp_ajax_smliser_update_plugin', [__CLASS__, 'update_plugin'] );
-        add_action( 'wp_ajax_smliser_update_theme', [__CLASS__, 'update_theme'] );
-        add_action( 'wp_ajax_smliser_update_software', [__CLASS__, 'update_software'] );
+        add_action( 'wp_ajax_smliser_app_asset_upload', [__CLASS__, 'app_asset_upload'] );
+        // add_action( 'wp_ajax_smliser_update_theme', [__CLASS__, 'update_theme'] );
+        // add_action( 'wp_ajax_smliser_update_software', [__CLASS__, 'update_software'] );
+    }
+
+    /**
+     * Check whether the given app type is supported.
+     * 
+     * @param mixed $app_type The app type to check.
+     */
+    public static function app_type_is_allowed( $app_type ) {
+
+        $allowed_types  = apply_filters( 'smliser_allowed_app_types', array( 'plugin', 'theme', 'software' ) );
+
+        return in_array( $app_type, $allowed_types, true );
     }
 }
 
