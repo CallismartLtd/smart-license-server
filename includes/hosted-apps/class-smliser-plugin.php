@@ -5,7 +5,7 @@
  * @package Smliser\classes
  */
 
-use SmartLicenseServer\HostedApps\Smliser_Hosted_Apps_Interface,
+use SmartLicenseServer\HostedApps\Hosted_Apps_Interface,
 SmartLicenseServer\Monetization\Monetization;
 
 defined( 'ABSPATH' ) || exit;
@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Class representation of plugin meta data
  */
-class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
+class Smliser_Plugin implements Hosted_Apps_Interface {
     /**
      * A singleton instance of this class
      */
@@ -167,9 +167,16 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
     /**
      * Download link.
      * 
-     * @var $download_link The file url.
+     * @var string $download_link The file url.
      */
     protected $download_link = '#';
+
+    /**
+     * The plugin homepage URL
+     * 
+     * @var string $homepage
+     */
+    protected $homepage = '#';
 
     /**
      * Plugin zip file.
@@ -223,7 +230,10 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
      * @return string
      */
     public function get_homepage() {
-        return $this->get_url();
+        if ( empty( $this->homepage ) || '#' === $this->homepage ) {
+            return $this->get_url();
+        }
+        return $this->homepage;
     }
 
     /*
@@ -403,6 +413,15 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
             $this->sections['changelog'] = $section_data['changelog'];
         }
     }
+
+    /**
+     * Set app homepage.
+     * 
+     * @param string $url
+     */
+    public function set_homepage( $url ) {
+        $this->homepage = sanitize_url( $url, array( 'https', 'http' ) );
+    }
     
     /**
      * Set Banners
@@ -412,6 +431,17 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
     public function set_banners( $banners ) {
         $this->banners['low']   = $banners['low'] ?? '';
         $this->banners['high']  = $banners['high'] ?? '';
+    }
+
+    /**
+     * Set plugin screenshots
+     * 
+     * @param array $screenshots
+     */
+    public function set_screenshots( array $screenshots ) {
+        $values = array_values( $screenshots );
+        $this->screenshots = array_map( 'sanitize_file_name', wp_unslash( $screenshots ) );
+
     }
 
     /**
@@ -552,6 +582,16 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
      */
     public function get_banners() {
         return $this->banners;
+    }
+
+    /**
+     * Get plugin screenshots
+     * 
+     * @return array $screenshots
+     */
+    public function get_screenshots() {
+        return $this->screenshots;
+
     }
 
     /**
@@ -711,12 +751,13 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
     /**
      * Get a plugin by it's ID.
      * 
-     * @param int $id The plugin ID
+     * @param int $id The plugin ID.
+     * @return self|null
      */
     public static function get_plugin( $id = 0 ) {
         $id = absint( $id );
         if ( empty( $id ) ) {
-            return false;
+            return null;
         }
 
         // phpcs:disable
@@ -728,7 +769,7 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
             return self::convert_db_result( $result );
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -776,7 +817,6 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
 
         $plugin_data = array(
             'name'          => $this->get_name(),
-            'slug'          => $this->get_slug(),
             'version'       => $this->get_version(),
             'author'        => $this->get_author(),
             'author_profile'=> $this->get_author_profile(),
@@ -800,7 +840,7 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
                 SMLISER_PLUGIN_ITEM_TABLE,
                 $plugin_data,
                 array( 'id' => absint( $this->get_id() ) ),
-                array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ),
+                array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ),
                 array( '%d' )
             );
 
@@ -833,7 +873,6 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
 
 
         if ( false !== $result ) {
-            $this->item_id = $wpdb->insert_id;
             do_action( 'smliser_plugin_saved', $this );
             delete_transient( 'smliser_total_plugins' );
             return true;
@@ -1066,6 +1105,7 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
         $self->set_download_link( $result['download_link'] ?? '' );
         $self->set_created_at( $result['created_at'] ?? '' );
         $self->set_last_updated( $result['last_updated'] ?? '' );
+        $self->set_homepage( $self->get_meta( 'homepage_url', '#' ) );
         
         /** 
          * Set file information 
@@ -1098,8 +1138,8 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
          */
         $self->set_banners( 
             array(
-                'low'   => $self->get_meta( 'banner_low', SMLISER_URL . 'assets/images/software-placeholder.svg' ),
-                'high'  => $self->get_meta( 'banner_high', SMLISER_URL . 'assets/images/software-placeholder.svg' ),
+                'low'   => '',
+                'high'  => '',
             ) 
         );
 
@@ -1152,10 +1192,11 @@ class Smliser_Plugin implements Smliser_Hosted_Apps_Interface {
             'homepage'          => $this->get_url(),
             'package'           => $this->get_download_link(),
             'banners'           => $this->get_banners(),
+            'screenshots'       => $this->get_screenshots(),
             'requires'          => $this->get_required(),
             'tested'            => $this->get_tested(),
             'requires_php'      => $this->get_required_php(),
-            'requires_plugins'  => '',
+            'requires_plugins'  => [],
             'added'             => $this->get_date_created(),
             'last_updated'      => $this->get_last_updated(),
             'short_description' => $this->get_short_description(),
