@@ -83,8 +83,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
-        </div>
-        
+        </div>        
         <button type="submit" class="button"><?php printf( 'Save %s', esc_html( $type_title ) ); ?></button>
     </form>
 </div>
@@ -101,14 +100,17 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                         <span class="dashicons dashicons-format-image"></span>
                     </div>
 
-                    <div class="app-asset-uploader-uploaded-image hidden">
-                        <span class="dashicons dashicons-dismiss clear-uploaded" title="Clear selected image" data-action="clearUploadedImage"></span>
-                        <img src="" alt="uploaded image">
+                    <div class="app-asset-uploader-uploaded-image">
+                        <span class="dashicons dashicons-dismiss clear-uploaded" title="Clear selected image" data-action="resetModal"></span>
+                        <img src="" alt="uploaded image" id="currentImage">
                     </div>
                     <button type="button" class="button smliser-nav-btn" id="upload-image" data-action="uploadToRepository"><span class="dashicons dashicons-cloud-upload"></span> Upload to repository</button>
                 </div>
+
                 <div class="smliser-spinner modal"></div>
-                <input type="url" name="file_url" id="app-uploader-asset-url-input" placeholder="Enter image url">
+                <input type="url" id="app-uploader-asset-url-input" placeholder="Enter image url">
+                <input type="file" id="app-uploader-asset-file-input" accept="image/png, image/jpeg, .png, .jpg, .jpeg, .gif" class="hidden">
+                
                 <div class="app-asset-uploader-buttons-container">
                     <button type="button" class="button smliser-nav-btn" id="upload-from-device" data-action="uploadFromDevice"><span class="dashicons dashicons-open-folder"></span> Choose from device</button>
                     <button type="button" class="button smliser-nav-btn" id="upload-from-wp" data-action="uploadFromWpGallery"><span class="dashicons dashicons-format-gallery"></span> Choose from Gallery</button>
@@ -117,9 +119,11 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 
             </div>
         </div>
-
     </div>
 <?php endif; ?>
-<?php wp_enqueue_script( 'smliser-apps-uploader' ); ?>
+<?php
+    wp_enqueue_media();
+    wp_enqueue_script( 'smliser-apps-uploader' ); 
+?>
 
 SLUG: <?php echo $app?->get_slug() ?? ''; ?>
