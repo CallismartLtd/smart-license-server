@@ -12,7 +12,12 @@
 .smliser-hide {
   display: none !important;
 }
-
+.smliser-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
 .smliser-form-container {
   background-color: #ffffff; /* Light gray background */
   padding: 20px;
@@ -486,7 +491,8 @@ display: inline-block;
 
 }
 
-.app-uploader-top-section {
+.app-uploader-top-section,
+.app-uploader-below-section {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -495,7 +501,8 @@ display: inline-block;
   gap: 15px;
 }
 
-.app-uploader-top-section {
+.app-uploader-top-section,
+.app-uploader-below-section {
   margin-bottom: 15px;
 }
 
@@ -522,10 +529,13 @@ display: inline-block;
   width: 100%;
 }
 .app-uploader-left h3,
-.app-uploader-right h3 {
+.app-uploader-right h3,
+.app-uploader-below-section_assets h2,
+.app-uploader-asset-container h3 {
   width: 100%;
   color: #333333;
-
+  padding: 0;
+  margin-top: 10px;
 }
 
 .app-uploader-form-row {
@@ -538,4 +548,190 @@ display: inline-block;
 .app-uploader-form-row span {
   font-weight: 500;
   color: #333333;
+}
+
+.app-uploader-below-section_extras {
+  flex: 1 1 45%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.app-uploader-below-section_assets {
+  flex: 1 1 45%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #dcdcde;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.app-uploader-asset-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #f1f1f1;
+  padding: 0 5px;
+}
+
+.app-uploader-asset-container h3 {
+  border-bottom: solid 1px #dcdcde;
+}
+.app-uploader-asset-container_images {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+  /* min-height: 70px; */
+  padding: 5px;
+}
+
+.smliser-uploader-add-image {
+  position: relative;
+  display:  inline;
+  border: dotted 1px #dcdcde;
+  height: 80px;
+  width: 80px;
+  cursor: pointer;
+}
+
+.smliser-uploader-add-image span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-block;
+  font-size: 25px;
+  color: #333333;
+}
+
+.app-uploader-image-preview {
+  position: relative;
+  height: 80px;
+  width: 80px;
+}
+
+.app-uploader-image-preview img {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.app-uploader-image-preview .app-uploader-image-preview_edit {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  background-color: #5348487d;
+  z-index: 2;
+  width: 100%;
+}
+.app-uploader-image-preview_edit span {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.app-asset-uploader-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin: 15px 10px;
+  padding: 10px;
+  height: 100%;
+  /* border: solid 1px #dcdcde; */
+}
+
+.app-asset-uploader-body_uploaded-asset {
+  width: 80%;
+}
+
+.app-asset-uploader-uploaded-image {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  margin-bottom: 10px;
+  border: 1px solid #dcdcde;
+  padding: 5px;
+}
+
+.app-asset-uploader-uploaded-image img {
+  height: 150px;
+  max-width: 100%;
+}
+
+.app-asset-uploader-uploaded-image span.clear-uploaded {
+  position: absolute;
+  right: 0;
+  margin-right: 15px;
+  cursor: pointer;
+
+}
+
+.app-asset-uploader-body_uploaded-asset button#upload-image {
+  opacity: 0;
+  float: right;
+}
+
+.app-asset-uploader-body_uploaded-asset.has-image button#upload-image {
+  opacity: 1;
+}
+
+.app-asset-uploader-placeholder {
+  position: relative;
+  height: 100px;
+  border: dotted 3px #dcdcde;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.app-asset-uploader-placeholder span {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 35px;
+  color: #333333;
+}
+
+#app-uploader-asset-url-input {
+  width: 80%;
+  height: 30px;
+  border: 1px solid #dcdcde;
+  opacity: 0;
+}
+
+.app-asset-uploader-body:has( #upload-from-url:focus) #app-uploader-asset-url-input,
+#app-uploader-asset-url-input:focus-within {
+  opacity: 1;
+}
+
+.app-asset-uploader-buttons-container {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+
+}
+
+
+
+
+
+
+
+
+
+@media (min-width: 280px) and (max-width: 760px) {
+  .smliser-admin-modal_content {
+    width: 90%;
+  }
 }
