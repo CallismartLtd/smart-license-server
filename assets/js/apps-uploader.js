@@ -126,24 +126,269 @@ const handleClickAction = ( e ) => {
     const config = JSON.parse( clickedBtn.getAttribute( 'data-config' ) );
     modalActions[action]?.( config );
     
-
-    
 }
 
+let imageFileInput              = document.querySelector( '#app-uploader-asset-file-input' );
+let imageUrlInput               = document.querySelector( '#app-uploader-asset-url-input' );
+let assetImageUploaderContainer = document.querySelector( '.app-asset-uploader-body_uploaded-asset' );
+let imagePreview                = document.querySelector( '#currentImage' );
+
+let smliserCurrentImage;
+let smliserCurrentConfig = new Map;
 const modalActions = {
     'openModal': ( json ) => {
         appAssetUploadModal.classList.remove( 'hidden' );
 
         if ( json ) {
-            console.log( json );
-            
+            smliserCurrentConfig.set( 'app_slug', json.app_slug );
+            smliserCurrentConfig.set( 'app_type', json.app_type );
+            smliserCurrentConfig.set( 'asset_prefix', json.asset_prefix );            
         }
     },
     'closeModal': () => {
+        modalActions.resetModal();
         appAssetUploadModal.classList.add( 'hidden' );
     },
+
+    'resetModal': () => {
+        assetImageUploaderContainer.classList.remove( 'has-image' );
+        smliserCurrentImage = null;
+        imageFileInput.value = '';
+        smliserCurrentConfig.clear();
+    },
+
+    'uploadFromDevice': () => {
+        imageFileInput.click();
+
+    },
+
+    'uploadFromWpGallery': () => {
+        // Create the media frame
+        const frame = wp.media({
+            title: 'Select an Image',
+            button: { text: 'Use this image' },
+            library: { type: 'image' },
+            multiple: false
+        });
+
+        // When an image is selected
+        frame.on( 'select', async () => {
+            const attachment = frame.state().get('selection').first().toJSON();
+
+            if ( ! attachment || ! attachment.url ) {
+                smliserNotify( 'No image selected', 5000 );
+                return;
+            }
+
+            // Pass the image URL to your existing processFromUrl()
+            const image = await modalActions.processFromUrl( attachment.url );
+
+            if ( ! image ) {
+                console.warn( 'Image not processed' );
+                return;
+            }
+
+            smliserCurrentImage = image;
+            modalActions.showImagePreview( smliserCurrentImage );
+        });
+
+        // Open the frame
+        frame.open();
+    },
+
+    'uploadFromUrl': async () => {
+        
+        if ( ! imageUrlInput.classList.contains( 'is-active' ) ) {
+            imageUrlInput.focus();
+            return;
+        }
+        
+        if ( ! imageUrlInput.value.trim().length ) {            
+            return;
+        }
+
+        let url;
+        try {
+            url = new URL( imageUrlInput.value );
+            if ( ! url.pathname.includes( '.' ) ) {
+
+                let error   = new Error( "Url is not pointing to a file" );
+                error.type  = 'INPUT_NOT_FILE';
+                throw error;
+            }
+        } catch (error) {
+            console.log(error.type);
+            if ( 'INPUT_NOT_FILE' === error.type ) {
+                imageUrlInput.setCustomValidity(error.message);
+            }
+            
+            url = null;
+        }        
+
+        if ( ! imageUrlInput.checkValidity() ) {
+            imageUrlInput.reportValidity();
+            return;
+        }
+
+        const image = await modalActions.processFromUrl( imageUrlInput.value.trim() );
+        if ( ! image ) {
+            console.warn( 'Image not fetched' );
+            return;
+        }
+
+        smliserCurrentImage = image;
+        modalActions.showImagePreview( smliserCurrentImage );        
+    },
+    'uploadToRepository': async () => {
+        if ( ! smliserCurrentImage ) {
+            smliserNotify( 'Please upload an image.', 3000 );
+            return;
+        }
+
+        const url = new URL( smliser_var.smliser_ajax_url );
+        url.searchParams.set( 'action', 'smliser_app_asset_upload' );
+        url.searchParams.set( 'security', smliser_var.nonce );
+
+        const payLoad = new FormData();
+        payLoad.set( 'app_slug', smliserCurrentConfig?.get( 'app_slug' ) );
+        payLoad.set( 'app_type', smliserCurrentConfig?.get( 'app_type' ) );
+        payLoad.set( 'asset_prefix', smliserCurrentConfig?.get( 'asset_prefix' ) );
+        payLoad.set( 'asset_file', smliserCurrentImage );
+
+        const spinner = showSpinner( '.smliser-spinner.modal', true );
+        try {
+            const response = await fetch( url,
+                {
+                    method: 'POST',
+                    body: payLoad,
+                    credentials: 'same-origin'
+                }
+            );
+
+            if ( ! response.ok ) {
+                const error = new Error( `Upload error: ${response.statusText}` );
+                throw error;
+            }
+
+            const data = await response.json();
+
+            const new_image_url = data?.data?.image_url;
+            console.log(new_image_url);
+            
+        } catch (error) {
+            smliserNotify( error.message );
+        } finally {
+            removeSpinner( spinner );
+        }
+
+
+
+    },
+
+    'processUploadedImage': async ( e ) => {
+        let image = e.target.files[0];
+        if ( ! image ) {
+            modalActions.resetModal();
+            return;
+        }
+
+        if ( ! image.type.includes( 'image/png' ) ) {
+            image = await modalActions.convertToPng( image );
+        }
+
+        smliserCurrentImage = image;
+        modalActions.showImagePreview( smliserCurrentImage );
+    },
+
+    'processFromUrl': async ( imageUrl ) => {
+
+        const ajaxEndpoint = new URL( `${smliser_var.admin_url}admin-post.php` );
+        ajaxEndpoint.searchParams.set( 'action', 'smliser_download_image' );
+        ajaxEndpoint.searchParams.set( 'image_url', imageUrl );
+        ajaxEndpoint.searchParams.set( 'security', smliser_var.nonce );
+
+        const spinner = showSpinner( '.smliser-spinner.modal' );
+        try {
+            const response = await fetch( ajaxEndpoint.href );
+
+            if ( ! response.ok ) {
+                throw new Error( `Image fetch failed: ${response.statusText}` );
+            }
+
+            const contentType = response.headers.get( 'Content-Type' );        
+            const blob        = await response.blob();
+            const fileName = imageUrl.split('/').pop().split('?')[0] || 'image.png';
+            if ( ! contentType.includes( 'image/png' ) ) {
+                return await modalActions.convertToPng( blob, fileName );
+            }
+
+            return new File( [ blob ], fileName, { type: 'image/png' } );
+
+        } catch (error) {
+            smliserNotify( error.message, 10000 );
+        } finally {
+            removeSpinner( spinner );
+        }
+
+        
+        return null;
+    },
+
+    'showImagePreview': ( file ) => {
+        const fileReader    = new FileReader();
+        fileReader.onload   = ( e ) => {
+            imagePreview.src = e.target.result ;
+            assetImageUploaderContainer.classList.add( 'has-image' );
+        }
+
+        fileReader.readAsDataURL( file );  
+    },
+
+    'convertToPng' : ( blob, outputName = 'converted.png' ) => {
+        return new Promise( ( resolve, reject ) => {
+            const img = new Image();
+            const url = URL.createObjectURL( blob );
+
+            img.onload = () => {
+                const canvas = document.createElement( 'canvas' );
+                canvas.width  = img.width;
+                canvas.height = img.height;
+
+                const ctx = canvas.getContext( '2d' );
+                ctx.drawImage( img, 0, 0 );
+
+                canvas.toBlob( ( pngBlob ) => {
+                    if ( ! pngBlob ) {
+                        reject( new Error( 'Canvas export failed' ) );
+                        return;
+                    }
+
+                    resolve( new File( [ pngBlob ], outputName, { type: 'image/png' } ) );
+                }, 'image/png' );
+
+                URL.revokeObjectURL( url );
+            };
+
+            img.onerror = () => reject( new Error( 'Invalid image file' ) );
+            img.src = url;
+        });
+    }
+}
+
+const manageInputFocus = ( e ) => {
+    const input = e.target;
+
+    if ( input.value.trim().length ) {
+        input.classList.add( 'is-active' );
+    } else {
+        input.classList.remove( 'is-active' );
+    }
 }
 
 
 appAssetUploadModal?.addEventListener( 'click', handleClickAction );
 assetsContainer?.addEventListener( 'click', handleClickAction );
+imageFileInput?.addEventListener( 'change', modalActions.processUploadedImage );
+imageUrlInput.addEventListener( 'input', ( e )=> e.target.setCustomValidity( '' ) );
+imageUrlInput.addEventListener( 'blur', manageInputFocus );
+imageUrlInput.addEventListener( 'focus', manageInputFocus );
