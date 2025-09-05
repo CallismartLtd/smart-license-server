@@ -210,6 +210,10 @@ class Smliser_Repository {
      * @return true|WP_Error True on success or WP_Error on failure.
      */
     public function delete( $slug ) {
+        if ( empty( $slug ) ) {
+            return new WP_Error( 'invalid_slug', 'The application slug cannot be empty' );
+        }
+        
         $plugin_basename = explode( '/', $slug );
         $file_path = $this->set_path( $plugin_basename[0] );
 
@@ -573,7 +577,7 @@ class Smliser_Repository {
     /**
      * Provide a valid file name
      */
-    private function valid_filename( $filename ) {
+    public function valid_filename( $filename ) {
         return sanitize_file_name( $filename );
     }
 
