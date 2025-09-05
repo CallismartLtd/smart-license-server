@@ -681,3 +681,15 @@ function smliser_render_input_field( $args = array() ) {
         $attr_str
     );
 }
+
+/**
+ * Get the file url for a given application asset.
+ * 
+ * @param string $type      App type(eg plugin, theme, software).
+ * @param string $slug      The app slug.
+ * @param string $filename  The file name.
+ * @return string $file_url The file URL
+ */
+function smliser_get_app_asset_url( $type, $slug, $filename ) {
+    return SMLISER_URL . 'assets/images/software-placeholder.svg';
+}
