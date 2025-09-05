@@ -576,10 +576,12 @@ class Smliser_Software_Collection {
             wp_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
         }
 
-        $app_slug   = smliser_get_post_param( 'app_slug', null ) ?? wp_send_json_error( array( 'message' => 'Application slug is missing' ) );
+        $app_slug       = smliser_get_post_param( 'app_slug', null ) ?? wp_send_json_error( array( 'message' => 'Application slug is missing' ) );
+        $asset_prefix   = smliser_get_post_param( 'asset_prefix', null ) ?? wp_send_json_error( array( 'message' => 'Asset prefix is missing' ) );
+        
         $asset_file = isset( $_FILES['asset_file'] ) && UPLOAD_ERR_OK === $_FILES['asset_file']['error'] ? $_FILES['asset_file'] : wp_send_json_error( array( 'message' => 'Uploaded file missing or corrupted' ) );
 
-        die();
+        wp_send_json( compact( 'asset_prefix', 'app_slug', 'app_type', 'asset_file') );
 
     }
 
