@@ -502,6 +502,9 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/admin/class-admin-license-page.php';
         require_once SMLISER_PATH . 'includes/admin/class-admin-options-page.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-smliser-repository.php';
+        require_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
+        require_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
+        require_once SMLISER_PATH . 'includes/filesystem/class-plugin-repository.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-plugin.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-theme.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-software.php';
