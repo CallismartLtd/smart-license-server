@@ -125,5 +125,3 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
     wp_enqueue_media();
     wp_enqueue_script( 'smliser-apps-uploader' ); 
 ?>
-
-SLUG: <?php echo $app?->get_slug() ?? ''; ?>
