@@ -387,8 +387,9 @@ function sanitize_and_normalize_path( $path ) {
     $new_path = array();
     foreach ( $parts as $part ) {
         $part = trim($part);
-        if ( '.' === $part || '..' === $part || empty( $part ) ) {
-            continue;
+        if ( '.' === $part ) continue;
+        if ( '..' === $part ) {
+            return new WP_Error( 'invalid_path', 'Parent directory references are not allowed.' );
         }
 
         $new_path[] = sanitize_text_field( $part );
@@ -691,5 +692,6 @@ function smliser_render_input_field( $args = array() ) {
  * @return string $file_url The file URL
  */
 function smliser_get_app_asset_url( $type, $slug, $filename ) {
-    return SMLISER_URL . 'assets/images/software-placeholder.svg';
+    $base_path = get_option( 'smliser_app_asset_url_slug', 'app-asset' );
+    return site_url( sprintf( '%/%s/%s/%s', $base_path, $type, $slug, $filename ) );
 }
