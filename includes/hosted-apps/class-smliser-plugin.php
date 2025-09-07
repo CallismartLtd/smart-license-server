@@ -6,7 +6,8 @@
  */
 
 use SmartLicenseServer\HostedApps\Hosted_Apps_Interface,
-SmartLicenseServer\Monetization\Monetization;
+SmartLicenseServer\Monetization\Monetization,
+SmartLicenseServer\PluginRepository;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -811,9 +812,11 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @return true|WP_Error True on success, false on failure.
      */
     public function save() {
-        global $smliser_repo, $wpdb;
+        global $wpdb;
 
-        $file = $this->file;
+        $file           = $this->file;
+        $filename       = strtolower( str_replace( ' ', '-', $this->get_name() ) );
+        $smliser_repo   = new PluginRepository();
 
         $plugin_data = array(
             'name'          => $this->get_name(),
@@ -828,7 +831,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
 
         if ( $this->get_id() ) {
             if ( ! empty( $this->file ) ) {
-                $slug = $smliser_repo->update_plugin( $file, $this->get_slug() );
+                $slug = $smliser_repo->upload_zip( $file, $this->get_slug(), true );
                 if ( is_wp_error( $slug ) ) {
                     return $slug;
                 }
@@ -849,10 +852,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
                 return new WP_Error( 'missing_plugin', 'No plugin file found.' );
             }
 
-            $correct_file_name = strtolower( str_replace( ' ', '-', $this->get_name() ) );
-
-            
-            $slug = $smliser_repo->upload_to_repository( $file, $correct_file_name );
+            $slug = $smliser_repo->upload_zip( $file, $filename );
 
             if ( is_wp_error( $slug ) ) {
                 return $slug;
@@ -929,14 +929,16 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * Delete a plugin.
      */
     public function delete() {
+        global $wpdb;
+
         if ( empty( $this->item_id ) ) {
             return false; // A valid plugin should have an ID.
         }
     
-        global $smliser_repo, $wpdb;
+        $smliser_repo = new PluginRepository();
         
         $item_id        = $this->get_item_id();
-        $file_delete    = $smliser_repo->delete( $this->get_slug() );
+        $file_delete    = $smliser_repo->delete_from_repo( $this->get_slug() );
 
         if ( is_wp_error( $file_delete ) ) {
             return $file_delete;
