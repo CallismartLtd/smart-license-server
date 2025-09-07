@@ -1,0 +1,386 @@
+<?php
+/**
+ * Plugin Repository
+ *
+ * Handles plugin-specific business logic within the repository.
+ *
+ * @author  Callistus Nwachukwu
+ * @since   0.0.6
+ */
+
+namespace SmartLicenseServer;
+
+defined( 'ABSPATH' ) || exit;
+
+class PluginRepository extends Repository {
+
+    /**
+     * Constructor.
+     *
+     * Always bind to the `plugins` subdirectory.
+     */
+    public function __construct() {
+        parent::__construct( 'plugins' );
+    }
+    
+    /**
+     * Locate a plugin zip file in the repository and enter the plugin slug.
+     *
+     * @param string $plugin_slug The plugin slug (e.g., "my-plugin").
+     * @return string|\WP_Error Absolute file path or WP_Error on failure.
+     */
+    public function locate( $plugin_slug ) {
+        if ( empty( $plugin_slug ) || ! is_string( $plugin_slug ) ) {
+            return new \WP_Error( 
+                'invalid_slug', 
+                __( 'Plugin slug must be a non-empty string.', 'smart-license-server' ),
+                [ 'status' => 400 ] 
+            );
+        }
+
+        // Normalize slug
+        $slug = $this->real_slug( $plugin_slug );
+
+        try {
+            $path = $this->enter_slug( $slug );
+        } catch ( \InvalidArgumentException $e ) {
+            return new \WP_Error( 
+                'invalid_slug', 
+                $e->getMessage(),
+                [ 'status' => 400 ] 
+            );
+        }
+
+        // Plugin files MUST be a .zip file named after the plugin slug.
+        $plugin_file = $this->path( sprintf( '%s.zip', $slug ) );
+
+        if ( ! $this->exists( $plugin_file ) ) {
+            return new \WP_Error(
+                'file_not_found',
+                __( 'Plugin file not found.', 'smart-license-server' ),
+                [ 'status'=> 404]
+            );
+        }        
+
+        return $plugin_file;
+    }
+
+    /**
+     * Safely upload or update a plugin ZIP in the repository.
+     *
+     * - Pre-upload: determines destination folder and slug.
+     * - Core upload: uses Repository::store_zip() to move the file safely.
+     * - Post-upload: validates ZIP and extracts readme.txt to plugin folder.
+     *
+     * @param array  $file      The uploaded file ($_FILES format).
+     * @param string $new_name  The preferred filename (without path).
+     * @param bool   $update    Whether this is an update to an existing plugin.
+     * @return string|\WP_Error Relative path to stored ZIP on success, WP_Error on failure.
+     */
+    public function upload_zip( array $file, string $new_name, bool $update = false ) {
+        $tmp_name = $file['tmp_name'];
+
+        if ( ! is_uploaded_file( $tmp_name ) ) {
+            return new \WP_Error( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
+        }
+
+        // Ensure it's a ZIP
+        $file_type_info = wp_check_filetype( $file['name'] );
+        if ( $file_type_info['ext'] !== 'zip' ) {
+            return new \WP_Error( 'invalid_file_type', 'Invalid file type, the plugin must be in ZIP format.', [ 'status' => 400 ] );
+        }
+
+        // Normalize filename
+        $new_name  = sanitize_file_name( basename( $new_name ) );
+
+        // Derive the slug first
+        $slug = $this->real_slug( $new_name );
+
+        // Force the filename to strictly be "{slug}.zip"
+        $file_name = $slug . '.zip';
+
+        // Destination folder and file path
+        $base_folder = $this->path( $slug );
+        $dest_path   = trailingslashit( $base_folder ) . $file_name;
+
+        if ( ! $update ) {
+            // New upload: prevent overwriting existing slug
+            if ( $this->is_dir( $base_folder ) ) {
+                return new \WP_Error(
+                    'plugin_slug_exists',
+                    sprintf( 'The slug "%s" is not available, you can change the plugin name and try again.', $slug ),
+                    [ 'status' => 400 ]
+                );
+            }
+            if ( ! $this->mkdir( $base_folder, FS_CHMOD_DIR ) ) {
+                return new \WP_Error( 'repo_error', 'Unable to create plugin directory.', [ 'status' => 500 ] );
+            }
+        } else {
+            // Update: ensure slug folder and plugin already exists.
+
+            if ( ! $this->is_dir( $base_folder ) && ! $this->mkdir( $base_folder, FS_CHMOD_DIR )) {
+                return new \WP_Error(
+                    'plugin_not_found',
+                    sprintf( 'The plugin slug "%s" does not exist in the repository, and attempt to create one failed.', $slug ),
+                    [ 'status' => 404 ]
+                );
+            }
+
+            // Optional: enforce slug consistency
+            $expected_slug = $this->real_slug( $slug );
+            if ( $slug !== $expected_slug ) {
+                return new \WP_Error(
+                    'slug_mismatch',
+                    sprintf( 'Uploaded plugin "%s" does not match the target slug "%s".', $slug, $expected_slug ),
+                    [ 'status' => 400 ]
+                );
+            }
+        }
+
+        // --- Core upload via Repository::store_zip() ---
+        $stored_path = $this->store_zip( $tmp_name, $dest_path );
+        if ( is_wp_error( $stored_path ) ) {
+            return $stored_path;
+        }
+
+        // --- Post-upload: Validate ZIP and extract readme.txt ---
+        $zip = new \ZipArchive();
+        if ( $zip->open( $stored_path ) !== true ) {
+            // Cleanup differs depending on upload vs update
+            if ( $update ) {
+                $this->delete( $stored_path ); // only remove bad zip
+            } else {
+                $this->rmdir( $base_folder, true ); // remove new folder completely
+            }
+            return new \WP_Error( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
+        }
+
+        $readme_index = $zip->locateName( 'readme.txt', \ZipArchive::FL_NODIR );
+        if ( $readme_index === false ) {
+            $zip->close();
+            if ( $update ) {
+                $this->delete( $stored_path ); // keep old plugin, remove bad upload
+            } else {
+                $this->rmdir( $base_folder, true );
+            }
+            return new \WP_Error( 'readme_missing', 'The plugin ZIP must contain a readme.txt file.', [ 'status' => 400 ] );
+        }
+
+        $readme_contents = $zip->getFromIndex( $readme_index );
+        $zip->close();
+
+        $readme_path = trailingslashit( $base_folder ) . 'readme.txt';
+        if ( ! $this->put_contents( $readme_path, $readme_contents ) ) {
+            if ( $update ) {
+                $this->delete( $stored_path );
+            } else {
+                $this->rmdir( $base_folder, true );
+            }
+            return new \WP_Error( 'readme_save_failed', 'Failed to save readme.txt.', [ 'status' => 500 ] );
+        }
+
+        return untrailingslashit( $slug . '/' . $file_name );
+    }
+
+    /**
+     * Upload an asset (banner, icon, or screenshot) for a plugin.
+     *
+     * @param string $slug     Plugin slug (e.g., "my-plugin").
+     * @param array  $file     Uploaded file ($_FILES format).
+     * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
+     * @param string $filename Optional specific filename (for replacing/updating).
+     *
+     * @return string|\WP_Error Relative path to stored asset or WP_Error on failure.
+     */
+    public function upload_asset( string $slug, array $file, string $type, string $filename = '' ) {
+        $allowed_mimes = [ 'jpg|jpeg' => 'image/jpeg', 'png' => 'image/png' ];
+
+        // Validate upload
+        if ( ! is_uploaded_file( $file['tmp_name'] ) ) {
+            return new \WP_Error( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );
+        }
+
+        $check = wp_check_filetype( $file['name'], $allowed_mimes );
+        if ( empty( $check['ext'] ) ) {
+            return new \WP_Error( 'invalid_type', 'Only PNG or JPG images are allowed.', [ 'status' => 400 ] );
+        }
+
+        $slug = $this->real_slug( $slug );
+
+        // Attempt to enter the plugin slug dir.
+        try {
+            $path = $this->enter_slug( $slug );
+        } catch ( \InvalidArgumentException $e ) {
+            return new \WP_Error( 
+                'invalid_slug', 
+                $e->getMessage(),
+                [ 'status' => 400 ] 
+            );
+        }
+
+        $asset_dir = trailingslashit( $path ) . 'assets/';
+
+        if ( ! $this->is_dir( $asset_dir ) && ! $this->mkdir( $asset_dir, FS_CHMOD_DIR ) ) {
+            return new \WP_Error( 'repo_error', 'Unable to create asset directory.', [ 'status' => 500 ] );
+        }
+
+        // --- Enforce naming rules ---
+        switch ( $type ) {
+            case 'banner':
+                $allowed = [ 'banner-772x250.png', 'banner-1544x500.png' ];
+                if ( ! in_array( strtolower( $file['name'] ), $allowed, true ) ) {
+                    return new \WP_Error(
+                        'invalid_banner_name',
+                        'Banner must be named banner-772x250.png or banner-1544x500.png.',
+                        [ 'status' => 400 ]
+                    );
+                }
+                $target_name = strtolower( $file['name'] );
+                break;
+
+            case 'icon':
+                $allowed = [ 'icon-128x128.png', 'icon-256x256.png' ];
+                if ( ! in_array( strtolower( $file['name'] ), $allowed, true ) ) {
+                    return new \WP_Error(
+                        'invalid_icon_name',
+                        'Icon must be named icon-128x128.png or icon-256x256.png.',
+                        [ 'status' => 400 ]
+                    );
+                }
+                $target_name = strtolower( $file['name'] );
+                break;
+
+            case 'screenshot':
+                if ( ! empty( $filename ) ) {
+                    $ext = $check['ext'];
+                    if ( preg_match( '/screenshot-(\d+)\./', $filename, $m ) ) {
+                        $target_name = sprintf( 'screenshot-%d.%s', $m[1], $ext );
+                    } else {
+                        return new \WP_Error(
+                            'invalid_screenshot_name',
+                            'Screenshots must be named screenshot-{index}.png or screenshot-{index}.jpg.',
+                            [ 'status' => 400 ]
+                        );
+                    }
+                } else {
+                    // Auto-generate next index
+                    $existing    = glob( $asset_dir . 'screenshot-*.{png,jpg,jpeg}', GLOB_BRACE );
+                    $indexes     = [];
+
+                    foreach ( $existing as $shot ) {
+                        if ( preg_match( '/screenshot-(\d+)\./', basename( $shot ), $m ) ) {
+                            $indexes[] = (int) $m[1];
+                        }
+                    }
+
+                    $next_index  = empty( $indexes ) ? 1 : ( max( $indexes ) + 1 );
+                    $target_name = sprintf( 'screenshot-%d.%s', $next_index, $check['ext'] );
+                }
+                break;
+
+            default:
+                return new \WP_Error( 'invalid_type', 'Unsupported asset type.', [ 'status' => 400 ] );
+        }
+
+        // Final destination
+        $dest_path = trailingslashit( $asset_dir ) . $target_name;
+
+        // Move uploaded file
+        if ( ! $this->rename( $file['tmp_name'], $dest_path ) ) {
+            return new \WP_Error( 'move_failed', 'Failed to save uploaded asset.', [ 'status' => 500 ] );
+        }
+        $this->chmod( $dest_path, FS_CHMOD_FILE );
+
+    
+        return smliser_get_app_asset_url( 'plugin', $slug, 'assets/' . $target_name );
+    }
+
+
+    /**
+     * Get plugin assets as URLs.
+     *
+     * @param string $slug Plugin slug.
+     * @param string $type Asset type: 'banners', 'icons', 'screenshots'.
+     * @return array Indexed array of asset URLs.
+     */
+    public function get_assets( $slug, $type ) {
+        $assets_dir = trailingslashit( $this->path( $slug ) ) . 'assets/';
+
+        if ( ! $this->is_dir( $assets_dir ) ) {
+            return [];
+        }
+
+        switch ( $type ) {
+            case 'banners':
+                $pattern = '{banner-*.*}';
+                break;
+            case 'icons':
+                $pattern = '{icon-*.*}';
+                break;
+            case 'screenshots':
+                $pattern = '{screenshot-*.{png,jpg,jpeg}}';
+                break;
+            default:
+                return [];
+        }
+
+        $files = glob( $assets_dir . $pattern, GLOB_BRACE );
+        natsort( $files );
+
+        $indexed = [];
+        foreach ( $files as $file ) {
+            $basename = basename( $file );
+            $url      = smliser_get_app_asset_url( 'plugin', $slug, 'assets/' . $basename );
+
+            if ( $type === 'screenshots' && preg_match( '/-(\d+)\./', $basename, $m ) ) {
+                $indexed[ (int) $m[1] ] = $url;
+            } else {
+                $indexed[] = $url;
+            }
+        }
+
+        return $indexed;
+    }
+
+
+    /**
+     * Delete a plugin by it's given slug.
+     * 
+     * @param string $slug The plugin slug
+     */
+    public function delete_from_repo( $plugin_slug ) {
+        if ( empty( $plugin_slug ) ) {
+            return new WP_Error( 'invalid_slug', 'The application slug cannot be empty' );
+        }
+
+        $slug = $this->real_slug( $plugin_slug );
+        try {
+            $repo_dir = $this->enter_slug( $slug );
+        } catch ( \InvalidArgumentException $e ) {
+            return new \WP_Error( 
+                'invalid_slug', 
+                $e->getMessage(),
+                [ 'status' => 400 ] 
+            );
+        }
+
+        if ( ! $this->is_dir( $repo_dir ) ) {
+            return new \WP_Error( 
+                'plugin_repo_error', 
+                sprintf( 'The plugin with slug "%s" does not exist in the repository', $slug ),
+                [ 'status' => 404 ] 
+            );
+        }
+
+        if ( ! $this->rmdir( $repo_dir, true ) ) {
+            return new \WP_Error( 
+                'plugin_repo_error', 
+                sprintf( 'Unable to delete the plugin with slug "%s"!', $slug ),
+                [ 'status' => 500 ] 
+            );
+        }
+
+        return true;
+
+    }
+}
