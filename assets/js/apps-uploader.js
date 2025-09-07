@@ -389,6 +389,6 @@ const manageInputFocus = ( e ) => {
 appAssetUploadModal?.addEventListener( 'click', handleClickAction );
 assetsContainer?.addEventListener( 'click', handleClickAction );
 imageFileInput?.addEventListener( 'change', modalActions.processUploadedImage );
-imageUrlInput.addEventListener( 'input', ( e )=> e.target.setCustomValidity( '' ) );
-imageUrlInput.addEventListener( 'blur', manageInputFocus );
-imageUrlInput.addEventListener( 'focus', manageInputFocus );
+imageUrlInput?.addEventListener( 'input', ( e )=> e.target.setCustomValidity( '' ) );
+imageUrlInput?.addEventListener( 'blur', manageInputFocus );
+imageUrlInput?.addEventListener( 'focus', manageInputFocus );
