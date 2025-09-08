@@ -252,7 +252,7 @@ class PluginRepository extends Repository {
 
             case 'screenshot':
                 if ( ! empty( $filename ) ) {
-                    $ext = $check['ext'];
+                    $ext = strtolower( $check['ext'] );
                     if ( preg_match( '/screenshot-(\d+)\./', $filename, $m ) ) {
                         $target_name = sprintf( 'screenshot-%d.%s', $m[1], $ext );
                     } else {
@@ -274,7 +274,7 @@ class PluginRepository extends Repository {
                     }
 
                     $next_index  = empty( $indexes ) ? 1 : ( max( $indexes ) + 1 );
-                    $target_name = sprintf( 'screenshot-%d.%s', $next_index, $check['ext'] );
+                    $target_name = sprintf( 'screenshot-%d.%s', $next_index, strtolower( $check['ext'] ) );
                 }
                 break;
 
@@ -292,19 +292,29 @@ class PluginRepository extends Repository {
         $this->chmod( $dest_path, FS_CHMOD_FILE );
 
     
-        return smliser_get_app_asset_url( 'plugin', $slug, 'assets/' . $target_name );
+        return smliser_get_app_asset_url( 'plugin', $slug, $target_name );
     }
-
 
     /**
      * Get plugin assets as URLs.
      *
+     * Uses real_slug() and enter_slug() to ensure we operate inside the repository sandbox.
+     *
      * @param string $slug Plugin slug.
      * @param string $type Asset type: 'banners', 'icons', 'screenshots'.
-     * @return array Indexed array of asset URLs.
+     * @return array URLs of assets (screenshots are returned as [index => url]).
      */
-    public function get_assets( $slug, $type ) {
-        $assets_dir = trailingslashit( $this->path( $slug ) ) . 'assets/';
+    public function get_assets( string $slug, string $type ) : array {
+        // Normalize slug and ensure it is valid inside the repo.
+        $slug = $this->real_slug( $slug );
+
+        try {
+            $folder = $this->enter_slug( $slug );
+        } catch ( \InvalidArgumentException $e ) {
+            return [];
+        }
+
+        $assets_dir = trailingslashit( $folder ) . 'assets/';
 
         if ( ! $this->is_dir( $assets_dir ) ) {
             return [];
@@ -312,34 +322,85 @@ class PluginRepository extends Repository {
 
         switch ( $type ) {
             case 'banners':
-                $pattern = '{banner-*.*}';
+                $pattern = $assets_dir . 'banner-*.*';
                 break;
+
             case 'icons':
-                $pattern = '{icon-*.*}';
+                $pattern = $assets_dir . 'icon-*.*';
                 break;
+
             case 'screenshots':
-                $pattern = '{screenshot-*.{png,jpg,jpeg}}';
+                $pattern = $assets_dir . 'screenshot-*.{png,jpg,jpeg}';
                 break;
+
             default:
                 return [];
         }
 
-        $files = glob( $assets_dir . $pattern, GLOB_BRACE );
-        natsort( $files );
+        $files = glob( $pattern, GLOB_BRACE );
+        if ( ! $files ) {
+            return [];
+        }
+
+        // Natural sort by filename so screenshot-2 comes before screenshot-10.
+        usort( $files, function( $a, $b ) {
+            return strnatcmp( basename( $a ), basename( $b ) );
+        } );
 
         $indexed = [];
-        foreach ( $files as $file ) {
-            $basename = basename( $file );
+        foreach ( $files as $file_path ) {
+            $basename = basename( $file_path );
             $url      = smliser_get_app_asset_url( 'plugin', $slug, 'assets/' . $basename );
 
-            if ( $type === 'screenshots' && preg_match( '/-(\d+)\./', $basename, $m ) ) {
-                $indexed[ (int) $m[1] ] = $url;
+            if ( 'screenshots' === $type ) {
+                if ( preg_match( '/screenshot-(\d+)\./i', $basename, $m ) ) {
+                    $indexed[ (int) $m[1] ] = $url;
+                } else {
+                    // If a file is present that doesn't match the pattern,
+                    // append it to the list to avoid silently dropping it.
+                    $indexed[] = $url;
+                }
             } else {
                 $indexed[] = $url;
             }
         }
 
+        // Ensure screenshots are ordered by numeric index
+        if ( 'screenshots' === $type ) {
+            ksort( $indexed );
+        }
+
         return $indexed;
+    }
+
+    /**
+     * Get the absolute path to a given application asset.
+     *
+     * @param string $slug      App slug.
+     * @param string $filename  File name within the assets directory.
+     * @return string|\WP_Error Absolute path to asset or WP_Error if not found.
+     */
+    public function get_asset_path( string $slug, string $filename ) {
+        $slug = $this->real_slug( $slug );
+
+        try {
+            $base_dir = $this->enter_slug( $slug );
+        } catch ( \InvalidArgumentException $e ) {
+            return new \WP_Error( 'invalid_dir', $e->getMessage(), [ 'status' => 400 ] );
+        }
+
+        $asset_dir = trailingslashit( $base_dir ) . 'assets/';
+        $abs_path  = sanitize_and_normalize_path( trailingslashit( $asset_dir ) . basename( $filename ) );
+
+        if ( ! $this->exists( $abs_path ) ) {
+            return new \WP_Error(
+                'asset_not_found',
+                sprintf( 'Asset "%s" not found.', esc_html( $filename ) ),
+                [ 'status' => 404 ]
+            );
+        }
+
+        return $abs_path;
     }
 
 
