@@ -90,6 +90,6 @@ $other_fields   = array(
 
 );
 
-$assets = array( 'banners' => $app->get_banners(), 'screenshots' => $app->get_screenshots() );
+$assets = array( 'banner' => $app->get_banners(), 'screenshot' => $app->get_screenshots() );
 
 include SMLISER_PATH . 'templates/admin/repository/uploader.php';
