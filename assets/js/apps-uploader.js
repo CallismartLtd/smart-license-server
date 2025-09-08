@@ -142,8 +142,11 @@ const modalActions = {
         if ( json ) {
             smliserCurrentConfig.set( 'app_slug', json.app_slug );
             smliserCurrentConfig.set( 'app_type', json.app_type );
-            smliserCurrentConfig.set( 'asset_prefix', json.asset_prefix );            
+            smliserCurrentConfig.set( 'asset_name', json?.asset_name ?? '' );            
+            smliserCurrentConfig.set( 'asset_type', json?.asset_type ?? '' );            
         }
+        console.log(smliserCurrentConfig);
+        
     },
     'closeModal': () => {
         modalActions.resetModal();
@@ -152,8 +155,9 @@ const modalActions = {
 
     'resetModal': () => {
         assetImageUploaderContainer.classList.remove( 'has-image' );
-        smliserCurrentImage = null;
-        imageFileInput.value = '';
+        smliserCurrentImage     = null;
+        imageFileInput.value    = '';
+        imageUrlInput.value     = '';
         smliserCurrentConfig.clear();
     },
 
@@ -210,17 +214,9 @@ const modalActions = {
         let url;
         try {
             url = new URL( imageUrlInput.value );
-            if ( ! url.pathname.includes( '.' ) ) {
-
-                let error   = new Error( "Url is not pointing to a file" );
-                error.type  = 'INPUT_NOT_FILE';
-                throw error;
-            }
+     
         } catch (error) {
             console.log(error.type);
-            if ( 'INPUT_NOT_FILE' === error.type ) {
-                imageUrlInput.setCustomValidity(error.message);
-            }
             
             url = null;
         }        
@@ -245,6 +241,8 @@ const modalActions = {
             return;
         }
 
+        const container = document.querySelector( `.app-uploader-asset-container.${smliserCurrentConfig.get( 'asset_type' )}` );
+
         const url = new URL( smliser_var.smliser_ajax_url );
         url.searchParams.set( 'action', 'smliser_app_asset_upload' );
         url.searchParams.set( 'security', smliser_var.nonce );
@@ -252,7 +250,8 @@ const modalActions = {
         const payLoad = new FormData();
         payLoad.set( 'app_slug', smliserCurrentConfig?.get( 'app_slug' ) );
         payLoad.set( 'app_type', smliserCurrentConfig?.get( 'app_type' ) );
-        payLoad.set( 'asset_prefix', smliserCurrentConfig?.get( 'asset_prefix' ) );
+        payLoad.set( 'asset_name', smliserCurrentConfig?.get( 'asset_name' ) );
+        payLoad.set( 'asset_type', smliserCurrentConfig?.get( 'asset_type' ) );
         payLoad.set( 'asset_file', smliserCurrentImage );
 
         const spinner = showSpinner( '.smliser-spinner.modal', true );
@@ -273,10 +272,29 @@ const modalActions = {
             const data = await response.json();
 
             const new_image_url = data?.data?.image_url;
-            console.log(new_image_url);
+            const imageContainer        = document.createElement( 'div' );
+            imageContainer.className    = `app-uploader-image-preview`;
+            const imageName             = new_image_url.split( '/' ).pop();
+            imageContainer.innerHTML    = `
+                <img src="${new_image_url}" alt="${imageName}" title="${imageName}">
+                <div class="app-uploader-image-preview_edit">
+                    <span class="dashicons dashicons-edit"></span>
+                    <span class="dashicons dashicons-dismiss"></span>
+                </div>
+            `;
+
+            const target    = container.querySelector( '.app-uploader-asset-container_images' );
+            const addButton = target.querySelector( '.smliser-uploader-add-image' );
+            
+            modalActions.resetModal();
+            modalActions.closeModal();
+            setTimeout( () => target.insertBefore(imageContainer, addButton), 400 );
+            
             
         } catch (error) {
             smliserNotify( error.message );
+            console.log(error);
+            
         } finally {
             removeSpinner( spinner );
         }
@@ -315,9 +333,9 @@ const modalActions = {
                 throw new Error( `Image fetch failed: ${response.statusText}` );
             }
 
-            const contentType = response.headers.get( 'Content-Type' );        
-            const blob        = await response.blob();
-            const fileName = imageUrl.split('/').pop().split('?')[0] || 'image.png';
+            const contentType   = response.headers.get( 'Content-Type' );        
+            const blob          = await response.blob();
+            const fileName      = 'image.png';
             if ( ! contentType.includes( 'image/png' ) ) {
                 return await modalActions.convertToPng( blob, fileName );
             }
