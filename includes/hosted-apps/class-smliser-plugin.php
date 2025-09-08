@@ -441,7 +441,9 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      */
     public function set_screenshots( array $screenshots ) {
         $values = array_values( $screenshots );
-        $this->screenshots = array_map( 'sanitize_file_name', wp_unslash( $screenshots ) );
+        $this->screenshots = array_map( function( $value ){
+            return sanitize_url( $value, array( 'https', 'http' ) );
+        }, wp_unslash( $screenshots ) );
 
     }
 
@@ -1113,6 +1115,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
          * Set file information 
          */
         global $smliser_repo;
+        $repo_class         = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
         $plugin_file_path   = $smliser_repo->get_plugin( $self->get_slug() );
         if ( ! is_wp_error( $plugin_file_path ) ) {
             $self->set_file( $plugin_file_path );
@@ -1129,6 +1132,8 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'installation'  => $smliser_repo->get_installation_text( $self->get_slug() ),
         );
         $self->set_section( $sections );
+
+        $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
 
         /**
          * Set short description
