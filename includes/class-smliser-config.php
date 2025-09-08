@@ -489,25 +489,24 @@ class SmartLicense_config {
      * Include files
      */
     public function include() {
-        require_once SMLISER_PATH . 'includes/hosted-apps/hosted-apps-interface.php';
-        require_once SMLISER_PATH . 'includes/hosted-apps/class-software-collection.php';
         require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
+
         require_once SMLISER_PATH . 'includes/utils/smliser-functions.php';
         require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-markdown-parser.php';
-        require_once SMLISER_PATH . 'includes/admin/class-menu.php';
-        require_once SMLISER_PATH . 'includes/admin/class-admin-dashboard.php';
-        require_once SMLISER_PATH . 'includes/admin/class-repository-page.php';
-        require_once SMLISER_PATH . 'includes/admin/class-admin-license-page.php';
-        require_once SMLISER_PATH . 'includes/admin/class-admin-options-page.php';
+
         require_once SMLISER_PATH . 'includes/filesystem/class-smliser-repository.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-plugin-repository.php';
+    
+        require_once SMLISER_PATH . 'includes/hosted-apps/hosted-apps-interface.php';
+        require_once SMLISER_PATH . 'includes/hosted-apps/class-software-collection.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-plugin.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-theme.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-software.php';
+
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
         require_once SMLISER_PATH . 'includes/class-smliser-server.php';
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
@@ -522,6 +521,12 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/monetization/provider-collection.php';
         require_once SMLISER_PATH . 'includes/monetization/class-woocomerce-provider.php';
         require_once SMLISER_PATH . 'includes/monetization/class-controller.php';
+
+        require_once SMLISER_PATH . 'includes/admin/class-menu.php';
+        require_once SMLISER_PATH . 'includes/admin/class-admin-dashboard.php';
+        require_once SMLISER_PATH . 'includes/admin/class-repository-page.php';
+        require_once SMLISER_PATH . 'includes/admin/class-admin-license-page.php';
+        require_once SMLISER_PATH . 'includes/admin/class-admin-options-page.php';
         
         do_action( 'smliser_loaded' );
         
@@ -569,13 +574,35 @@ class SmartLicense_config {
     
         add_rewrite_rule(
             '^' . $repo_base_url . '$',
-            'index.php?smliser_repository=1',
+            'index.php?pagename=smliser-repository',
             'top'
         );
     
+        /**
+         * Repository app type page matches siteurl/repository/{app_type}/ where app type can be (themes, plugins, softwares)
+         */
         add_rewrite_rule(
             '^' . $repo_base_url . '/([^/]+)$',
-            'index.php?smliser_repository=1&smliser_repository_plugin_slug=$matches[1]',
+            'index.php?pagename=smliser-repository&smliser_app_type=$matches[1]',
+            'top'
+        );
+
+        /**
+         * Repository app type page matches siteurl/repository/{app_type}/{app_slug}/
+         */
+        add_rewrite_rule(
+            '^' . $repo_base_url . '/([^/]+)/([^/]+)/?$',
+            'index.php?pagename=smliser-repository&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]',
+            'top'
+        );
+
+
+        /**
+         * Asset serving url matchs siteurl/repository/{app_type}/{app_slug}/assets/{filename}
+         */
+        add_rewrite_rule(
+            '^' . $repo_base_url . '/([^/]+)/([^/]+)/assets/(.+)$',
+            'index.php?pagename=smliser-repository-assets&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]&smliser_asset_name=$matches[3]',
             'top'
         );
 
@@ -644,6 +671,10 @@ class SmartLicense_config {
         $vars[] = 'license_id';
         $vars[] = 'software_category';
         $vars[] = 'smliser_auth';
+        
+        $vars[] = 'smliser_app_type';
+        $vars[] = 'smliser_app_slug';
+        $vars[] = 'smliser_asset_name';
         
         return $vars;
     }    
