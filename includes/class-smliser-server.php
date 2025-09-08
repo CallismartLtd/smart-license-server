@@ -74,6 +74,7 @@ class Smliser_Server{
     public function __construct() {
         $this->namespace = SmartLicense_config::instance()->namespace();
         add_action( 'template_redirect', array( $this, 'download_server' ) );
+        add_action( 'template_redirect', array( $this, 'asset_server' ) );
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
         add_action( 'admin_post_smliser_download_image', array( __CLASS__, 'proxy_image_download' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
@@ -428,6 +429,52 @@ class Smliser_Server{
     }
 
     /**
+     * Inline static assets and image server.
+     */
+    public function asset_server() {
+        global $wp_query;
+
+        if ( 'smliser-repository-assets' === get_query_var( 'pagename' ) ) {
+            $app_type   = sanitize_text_field( wp_unslash( get_query_var( 'smliser_app_type' ) ) );
+            $app_slug   = sanitize_text_field( wp_unslash( get_query_var( 'smliser_app_slug' ) ) );
+            $asset_name = sanitize_text_field( wp_unslash( get_query_var( 'smliser_asset_name' ) ) );
+
+            $repo_class = Smliser_Software_Collection::get_app_repository_class( $app_type );
+
+            if ( ! $repo_class ) {
+                wp_die( 'Invalid app type', 'Asset Error', [ 'response' => 400 ] );
+            }
+
+            $file_path = $repo_class->get_asset_path( $app_slug, $asset_name );
+
+            if ( is_wp_error( $file_path ) ) {
+                wp_die( $file_path->get_error_message(), 'Asset Error', [ 'response' => $file_path->get_error_code() ] );
+            }
+
+            if ( ! $repo_class->is_readable( $file_path ) ) {
+                wp_die( 'Invalid or corrupted file', 'Asset Error', [ 'response' => 500 ] );
+            }
+
+            // Detect MIME type
+            $mime = wp_check_filetype( $file_path );
+            $mime_type = $mime['type'] ? $mime['type'] : 'application/octet-stream';
+
+            // Send headers
+            status_header( 200 );
+            header( 'Content-Type: ' . $mime_type );
+            header( 'Content-Length: ' . $repo_class->filesize( $file_path ) );
+            header( 'Content-Disposition: inline; filename="' . basename( $file_path ) . '"' );
+            header( 'Cache-Control: public, max-age=31536000' ); // 1 year cache for assets
+            header( 'Pragma: public' );
+
+            // Stream the file
+            $repo_class->readfile( $file_path );
+            exit;
+        }
+    }
+
+
+    /**
      * Proxy image download
      */
     public static function proxy_image_download() {
@@ -457,6 +504,7 @@ class Smliser_Server{
 
         $filename = basename( parse_url( $image_url, PHP_URL_PATH ) );
 
+        status_header( 200 );
         header( 'content-description: File Transfer' );
         header( 'content-type: ' . $content_type );
         header( 'content-disposition: inline; filename="' . $filename . '"' );
