@@ -684,14 +684,33 @@ function smliser_render_input_field( $args = array() ) {
 }
 
 /**
- * Get the file url for a given application asset.
- * 
- * @param string $type      App type(eg plugin, theme, software).
- * @param string $slug      The app slug.
- * @param string $filename  The file name.
- * @return string $file_url The file URL
+ * Get the URL for a given app asset.
+ *
+ * @param string $type     App type ('plugin' or 'theme').
+ * @param string $slug     The app slug.
+ * @param string $filename The asset file name (e.g. screenshot-1.png).
+ * @return string
  */
 function smliser_get_app_asset_url( $type, $slug, $filename ) {
-    $base_path = get_option( 'smliser_app_asset_url_slug', 'app-asset' );
-    return site_url( sprintf( '%/%s/%s/%s', $base_path, $type, $slug, $filename ) );
+    return smliser_get_repo_url(
+        sprintf( '%s/%s/assets/%s', $type, $slug, ltrim( $filename, '/' ) )
+    );
+}
+
+/**
+ * Get the repository base URL or a path within it.
+ *
+ * @param string $path Optional relative path within the repo.
+ * @return string
+ */
+function smliser_get_repo_url( $path = '' ) {
+    $repo_base = get_option( 'smliser_repo_base_perma', 'repository' );
+    $base_url  = site_url( $repo_base );
+
+    if ( $path !== '' ) {
+        // Avoid double slashes but do not enforce trailing slash
+        return $base_url . '/' . ltrim( $path, '/' );
+    }
+
+    return $base_url;
 }
