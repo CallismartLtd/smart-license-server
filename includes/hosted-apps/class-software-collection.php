@@ -590,6 +590,45 @@ class Smliser_Software_Collection {
             wp_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
         }
         
+        $config = array(
+            'asset_type'    => $asset_type,
+            'app_slug'      => $app_slug,
+            'app_type'      => $app_type,
+            'asset_name'    => basename( $url ),
+            'asset_url'     => $url
+        );
+        wp_send_json_success( array( 'message' => 'Uploaded', 'config' => $config ) );
+
+    }
+    /**
+     * Handles an application's asset deletion
+     */
+    public static function app_asset_delete() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
+        }
+
+        $app_type   = smliser_get_post_param( 'app_type', null ) ?? wp_send_json_error( array( 'message' => 'Application type is required' ) );
+        if ( ! self::app_type_is_allowed( $app_type ) ) {
+            wp_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
+        }
+
+        $app_slug   = smliser_get_post_param( 'app_slug', null ) ?? wp_send_json_error( array( 'message' => 'Application slug is required' ) );
+        $asset_name = smliser_get_post_param( 'asset_name', null ) ?? wp_send_json_error( array( 'message' => 'Asset name is required' ) );
+        
+
+        $repo_class = self::get_app_repository_class( $app_type ) ?? wp_send_json_error( array( 'message' => 'Unable to reolve repository class' ), 500 );
+        
+        $url = $repo_class->delete_asset( $app_slug, $asset_name );
+
+        if ( is_wp_error( $url ) ) {
+            wp_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
+        }
+        
         wp_send_json_success( array( 'message' => 'Uploaded', 'image_url' => $url ) );
 
     }
@@ -639,7 +678,7 @@ class Smliser_Software_Collection {
         add_action( 'wp_ajax_smliser_save_software', [__CLASS__, 'save_app'] );
 
         add_action( 'wp_ajax_smliser_app_asset_upload', [__CLASS__, 'app_asset_upload'] );
-        // add_action( 'wp_ajax_smliser_update_theme', [__CLASS__, 'update_theme'] );
+        add_action( 'wp_ajax_smliser_app_asset_delete', [__CLASS__, 'app_asset_delete'] );
         // add_action( 'wp_ajax_smliser_update_software', [__CLASS__, 'update_software'] );
     }
 
