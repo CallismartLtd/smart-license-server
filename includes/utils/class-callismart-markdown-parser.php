@@ -85,15 +85,13 @@ class Callismart_Markdown_to_HTML {
         // --- Standard Markdown-style headings (# to ######) ---
         for ( $i = 6; $i >= 1; $i-- ) {
             $pattern = '/^' . str_repeat( '#', $i ) . '\s*(.+?)\s*$/m';
-            $replacement = '<h' . $i . '>$1</h' . $i . '>';
-            $text = preg_replace_callback(
+            $text = preg_replace(
                 $pattern,
-                function( $matches ) {
-                    return '<h' . strlen( preg_replace( '/^#+/', '', $matches[0] ) ) . '>' . trim( $matches[1] ) . '</h' . strlen( preg_replace( '/^#+/', '', $matches[0] ) ) . '>';
-                },
+                '<h' . $i . '>$1</h' . $i . '>',
                 $text
             );
         }
+
 
         return $text;
     }
