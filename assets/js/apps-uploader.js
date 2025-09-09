@@ -2,6 +2,8 @@ let newAppUploaderForm      = document.getElementById( 'newAppUploaderForm' );
 const queryParam            = new URLSearchParams( window.location.search );
 let appAssetUploadModal     = document.querySelector( '.smliser-admin-modal.app-asset-uploader' );
 let assetsContainer         = newAppUploaderForm.querySelector( '.app-uploader-below-section_assets' );
+let uploadToRepoButton      = appAssetUploadModal?.querySelector( '#upload-image' );
+
 if ( newAppUploaderForm  ) {
     let uploadBtn       = document.querySelector('.smliser-upload-btn');
     let fileInfo        = document.querySelector('.smliser-file-info');
@@ -119,12 +121,12 @@ const handleClickAction = ( e ) => {
         modalActions.closeModal();
         return;
     }
-    const clickedBtn    = e.target.closest( '.remove-modal, .clear-uploaded, #upload-image, #upload-from-device, #upload-from-wp, #upload-from-url, .smliser-uploader-add-image' );
+    const clickedBtn    = e.target.closest( '.delete-image, .remove-modal, .clear-uploaded, #upload-image, #upload-from-device, #upload-from-wp, #upload-from-url, .smliser-uploader-add-image, .edit-image' );
     const action        = clickedBtn ? clickedBtn.getAttribute( 'data-action' ) : null;
 
     if ( ! action ) return;
     const config = JSON.parse( clickedBtn.getAttribute( 'data-config' ) );
-    modalActions[action]?.( config );
+    modalActions[action]?.( config, clickedBtn );
     
 }
 
@@ -142,8 +144,15 @@ const modalActions = {
         if ( json ) {
             smliserCurrentConfig.set( 'app_slug', json.app_slug );
             smliserCurrentConfig.set( 'app_type', json.app_type );
-            smliserCurrentConfig.set( 'asset_name', json?.asset_name ?? '' );            
-            smliserCurrentConfig.set( 'asset_type', json?.asset_type ?? '' );            
+            smliserCurrentConfig.set( 'asset_name', json.asset_name ?? '' );            
+            smliserCurrentConfig.set( 'asset_type', json.asset_type ?? '' );
+            
+            if ( json.asset_url ) {
+                assetImageUploaderContainer.classList.add( 'has-image' );
+                imagePreview.src = json.asset_url;
+                uploadToRepoButton.setAttribute( 'disabled', true );
+                smliserCurrentConfig.set( 'observer', observeImageSrcChange( imagePreview ) );
+            }
         }
         console.log(smliserCurrentConfig);
         
@@ -158,6 +167,7 @@ const modalActions = {
         smliserCurrentImage     = null;
         imageFileInput.value    = '';
         imageUrlInput.value     = '';
+        smliserCurrentConfig.get( 'observer' )?.disconnect();
         smliserCurrentConfig.clear();
     },
 
@@ -200,7 +210,7 @@ const modalActions = {
         frame.open();
     },
 
-    'uploadFromUrl': async () => {
+    'uploadFromUrl': async ( json, clickedBtn) => {
         
         if ( ! imageUrlInput.classList.contains( 'is-active' ) ) {
             imageUrlInput.focus();
@@ -214,11 +224,8 @@ const modalActions = {
         let url;
         try {
             url = new URL( imageUrlInput.value );
-     
         } catch (error) {
             console.log(error.type);
-            
-            url = null;
         }        
 
         if ( ! imageUrlInput.checkValidity() ) {
@@ -226,21 +233,30 @@ const modalActions = {
             return;
         }
 
-        const image = await modalActions.processFromUrl( imageUrlInput.value.trim() );
-        if ( ! image ) {
-            console.warn( 'Image not fetched' );
-            return;
-        }
+        clickedBtn.setAttribute( 'disabled', true );
 
-        smliserCurrentImage = image;
-        modalActions.showImagePreview( smliserCurrentImage );        
+        try {
+            const image = await modalActions.processFromUrl( imageUrlInput.value.trim() );
+            if ( ! image ) {
+                console.warn( 'Image not fetched' );
+                return;
+                
+            }
+
+            smliserCurrentImage = image;
+            modalActions.showImagePreview( smliserCurrentImage );  
+        } finally {
+            clickedBtn.removeAttribute( 'disabled' );
+        }
     },
-    'uploadToRepository': async () => {
+
+    'uploadToRepository': async ( json, clickedBtn ) => {
         if ( ! smliserCurrentImage ) {
             smliserNotify( 'Please upload an image.', 3000 );
             return;
         }
 
+        clickedBtn.setAttribute( 'disabled', true );
         const container = document.querySelector( `.app-uploader-asset-container.${smliserCurrentConfig.get( 'asset_type' )}` );
 
         const url = new URL( smliser_var.smliser_ajax_url );
@@ -271,32 +287,43 @@ const modalActions = {
 
             const data = await response.json();
 
-            const new_image_url = data?.data?.image_url;
-            const imageContainer        = document.createElement( 'div' );
-            imageContainer.className    = `app-uploader-image-preview`;
-            const imageName             = new_image_url.split( '/' ).pop();
-            imageContainer.innerHTML    = `
-                <img src="${new_image_url}" alt="${imageName}" title="${imageName}">
-                <div class="app-uploader-image-preview_edit">
-                    <span class="dashicons dashicons-edit"></span>
-                    <span class="dashicons dashicons-dismiss"></span>
-                </div>
-            `;
+            if ( ! data.success ) {
+                const error = new Error( data?.data?.message || 'Unable to upload image' );
+                throw error;
+            }
 
-            const target    = container.querySelector( '.app-uploader-asset-container_images' );
-            const addButton = target.querySelector( '.smliser-uploader-add-image' );
+            const configJson    = data.data.config;
+            const new_image_url = configJson.asset_url;
+            const existingImage = smliserCurrentConfig.get( 'asset_name' );
+            if ( existingImage ) {
+                const imageEl = document.querySelector( `#${existingImage.split( '.' )[0]}` );                
+                imageEl.setAttribute( 'src', new_image_url );
+            } else {
+                const imageContainer        = document.createElement( 'div' );
+                imageContainer.className    = `app-uploader-image-preview`;
+                const imageName             = new_image_url.split( '/' ).pop();
+                imageContainer.innerHTML    = `
+                    <img src="${new_image_url}" alt="${imageName}" title="${imageName}">
+                    <div class="app-uploader-image-preview_edit">
+                        <span class="dashicons dashicons-edit edit-image" data-json='${StringUtils.escHtml( JSON.stringify( configJson ) )}' data-action="openModal" title="Edit"></span>
+                        <span class="dashicons dashicons-trash delete-image" data-json='${StringUtils.escHtml( JSON.stringify( configJson ) )}' data-action="deleteImage" title="Delete"></span>
+                    </div>
+                `;
+                const target    = container.querySelector( '.app-uploader-asset-container_images' );
+                const addButton = target.querySelector( '.smliser-uploader-add-image' );
+                setTimeout( () => target.insertBefore(imageContainer, addButton), 400 );           
+            }
             
             modalActions.resetModal();
             modalActions.closeModal();
-            setTimeout( () => target.insertBefore(imageContainer, addButton), 400 );
-            
             
         } catch (error) {
-            smliserNotify( error.message );
+            smliserNotify( error.message, 20000 );
             console.log(error);
             
         } finally {
             removeSpinner( spinner );
+            clickedBtn.removeAttribute( 'disabled' );
         }
 
 
@@ -327,13 +354,21 @@ const modalActions = {
 
         const spinner = showSpinner( '.smliser-spinner.modal' );
         try {
-            const response = await fetch( ajaxEndpoint.href );
-
+            const response      = await fetch( ajaxEndpoint.href );
+            const contentType   = response.headers.get( 'Content-Type' ); 
             if ( ! response.ok ) {
-                throw new Error( `Image fetch failed: ${response.statusText}` );
+                let errorMessage = response.statusText;
+
+                let text = await response.text();
+
+                if ( text.length < 5000 ) {
+                    errorMessage = text;
+                }
+
+                throw new Error( `Image fetch failed: ${errorMessage}` );
             }
 
-            const contentType   = response.headers.get( 'Content-Type' );        
+                   
             const blob          = await response.blob();
             const fileName      = 'image.png';
             if ( ! contentType.includes( 'image/png' ) ) {
@@ -357,6 +392,7 @@ const modalActions = {
         fileReader.onload   = ( e ) => {
             imagePreview.src = e.target.result ;
             assetImageUploaderContainer.classList.add( 'has-image' );
+            uploadToRepoButton.removeAttribute( 'disabled' );
         }
 
         fileReader.readAsDataURL( file );  
@@ -390,6 +426,66 @@ const modalActions = {
             img.onerror = () => reject( new Error( 'Invalid image file' ) );
             img.src = url;
         });
+    },
+
+    'deleteImage': async (json, clickedBtn) => {
+        const confirmed = confirm( `Are you sure to delete ${json.asset_name ?? `this image`}? This action cannot be reversed`);
+        if ( ! confirmed ) {
+            return;
+        }
+        let payLoad = new FormData();
+
+        for( const key in json ) {
+            const value = json[key];
+            payLoad.set( key, value );
+        }
+
+        payLoad.set( 'action', 'smliser_app_asset_delete' )
+        payLoad.set( 'security', smliser_var.nonce )
+        
+        clickedBtn.setAttribute( 'disabled', true );
+        try {
+            const response = await fetch( smliser_var.smliser_ajax_url, 
+                {
+                    method: 'POST',
+                    body: payLoad,
+                    credentials: 'same-origin'
+                }
+            );
+
+            const contentType = response.headers.get( 'Content-Type' );
+            
+            if ( ! response.ok ) {
+                let errorMessage = await response.text();
+
+                if ( contentType.includes( 'application/json' ) ) {
+                    const data = await response.json();
+                    errorMessage = data?.data?.message ?? errorMessage;
+                }
+                throw new Error( errorMessage );
+            }
+
+            const responseJson = await response.json();
+
+            if ( ! responseJson.success ) {
+                throw Error( responseJson.data?.message ?? `unable to delete ${json.asset_name}` );
+            }
+
+            smliserNotify( responseJson.data?.message, 300 );
+
+            const target = clickedBtn.closest( '.app-uploader-image-preview' );
+
+            jQuery( target ).fadeOut( 'slow', () => {
+                target.remove();
+            });
+
+
+
+        } catch (error) {
+            smliserNotify( error.message, 10000 );
+        }
+        
+        
     }
 }
 
@@ -410,3 +506,36 @@ imageFileInput?.addEventListener( 'change', modalActions.processUploadedImage );
 imageUrlInput?.addEventListener( 'input', ( e )=> e.target.setCustomValidity( '' ) );
 imageUrlInput?.addEventListener( 'blur', manageInputFocus );
 imageUrlInput?.addEventListener( 'focus', manageInputFocus );
+imagePreview?.addEventListener("srcChanged", (e) => {
+  const { oldSrc, newSrc } = e.detail;
+  if (oldSrc !== newSrc) {
+    uploadToRepoButton?.removeAttribute("disabled");
+  }
+});
+
+function observeImageSrcChange(img) {
+    const observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+        if (mutation.type === "attributes" && mutation.attributeName === "src") {
+            const event = new CustomEvent("srcChanged", {
+            detail: {
+                oldSrc: mutation.oldValue,
+                newSrc: img.src
+            }
+            });
+            img.dispatchEvent(event);
+        }
+        }
+    });
+
+    observer.observe(img, { 
+        attributes: true, 
+        attributeFilter: ["src"], 
+        attributeOldValue: true
+    });
+
+    return observer;
+}
+
+
+
