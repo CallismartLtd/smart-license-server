@@ -90,6 +90,26 @@ $other_fields   = array(
 
 );
 
-$assets = array( 'banner' => $app->get_banners(), 'screenshot' => $app->get_screenshots() );
+$assets = array(
+    'icon' => array(
+        'title'     => 'Icons',
+        'limit'     => 2,
+        'images'    => $app->get_icons(),
+        'total'    => count( array_filter( $app->get_icons() ) )
+    ),
+    'banner' => array(
+        'title'     => 'Banners',
+        'limit'     => 2,
+        'images'    => $app->get_banners(),
+        'total'     => count( array_filter( $app->get_banners() ) )
+    ),
+    'screenshot' => array(
+        'title'     => 'Screenshots',
+        'limit'     => 10,
+        'images'    => $app->get_screenshots(),
+        'total'    => count( array_filter( $app->get_screenshots() ) )
+    ),
+);
+
 
 include SMLISER_PATH . 'templates/admin/repository/uploader.php';
