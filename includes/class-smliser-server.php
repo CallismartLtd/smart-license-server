@@ -509,8 +509,8 @@ class Smliser_Server{
         header( 'content-type: ' . $content_type );
         header( 'content-disposition: inline; filename="' . $filename . '"' );
         header( 'expires: 0' );
-        header( 'cache-control: must-revalidate' );
-        header( 'pragma: public' );
+        header( 'cache-control: public, max-age=86400' );
+        header( 'access-control-allow-Origin: ' . esc_url_raw( site_url() ) );
         header( 'content-length: ' . filesize( $file ) );
         readfile( $file );
 
