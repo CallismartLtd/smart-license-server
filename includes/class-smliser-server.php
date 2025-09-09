@@ -190,7 +190,7 @@ class Smliser_Server{
         }
 
         /**
-         * Serve download for licensed plugin
+         * Serve download for monetized plugin
          */
         if ( $plugin->is_monetized() ) {
             $download_token    = smliser_get_query_param( 'download_token' );
