@@ -313,7 +313,6 @@ class Repository extends FileSystem {
         return $dest_path;
     }
 
-
     /**
      * Normalize a plugin slug to get the first folder.
      *
