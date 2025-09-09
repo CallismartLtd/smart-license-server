@@ -51,11 +51,11 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
             <?php if ( ! empty( $assets ) ) : ?>
                 <div class="app-uploader-below-section_assets">
                     <h2><?php printf( '%s Assets', esc_html( $type_title ) ) ?></h2>
-                    <?php foreach( $assets as $key => $asset ) : ?>
+                    <?php foreach( $assets as $key => $data ) : ?>
                         <div class="app-uploader-asset-container <?php echo esc_html( $key ) ?>">
-                            <h3><?php echo esc_html( ucfirst( $key ) ) ?>s</h3>
+                            <h3><?php echo esc_html( $data['title'] ?? '' ) ?></h3>
                             <div class="app-uploader-asset-container_images">
-                                <?php foreach( $asset as $url ) : ?>
+                                <?php foreach( $data['images'] as $url ) : ?>
                                     <?php if ( ! empty( $url ) ) : 
                                         $asset_name = basename( $url );
                                         $json_data = wp_json_encode([
@@ -69,22 +69,23 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                                         <div class="app-uploader-image-preview">
                                             <img src="<?php echo esc_url( $url ); ?>" id="<?php echo esc_attr( explode( '.', $asset_name )[0] ); ?>" alt="<?php echo esc_attr( $asset_name ) ?>" loading="lazy" title="<?php echo esc_attr( $asset_name ) ?>">
                                             <div class="app-uploader-image-preview_edit">
-                                                <span class="dashicons dashicons-edit edit-image" data-config="<?php echo esc_attr( $json_data ) ?>" data-action="openModal" title="Edit"></span>
-                                                <span class="dashicons dashicons-trash delete-image" data-config="<?php echo esc_attr( $json_data ) ?>" data-action="deleteImage" title="Delete"></span>
+                                                <span class="dashicons dashicons-edit edit-image" data-config="<?php echo urlencode( $json_data ) ?>" data-action="openModal" title="Edit"></span>
+                                                <span class="dashicons dashicons-trash delete-image" data-config="<?php echo urlencode( $json_data ) ?>" data-action="deleteImage" title="Delete"></span>
                                             </div>
                                         </div>
                                     <?php endif; ?>
-                                <?php endforeach;
+                                <?php endforeach; 
                                 $config = wp_json_encode([
                                     'asset_type'    => $key,
                                     'app_slug'      => $app->get_slug(),
                                     'app_type'      => $app->get_type(),
+                                    'limit'         => $data['limit']
                                     
                                 ])
                                 ?>    
-                                <div class="smliser-uploader-add-image" data-action="openModal" data-config="<?php echo esc_attr( $config ) ?>">
+                                <div class="smliser-uploader-add-image <?php echo esc_attr( ( $data['total'] < $data['limit'] ) ? '' : 'smliser-hide' ) ?>" data-action="openModal" data-config="<?php echo urlencode( $config ) ?>">
                                     <span class="dashicons dashicons-plus"></span>
-                                </div>                            
+                                </div>             
                             </div>
                         </div>
                         
