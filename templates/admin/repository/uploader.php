@@ -57,13 +57,20 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                             <div class="app-uploader-asset-container_images">
                                 <?php foreach( $asset as $url ) : ?>
                                     <?php if ( ! empty( $url ) ) : 
-                                        $asset_name = basename( $url );    
+                                        $asset_name = basename( $url );
+                                        $json_data = wp_json_encode([
+                                            'asset_type'    => $key,
+                                            'app_slug'      => $app->get_slug(),
+                                            'app_type'      => $app->get_type(),
+                                            'asset_name'    => $asset_name,
+                                            'asset_url'     => $url
+                                        ]);  
                                     ?>
                                         <div class="app-uploader-image-preview">
-                                            <img src="<?php echo esc_url( $url ); ?>" alt="<?php echo esc_attr( $asset_name ) ?>" title="<?php echo esc_attr( $asset_name ) ?>">
+                                            <img src="<?php echo esc_url( $url ); ?>" id="<?php echo esc_attr( explode( '.', $asset_name )[0] ); ?>" alt="<?php echo esc_attr( $asset_name ) ?>" loading="lazy" title="<?php echo esc_attr( $asset_name ) ?>">
                                             <div class="app-uploader-image-preview_edit">
-                                                <span class="dashicons dashicons-edit"></span>
-                                                <span class="dashicons dashicons-dismiss"></span>
+                                                <span class="dashicons dashicons-edit edit-image" data-config="<?php echo esc_attr( $json_data ) ?>" data-action="openModal" title="Edit"></span>
+                                                <span class="dashicons dashicons-trash delete-image" data-config="<?php echo esc_attr( $json_data ) ?>" data-action="deleteImage" title="Delete"></span>
                                             </div>
                                         </div>
                                     <?php endif; ?>
@@ -113,9 +120,9 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                 <input type="file" id="app-uploader-asset-file-input" accept="image/png, image/jpeg, .png, .jpg, .jpeg, .gif" class="hidden">
                 
                 <div class="app-asset-uploader-buttons-container">
-                    <button type="button" class="button smliser-nav-btn" id="upload-from-device" data-action="uploadFromDevice"><span class="dashicons dashicons-open-folder"></span> Choose from device</button>
-                    <button type="button" class="button smliser-nav-btn" id="upload-from-wp" data-action="uploadFromWpGallery"><span class="dashicons dashicons-format-gallery"></span> Choose from Gallery</button>
-                    <button type="button" class="button smliser-nav-btn" id="upload-from-url" data-action="uploadFromUrl"><span class="dashicons dashicons-admin-links"></span> Choose from URL</button>
+                    <button type="button" class="button smliser-nav-btn" id="upload-from-device" data-action="uploadFromDevice"><span class="dashicons dashicons-open-folder"></span> Upload file from device</button>
+                    <button type="button" class="button smliser-nav-btn" id="upload-from-wp" data-action="uploadFromWpGallery"><span class="dashicons dashicons-format-gallery"></span> Upload file from Gallery</button>
+                    <button type="button" class="button smliser-nav-btn" id="upload-from-url" data-action="uploadFromUrl"><span class="dashicons dashicons-admin-links"></span> Upload file from URL</button>
                 </div>
 
             </div>
