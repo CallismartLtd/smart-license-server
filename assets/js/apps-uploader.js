@@ -125,7 +125,7 @@ const handleClickAction = ( e ) => {
     const action        = clickedBtn ? clickedBtn.getAttribute( 'data-action' ) : null;
 
     if ( ! action ) return;
-    const config = JSON.parse( clickedBtn.getAttribute( 'data-config' ) );
+    const config = JSON.parse( decodeURIComponent( clickedBtn.getAttribute( 'data-config' ) ) );
     modalActions[action]?.( config, clickedBtn );
     
 }
@@ -141,20 +141,36 @@ const modalActions = {
     'openModal': ( json ) => {
         appAssetUploadModal.classList.remove( 'hidden' );
 
+        const totalImages   = document.querySelectorAll( `.app-uploader-asset-container.${json?.asset_type} img`).length;
+        const addButton     = document.querySelector( `.app-uploader-asset-container.${json?.asset_type} .smliser-uploader-add-image`);
+
+        smliserCurrentConfig.set( 'total_images', totalImages );
+        smliserCurrentConfig.set( 'add_button', addButton );
+
         if ( json ) {
             smliserCurrentConfig.set( 'app_slug', json.app_slug );
             smliserCurrentConfig.set( 'app_type', json.app_type );
             smliserCurrentConfig.set( 'asset_name', json.asset_name ?? '' );            
             smliserCurrentConfig.set( 'asset_type', json.asset_type ?? '' );
             
+            smliserCurrentConfig.set( 'limit', json.limit );
+
             if ( json.asset_url ) {
                 assetImageUploaderContainer.classList.add( 'has-image' );
                 imagePreview.src = json.asset_url;
                 uploadToRepoButton.setAttribute( 'disabled', true );
                 smliserCurrentConfig.set( 'observer', observeImageSrcChange( imagePreview ) );
-            }
+            } 
+            
+            if ( totalImages >= json.limit ) {
+                addButton.classList.add( 'smliser-hide' );
+                modalActions.closeModal();
+                smliserNotify( `limit for ${StringUtils.ucfirst( json.asset_type )} has been reached.` );
+            } else {
+                addButton.classList.remove( 'smliser-hide' );
+            }            
         }
-        console.log(smliserCurrentConfig);
+        
         
     },
     'closeModal': () => {
@@ -224,9 +240,7 @@ const modalActions = {
         let url;
         try {
             url = new URL( imageUrlInput.value );
-        } catch (error) {
-            console.log(error.type);
-        }        
+        } catch (error) {}        
 
         if ( ! imageUrlInput.checkValidity() ) {
             imageUrlInput.reportValidity();
@@ -305,29 +319,42 @@ const modalActions = {
                 imageContainer.innerHTML    = `
                     <img src="${new_image_url}" alt="${imageName}" title="${imageName}">
                     <div class="app-uploader-image-preview_edit">
-                        <span class="dashicons dashicons-edit edit-image" data-json='${StringUtils.escHtml( JSON.stringify( configJson ) )}' data-action="openModal" title="Edit"></span>
-                        <span class="dashicons dashicons-trash delete-image" data-json='${StringUtils.escHtml( JSON.stringify( configJson ) )}' data-action="deleteImage" title="Delete"></span>
+                        <span class="dashicons dashicons-edit edit-image" data-config="${encodeURIComponent( JSON.stringify( configJson ) )}" data-action="openModal" title="Edit"></span>
+                        <span class="dashicons dashicons-trash delete-image" data-config="${encodeURIComponent( JSON.stringify( configJson ) )}" data-action="deleteImage" title="Delete"></span>
                     </div>
                 `;
-                const target    = container.querySelector( '.app-uploader-asset-container_images' );
-                const addButton = target.querySelector( '.smliser-uploader-add-image' );
-                setTimeout( () => target.insertBefore(imageContainer, addButton), 400 );           
+                
+                let addButtonMore   = smliserCurrentConfig.get( 'add_button' );
+                let title           = smliserCurrentConfig.get( 'asset_type' );
+                let limit           = smliserCurrentConfig.get( 'limit' );
+                setTimeout( () => {
+                    const target    = container.querySelector( '.app-uploader-asset-container_images' );
+                    let addButton = target.querySelector( '.smliser-uploader-add-image' );
+                    
+                    target.insertBefore(imageContainer, addButton)
+                    const totalImages   = document.querySelectorAll( `.app-uploader-asset-container.${title} img`).length;
+
+                    if ( totalImages >= limit ) {
+                        addButtonMore.classList.add( 'smliser-hide' );
+                        modalActions.closeModal();
+                        smliserNotify( `limit for ${StringUtils.ucfirst( title )} has been reached.` );
+                    } else {
+                        addButtonMore.classList.remove( 'smliser-hide' );
+                    }                    
+                
+                }, 400 );           
             }
-            
+
             modalActions.resetModal();
             modalActions.closeModal();
-            
         } catch (error) {
             smliserNotify( error.message, 20000 );
-            console.log(error);
+            console.error(error);
             
         } finally {
             removeSpinner( spinner );
             clickedBtn.removeAttribute( 'disabled' );
         }
-
-
-
     },
 
     'processUploadedImage': async ( e ) => {
@@ -370,7 +397,8 @@ const modalActions = {
 
                    
             const blob          = await response.blob();
-            const fileName      = 'image.png';
+            const fileName      = imageUrl.split( '/' ).pop() ?? 'image.png';
+            
             if ( ! contentType.includes( 'image/png' ) ) {
                 return await modalActions.convertToPng( blob, fileName );
             }
@@ -484,8 +512,17 @@ const modalActions = {
         } catch (error) {
             smliserNotify( error.message, 10000 );
         }
-        
-        
+
+        const totalImages   = document.querySelectorAll( `.app-uploader-asset-container.${json?.asset_type} img`).length;
+        const addButton     = document.querySelector( `.app-uploader-asset-container.${json?.asset_type} .smliser-uploader-add-image`);
+
+        if ( totalImages >= json.limit ) {
+            addButton.classList.add( 'smliser-hide' );
+            modalActions.closeModal();
+            smliserNotify( `limit for ${StringUtils.ucfirst( json.asset_type )} has been reached.` );
+        } else {
+            addButton.classList.remove( 'smliser-hide' );
+        }
     }
 }
 
