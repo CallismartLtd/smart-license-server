@@ -129,6 +129,13 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     protected $screenshots = array();
 
     /**
+     * An array of of plugin icons.
+     * 
+     * @var array $screenshots
+     */
+    protected $icons = array();
+
+    /**
      * An array of banner images for the plugin..
      * 
      * @var array $banners
@@ -442,6 +449,16 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     public function set_screenshots( array $screenshots ) {
         $values             = array_values( $screenshots );
         $this->screenshots  = array_map( 'sanitize_url', wp_unslash( $screenshots ) );
+    }
+
+    /**
+     * Set plugin icons
+     * 
+     * @param array $icons
+     */
+    public function set_icons( array $icons ) {
+        $values         = array_values( $icons );
+        $this->icons    = array_map( 'sanitize_url', wp_unslash( $icons ) );
 
     }
 
@@ -592,6 +609,16 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      */
     public function get_screenshots() {
         return $this->screenshots;
+
+    }
+
+    /**
+     * Get plugin icons
+     * 
+     * @return array $screenshots
+     */
+    public function get_icons() {
+        return $this->icons;
 
     }
 
@@ -816,7 +843,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
 
         $file           = $this->file;
         $filename       = strtolower( str_replace( ' ', '-', $this->get_name() ) );
-        $smliser_repo   = new PluginRepository();
+        $repo_class     = new PluginRepository();
 
         $plugin_data = array(
             'name'          => $this->get_name(),
@@ -831,7 +858,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
 
         if ( $this->get_id() ) {
             if ( ! empty( $this->file ) ) {
-                $slug = $smliser_repo->upload_zip( $file, $this->get_slug(), true );
+                $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
                 if ( is_wp_error( $slug ) ) {
                     return $slug;
                 }
@@ -852,7 +879,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
                 return new WP_Error( 'missing_plugin', 'No plugin file found.' );
             }
 
-            $slug = $smliser_repo->upload_zip( $file, $filename );
+            $slug = $repo_class->upload_zip( $file, $filename );
 
             if ( is_wp_error( $slug ) ) {
                 return $slug;
@@ -882,50 +909,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     }
 
     /**
-     * Upload a plugin.
-     */
-    public function update() {
-        global $smliser_repo, $wpdb;
-        $file = $this->file;
-    
-        if ( ! empty( $this->file ) ) {
-            $slug = $smliser_repo->update_plugin( $file, $this->get_slug() );
-            if ( is_wp_error( $slug ) ) {
-                return $slug;
-            }
-        }
-    
-        // Prepare plugin data.
-        $plugin_data = array(
-            'name'          => sanitize_text_field( $this->get_name() ),
-            'slug'          => sanitize_text_field( $this->get_slug() ),
-            'version'       => sanitize_text_field( $this->get_version() ),
-            'author'        => sanitize_text_field( $this->get_author() ),
-            'author_profile'=> sanitize_url( $this->get_author_profile(), array( 'http', 'https' ) ),
-            'requires'      => sanitize_text_field( $this->get_required() ),
-            'tested'        => sanitize_text_field( $this->get_tested() ),
-            'requires_php'  => sanitize_text_field( $this->get_required_php() ),
-            'download_link' => sanitize_url( $this->get_download_link(), array( 'http', 'https' ) ),
-            'last_updated'  => current_time( 'mysql' ),
-        );
-    
-        // Database update.
-        $result = $wpdb->update(
-            SMLISER_PLUGIN_ITEM_TABLE,
-            $plugin_data,
-            array( 'id' => absint( $this->get_item_id() ) ),
-            array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ),
-            array( '%d' )
-        );
-    
-        if ( $result ) {
-            do_action( 'smliser_plugin_saved', $this );
-            return $this->get_item_id();
-        }
-        return $result;
-    }
-    
-    /**
      * Delete a plugin.
      */
     public function delete() {
@@ -935,10 +918,10 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             return false; // A valid plugin should have an ID.
         }
     
-        $smliser_repo = new PluginRepository();
+        $repo_class = new PluginRepository();
         
         $item_id        = $this->get_item_id();
-        $file_delete    = $smliser_repo->delete_from_repo( $this->get_slug() );
+        $file_delete    = $repo_class->delete_from_repo( $this->get_slug() );
 
         if ( is_wp_error( $file_delete ) ) {
             return $file_delete;
@@ -1112,9 +1095,9 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         /** 
          * Set file information 
          */
-        global $smliser_repo;
+
         $repo_class         = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
-        $plugin_file_path   = $smliser_repo->get_plugin( $self->get_slug() );
+        $plugin_file_path   = $repo_class->locate( $self->get_slug() );
         if ( ! is_wp_error( $plugin_file_path ) ) {
             $self->set_file( $plugin_file_path );
         } else {
@@ -1125,11 +1108,16 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
          * Section informations 
          */
         $sections = array(
-            'description'   => $smliser_repo->get_description( $self->get_slug() ),
-            'changelog'     => $smliser_repo->get_changelog( $self->get_slug() ),
-            'installation'  => $smliser_repo->get_installation_text( $self->get_slug() ),
+            'description'   => $repo_class->get_description( $self->get_slug() ),
+            'changelog'     => $repo_class->get_changelog( $self->get_slug() ),
+            'installation'  => $repo_class->get_installation( $self->get_slug() ),
         );
         $self->set_section( $sections );
+
+        /**
+         * Icons
+         */
+        $self->set_icons( $repo_class->get_assets( $self->get_slug(), 'icons' ) );
 
         /**
          * Screenshots
@@ -1137,14 +1125,14 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
 
         /**
-         *  Set other meta information.
+         *  Banners.
          */
         $self->set_banners( $repo_class->get_assets( $self->get_slug(), 'banners' ) );
 
         /**
          * Set short description
          */
-        $self->short_description = $smliser_repo->get_short_description( $self->get_slug() );
+        $self->short_description = $repo_class->get_short_description( $self->get_slug() );
 
         $self->set_ratings( $self->get_meta( 'ratings', 
             array(
