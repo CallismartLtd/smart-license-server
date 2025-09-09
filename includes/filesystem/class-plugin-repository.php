@@ -296,13 +296,35 @@ class PluginRepository extends Repository {
     }
 
     /**
+     * Delete a plugin asset from the repository
+     * 
+     * @param string $slug     Plugin slug (e.g., "my-plugin").
+     * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
+     * @param string $filename The filename to delete.
+     *
+     * @return true|\WP_Error True on success, WP_Error on failure.
+     */
+    public function delete_asset( $slug, $filename ) {
+        $path = $this->get_asset_path( $slug, $filename );
+
+        if ( is_wp_error( $path ) ) {
+            return $path;
+        }
+
+        if ( ! $this->delete( $path ) ) {
+            return new WP_Error( 'unable_to_delete', sprintf( 'Unable to delete the file %s', $filename ), [ 'status', 500 ] );
+        }
+        return true;
+    }
+
+    /**
      * Get plugin assets as URLs.
      *
      * Uses real_slug() and enter_slug() to ensure we operate inside the repository sandbox.
      *
      * @param string $slug Plugin slug.
      * @param string $type Asset type: 'banners', 'icons', 'screenshots'.
-     * @return array URLs of assets (screenshots are returned as [index => url]).
+     * @return array URLs of assets. (banners/icons => keyed array, screenshots => [index => url]).
      */
     public function get_assets( string $slug, string $type ) : array {
         // Normalize slug and ensure it is valid inside the repo.
@@ -322,56 +344,65 @@ class PluginRepository extends Repository {
 
         switch ( $type ) {
             case 'banners':
-                $pattern = $assets_dir . 'banner-*.*';
+                $files = [
+                    'low'  => $assets_dir . 'banner-772x250.png',
+                    'high' => $assets_dir . 'banner-1544x500.png',
+                ];
                 break;
 
             case 'icons':
-                $pattern = $assets_dir . 'icon-*.*';
+                $files = [
+                    'low'  => $assets_dir . 'icon-128x128.png',
+                    'high' => $assets_dir . 'icon-256x256.png',
+                ];
                 break;
 
             case 'screenshots':
                 $pattern = $assets_dir . 'screenshot-*.{png,jpg,jpeg}';
+                $files   = glob( $pattern, GLOB_BRACE );
                 break;
 
             default:
                 return [];
         }
 
-        $files = glob( $pattern, GLOB_BRACE );
-        if ( ! $files ) {
-            return [];
+        // --- Banners & Icons: keyed results ---
+        if ( in_array( $type, [ 'banners', 'icons' ], true ) ) {
+            $urls = [];
+            foreach ( $files as $key => $file_path ) {
+                if ( $this->is_file( $file_path ) ) {
+                    $urls[ $key ] = smliser_get_app_asset_url( 'plugin', $slug, basename( $file_path ) );
+                } else {
+                    $urls[ $key ] = '';
+                }
+            }
+            return $urls;
         }
 
-        // Natural sort by filename so screenshot-2 comes before screenshot-10.
-        usort( $files, function( $a, $b ) {
-            return strnatcmp( basename( $a ), basename( $b ) );
-        } );
+        // --- Screenshots: indexed results ---
+        if ( 'screenshots' === $type && $files ) {
+            usort( $files, function( $a, $b ) {
+                return strnatcmp( basename( $a ), basename( $b ) );
+            } );
 
-        $indexed = [];
-        foreach ( $files as $file_path ) {
-            $basename = basename( $file_path );
-            $url      = smliser_get_app_asset_url( 'plugin', $slug, 'assets/' . $basename );
+            $indexed = [];
+            foreach ( $files as $file_path ) {
+                $basename = basename( $file_path );
+                $url      = smliser_get_app_asset_url( 'plugin', $slug, 'assets/' . $basename );
 
-            if ( 'screenshots' === $type ) {
                 if ( preg_match( '/screenshot-(\d+)\./i', $basename, $m ) ) {
                     $indexed[ (int) $m[1] ] = $url;
                 } else {
-                    // If a file is present that doesn't match the pattern,
-                    // append it to the list to avoid silently dropping it.
                     $indexed[] = $url;
                 }
-            } else {
-                $indexed[] = $url;
             }
-        }
-
-        // Ensure screenshots are ordered by numeric index
-        if ( 'screenshots' === $type ) {
             ksort( $indexed );
+            return $indexed;
         }
 
-        return $indexed;
+        return [];
     }
+
 
     /**
      * Get the absolute path to a given application asset.
