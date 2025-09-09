@@ -40,10 +40,19 @@ class FileSystem {
     }
 
     /**
-     * Telss wether the given path is a directory
+     * Tells wether the given path is a directory
      */
     public function is_dir( $path ) {
         return $this->fs->is_dir( $path );
+    }
+
+    /**
+     * Tells whether the give path is a file
+     * 
+     * @param string $path
+     */
+    public function is_file( $path ) {
+        return $this->fs->is_file( $path );
     }
 
     /**
@@ -220,8 +229,8 @@ class FileSystem {
         return [
             'path'    => $path,
             'exists'  => true,
-            'is_dir'  => $this->fs->is_dir( $path ),
-            'is_file' => $this->fs->is_file( $path ),
+            'is_dir'  => $this->is_dir( $path ),
+            'is_file' => $this->is_file( $path ),
             'size'    => $this->fs->size( $path ),
             'mtime'   => $this->fs->mtime( $path ),
             'perms'   => $this->fs->gethchmod( $path ),
