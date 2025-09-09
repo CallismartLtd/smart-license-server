@@ -129,10 +129,28 @@ const StringUtils = {
             .join( ' ' );
     },
 
+    /**
+     * Decodes HTML entities
+     * @param {String} html - The html string to decode 
+     * @returns {String} Decoded html
+     */
     decodeEntity: function ( html ) {
         const textarea = document.createElement( 'textarea' );
         textarea.innerHTML = html;
         return textarea.value;
+    },
+
+    /**
+     *  Escapes html
+     * 
+     * @param {String} string - The string to escape
+     * @return {String} Safe html for outputs
+     */
+    escHtml: ( string ) => {
+        const div = document.createElement('div' );
+        div.textContent = string;
+
+        return div.innerHTML.replace(/"/g, '&quot;');
     },
     
     /**
