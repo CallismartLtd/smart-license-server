@@ -440,10 +440,8 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @param array $screenshots
      */
     public function set_screenshots( array $screenshots ) {
-        $values = array_values( $screenshots );
-        $this->screenshots = array_map( function( $value ){
-            return sanitize_url( $value, array( 'https', 'http' ) );
-        }, wp_unslash( $screenshots ) );
+        $values             = array_values( $screenshots );
+        $this->screenshots  = array_map( 'sanitize_url', wp_unslash( $screenshots ) );
 
     }
 
@@ -1133,22 +1131,20 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         );
         $self->set_section( $sections );
 
+        /**
+         * Screenshots
+         */
         $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
+
+        /**
+         *  Set other meta information.
+         */
+        $self->set_banners( $repo_class->get_assets( $self->get_slug(), 'banners' ) );
 
         /**
          * Set short description
          */
         $self->short_description = $smliser_repo->get_short_description( $self->get_slug() );
-
-        /**
-         *  Set other meta information.
-         */
-        $self->set_banners( 
-            array(
-                'low'   => '',
-                'high'  => '',
-            ) 
-        );
 
         $self->set_ratings( $self->get_meta( 'ratings', 
             array(
