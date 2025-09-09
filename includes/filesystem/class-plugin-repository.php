@@ -15,12 +15,21 @@ defined( 'ABSPATH' ) || exit;
 class PluginRepository extends Repository {
 
     /**
+     * Our readme parser class.
+     * 
+     * @var Callismart_Markdown_to_HTML $parser
+     */
+    protected $parser;
+
+    /**
      * Constructor.
      *
      * Always bind to the `plugins` subdirectory.
      */
     public function __construct() {
+        global $smliser_md_html;
         parent::__construct( 'plugins' );
+        $this->parser = $smliser_md_html;
     }
     
     /**
@@ -413,7 +422,6 @@ class PluginRepository extends Repository {
      */
     public function get_asset_path( string $slug, string $filename ) {
         $slug = $this->real_slug( $slug );
-
         try {
             $base_dir = $this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
@@ -433,7 +441,6 @@ class PluginRepository extends Repository {
 
         return $abs_path;
     }
-
 
     /**
      * Delete a plugin by it's given slug.
@@ -474,5 +481,192 @@ class PluginRepository extends Repository {
 
         return true;
 
+    }
+
+    /**
+     * Get plugin description from the readme.txt file.
+     * 
+     * @param string $slug The plugin slug.
+     * @return string The plugin description.
+     */
+    public function get_description( $slug ) {
+        $readme_contents = $this->get_readme_txt( $slug );
+
+        if ( ! $readme_contents ) {
+            return '';
+        }
+        
+        // Step 1: Start from Description block
+        if ( preg_match('/==\s*Description\s*==\s*(.+)/si', $readme_contents, $matches) ) {
+            $description = trim($matches[1]);
+
+            // Step 2: Remove official sections that might appear afterwards
+            $official_sections = ['Installation', 'Changelog', 'Frequently Asked Questions', 'Screenshots', 'Upgrade Notice'];
+            foreach ( $official_sections as $section ) {
+                // Remove everything from == Section == to the next ==
+                $pattern = '/==\s*' . preg_quote($section, '/') . '\s*==.*?(?==\s*\w+\s*==|$)/si';
+                $description = preg_replace( $pattern, '', $description );
+            }
+
+            // Step 3: Optional cleanup of stray metadata lines
+            $lines   = explode("\n", $description);
+            $exclude = ['Contributors:', 'Tags:', 'Stable tag:', 'Requires PHP:', 'License:', 'License URI:', 'Requires at least:', 'Tested up to:', 'WooCommerce tested up to:'];
+            $cleaned = [];
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if ($line === '') continue;
+                $skip = false;
+                foreach ($exclude as $meta) {
+                    if ( stripos($line, $meta) !== false ) {
+                        $skip = true;
+                        break;
+                    }
+                }
+                if (!$skip) {
+                    $cleaned[] = $line;
+                }
+            }
+
+            $final_text = implode("\n", $cleaned);
+            return $this->parser->parse( esc_html($final_text) );
+        }
+
+    }
+
+    /**
+     * Get plugin short description
+     * 
+     * @param string $slug The plugin slug.
+     * @return string The plugin short description.
+     */
+    public function get_short_description( $slug ) {
+        $readme_contents = $this->get_readme_txt( $slug );
+
+        if ( ! $readme_contents ) {
+            return '';
+        }
+        $lines           = preg_split( '/\r\n|\r|\n/', $readme_contents );
+        $found_meta      = false;
+        $short_description = '';
+
+        foreach ( $lines as $line ) {
+            $line = trim( $line );
+
+            // Stop searching once we reach the `== Description ==` section.
+            if ( '== Description ==' === $line ) {
+                break;
+            }
+
+            // Skip empty lines or plugin name section.
+            if ( empty( $line ) || ( str_starts_with( $line, '===' ) && str_ends_with( $line, '===' ) ) ) {
+                continue;
+            }
+
+            // Detect plugin meta section (lines with colons).
+            if ( str_contains( $line, ':' ) ) {
+                $found_meta = true;
+                continue;
+            }
+
+            // If we’ve passed the meta and find a valid line, it's the short description.
+            if ( $found_meta ) {
+                $short_description = $line;
+                break;
+            }
+        }
+
+        return $this->parser->parse( $short_description );
+
+    }
+
+    /**
+     * Get plugin changelog text
+     * 
+     * @param string $slug The plugin slug
+     * @return string The changelog text
+     */
+    public function get_changelog( $slug ) {
+        $readme_contents = $this->get_readme_txt( $slug );
+
+        if ( ! $readme_contents ) {
+            return '';
+        }
+
+        // Look for the "== Changelog ==" section in the readme.txt
+        if ( preg_match( '/==\s*Changelog\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
+            return $this->parser->parse(  trim( $matches[1] ) );
+        }
+
+        return '';
+    }
+
+    /**
+     * Get the installation text
+     * 
+     * @param string $slug the plugin slug
+     * @return string The plugin installation text section
+     */
+    public function get_installation( $slug ) {
+        $readme_contents = $this->get_readme_txt( $slug );
+
+        if ( ! $readme_contents ) {
+            return '';
+        }
+
+        // Look for the "== Changelog ==" section in the readme.txt
+        if ( preg_match( '/==\s*Installation\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
+            return $this->parser->parse(  trim( $matches[1] ) );
+        }
+
+        return '';
+    }
+
+
+    /**
+     * Get the contents of the readme file.
+     * 
+     * @param string $slug The plugin slug.
+     * @return string The readme.txt content, or empty string.
+     */
+    public function get_readme_txt( $slug ) {
+        $slug = $this->real_slug( $slug );
+        try {
+            $base_dir = $this->enter_slug( $slug );
+        } catch ( \InvalidArgumentException $e ) {
+            return '';
+        }
+
+        $file_path = trailingslashit( $base_dir ) . 'readme.txt';
+
+        if ( ! $this->exists( $file_path ) ) {
+            // Attempt to get it from the zipped plugin file.
+            $zip_path = $this->locate( $slug );
+
+            if ( is_wp_error( $zip_path ) ) {
+                return '';
+            }
+
+            $zip = new \ZipArchive();
+            if ( $zip->open( $zip_path ) !== true ) {
+                return '';
+            }
+
+            $readme_index = $zip->locateName( 'readme.txt', \ZipArchive::FL_NODIR );
+            if ( $readme_index === false ) {
+                $zip->close();
+                return '';
+            }
+
+            $readme_contents = $zip->getFromIndex( $readme_index );
+            $zip->close();
+
+            if ( ! $this->put_contents( $file_path, $readme_contents ) ) {
+                // TODO: Logging.
+            }
+
+            return $readme_contents;
+        }
+        
+        return $this->get_contents( $file_path );
     }
 }
