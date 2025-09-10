@@ -526,7 +526,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/admin/class-admin-dashboard.php';
         require_once SMLISER_PATH . 'includes/admin/class-repository-page.php';
         require_once SMLISER_PATH . 'includes/admin/class-admin-license-page.php';
-        require_once SMLISER_PATH . 'includes/admin/class-admin-options-page.php';
+        require_once SMLISER_PATH . 'includes/admin/class-options-page.php';
         
         do_action( 'smliser_loaded' );
         
