@@ -18,9 +18,6 @@ defined( 'ABSPATH' ) || exit;
  * This class manages the registration and retrieval of different
  * monetization providers integrated with the Smart License Server.
  */
-/**
- * Collection of available monetization providers.
- */
 class Provider_Collection {
     /**
      * Singleton instance.
@@ -60,7 +57,7 @@ class Provider_Collection {
      * @return void
      */
     public function register_provider( Monetization_Provider_Interface $provider ) {
-        $id = $provider->get_provider_id();
+        $id = $provider->get_id();
 
         $this->providers[ $id ] = $provider;
     }
@@ -211,6 +208,72 @@ class Provider_Collection {
         return $product;
     }
 
+    /**
+     * Get options for a monetization provider.
+     * 
+     * @param string $provider_id  The provider ID.
+     * @param string $option_name  The option name.
+     * @return mixed The option value or empty string if not set.
+     */
+    public static function get_option( $provider_id, $option_name ) {
+        static $provider_options = array();
+
+        // Load this provider's options into cache if not already loaded
+        if ( ! isset( $provider_options[ $provider_id ] ) ) {
+            $all_options = get_option( 'smliser_monetization_providers_options', array() );
+            $provider_options[ $provider_id ] = $all_options[ $provider_id ] ?? array();
+        }
+
+        return $provider_options[ $provider_id ][ $option_name ] ?? '';
+    }
+    /**
+     * Update an option for a monetization provider.
+     * 
+     * @param string $provider_id  The provider ID.
+     * @param string $option_name  The option name.
+     * @param mixed  $value        The option value to set.
+     * @return bool True if option value has changed, false if not or if update failed.
+     */
+    public static function update_option( $provider_id, $option_name, $value ) {
+        $all_options = get_option( 'smliser_monetization_providers_options', array() );
+
+        if ( ! isset( $all_options[ $provider_id ] ) || ! is_array( $all_options[ $provider_id ] ) ) {
+            $all_options[ $provider_id ] = array();
+        }
+
+        $all_options[ $provider_id ][ $option_name ] = $value;
+        $updated = update_option( 'smliser_monetization_providers_options', $all_options );
+
+        return $updated;
+    }
+
+    /**
+     * Save Monetization Provider options via ajax
+     */
+    public static function save_provider_options() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+        }
+
+        $provider_id = smliser_get_post_param( 'provider_id', null );
+
+        if ( ! $provider_id || ! self::instance()->has_provider( $provider_id ) ) {
+            wp_send_json_error( array( 'message' => sprintf( 'The provider "%s" is not supported.', $provider_id ?? 'Unknown' ) ) );
+        }
+
+        $provider           = self::instance()->get_provider( $provider_id );
+        $allowed_options    = array_keys( (array) $provider->get_allowed_options() );
+
+        foreach( $allowed_options as $name ) {
+            if ( $value = smliser_get_post_param( $name, null ) ) {
+                self::update_option( $provider->get_id(), $name, $value );
+            } else {
+                self::update_option( $provider->get_id(), $name, '' );
+            }
+        }
+
+        wp_send_json_success( array( 'message' => 'Saved' ) );
+    }
 
     /**
      * Autoload providers
@@ -227,3 +290,4 @@ class Provider_Collection {
 }
 
 add_action( 'init', array( Provider_Collection::class, 'auto_load' ) );
+add_action( 'wp_ajax_smliser_save_monetization_provider_options', array( Provider_Collection::class, 'save_provider_options' ) );
