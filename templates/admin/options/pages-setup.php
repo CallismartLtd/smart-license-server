@@ -27,8 +27,8 @@ defined( 'ABSPATH' ) || exit;
                     <label for="repos-perma-struct">Repository Base Slug</label>
                 </th>
                 <td>
-                    <span class="smliser-form-description" title="You can customize the the structures for your repository URLs here. Using 'plugins' will make your repository links like '<?php echo esc_url( home_url( '/plugins' ) ); ?>/plugin-slug/'">?</span>
-                    <input type="text" id="repos-perma-struct" name="smliser_permalink" value="/<?php echo esc_html( get_option( 'smliser_repo_base_perma', 'plugins' ) );?>/" class="regular-text"> current slug is set to <code><?php echo esc_url( home_url( '/' . get_option( 'smliser_repo_base_perma', 'plugins' ) . '/' ) ); ?></code>
+                    <span class="smliser-form-description" title="You can customize the the structures for your repository URLs here. Using 'repository' will make your repository links like '<?php echo esc_url( home_url( '/repository' ) ); ?>/app-slug/'">?</span>
+                    <input type="text" id="repos-perma-struct" name="smliser_permalink" value="/<?php echo esc_html( get_option( 'smliser_repo_base_perma', 'repository' ) );?>/" class="regular-text"> current slug is set to <code><?php echo esc_url( home_url( '/' . get_option( 'smliser_repo_base_perma', 'repository' ) . '/' ) ); ?></code>
                 </td>
             </tr>  
         </tbody>     
