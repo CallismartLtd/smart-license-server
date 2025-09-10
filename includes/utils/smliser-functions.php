@@ -576,6 +576,16 @@ function smliser_get_param( $key, $default = '', $source = array() ) {
 }
 
 /**
+ * Check whether a key is set in the query param
+ * 
+ * @param string $key The ky to check
+ * @return bool True when found, false otherwise.
+ */
+function smliser_has_query_param( $key ) {
+    return isset( $_GET[$key] );
+}
+
+/**
  * Renders a reusable, prefixed toggle switch component.
  *
  * @param array $attrs Associative array of attributes for the input element.
