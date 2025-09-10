@@ -575,7 +575,7 @@ class PluginRepository extends Repository {
             }
         }
 
-        return $this->parser->parse( $short_description );
+        return $short_description;
 
     }
 
