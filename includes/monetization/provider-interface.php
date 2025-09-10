@@ -34,21 +34,21 @@ interface Monetization_Provider_Interface {
      *
      * @return string
      */
-    public function get_provider_id();
+    public function get_id();
 
     /**
      * Get the provider name (human-readable).
      *
      * @return string
      */
-    public function get_provider_name();
+    public function get_name();
 
     /**
      * Get the provider base URL or API endpoint.
      *
      * @return string
      */
-    public function get_provider_url();
+    public function get_url();
 
     /**
      * Get product information from this provider.
@@ -98,5 +98,19 @@ interface Monetization_Provider_Interface {
      * @return string|null  Checkout URL, or null if not applicable.
      */
     public function get_checkout_url( $product_id );
+
+    /**
+     * Get the provider settings
+     * 
+     * @return array $settings
+     */
+    public function get_settings();
+
+    /**
+     * Get provider allowed options
+     * 
+     * @return array
+     */
+    public function get_allowed_options();
 }
 
