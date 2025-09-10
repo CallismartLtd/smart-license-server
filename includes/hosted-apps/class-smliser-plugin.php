@@ -1184,6 +1184,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'package'           => $this->get_download_link(),
             'banners'           => $this->get_banners(),
             'screenshots'       => $this->get_screenshots(),
+            'icons'             => $this->get_icons(),
             'requires'          => $this->get_required(),
             'tested'            => $this->get_tested(),
             'requires_php'      => $this->get_required_php(),

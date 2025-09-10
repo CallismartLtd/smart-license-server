@@ -164,7 +164,9 @@ class PluginRepository extends Repository {
             return new \WP_Error( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
         }
 
-        $readme_index = $zip->locateName( 'readme.txt', \ZipArchive::FL_NODIR );
+        $firstEntry = $zip->getNameIndex(0);
+        $rootDir = explode('/', $firstEntry)[0];
+        $readme_index = $zip->locateName( $rootDir . '/readme.txt', \ZipArchive::FL_NOCASE );
         if ( $readme_index === false ) {
             $zip->close();
             if ( $update ) {
@@ -651,7 +653,10 @@ class PluginRepository extends Repository {
                 return '';
             }
 
-            $readme_index = $zip->locateName( 'readme.txt', \ZipArchive::FL_NODIR );
+            $firstEntry = $zip->getNameIndex(0);
+            $rootDir = explode('/', $firstEntry)[0];
+            $readme_index = $zip->locateName( $rootDir . '/readme.txt', \ZipArchive::FL_NOCASE );
+        
             if ( $readme_index === false ) {
                 $zip->close();
                 return '';

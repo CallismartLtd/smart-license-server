@@ -25,5 +25,3 @@ defined( 'ABSPATH' ) || exit; ?>
     </div>
     <button type="submit" class="button">Save</button>
 </form>
-
-<?php pretty_print( get_option( 'smliser_monetization_providers_options', array() ) ) ?>
