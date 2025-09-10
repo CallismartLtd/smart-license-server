@@ -24,35 +24,65 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
     /**
      * WooCommerce site URL.
      *
-     * @var string
+     * @var string $store_url
      */
-    protected $store_url = 'https://callismart.local';
+    protected $store_url = '';
+
+    /**
+     * Checkout URL.
+     * 
+     * @var string $checkout_endpoint
+     */
+    protected $checkout_endpoint = '';
 
     /**
      * Construct provider with target store URL.
      *
      */
-    public function __construct() {}
+    public function __construct() {
+        $this->store_url            = sanitize_url( Provider_Collection::get_option( $this->get_id(), 'store_url' ), array( 'https' ) );
+        $this->checkout_endpoint    = sanitize_text_field( wp_unslash( Provider_Collection::get_option( $this->get_id(), 'checkout_url' ) ) );
+    }
 
     /**
      * {@inheritdoc}
      */
-    public function get_provider_id() {
+    public function get_id() {
         return 'woocommerce';
     }
 
     /**
      * {@inheritdoc}
      */
-    public function get_provider_name() {
+    public function get_name() {
         return 'WooCommerce';
     }
 
     /**
      * {@inheritdoc}
      */
-    public function get_provider_url() {
+    public function get_url() {
         return $this->store_url;
+    }
+
+    /**
+     * Get a checkout URL for a given pricing product.
+     *
+     * @param string|int $product_id.
+     * @param string $context The context, valid options are `edit` and `view`.
+     * @return string  Checkout URL.
+     */
+    public function get_checkout_url( $product_id = '', $context = 'view' ) {
+
+        if ( 'edit' === $context ) {
+            return $this->checkout_endpoint;
+        }
+
+        $product_id = ! empty( $product_id ) ?  trailingslashit( $product_id ) : '{{product_id}}';
+        $base_url   = ! empty( $this->store_url ) ? trailingslashit( $this->store_url ) : '';
+        $checkout   = ! empty( $this->store_url ) ? trailingslashit( $this->checkout_endpoint ) : '';
+        
+        return $base_url . $checkout . $product_id;
     }
 
     /**
@@ -62,7 +92,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
      * @param bool       $force_refresh Optional. If true, bypass cache. Default false.
      * @return array|null
      */
-    public function get_product( $product_id, $force_refresh = false ) {
+    public function get_product( $product_id, $force_refresh = true ) {
         $product_id   = absint( $product_id );
         $cache_key    = 'smliser_wc_product_' . md5( $this->store_url . '_' . $product_id );
         $cache_expiry = 3 * HOUR_IN_SECONDS;
@@ -129,16 +159,6 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
         }
 
         return isset( $product['pricing'] ) ? $product['pricing'] : [];
-    }
-
-    /**
-     * Get a checkout URL for a given pricing product.
-     *
-     * @param string|int $product_id
-     * @return string  Checkout URL.
-     */
-    public function get_checkout_url( $product_id = '{{product_id}}' ) {
-        return $this->store_url . '/app-store/purchase/' . trailingslashit( $product_id );
     }
 
     /**
@@ -210,6 +230,48 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
         }
 
         return 'left'; // fallback
+    }
+
+    /**
+     * Get WooCommerce Settings
+     */
+    public function get_settings() {
+        return array(
+            array(
+                'label' => __( 'Store URL', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'store_url',
+                    'value' => $this->get_url(),
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Checkout URL/Endpoint', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'checkout_url',
+                    'value' => $this->get_checkout_url( '', 'edit' ),
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    )
+                )
+            ),
+        );
+    }
+
+    /**
+     * WooCommerce allowed options
+     */
+    public function get_allowed_options() {
+        return array(
+            'store_url' => 'Store URL',
+            'checkout_url' => 'Checkout URL/Endpoint',
+        );
     }
 
 }
