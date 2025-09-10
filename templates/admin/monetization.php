@@ -58,7 +58,7 @@ $item_object = $object->get_item_object();
                     </tr>
                     <tr>
                         <th>Description:</th>
-                        <td><?php echo esc_html( $item_object->get_short_description() ); ?></td>
+                        <td><?php echo wp_kses_post( $item_object->get_short_description() ); ?></td>
                     </tr>
                     <tr>
                         <th>Author:</th>
@@ -149,8 +149,8 @@ $item_object = $object->get_item_object();
             <?php else: ?>
                 <?php foreach( $providers as $provider ): ?>
                     <div class="smliser-monetization-ui__monetization-provider">
-                        <p>Name: <strong><?php echo esc_html( $provider->get_provider_name() ); ?></strong></p>
-                        <p>Base URL: <?php echo esc_html( $provider->get_provider_url() ); ?></p>
+                        <p>Name: <strong><?php echo esc_html( $provider->get_name() ); ?></strong></p>
+                        <p>Base URL: <?php echo esc_html( $provider->get_url() ); ?></p>
                         <p>Checkout URL: <?php echo esc_html( $provider->get_checkout_url() ); ?></p>
 
                     </div>
@@ -182,7 +182,7 @@ $item_object = $object->get_item_object();
                         <select name="provider_id" id="provider_id" field-name="Monetization Provider">
                             <option value="">--Choose Provider--</option>
                             <?php foreach( $providers as $provider ) : ?>
-                                <option value="<?php echo esc_attr( $provider->get_provider_id() ) ?>"><?php echo esc_html( $provider->get_provider_name() ); ?></option>
+                                <option value="<?php echo esc_attr( $provider->get_id() ) ?>"><?php echo esc_html( $provider->get_name() ); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </label>
