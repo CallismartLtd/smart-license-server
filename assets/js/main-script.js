@@ -213,6 +213,62 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
     let revokeBtns              = document.querySelectorAll( '.smliser-revoke-btn' );
     let monetizationUI          = document.querySelector( '.smliser-monetization-ui' );
+    let optionForms             = document.querySelectorAll( 'form.smliser-options-form' );
+
+    if ( optionForms ) {
+        optionForms.forEach( form => {
+            form.addEventListener( 'submit', ( e ) => {
+                e.preventDefault();
+
+                const payLoad   = new FormData( e.target );
+                const url       = smliser_var.smliser_ajax_url;
+                payLoad.set( 'security', smliser_var.nonce );
+                const submitBtn = e.target.querySelector( 'button[type="submit"]' );
+                
+                submitBtn?.setAttribute( 'disabled', true );
+                const spinner = showSpinner( '.smliser-spinner', true );
+
+                fetch( url, {
+                    method: 'POST',
+                    body: payLoad,
+                    credentials: 'same-origin'
+                }).then( async response => {
+                    const contentType = response.headers.get( 'content-type' );
+                    if ( ! response.ok ) {
+                        let errorMessage = await response.text();
+                        if ( contentType.includes( 'application/json' ) ) {
+                            const body      = await response.json();
+                            errorMessage    = body?.data?.message ?? errorMessage;
+                        }
+
+                        throw new Error( errorMessage );
+                    }
+
+                    const responseJson = await response.json();
+
+                    if ( ! responseJson.success ) {
+                        let errorMessage = responseJson?.data?.message ?? 'An error occurred';
+
+                        throw new Error( errorMessage );
+                    }
+
+                    const message = response?.data?.message ?? 'Success';
+                    smliserNotify( message, 5000 );
+                }).catch( error => {
+                    if ( error.message?.toLowerCase().includes( "network" ) || error.message?.toLowerCase().includes( "failed to fetch" ) ){
+                        smliserNotify( 'Check network connection', 5000 );
+                    } else {
+                        smliserNotify( error.message, 5000 );
+                    }
+                    
+                }).finally( () => {
+                    removeSpinner( spinner );
+                    submitBtn?.removeAttribute( 'disabled' );
+                });
+                
+            })
+        })
+    }
 
     if ( deleteBtn ) {
         deleteBtn.addEventListener( 'click', function( event ) {
