@@ -429,50 +429,65 @@ class Smliser_Server{
     }
 
     /**
-     * Inline static assets and image server.
+     * Serve inline static assets and images with aggressive caching.
      */
     public function asset_server() {
-        global $wp_query;
+        if ( 'smliser-repository-assets' !== get_query_var( 'pagename' ) ) {
+            return;
+        }
 
-        if ( 'smliser-repository-assets' === get_query_var( 'pagename' ) ) {
-            $app_type   = sanitize_text_field( wp_unslash( get_query_var( 'smliser_app_type' ) ) );
-            $app_slug   = sanitize_text_field( wp_unslash( get_query_var( 'smliser_app_slug' ) ) );
-            $asset_name = sanitize_text_field( wp_unslash( get_query_var( 'smliser_asset_name' ) ) );
+        $app_type   = sanitize_text_field( wp_unslash( get_query_var( 'smliser_app_type' ) ) );
+        $app_slug   = sanitize_text_field( wp_unslash( get_query_var( 'smliser_app_slug' ) ) );
+        $asset_name = sanitize_text_field( wp_unslash( get_query_var( 'smliser_asset_name' ) ) );
 
-            $repo_class = Smliser_Software_Collection::get_app_repository_class( $app_type );
+        $repo_class = Smliser_Software_Collection::get_app_repository_class( $app_type );
+        if ( ! $repo_class ) {
+            wp_die( 'Invalid app type', 'Asset Error', [ 'response' => 400 ] );
+        }
 
-            if ( ! $repo_class ) {
-                wp_die( 'Invalid app type', 'Asset Error', [ 'response' => 400 ] );
-            }
+        $file_path = $repo_class->get_asset_path( $app_slug, $asset_name );
+        if ( is_wp_error( $file_path ) ) {
+            wp_die( $file_path->get_error_message(), 'Asset Error', [ 'response' => $file_path->get_error_code() ] );
+        }
 
-            $file_path = $repo_class->get_asset_path( $app_slug, $asset_name );
+        if ( ! $repo_class->is_readable( $file_path ) ) {
+            wp_die( 'Invalid or corrupted file', 'Asset Error', [ 'response' => 500 ] );
+        }
 
-            if ( is_wp_error( $file_path ) ) {
-                wp_die( $file_path->get_error_message(), 'Asset Error', [ 'response' => $file_path->get_error_code() ] );
-            }
+        // --- File details ---
+        $mime          = wp_check_filetype( $file_path );
+        $mime_type     = $mime['type'] ?: 'application/octet-stream';
+        $filesize      = $repo_class->filesize( $file_path );
+        $last_modified = gmdate( 'D, d M Y H:i:s', $repo_class->filemtime( $file_path ) ) . ' GMT';
+        $etag          = '"' . md5( $filesize . $last_modified ) . '"';
 
-            if ( ! $repo_class->is_readable( $file_path ) ) {
-                wp_die( 'Invalid or corrupted file', 'Asset Error', [ 'response' => 500 ] );
-            }
-
-            // Detect MIME type
-            $mime = wp_check_filetype( $file_path );
-            $mime_type = $mime['type'] ? $mime['type'] : 'application/octet-stream';
-
-            // Send headers
-            status_header( 200 );
-            header( 'Content-Type: ' . $mime_type );
-            header( 'Content-Length: ' . $repo_class->filesize( $file_path ) );
-            header( 'Content-Disposition: inline; filename="' . basename( $file_path ) . '"' );
-            header( 'Cache-Control: public, max-age=31536000' ); // 1 year cache for assets
-            header( 'Pragma: public' );
-
-            // Stream the file
-            $repo_class->readfile( $file_path );
+        // --- Handle conditional requests (304) ---
+        if (
+            ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && trim( $_SERVER['HTTP_IF_NONE_MATCH'] ) === $etag ) ||
+            ( isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) && trim( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) === $last_modified )
+        ) {
+            status_header( 304 );
+            header( 'Cache-Control: public, max-age=31536000, immutable' );
+            header( 'ETag: ' . $etag );
+            header( 'Last-Modified: ' . $last_modified );
             exit;
         }
-    }
 
+        // --- Send headers ---
+        status_header( 200 );
+        header( 'Content-Type: ' . $mime_type );
+        header( 'Content-Length: ' . $filesize );
+        header( 'Content-Disposition: inline; filename="' . basename( $file_path ) . '"' );
+        header( 'Cache-Control: public, max-age=31536000, immutable' );
+        header( 'Pragma: public' );
+        header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + 31536000 ) . ' GMT' );
+        header( 'ETag: ' . $etag );
+        header( 'Last-Modified: ' . $last_modified );
+
+        // --- Stream the file ---
+        $repo_class->readfile( $file_path );
+        exit;
+    }
 
     /**
      * Proxy image download
