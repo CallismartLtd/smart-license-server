@@ -216,6 +216,13 @@ class FileSystem {
     }
 
     /**
+     * Get the file modification time
+     */
+    public function filemtime( $path ) {
+        return $this->fs->mtime( $path );
+    }
+
+    /**
      * Get file info like stat().
      *
      * @param string $path Absolute path
