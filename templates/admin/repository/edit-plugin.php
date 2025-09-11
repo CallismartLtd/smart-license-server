@@ -90,6 +90,13 @@ $other_fields   = array(
 
 );
 
+$screenshots = [];
+
+foreach( $app->get_screenshots() as $screenshot ) {
+    $screenshots[] = $screenshot['src'] ?? '';
+}
+
+
 $assets = array(
     'icon' => array(
         'title'     => 'Icons',
@@ -106,8 +113,8 @@ $assets = array(
     'screenshot' => array(
         'title'     => 'Screenshots',
         'limit'     => 10,
-        'images'    => $app->get_screenshots(),
-        'total'    => count( array_filter( $app->get_screenshots() ) )
+        'images'    => $screenshots,
+        'total'    => count( array_filter( $screenshots ) )
     ),
 );
 
