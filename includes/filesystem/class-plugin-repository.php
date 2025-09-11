@@ -363,8 +363,8 @@ class PluginRepository extends Repository {
 
             case 'icons':
                 $files = [
-                    'low'  => $assets_dir . 'icon-128x128.png',
-                    'high' => $assets_dir . 'icon-256x256.png',
+                    '1x'    => $assets_dir . 'icon-128x128.png',
+                    '2x'    => $assets_dir . 'icon-256x256.png',
                 ];
                 break;
 
@@ -690,7 +690,46 @@ class PluginRepository extends Repository {
 
         return $formatted;
     }
+    
+    /**
+     * Get plugin screenshots as a formatted HTML ordered list.
+     *
+     * This method mimics the HTML structure found in the `sections -> screenshots`
+     * property of the WordPress.org plugin information API.
+     *
+     * @param string $slug Plugin slug.
+     * @return string HTML of the screenshots ordered list.
+     */
+    public function get_screenshot_html( string $slug ): string {
+        // Get the structured screenshot data from your existing method.
+        $screenshots = $this->get_screenshots( $slug );
 
+        if ( empty( $screenshots ) ) {
+            return '';
+        }
+
+        $html = '<ol>';
+
+        foreach ( $screenshots as $i => $screenshot ) {
+            $src     = esc_url( $screenshot['src'] );
+            $caption = esc_html( $screenshot['caption'] );
+
+            // This is the structure you see in the API response's sections property.
+            // It includes a link to the full-size image and a caption.
+            $html .= '<li>';
+            $html .= '<a href="' . $src . '">';
+            $html .= '<img src="' . $src . '" alt="' . $caption . '">';
+            $html .= '</a>';
+            if ( ! empty( $caption ) ) {
+                $html .= '<p>' . $caption . '</p>';
+            }
+            $html .= '</li>';
+        }
+
+        $html .= '</ol>';
+
+        return $html;
+    }
 
     /**
      * Get the contents of the readme file.
