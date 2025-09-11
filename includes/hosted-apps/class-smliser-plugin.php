@@ -444,11 +444,27 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     /**
      * Set plugin screenshots
      * 
-     * @param array $screenshots
+     * @param array $screenshots Array of screenshots in the form:
+     * [
+     *   '1' => [
+     *      'src'     => 'https://example.com/screenshot-1.png',
+     *      'caption' => 'Screenshot caption'
+     *   ],
+     *   ...
+     * ]
      */
     public function set_screenshots( array $screenshots ) {
-        $values             = array_values( $screenshots );
-        $this->screenshots  = array_map( 'sanitize_url', wp_unslash( $screenshots ) );
+        foreach ( $screenshots as $key => &$screenshot ) {
+            if ( isset( $screenshot['src'] ) ) {
+                $screenshot['src'] = esc_url_raw( $screenshot['src'] );
+            }
+
+            if ( isset( $screenshot['caption'] ) ) {
+                $screenshot['caption'] = sanitize_text_field( $screenshot['caption'] );
+            }
+        }
+
+        $this->screenshots = $screenshots;
     }
 
     /**
@@ -1122,7 +1138,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         /**
          * Screenshots
          */
-        $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
+        $self->set_screenshots( $repo_class->get_screenshots( $self->get_slug() ) );
 
         /**
          *  Banners.
