@@ -112,6 +112,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         'description'   => '',
         'installation'  => '',
         'changelog'     => '',
+        'screenshots'   => '',
     );
 
     /**
@@ -419,6 +420,10 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         
         if ( isset( $section_data['changelog'] ) ) {
             $this->sections['changelog'] = $section_data['changelog'];
+        }
+
+        if ( isset( $section_data['screenshots'] ) ) {
+            $this->sections['screenshots'] = $section_data['screenshots'];
         }
     }
 
@@ -1127,6 +1132,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'description'   => $repo_class->get_description( $self->get_slug() ),
             'changelog'     => $repo_class->get_changelog( $self->get_slug() ),
             'installation'  => $repo_class->get_installation( $self->get_slug() ),
+            'screenshots'   => $repo_class->get_screenshot_html( $self->get_slug() ),
         );
         $self->set_section( $sections );
 
