@@ -623,6 +623,74 @@ class PluginRepository extends Repository {
         return '';
     }
 
+    /**
+     * Extract screenshot captions from a plugin's readme.txt file.
+     *
+     * @param string $slug Plugin slug.
+     * @return array<int, string> [ index => caption ]
+     */
+    public function get_screenshot_captions( string $slug ) : array {
+        $content = $this->get_readme_txt( $slug );
+
+        if ( empty( $content ) ) {
+            return [];
+        }
+
+        $lines    = preg_split( "/(\r?\n)/", $content );
+        $captions = [];
+        $capture  = false;
+
+        foreach ( $lines as $line ) {
+            $trimmed = trim( $line );
+
+            // Section starts
+            if ( preg_match( '/^==\s*Screenshots\s*==$/i', $trimmed ) ) {
+                $capture = true;
+                continue;
+            }
+
+            // Section ends (next == Section == heading)
+            if ( $capture && preg_match( '/^==.+==$/', $trimmed ) ) {
+                break;
+            }
+
+            // Numbered caption lines like "1. Some caption"
+            if ( $capture && preg_match( '/^(\d+)\.\s*(.+)$/', $trimmed, $m ) ) {
+                $captions[ (int) $m[1] ] = $m[2];
+            }
+        }
+
+        return $captions;
+    }
+
+    /**
+     * Get plugin screenshots in WordPress.org-style format.
+     *
+     * @param string $slug Plugin slug.
+     * @return array<int, array{src: string, caption: string}>
+     */
+    public function get_screenshots( string $slug ) : array {
+        // Get screenshot URLs from repo
+        $assets = $this->get_assets( $slug, 'screenshots' );
+
+        if ( empty( $assets ) ) {
+            return [];
+        }
+
+        // Get captions from readme.txt
+        $captions = $this->get_screenshot_captions( $slug );
+
+        $formatted = [];
+        foreach ( $assets as $i => $url ) {
+            $formatted[ $i ] = [
+                'src'     => $url,
+                'caption' => $captions[ $i ] ?? '',
+            ];
+        }
+
+        return $formatted;
+    }
+
 
     /**
      * Get the contents of the readme file.
