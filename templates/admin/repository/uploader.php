@@ -11,7 +11,9 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 
 <div class="application-uploader-page">
     <h1><?php echo esc_html( $title ); ?> Upload
-        <a class="button action smliser-nav-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">view</a>
+        <?php if ( ! empty( $app ) ) : ?>
+            <a class="button action smliser-nav-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">view</a>
+        <?php endif; ?>
     </h1>
 
     <form action="" class="app-uploader-form" id="newAppUploaderForm">
