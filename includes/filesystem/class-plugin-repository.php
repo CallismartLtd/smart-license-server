@@ -399,7 +399,7 @@ class PluginRepository extends Repository {
             $indexed = [];
             foreach ( $files as $file_path ) {
                 $basename = basename( $file_path );
-                $url      = smliser_get_app_asset_url( 'plugin', $slug, 'assets/' . $basename );
+                $url      = smliser_get_app_asset_url( 'plugin', $slug, $basename );
 
                 if ( preg_match( '/screenshot-(\d+)\./i', $basename, $m ) ) {
                     $indexed[ (int) $m[1] ] = $url;
