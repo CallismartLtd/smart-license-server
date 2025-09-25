@@ -5,7 +5,7 @@
  * Description: license REST API server for WordPress premium plugins.
  * Author: Callistus Nwachukwu
  * Author URI: https://callismart.com.ng/callistus
- * Version: 0.0.7
+ * Version: 0.0.8
  */
 
 defined( 'ABSPATH' ) || exit;
