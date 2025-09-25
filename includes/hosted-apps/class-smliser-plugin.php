@@ -1202,7 +1202,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'version'           => $this->get_version(),
             'author'            => '<a href="' . esc_url( $this->get_author_profile() ) . '">' . $this->get_author() . '</a>',
             'author_profile'    => $this->get_author_profile(),
-            'homepage'          => $this->get_url(),
+            'homepage'          => $this->get_homepage(),
             'package'           => $this->get_download_link(),
             'banners'           => $this->get_banners(),
             'screenshots'       => $this->get_screenshots(),
