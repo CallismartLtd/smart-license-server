@@ -31,7 +31,7 @@ Smart License Server is a License Key and Update Server for developers who desir
 
 ## Support
 
-For support, please visit the [support forum](https://callismart.com.ng/support-portal/).
+For support, please visit the [support forum](https://support.callismart.com.ng/support-portal/).
 
 ## License
 
