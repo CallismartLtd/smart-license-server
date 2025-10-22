@@ -195,7 +195,7 @@ class Pricing_Tier {
      * @return self
      */
     public function set_name( $name ) {
-        $this->name = sanitize_text_field( wp_unslash( $name ) );
+        $this->name = sanitize_text_field( unslash( $name ) );
         return $this;
     }
 
@@ -206,7 +206,7 @@ class Pricing_Tier {
      * @return self
      */
     public function set_product_id( $product_id ) {
-        $this->product_id = is_numeric( $product_id ) ? absint( $product_id ) : sanitize_text_field( wp_unslash( $product_id ) );
+        $this->product_id = is_numeric( $product_id ) ? absint( $product_id ) : sanitize_text_field( unslash( $product_id ) );
         return $this;
     }
 
@@ -217,7 +217,7 @@ class Pricing_Tier {
      * @return self
      */    
     public function set_provider_id( $provider_id ) {
-        $this->provider_id = sanitize_text_field( wp_unslash( $provider_id ) );
+        $this->provider_id = sanitize_text_field( unslash( $provider_id ) );
         return $this;
     }
 
