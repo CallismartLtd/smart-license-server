@@ -54,8 +54,8 @@ class Smliser_REST_Authentication {
      */
     public static function auth_permission( WP_REST_Request $request ) {
         
-        $consumer_public    = ! empty( $request->get_param( 'consumer_public' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'consumer_public' ) ) ) ) : '';
-        $consumer_secret    = ! empty( $request->get_param( 'consumer_secret' ) ) ? sanitize_text_field( wp_unslash(urldecode( $request->get_param( 'consumer_secret' ) ) ) ) : '';
+        $consumer_public    = ! empty( $request->get_param( 'consumer_public' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'consumer_public' ) ) ) ) : '';
+        $consumer_secret    = ! empty( $request->get_param( 'consumer_secret' ) ) ? sanitize_text_field( unslash(urldecode( $request->get_param( 'consumer_secret' ) ) ) ) : '';
         
         if ( ! empty( $consumer_secret ) && ! empty( $consumer_public ) ) {
             $api_cred_obj   = new Smliser_API_Cred();
@@ -78,10 +78,10 @@ class Smliser_REST_Authentication {
      * @param WP_REST_Request $request The current REST API Request object
      */
     public static function client_authentication_response( WP_REST_Request $request ) {
-        $consumer_public    = ! empty( $request->get_param( 'consumer_public' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'consumer_public' ) ) ) ) : '';
-        $consumer_secret    = ! empty( $request->get_param( 'consumer_secret' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'consumer_secret' ) ) ) ) : '';
-        $app_name           = ! empty( $request->get_param( 'app_name' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'app_name' ) ) ) ) : '';
-        $context            = ! empty( $request->get_param( 'context' ) ) ? sanitize_text_field( wp_unslash( urldecode( $request->get_param( 'context' ) ) ) ) : '';        
+        $consumer_public    = ! empty( $request->get_param( 'consumer_public' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'consumer_public' ) ) ) ) : '';
+        $consumer_secret    = ! empty( $request->get_param( 'consumer_secret' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'consumer_secret' ) ) ) ) : '';
+        $app_name           = ! empty( $request->get_param( 'app_name' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'app_name' ) ) ) ) : '';
+        $context            = ! empty( $request->get_param( 'context' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'context' ) ) ) ) : '';        
         $api_cred_obj       = new Smliser_API_Cred();
         $the_api_cred       = $api_cred_obj->get_api_data( $consumer_public, $consumer_secret );
         $access_token       = '';
