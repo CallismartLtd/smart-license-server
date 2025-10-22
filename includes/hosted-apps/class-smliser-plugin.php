@@ -479,7 +479,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      */
     public function set_icons( array $icons ) {
         $values         = array_values( $icons );
-        $this->icons    = array_map( 'sanitize_url', wp_unslash( $icons ) );
+        $this->icons    = array_map( 'sanitize_url', unslash( $icons ) );
 
     }
 
@@ -1362,7 +1362,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * Form controller.
      */
     public static function plugin_upload_controller () {
-        if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
+        if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
             $is_new     = isset( $_POST['smliser_plugin_upload_new'] );
             $is_update  = isset( $_POST['smliser_plugin_upload_update'] );
 
@@ -1375,14 +1375,14 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
 
             $file = isset( $_FILES['smliser_plugin_file'] ) && UPLOAD_ERR_OK === $_FILES['smliser_plugin_file']['error'] ? $_FILES['smliser_plugin_file'] : null;
             $self->set_file( $file );
-            $self->set_name( isset( $_POST['smliser_plugin_name']  ) ? sanitize_text_field( wp_unslash( $_POST['smliser_plugin_name'] ) ) : '' );
-            $self->set_author( isset( $_POST['smliser_plugin_author']  ) ? sanitize_text_field( wp_unslash( $_POST['smliser_plugin_author'] ) ) : '' );
-            $self->set_author_profile( isset( $_POST['smliser_plugin_author_profile']  ) ? sanitize_text_field( wp_unslash( $_POST['smliser_plugin_author_profile'] ) ) : '' );
-            $self->set_required( isset( $_POST['smliser_plugin_requires']  ) ? sanitize_text_field( wp_unslash( $_POST['smliser_plugin_requires'] ) ) : '' );
-            $self->set_tested( isset( $_POST['smliser_plugin_tested']  ) ? sanitize_text_field( wp_unslash( $_POST['smliser_plugin_tested'] ) ) : '' );
-            $self->set_required_php( isset( $_POST['smliser_plugin_requires_php']  ) ? sanitize_text_field( wp_unslash( $_POST['smliser_plugin_requires_php'] ) ) : '' );
-            $self->set_version( isset( $_POST['smliser_plugin_version']  ) ? sanitize_text_field( wp_unslash( $_POST['smliser_plugin_version'] ) ) : '' );
-            $self->set_download_link( isset( $_POST['smliser_plugin_download_link']  ) ? sanitize_url( wp_unslash( $_POST['smliser_plugin_download_link'] ), array( 'http', 'https' ) ) : '' );
+            $self->set_name( isset( $_POST['smliser_plugin_name']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_name'] ) ) : '' );
+            $self->set_author( isset( $_POST['smliser_plugin_author']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_author'] ) ) : '' );
+            $self->set_author_profile( isset( $_POST['smliser_plugin_author_profile']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_author_profile'] ) ) : '' );
+            $self->set_required( isset( $_POST['smliser_plugin_requires']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_requires'] ) ) : '' );
+            $self->set_tested( isset( $_POST['smliser_plugin_tested']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_tested'] ) ) : '' );
+            $self->set_required_php( isset( $_POST['smliser_plugin_requires_php']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_requires_php'] ) ) : '' );
+            $self->set_version( isset( $_POST['smliser_plugin_version']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_version'] ) ) : '' );
+            $self->set_download_link( isset( $_POST['smliser_plugin_download_link']  ) ? sanitize_url( unslash( $_POST['smliser_plugin_download_link'] ), array( 'http', 'https' ) ) : '' );
 
             if ( $is_new ) {
                 $item_id = $self->save();
@@ -1397,7 +1397,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             }
             
             if ( $is_update ) {
-                $self->update_meta( 'support_url', isset( $_POST['smliser_plugin_support_url'] ) ? sanitize_url( wp_unslash( $_POST['smliser_plugin_support_url'] ), array( 'http', 'https' ) ) : '' );
+                $self->update_meta( 'support_url', isset( $_POST['smliser_plugin_support_url'] ) ? sanitize_url( unslash( $_POST['smliser_plugin_support_url'] ), array( 'http', 'https' ) ) : '' );
                 $update = $self->save();
                 if ( is_wp_error( $update ) ) {
                     set_transient( 'smliser_form_validation_message', $update->get_error_message(), 5 );
