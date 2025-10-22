@@ -105,10 +105,10 @@ class Options_Page {
      */
     public static function options_form_handler() {
 
-        if ( isset( $_POST['smliser_page_setup'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_options_form'] ) ), 'smliser_options_form' ) ) {
+        if ( isset( $_POST['smliser_page_setup'] ) && wp_verify_nonce( sanitize_text_field( unslash( $_POST['smliser_options_form'] ) ), 'smliser_options_form' ) ) {
             
             if ( isset( $_POST['smliser_permalink'] ) ) {
-                $permalink = preg_replace( '~(^\/|\/$)~', '', sanitize_text_field( wp_unslash( $_POST['smliser_permalink'] ) ) );
+                $permalink = preg_replace( '~(^\/|\/$)~', '', sanitize_text_field( unslash( $_POST['smliser_permalink'] ) ) );
                 update_option( 'smliser_repo_base_perma', ! empty( $permalink ) ? strtolower( $permalink ) : 'plugins'  );
                 
             }
