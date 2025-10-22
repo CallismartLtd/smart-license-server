@@ -134,16 +134,16 @@
 }
 
 /* Ensure the edit link is hidden by default */
-.smliser-edit-row .smliser-edit-link {
+.smliser-edit-link {
     opacity: 0;
     display: flex;
     gap: 5px;
 }
 
 /* Show the edit link when hovering over the table cell */
-.smliser-edit-row:hover .smliser-edit-link {
+tr:hover:has( .smliser-edit-link ) .smliser-edit-link {
     opacity: 1;
-    animation: fadeIn 2s;
+    animation: fadeIn 1s;
 }
 @keyframes fadeIn {
     0% { opacity: 0; }
