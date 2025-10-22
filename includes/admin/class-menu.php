@@ -43,6 +43,13 @@ class Menu {
     public static $license_page_id;
 
     /**
+     * Bulk messaging page ID.
+     * 
+     * @var string
+     */
+    public static $bulk_message_page_id;
+
+    /**
      * Options page ID.
      * 
      * @var string
@@ -103,6 +110,15 @@ class Menu {
             'manage_options',
             'licenses',
             array( License_Page::class, 'router' )
+        );
+
+        self::$bulk_message_page_id = add_submenu_page(
+            'smliser-admin',
+            'Bulk Message',
+            'Bulk Message',
+            'manage_options',
+            'smliser-bulk-message',
+            array( Bulk_Message_Page::class, 'router' )
         );
 
         self::$options_page_id = add_submenu_page(
