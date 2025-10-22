@@ -107,7 +107,7 @@ class Smliser_Server{
             $parts  = explode( ' ', $auth_header );
 
             // The first value should always be the authentication type;
-            $this->authorization_type = sanitize_text_field( wp_unslash( $parts[0] ) );
+            $this->authorization_type = sanitize_text_field( unslash( $parts[0] ) );
         }
     }
 
@@ -200,7 +200,7 @@ class Smliser_Server{
 
                 if ( $authorization ) {
                     $parts = explode( ' ', $authorization );
-                    $download_token = sanitize_text_field( wp_unslash( $parts[1] ) );
+                    $download_token = sanitize_text_field( unslash( $parts[1] ) );
                 }
             
             }
@@ -281,7 +281,7 @@ class Smliser_Server{
 
             if ( $authorization ) {
                 $parts = explode( ' ', $authorization );
-                $download_token = sanitize_text_field( wp_unslash( $parts[1] ) );
+                $download_token = sanitize_text_field( unslash( $parts[1] ) );
             }
         
         }
@@ -377,7 +377,7 @@ class Smliser_Server{
      */
     public static function serve_admin_download() {
         global $smliser_repo;
-        if ( ! isset( $_GET['download_token'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['download_token'] ) ), 'smliser_download_token' ) ) {
+        if ( ! isset( $_GET['download_token'] ) || ! wp_verify_nonce( sanitize_text_field( unslash( $_GET['download_token'] ) ), 'smliser_download_token' ) ) {
             wp_die( 'Invalid token', 401 );
         }
 
@@ -436,9 +436,9 @@ class Smliser_Server{
             return;
         }
 
-        $app_type   = sanitize_text_field( wp_unslash( get_query_var( 'smliser_app_type' ) ) );
-        $app_slug   = sanitize_text_field( wp_unslash( get_query_var( 'smliser_app_slug' ) ) );
-        $asset_name = sanitize_text_field( wp_unslash( get_query_var( 'smliser_asset_name' ) ) );
+        $app_type   = sanitize_text_field( unslash( get_query_var( 'smliser_app_type' ) ) );
+        $app_slug   = sanitize_text_field( unslash( get_query_var( 'smliser_app_slug' ) ) );
+        $asset_name = sanitize_text_field( unslash( get_query_var( 'smliser_asset_name' ) ) );
 
         $repo_class = Smliser_Software_Collection::get_app_repository_class( $app_type );
         if ( ! $repo_class ) {
@@ -636,7 +636,7 @@ class Smliser_Server{
         } elseif ( is_int( $plugin ) ) {
             $item_id = absint( $plugin );
         } elseif ( is_string( $plugin ) ) {
-            $plugin_slug = sanitize_text_field( wp_unslash( $plugin ) );
+            $plugin_slug = sanitize_text_field( unslash( $plugin ) );
             if ( strpos( $plugin_slug, '/' ) !== false ) {
                 $plugin     = Smliser_Plugin::get_plugin_by( 'slug', $plugin_slug );
                 $item_id    = ! empty( $plugin ) ? $plugin->get_item_id() : 0;
