@@ -563,7 +563,7 @@ class Smliser_API_Cred {
      * Client oauth 2.0 consent form handler
      */
     public static function oauth_client_consent_handler() {
-        if ( isset( $_POST['smliser_consent_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_consent_nonce'] ) ), 'smliser_consent_nonce' ) ) {
+        if ( isset( $_POST['smliser_consent_nonce'] ) && wp_verify_nonce( sanitize_text_field( unslash( $_POST['smliser_consent_nonce'] ) ), 'smliser_consent_nonce' ) ) {
             
             $app_name       = isset( $_POST['app_name'] ) ? sanitize_text_field( $_POST['app_name'] ) : '';
             $scope          = isset( $_POST['scope'] ) ? sanitize_text_field( $_POST['scope'] ) : '';
@@ -655,12 +655,12 @@ class Smliser_API_Cred {
 
         if ( isset( $_POST['user_login'] ) && isset( $_POST['password'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             $credentials = array(
-                'user_login'    => sanitize_text_field( wp_unslash( $_POST['user_login'] ) ),
+                'user_login'    => sanitize_text_field( unslash( $_POST['user_login'] ) ),
                 'user_password' => sanitize_text_field( $_POST['password'] ),
                 'remember'      => true,
             );
 
-            $redirect_args  = sanitize_text_field( wp_unslash( $_POST['redirect_args'] ) );
+            $redirect_args  = sanitize_text_field( unslash( $_POST['redirect_args'] ) );
             $url            = site_url( 'smliser-auth/v1/authorize/?' . $redirect_args );
 
             $user = wp_signon( $credentials, false );
