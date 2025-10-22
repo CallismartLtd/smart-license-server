@@ -86,7 +86,7 @@ class Smliser_Plugin_Download_Token {
         $self->id           = isset( $result['id'] ) ? absint( $result['id'] ) : 0;
         $self->item_id      = isset( $result['item_id'] ) ? sanitize_text_field( $result['item_id'] ) : '';
         $self->license_key  = isset( $result['license_key'] ) ? sanitize_text_field( $result['license_key'] ) : '';
-        $self->token        = isset( $result['token'] ) ? sanitize_text_field( wp_unslash( $result['token'] ) ) : '';
+        $self->token        = isset( $result['token'] ) ? sanitize_text_field( unslash( $result['token'] ) ) : '';
         $self->expiry       = isset( $result['expiry'] ) ? sanitize_text_field( $result['expiry'] ) : 0;
         return $self;
     }
@@ -262,7 +262,7 @@ class Smliser_Plugin_Download_Token {
     public static function ajax_token_form() {
        check_ajax_referer( 'smliser_nonce', 'security' );
        $item_id     = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
-       $license_key = isset( $_GET['license_key'] ) ? sanitize_text_field( wp_unslash( $_GET['license_key'] ) ) : '';
+       $license_key = isset( $_GET['license_key'] ) ? sanitize_text_field( unslash( $_GET['license_key'] ) ) : '';
 
         if ( empty( $item_id ) || empty( $license_key ) ) {
             wp_die( 'Missing required parameters' );
@@ -285,8 +285,8 @@ class Smliser_Plugin_Download_Token {
         }
         
         $item_id    = isset( $_POST['item_id'] ) ? absint( $_POST['item_id'] ) : wp_send_json_error( array( 'message' => 'Item ID is required.' ) );
-        $license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( wp_unslash( $_POST['license_key'] ) ) : wp_send_json_error( array( 'message' => 'License key is required.' ) );
-        $expiry     = isset( $_POST['expiry'] ) ? sanitize_text_field( wp_unslash(  $_POST['expiry'] ) ): 0;
+        $license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( unslash( $_POST['license_key'] ) ) : wp_send_json_error( array( 'message' => 'License key is required.' ) );
+        $expiry     = isset( $_POST['expiry'] ) ? sanitize_text_field( unslash(  $_POST['expiry'] ) ): 0;
 
         if ( ! empty( $expiry ) ) {
             $xpiry = strtotime( $expiry );
