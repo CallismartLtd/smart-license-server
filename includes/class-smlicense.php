@@ -360,8 +360,8 @@ class Smliser_license {
     public function get_license_data( $service_id, $license_key ) {
         global $wpdb;
 
-        $service_id  = sanitize_text_field( wp_unslash( $service_id ) );
-        $license_key = sanitize_text_field( wp_unslash( $license_key ) );
+        $service_id  = sanitize_text_field( unslash( $service_id ) );
+        $license_key = sanitize_text_field( unslash( $license_key ) );
 
         // phpcs:disable
         $query = $wpdb->prepare( 
@@ -769,7 +769,7 @@ class Smliser_license {
      */
     public static function bulk_action() {
         
-        if ( isset( $_POST['smliser_table_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_table_nonce'] ) ), 'smliser_table_nonce' ) ) {
+        if ( isset( $_POST['smliser_table_nonce'] ) && wp_verify_nonce( sanitize_text_field( unslash( $_POST['smliser_table_nonce'] ) ), 'smliser_table_nonce' ) ) {
             $action     = sanitize_text_field( $_POST['bulk_action'] );
             $licenses   = ! empty( $_POST['license_ids'] ) ? array_map( 'absint', $_POST['license_ids'] ) : '';
 
@@ -810,7 +810,7 @@ class Smliser_license {
             }
             wp_safe_redirect( smliser_license_page() );
             exit;
-        } elseif ( isset( $_GET['smliser_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['smliser_nonce'] ) ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        } elseif ( isset( $_GET['smliser_nonce'] ) && wp_verify_nonce( sanitize_text_field( unslash( $_GET['smliser_nonce'] ) ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             $action     = isset( $_GET['real_action'] ) ? sanitize_text_field( $_GET['real_action'] ) : '';
             $license_id = isset( $_GET['license_id'] ) ? absint( $_GET['license_id'] ) : 0;
             
@@ -872,7 +872,7 @@ class Smliser_license {
      * License form controller.
      */
     public static function license_form_controller() {
-        if ( isset( $_POST['smliser_nonce_field'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['smliser_nonce_field'] ) ), 'smliser_nonce_field' ) ) {
+        if ( isset( $_POST['smliser_nonce_field'] ) && wp_verify_nonce( sanitize_text_field( unslash( $_POST['smliser_nonce_field'] ) ), 'smliser_nonce_field' ) ) {
             // Form fields.
             $license_id     = isset( $_POST['license_id'] ) ? absint( $_POST['license_id'] ): 0;
             $user_id        = isset( $_POST['user_id'] ) ? intval( $_POST['user_id'] ): -1;
