@@ -24,7 +24,7 @@ $merged_params = array_merge( $default_params, $filtered_get );
 
 // Sanitize all parameters.
 $sanitized_params = array_map( function( $value ) {
-    return sanitize_text_field( wp_unslash( $value ) );
+    return sanitize_text_field( unslash( $value ) );
 }, $merged_params );
 
 // Check for missing required parameters and use wp_die() to show a message.
