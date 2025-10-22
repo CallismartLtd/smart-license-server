@@ -41,7 +41,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
      */
     public function __construct() {
         $this->store_url            = sanitize_url( Provider_Collection::get_option( $this->get_id(), 'store_url' ), array( 'https' ) );
-        $this->checkout_endpoint    = sanitize_text_field( wp_unslash( Provider_Collection::get_option( $this->get_id(), 'checkout_url' ) ) );
+        $this->checkout_endpoint    = sanitize_text_field( unslash( Provider_Collection::get_option( $this->get_id(), 'checkout_url' ) ) );
     }
 
     /**
