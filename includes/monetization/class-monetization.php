@@ -188,7 +188,7 @@ class Monetization {
      * @return self
      */
     public function set_item_type( $item_type ) {
-        $this->item_type = sanitize_text_field( wp_unslash( $item_type ) );
+        $this->item_type = sanitize_text_field( unslash( $item_type ) );
         return $this;
     }
 
@@ -238,7 +238,7 @@ class Monetization {
      * @return self
      */
     public function set_created_at( $created_at ) {
-        $this->created_at = sanitize_text_field( wp_unslash( $created_at ) );
+        $this->created_at = sanitize_text_field( unslash( $created_at ) );
         return $this;
     }
     /**
@@ -248,7 +248,7 @@ class Monetization {
      * @return self
      */
     public function set_updated_at( $updated_at ) {
-        $this->updated_at = sanitize_text_field( wp_unslash( $updated_at ) );
+        $this->updated_at = sanitize_text_field( unslash( $updated_at ) );
         return $this;
     }
 
@@ -513,7 +513,7 @@ class Monetization {
             return null;
         }
 
-        $class = '\\Smliser_' . ucfirst( sanitize_text_field( wp_unslash( $this->item_type ) ) );
+        $class = '\\Smliser_' . ucfirst( sanitize_text_field( unslash( $this->item_type ) ) );
 
         if ( ! class_exists( $class ) || ! method_exists( $class, 'get_' . $this->item_type ) ) {
             return null;
