@@ -310,7 +310,7 @@ class Smliser_admin_menu {
      * Repository page controller.
      */
     public function repo_page_controller() {
-        $action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $action = isset( $_GET['action'] ) ? sanitize_text_field( unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $page = '';
         switch( $action ) {
             case 'add-new':
