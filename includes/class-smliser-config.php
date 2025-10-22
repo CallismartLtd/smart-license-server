@@ -636,7 +636,8 @@ Nullam ligula orci, malesuada et fermentum imperdiet, laoreet nec dolor. Donec o
     public function include() {
         require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
 
-        require_once SMLISER_PATH . 'includes/utils/smliser-functions.php';
+        require_once SMLISER_PATH . 'includes/utils/functions.php';
+        require_once SMLISER_PATH . 'includes/utils/sanitization-functions.php';
         require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-markdown-parser.php';
@@ -668,9 +669,10 @@ Nullam ligula orci, malesuada et fermentum imperdiet, laoreet nec dolor. Donec o
         require_once SMLISER_PATH . 'includes/monetization/class-controller.php';
 
         require_once SMLISER_PATH . 'includes/admin/class-menu.php';
-        require_once SMLISER_PATH . 'includes/admin/class-admin-dashboard.php';
+        require_once SMLISER_PATH . 'includes/admin/class-dashboard-page.php';
+        require_once SMLISER_PATH . 'includes/admin/class-bulk-messages-page.php';
         require_once SMLISER_PATH . 'includes/admin/class-repository-page.php';
-        require_once SMLISER_PATH . 'includes/admin/class-admin-license-page.php';
+        require_once SMLISER_PATH . 'includes/admin/class-license-page.php';
         require_once SMLISER_PATH . 'includes/admin/class-options-page.php';
         
         do_action( 'smliser_loaded' );
@@ -883,9 +885,9 @@ Nullam ligula orci, malesuada et fermentum imperdiet, laoreet nec dolor. Donec o
      */
     public static function sanitize( $value ) {
         if ( is_string( $value ) ) {
-            $value = sanitize_text_field( wp_unslash( $value ) );
+            $value = sanitize_text_field( unslash( $value ) );
         } elseif ( is_array( $value ) ) {
-            $value = array_map( 'sanitize_text_field', wp_unslash( $value ) );
+            $value = array_map( 'sanitize_text_field', unslash( $value ) );
         } elseif ( is_int( $value ) ) {
             $value = absint( $value );
         } elseif ( is_float( $value ) ) {
