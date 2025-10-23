@@ -20,6 +20,9 @@ class Smliser_install {
         '0.0.6' => array(
             [__CLASS__, 'migration_006' ],
 
+        ),
+        '0.0.9' => array(
+            [__CLASS__, 'install']
         )
     );
 
@@ -59,6 +62,8 @@ class Smliser_install {
             SMLISER_THEME_META_TABLE,
             SMLISER_APPS_ITEM_TABLE,
             SMLISER_APPS_META_TABLE,
+            SMLISER_BULK_MESSAGES_TABLE,
+            SMLISER_BULK_MESSAGES_APPS_TABLE
 
         );
 
@@ -328,6 +333,40 @@ class Smliser_install {
             'INDEX monetization_id_index (monetization_id)',
         );
         self::run_db_delta( $pricing_tier_table, $pricing_tier_columns );
+
+        /**
+         * Bulk messages table schema
+         */
+        $bulk_messages_table    = SMLISER_BULK_MESSAGES_TABLE;
+        $bulk_messages_columns  = array(
+            'id BIGINT AUTO_INCREMENT PRIMARY KEY',
+            'message_id VARCHAR(64) UNIQUE',
+            'subject VARCHAR(255) NOT NULL',
+            'body TEXT DEFAULT NULL',
+            'created_at DATETIME DEFAULT CURRENT_TIMESTAMP',
+            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            'read TINYINT(1) DEFAULT 0',
+            'INDEX smliser_bulk_msg_created_at (created_at)',
+            'INDEX smliser_bulk_msg_updated_at (updated_at)',
+        );
+
+        self::run_db_delta( $bulk_messages_table, $bulk_messages_columns );
+
+        /**
+         * Message-to-App mapping table
+         */
+        $bulk_messages_apps_table   = SMLISER_BULK_MESSAGES_APPS_TABLE;
+        $bulk_messages_apps_columns = array(
+            'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',
+            'message_id BIGINT(20) UNSIGNED NOT NULL',
+            'app_type VARCHAR(64) NOT NULL',
+            'app_slug VARCHAR(191) NOT NULL',
+            'UNIQUE KEY smliser_unique_message_app (message_id, app_type, app_slug)',
+            'INDEX smliser_msg_app_lookup (app_type, app_slug)'
+        );
+
+        self::run_db_delta( $bulk_messages_apps_table, $bulk_messages_apps_columns );
+
     }
 
 
