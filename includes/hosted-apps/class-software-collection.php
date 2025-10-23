@@ -456,7 +456,7 @@ class Smliser_Software_Collection {
     /*
     |---------------------------
     | CREATE OPERATION METHODS
-    |
+    |---------------------------
     */
 
     /**
