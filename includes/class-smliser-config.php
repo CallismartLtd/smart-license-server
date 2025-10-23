@@ -109,6 +109,8 @@ class SmartLicense_config {
         define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_item_download_token' );
         define( 'SMLISER_MONETIZATION_TABLE', $wpdb->prefix . 'smliser_monetization' );
         define( 'SMLISER_PRICING_TIER_TABLE', $wpdb->prefix . 'smliser_pricing_tiers' );
+        define( 'SMLISER_BULK_MESSAGES_TABLE', $wpdb->prefix . 'smliser_bulk_messages' );
+        define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $wpdb->prefix . 'smliser_bulk_messages_apps' );
 
         define( 'SMLISER_REPO_DIR', WP_CONTENT_DIR . '/premium-repository' );
         define( 'SMLISER_NEW_REPO_DIR', WP_CONTENT_DIR . '/smliser-repo' );
@@ -638,7 +640,8 @@ Nullam ligula orci, malesuada et fermentum imperdiet, laoreet nec dolor. Donec o
 
         require_once SMLISER_PATH . 'includes/utils/functions.php';
         require_once SMLISER_PATH . 'includes/utils/sanitization-functions.php';
-        require_once SMLISER_PATH . 'includes/utils/smliser-formating-functions.php';
+        require_once SMLISER_PATH . 'includes/utils/conditional-functions.php';
+        require_once SMLISER_PATH . 'includes/utils/formating-functions.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-markdown-parser.php';
 
@@ -658,6 +661,7 @@ Nullam ligula orci, malesuada et fermentum imperdiet, laoreet nec dolor. Donec o
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
         require_once SMLISER_PATH . 'includes/class-smliser-api-cred.php';
         require_once SMLISER_PATH . 'includes/class-smliser-plugin-download-token.php';
+        require_once SMLISER_PATH . 'includes/class-bulk-messages.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-rest-auth.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-license-rest-api.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-plugin-rest-api.php';
