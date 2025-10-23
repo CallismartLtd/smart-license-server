@@ -13,7 +13,7 @@ use ZipArchive;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Repository handler.
+ * The repository class handles filesystem operations within the repository.
  *
  * Works only within allowed subdirectories (plugins, themes, softwares).
  * Provides safe IO, streaming, and ZIP file utilities.
