@@ -12,6 +12,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * The Smart License Server Repository class which handles filesystem interaction for hosted files.
+ * 
+ * @deprecated This class has been deprecated, the repository now @uses `\SmartLicenseServer\Repository`
+ * @see \SmartLicenseServer\Repository
  */
 class Smliser_Repository {
 
