@@ -609,7 +609,7 @@ function smliser_render_toggle_switch( $attrs = array() ) {
         'class' => 'smliser_toggle-switch-input',
     );
 
-    $attrs = wp_parse_args( $attrs, $defaults );
+    $attrs = parse_args( $attrs, $defaults );
 
     // Extract value to determine checked state
     $value = (int) $attrs['value'];
@@ -666,7 +666,7 @@ function smliser_render_input_field( $args = array() ) {
         ),
     );
 
-    $parsed_args = wp_parse_args( $args, $default_args );
+    $parsed_args = parse_args( $args, $default_args );
     $input       = $parsed_args['input'];
 
     // Build attributes string
@@ -723,4 +723,19 @@ function smliser_get_repo_url( $path = '' ) {
     }
 
     return $base_url;
+}
+
+/**
+ * Parse a given argument with default arguments.
+ * Similar to wp_parse_args(), but strips out undefined default keys.
+ *
+ * @param array|object|null $args     The arguments to parse.
+ * @param array             $defaults The default arguments.
+ * @return array
+ */
+function parse_args( $args, $defaults ) {
+    $args     = (array) $args;
+    $defaults = (array) $defaults;
+
+    return array_intersect_key( array_merge( $defaults, $args ), $defaults );
 }
