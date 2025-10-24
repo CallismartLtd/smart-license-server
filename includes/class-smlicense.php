@@ -374,7 +374,7 @@ class Smliser_license {
         // phpcs:enable
 
         if ( $result ) {
-            return self::return_db_results( $result );
+            return self::from_array( $result );
         }
 
         return false;
@@ -396,7 +396,7 @@ class Smliser_license {
         }
 
         foreach( $results as $result ) {
-            $all_licenses[] = self::return_db_results( $result );
+            $all_licenses[] = self::from_array( $result );
         }
         return $all_licenses;
     }
@@ -423,7 +423,7 @@ class Smliser_license {
         $result = $wpdb->get_row( $query, ARRAY_A );
         // phpcs:enable
         if ( $result ) {
-            return self::return_db_results( $result );
+            return self::from_array( $result );
         }
 
         return false;
@@ -441,7 +441,7 @@ class Smliser_license {
         $result = $wpdb->get_row( $query, ARRAY_A );
         // phpcs:enable
         if ( $result ) {
-            return self::return_db_results( $result );
+            return self::from_array( $result );
         }
 
         return false;
@@ -974,11 +974,11 @@ class Smliser_license {
     }
 
     /**
-     * Convert and return associative array of DB result to object of this class
+     * Converts and return associative array to object of this class.
      * 
      * @param array $data   Associative array containing result from database
      */
-    private static function return_db_results( $data ) {
+    public static function from_array( $data ) {
         $result = new self();
         $result->set_id( ! empty( $data['id'] ) ? $data['id'] : '' );
         $result->set_user_id( ! empty( $data['user_id'] ) ? $data['user_id'] : 0 );
