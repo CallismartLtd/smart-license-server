@@ -60,12 +60,12 @@ class Bulk_Messages {
     /**
      * Falsey property indicating the message has not been read by default.
      * 
-     * @var false $read
+     * @var false $is_read
      */
-    protected  $read = false;
+    protected  $is_read = false;
 
     /**
-     * Holds the app type and slug of the hosted applications this message is associated with
+     * Holds the app type and slug(s) of the hosted applications this message is associated with
      * 
      * @var array $associated_apps
      */
@@ -145,6 +145,15 @@ class Bulk_Messages {
     public function set_updated_at( $date ) {
         $this->updated_at = sanitize_text_field( unslash( $date ) );
         return $this;
+    }
+
+    /**
+     * Set the value of is_read
+     * 
+     * @param int|bool $value
+     */
+    protected function set_is_read( $value ) {
+        $this->is_read = boolval( $value );
     }
 
     /**
@@ -251,16 +260,6 @@ class Bulk_Messages {
     }
 
     /**
-     * Get the read status
-     * 
-     * 
-     * @return false
-     */
-    public function get_read() {
-        return $this->read;
-    }
-
-    /**
      * Get all associated app
      * 
      * @return array
@@ -269,5 +268,244 @@ class Bulk_Messages {
         return $this->associated_apps;
     }
 
+    /**
+     * Get the is_read status of a message.
+     * 
+     * @return false Is always false, the clients and extending class should track the read status of messages.
+     */
+    public function get_is_read() {
+        return $this->is_read;
+    }
+
+
+    /*
+    |-----------------
+    | CRUD METHODS
+    |-----------------
+    */
+    /**
+     * Save or update a message.
+     * 
+     * @return boolean
+     */
+    public function save() {
+        global $wpdb;
+
+        $table = SMLISER_BULK_MESSAGES_TABLE;
+
+        if ( empty( $this->get_message_id() ) ) {
+            $this->set_message_id( uniqid( 'smliser-msg_', true ) );
+        }
+
+        $data = array(
+            'message_id' => $this->message_id,
+            'subject'    => $this->subject,
+            'body'       => $this->body,
+            'updated_at' => current_time( 'mysql' ),
+        );
+
+        if ( $this->id > 0 ) {
+            $result  = $wpdb->update( $table, $data, array( 'id' => $this->id ) );
+        } else {
+            $data['created_at'] = current_time( 'mysql' );
+            $result  = $wpdb->insert( $table, $data );
+            
+            $this->set_id( $wpdb->insert_id );
+        }
+
+        // Sync associated apps
+        $this->save_associated_apps();
+
+        return false !== $result;
+    }
+
+    /**
+     * Save associated apps to the relation table.
+     * 
+     * @return void
+     */
+    protected function save_associated_apps() {
+        global $wpdb;
+
+        if ( ! $this->id || empty( $this->associated_apps ) ) {
+            return;
+        }
+
+        $table = SMLISER_BULK_MESSAGES_APPS_TABLE;
+
+        // Delete old associations
+        $wpdb->delete( $table, array( 'message_id' => $this->message_id ) );
+
+        foreach ( $this->associated_apps as $type => $slugs ) {
+            foreach ( (array) $slugs as $slug ) {
+                $wpdb->insert(
+                    $table,
+                    array(
+                        'message_id' => $this->message_id,
+                        'app_type'   => $type,
+                        'app_slug'   => $slug,
+                    ),
+                    array( '%s', '%s', '%s' )
+                );
+            }
+        }
+    }
+
+    /**
+     * Get all bulk messages.
+     *
+     * @param array $args
+     * @return self[]
+     */
+    public static function get_all( $args = array() ) {
+        global $wpdb;
+
+        $defaults = array(
+            'page'  => 1,
+            'limit' => 20,
+        );
+        $args = parse_args( $args, $defaults );
+
+        $offset = ( $args['page'] - 1 ) * $args['limit'];
+
+        $table = SMLISER_BULK_MESSAGES_TABLE;
+
+        $sql = $wpdb->prepare(
+            "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT %d OFFSET %d",
+            $args['limit'],
+            $offset
+        );
+
+        $results    = $wpdb->get_results( $sql, ARRAY_A );
+        $messages   = array();
+
+        foreach ( $results as $result ) {
+            $messages[] = self::from_array( $result );
+        }
+
+        return $messages;
+    }
+
+    /**
+     * Get messages for a specific app.
+     *
+     * @param array $args
+     * @return array
+     */
+    public static function get_for_app( $args = array() ) {
+        global $wpdb;
+
+        $defaults = array(
+            'app_type' => '',
+            'app_slug' => '',
+            'page'     => 1,
+            'limit'    => 20,
+        );
+        $args = parse_args( $args, $defaults );
+
+        $offset = ( $args['page'] - 1 ) * $args['limit'];
+
+        $msg_table          = SMLISER_BULK_MESSAGES_TABLE;
+        $msgs_apps_table    = SMLISER_BULK_MESSAGES_APPS_TABLE;
+
+        $sql = $wpdb->prepare(
+            "SELECT m.* 
+             FROM {$msg_table} m
+             INNER JOIN {$msgs_apps_table} a ON m.message_id = a.message_id
+             WHERE a.app_type = %s AND a.app_slug = %s
+             ORDER BY m.created_at DESC
+             LIMIT %d OFFSET %d",
+            $args['app_type'],
+            $args['app_slug'],
+            $args['limit'],
+            $offset
+        );
+
+        return $wpdb->get_results( $sql, ARRAY_A );
+    }
+
+    /**
+     * Delete a message and its associations.
+     */
+    public function delete() {
+        global $wpdb;
+
+        if ( ! $this->id && ! $this->message_id ) {
+            return false;
+        }
+
+        $msg_table          = SMLISER_BULK_MESSAGES_TABLE;
+        $msgs_apps_table    = SMLISER_BULK_MESSAGES_APPS_TABLE;
+
+        $wpdb->delete( $msg_table, array( 'id' => $this->id ) );
+        $wpdb->delete( $msgs_apps_table, array( 'message_id' => $this->message_id ) );
+
+        return true;
+    }
+
+    /**
+    |-----------------
+    | UTILITY METHODS
+    |-----------------
+    */
+
+    /**
+     * Converts associative array to an object of this class.
+     * 
+     * @param array $data 
+     * @return self
+     */
+    public static function from_array( $data ) {
+        $self = new self();
+
+        foreach ( (array) $data as $k => $v ) {
+            $method = "set_{$k}";
+            if ( method_exists( $self, $method ) ) {
+                $self->$method( $v );
+            }
+
+            if ( ! empty( $self->get_message_id() ) ) {
+                $assos_apps    = self::load_associated_apps( $self->get_message_id() );
+                $self->set_associated_apps( $assos_apps );
+            }
+        }
+
+        return $self;
+    }
+
+    /**
+     * Load apps that are associated with this message from the DB.
+     * 
+     * @param string $message_id The public message ID.
+     * @return array
+     */
+    private static function load_associated_apps( $message_id ) {
+        global $wpdb;
+
+        $table = SMLISER_BULK_MESSAGES_APPS_TABLE;
+
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT `app_type`, `app_slug` FROM `{$table}` WHERE `message_id` = %s",
+                $message_id
+            ),
+            ARRAY_A
+        );
+
+        $apps = array();
+
+        foreach ( $results as $row ) {
+            $type = sanitize_key( $row['app_type'] );
+            $slug = sanitize_text_field( $row['app_slug'] );
+
+            if ( ! isset( $apps[$type] ) ) {
+                $apps[$type] = array();
+            }
+
+            $apps[$type][] = $slug;
+        }
+
+        return $apps;
+    }
 
 }
