@@ -318,7 +318,7 @@ class Smliser_API_Cred {
             $api_keys   = array();
             if ( ! empty( $results ) ) {
                 foreach( $results as $result ) {
-                    $api_keys[] = self::instance()->convert_db_result( $result );
+                    $api_keys[] = self::from_array( $result );
                 }
                 wp_cache_set( 'Smliser_API_Creds', $api_keys, '', 2 * HOUR_IN_SECONDS );
             }
@@ -340,7 +340,7 @@ class Smliser_API_Cred {
         $result = $wpdb->get_row( $query, ARRAY_A );
 
         if ( ! empty( $result ) && password_verify( $consumer_secret, $result['consumer_secret'] ) ) {
-            return $this->convert_db_result( $result );
+            return self::from_array( $result );
         }
 
         return false;
@@ -358,7 +358,7 @@ class Smliser_API_Cred {
         $result = $wpdb->get_row( $query, ARRAY_A );
 
         if ( ! empty( $result ) ) {
-            return $this->convert_db_result( $result );
+            return self::from_array( $result );
         }
 
         return false;
@@ -377,7 +377,7 @@ class Smliser_API_Cred {
             return false;
         }
 
-        return $this->convert_db_result( $result );
+        return self::from_array( $result );
     }
 
     /**
@@ -441,7 +441,7 @@ class Smliser_API_Cred {
         global $wpdb;
 
         if ( empty( $this->id ) ) {
-            return false; // The apicredential must exists in the database;
+            return false; // API credentials must exist in the database.
         }
 
         if ( ! is_string( $app_name ) ) {
@@ -732,12 +732,12 @@ class Smliser_API_Cred {
     */
 
     /**
-     * Convert database result Smliser_API_Cred
+     * Converts associatve array to object of this class.
      * 
      * @param array $result Associative array containing database results.
      * @return self An object of current class containing with corresponding data.
      */
-    private static function convert_db_result( $result ) {
+    public static function from_array( $result ) {
         $self = new self();
         $self->set_id( $result['id'] );
         $self->set_keys( $result );
