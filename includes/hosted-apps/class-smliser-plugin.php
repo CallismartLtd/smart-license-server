@@ -791,7 +791,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         // phpcs:enable
 
         if ( ! empty( $result ) ){
-            return self::convert_db_result( $result );
+            return self::from_array( $result );
         }
 
         return false;
@@ -815,7 +815,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         $result = $wpdb->get_row( $query, ARRAY_A );
         // phpcs:enable
         if ( $result ) {
-            return self::convert_db_result( $result );
+            return self::from_array( $result );
         }
 
         return null;
@@ -835,7 +835,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'limit'     => 25,
         );
 
-        $parsed_args = wp_parse_args( $args, $default_args );
+        $parsed_args = parse_args( $args, $default_args );
 
         $offset     = ( absint( $parsed_args['page'] ) - 1 ) * absint( $parsed_args['limit'] );
         $table_name = SMLISER_PLUGIN_ITEM_TABLE;
@@ -847,7 +847,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         if ( $results ) {
 
             foreach ( $results as $result ) {
-                $plugins[] = self::convert_db_result( $result );
+                $plugins[] = self::from_array( $result );
             }
         }
 
@@ -1095,9 +1095,9 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     */
 
     /**
-     * convert database result to Smliser_plugin
+     * Converts associative array to object of this class.
      */
-    protected static function convert_db_result( $result ) {
+    public static function from_array( $result ) {
         $self = new self();
         $self->set_item_id( $result['id'] ?? 0 );
         $self->set_name( $result['name'] ?? '' );
