@@ -81,8 +81,8 @@ class Smliser_Plugin_Download_Token {
      * @param array $result An associative array of database result gotten with the ARRAY_A flag.
      * @return self This object.
      */
-    private static function convert_db_result( $result ) {
-        $self           = new self();
+    public static function from_array( $result ) {
+        $self               = new self();
         $self->id           = isset( $result['id'] ) ? absint( $result['id'] ) : 0;
         $self->item_id      = isset( $result['item_id'] ) ? sanitize_text_field( $result['item_id'] ) : '';
         $self->license_key  = isset( $result['license_key'] ) ? sanitize_text_field( $result['license_key'] ) : '';
@@ -178,7 +178,7 @@ class Smliser_Plugin_Download_Token {
             return false;
         }
 
-        $self = $this->convert_db_result( $result );
+        $self = self::from_array( $result );
 
         if ( $self->has_expired() ) {
             $self->delete();
@@ -318,7 +318,7 @@ class Smliser_Plugin_Download_Token {
 
         if ( ! empty( $results ) ) {
             foreach( $results as $result ) {
-                $tokens[] = self::convert_db_result( $result );
+                $tokens[] = self::from_array( $result );
             }
         }
         
