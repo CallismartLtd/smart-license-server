@@ -41,7 +41,7 @@ class Smliser_Software_Collection {
             'status' => 'active',
             'types'  => array( 'plugin', 'theme', 'software' ),
         );
-        $args = wp_parse_args( $args, $defaults );
+        $args = parse_args( $args, $defaults );
 
         $page   = max( 1, (int) $args['page'] );
         $limit  = max( 1, (int) $args['limit'] );
@@ -165,7 +165,7 @@ class Smliser_Software_Collection {
             'status' => 'active',
             'types'  => array( 'plugin', 'theme', 'software' ),
         );
-        $args = wp_parse_args( $args, $defaults );
+        $args = parse_args( $args, $defaults );
 
         $page   = max( 1, (int) $args['page'] );
         $limit  = max( 1, (int) $args['limit'] );
@@ -318,7 +318,7 @@ class Smliser_Software_Collection {
             'status' => 'active',
             'types'  => array( 'plugin', 'theme', 'software' ),
         );
-        $args = wp_parse_args( $args, $defaults );
+        $args = parse_args( $args, $defaults );
 
         $term   = sanitize_text_field( $args['term'] );
         $page   = max( 1, (int) $args['page'] );
