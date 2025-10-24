@@ -21,9 +21,7 @@ class Smliser_install {
             [__CLASS__, 'migration_006' ],
 
         ),
-        '0.0.9' => array(
-            [__CLASS__, 'install']
-        )
+
     );
 
     /**
@@ -343,9 +341,9 @@ class Smliser_install {
             'message_id VARCHAR(64) UNIQUE',
             'subject VARCHAR(255) NOT NULL',
             'body TEXT DEFAULT NULL',
-            'created_at DATETIME DEFAULT CURRENT_TIMESTAMP',
+            'created_at DATETIME DEFAULT NULL',
             'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'read TINYINT(1) DEFAULT 0',
+            'is_read TINYINT(1) DEFAULT 0',
             'INDEX smliser_bulk_msg_created_at (created_at)',
             'INDEX smliser_bulk_msg_updated_at (updated_at)',
         );
@@ -358,7 +356,7 @@ class Smliser_install {
         $bulk_messages_apps_table   = SMLISER_BULK_MESSAGES_APPS_TABLE;
         $bulk_messages_apps_columns = array(
             'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',
-            'message_id BIGINT(20) UNSIGNED NOT NULL',
+            'message_id VARCHAR(64) DEFAULT NULL',
             'app_type VARCHAR(64) NOT NULL',
             'app_slug VARCHAR(191) NOT NULL',
             'UNIQUE KEY smliser_unique_message_app (message_id, app_type, app_slug)',
