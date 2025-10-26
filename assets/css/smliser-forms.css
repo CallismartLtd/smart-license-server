@@ -744,11 +744,57 @@ display: inline-block;
 
 }
 
+.smliser-compose-message-container {
+  display: flex;
+  gap: 20px;
+  width: 97%;
+  padding: 10px;
+  background-color: #fff;
+  box-shadow: 0 10px 10px rgba(3, 1, 2, 0.2);
+  border-radius: 8px;
 
+}
 
+.smliser-compose-message-container_left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 80%;
+}
 
+.smliser-compose-message-container_right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 20%;
+}
 
+.smliser-compose-message-container_right .button {
+  margin-top: 20px;
+}
 
+#smliser-app-select {
+  width: 100%;
+}
+
+.smliser-compose-message-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+}
+
+.smliser-compose-message-form-row label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.smliser-compose-message-form-row input#subject {
+  height: 40px;
+  width: 100%;
+  border: solid 1px #dcdcde;
+}
 
 
 

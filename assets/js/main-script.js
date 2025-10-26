@@ -208,12 +208,13 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let deleteBtn               = document.getElementById( 'smliser-license-delete-button' );
     let updateBtn               = document.querySelector('#smliser-update-btn');
     let deletePluginBtn         = document.querySelector( '#smliser-plugin-delete-button' );
-    let selectAllCheckbox       = document.getElementById('smliser-select-all');
+    let selectAllCheckbox       = document.querySelector('#smliser-select-all');
     let dashboardPage           = document.getElementById( 'smliser-admin-dasboard-wrapper' );
     let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
     let revokeBtns              = document.querySelectorAll( '.smliser-revoke-btn' );
     let monetizationUI          = document.querySelector( '.smliser-monetization-ui' );
     let optionForms             = document.querySelectorAll( 'form.smliser-options-form' );
+    const bulkMessageForm       = document.querySelector( 'form.smliser-compose-message-container' );
 
     if ( optionForms ) {
         optionForms.forEach( form => {
@@ -417,7 +418,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-        if (searchInput) {
+    if (searchInput) {
         let tableRows = document.querySelectorAll('.smliser-table tbody tr');
         let tableBody = document.querySelector('.smliser-table tbody');
         searchInput.addEventListener('input', function () {
@@ -584,17 +585,18 @@ document.addEventListener( 'DOMContentLoaded', function() {
     }
 
     if ( selectAllCheckbox ) {
-        let  checkboxes = document.querySelectorAll( '.smliser-license-checkbox' );
+        let  checkboxes = document.querySelectorAll( '.smliser-license-checkbox, .smliser-checkbox' );
+
         selectAllCheckbox.addEventListener('change', function () {
             checkboxes.forEach(checkbox => {
                 checkbox.checked = selectAllCheckbox.checked;
             });
         });
     
-        // Prevent row click when individual checkbox is clicked
         checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('click', function (event) {
-                event.stopPropagation();
+            checkbox.addEventListener('change', function () {
+                selectAllCheckbox.checked = Array.from(checkboxes).every(cb => cb.checked);
+                
             });
         });
     }
@@ -1076,5 +1078,166 @@ document.addEventListener( 'DOMContentLoaded', function() {
         tierForm.addEventListener( 'submit', submitForm );
     }
 
+    if ( bulkMessageForm ) {
+        let appSelect   = bulkMessageForm.querySelector( '#smliser-app-select' );
+
+        //Initialize the editor.
+        tinymce.init({
+            selector: '#message-body',
+            skin: 'oxide',
+            branding: false,
+            license_key: 'gpl',
+            menubar: 'file insert table',
+            plugins: 'lists link image media table code preview fullscreen autosave searchreplace visualblocks insertdatetime emoticons',
+            toolbar: 'add_media_button | styles | alignleft aligncenter alignjustify alignright bullist numlist outdent indent | forecolor backcolor | code fullscreen preview | undo redo',
+            height: 600,
+            relative_urls: false,
+            remove_script_host: false,
+            promotion: false,
+            valid_children: '+div[div|span],+span[span|div]',
+            font_formats: 'Inter=Inter, sans-serif; Arial=Arial, Helvetica, sans-serif; Verdana=Verdana, Geneva, sans-serif; Tahoma=Tahoma, Geneva, sans-serif; Trebuchet MS=Trebuchet MS, Helvetica, sans-serif; Times New Roman=Times New Roman, Times, serif; Georgia=Georgia, serif; Palatino Linotype=Palatino Linotype, Palatino, serif; Courier New=Courier New, Courier, monospace',
+            toolbar_mode: 'sliding',
+            content_style: 'body { font-family: "Inter", sans-serif; font-size: 16px; }',
+        });
+
+        const prepareArgs = ( params ) => {
+            return {
+                search: params.term
+            };
+        };
+
+        const processResults = ( data ) => {
+
+            // Group apps by type (plugin, theme, etc.)
+            const grouped = {};
+
+            data.apps.forEach( app => {
+                if ( ! grouped[ app.type ] ) {
+                    grouped[ app.type ] = [];
+                }
+
+                grouped[ app.type ].push({
+                    id: `${app.type}:${app.slug}`, // unique id combining both
+                    text: app.name,
+                    type: app.type,
+                });
+            });
+
+            // Convert to Select2’s optgroup structure
+            const results = Object.keys( grouped ).map( type => ({
+                text: type.charAt(0).toUpperCase() + type.slice(1),
+                children: grouped[ type ]
+            }));
+
+            return { results };
+        };
+
+        jQuery( appSelect ).select2({
+            placeholder: 'Search apps',
+            ajax: {
+                url: smliser_var.app_search_api,
+                dataType: 'json',
+                delay: 1000,
+                data: prepareArgs,
+                processResults: processResults,
+                cache: true,
+            },
+            allowClear: true,
+            minimumInputLength: 2
+        });
+
+        const clearValidity = ( e ) => {
+            e.target.setCustomValidity( '' );
+            e.target.removeEventListener( 'input', clearValidity );
+        }
+
+        bulkMessageForm.addEventListener( 'submit', async e => {
+            e.preventDefault();
+
+            const editor        = tinymce.get( 'message-body' );
+
+            editor?.save();
+
+            const subject       = bulkMessageForm.querySelector( '#subject' );
+            const messageBody   = bulkMessageForm.querySelector( '#message-body' );
+            
+
+            if ( ! subject.value.trim().length ) {
+                subject.setCustomValidity( 'Message subject is required.' );
+                subject.addEventListener( 'input', clearValidity );
+            }
+
+            if ( ! messageBody.value.trim().length ) {
+                editor?.notificationManager.open({
+                    text: 'Message body cannot be empty.',
+                    type: 'error',
+                    timeout: 5000,
+                    
+
+                });
+
+                return;
+            }
+
+            if ( ! bulkMessageForm.reportValidity() ) {
+                return;
+            }
+
+            const payLoad = new FormData( bulkMessageForm );
+            payLoad.set( 'security', smliser_var.nonce );
+            payLoad.set( 'action', 'smliser_publish_bulk_message' );
+            
+            const submitBtn = bulkMessageForm.querySelector( 'button[type="submit"]' );
+            const spinner    = showSpinner( submitBtn );
+            submitBtn && ( submitBtn.disabled = true );
+
+            try {
+                const response = await fetch( smliser_var.smliser_ajax_url, {
+                    method: 'POST',
+                    body: payLoad,
+                    credentials: 'same-origin',
+                });
+
+                const contentType   = response.headers.get( 'content-type' );
+                const isJson       = contentType && contentType.includes( 'application/json' );
+                const responseData  = isJson  ? await response.json() : await response.text();
+                if ( ! response.ok ) {
+                    const errorMessage = isJson ? ( responseData.data?.message || 'An error occurred' ) : responseData;
+                    const error = new Error( errorMessage );
+                    error.type  = 'SMLISER_NOT_OK';
+                    throw err;
+                }
+
+                if ( responseData.success ) {
+                    smliserNotify( responseData.data?.message || 'Message sent successfully', 5000 );
+                    bulkMessageForm.reset();
+                    jQuery( appSelect ).val( null ).trigger( 'change' );
+                    editor?.setContent( '' );
+
+                    responseData.data?.redirect_url && ( window.location.href = responseData.data.redirect_url );
+                } else {
+                    const errorMessage = responseData.data?.message || 'An unknown error occurred.';
+                    const error = new Error( errorMessage );
+                    error.type  = 'SMLISER_FAILURE';
+                    throw error;
+                }
+            } catch ( error ) {
+
+                if ( error instanceof TypeError ) {
+                    smliserNotify( 'Network error or server is unreachable.', 6000 );
+                } else if ( error.type === 'SMLISER_NOT_OK' || error.type === 'SMLISER_FAILURE' ) {
+                    smliserNotify( error.message, 6000 );
+                } else {
+                    smliserNotify( 'An unexpected error occurred.', 6000 );
+                }
+
+            } finally {
+                submitBtn && ( submitBtn.disabled = false );
+                removeSpinner( spinner );
+            }
+
+        })
+
+    }
 
 });

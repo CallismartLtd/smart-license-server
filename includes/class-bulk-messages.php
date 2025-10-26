@@ -160,9 +160,13 @@ class Bulk_Messages {
      * Set associated apps
      * 
      * @param string|array $apps_data
+     * @param boolean $reset Whether or not to reset the associated apps property.
      * @return self
      */
-    public function set_associated_apps( $apps_data ) {
+    public function set_associated_apps( $apps_data, $reset = false ) {
+        if ( $reset ) {
+            $this->associated_apps = [];
+        }
         if ( is_json( $apps_data ) ) {
             $apps_data = json_decode( $apps_data, true );
         }
@@ -327,14 +331,17 @@ class Bulk_Messages {
     protected function save_associated_apps() {
         global $wpdb;
 
-        if ( ! $this->id || empty( $this->associated_apps ) ) {
+        if ( ! $this->id ) {
             return;
         }
 
         $table = SMLISER_BULK_MESSAGES_APPS_TABLE;
-
         // Delete old associations
-        $wpdb->delete( $table, array( 'message_id' => $this->message_id ) );
+        $wpdb->delete( $table, array( 'message_id' => $this->message_id ), array( '%s' ) );
+        
+        if ( empty( $this->associated_apps ) ) {
+            return;
+        }
 
         foreach ( $this->associated_apps as $type => $slugs ) {
             foreach ( (array) $slugs as $slug ) {
@@ -362,7 +369,7 @@ class Bulk_Messages {
 
         $defaults = array(
             'page'  => 1,
-            'limit' => 20,
+            'limit' => 30,
         );
         $args = parse_args( $args, $defaults );
 
@@ -384,6 +391,29 @@ class Bulk_Messages {
         }
 
         return $messages;
+    }
+
+    /**
+     * Get a message by its message ID or ID
+     * 
+     * @param string|int $id_or_message_id
+     * @return self|null
+     */
+    public static function get_message( $id_or_message_id ) {
+        global $wpdb;
+        $id_or_message_id = is_numeric( $id_or_message_id ) ? absint( $id_or_message_id ) : sanitize_text_field( unslash( $id_or_message_id ) );
+
+        $table = SMLISER_BULK_MESSAGES_TABLE;
+
+        $query  = $wpdb->prepare( "SELECT * FROM {$table} WHERE `id` = %d OR `message_id` = %s", $id_or_message_id, $id_or_message_id );
+
+        $result = $wpdb->get_row( $query );
+
+        if ( ! empty( $result ) ) {
+            return self::from_array( $result );
+        }
+
+        return null;
     }
 
     /**
@@ -425,6 +455,84 @@ class Bulk_Messages {
     }
 
     /**
+     * Get messages for one or more app slugs, optionally filtered by app type(s).
+     *
+     * @param array $args {
+     *     Optional. Arguments for filtering results.
+     *
+     *     @type array|string $app_slugs One or more app slugs to search for.
+     *     @type array|string $app_types Optional. One or more app types (e.g., 'plugin', 'theme').
+     *     @type int          $page      Page number. Default 1.
+     *     @type int          $limit     Number of results per page. Default 20.
+     * }
+     *
+     * @return self[] Array of Bulk_Messages objects.
+     */
+    public static function get_for_slugs( $args = array() ) {
+        global $wpdb;
+
+        $defaults = array(
+            'app_slugs' => array(),
+            'app_types' => array(),
+            'page'      => 1,
+            'limit'     => 20,
+        );
+        $args = parse_args( $args, $defaults );
+
+        $app_slugs = (array) $args['app_slugs'];
+        $app_types = (array) $args['app_types'];
+
+        if ( empty( $app_slugs ) ) {
+            return array();
+        }
+
+        $offset         = ( $args['page'] - 1 ) * $args['limit'];
+        $msg_table      = SMLISER_BULK_MESSAGES_TABLE;
+        $assoc_table    = SMLISER_BULK_MESSAGES_APPS_TABLE;
+
+        // Build WHERE clause dynamically.
+        $where = array();
+        $params = array();
+
+        // Add slugs condition.
+        $slug_placeholders = implode( ',', array_fill( 0, count( $app_slugs ), '%s' ) );
+        $where[] = "a.app_slug IN ($slug_placeholders)";
+        $params = array_merge( $params, $app_slugs );
+
+        // Add app type condition if provided.
+        if ( ! empty( $app_types ) ) {
+            $type_placeholders = implode( ',', array_fill( 0, count( $app_types ), '%s' ) );
+            $where[] = "a.app_type IN ($type_placeholders)";
+            $params = array_merge( $params, $app_types );
+        }
+
+        $where_sql = implode( ' AND ', $where );
+
+        $sql = "
+            SELECT DISTINCT m.*
+            FROM {$msg_table} m
+            INNER JOIN {$assoc_table} a ON m.message_id = a.message_id
+            WHERE {$where_sql}
+            ORDER BY m.created_at DESC
+            LIMIT %d OFFSET %d
+        ";
+
+        $params[] = absint( $args['limit'] );
+        $params[] = absint( $offset );
+
+        $prepared = $wpdb->prepare( $sql, $params );
+        $results  = $wpdb->get_results( $prepared, ARRAY_A );
+
+        $messages = array();
+        foreach ( $results as $result ) {
+            $messages[] = self::from_array( $result );
+        }
+
+        return $messages;
+    }
+
+
+    /**
      * Delete a message and its associations.
      */
     public function delete() {
@@ -463,14 +571,30 @@ class Bulk_Messages {
             if ( method_exists( $self, $method ) ) {
                 $self->$method( $v );
             }
-
-            if ( ! empty( $self->get_message_id() ) ) {
-                $assos_apps    = self::load_associated_apps( $self->get_message_id() );
-                $self->set_associated_apps( $assos_apps );
-            }
         }
 
+        if ( ! empty( $self->get_message_id() ) ) {
+            $assos_apps    = self::load_associated_apps( $self->get_message_id() );
+            $self->set_associated_apps( $assos_apps );
+        }
         return $self;
+    }
+
+    /**
+     * Convert this message object to an associative array.
+     *
+     * @return array
+     */
+    public function to_array() {
+        return array(
+            'id'                => $this->get_id(),
+            'message_id'        => $this->get_message_id(),
+            'subject'           => $this->get_subject(),
+            'body'              => wp_kses_post( $this->get_body() ),
+            'created_at'        => $this->get_created_at(),
+            'updated_at'        => $this->get_updated_at(),
+            'read'              => (bool) $this->get_is_read(),
+        );
     }
 
     /**
@@ -506,6 +630,43 @@ class Bulk_Messages {
         }
 
         return $apps;
+    }
+    /**
+     * Print a readable summary of associated apps.
+     *
+     * @param bool $show_slugs Optional. Whether to include individual slugs. Default false.
+     * @param bool $as_html Optional. Whether to format the output in HTML. Default false.
+     * @return string The formatted summary.
+     */
+    public function print_associated_apps_summary( $show_slugs = false, $as_html = false ) {
+        if ( empty( $this->associated_apps ) ) {
+            return $as_html ? '<em>No associated apps</em>' : 'No associated apps';
+        }
+
+        $output = array();
+
+        foreach ( $this->associated_apps as $app_type => $slugs ) {
+            $count = count( $slugs );
+
+            if ( $show_slugs ) {
+                $list = implode( $as_html ? ', ' : ', ', $slugs );
+                $formatted = $as_html
+                    ? sprintf( '<strong>%s</strong> (%d): %s', esc_html( ucfirst( $app_type ) ), $count, esc_html( $list ) )
+                    : sprintf( '%s (%d): %s', ucfirst( $app_type ), $count, $list );
+            } else {
+                $formatted = $as_html
+                    ? sprintf( '<strong>%s</strong> (%d)', esc_html( ucfirst( $app_type ) ), $count )
+                    : sprintf( '%s (%d)', ucfirst( $app_type ), $count );
+            }
+
+            $output[] = $formatted;
+        }
+
+        if ( $as_html ) {
+            return '<ul><li>' . implode( '</li><li>', $output ) . '</li></ul>';
+        }
+
+        return implode( PHP_EOL, $output );
     }
 
 }

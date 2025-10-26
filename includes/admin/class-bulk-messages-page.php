@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin license page router class file
+ * Admin bulk message page router class file
  * 
  * @author Callistus Nwachukwu
  * @package Smliser\class
@@ -8,10 +8,12 @@
 
 namespace SmartLicenseServer\admin;
 
+use \SmartLicenseServer\Bulk_Messages;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The admin license page class
+ * The admin bulk message page class
  */
 class Bulk_Message_Page {
     /**
@@ -20,17 +22,14 @@ class Bulk_Message_Page {
     public static function router() {
         $tab = smliser_get_query_param( 'tab' );
         switch ( $tab ) {
-            case 'add-new':
-                self::add_license_page();
+            case 'compose-new':
+                self::compose_message_page();
                 break;
             case 'edit':
-                self::edit_license_page();
+                self::edit_message_page();
                 break;
-            case 'view':
-                self::license_view();
-                break;
-            case 'logs':
-                self::logs_page();
+            case 'delete':
+                self::delete_page();
                 break;
             default:
             self::dashboard();
@@ -39,68 +38,159 @@ class Bulk_Message_Page {
     }
 
     /**
-     * The license page dashbard
+     * Bulk messages page dashbard.
      */
     private static function dashboard() {
-        $obj        = new \Smliser_license();
-        $licenses   = $obj->get_licenses();
-
-        $add_url     = smliser_license_admin_action_page( 'add-new' );
-    
-        include_once SMLISER_PATH . 'templates/admin/license/dashboard.php';
+        $messages   = Bulk_Messages::get_all();
+        include_once SMLISER_PATH . 'templates/admin/bulk-messages/dashboard.php';
     
     }
 
     /**
-     * Add license page
+     * Compose message page.
      */
-    private static function add_license_page() {
-        include_once SMLISER_PATH . 'templates/admin/license/license-add.php';
+    private static function compose_message_page() {
+        include_once SMLISER_PATH . 'templates/admin/bulk-messages/compose.php';
     }
 
     /**
-     * License edit page
+     * Edit message page.
      */
-    private static function edit_license_page() {
-
-        $license_id = smliser_get_query_param( 'license_id' );        
-        $license    = \Smliser_license::get_by_id( $license_id );
-        $user_id    = ! empty( $license ) ? $license->get_user_id() : 0;
-        include_once SMLISER_PATH . 'templates/admin/license/license-edit.php';
-    
+    private static function edit_message_page() {
+        $message_id = smliser_get_query_param( 'msg_id' );
+        
+        $message    = Bulk_Messages::get_message( $message_id );
+   
+        include_once SMLISER_PATH . 'templates/admin/bulk-messages/edit.php';
     }
 
     /**
-     * License view page
+     * Delete a given message.
      */
-    private static function license_view() {
-        $license_id = smliser_get_query_param( 'license_id' );        
+    private static function delete_page() {
+        $message_id = smliser_get_query_param( 'msg_id' );
+        
+        $message    = Bulk_Messages::get_message( $message_id );
 
-        $license    = \Smliser_license::get_by_id( $license_id );
-        if ( empty( $license ) ) {
-            return wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) );
+        include_once SMLISER_PATH . 'templates/admin/bulk-messages/delete.php';
+       
+    }
+
+    /**
+     * WP Editor Options
+     *
+     * @return array
+     */
+    private static function editor_options() {
+        return array(
+            'textarea_name' => 'message_body',
+            'textarea_rows' => 15,
+            'teeny'         => false, // must be false for full HTML control
+            'media_buttons' => true,
+            'quicktags'     => true,
+            'tinymce'       => array(
+                'wp_autoresize_on'   => true,
+                'browser_spellcheck' => true,
+                'resize'             => true,
+                'plugins'            => 'lists,link,paste,code,wordpress',
+                'toolbar1'           => 'formatselect,bold,italic,underline,link,bullist,numlist,blockquote,code,undo,redo',
+                'forced_root_block'  => 'p',
+                'force_p_newlines'   => true,
+            ),
+        );
+    }
+
+    /**
+     * Run action hooks
+     */
+    public static function listen() {
+        add_action( 'wp_ajax_smliser_publish_bulk_message', [__CLASS__, 'publish_bulk_message'] );
+        add_action( 'admin_post_smliser_bulk_message_bulk_action', [__CLASS__, 'bulk_action'] );
+    }
+
+    /**
+     * Handle ajax bulk message publish
+     */
+    public static function publish_bulk_message() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
-        $user               = get_userdata( $license->get_user_id() );
-        $client_full_name   = $user ? $user->first_name . ' ' . $user->last_name : 'N/L';
-        $plugin_obj         = new \Smliser_Plugin();
-        $licensed_plugin    = $license->has_item() ? $plugin_obj->get_plugin( $license->get_item_id() ) : false;
-        $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
-        $plugin_name        = $licensed_plugin ? $licensed_plugin->get_name() : 'N/A';
-        include_once SMLISER_PATH . 'templates/admin/license/license-admin-view.php';
-    
+        $subject    = smliser_get_post_param( 'subject', null ) ?? wp_send_json_error( [ 'message' => __( 'Message subject cannot be empty', 'smliser' ) ] );
+        $body       = isset( $_POST['message_body'] ) ? wp_kses_post( unslash( $_POST['message_body'] ) ) : wp_send_json_error( [ 'message' => __( 'Message body cannot be empty', 'smliser' ) ] );
+        $message_id = smliser_get_post_param( 'message_id' );
+        $assocs_apps    = smliser_get_post_param( 'associated_apps' );
+
+        $apps       = [];
+        foreach( $assocs_apps as $app_data ) {
+
+            try {
+                list( $type, $slug ) = explode( ':', $app_data );
+
+                if ( ! empty( $type ) && ! empty( $slug ) ) {
+                    $apps[$type][]  = $slug;
+                }
+            } catch (\Throwable $th) {}
+
+        }
+
+        if ( $message_id ) {
+            $bulk_msg = Bulk_messages::get_message( $message_id );
+
+            if ( ! $bulk_msg ) {
+                wp_send_json_error( ['message' => __( 'Invalid or deleted message', 'smliser' )] );
+            }
+        } else {
+            $bulk_msg   = new Bulk_Messages();
+        }
+        
+
+        $bulk_msg->set_subject( $subject );
+        $bulk_msg->set_body( $body );
+        $bulk_msg->set_associated_apps( $apps, true );
+
+        if ( $bulk_msg->save() ) {
+            wp_send_json_success( ['message' => __( 'Message has been published.', 'smliser' ), 'redirect_url' => admin_url( 'admin.php?page=smliser-bulk-message&tab=edit&msg_id=' . $bulk_msg->get_message_id() )], 200 );
+        }
+        
+        wp_send_json_error( ['message' => __( 'Unable to publish message.', 'smliser' )], 503 );
+
     }
 
     /**
-     * License activation log page.
+     * Perform bulk action on bulk message IDs
      */
-    private static function logs_page() {
-        $all_tasks      = \Smliser_license::get_task_logs();
-        $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
-        $cron_timestamp = $cron_handle ? $cron_handle->timestamp : 0;
-        $next_date      = smliser_tstmp_to_date( $cron_timestamp );
+    public static function bulk_action() {
+        if ( ! wp_verify_nonce( smliser_get_post_param( 'smliser_table_nonce' ), 'smliser_table_nonce' ) ) {
+            wp_safe_redirect( admin_url( 'admin.php?page=smliser-bulk-message' ) );
+            exit;
+        }
 
-        include_once SMLISER_PATH . 'templates/admin/license/logs.php';
-        return;
+        $message_ids    = smliser_get_post_param( 'message_ids', [] );
+        $action         = smliser_get_post_param( 'bulk_action' );
+
+        $allowed_actions = [ 'delete'];
+
+        if ( ! in_array( $action, $allowed_actions, true ) ) {
+            wp_send_json_error( array( 'message' => __( 'Action is not allowed', 'smliser' ) ), 400 );
+        }
+
+        switch( $action ) {
+
+            case 'delete': 
+                foreach( (array) $message_ids as $id ) {
+                    $message = Bulk_Messages::get_message( $id );
+
+                    if ( $message ) {
+                        $message->delete();
+                    }
+
+                }
+        }
+
+        wp_safe_redirect( admin_url( 'admin.php?page=smliser-bulk-message&success=1' ) );
+        exit;
     }
 }
+
+Bulk_Message_Page::listen();
