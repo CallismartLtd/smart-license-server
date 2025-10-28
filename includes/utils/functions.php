@@ -445,7 +445,7 @@ function smliser_get_base_url( $url ) {
         return $scheme . '://' . $host;
     }
 
-    // For non-localhost addresses, return the scheme and host.
+
     return $scheme . '://' . $host;
 }
 
