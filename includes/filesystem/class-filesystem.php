@@ -179,7 +179,7 @@ class FileSystem {
 	 * @return bool True on success, false on failure.
 	 */
 	public function chmod( $file, $mode = false, $recursive = false ) {
-        return $this->fs->chmod( $file, $mode = false, $recursive = false );
+        return $this->fs->chmod( $file, $mode, $recursive );
     }
 
 	/**
@@ -192,7 +192,7 @@ class FileSystem {
 	 * @return bool True on success, false on failure.
 	 */
 	public function chown( $file, $owner, $recursive = false ) {
-        return $this->fs->chown( $file, $owner, $recursive = false );
+        return $this->fs->chown( $file, $owner, $recursive );
     }
 
     /**
