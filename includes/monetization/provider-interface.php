@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * Defines the contract all monetization providers must follow.
  * 
  * A provider is an external system or platform responsible for 
- * handling pricing, currency, checkout, and product data.
+ * handling pricing, currency, checkout, and product data through which an app in the repository is sold.
  *
  * Examples:
  * - WooCommerce store
