@@ -745,7 +745,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @return string a parsed HTML string from the readme file.
      */
     public function get_changelog() {
-        return $this->get_section( 'changlog' );
+        return $this->get_section( 'changelog' );
     }
     /**
      * Get Sections
