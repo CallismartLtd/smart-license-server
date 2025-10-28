@@ -207,6 +207,7 @@ class Smliser_License_Rest_API {
      * The license key and service ID are required to deactivate a license.
      * 
      * @param WP_REST_Request $request
+     * @return WP_Error|true
      */
     public static function license_deactivation_permission( WP_REST_Request $request ) {
         self::instance();
@@ -229,6 +230,7 @@ class Smliser_License_Rest_API {
      * License deactivation route handler.
      * 
      * @param WP_REST_Request $request
+     * @return WP_REST_Response
      */
     public static function license_deactivation_response( WP_REST_Request $request ) {
         $website_name   = smliser_get_base_url( $request->get_param( 'domain' ) );
@@ -272,7 +274,8 @@ class Smliser_License_Rest_API {
     /**
      * License unistallation permission callback.
      * 
-     * @param WP_REST_Request $request The REST Request Object
+     * @param WP_REST_Request $request The REST Request Object.
+     * @return WP_Error|true
      */
     public static function license_uninstallation_permission( WP_REST_Request $request ) {
         return self::license_deactivation_permission( $request );
@@ -311,6 +314,7 @@ class Smliser_License_Rest_API {
      * License validity test permission callback
      * 
      * @param WP_REST_Request $request The REST API request object.
+     * @return WP_Error|true
      */
     public static function license_validity_test_permission( WP_REST_Request $request ) {
         self::instance();
@@ -368,7 +372,10 @@ class Smliser_License_Rest_API {
     }
 
     /**
-     * Download token reauthentication for licensed plugins.
+     * Download token reauthentication permission callback.
+     * 
+     * @param WP_REST_Request $request
+     * @return WP_Error|true
      */
     public static function item_download_reauth_permission( WP_REST_Request $request ) {
         self::instance();
@@ -423,9 +430,12 @@ class Smliser_License_Rest_API {
     }
 
     /**
-     * Re-issue donwload token.
+     * Re-issue a token for downloading a licensed application hosted on this repository.
+     * 
+     * -Note - This action is required before the expiration of the prevously issued token.
      * 
      * @param WP_REST_Request $request.
+     * @return WP_REST_Response
      */
     public static function item_download_reauth( WP_REST_Request $request ) {
         $item_id        = $request->get_param( 'item_id' );
@@ -452,7 +462,6 @@ class Smliser_License_Rest_API {
         $response->header( 'content-type', 'application/json' );
 
         return $response;
-
     }
 
     /**
