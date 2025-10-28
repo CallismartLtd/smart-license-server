@@ -1189,7 +1189,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     }
 
     /**
-     * Format response for plugin update.
+     * Format response for plugin REST API response.
      * 
      * @return array
      */
