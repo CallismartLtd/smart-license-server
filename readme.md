@@ -88,9 +88,8 @@ Whether you distribute plugins, themes, standalone software, or custom applicati
 
    * Use the included API to validate licenses, check update availability, and fetch product metadata.
 
----
-
-## REST API Endpoints
+````markdown
+# Smart License Server - Developer REST API Guide
 
 **Base Namespace:** `/wp-json/smliser/v1`
 
@@ -109,130 +108,306 @@ Whether you distribute plugins, themes, standalone software, or custom applicati
 | license_key   | string  | Yes      | License key to activate. |
 | domain        | string  | Yes      | Domain where the license will be activated. |
 
+**Example Request:**
+```bash
+curl -X POST https://example.com/wp-json/smliser/v1/license-activation/ \
+-d "item_id=123&service_id=service_001&license_key=XXXX&domain=example.com"
+````
+
+**Sample Response:**
+
+```json
+{
+  "success": true,
+  "message": "License activated successfully",
+  "data": {
+    "license_key": "XXXX",
+    "domain": "example.com",
+    "item_id": 123,
+    "service_id": "service_001",
+    "expires_at": "2026-10-27 23:59:59"
+  }
+}
+```
+
 ---
 
 ### 2. License Deactivation
 
-**Endpoint:** `/license-deactivation/`  
-**Method:** `POST`  
+**Endpoint:** `/license-deactivation/`
+**Method:** `POST`
 **Description:** Deactivate a license key from a domain.
 
-| Parameter     | Type    | Required | Description |
-| ------------- | ------- | -------- | ----------- |
-| license_key   | string  | Yes      | License key to deactivate. |
-| service_id    | string  | Yes      | Service ID associated with the license. |
-| domain        | string  | Yes      | Domain where the license is currently active. |
+| Parameter   | Type   | Required | Description                                   |
+| ----------- | ------ | -------- | --------------------------------------------- |
+| license_key | string | Yes      | License key to deactivate.                    |
+| service_id  | string | Yes      | Service ID associated with the license.       |
+| domain      | string | Yes      | Domain where the license is currently active. |
+
+**Example Request:**
+
+```bash
+curl -X POST https://example.com/wp-json/smliser/v1/license-deactivation/ \
+-d "license_key=XXXX&service_id=service_001&domain=example.com"
+```
+
+**Sample Response:**
+
+```json
+{
+  "success": true,
+  "message": "License deactivated successfully"
+}
+```
 
 ---
 
 ### 3. License Uninstallation
 
-**Endpoint:** `/license-uninstallation/`  
-**Method:** `POST`  
+**Endpoint:** `/license-uninstallation/`
+**Method:** `POST`
 **Description:** Uninstall a license key from a domain.
 
-| Parameter     | Type    | Required | Description |
-| ------------- | ------- | -------- | ----------- |
-| license_key   | string  | Yes      | License key to uninstall. |
-| service_id    | string  | Yes      | Service ID associated with the license. |
-| domain        | string  | Yes      | Domain where the license is currently active. |
+| Parameter   | Type   | Required | Description                                   |
+| ----------- | ------ | -------- | --------------------------------------------- |
+| license_key | string | Yes      | License key to uninstall.                     |
+| service_id  | string | Yes      | Service ID associated with the license.       |
+| domain      | string | Yes      | Domain where the license is currently active. |
+
+**Example Request:**
+
+```bash
+curl -X POST https://example.com/wp-json/smliser/v1/license-uninstallation/ \
+-d "license_key=XXXX&service_id=service_001&domain=example.com"
+```
+
+**Sample Response:**
+
+```json
+{
+  "success": true,
+  "message": "License uninstalled successfully"
+}
+```
 
 ---
 
 ### 4. License Validity Test
 
-**Endpoint:** `/license-validity-test/`  
-**Method:** `POST`  
+**Endpoint:** `/license-validity-test/`
+**Method:** `POST`
 **Description:** Check if a license key is valid for a specific domain.
 
-| Parameter     | Type    | Required | Description |
-| ------------- | ------- | -------- | ----------- |
-| license_key   | string  | Yes      | License key to validate. |
-| service_id    | string  | Yes      | Service ID associated with the license. |
-| domain        | string  | Yes      | Domain where the license is active. |
-| item_id       | int     | Yes      | ID of the software this license belongs to. |
+| Parameter   | Type   | Required | Description                                 |
+| ----------- | ------ | -------- | ------------------------------------------- |
+| license_key | string | Yes      | License key to validate.                    |
+| service_id  | string | Yes      | Service ID associated with the license.     |
+| domain      | string | Yes      | Domain where the license is active.         |
+| item_id     | int    | Yes      | ID of the software this license belongs to. |
+
+**Example Request:**
+
+```bash
+curl -X POST https://example.com/wp-json/smliser/v1/license-validity-test/ \
+-d "license_key=XXXX&service_id=service_001&domain=example.com&item_id=123"
+```
+
+**Sample Response:**
+
+```json
+{
+  "valid": true,
+  "message": "License is valid",
+  "expires_at": "2026-10-27 23:59:59"
+}
+```
 
 ---
 
 ### 5. Plugin Info
 
-**Endpoint:** `/plugin-info/`  
-**Method:** `GET`  
+**Endpoint:** `/plugin-info/`
+**Method:** `GET`
 **Description:** Retrieve information about a plugin.
 
-| Parameter | Type    | Required | Description |
-| --------- | ------- | -------- | ----------- |
-| item_id   | int     | No       | Plugin ID. |
-| slug      | string  | No       | Plugin slug (e.g., `plugin-slug/plugin-slug`). |
+| Parameter | Type   | Required | Description                                    |
+| --------- | ------ | -------- | ---------------------------------------------- |
+| item_id   | int    | No       | Plugin ID.                                     |
+| slug      | string | No       | Plugin slug (e.g., `plugin-slug/plugin-slug`). |
+
+**Example Request:**
+
+```bash
+curl https://example.com/wp-json/smliser/v1/plugin-info/?slug=smart-woo-pro
+```
+
+**Sample Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "name": "Smart Woo Pro",
+    "version": "1.5.1",
+    "description": "Advanced service invoicing for WooCommerce",
+    "author": "Callismart",
+    "download_url": "https://example.com/downloads/smart-woo-pro.zip"
+  }
+}
+```
 
 ---
 
 ### 6. Repository Query
 
-**Endpoint:** `/repository/`  
-**Method:** `GET`  
+**Endpoint:** `/repository/`
+**Method:** `GET`
 **Description:** Query all hosted applications in the repository.
 
-| Parameter | Type    | Required | Description |
-| --------- | ------- | -------- | ----------- |
-| search    | string  | No       | Search term to filter repository items. |
+| Parameter | Type   | Required | Description                             |
+| --------- | ------ | -------- | --------------------------------------- |
+| search    | string | No       | Search term to filter repository items. |
+
+**Example Request:**
+
+```bash
+curl https://example.com/wp-json/smliser/v1/repository/?search=woo
+```
+
+**Sample Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    { "id": 1, "name": "Smart Woo Pro", "type": "plugin" },
+    { "id": 2, "name": "Smart Woo Lite", "type": "plugin" }
+  ]
+}
+```
 
 ---
 
 ### 7. OAuth Client Authentication
 
-**Endpoint:** `/client-auth/`  
-**Method:** `GET`  
+**Endpoint:** `/client-auth/`
+**Method:** `GET`
 **Description:** OAuth client authentication for token regeneration.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| None      | —    | —        | — |
+| None      | —    | —        | —           |
+
+**Example Request:**
+
+```bash
+curl https://example.com/wp-json/smliser/v1/client-auth/
+```
+
+**Sample Response:**
+
+```json
+{
+  "success": true,
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 3600
+}
+```
 
 ---
 
 ### 8. Download Token Reauthentication
 
-**Endpoint:** `/download-token-reauthentication/`  
-**Method:** `POST`  
+**Endpoint:** `/download-token-reauthentication/`
+**Method:** `POST`
 **Description:** Reauthenticate a previously issued download token.
 
-| Parameter      | Type   | Required | Description |
-| -------------- | ------ | -------- | ----------- |
-| domain         | string | Yes      | Domain where the plugin is installed. |
-| license_key    | string | Yes      | License key to reauthenticate. |
-| item_id        | int    | Yes      | ID of the item associated with the license. |
+| Parameter      | Type   | Required | Description                                             |
+| -------------- | ------ | -------- | ------------------------------------------------------- |
+| domain         | string | Yes      | Domain where the plugin is installed.                   |
+| license_key    | string | Yes      | License key to reauthenticate.                          |
+| item_id        | int    | Yes      | ID of the item associated with the license.             |
 | download_token | string | Yes      | Base64 encoded download token issued during activation. |
-| service_id     | string | Yes      | Service ID associated with the license. |
+| service_id     | string | Yes      | Service ID associated with the license.                 |
+
+**Example Request:**
+
+```bash
+curl -X POST https://example.com/wp-json/smliser/v1/download-token-reauthentication/ \
+-d "domain=example.com&license_key=XXXX&item_id=123&download_token=abc123&service_id=service_001"
+```
+
+**Sample Response:**
+
+```json
+{
+  "success": true,
+  "message": "Download token reauthenticated successfully"
+}
+```
 
 ---
 
 ### 9. Bulk Messages
 
-**Endpoint:** `/bulk-messages/`  
-**Method:** `GET`  
+**Endpoint:** `/bulk-messages/`
+**Method:** `GET`
 **Description:** Fetch multiple messages for specific apps.
 
-| Parameter    | Type   | Required | Description |
-| ------------ | ------ | -------- | ----------- |
-| page         | int    | No       | Page number for pagination (default 1). |
-| limit        | int    | No       | Number of messages per page (default 10). |
-| app_slugs    | array  | No       | Array of app slugs to filter by. |
-| app_types    | array  | No       | Array of app types to filter by (plugin, theme, etc.). |
+| Parameter | Type  | Required | Description                                            |
+| --------- | ----- | -------- | ------------------------------------------------------ |
+| page      | int   | No       | Page number for pagination (default 1).                |
+| limit     | int   | No       | Number of messages per page (default 10).              |
+| app_slugs | array | No       | Array of app slugs to filter by.                       |
+| app_types | array | No       | Array of app types to filter by (plugin, theme, etc.). |
+
+**Example Request:**
+
+```bash
+curl https://example.com/wp-json/smliser/v1/bulk-messages/?app_types[]=plugin&app_slugs[]=smart-woo-pro
+```
+
+**Sample Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    { "id": "msg_001", "subject": "Welcome to Smart Woo", "body": "Hello!" },
+    { "id": "msg_002", "subject": "New Feature", "body": "Check out auto billing." }
+  ]
+}
+```
 
 ---
 
 ### 10. Mock Inbox (Testing)
 
-**Endpoint:** `/mock-inbox/`  
-**Method:** `GET`  
+**Endpoint:** `/mock-inbox/`
+**Method:** `GET`
 **Description:** Test endpoint simulating inbox messages for development.
 
-| Parameter | Type   | Required | Description |
-| --------- | ------ | -------- | ----------- |
+| Parameter | Type   | Required | Description                                                          |
+| --------- | ------ | -------- | -------------------------------------------------------------------- |
 | since     | string | No       | Optional timestamp to filter messages created after a specific date. |
 
----
+**Example Request:**
+
+```bash
+curl https://example.com/wp-json/smliser/v1/mock-inbox/
+```
+
+**Sample Response:**
+
+```json
+[
+  { "id": "msg_001", "subject": "Welcome", "body": "Welcome message", "read": false },
+  { "id": "msg_002", "subject": "Update", "body": "Update message", "read": false }
+]
+```
+
+```
+```
 
 
 ## Frequently Asked Questions
