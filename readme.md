@@ -2,42 +2,63 @@
 
 ## Description
 
-**Smart License Server** is a professional License Key and Update Server designed for WordPress developers. It allows you to securely deliver updates and manage license keys for your premium and free plugins, themes, or other digital products. With Smart License Server, you can control access, enforce license rules, and monetize your digital products without relying on third-party marketplaces.
+**Smart License Server** is a professional License Key and Update Server that empowers developers to securely manage licenses and deliver updates for WordPress plugins, themes, custom applications, or any other digital products. With Smart License Server, you can control access, enforce license rules, and monetize your products without relying on third-party marketplaces.
 
-Whether you sell plugins, themes, or software extensions, Smart License Server gives you a **centralized, secure, and extensible platform** to manage licenses, updates, and pricing tiers.
+Whether you distribute plugins, themes, standalone software, or custom applications, Smart License Server provides a **centralized, secure, and extensible platform** to manage licenses, updates, and pricing tiers for all your products.
+
 
 ---
 
 ## Features
 
-* **License Key Management**
-  Create, manage, and validate license keys for individual products. Support single-site, multi-site, and lifetime licenses.
+*Smart License Server works on any hosting environment and supports plugins, themes, and custom applications—without requiring SVN or external servers.*
 
-* **Update Server**
-  Deliver plugin and theme updates automatically to authorized users via REST API. Control versions and update availability.
+* **License Key Management**
+  Easily create, manage, and validate license keys for any product—plugins, themes, or custom applications. Supports single-site, multi-site, and lifetime licenses with full control over activations and expirations.
+
+* **Universal Update Server**
+  Turn any WordPress site into a fully-featured update server via REST API. Works on any hosting environment (shared hosting, VPS, or dedicated servers) without requiring SVN or external services. Updates are securely stored on the database and hosting filesystem, safely away from public directories, ensuring reliable delivery.
+
+* **Robust Filesystem Handling**
+  Overcome hosting limitations with robust, sandboxed filesystem APIs. Manage hosted applications, updates, and assets reliably across environments.
 
 * **Monetization Support**
-  Define pricing tiers and integrate multiple providers (e.g., WooCommerce, EDD). Control billing cycles, features, and maximum site activations per license.
+  Define flexible pricing tiers and integrate multiple providers (e.g., WooCommerce, EDD). Control billing cycles, features, and maximum site activations per license to maximize revenue and control access.
 
 * **Secure Access**
-  Only verified license key holders can access premium plugins, themes, or updates. OAuth support for authorized clients.
+  Only verified license holders can access premium products or updates. Includes OAuth support for authorized clients and programmatic API access.
 
 * **Developer-Friendly API**
-  REST endpoints and programmatic integration for seamless licensing, validation, and update workflows.
+  Provides detailed REST endpoints for license management, repository operations, update handling, and monetization. Seamlessly integrate with your existing workflows or custom applications.
 
 * **Works with Free and Premium Products**
-  Manage both free and paid products in the same platform.
+  Manage both free and paid products in a single, unified platform.
 
 * **Extensible**
-  Add custom providers, pricing tiers, and integrations to match your business model.
+  Easily add custom providers, pricing tiers, integrations, or extend APIs to suit your unique business model.
 
 ---
 
-## Installation
+## Installation & Requirements
 
-1. Upload the plugin files to the `/wp-content/plugins/smart-license-server` directory, or install via the WordPress plugin screen.
-2. Activate the plugin through the 'Plugins' screen.
-3. Configure your license and update settings in the Smart License Server admin page.
+**Minimum Requirements:**
+
+- WordPress: 6.4+
+- PHP: 8.0+
+- Web hosting: Shared, VPS, or any standard hosting environment
+
+**Installation:**
+
+1. Download the plugin from [Smart License Server](https://apps.callismart.com.ng/plugin/smart-license-server) for $150.
+2. Upload the plugin files to the `/wp-content/plugins/smart-license-server` directory, or install via the WordPress plugin screen.
+3. Activate the plugin through the 'Plugins' screen.
+4. Configure your license and update settings in the Smart License Server admin page.
+
+**Why Purchase:**
+
+- **Complete Functionality** – Every feature, from license management to monetization APIs, is fully available. No hidden limitations or freemium tiers—what you purchase is what you get.
+- **Automatic Updates** – Users automatically receive updates for all hosted applications and products through secure REST API endpoints.
+- **Full Support & Maintenance** – We maintain, support, and enhance the plugin continuously, so you don’t have to worry about broken updates or outdated functionality.
 
 ---
 
@@ -73,25 +94,143 @@ Whether you sell plugins, themes, or software extensions, Smart License Server g
 
 **Base Namespace:** `/wp-json/smliser/v1`
 
-| Endpoint                            | Method | Description                                                                                                         |
-| ----------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
-| `/license-activation/`              | POST   | Activate a license key. Required params: `item_id`, `service_id`, `license_key`, `domain`.                          |
-| `/license-deactivation/`            | POST   | Deactivate a license key. Required params: `license_key`, `service_id`, `domain`.                                   |
-| `/license-uninstallation/`          | POST   | Uninstall a license key. Required params: `license_key`, `service_id`, `domain`.                                    |
-| `/license-validity-test/`           | POST   | Check license validity. Required params: `license_key`, `service_id`, `domain`, `item_id`.                          |
-| `/plugin-info/`                     | GET    | Retrieve plugin info. Optional params: `item_id`, `slug`.                                                           |
-| `/repository/`                      | GET    | Query the full repository. Optional param: `search`.                                                                |
-| `/client-auth/`                     | GET    | OAuth client authentication (token regeneration).                                                                   |
-| `/download-token-reauthentication/` | POST   | Reauthenticate download token. Required params: `domain`, `license_key`, `item_id`, `download_token`, `service_id`. |
-| `/bulk-messages/`                   | GET    | Fetch bulk messages for apps. Optional params: `page`, `limit`, `app_slugs`, `app_types`.                           |
-| `/mock-inbox/`                      | GET    | Test endpoint for inbox messages. Optional param: `since`.                                                          |
+---
 
-> Example:
->
-> ```bash
-> curl -X POST https://example.com/wp-json/smliser/v1/license-activation/ \
-> -d "license_key=XXXX&service_id=service_001&item_id=123&domain=example.com"
-> ```
+### 1. License Activation
+
+**Endpoint:** `/license-activation/`  
+**Method:** `POST`  
+**Description:** Activate a license key for a specific domain.
+
+| Parameter     | Type    | Required | Description |
+| ------------- | ------- | -------- | ----------- |
+| item_id       | int     | Yes      | ID of the item associated with the license. |
+| service_id    | string  | Yes      | Service ID associated with the license key. |
+| license_key   | string  | Yes      | License key to activate. |
+| domain        | string  | Yes      | Domain where the license will be activated. |
+
+---
+
+### 2. License Deactivation
+
+**Endpoint:** `/license-deactivation/`  
+**Method:** `POST`  
+**Description:** Deactivate a license key from a domain.
+
+| Parameter     | Type    | Required | Description |
+| ------------- | ------- | -------- | ----------- |
+| license_key   | string  | Yes      | License key to deactivate. |
+| service_id    | string  | Yes      | Service ID associated with the license. |
+| domain        | string  | Yes      | Domain where the license is currently active. |
+
+---
+
+### 3. License Uninstallation
+
+**Endpoint:** `/license-uninstallation/`  
+**Method:** `POST`  
+**Description:** Uninstall a license key from a domain.
+
+| Parameter     | Type    | Required | Description |
+| ------------- | ------- | -------- | ----------- |
+| license_key   | string  | Yes      | License key to uninstall. |
+| service_id    | string  | Yes      | Service ID associated with the license. |
+| domain        | string  | Yes      | Domain where the license is currently active. |
+
+---
+
+### 4. License Validity Test
+
+**Endpoint:** `/license-validity-test/`  
+**Method:** `POST`  
+**Description:** Check if a license key is valid for a specific domain.
+
+| Parameter     | Type    | Required | Description |
+| ------------- | ------- | -------- | ----------- |
+| license_key   | string  | Yes      | License key to validate. |
+| service_id    | string  | Yes      | Service ID associated with the license. |
+| domain        | string  | Yes      | Domain where the license is active. |
+| item_id       | int     | Yes      | ID of the software this license belongs to. |
+
+---
+
+### 5. Plugin Info
+
+**Endpoint:** `/plugin-info/`  
+**Method:** `GET`  
+**Description:** Retrieve information about a plugin.
+
+| Parameter | Type    | Required | Description |
+| --------- | ------- | -------- | ----------- |
+| item_id   | int     | No       | Plugin ID. |
+| slug      | string  | No       | Plugin slug (e.g., `plugin-slug/plugin-slug`). |
+
+---
+
+### 6. Repository Query
+
+**Endpoint:** `/repository/`  
+**Method:** `GET`  
+**Description:** Query all hosted applications in the repository.
+
+| Parameter | Type    | Required | Description |
+| --------- | ------- | -------- | ----------- |
+| search    | string  | No       | Search term to filter repository items. |
+
+---
+
+### 7. OAuth Client Authentication
+
+**Endpoint:** `/client-auth/`  
+**Method:** `GET`  
+**Description:** OAuth client authentication for token regeneration.
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| None      | —    | —        | — |
+
+---
+
+### 8. Download Token Reauthentication
+
+**Endpoint:** `/download-token-reauthentication/`  
+**Method:** `POST`  
+**Description:** Reauthenticate a previously issued download token.
+
+| Parameter      | Type   | Required | Description |
+| -------------- | ------ | -------- | ----------- |
+| domain         | string | Yes      | Domain where the plugin is installed. |
+| license_key    | string | Yes      | License key to reauthenticate. |
+| item_id        | int    | Yes      | ID of the item associated with the license. |
+| download_token | string | Yes      | Base64 encoded download token issued during activation. |
+| service_id     | string | Yes      | Service ID associated with the license. |
+
+---
+
+### 9. Bulk Messages
+
+**Endpoint:** `/bulk-messages/`  
+**Method:** `GET`  
+**Description:** Fetch multiple messages for specific apps.
+
+| Parameter    | Type   | Required | Description |
+| ------------ | ------ | -------- | ----------- |
+| page         | int    | No       | Page number for pagination (default 1). |
+| limit        | int    | No       | Number of messages per page (default 10). |
+| app_slugs    | array  | No       | Array of app slugs to filter by. |
+| app_types    | array  | No       | Array of app types to filter by (plugin, theme, etc.). |
+
+---
+
+### 10. Mock Inbox (Testing)
+
+**Endpoint:** `/mock-inbox/`  
+**Method:** `GET`  
+**Description:** Test endpoint simulating inbox messages for development.
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| since     | string | No       | Optional timestamp to filter messages created after a specific date. |
 
 ---
 
