@@ -88,7 +88,8 @@ Whether you distribute plugins, themes, standalone software, or custom applicati
 
    * Use the included API to validate licenses, check update availability, and fetch product metadata.
 
-````markdown
+---
+
 # Smart License Server - Developer REST API Guide
 
 **Base Namespace:** `/wp-json/smliser/v1`
@@ -404,9 +405,6 @@ curl https://example.com/wp-json/smliser/v1/mock-inbox/
   { "id": "msg_001", "subject": "Welcome", "body": "Welcome message", "read": false },
   { "id": "msg_002", "subject": "Update", "body": "Update message", "read": false }
 ]
-```
-
-```
 ```
 
 
