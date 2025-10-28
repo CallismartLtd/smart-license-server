@@ -234,21 +234,6 @@ Whether you distribute plugins, themes, standalone software, or custom applicati
 
 ---
 
-## Example Workflow
-
-```php
-// Validate a license key
-$license = Smliser_License::get_by_key( $key );
-if ( $license && $license->is_active() ) {
-    // License is valid, allow update
-    $updates = $license->get_available_updates();
-} else {
-    // License invalid or expired
-    wp_die('Invalid license');
-}
-```
-
----
 
 ## Frequently Asked Questions
 
