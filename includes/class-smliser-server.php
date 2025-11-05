@@ -124,7 +124,7 @@ class Smliser_Server{
             return $response;
         }
 
-        if ( is_wp_error( $response ) ) {
+        if ( is_smliser_error( $response ) ) {
             remove_filter( 'rest_post_dispatch', 'rest_send_allow_header' );
         }
         if ( is_null( self::instance()->plugin ) ) {
@@ -144,8 +144,8 @@ class Smliser_Server{
      */
     public static function download_server() {
         if ( 'smliser-downloads' === get_query_var( 'pagename' ) ) {
-            $category = get_query_var( 'software_category' );
-            switch ( $category ) {
+            $app_type = get_query_var( 'smliser_app_type' );
+            switch ( $app_type ) {
                 case 'plugins':
                     self::instance()->serve_package_download();
                     break;
@@ -173,12 +173,13 @@ class Smliser_Server{
      * in the http authorization bearer header.
      */
     private function serve_package_download() {
-        global $smliser_repo;
-        if ( 'plugins' !== get_query_var( 'software_category' ) ) {
+        $app_type = get_query_var( 'smliser_app_type' );
+        if ( 'plugins' !== $app_type ) {
             return;
         }
             
-        $plugin_slug    = sanitize_and_normalize_path( get_query_var( 'file_slug' ) );        
+        $plugin_slug    = sanitize_and_normalize_path( get_query_var( 'smliser_app_slug' ) );
+
         if ( empty( $plugin_slug ) ) {
             wp_die( 'File slug or extension missing', 'Download Error', 400 );
         }
@@ -446,7 +447,7 @@ class Smliser_Server{
         }
 
         $file_path = $repo_class->get_asset_path( $app_slug, $asset_name );
-        if ( is_wp_error( $file_path ) ) {
+        if ( is_smliser_error( $file_path ) ) {
             wp_die( $file_path->get_error_message(), 'Asset Error', [ 'response' => $file_path->get_error_code() ] );
         }
 
@@ -505,7 +506,7 @@ class Smliser_Server{
 
         $file = download_url( $image_url );
 
-        if ( is_wp_error( $file ) ) {
+        if ( is_smliser_error( $file ) ) {
             wp_die( $file->get_error_message() );
         }
         
@@ -562,37 +563,6 @@ class Smliser_Server{
     }
 
     /**
-     * Calculate the next validation time for a given task.
-     *
-     * @param int $task_timestamp The task timestamp.
-     * @param int $cron_timestamp The next cron job timestamp.
-     * @return string The next validation time in a human-readable format.
-     */
-    public function calculate_next_validation_time( $task_timestamp, $cron_timestamp ) {
-        $tasks      = $this->scheduled_tasks();
-        $cron_intvl = 3 * MINUTE_IN_SECONDS; // Runs every 3mins.
-        $task_count = 0;
-
-        foreach ( $tasks as $timestamp => $task ) {
-            $task_count++;
-            if ( $task_timestamp === $timestamp ) {
-                $task_count = absint( $task_count - 1 ); // Looking for tasks ahead.
-                break;
-            }
-        }
-        
-        if ( $task_count === 0 ) {
-            $next_task_time = $cron_timestamp - time();
-            return smliser_readable_duration( $next_task_time ); // The current cron countdown is for the next task.
-        }
-
-        $cron_intvl     = $cron_intvl * $task_count; // Cron will run for tasks ahead.
-        $next_task_time = $cron_timestamp - time() + $cron_intvl;
-
-        return smliser_readable_duration( $next_task_time );
-    }
-
-    /**
      * Set status when performing remote post.
      */
     public function doing_post() {
@@ -638,7 +608,7 @@ class Smliser_Server{
         } elseif ( is_string( $plugin ) ) {
             $plugin_slug = sanitize_text_field( unslash( $plugin ) );
             if ( strpos( $plugin_slug, '/' ) !== false ) {
-                $plugin     = Smliser_Plugin::get_plugin_by( 'slug', $plugin_slug );
+                $plugin     = Smliser_Plugin::get_by_slug( 'slug', $plugin_slug );
                 $item_id    = ! empty( $plugin ) ? $plugin->get_item_id() : 0;
             }
         }

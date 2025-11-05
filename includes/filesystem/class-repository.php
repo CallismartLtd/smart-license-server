@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * Works only within allowed subdirectories (plugins, themes, softwares).
  * Provides safe IO, streaming, and ZIP file utilities.
  */
-class Repository extends FileSystem {
+abstract class Repository extends FileSystem {
 
     /**
      * Repository base directory.
@@ -268,7 +268,7 @@ class Repository extends FileSystem {
         $contents = stream_get_contents( $stream );
         fclose( $stream );
 
-        $written = $this->put( $dest_filename, $contents );
+        $written = $this->put_contents( $dest_filename, $contents );
         $zip->close();
 
         return $written ? true : new \WP_Error( 'write_failed', __( 'Failed to write file.', 'smart-license-server' ) );
@@ -345,10 +345,29 @@ class Repository extends FileSystem {
     public function real_path( $relative_path ) {
         $cleaned = \sanitize_and_normalize_path( $relative_path );
 
-        if ( is_wp_error( $cleaned ) ) {
+        if ( is_smliser_error( $cleaned ) ) {
             return false;
         }
 
         return trailingslashit( $this->base_dir ) . $cleaned;
     }
+
+    /**
+     * Get the assets for a given hosted application.
+     * 
+     * @abstract
+     * @param string $slug The application slug.
+     * @param string $type The application type.
+     */
+    abstract public function get_assets( string $slug, string $type );
+
+    /**
+     * Get the path to a given hosted application.
+     * 
+     * @abstract
+     * @param string $slug The application slug.
+     * @param string $filename The filename inside the application directory.
+     * @return string|\WP_Error The asset path or WP_Error on failure.
+     */
+    abstract public function get_asset_path( string $slug, string $filename );
 }

@@ -105,10 +105,10 @@ class Smliser_License_Rest_API {
         $status_access  = $license->can_serve_license( $item_id, 'license activation', $domain );
         $domain_access  = self::restrict_domain_activation( $domain, $request );
 
-        $access_denied  = is_wp_error( $status_access ) || is_wp_error( $domain_access );
+        $access_denied  = is_smliser_error( $status_access ) || is_smliser_error( $domain_access );
 
         if ( $access_denied  ) {
-            $error = is_wp_error( $status_access ) ? $status_access : $domain_access;
+            $error = is_smliser_error( $status_access ) ? $status_access : $domain_access;
             $reasons = array(
                 '',
                 array( 
@@ -139,7 +139,7 @@ class Smliser_License_Rest_API {
         $license        = self::instance()->license;
         $encoded_data   = $license->encode();
 
-        if ( is_wp_error( $encoded_data ) ) {
+        if ( is_smliser_error( $encoded_data ) ) {
             $response_data = array(
                 'code'      => 'license_server_busy',
                 'message'   => 'Server is currently busy please retry. Contact support if the issue persists.'
@@ -331,7 +331,7 @@ class Smliser_License_Rest_API {
         self::$instance->license = $license;
 
         $domain_access = self::verify_domain( $request );
-        if ( is_wp_error( $domain_access ) ) {
+        if ( is_smliser_error( $domain_access ) ) {
             return $domain_access;
         }
 
@@ -406,10 +406,10 @@ class Smliser_License_Rest_API {
         $domain         = $request->get_param( 'domain' );
         $status_access  = $license->can_serve_license( $item_id, 'license activation', $domain );
         $domain_access  = self::verify_domain( $request );
-        $has_error      = is_wp_error( $status_access ) || is_wp_error( $domain_access );
+        $has_error      = is_smliser_error( $status_access ) || is_smliser_error( $domain_access );
 
         if ( $has_error ) {
-            $error = is_wp_error( $status_access ) ? $status_access : $domain_access;
+            $error = is_smliser_error( $status_access ) ? $status_access : $domain_access;
             $reasons = array(
                 '',
                 array( 
@@ -482,7 +482,7 @@ class Smliser_License_Rest_API {
         }
 
         $result = self::verify_domain( $request );
-        return is_wp_error( $result ) ? $result : false;        
+        return is_smliser_error( $result ) ? $result : false;        
     }
 
     /**

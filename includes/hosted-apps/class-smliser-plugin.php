@@ -190,7 +190,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     /**
      * Plugin zip file.
      * 
-     * @var array|null $file The plugin file.
+     * @var string|array $file The absolute path to the plugin zip file or an array of uploaded file data.
      */
     protected $file;
 
@@ -243,6 +243,24 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             return $this->get_url();
         }
         return $this->homepage;
+    }
+
+    /**
+     * Get the absolute path to the plugin zip file
+     * 
+     * @return string|WP_Error The file path or WP_Error on failure.
+     */
+    public function get_zip_file() {
+        $file = $this->get_file();
+        if ( ! is_array( $file ) ) {
+            return $file;
+        }
+
+        if ( is_array( $file ) && isset( $file['tempname'] ) ) {
+            return $file['tempname'];
+        }
+
+        return new WP_Error( 'file_not_found', __( 'Plugin file not found.', 'smliser' ), array( 'status' => 404 ) );
     }
 
     /*
@@ -397,7 +415,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     /**
      *  Set the file
      * 
-     * @param array|null $file
+     * @param array|string $file
      */
     public function set_file( $file ) {
         $this->file = $file;
@@ -478,7 +496,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @param array $icons
      */
     public function set_icons( array $icons ) {
-        $values         = array_values( $icons );
         $this->icons    = array_map( 'sanitize_url', unslash( $icons ) );
 
     }
@@ -877,32 +894,41 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'download_link' => $this->get_download_link(),
         );
 
+        $data_formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' );
+
         if ( $this->get_id() ) {
-            if ( ! empty( $this->file ) ) {
+            if ( is_array( $this->file ) ) {
                 $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
-                if ( is_wp_error( $slug ) ) {
+                if ( is_smliser_error( $slug ) ) {
                     return $slug;
+                }
+
+                if ( $slug !== $this->get_slug() ) {
+                    $plugin_data['slug'] = $slug;
+                    $data_formats[]      = '%s';
+                    $this->set_slug( $slug );
                 }
             }
 
-            $plugin_data['last_updated'] = current_time( 'mysql' );
+            $plugin_data['last_updated']    = current_time( 'mysql' );
+            $data_formats[]                 = '%s';
             
             $result = $wpdb->update(
                 SMLISER_PLUGIN_ITEM_TABLE,
                 $plugin_data,
                 array( 'id' => absint( $this->get_id() ) ),
-                array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ),
+                $data_formats,
                 array( '%d' )
             );
 
         } else {
-            if ( empty( $file ) ) {
-                return new WP_Error( 'missing_plugin', 'No plugin file found.' );
+            if ( ! is_array( $file ) ) {
+                return new WP_Error( 'no_file_provided', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
             }
 
             $slug = $repo_class->upload_zip( $file, $filename );
 
-            if ( is_wp_error( $slug ) ) {
+            if ( is_smliser_error( $slug ) ) {
                 return $slug;
             }
 
@@ -910,10 +936,13 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
 
             $plugin_data['slug']        = $this->get_slug();
             $plugin_data['created_at']  = current_time( 'mysql' );
+
+            $data_formats = $data_formats + array( '%s', '%s' );
+
             $result = $wpdb->insert( 
                 SMLISER_PLUGIN_ITEM_TABLE, 
                 $plugin_data, 
-                array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ) 
+                $data_formats
             );
 
             $this->set_id( $wpdb->insert_id );
@@ -944,7 +973,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         $item_id        = $this->get_item_id();
         $file_delete    = $repo_class->delete_from_repo( $this->get_slug() );
 
-        if ( is_wp_error( $file_delete ) ) {
+        if ( is_smliser_error( $file_delete ) ) {
             return $file_delete;
         }
 
@@ -1114,12 +1143,13 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         $self->set_homepage( $self->get_meta( 'homepage_url', '#' ) );
         
         /** 
-         * Set file information 
+         * Set file information
+         * 
+         * @var SmartLicenseServer\PluginRepository $repo_class
          */
-
         $repo_class         = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
         $plugin_file_path   = $repo_class->locate( $self->get_slug() );
-        if ( ! is_wp_error( $plugin_file_path ) ) {
+        if ( ! is_smliser_error( $plugin_file_path ) ) {
             $self->set_file( $plugin_file_path );
         } else {
             $self->set_file( null );
@@ -1170,22 +1200,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
 
         return $self;
-    }
-
-    /**
-     * Determine and return the format of a data.
-     * 
-     * @param mixed $data Unknown data.
-     * @return $format The correct data format for DB insertion or update.
-     */
-    protected function get_data_format( $data ) {
-        if ( is_int( $data ) ) {
-            return '%d';
-        } elseif ( is_float( $data ) ) {
-            return '%f';
-        } else {
-            return '%s';
-        }
     }
 
     /**
@@ -1350,7 +1364,10 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
                 break;
         }
 
-        if ( is_wp_error( $result ) ) {
+        if ( is_smliser_error( $result ) ) {
+            /**
+             * @var \WP_Error $result WordPress error object
+             */
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
 
@@ -1386,7 +1403,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
 
             if ( $is_new ) {
                 $item_id = $self->save();
-                if ( is_wp_error( $item_id ) ) {
+                if ( is_smliser_error( $item_id ) ) {
                     set_transient( 'smliser_form_validation_message', $item_id->get_error_message(), 15 );
                     wp_safe_redirect( smliser_admin_repo_tab() );
                     exit;
@@ -1399,7 +1416,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             if ( $is_update ) {
                 $self->update_meta( 'support_url', isset( $_POST['smliser_plugin_support_url'] ) ? sanitize_url( unslash( $_POST['smliser_plugin_support_url'] ), array( 'http', 'https' ) ) : '' );
                 $update = $self->save();
-                if ( is_wp_error( $update ) ) {
+                if ( is_smliser_error( $update ) ) {
                     set_transient( 'smliser_form_validation_message', $update->get_error_message(), 5 );
                 } else {
                     set_transient( 'smliser_form_success', true, 4 );

@@ -110,7 +110,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
             'timeout' => 30,
         ] );
 
-        if ( is_wp_error( $response ) ) {
+        if ( is_smliser_error( $response ) ) {
             error_log( sprintf(
                 'WooCommerce_Provider::get_product() - Request failed for product %d. Error: %s Endpoint: %s',
                 $product_id,

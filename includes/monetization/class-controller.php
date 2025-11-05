@@ -206,7 +206,7 @@ class Controller {
 
         $valid_product = Provider_Collection::validate_product_data( $product );
 
-        if ( is_wp_error( $valid_product ) ) {
+        if ( is_smliser_error( $valid_product ) ) {
             wp_send_json_error( array(
                 'message' => $valid_product->get_error_message(),
             ) );

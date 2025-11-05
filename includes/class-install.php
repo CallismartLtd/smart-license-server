@@ -30,7 +30,7 @@ class Smliser_install {
     public static function install() {
         
         $result = self::create_directory();
-        if ( is_wp_error( $result ) ) {
+        if ( is_smliser_error( $result ) ) {
             update_option( 'smliser_directory_error', $result->get_error_message() );
         } else {
             delete_option( 'smliser_directory_error' );

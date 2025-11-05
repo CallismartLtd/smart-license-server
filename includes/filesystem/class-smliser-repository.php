@@ -24,7 +24,7 @@ class Smliser_Repository {
     protected $is_loaded = false;
     
     /**
-     * @var string $errors
+     * @var array $errors
      */
     protected $errors = [];
 
@@ -64,17 +64,19 @@ class Smliser_Repository {
      * Initialize the WordPress filesystem.
      */
     private function initialize_filesystem() {
+        
         if ( ! function_exists( 'request_filesystem_credentials' ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
         ob_start();
         $creds = request_filesystem_credentials( '', '', false, false, null );
-        ob_get_clean();
 
         if ( ! WP_Filesystem( $creds ) ) {
             $this->errors['smliser_filesys_error'] = 'Your server\'s cannot be accessed. In other to use Smart License Server, you will need to configure it to use FTP credentials.';
         }
+
+        ob_end_clean();
 
         if ( $dir_erro = get_option( 'smliser_directory_error', false ) ) {
             $this->errors['smliser_directory_error'] = $dir_erro;
@@ -220,7 +222,7 @@ class Smliser_Repository {
         $plugin_basename = explode( '/', $slug );
         $file_path = $this->set_path( $plugin_basename[0] );
 
-        if ( is_wp_error( $file_path ) ) {
+        if ( is_smliser_error( $file_path ) ) {
             return $file_path;
         }
 
@@ -300,7 +302,7 @@ class Smliser_Repository {
 
         $original_plugin_path = $this->get_plugin( Smliser_Plugin::normalize_slug( $slug ) );
 
-        if ( is_wp_error( $original_plugin_path ) ) {
+        if ( is_smliser_error( $original_plugin_path ) ) {
             return $original_plugin_path;
         }
 
@@ -391,12 +393,12 @@ class Smliser_Repository {
         $plugin_slug = Smliser_Plugin::normalize_slug( $plugin_slug );
         $file_path   = $this->get_plugin( $plugin_slug );
 
-        if ( is_wp_error( $file_path ) ) {
+        if ( is_smliser_error( $file_path ) ) {
             return '';
         }
 
         $raw_text = $this->get_readme_txt( $file_path );
-        if ( is_wp_error( $raw_text ) ) {
+        if ( is_smliser_error( $raw_text ) ) {
             return '';
         }
 
@@ -452,14 +454,14 @@ class Smliser_Repository {
         $plugin_slug      = Smliser_Plugin::normalize_slug( $plugin_slug );
         $zipped_file_path = $this->get_plugin( $plugin_slug );
 
-        if ( is_wp_error( $zipped_file_path ) ) {
+        if ( is_smliser_error( $zipped_file_path ) ) {
             return '';
         }
 
         $readme_contents  = $this->get_readme_txt( $zipped_file_path );
 
         // Check if we successfully retrieved the readme.txt contents.
-        if ( is_wp_error( $readme_contents ) || empty( $readme_contents ) ) {
+        if ( is_smliser_error( $readme_contents ) || empty( $readme_contents ) ) {
             return '';
         }
 
@@ -508,13 +510,13 @@ class Smliser_Repository {
         $plugin_slug    = Smliser_Plugin::normalize_slug( $plugin_slug );
         $file_path      = $this->get_plugin( $plugin_slug );
 
-        if ( is_wp_error( $file_path ) ) {
+        if ( is_smliser_error( $file_path ) ) {
             return '';
         }
 
         $raw_text       = $this->get_readme_txt( $file_path );
 
-        if ( is_wp_error( $raw_text ) ) {
+        if ( is_smliser_error( $raw_text ) ) {
             return '';
         }
 
@@ -536,13 +538,13 @@ class Smliser_Repository {
         $plugin_slug        = Smliser_Plugin::normalize_slug( $plugin_slug );
         $zipped_file_path   = $this->get_plugin( $plugin_slug );
 
-        if ( is_wp_error( $zipped_file_path  ) ) {
+        if ( is_smliser_error( $zipped_file_path  ) ) {
             return '';
         }
 
         $readme_contents    = $this->get_readme_txt( $zipped_file_path );
 
-        if ( is_wp_error( $readme_contents ) ) {
+        if ( is_smliser_error( $readme_contents ) ) {
             return '';
         }
         // Look for the "== Changelog ==" section in the readme.txt
@@ -600,9 +602,9 @@ class Smliser_Repository {
      */
     private function add_notice() {
         $errors = $this->errors;
-        add_action( 'admin_notices', function() {
+        add_action( 'admin_notices', function() use ( $errors ) {
             $notice = '<div class="notice notice-warning">';
-            foreach( $this->errors as $code => $error ) {
+            foreach( $errors as $code => $error ) {
                 $notice .= "<p>[$code] $error</p>";
             }
             $notice .= '</div>';
@@ -706,4 +708,4 @@ class Smliser_Repository {
  *
  * @global Smliser_Repository $smliser_repo Singleton instance of the repository handler.
  */
-$GLOBALS['smliser_repo'] = Smliser_Repository::instance();
+// $GLOBALS['smliser_repo'] = Smliser_Repository::instance();

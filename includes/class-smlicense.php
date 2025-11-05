@@ -1074,43 +1074,6 @@ class Smliser_license {
        return update_option( 'smliser_task_queue', $task_queue );
     }
 
-   /**
-     * Fetch the highest priority task from the task queue based on current timestamp.
-     *
-     * @return mixed|null Highest priority task value, or null if no valid task is found.
-     */
-    public static function fetch_highest_priority_task() {
-        // Retrieve the current timestamp
-        $current_time   = current_time( 'timestamp' );
-        $task_queue     = get_option( 'smliser_task_queue', array() );
-        $the_task       = array();
-        $highest_timest = PHP_INT_MAX;
-        ksort( $task_queue );
-
-        foreach ( $task_queue as $timestamp => $tasks ) {
-    
-            if ( $timestamp >= $current_time ) {
-
-                if ( $timestamp < $highest_timest ) {
-                    $the_task = reset( $task_queue );
-                    unset( $task_queue[$timestamp] );
-                    update_option( 'smliser_task_queue', $task_queue );
-                    $highest_timest = $timestamp;
-                }
-             
-            } else {
-
-               self::log_executed_task( $task_queue[$timestamp], array( 'comment' => 'Task time elapsed' ) );
-                // Remove expired tasks from the task queue
-                unset( $task_queue[ $timestamp ] );
-                update_option( 'smliser_task_queue', $task_queue ); // Update the task queue after removal.
-            }
-        }
-
-        // Return the highest priority task (if found)
-        return  $the_task;
-    }
-
     /**
      * Record a license activation.
      * 

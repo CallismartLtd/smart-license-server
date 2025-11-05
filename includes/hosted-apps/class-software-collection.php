@@ -521,7 +521,7 @@ class Smliser_Software_Collection {
 
             $updated = self::$update_method( $class );
 
-            if ( is_wp_error( $updated ) ) {
+            if ( is_smliser_error( $updated ) ) {
                 wp_send_json_error( array( 'message' => $updated->get_error_message() ), 503 );
             }
             
@@ -529,7 +529,7 @@ class Smliser_Software_Collection {
 
         $result = $class->save();
 
-        if ( is_wp_error( $result ) ) {
+        if ( is_smliser_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
 
@@ -586,7 +586,7 @@ class Smliser_Software_Collection {
         
         $url = $repo_class->upload_asset( $app_slug, $asset_file, $asset_type, $asset_name );
 
-        if ( is_wp_error( $url ) ) {
+        if ( is_smliser_error( $url ) ) {
             wp_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
         }
         
@@ -625,7 +625,7 @@ class Smliser_Software_Collection {
         
         $url = $repo_class->delete_asset( $app_slug, $asset_name );
 
-        if ( is_wp_error( $url ) ) {
+        if ( is_smliser_error( $url ) ) {
             wp_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
         }
         
@@ -656,7 +656,7 @@ class Smliser_Software_Collection {
      * Get the repository class for a hosted application type
      * 
      * @param string $type The type name.
-     * @return string $class_name The app's class name.
+     * @return SmartLicenseServer\Repository|null $class_name The app's class name.
      */
     public static function get_app_repository_class( $type ) {
         $class = 'SmartLicenseServer\\' . ucfirst( $type ) . 'Repository';

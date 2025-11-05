@@ -1,25 +1,24 @@
 <?php
 /**
- * Safe FileSystem handler for repository operations.
+ * Filesystem class file
  *
- * Provides a sandboxed layer over WP_Filesystem, ensuring all file
- *
+ * @author Callistus Nwachukwu <admin@callismart.com.ng>
  * @since 0.0.6
  */
 
 namespace SmartLicenseServer;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_PATH' ) || exit; // phpcs-ignore
 
 /**
- * This class is a wrapper around WP_Filesystem
+ * Provides a safe filesystem operations handler.
  */
 class FileSystem {
 
     /**
-     * WP_Filesystem instance.
+     * The core filesystem object.
      *
-     * @var \WP_Filesystem_Base
+     * @var FilesystemBridge
      */
     protected $fs;
 
@@ -28,15 +27,52 @@ class FileSystem {
      *
      */
     public function __construct() {
-        global $wp_filesystem;
+        $this->fs = self::_init_fs();
+    }
 
-        require_once ABSPATH . '/wp-admin/includes/file.php';
-
-        if ( ! $wp_filesystem ) {
-            WP_Filesystem();
+    /**
+     * Initialize the core filesystem class
+     * 
+     * @return object
+     */
+    private static function _init_fs() {
+        // If we are in WordPress context, use its filesystem API
+        if ( defined( 'ABSPATH' ) ) {
+            // This is WordPress context
+            global $wp_filesystem;
+            if ( ! $wp_filesystem ) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+                
+                WP_Filesystem();
+            }
+            return $wp_filesystem;
         }
 
-        $this->fs       = $wp_filesystem;
+        // We will use Flysystem as fallback
+    }
+
+    /**
+     * Get the filesystem handler
+     * 
+     * @return object|null
+     */
+    public static function get_fs() {
+        return self::instance()->fs;
+    }
+
+    /**
+     * Get the the instance of this filesyste class.
+     * 
+     * @return self
+     */
+    public static function instance() {
+        static $instance = null;
+
+        if ( is_null( $instance ) ) {
+            $instance = new static();
+        }
+
+        return $instance;
     }
 
     /**

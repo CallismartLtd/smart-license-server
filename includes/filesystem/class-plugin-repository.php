@@ -148,7 +148,7 @@ class PluginRepository extends Repository {
 
         // --- Core upload via Repository::store_zip() ---
         $stored_path = $this->store_zip( $tmp_name, $dest_path );
-        if ( is_wp_error( $stored_path ) ) {
+        if ( is_smliser_error( $stored_path ) ) {
             return $stored_path;
         }
 
@@ -190,7 +190,7 @@ class PluginRepository extends Repository {
             return new \WP_Error( 'readme_save_failed', 'Failed to save readme.txt.', [ 'status' => 500 ] );
         }
 
-        return untrailingslashit( $slug . '/' . $file_name );
+        return $slug;
     }
 
     /**
@@ -318,7 +318,7 @@ class PluginRepository extends Repository {
     public function delete_asset( $slug, $filename ) {
         $path = $this->get_asset_path( $slug, $filename );
 
-        if ( is_wp_error( $path ) ) {
+        if ( is_smliser_error( $path ) ) {
             return $path;
         }
 
@@ -751,7 +751,7 @@ class PluginRepository extends Repository {
             // Attempt to get it from the zipped plugin file.
             $zip_path = $this->locate( $slug );
 
-            if ( is_wp_error( $zip_path ) ) {
+            if ( is_smliser_error( $zip_path ) ) {
                 return '';
             }
 

@@ -11,52 +11,6 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Generate ISO8601 compatible Period Time in Seconds for incoming task requests
- *
- * @return string ISO8601 duration string.
- */
-function smliser_wait_period() {
-    // Initialize the object and get all scheduled tasks
-    $obj            = new Smliser_Server();
-    $all_tasks      = $obj->scheduled_tasks();
-    $default_wait   = 600; // 10 minutes
-    $max_wait       = 3600; // 1 hour
-
-    // Default wait period if no tasks are pending
-    if ( empty( $all_tasks ) ) {
-        $wait_duration = 'PT' . $default_wait . 'S'; 
-        delete_transient( 'smliser_task_wait_period' ); // Reset wait period when no tasks are pending
-        return $wait_duration;
-    }
-
-    $extend_wait = get_transient( 'smliser_task_wait_period' );
-    if ( false === $extend_wait ) {
-        $extend_wait = $default_wait / 2; // Start with half the default wait time
-    }
-
-    // Adjust wait period based on the number of pending tasks
-    if ( count( $all_tasks ) <= 2 ) {
-        $extend_wait += $default_wait / 2;
-        set_transient( 'smliser_task_wait_period', $extend_wait, 10 * MINUTE_IN_SECONDS );
-    } elseif ( count( $all_tasks ) <= 5 ) {
-        $extend_wait += $default_wait;
-        set_transient( 'smliser_task_wait_period', $extend_wait, 20 * MINUTE_IN_SECONDS );
-    } else {
-        $extend_wait += $default_wait + 300; // Add 5 minutes extra
-        set_transient( 'smliser_task_wait_period', $extend_wait, 30 * MINUTE_IN_SECONDS );
-    }
-
-    // Ensure the wait period does not exceed the maximum limit
-    $total_wait_time = min( $extend_wait, $max_wait );
-
-    // Format the total wait time into ISO 8601 duration format
-    $wait_duration = 'PT' . $total_wait_time . 'S';
-
-    return $wait_duration;
-}
-
-
-/**
  * The License page url function
  * can be useful to get the url to the License page in all scenerio
  */
@@ -302,7 +256,7 @@ function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry =
 
     $token = Callismart\Utilities\Encryption::encrypt( $payload );
 
-    return is_wp_error( $token ) ? false : $token;
+    return is_smliser_error( $token ) ? false : $token;
 }
 
 
@@ -320,7 +274,7 @@ function smliser_verify_item_token( $token, $item_id ) {
 
     $decrypted = Callismart\Utilities\Encryption::decrypt( $token );
 
-    if ( is_wp_error( $decrypted ) || ! str_contains( $decrypted, '|' ) ) {
+    if ( is_smliser_error( $decrypted ) || ! str_contains( $decrypted, '|' ) ) {
         return false;
     }
 
@@ -367,8 +321,71 @@ function smliser_safe_base64_decode( $encoded_token ) {
         return null;
     }
     
-
     return $decoded_token;
+}
+
+/**
+ * Safely encodes data to JSON, emulating WordPress' wp_json_encode().
+ *
+ * Ensures consistent encoding across environments, handling
+ * non-UTF8 characters and partial encoding failures gracefully.
+ *
+ * @param mixed $data  Data to encode.
+ * @param int   $flags Optional. Bitmask of JSON encode options. Default 0.
+ * @param int   $depth Optional. Set the maximum depth. Default 512.
+ * 
+ * @return string|false The JSON encoded string, or false on failure.
+ */
+function smliser_safe_json_encode( mixed $data, int $flags = 0, int $depth = 512 ) {
+	if ( function_exists( 'wp_json_encode' ) ) {
+		return wp_json_encode( $data, $flags, $depth );
+	}
+
+	// Attempt normal JSON encoding first.
+	$json = json_encode( $data, $flags, $depth );
+
+	if ( false !== $json && JSON_ERROR_NONE === json_last_error() ) {
+		return $json;
+	}
+
+	// If encoding fails, try to clean invalid UTF-8 recursively.
+	$clean_data = smliser_utf8ize( $data );
+
+	$json = json_encode( $clean_data, $flags, $depth );
+
+	if ( false !== $json && JSON_ERROR_NONE === json_last_error() ) {
+		return $json;
+	}
+
+	// If it still fails, return a string representation of the error for debugging.
+	return sprintf(
+		'{"error":"JSON encoding failed: %s"}',
+		json_last_error_msg()
+	);
+}
+
+/**
+ * Recursively clean strings to ensure valid UTF-8, similar to WordPress' `wp_json_encode()` handling.
+ *
+ * @param mixed $data Data to sanitize.
+ * @return mixed UTF-8 cleaned data.
+ */
+function smliser_utf8ize( mixed $data ) {
+	if ( is_array( $data ) ) {
+		foreach ( $data as $key => $value ) {
+			unset( $data[ $key ] );
+			$data[ smliser_utf8ize( $key ) ] = smliser_utf8ize( $value );
+		}
+	} elseif ( is_string( $data ) ) {
+		return mb_convert_encoding( $data, 'UTF-8', 'UTF-8' );
+	} elseif ( is_object( $data ) ) {
+		$vars = get_object_vars( $data );
+		foreach ( $vars as $key => $value ) {
+			$data->$key = smliser_utf8ize( $value );
+		}
+	}
+
+	return $data;
 }
 
 /**

@@ -100,9 +100,9 @@ class SmartLicense_config {
      * Class constructor.
      */
     public function __construct() {
-        define( 'SMLISER_REPOSITORY_ROUTE', $this->repository_route );
-
         global $wpdb;
+
+        define( 'SMLISER_REPOSITORY_ROUTE', $this->repository_route );
         define( 'SMLISER_LICENSE_TABLE', $wpdb->prefix.'smliser_licenses' );
         define( 'SMLISER_PLUGIN_META_TABLE', $wpdb->prefix . 'smliser_plugin_meta' );
         define( 'SMLISER_THEME_META_TABLE', $wpdb->prefix . 'smliser_theme_meta' );
@@ -159,6 +159,8 @@ class SmartLicense_config {
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
+
+        add_action( 'admin_notices', function() { self::check_filesystem_errors(); } );
     }
 
     /** Load or Register our Rest route */
@@ -840,7 +842,7 @@ class SmartLicense_config {
          */
         add_rewrite_rule(
             '^' . $download_slug . '/([^/]+)/?$',
-            'index.php?pagename=smliser-downloads&software_category=$matches[1]',
+            'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]',
             'top'
         );
         
@@ -849,13 +851,13 @@ class SmartLicense_config {
          */
         add_rewrite_rule(
             '^' . $download_slug . '/([^/]+)/([^/]+)\.zip/?$',
-            'index.php?pagename=smliser-downloads&software_category=$matches[1]&file_slug=$matches[2]',
+            'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]',
             'top'
         );
 
         add_rewrite_rule(
             '^' . $download_slug . '/([^/]+)/([^/]+)/?$',
-            'index.php?pagename=smliser-downloads&software_category=$matches[1]&license_id=$matches[2]',
+            'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]&license_id=$matches[2]',
             'top'
         );
         
@@ -879,12 +881,10 @@ class SmartLicense_config {
         
         $vars[] = 'smliser_repository';
         $vars[] = 'smliser_repository_plugin_slug';
-        $vars[] = 'file_slug';
         $vars[] = 'license_id';
-        $vars[] = 'software_category';
+        $vars[] = 'smliser_app_type';
         $vars[] = 'smliser_auth';
         
-        $vars[] = 'smliser_app_type';
         $vars[] = 'smliser_app_slug';
         $vars[] = 'smliser_asset_name';
         
@@ -1043,6 +1043,33 @@ class SmartLicense_config {
             <p id="smliser-click-notice" style="display: none">Update started in the backgroud <span class="dashicons dashicons-yes-alt" style="color: blue"></span></p>
         </div>
         <?php
+    }
+
+    /**
+     * Check filesystem permissions and print admin notice if not writable.
+     * 
+     * @return void
+     */
+    private static function check_filesystem_errors() {
+        $fs_instance    = SmartLicenseServer\FileSystem::instance();
+        $wp_error       = $fs_instance->get_fs()->errors;
+
+        if ( $wp_error->has_errors() ) {
+            $error_messages = $wp_error->get_error_messages();
+            $messages_html = '';
+            foreach ( $error_messages as $message ) {
+                $messages_html .= '<code>' . esc_html( $message ) . '</code><br />';
+            }
+
+            wp_admin_notice( 
+                sprintf(
+                    __( 'Smart License Server Filesystem Error: <br/> %s Please ensure the WordPress filesystem is properly configured and writable.', 'smliser' ),
+                    $messages_html
+                ),
+                'error'
+            );
+
+        }
     }
 }
 

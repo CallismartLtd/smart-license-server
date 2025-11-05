@@ -45,3 +45,18 @@ if ( ! function_exists( 'is_base64_encoded' ) ) {
     }
 }
 
+/**
+ * Check whether the given value is an error instance.
+ * @param mixed $value The value to check.
+ * @return bool True if the value is an instance of a known error class, false otherwise.
+ */
+function is_smliser_error( $value ) {
+    if ( function_exists( 'is_wp_error' ) && is_wp_error( $value ) ) {
+        return true;
+        
+    } elseif ( $value instanceof WP_Error ) {
+        return true;
+    }
+
+    return ( $value instanceof \SmartLicenseServer\Exceptions\Error );
+}

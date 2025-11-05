@@ -625,7 +625,7 @@ class Smliser_API_Cred {
 
                 $response = wp_remote_post( $callback_url, $request_body );
 
-                if ( is_wp_error( $response ) ) {
+                if ( is_smliser_error( $response ) ) {
                     wp_die( $response->get_error_message() );
                 }
 
@@ -665,7 +665,7 @@ class Smliser_API_Cred {
 
             $user = wp_signon( $credentials, false );
 
-            if ( is_wp_error( $user ) ) {
+            if ( is_smliser_error( $user ) ) {
                 set_transient( 'smliser_form_validation_message', $user->get_error_message(), 5 );
                 wp_redirect( $url );
                 exit;
