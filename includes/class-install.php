@@ -603,12 +603,12 @@ class Smliser_install {
      */
     public static function ajax_update() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
         $repo_version = get_option( 'smliser_repo_version', 0 );
         if ( SMLISER_VER === $repo_version ) {
-            wp_send_json_error( array( 'message' => 'No upgrade needed' ) );
+            smliser_send_json_error( array( 'message' => 'No upgrade needed' ) );
         }
 
         if ( self::install() )  {
@@ -623,7 +623,7 @@ class Smliser_install {
         }
         update_option( 'smliser_repo_version', SMLISER_VER );
 
-        wp_send_json_success( array( 'message' => 'The repository has been migrated from version "' . $repo_version . '" to version "' . SMLISER_VER ) );
+        smliser_send_json_success( array( 'message' => 'The repository has been migrated from version "' . $repo_version . '" to version "' . SMLISER_VER ) );
     }
 
 }

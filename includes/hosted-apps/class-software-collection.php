@@ -11,7 +11,9 @@ use SmartLicenseServer\Exception;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Software collection class is used to perform CRUD opertions on softwares hosted in this repository
+ * Software collection class is used to perform CRUD opertions on softwares hosted in this repository.
+ * 
+ * Provides methods to perform CRUD operations across multiple hosted application types (plugins, themes, software) and their assets.
  */
 class Smliser_Software_Collection {
 
@@ -25,7 +27,7 @@ class Smliser_Software_Collection {
      *     @type array  $types  List of types to query. Default all ['plugin','theme','software'].
      * }
      * @return array {
-     *     @type array $items        Instantiated application objects.
+     *     @type SmartLicenseServer\HostedApps\Hosted_Apps_Interface[] $items        Instantiated application objects.
      *     @type array $pagination {
      *         @type int $total       Total number of matching items.
      *         @type int $page        Current page number.
@@ -453,8 +455,6 @@ class Smliser_Software_Collection {
         );
     }
 
-
-
     /*
     |---------------------------
     | CREATE OPERATION METHODS
@@ -466,17 +466,17 @@ class Smliser_Software_Collection {
      */
     public static function save_app() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
         }
 
-        $app_type   = smliser_get_post_param( 'app_type', null ) ?? wp_send_json_error( array( 'message' => 'Application type is missing' ) );
+        $app_type   = smliser_get_post_param( 'app_type', null ) ?? smliser_send_json_error( array( 'message' => 'Application type is missing' ) );
         
         if ( ! self::app_type_is_allowed( $app_type ) ) {
-            wp_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
+            smliser_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
         }
         
         $app_id         = smliser_get_post_param( 'app_id', 0 );
@@ -484,7 +484,7 @@ class Smliser_Software_Collection {
         $init_method    = "get_{$app_type}";
 
         if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $init_method ) ) {
-            wp_send_json_error( array( 'message' => 'The app type is not supported' ) );
+            smliser_send_json_error( array( 'message' => 'The app type is not supported' ) );
         }
         
         /**
@@ -498,8 +498,8 @@ class Smliser_Software_Collection {
             $class = new $app_class();
         }
         
-        $name       = smliser_get_post_param( 'app_name', null ) ?? wp_send_json_error( array( 'message' => 'Application name is required' ) );
-        $author     = smliser_get_post_param( 'app_author', null ) ?? wp_send_json_error( array( 'message' => 'Application author name is required' ) );
+        $name       = smliser_get_post_param( 'app_name', null ) ?? smliser_send_json_error( array( 'message' => 'Application name is required' ) );
+        $author     = smliser_get_post_param( 'app_author', null ) ?? smliser_send_json_error( array( 'message' => 'Application author name is required' ) );
         $app_file   = isset( $_FILES['app_file'] ) && UPLOAD_ERR_OK === $_FILES['app_file']['error'] ? $_FILES['app_file'] : null;
 
         $author_url = smliser_get_post_param( 'app_author_url', '' );
@@ -517,13 +517,13 @@ class Smliser_Software_Collection {
             $update_method = "update_{$app_type}";
 
             if ( ! method_exists( __CLASS__, $update_method ) ) {
-                wp_send_json_error( array( 'message' => sprintf( 'The update method for the application type "%s" was not found!', $app_type ) ) );
+                smliser_send_json_error( array( 'message' => sprintf( 'The update method for the application type "%s" was not found!', $app_type ) ) );
             }
 
             $updated = self::$update_method( $class );
 
             if ( is_smliser_error( $updated ) ) {
-                wp_send_json_error( array( 'message' => $updated->get_error_message() ), 503 );
+                smliser_send_json_error( array( 'message' => $updated->get_error_message() ), 503 );
             }
             
         }
@@ -531,11 +531,10 @@ class Smliser_Software_Collection {
         $result = $class->save();
 
         if ( is_smliser_error( $result ) ) {
-            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+            smliser_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
 
-        wp_send_json_success( array( 'message' => sprintf( '%s Saved', ucfirst( $app_type ) ), 'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'item_id' => $class->get_id() ) ) ) );
-
+        smliser_send_json_success( array( 'message' => sprintf( '%s Saved', ucfirst( $app_type ) ), 'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'item_id' => $class->get_id() ) ) ) );
     }
 
     /**
@@ -565,30 +564,30 @@ class Smliser_Software_Collection {
      */
     public static function app_asset_upload() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
         }
 
-        $app_type   = smliser_get_post_param( 'app_type', null ) ?? wp_send_json_error( array( 'message' => 'Application type is required' ) );
+        $app_type   = smliser_get_post_param( 'app_type', null ) ?? smliser_send_json_error( array( 'message' => 'Application type is required' ) );
         if ( ! self::app_type_is_allowed( $app_type ) ) {
-            wp_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
+            smliser_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
         }
 
-        $app_slug   = smliser_get_post_param( 'app_slug', null ) ?? wp_send_json_error( array( 'message' => 'Application slug is required' ) );
-        $asset_type = smliser_get_post_param( 'asset_type', null ) ?? wp_send_json_error( array( 'message' => 'Asset type is required' ) );
+        $app_slug   = smliser_get_post_param( 'app_slug', null ) ?? smliser_send_json_error( array( 'message' => 'Application slug is required' ) );
+        $asset_type = smliser_get_post_param( 'asset_type', null ) ?? smliser_send_json_error( array( 'message' => 'Asset type is required' ) );
         $asset_name = smliser_get_post_param( 'asset_name', '' );
         
-        $asset_file = isset( $_FILES['asset_file'] ) && UPLOAD_ERR_OK === $_FILES['asset_file']['error'] ? $_FILES['asset_file'] : wp_send_json_error( array( 'message' => 'Uploaded file missing or corrupted' ) );
+        $asset_file = isset( $_FILES['asset_file'] ) && UPLOAD_ERR_OK === $_FILES['asset_file']['error'] ? $_FILES['asset_file'] : smliser_send_json_error( array( 'message' => 'Uploaded file missing or corrupted' ) );
 
-        $repo_class = self::get_app_repository_class( $app_type ) ?? wp_send_json_error( array( 'message' => 'Unable to reolve repository class' ), 500 );
+        $repo_class = self::get_app_repository_class( $app_type ) ?? smliser_send_json_error( array( 'message' => 'Unable to reolve repository class' ), 500 );
         
         $url = $repo_class->upload_asset( $app_slug, $asset_file, $asset_type, $asset_name );
 
         if ( is_smliser_error( $url ) ) {
-            wp_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
+            smliser_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
         }
         
         $config = array(
@@ -598,39 +597,40 @@ class Smliser_Software_Collection {
             'asset_name'    => basename( $url ),
             'asset_url'     => $url
         );
-        wp_send_json_success( array( 'message' => 'Uploaded', 'config' => $config ) );
 
+        smliser_send_json_success( array( 'message' => 'Uploaded', 'config' => $config ) );
     }
+
     /**
      * Handles an application's asset deletion
      */
     public static function app_asset_delete() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
         }
 
-        $app_type   = smliser_get_post_param( 'app_type', null ) ?? wp_send_json_error( array( 'message' => 'Application type is required' ) );
+        $app_type   = smliser_get_post_param( 'app_type', null ) ?? smliser_send_json_error( array( 'message' => 'Application type is required' ) );
         if ( ! self::app_type_is_allowed( $app_type ) ) {
-            wp_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
+            smliser_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
         }
 
-        $app_slug   = smliser_get_post_param( 'app_slug', null ) ?? wp_send_json_error( array( 'message' => 'Application slug is required' ) );
-        $asset_name = smliser_get_post_param( 'asset_name', null ) ?? wp_send_json_error( array( 'message' => 'Asset name is required' ) );
+        $app_slug   = smliser_get_post_param( 'app_slug', null ) ?? smliser_send_json_error( array( 'message' => 'Application slug is required' ) );
+        $asset_name = smliser_get_post_param( 'asset_name', null ) ?? smliser_send_json_error( array( 'message' => 'Asset name is required' ) );
         
 
-        $repo_class = self::get_app_repository_class( $app_type ) ?? wp_send_json_error( array( 'message' => 'Unable to reolve repository class' ), 500 );
+        $repo_class = self::get_app_repository_class( $app_type ) ?? smliser_send_json_error( array( 'message' => 'Unable to reolve repository class' ), 500 );
         
         $url = $repo_class->delete_asset( $app_slug, $asset_name );
 
         if ( is_smliser_error( $url ) ) {
-            wp_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
+            smliser_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
         }
         
-        wp_send_json_success( array( 'message' => 'Uploaded', 'image_url' => $url ) );
+        smliser_send_json_success( array( 'message' => 'Uploaded', 'image_url' => $url ) );
 
     }
 
@@ -650,7 +650,6 @@ class Smliser_Software_Collection {
         $class = 'Smliser_' . ucfirst( $type );
 
         return $class;
-
     }
 
     /**
@@ -667,7 +666,6 @@ class Smliser_Software_Collection {
         }
 
         return null;
-
     }
 
     /**

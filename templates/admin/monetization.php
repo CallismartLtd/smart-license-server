@@ -95,7 +95,7 @@ $item_object = $object->get_item_object();
                                 $features_str = is_array( $features ) ? implode( ', ', $features ) : (string) $features;
 
                                 // Encode the tier into JSON for JS handling
-                                $tier_json = wp_json_encode( [
+                                $tier_json = smliser_safe_json_encode( [
                                     'id'                => $tier->get_id(),
                                     'name'              => $tier->get_name(),
                                     'provider_id'       => $tier->get_provider_id(),

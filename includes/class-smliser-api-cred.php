@@ -498,22 +498,22 @@ class Smliser_API_Cred {
      */
     public static function revoke() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ) );
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ) );
         }
 
         $id = isset( $_GET['api_key_id'] ) ? absint( $_GET['api_key_id'] ) : 0;
         if ( empty( $id ) ) {
-            wp_send_json_error( array( 'message' => 'No API key id specified.' ) );
+            smliser_send_json_error( array( 'message' => 'No API key id specified.' ) );
         }
 
         $self = self::instance();
         $self->set_id( absint( $id ) );
         
         if ( false === $self->delete() ) {
-            wp_send_json_error( array( 'message' => 'Unable to delete the selected key.' ) );
+            smliser_send_json_error( array( 'message' => 'Unable to delete the selected key.' ) );
         }
 
-        wp_send_json_success( array( 'message' => 'Key has been revoked' ) );
+        smliser_send_json_success( array( 'message' => 'Key has been revoked' ) );
     }
 
 
@@ -619,7 +619,7 @@ class Smliser_API_Cred {
                         
                     ),
         
-                    'body'      => wp_json_encode( $api_credentials ),
+                    'body'      => smliser_safe_json_encode( $api_credentials ),
                     'timeout'   => 15,
                 );
 
@@ -686,7 +686,7 @@ class Smliser_API_Cred {
      */
     public static function admin_create_cred_form() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ) );
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ) );
         }
 
         $user_id    = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
@@ -707,7 +707,7 @@ class Smliser_API_Cred {
         }
 
         if ( ! empty( $validation ) ) {
-            wp_send_json_error( array( 'message' => 'Fill required fields' ) );
+            smliser_send_json_error( array( 'message' => 'Fill required fields' ) );
         }
 
         $self = new self();
@@ -715,10 +715,10 @@ class Smliser_API_Cred {
         $self->set_user( $user_id );
         $credentials = $self->insert_new();
         if ( false === $credentials ) {
-            wp_send_json_error( array( 'message' => 'Unable to generate API Key credentials' ) );
+            smliser_send_json_error( array( 'message' => 'Unable to generate API Key credentials' ) );
         }
 
-        wp_send_json_success( array( 
+        smliser_send_json_success( array( 
             'description'       => $description,
             'consumer_public'   => $credentials->consumer_public,
             'consumer_secret'   => $credentials->consumer_secret 

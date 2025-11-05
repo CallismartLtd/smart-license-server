@@ -282,11 +282,11 @@ class Smliser_Plugin_Download_Token {
     public static function get_new_token() {
         check_ajax_referer( 'smliser_nonce', 'security' );
         if ( ! current_user_can( 'install_plugins' ) ) {
-            wp_send_json_error( array( 'message' => 'You do not have the required permission to do this.') );
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to do this.') );
         }
         
-        $item_id    = isset( $_POST['item_id'] ) ? absint( $_POST['item_id'] ) : wp_send_json_error( array( 'message' => 'Item ID is required.' ) );
-        $license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( unslash( $_POST['license_key'] ) ) : wp_send_json_error( array( 'message' => 'License key is required.' ) );
+        $item_id    = isset( $_POST['item_id'] ) ? absint( $_POST['item_id'] ) : smliser_send_json_error( array( 'message' => 'Item ID is required.' ) );
+        $license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( unslash( $_POST['license_key'] ) ) : smliser_send_json_error( array( 'message' => 'License key is required.' ) );
         $expiry     = isset( $_POST['expiry'] ) ? sanitize_text_field( unslash(  $_POST['expiry'] ) ): 0;
 
         if ( ! empty( $expiry ) ) {
@@ -301,10 +301,10 @@ class Smliser_Plugin_Download_Token {
         $token = smliser_generate_item_token( $item_id, $license_key, $expiry );
 
         if ( ! $token ) {
-            wp_send_json_error( array( 'message' => 'An error occured during token creation.' ) );
+            smliser_send_json_error( array( 'message' => 'An error occured during token creation.' ) );
         }
         
-        wp_send_json_success( array( 'token' => $token ) );
+        smliser_send_json_success( array( 'token' => $token ) );
 
     }
 

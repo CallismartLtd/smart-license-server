@@ -254,13 +254,13 @@ class Provider_Collection {
      */
     public static function save_provider_options() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
         $provider_id = smliser_get_post_param( 'provider_id', null );
 
         if ( ! $provider_id || ! self::instance()->has_provider( $provider_id ) ) {
-            wp_send_json_error( array( 'message' => sprintf( 'The provider "%s" is not supported.', $provider_id ?? 'Unknown' ) ) );
+            smliser_send_json_error( array( 'message' => sprintf( 'The provider "%s" is not supported.', $provider_id ?? 'Unknown' ) ) );
         }
 
         $provider           = self::instance()->get_provider( $provider_id );
@@ -274,7 +274,7 @@ class Provider_Collection {
             }
         }
 
-        wp_send_json_success( array( 'message' => 'Saved' ) );
+        smliser_send_json_success( array( 'message' => 'Saved' ) );
     }
 
     /**

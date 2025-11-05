@@ -7,19 +7,14 @@
  * @since 1.0.0
  */
 
+namespace SmartLicenseServer;
+
 defined( 'ABSPATH'  ) || exit;
 
 /**
- * 
+ * Serves as a request controller and a proxy server for downloads and assets.
  */
-class Smliser_Server{
-
-    /**
-     * Remote validation tasks.
-     * 
-     * @var array $tasks
-     */
-    private $tasks = array();
+class Server {
 
     /**
      * Single instance of this class.
@@ -27,39 +22,6 @@ class Smliser_Server{
      * @var Smliser_Server $instance Instance.
      */
     private static $instance = null;
-
-    /**
-     * Our registered namespace
-     * 
-     * @var string $namespace
-     */
-    protected $namespace = '';
-
-    /**
-     * Instance of the Plugin class.
-     * 
-     * @var Smliser_Plugin $plugin Instance of our plugin class.
-     */
-    protected $plugin = null;
-
-    /**
-     * Instance of our license class.
-     * 
-     * @var Smliser_license $license
-     */
-    protected $license = null;
-
-    /**
-     * Authorization token.
-     */
-    private $authorization = '';
-
-    /**
-     * Authorization type
-     * 
-     * @var string $authorization_type
-     */
-    private $authorization_type = '';
 
     /**
      * Permission
@@ -72,96 +34,41 @@ class Smliser_Server{
      * Class constructor.
      */
     public function __construct() {
-        $this->namespace = SmartLicense_config::instance()->namespace();
+        add_action( 'admin_post_smliser_admin_download_plugin', array( __CLASS__, 'serve_admin_download' ) );
         add_action( 'template_redirect', array( $this, 'download_server' ) );
         add_action( 'template_redirect', array( $this, 'asset_server' ) );
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
         add_action( 'admin_post_smliser_download_image', array( __CLASS__, 'proxy_image_download' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
-        add_filter( 'rest_request_before_callbacks', array( __CLASS__, 'initialize_plugin_context' ), -1, 3 );
-    }
-
-    /*
-    |------------
-    | SETTERS.
-    |------------
-    */
-
-    /**
-     * Set authorization token
-     * 
-     * @param string $value The value
-     */
-    public function set_oauth_token( $value ) {
-        $this->authorization = sanitize_text_field( $value );
-    }
-
-    /**
-     * Set authorization type.
-     * 
-     * @param WP_REST_Request $request
-     */
-    public function set_auth_type( WP_REST_Request $request ) {
-        $auth_header    = $request->get_header( 'authorization' );
-        if ( ! empty( $auth_header ) ) {
-            $parts  = explode( ' ', $auth_header );
-
-            // The first value should always be the authentication type;
-            $this->authorization_type = sanitize_text_field( unslash( $parts[0] ) );
-        }
-    }
-
-    /**
-     * Set Props
-	 * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response Result to send to the client.
-	 *                                                                   Usually a WP_REST_Response or WP_Error.
-	 * @param array                                            $handler  Route handler used for the request.
-	 * @param WP_REST_Request                                  $request  Request used to generate the response.
-     */
-    public static function initialize_plugin_context( $response, $handler, $request ) {
-        // Ensure this request is for our route
-        if ( ! str_contains( $request->get_route(), self::instance()->namespace ) ) {
-            return $response;
-        }
-
-        if ( is_smliser_error( $response ) ) {
-            remove_filter( 'rest_post_dispatch', 'rest_send_allow_header' );
-        }
-        if ( is_null( self::instance()->plugin ) ) {
-            self::instance()->plugin   = Smliser_Plugin::instance();            
-        }
-
-        if ( is_null( self::instance()->license ) ) {
-            self::instance()->license  = Smliser_license::instance();
-
-        }
-
-        return $response;
     }
 
     /**
      * Call the correct item download handler.
      */
     public static function download_server() {
-        if ( 'smliser-downloads' === get_query_var( 'pagename' ) ) {
-            $app_type = get_query_var( 'smliser_app_type' );
-            switch ( $app_type ) {
-                case 'plugins':
-                    self::instance()->serve_package_download();
-                    break;
-                case 'themes':
-                    // Handle themes download.
-                    break;
-                case 'software':
-                    // Handle software download.
-                    break;
-                case 'documents':
-                    self::instance()->serve_license_document_download();
-                    break;
-                default:
-                    //redirect to repository page.
-            }
+        if ( 'smliser-downloads' !== get_query_var( 'pagename' ) ) {
+            return;
         }
+
+        $app_type = get_query_var( 'smliser_app_type' );
+
+        switch ( $app_type ) {
+            case 'plugins':
+                self::serve_package_download();
+                break;
+            case 'themes':
+                // Handle themes download.
+                break;
+            case 'software':
+                // Handle software download.
+                break;
+            case 'documents':
+                self::instance()->serve_license_document_download();
+                break;
+            default:
+                //redirect to repository page.
+        }
+        
     }
 
     /**
@@ -172,7 +79,7 @@ class Smliser_Server{
      * siteurl/donloads-page/plugins/plugin_slug.zip?download_token={{token}} or
      * in the http authorization bearer header.
      */
-    private function serve_package_download() {
+    private static function serve_package_download() {
         $app_type = get_query_var( 'smliser_app_type' );
         if ( 'plugins' !== $app_type ) {
             return;
@@ -219,7 +126,7 @@ class Smliser_Server{
         }
 
         $slug           = $plugin->get_slug();
-        $plugin_path    = $smliser_repo->get_plugin( $slug );       
+        $plugin_path    = $smliser_repo->get_plugin( $slug );    
         
         if ( ! $smliser_repo->exists( $plugin_path ) ) {
             wp_die( 'Plugin file does not exist.', 'File not found', 404 );
@@ -377,17 +284,16 @@ class Smliser_Server{
      * @global Smliser_Repository $smliser_repo The Repository instance()
      */
     public static function serve_admin_download() {
-        global $smliser_repo;
         if ( ! isset( $_GET['download_token'] ) || ! wp_verify_nonce( sanitize_text_field( unslash( $_GET['download_token'] ) ), 'smliser_download_token' ) ) {
             wp_die( 'Invalid token', 401 );
         }
 
         if ( ! is_admin() || ! current_user_can( 'install_plugins' ) ) {
-            wp_die( 'You don\'t have the required permmission to download this plugin', 401 );
+            wp_die( __( 'You are not authorized to perform this action.', 'smliser' ), 'Unathorized Download', array( 'response_code' => 400 ) );
         }
 
         $item_id    = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
-        $plugin_obj = new Smliser_Plugin();
+        $plugin_obj = new \Smliser_Plugin();
         $the_plugin = $plugin_obj->get_plugin( $item_id );
 
         if ( ! $the_plugin ) {
@@ -554,29 +460,6 @@ class Smliser_Server{
     */
 
     /**
-     * Ban an IP from accessing our REST API Route.
-     * 
-     * @param string $ip The IP to ban
-     */
-    public function ban_ip( $ip ) {
-        return update_option( 'smliser_ip_ban_list', $ip );
-    }
-
-    /**
-     * Set status when performing remote post.
-     */
-    public function doing_post() {
-        set_transient( 'smliser_server_doing_post', true, 30 );
-    }
-
-    /**
-     * Are we currently doing a post?
-     */
-    public function is_doing_post() {
-        return get_transient( 'smliser_server_doing_post', true );
-    }
-
-    /**
      * Instance of Smiliser_Server
      * 
      * @return self
@@ -588,149 +471,6 @@ class Smliser_Server{
 
         return self::$instance;
     }
-
-    /**
-     * Check if a given plugin is licensed.
-     * 
-     * @param mixed|Smliser_Plugin $plugin The plugin instance, ID, or slug.
-     * @return bool true if plugin is licensed, false otherwise.
-     */
-    public function is_licensed( $plugin ) {
-        if ( empty( $plugin ) ) {
-            return false;
-        }
-
-        $item_id = 0;
-        if ( $plugin instanceof Smliser_Plugin ) {
-            $item_id = $plugin->get_item_id();
-        } elseif ( is_int( $plugin ) ) {
-            $item_id = absint( $plugin );
-        } elseif ( is_string( $plugin ) ) {
-            $plugin_slug = sanitize_text_field( unslash( $plugin ) );
-            if ( strpos( $plugin_slug, '/' ) !== false ) {
-                $plugin     = Smliser_Plugin::get_by_slug( 'slug', $plugin_slug );
-                $item_id    = ! empty( $plugin ) ? $plugin->get_item_id() : 0;
-            }
-        }
-
-        if ( empty( $item_id ) ) {
-            return false;
-        }
-
-        global $wpdb;
-        $table_name = SMLISER_LICENSE_TABLE;
-        $query      = $wpdb->prepare( "SELECT `item_id` FROM {$table_name} WHERE `item_id` = %d", $item_id );
-        $result     = $wpdb->get_var( $query ); // phpcs:disable
-
-        return ! empty( $result );
-    }
-
-    /**
-     * Extract the value of the http authorization from request header.
-     * 
-     * @param WP_REST_Request $request The WordPress REST response object.
-     * @param string $context           The context in which the token is extracted. 
-     *                                  Pass "raw" for the raw data defaults to "decode"
-     * 
-     * @return string|null The value of the http authorization header, null otherwise.
-     */
-    public function extract_token( WP_REST_Request $request, $context = 'decode' ) {
-
-        // Get the authorization header.
-        $header = $request->get_header( 'authorization' );
-        
-        if ( ! empty( $header ) ) {
-            $parts  = explode( ' ', $header );
-            if ( 2 === count( $parts ) && 'Bearer' === $parts[0] ) {
-                if ( 'raw' === $context ) {
-                    return $parts[1];
-                }
-                
-                return smliser_safe_base64_decode( $parts[1] );
-
-            }            
-        }
-
-        // Return null if no valid token is found.
-        return null;
-    }
-
-    /**
-     * Validate Authorization token
-     * 
-     * @return bool true if valid, false otherwise.
-     */
-    public static function validate_token() {
-        $token = sanitize_text_field( self::$instance->authorization );
-        if ( empty( $token ) ) {
-            return false;
-        }
-
-        $api_cred_obj   = new Smliser_API_Cred();
-        $api_credential = $api_cred_obj->get_by_token( $token );
-
-        if ( empty( $api_credential ) ) {
-            return false;
-        }
-
-        $expiry     = ! empty( $api_credential->get_token( 'token_expiry' ) ) ? strtotime( $api_credential->get_token( 'token_expiry' ) ) : 0;
-        
-        if ( $expiry < time() ) {
-            return false;
-        }
-
-        $real_token = sanitize_text_field( $api_credential->get_token( 'token' ) );
-        self::$instance->permission = sanitize_text_field( $api_credential->get_permission( 'raw' ) );
-        $api_credential->log_access();
-
-        return hash_equals( $real_token, $token );
-
-    }
-
-    /**
-     * Set headers for a denied response.
-     *
-     * @param WP_REST_Response $response The response object to set headers on.
-     * @return WP_REST_Response The response object with headers set.
-     */
-    private static function set_denied_header( WP_REST_Response $response ) {
-        $response->header( 'content-type', 'application/json' );
-        $response->header( 'X-Smliser-REST-Response', 'AccessDenied' );
-        $response->header( 'WWW-Authenticate', 'Bearer realm="example", error="invalid_token", error_description="Invalid access token supplied."' );
-
-    }
-
-    /**
-     * Check scope of the given access token against request method.
-     *
-     * @param WP_REST_Request $request The REST request.
-     * @return bool True if the token has permission, false otherwise.
-     */
-    public function permission_check( WP_REST_Request $request ) {
-        $token_permission       = $this->permission;
-        $allowed_permissions    = array( 'read', 'write', 'read_write' );
-
-        // Ensure the token permission is valid.
-        if ( ! in_array( $token_permission, $allowed_permissions, true ) ) {
-            return false;
-        }
-
-        $request_method = $request->get_method();
-
-        // Allow GET requests only for read or read_write permissions.
-        if ( 'GET' === $request_method && in_array( $token_permission, array( 'read', 'read_write' ), true ) ) {
-            return true;
-        }
-
-        // Allow POST requests only for write or read_write permissions.
-        if ( 'POST' === $request_method && in_array( $token_permission, array( 'write', 'read_write' ), true ) ) {
-            return true;
-        }
-
-        // Deny access for any other methods or conditions not explicitly checked.
-        return false;
-    }
-
 }
 
-Smliser_Server::instance();
+Server::instance();

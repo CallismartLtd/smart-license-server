@@ -130,6 +130,8 @@ class SmartLicense_config {
         add_action( 'rest_api_init', array( $this, 'rest_load' ) );
         add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
         add_filter( 'rest_post_dispatch', array( $this, 'filter_rest_response' ), 10, 3 );
+        add_filter( 'rest_request_before_callbacks', array( __CLASS__, 'rest_request_before_callbacks' ), -1, 3 );
+
         add_filter( 'redirect_canonical', array( $this, 'disable_redirect_on_downloads' ), 10, 2 );
         add_filter( 'query_vars', array( $this, 'query_vars') );
         add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
@@ -141,7 +143,6 @@ class SmartLicense_config {
         add_action( 'admin_post_smliser_license_new', array( 'Smliser_license', 'license_form_controller') );
         add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller' ) );
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
-        add_action( 'admin_post_smliser_admin_download_plugin', array( 'Smliser_Server', 'serve_admin_download' ) );
         add_action( 'admin_notices', array( __CLASS__, 'print_notice' ) );
         add_action( 'wp_ajax_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler' ) );
         add_action( 'wp_ajax_smliser_upgrade', array( 'Smliser_Install', 'ajax_update' ) );
@@ -654,6 +655,27 @@ class SmartLicense_config {
                 $data = array( 'success' => ! $response->is_error() ) + $data;
                 $response->set_data( $data );
             }
+        }
+
+        return $response;
+    }
+
+    /**
+     * Prempt REST API request callbacks.
+     * 
+	 * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response Result to send to the client.
+	 *                                                                   Usually a WP_REST_Response or WP_Error.
+	 * @param array                                            $handler  Route handler used for the request.
+	 * @param WP_REST_Request                                  $request  Request used to generate the response.
+     */
+    public static function rest_request_before_callbacks( $response, $handler, $request ) {
+        // Bail if not our namespace.
+        if ( ! str_starts_with( $request->get_route(), self::namespace() ) ) {
+            return $response;
+        }
+
+        if ( is_smliser_error( $response ) ) {
+            remove_filter( 'rest_post_dispatch', 'rest_send_allow_header' ); // Prevents calling the permission callback again.
         }
 
         return $response;

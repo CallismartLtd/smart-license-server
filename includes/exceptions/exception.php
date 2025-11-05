@@ -396,11 +396,45 @@ class Exception extends \Exception {
             $this->getMessage(),
             $formatted,
             implode( ', ', $this->get_error_codes() ),
-            wp_json_encode( $this->error_data, JSON_PRETTY_PRINT ),
+            smliser_safe_json_encode( $this->error_data, JSON_PRETTY_PRINT ),
             $this->getTraceAsString(),
             $previous_str
         );
     }
 
+    /**
+     * Converts the exception into an associative array.
+     * 
+     * @since 0.1.1
+     * 
+     * @return array Structured error information.
+     */
+    public function to_array() {
+        $errors = array();
+
+        foreach ( $this->get_error_codes() as $code ) {
+            $messages = $this->get_error_messages( $code );
+            $data     = $this->get_all_error_data( $code );
+
+            $errors[ $code ] = array(
+                'messages' => $messages,
+                'data'     => $data,
+            );
+        }
+
+        $array = array(
+            'message' => $this->getMessage(),
+            'codes'   => $this->get_error_codes(),
+            'errors'  => $errors,
+            'trace'   => $this->getTrace(),
+        );
+
+        // Add WordPress-like context if available
+        if ( function_exists( 'smliser_safe_json_encode' ) ) {
+            $array['json'] = smliser_safe_json_encode( $array, JSON_PRETTY_PRINT );
+        }
+
+        return $array;
+    }
 
 }

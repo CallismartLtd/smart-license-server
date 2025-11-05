@@ -943,7 +943,7 @@ class Smliser_license {
             'item_id'       => $this->get_item_id(),
             'expiry_date'   => $this->get_end_date(),
         );
-        return wp_json_encode( $data );
+        return smliser_safe_json_encode( $data );
     }
     
     /**

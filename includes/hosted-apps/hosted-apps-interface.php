@@ -211,7 +211,14 @@ interface Hosted_Apps_Interface {
      * 
      * @return array
      */
-    public function get_rest_response();
+    public function get_rest_response() : array;
+
+    /**
+     * Check whether the app is monetized
+     * 
+     * @return bool True when it is monetized, false otherwise.
+     */
+    public function is_monetized() : bool;
 
     /*
     |----------------------------------

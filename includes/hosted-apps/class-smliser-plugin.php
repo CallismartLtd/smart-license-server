@@ -220,8 +220,10 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
 
     /**
      * Get the application REST API response data.
+     * 
+     * @return array
      */
-    public function get_rest_response() {
+    public function get_rest_response() : array {
         return $this->formalize_response();
     }
 
@@ -1253,7 +1255,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * 
      * @return bool true if monetized, false otherwise.
      */
-    public function is_monetized() {
+    public function is_monetized() : bool {
         global $wpdb;
         $table_name = SMLISER_MONETIZATION_TABLE;
         $query = $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = %s AND `item_id` = %d AND `enabled` = %s", 'plugin', absint( $this->item_id ), '1' );
@@ -1336,11 +1338,11 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      */
     public static function action_handler() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            wp_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
         if ( ! current_user_can( 'install_plugins' ) ) {
-            wp_send_json_error( array( 'message' => 'You do not have the required permission to do this.' ), 403 );
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to do this.' ), 403 );
 
         }
         
@@ -1369,10 +1371,10 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             /**
              * @var Exception $result WordPress error object
              */
-            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+            smliser_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
 
-        wp_send_json_success( array( 'message' => $message, 'redirect_url' => smliser_repo_page() ) );
+        smliser_send_json_success( array( 'message' => $message, 'redirect_url' => smliser_repo_page() ) );
        
     }
 

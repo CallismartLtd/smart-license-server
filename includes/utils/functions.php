@@ -359,15 +359,81 @@ function smliser_safe_json_encode( mixed $data, int $flags = 0, int $depth = 512
 		return $json;
 	}
 
-	// If it still fails, return a string representation of the error for debugging.
-	return sprintf(
-		'{"error":"JSON encoding failed: %s"}',
-		json_last_error_msg()
-	);
+	return false;
 }
 
 /**
- * Recursively clean strings to ensure valid UTF-8, similar to WordPress' `wp_json_encode()` handling.
+ * Send a json response
+ * 
+ * @param mixed $data Data to encode and send.
+ */
+function smliser_send_json( $data, $status_code = 200, $flags = 0 ) {
+    if ( function_exists( 'wp_send_json' ) ) {
+        wp_send_json( $data, $status_code = 200, $flags = 0 );
+    }
+
+    if ( ! headers_sent() ) {
+        status_header( $status_code );
+        header( 'Content-Type: application/json; charset=' . get_option( 'blog_charset' ) );
+    }
+
+    echo smliser_safe_json_encode( $data, $flags ); // phpcs:ignore
+    exit;
+}
+
+/**
+ * Send json error response
+ * 
+ * @param mixed $data Data to encode and send.
+ * @param int $status_code HTTP status code.
+ * @param int $flags JSON encode flags.
+ */
+function smliser_send_json_error( $data = null, $status_code = 400, $flags = 0 ) {
+    if ( function_exists( 'wp_send_json_error' ) ) {
+        wp_send_json_error( $data, $status_code, $flags );
+    }
+
+    $response = array( 'success' => false );
+
+    if ( isset( $data ) ) {
+        if ( is_smliser_error( $data ) ) {
+            /**
+             * @var SmartLicenseServer\Exception $data
+             */
+            $result = $data->to_array();
+
+            $response['data'] = $result;
+        } else {
+            $response['data'] = $data;
+        }
+    }
+
+    smliser_send_json( $response, $status_code, $flags );
+}
+
+/**
+ * Send json success response
+ * 
+ * @param mixed $data Data to encode and send.
+ * @param int $status_code HTTP status code.
+ * @param int $flags JSON encode flags.
+ */
+function smliser_send_json_success( $data = null, $status_code = 200, $flags = 0 ) {
+    if ( function_exists( 'wp_send_json_success' ) ) {
+        wp_send_json_success( $data, $status_code, $flags );
+    }
+
+    $response = array( 'success' => true );
+
+    if ( isset( $data ) ) {
+        $response['data'] = $data;
+    }
+
+    smliser_send_json( $response, $status_code, $flags );
+}
+
+/**
+ * Recursively clean strings to ensure valid UTF-8, similar to WordPress' `smliser_safe_json_encode()` handling.
  *
  * @param mixed $data Data to sanitize.
  * @return mixed UTF-8 cleaned data.

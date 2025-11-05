@@ -118,18 +118,18 @@ add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
 
 <script type="text/javascript">
     window.smliserStats = {
-        pluginUpdateHits: <?php echo wp_kses_post( wp_json_encode( $plugin_update_hits ) ); ?>,
-        pluginDownloads: <?php echo wp_kses_post( wp_json_encode( $stats->get_total_downloads_served() ) ); ?>,
+        pluginUpdateHits: <?php echo wp_kses_post( smliser_safe_json_encode( $plugin_update_hits ) ); ?>,
+        pluginDownloads: <?php echo wp_kses_post( smliser_safe_json_encode( $stats->get_total_downloads_served() ) ); ?>,
         
-        licenseActivationHits: <?php echo wp_kses_post( wp_json_encode( $license_activation_hits ) ); ?>,
-        licenseDeactivationHits: <?php echo wp_kses_post( wp_json_encode( $license_deactivation_hits ) ); ?>,
+        licenseActivationHits: <?php echo wp_kses_post( smliser_safe_json_encode( $license_activation_hits ) ); ?>,
+        licenseDeactivationHits: <?php echo wp_kses_post( smliser_safe_json_encode( $license_deactivation_hits ) ); ?>,
         
-        pluginUpdateVisits: <?php echo wp_kses_post( wp_json_encode( $plugin_update_visits ) ); ?>,
-        licenseActivationVisits: <?php echo wp_kses_post( wp_json_encode( $license_activation_visits ) ); ?>,
-        licenseDeactivationVisits: <?php echo wp_kses_post( wp_json_encode( $license_deactivation_visits ) ); ?>,
+        pluginUpdateVisits: <?php echo wp_kses_post( smliser_safe_json_encode( $plugin_update_visits ) ); ?>,
+        licenseActivationVisits: <?php echo wp_kses_post( smliser_safe_json_encode( $license_activation_visits ) ); ?>,
+        licenseDeactivationVisits: <?php echo wp_kses_post( smliser_safe_json_encode( $license_deactivation_visits ) ); ?>,
 
-        pluginUniqueVisitors: <?php echo wp_kses_post( wp_json_encode( $plugin_unique_visitors ) ) ?>,
-        licenseActivationUniqueVisitors: <?php echo wp_kses_post( wp_json_encode( $license_activation_unique_visitors ) ); ?>,
-        licenseDeactivationUniqueVisitors: <?php echo wp_kses_post( wp_json_encode( $license_deactivation_unique_visitors ) ); ?>,
+        pluginUniqueVisitors: <?php echo wp_kses_post( smliser_safe_json_encode( $plugin_unique_visitors ) ) ?>,
+        licenseActivationUniqueVisitors: <?php echo wp_kses_post( smliser_safe_json_encode( $license_activation_unique_visitors ) ); ?>,
+        licenseDeactivationUniqueVisitors: <?php echo wp_kses_post( smliser_safe_json_encode( $license_deactivation_unique_visitors ) ); ?>,
     };
 </script>

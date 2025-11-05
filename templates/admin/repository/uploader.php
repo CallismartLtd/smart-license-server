@@ -62,7 +62,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                                 <?php foreach( $data['images'] as $url ) : ?>
                                     <?php if ( ! empty( $url ) ) : 
                                         $asset_name = basename( $url );
-                                        $json_data = wp_json_encode([
+                                        $json_data = smliser_safe_json_encode([
                                             'asset_type'    => $key,
                                             'app_slug'      => $app->get_slug(),
                                             'app_type'      => $app->get_type(),
@@ -79,7 +79,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                                         </div>
                                     <?php endif; ?>
                                 <?php endforeach; 
-                                $config = wp_json_encode([
+                                $config = smliser_safe_json_encode([
                                     'asset_type'    => $key,
                                     'app_slug'      => $app->get_slug(),
                                     'app_type'      => $app->get_type(),
