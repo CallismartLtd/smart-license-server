@@ -5,6 +5,8 @@
  * @author Callistus.
  * @package Smliser\templates.
  * @since 1.0.0
+ * @var Smliser_Plugin $plugin The plugin object.
+ * @var Smliser_Stats $stats The stats object.
  */
 
 defined( 'ABSPATH' ) || exit; ?>
@@ -16,7 +18,7 @@ defined( 'ABSPATH' ) || exit; ?>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-database"></span> Repository</a>
     <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'plugin' ), smliser_admin_repo_tab( 'monetization', $plugin->get_item_id() ) ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-money-alt"></span> Monetization</a>
     <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'plugin' ), smliser_admin_repo_tab( 'edit', $plugin->get_item_id() ) ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-edit"></span> Edit Plugin</a>
-    <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=smliser_admin_download_plugin&item_id=' . $plugin->get_item_id() ), 'smliser_download_token', 'download_token' ) ) ?>" download class="button action smliser-nav-btn"><span class="dashicons dashicons-download"></span> Download Plugin</a>
+    <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'smliser_admin_download', 'type' => $plugin->get_type(), 'id' => $plugin->get_id() ), admin_url( 'admin-post.php' ) ), 'smliser_download_token', 'download_token' ) ) ?>" download class="button action smliser-nav-btn"><span class="dashicons dashicons-download"></span> Download Plugin</a>
     <a class="button action smliser-nav-btn" id="smliser-plugin-delete-button" item-id="<?php echo absint( $plugin->get_item_id() ); ?>"><span class="dashicons dashicons-trash"></span> Delete Plugin</a>
     <div class="smliser-admin-view-page-wrapper">
         <div class="smliser-admin-view-page-header"> 
@@ -89,4 +91,4 @@ defined( 'ABSPATH' ) || exit; ?>
             </div>
         </div>
     </div>
-<?php endif; ?>
+<?php endif;

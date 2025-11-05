@@ -119,10 +119,40 @@ class SmartLicense_config {
         define( 'SMLISER_BULK_MESSAGES_TABLE', $wpdb->prefix . 'smliser_bulk_messages' );
         define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $wpdb->prefix . 'smliser_bulk_messages_apps' );
 
-        define( 'SMLISER_REPO_DIR', WP_CONTENT_DIR . '/premium-repository' );
+        /**
+         * Absolute path to the root Smart License Server repository directory.
+         *
+         * This is the base directory where all hosted application files are stored.
+         */
         define( 'SMLISER_NEW_REPO_DIR', WP_CONTENT_DIR . '/smliser-repo' );
-        define( 'SMLISER_PLUGINS_REPO_DIR', SMLISER_NEW_REPO_DIR . '/plugins' );
-        define( 'SMLISER_THEMES_REPO_DIR', SMLISER_NEW_REPO_DIR . '/themes' );
+
+        /**
+         * Alias for the Smart License Server repository directory.
+         *
+         * Used as the root path for all application repositories.
+         */
+        define( 'SMLISER_REPO_DIR', SMLISER_NEW_REPO_DIR );
+
+        /**
+         * Absolute path to the plugin repository directory.
+         *
+         * Stores all plugin packages and related assets hosted in the repository.
+         */
+        define( 'SMLISER_PLUGINS_REPO_DIR', SMLISER_REPO_DIR . '/plugins' );
+
+        /**
+         * Absolute path to the theme repository directory.
+         *
+         * Stores all theme packages and related assets hosted in the repository.
+         */
+        define( 'SMLISER_THEMES_REPO_DIR', SMLISER_REPO_DIR . '/themes' );
+
+        /**
+         * Absolute path to the software repository directory.
+         *
+         * Stores all software packages and related assets hosted in the repository.
+         */
+        define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/software' );
         
         register_activation_hook( SMLISER_FILE, array( 'Smliser_install', 'install' ) );
 
@@ -715,7 +745,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-markdown-parser.php';
 
-        require_once SMLISER_PATH . 'includes/filesystem/class-smliser-repository.php';
+        // require_once SMLISER_PATH . 'includes/filesystem/class-smliser-repository.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-plugin-repository.php';
@@ -873,7 +903,7 @@ class SmartLicense_config {
          * File Download URI Rule 
          */
         add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/([^/]+)\.zip/?$',
+            '^' . $download_slug . '/([^/]+)/([^/]+)(?:\.zip)?/?$',
             'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]',
             'top'
         );

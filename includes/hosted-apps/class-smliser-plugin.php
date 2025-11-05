@@ -409,7 +409,12 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         } else {
             $slug           = $this->get_slug();
             $download_slug  = smliser_get_download_slug();
-            $download_link  = site_url( $download_slug  . '/plugins/' . basename( $slug ));
+            $type           = $this->get_type();
+            $slug           = basename( $slug, '.zip' );
+
+            $parts          = [ $download_slug, $type, $slug ];
+            $path           = sprintf( '%s.zip', implode( '/', $parts ) );
+            $download_link  = site_url( $path );
 
             $this->download_link = sanitize_url( $download_link, array( 'http', 'https' ) );            
         }
@@ -790,19 +795,23 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     */
 
     /**
-     * Get one or more Plugins data by slug.
+     * Get a plugin by slug.
      * 
-     * @param string|float|int $value   The value to search for in the given column.
-     * @return self|false  A single instance false for invalid input.
+     * @param string $value The  plugin slug.
+     * @return self|null    The plugin object or null if not found.
      */
 
     public static function get_by_slug( $value ) {
         global $wpdb;
 
-        $value = self::normalize_slug( $value );
+        /**
+         * @var wpdb $wpdb
+         */
+
+        $value = basename( $value, '.zip' );
 
         if ( ! is_string( $value ) || empty( $value ) ) {
-            return false;
+            return null;
         }        
     
         // phpcs:disable 
@@ -814,7 +823,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             return self::from_array( $result );
         }
 
-        return false;
+        return null;
     }
 
     /**

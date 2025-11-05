@@ -656,7 +656,7 @@ class Smliser_Software_Collection {
      * Get the repository class for a hosted application type
      * 
      * @param string $type The type name.
-     * @return SmartLicenseServer\Repository|null $class_name The app's class name.
+     * @return SmartLicenseServer\PluginRepository|SmartLicenseServer\ThemeRepository|SmartLicenseServer\SoftwareRepository|null The app's repository class instance.
      */
     public static function get_app_repository_class( $type ) {
         $class = 'SmartLicenseServer\\' . ucfirst( $type ) . 'Repository';

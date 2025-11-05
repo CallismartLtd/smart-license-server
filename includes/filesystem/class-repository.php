@@ -149,40 +149,7 @@ abstract class Repository extends FileSystem {
             return false;
         }
 
-        return $this->ls( $path );
-    }
-
-    /**
-     * Read a file in chunks (inside current slug dir by default).
-     *
-     * @param string   $filename File name relative to current slug.
-     * @param callable $callback Callback receives the chunk string.
-     * @param int      $chunk_size Bytes per chunk.
-     * @return bool
-     */
-    public function read_chunked( $filename, $callback, $chunk_size = 1048576 ) {
-        $path = $this->path( $filename );
-        $real = $this->real_path( $path );
-
-        if ( ! $real || ! $this->fs->exists( $real ) ) {
-            return false;
-        }
-
-        $handle = fopen( $real, 'rb' );
-        if ( ! $handle ) {
-            return false;
-        }
-
-        while ( ! feof( $handle ) ) {
-            $chunk = fread( $handle, $chunk_size );
-            if ( $chunk === false ) {
-                break;
-            }
-            call_user_func( $callback, $chunk );
-        }
-
-        fclose( $handle );
-        return true;
+        return $this->list( $path );
     }
 
     /* -------------------------------------------------------------------------
@@ -353,6 +320,24 @@ abstract class Repository extends FileSystem {
     }
 
     /**
+     * Check whether the given file is a valid zip file.
+     * 
+     * @param string $path Absolute path
+     * @return bool
+     */
+    public function is_valid_zip( $path ) {
+        $zip = new \ZipArchive();
+        $res = $zip->open( $path );
+
+        if ( true === $res ) {
+            $zip->close();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Get the assets for a given hosted application.
      * 
      * @abstract
@@ -370,4 +355,112 @@ abstract class Repository extends FileSystem {
      * @return string|Exception The asset path or Exception on failure.
      */
     abstract public function get_asset_path( string $slug, string $filename );
+
+    /**
+    |---------------------------
+    | SETTING UP THE REPOSITORY 
+    |---------------------------
+    */
+
+    /**
+     * Creates the Smart License Server repository directories
+     * and ensures they are properly secured.
+     *
+     * @since 1.0.0
+     *
+     * @return true|\SmartLicenseServer\Exception True on success, Exception instance on failure.
+     */
+    public static function create_repository_directories() {
+        $fs = FileSystem::instance();
+
+        $directories = [
+            'repository' => SMLISER_NEW_REPO_DIR,
+            'plugin'     => SMLISER_PLUGINS_REPO_DIR,
+            'theme'      => SMLISER_THEMES_REPO_DIR,
+            'software'   => SMLISER_SOFTWARE_REPO_DIR,
+        ];
+
+        $exception = new \SmartLicenseServer\Exception();
+
+        foreach ( $directories as $type => $dir ) {
+            if ( ! $fs->is_dir( $dir ) ) {
+                if ( ! $fs->mkdir( $dir ) ) {
+                    $message = sprintf(
+                        self::safe_translate( 'Failed to create %s directory: %s', 'smliser' ),
+                        $type,
+                        self::safe_esc_html( $dir )
+                    );
+
+                    $exception->add( 'directory_creation_failed', $message );
+                    continue; // try creating the other directories
+                }
+
+                // Set directory permissions.
+                $fs->chmod( $dir, FS_CHMOD_DIR, true );
+            }
+        }
+
+        // Protect the repository root.
+        $protection = self::protect_repository_directory( $directories['repository'], $fs );
+
+        if ( is_smliser_error( $protection ) ) {
+            $exception->merge_from( $protection );
+        }
+
+        return $exception->has_errors() ? $exception : true;
+    }
+
+
+    /**
+     * Protects the given repository directory using an .htaccess file.
+     *
+     * @since 1.0.0
+     *
+     * @param string $repo_dir Absolute path to the repository directory.
+     * @param object $fs       FileSystem instance.
+     *
+     * @return bool|\SmartLicenseServer\Exception True on success, Exception instance on failure.
+     */
+    public static function protect_repository_directory( string $repo_dir, $fs ) {
+        $htaccess_path    = trailingslashit( $repo_dir ) . '.htaccess';
+        $htaccess_content = "Deny from all";
+
+        if ( ! $fs->exists( $htaccess_path ) ) {
+            if ( ! $fs->put_contents( $htaccess_path, $htaccess_content, FS_CHMOD_FILE ) ) {
+                $message = sprintf(
+                    self::safe_translate( 'Failed to protect repository directory: %s', 'smliser' ),
+                    self::safe_esc_html( $repo_dir )
+                );
+
+                return new \SmartLicenseServer\Exception( 'htaccess_protection_failed', $message );
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Safely translate a string even outside WordPress.
+     *
+     * @since 1.0.0
+     *
+     * @param string $text Text to translate.
+     * @param string $domain Text domain.
+     * @return string Translated or raw text.
+     */
+    private static function safe_translate( string $text, string $domain = 'default' ): string {
+        return function_exists( '__' ) ? __( $text, $domain ) : $text;
+    }
+
+    /**
+     * Safely escape a string even outside WordPress.
+     *
+     * @since 1.0.0
+     *
+     * @param string $text Text to escape.
+     * @return string Escaped or raw text.
+     */
+    private static function safe_esc_html( string $text ): string {
+        return function_exists( 'esc_html' ) ? esc_html( $text ) : htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
+    }
 }

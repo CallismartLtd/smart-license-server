@@ -18,7 +18,7 @@ class FileSystem {
     /**
      * The core filesystem object.
      *
-     * @var FilesystemBridge
+     * @var \WP_Filesystem_Base
      */
     protected $fs;
 
@@ -161,11 +161,11 @@ class FileSystem {
      * Create a directory.
      *
      * @param string $path Absolute path
-     * @param int    $chmod
+     * @param int|false    $chmod
      * @param bool   $recursive
      * @return bool
      */
-    public function mkdir( $path, $chmod = FS_CHMOD_DIR, $recursive = true ) {
+    public function mkdir( $path, $chmod = false, $recursive = true ) {
         return $this->fs->mkdir( $path, $chmod, $recursive );
     }
 
@@ -237,7 +237,7 @@ class FileSystem {
      * @param string|null $path
      * @return array|false
      */
-    public function ls( $path = null ) {
+    public function list( $path = null ) {
         return $this->fs->dirlist( $path );
     }
 

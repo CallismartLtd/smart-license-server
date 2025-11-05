@@ -227,7 +227,9 @@ interface Hosted_Apps_Interface {
     */
     
     /**
-     * Get the application zip file path.
+     * Get the absolute path to the application zip file.
+     * 
+     * @return string
      */
     public function get_zip_file();
 
