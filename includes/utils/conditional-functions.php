@@ -58,5 +58,5 @@ function is_smliser_error( $value ) {
         return true;
     }
 
-    return ( $value instanceof \SmartLicenseServer\Exceptions\Error );
+    return ( $value instanceof \SmartLicenseServer\Exception );
 }

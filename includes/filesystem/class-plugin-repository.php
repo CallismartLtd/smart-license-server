@@ -36,24 +36,22 @@ class PluginRepository extends Repository {
      * Locate a plugin zip file in the repository and enter the plugin slug.
      *
      * @param string $plugin_slug The plugin slug (e.g., "my-plugin").
-     * @return string|\WP_Error Absolute file path or WP_Error on failure.
+     * @return string|Exception Absolute file path or Exception on failure.
      */
     public function locate( $plugin_slug ) {
         if ( empty( $plugin_slug ) || ! is_string( $plugin_slug ) ) {
-            return new \WP_Error( 
+            return new Exception( 
                 'invalid_slug', 
                 __( 'Plugin slug must be a non-empty string.', 'smart-license-server' ),
                 [ 'status' => 400 ] 
             );
         }
 
-        // Normalize slug
-        $slug = $this->real_slug( $plugin_slug );
-
         try {
-            $path = $this->enter_slug( $slug );
+            $slug = $this->real_slug( $plugin_slug );
+            $this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
-            return new \WP_Error( 
+            return new Exception( 
                 'invalid_slug', 
                 $e->getMessage(),
                 [ 'status' => 400 ] 
@@ -64,7 +62,7 @@ class PluginRepository extends Repository {
         $plugin_file = $this->path( sprintf( '%s.zip', $slug ) );
 
         if ( ! $this->exists( $plugin_file ) ) {
-            return new \WP_Error(
+            return new Exception(
                 'file_not_found',
                 __( 'Plugin file not found.', 'smart-license-server' ),
                 [ 'status'=> 404]
@@ -84,26 +82,41 @@ class PluginRepository extends Repository {
      * @param array  $file      The uploaded file ($_FILES format).
      * @param string $new_name  The preferred filename (without path).
      * @param bool   $update    Whether this is an update to an existing plugin.
-     * @return string|\WP_Error Relative path to stored ZIP on success, WP_Error on failure.
+     * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
      */
     public function upload_zip( array $file, string $new_name, bool $update = false ) {
+        if ( empty( $file ) || ! isset( $file['tmp_name'], $file['name'] ) ) {
+            return new Exception( 'invalid_file', 'No file uploaded.', [ 'status' => 400 ] );
+        }
+
+        if ( empty( $new_name ) ) {
+            return new Exception( 'invalid_filename', 'The new filename cannot be empty.', [ 'status' => 400 ] );
+        }
+
         $tmp_name = $file['tmp_name'];
 
         if ( ! is_uploaded_file( $tmp_name ) ) {
-            return new \WP_Error( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
+            return new Exception( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
         }
 
         // Ensure it's a ZIP
         $file_type_info = wp_check_filetype( $file['name'] );
         if ( $file_type_info['ext'] !== 'zip' ) {
-            return new \WP_Error( 'invalid_file_type', 'Invalid file type, the plugin must be in ZIP format.', [ 'status' => 400 ] );
+            return new Exception( 'invalid_file_type', 'Invalid file type, the plugin must be in ZIP format.', [ 'status' => 400 ] );
         }
 
         // Normalize filename
         $new_name  = sanitize_file_name( basename( $new_name ) );
 
-        // Derive the slug first
-        $slug = $this->real_slug( $new_name );
+        try {
+            $slug = $this->real_slug( $new_name );
+        } catch ( \InvalidArgumentException $e ) {
+            return new Exception( 
+                'invalid_slug', 
+                $e->getMessage(),
+                [ 'status' => 400 ] 
+            );
+        }
 
         // Force the filename to strictly be "{slug}.zip"
         $file_name = $slug . '.zip';
@@ -115,20 +128,20 @@ class PluginRepository extends Repository {
         if ( ! $update ) {
             // New upload: prevent overwriting existing slug
             if ( $this->is_dir( $base_folder ) ) {
-                return new \WP_Error(
+                return new Exception(
                     'plugin_slug_exists',
                     sprintf( 'The slug "%s" is not available, you can change the plugin name and try again.', $slug ),
                     [ 'status' => 400 ]
                 );
             }
             if ( ! $this->mkdir( $base_folder, FS_CHMOD_DIR ) ) {
-                return new \WP_Error( 'repo_error', 'Unable to create plugin directory.', [ 'status' => 500 ] );
+                return new Exception( 'repo_error', 'Unable to create plugin directory.', [ 'status' => 500 ] );
             }
         } else {
             // Update: ensure slug folder and plugin already exists.
 
             if ( ! $this->is_dir( $base_folder ) && ! $this->mkdir( $base_folder, FS_CHMOD_DIR )) {
-                return new \WP_Error(
+                return new Exception(
                     'plugin_not_found',
                     sprintf( 'The plugin slug "%s" does not exist in the repository, and attempt to create one failed.', $slug ),
                     [ 'status' => 404 ]
@@ -138,7 +151,7 @@ class PluginRepository extends Repository {
             // Optional: enforce slug consistency
             $expected_slug = $this->real_slug( $slug );
             if ( $slug !== $expected_slug ) {
-                return new \WP_Error(
+                return new Exception(
                     'slug_mismatch',
                     sprintf( 'Uploaded plugin "%s" does not match the target slug "%s".', $slug, $expected_slug ),
                     [ 'status' => 400 ]
@@ -161,7 +174,7 @@ class PluginRepository extends Repository {
             } else {
                 $this->rmdir( $base_folder, true ); // remove new folder completely
             }
-            return new \WP_Error( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
+            return new Exception( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
         }
 
         $firstEntry = $zip->getNameIndex(0);
@@ -174,7 +187,7 @@ class PluginRepository extends Repository {
             } else {
                 $this->rmdir( $base_folder, true );
             }
-            return new \WP_Error( 'readme_missing', 'The plugin ZIP must contain a readme.txt file.', [ 'status' => 400 ] );
+            return new Exception( 'readme_missing', 'The plugin ZIP must contain a readme.txt file.', [ 'status' => 400 ] );
         }
 
         $readme_contents = $zip->getFromIndex( $readme_index );
@@ -187,7 +200,7 @@ class PluginRepository extends Repository {
             } else {
                 $this->rmdir( $base_folder, true );
             }
-            return new \WP_Error( 'readme_save_failed', 'Failed to save readme.txt.', [ 'status' => 500 ] );
+            return new Exception( 'readme_save_failed', 'Failed to save readme.txt.', [ 'status' => 500 ] );
         }
 
         return $slug;
@@ -201,19 +214,19 @@ class PluginRepository extends Repository {
      * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
      * @param string $filename Optional specific filename (for replacing/updating).
      *
-     * @return string|\WP_Error Relative path to stored asset or WP_Error on failure.
+     * @return string|Exception Relative path to stored asset or Exception on failure.
      */
     public function upload_asset( string $slug, array $file, string $type, string $filename = '' ) {
         $allowed_mimes = [ 'jpg|jpeg' => 'image/jpeg', 'png' => 'image/png' ];
 
         // Validate upload
         if ( ! is_uploaded_file( $file['tmp_name'] ) ) {
-            return new \WP_Error( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );
+            return new Exception( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );
         }
 
         $check = wp_check_filetype( $file['name'], $allowed_mimes );
         if ( empty( $check['ext'] ) ) {
-            return new \WP_Error( 'invalid_type', 'Only PNG or JPG images are allowed.', [ 'status' => 400 ] );
+            return new Exception( 'invalid_type', 'Only PNG or JPG images are allowed.', [ 'status' => 400 ] );
         }
 
         $slug = $this->real_slug( $slug );
@@ -222,7 +235,7 @@ class PluginRepository extends Repository {
         try {
             $path = $this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
-            return new \WP_Error( 
+            return new Exception( 
                 'invalid_slug', 
                 $e->getMessage(),
                 [ 'status' => 400 ] 
@@ -232,7 +245,7 @@ class PluginRepository extends Repository {
         $asset_dir = trailingslashit( $path ) . 'assets/';
 
         if ( ! $this->is_dir( $asset_dir ) && ! $this->mkdir( $asset_dir, FS_CHMOD_DIR ) ) {
-            return new \WP_Error( 'repo_error', 'Unable to create asset directory.', [ 'status' => 500 ] );
+            return new Exception( 'repo_error', 'Unable to create asset directory.', [ 'status' => 500 ] );
         }
 
         // --- Enforce naming rules ---
@@ -240,7 +253,7 @@ class PluginRepository extends Repository {
             case 'banner':
                 $allowed = [ 'banner-772x250.png', 'banner-1544x500.png' ];
                 if ( ! in_array( strtolower( $file['name'] ), $allowed, true ) ) {
-                    return new \WP_Error(
+                    return new Exception(
                         'invalid_banner_name',
                         'Banner must be named banner-772x250.png or banner-1544x500.png.',
                         [ 'status' => 400 ]
@@ -252,7 +265,7 @@ class PluginRepository extends Repository {
             case 'icon':
                 $allowed = [ 'icon-128x128.png', 'icon-256x256.png' ];
                 if ( ! in_array( strtolower( $file['name'] ), $allowed, true ) ) {
-                    return new \WP_Error(
+                    return new Exception(
                         'invalid_icon_name',
                         'Icon must be named icon-128x128.png or icon-256x256.png.',
                         [ 'status' => 400 ]
@@ -267,7 +280,7 @@ class PluginRepository extends Repository {
                     if ( preg_match( '/screenshot-(\d+)\./', $filename, $m ) ) {
                         $target_name = sprintf( 'screenshot-%d.%s', $m[1], $ext );
                     } else {
-                        return new \WP_Error(
+                        return new Exception(
                             'invalid_screenshot_name',
                             'Screenshots must be named screenshot-{index}.png or screenshot-{index}.jpg.',
                             [ 'status' => 400 ]
@@ -290,7 +303,7 @@ class PluginRepository extends Repository {
                 break;
 
             default:
-                return new \WP_Error( 'invalid_type', 'Unsupported asset type.', [ 'status' => 400 ] );
+                return new Exception( 'invalid_type', 'Unsupported asset type.', [ 'status' => 400 ] );
         }
 
         // Final destination
@@ -298,7 +311,7 @@ class PluginRepository extends Repository {
 
         // Move uploaded file
         if ( ! $this->rename( $file['tmp_name'], $dest_path ) ) {
-            return new \WP_Error( 'move_failed', 'Failed to save uploaded asset.', [ 'status' => 500 ] );
+            return new Exception( 'move_failed', 'Failed to save uploaded asset.', [ 'status' => 500 ] );
         }
         $this->chmod( $dest_path, FS_CHMOD_FILE );
 
@@ -313,7 +326,7 @@ class PluginRepository extends Repository {
      * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
      * @param string $filename The filename to delete.
      *
-     * @return true|\WP_Error True on success, WP_Error on failure.
+     * @return true|Exception True on success, Exception on failure.
      */
     public function delete_asset( $slug, $filename ) {
         $path = $this->get_asset_path( $slug, $filename );
@@ -323,7 +336,7 @@ class PluginRepository extends Repository {
         }
 
         if ( ! $this->delete( $path ) ) {
-            return new WP_Error( 'unable_to_delete', sprintf( 'Unable to delete the file %s', $filename ), [ 'status', 500 ] );
+            return new Exception( 'unable_to_delete', sprintf( 'Unable to delete the file %s', $filename ), [ 'status', 500 ] );
         }
         return true;
     }
@@ -420,21 +433,21 @@ class PluginRepository extends Repository {
      *
      * @param string $slug      App slug.
      * @param string $filename  File name within the assets directory.
-     * @return string|\WP_Error Absolute path to asset or WP_Error if not found.
+     * @return string|Exception Absolute path to asset or Exception if not found.
      */
     public function get_asset_path( string $slug, string $filename ) {
         $slug = $this->real_slug( $slug );
         try {
             $base_dir = $this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
-            return new \WP_Error( 'invalid_dir', $e->getMessage(), [ 'status' => 400 ] );
+            return new Exception( 'invalid_dir', $e->getMessage(), [ 'status' => 400 ] );
         }
 
         $asset_dir = trailingslashit( $base_dir ) . 'assets/';
         $abs_path  = sanitize_and_normalize_path( trailingslashit( $asset_dir ) . basename( $filename ) );
 
         if ( ! $this->exists( $abs_path ) ) {
-            return new \WP_Error(
+            return new Exception(
                 'asset_not_found',
                 sprintf( 'Asset "%s" not found.', esc_html( $filename ) ),
                 [ 'status' => 404 ]
@@ -451,14 +464,14 @@ class PluginRepository extends Repository {
      */
     public function delete_from_repo( $plugin_slug ) {
         if ( empty( $plugin_slug ) ) {
-            return new WP_Error( 'invalid_slug', 'The application slug cannot be empty' );
+            return new Exception( 'invalid_slug', 'The application slug cannot be empty' );
         }
 
         $slug = $this->real_slug( $plugin_slug );
         try {
             $repo_dir = $this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
-            return new \WP_Error( 
+            return new Exception( 
                 'invalid_slug', 
                 $e->getMessage(),
                 [ 'status' => 400 ] 
@@ -466,7 +479,7 @@ class PluginRepository extends Repository {
         }
 
         if ( ! $this->is_dir( $repo_dir ) ) {
-            return new \WP_Error( 
+            return new Exception( 
                 'plugin_repo_error', 
                 sprintf( 'The plugin with slug "%s" does not exist in the repository', $slug ),
                 [ 'status' => 404 ] 
@@ -474,7 +487,7 @@ class PluginRepository extends Repository {
         }
 
         if ( ! $this->rmdir( $repo_dir, true ) ) {
-            return new \WP_Error( 
+            return new Exception( 
                 'plugin_repo_error', 
                 sprintf( 'Unable to delete the plugin with slug "%s"!', $slug ),
                 [ 'status' => 500 ] 

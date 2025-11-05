@@ -7,6 +7,9 @@
  * @package Smliser\classes
  * @since 1.0.0
  */
+
+use SmartLicenseServer\Exception;
+
 defined( 'ABSPATH' ) || exit;
 
 class Smliser_install {
@@ -422,7 +425,7 @@ class Smliser_install {
     /**
      * Create the repository folders and protect them with .htaccess.
      *
-     * @return bool|WP_Error True on success, WP_Error on failure.
+     * @return bool|Exception True on success, Exception on failure.
      */
     private static function create_directory() {
         global $wp_filesystem;
@@ -438,7 +441,7 @@ class Smliser_install {
 
         // Initialize the filesystem.
         if ( ! WP_Filesystem( $creds ) ) {
-            return new WP_Error( 'filesystem_init_failed', __( 'Failed to initialize filesystem.', 'smliser' ) );
+            return new Exception( 'filesystem_init_failed', __( 'Failed to initialize filesystem.', 'smliser' ) );
         }
 
         $directories = [
@@ -450,7 +453,7 @@ class Smliser_install {
         foreach ( $directories as $type => $dir ) {
             if ( ! $wp_filesystem->is_dir( $dir ) ) {
                 if ( ! $wp_filesystem->mkdir( $dir ) ) {
-                    return new WP_Error( 
+                    return new Exception( 
                         'directory_creation_failed',
                         sprintf( __( 'Failed to create %s directory: %s', 'smliser' ), $type, esc_html( $dir ) )
                     );

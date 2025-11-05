@@ -6,6 +6,8 @@
  * @since 0.0.6
  */
 
+use SmartLicenseServer\Exception;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -508,7 +510,6 @@ class Smliser_Software_Collection {
         $class->set_author_profile( $author_url );
         $class->set_version( $version );
         $class->set_file( $app_file );
-        $class->set_download_url();
 
         if ( ! empty( $app_id ) ) {
             $class->set_id( $app_id );
@@ -541,11 +542,11 @@ class Smliser_Software_Collection {
      * Update a plugin.
      * 
      * @param Smliser_Plugin $class The plugin ID.
-     * @return true|WP_Error
+     * @return true|Exception
      */
     public static function update_plugin( &$class ) {
         if ( ! $class instanceof Smliser_Plugin ) {
-            return new WP_Error( 'message', 'Wrong plugin object passed' );
+            return new Exception( 'message', 'Wrong plugin object passed' );
         }
 
         $class->set_required_php( smliser_get_post_param( 'app_required_php_version' ) );

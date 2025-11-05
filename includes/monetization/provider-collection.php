@@ -10,6 +10,8 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Exception;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -110,18 +112,18 @@ class Provider_Collection {
      * Validate and normalize a product data array against the declared schema.
      *
      * @param array $product
-     * @return array|\WP_Error Normalized product array or WP_Error if invalid.
+     * @return array|Exception Normalized product array or Exception if invalid.
      */
     public static function validate_product_data( $product ) {
         if ( ! is_array( $product ) ) {
-            return new \WP_Error( 'invalid_product', __( 'Product data must be an array.', 'smliser' ) );
+            return new Exception( 'invalid_product', __( 'Product data must be an array.', 'smliser' ) );
         }
 
         // Required top-level fields
         $required_top = [ 'id', 'permalink', 'currency', 'pricing', 'checkout_url' ];
         foreach ( $required_top as $key ) {
             if ( ! array_key_exists( $key, $product ) ) {
-                return new \WP_Error(
+                return new Exception(
                     'missing_field',
                     sprintf( __( 'Missing required product field: %s', 'smliser' ), $key )
                 );
@@ -131,13 +133,13 @@ class Provider_Collection {
         // Validate currency block
         $currency = $product['currency'];
         if ( ! is_array( $currency ) ) {
-            return new \WP_Error( 'invalid_currency', __( 'Currency must be an array.', 'smliser' ) );
+            return new Exception( 'invalid_currency', __( 'Currency must be an array.', 'smliser' ) );
         }
 
         $currency_required = [ 'code', 'symbol', 'symbol_position', 'decimals', 'decimal_separator', 'thousand_separator' ];
         foreach ( $currency_required as $key ) {
             if ( ! array_key_exists( $key, $currency ) ) {
-                return new \WP_Error(
+                return new Exception(
                     'missing_currency_field',
                     sprintf( __( 'Missing required currency field: %s', 'smliser' ), $key )
                 );
@@ -147,13 +149,13 @@ class Provider_Collection {
         // Validate pricing block
         $pricing = $product['pricing'];
         if ( ! is_array( $pricing ) ) {
-            return new \WP_Error( 'invalid_pricing', __( 'Pricing must be an array.', 'smliser' ) );
+            return new Exception( 'invalid_pricing', __( 'Pricing must be an array.', 'smliser' ) );
         }
 
         $pricing_required = [ 'price', 'regular_price', 'sale_price', 'is_on_sale' ];
         foreach ( $pricing_required as $key ) {
             if ( ! array_key_exists( $key, $pricing ) ) {
-                return new \WP_Error(
+                return new Exception(
                     'missing_pricing_field',
                     sprintf( __( 'Missing required pricing field: %s', 'smliser' ), $key )
                 );

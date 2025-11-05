@@ -5,9 +5,10 @@
  * @package Smliser\classes
  */
 
-use SmartLicenseServer\HostedApps\Hosted_Apps_Interface,
-SmartLicenseServer\Monetization\Monetization,
-SmartLicenseServer\PluginRepository;
+use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
+use SmartLicenseServer\Monetization\Monetization;
+use SmartLicenseServer\PluginRepository;
+use SmartLicenseServer\Exception;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -248,7 +249,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     /**
      * Get the absolute path to the plugin zip file
      * 
-     * @return string|WP_Error The file path or WP_Error on failure.
+     * @return string|Exception The file path or Exception on failure.
      */
     public function get_zip_file() {
         $file = $this->get_file();
@@ -260,7 +261,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             return $file['tempname'];
         }
 
-        return new WP_Error( 'file_not_found', __( 'Plugin file not found.', 'smliser' ), array( 'status' => 404 ) );
+        return new Exception( 'file_not_found', __( 'Plugin file not found.', 'smliser' ), array( 'status' => 404 ) );
     }
 
     /*
@@ -400,7 +401,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @param string $link The download link.
      */
     public function set_download_link( $link = '' ) {
-        if ( ! empty( $link ) ) {
+        if ( ! empty( $link ) && '#' !== $link ) {
             $this->download_link = sanitize_url( $link, array( 'http', 'https' ) );
            
         } else {
@@ -874,7 +875,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     /**
      * Create new plugin or update the existing one.
      * 
-     * @return true|WP_Error True on success, false on failure.
+     * @return true|Exception True on success, false on failure.
      */
     public function save() {
         global $wpdb;
@@ -923,7 +924,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
 
         } else {
             if ( ! is_array( $file ) ) {
-                return new WP_Error( 'no_file_provided', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
+                return new Exception( 'no_file_provided', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
             }
 
             $slug = $repo_class->upload_zip( $file, $filename );
@@ -955,7 +956,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             return true;
         }
 
-        return new WP_Error( 'db_insert_error', $wpdb->last_error );
+        return new Exception( 'db_insert_error', $wpdb->last_error );
     }
 
     /**
@@ -1366,7 +1367,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
 
         if ( is_smliser_error( $result ) ) {
             /**
-             * @var \WP_Error $result WordPress error object
+             * @var Exception $result WordPress error object
              */
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }

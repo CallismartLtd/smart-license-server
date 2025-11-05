@@ -8,6 +8,8 @@
  * @package Smliser\functions
  */
 
+use SmartLicenseServer\Exception;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -392,7 +394,7 @@ function smliser_utf8ize( mixed $data ) {
  * Sanitize and normalize a file path to prevent directory traversal attacks.
  *
  * @param string $path The input path.
- * @return string|WP_Error The sanitized and normalized path, or WP_Error on failure.
+ * @return string|Exception The sanitized and normalized path, or Exception on failure.
  */
 function sanitize_and_normalize_path( $path ) {
     $original_path = $path;
@@ -406,7 +408,7 @@ function sanitize_and_normalize_path( $path ) {
         $part = trim($part);
         if ( '.' === $part ) continue;
         if ( '..' === $part ) {
-            return new WP_Error( 'invalid_path', 'Parent directory references are not allowed.' );
+            return new Exception( 'invalid_path', 'Parent directory references are not allowed.' );
         }
 
         $new_path[] = sanitize_text_field( $part );
@@ -416,12 +418,12 @@ function sanitize_and_normalize_path( $path ) {
 
     // Check for null bytes *after* normalization to prevent bypasses.
     if ( preg_match( '/\0/', $normalized_path ) ) {
-        return new WP_Error( 'invalid_path', 'invalid path provided' );
+        return new Exception( 'invalid_path', 'invalid path provided' );
     }
 
     //Check if the path contains any encoded characters after normalization.
     if ( preg_match( '/(%|&#)/i', $normalized_path ) ) {
-        return new WP_Error( 'invalid_chars', 'Path contains invalid characters' );
+        return new Exception( 'invalid_chars', 'Path contains invalid characters' );
     }
 
     // Restore absolute paths (Linux)

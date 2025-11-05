@@ -7,6 +7,8 @@
  * @since 1.0.0
  * @package Smliser\classes
  */
+use SmartLicenseServer\Exception;
+
 
 defined( 'ABSPATH' ) || exit;
 
@@ -933,7 +935,7 @@ class Smliser_license {
      */
     public function encode() {
         if ( ! $this->id ) {
-            return new WP_Error( 'invalid_data', 'Invalid License' );
+            return new Exception( 'invalid_data', 'Invalid License' );
         }
         $data = array(
             'license_key'   => $this->get_license_key(),
@@ -1017,23 +1019,23 @@ class Smliser_license {
      * Check if we can serve license.
      *
      * @param int    $item_id The item ID associated with the license.
-     * @return true|WP_Error True if license can be served, otherwise WP_Error.
+     * @return true|Exception True if license can be served, otherwise Exception.
      */
     public function can_serve_license( $item_id ) {
         $error = null;
 
         if ( ! $this ) {
-            $error = new WP_Error( 'license_error', 'Invalid license key or service ID.', array( 'status' => 400 ) );
+            $error = new Exception( 'license_error', 'Invalid license key or service ID.', array( 'status' => 400 ) );
         } elseif ( absint( $item_id ) !== absint( $this->get_item_id() ) ) {
-            $error = new WP_Error( 'license_error', 'Invalid license key or service ID.', array( 'status' => 400 ) );
+            $error = new Exception( 'license_error', 'Invalid license key or service ID.', array( 'status' => 400 ) );
         } elseif ( 'Expired' === $this->get_status() ) {
-            $error = new WP_Error( 'license_expired', 'This license has expired. Please renew it.', array( 'status' => 403 ) );
+            $error = new Exception( 'license_expired', 'This license has expired. Please renew it.', array( 'status' => 403 ) );
         } elseif ( 'Suspended' === $this->get_status() ) {
-            $error = new WP_Error( 'license_suspended', 'This license has been suspended. Please contact support if you need further assistance.', array( 'status' => 403 ) );
+            $error = new Exception( 'license_suspended', 'This license has been suspended. Please contact support if you need further assistance.', array( 'status' => 403 ) );
         } elseif ( 'Revoked' === $this->get_status() ) {
-            $error = new WP_Error( 'license_revoked', 'This license has been revoked. Please contact support if you need further assistance.', array( 'status' => 403 ) );
+            $error = new Exception( 'license_revoked', 'This license has been revoked. Please contact support if you need further assistance.', array( 'status' => 403 ) );
         } elseif ( 'Deactivated' === $this->get_status() ) {
-            $error = new WP_Error( 'license_deactivated', 'This license has been deactivated. Please reactivate it or contact support if you need further assistance.', array( 'status' => 403 ) );
+            $error = new Exception( 'license_deactivated', 'This license has been deactivated. Please reactivate it or contact support if you need further assistance.', array( 'status' => 403 ) );
         }
 
         return $error ?: true;

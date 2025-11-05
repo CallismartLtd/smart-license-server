@@ -683,6 +683,7 @@ class SmartLicense_config {
      * Include files
      */
     public function include() {
+        require_once SMLISER_PATH . 'includes/exceptions/exception.php';
         require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
 
         require_once SMLISER_PATH . 'includes/utils/functions.php';

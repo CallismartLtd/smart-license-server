@@ -6,6 +6,7 @@
  * @package Smliser\class
  * @since 1.0.0
  */
+use SmartLicenseServer\Exception;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -134,12 +135,12 @@ class Smliser_Plugin_Download_Token {
      * Insert helper
      * 
      * @param array $data Associative array of properties.
-     * @return string|WP_Error|false Inserted token, WP_Error if there is no ID and false otherwise.
+     * @return string|Exception|false Inserted token, Exception if there is no ID and false otherwise.
      */
     public static function insert_helper( $data ) {
         $self = new self();
         if ( ! is_array( $data ) || ! isset( $data['item_id'] ) ) {
-            return new WP_Error( 'smliser_db_error', 'Check missing requirement.' );
+            return new Exception( 'smliser_db_error', 'Check missing requirement.' );
         }
 
         $self->item_id = absint( $data['item_id'] );
@@ -201,7 +202,7 @@ class Smliser_Plugin_Download_Token {
      */
     public function delete() {
         if ( empty( $this->id ) ) {
-            return new WP_Error( 'smliser_db_error', 'ID must be set.' );
+            return new Exception( 'smliser_db_error', 'ID must be set.' );
         }
         global $wpdb;
         $deleted = $wpdb->delete( $this->db_name, array( 'id' => $this->id ), array( '%d') );

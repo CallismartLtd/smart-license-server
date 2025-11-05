@@ -1,6 +1,10 @@
 <?php
 namespace Callismart\Utilities;
 
+use SmartLicenseServer\Exception;
+
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Utility class for encrypting and decrypting data securely and URL-safely.
  */
@@ -33,13 +37,13 @@ class Encryption {
      * Encrypt the given string data into a URL-safe base64 string.
      *
      * @param string $data Plain text data to encrypt.
-     * @return string|\WP_Error URL-safe encrypted string or WP_Error on failure.
+     * @return string|Exception URL-safe encrypted string or WP_Error on failure.
      */
     public static function encrypt( $data ) {
         self::initialize();
 
         if ( ! is_string( $data ) || empty( $data ) ) {
-            return new \WP_Error( 'invalid_input', 'Data must be a non-empty string.' );
+            return new Exception( 'invalid_input', 'Data must be a non-empty string.' );
         }
 
         $iv             = random_bytes( self::$iv_length );
@@ -47,7 +51,7 @@ class Encryption {
         $encrypted      = openssl_encrypt( $data, self::$cipher_algo, $key, OPENSSL_RAW_DATA, $iv );
 
         if ( false === $encrypted ) {
-            return new \WP_Error( 'encryption_failed', 'Unable to encrypt the data.' );
+            return new Exception( 'encryption_failed', 'Unable to encrypt the data.' );
         }
 
         return self::base64url_encode( $iv . $encrypted );
@@ -57,19 +61,19 @@ class Encryption {
      * Decrypt the previously encrypted string.
      *
      * @param string $encrypted_data The URL-safe encrypted string.
-     * @return string|\WP_Error The decrypted plain text or WP_Error on failure.
+     * @return string|Exception The decrypted plain text or WP_Error on failure.
      */
     public static function decrypt( $encrypted_data ) {
         self::initialize();
 
         if ( ! is_string( $encrypted_data ) || empty( $encrypted_data ) ) {
-            return new \WP_Error( 'invalid_input', 'Encrypted data must be a non-empty string.' );
+            return new Exception( 'invalid_input', 'Encrypted data must be a non-empty string.' );
         }
 
         $decoded_data = self::base64url_decode( $encrypted_data );
 
         if ( false === $decoded_data || strlen( $decoded_data ) <= self::$iv_length ) {
-            return new \WP_Error( 'invalid_encrypted_data', 'The encrypted data is malformed or too short.' );
+            return new Exception( 'invalid_encrypted_data', 'The encrypted data is malformed or too short.' );
         }
 
         $iv                 = substr( $decoded_data, 0, self::$iv_length );
@@ -79,7 +83,7 @@ class Encryption {
         $decrypted = openssl_decrypt( $encrypted_string, self::$cipher_algo, $key, OPENSSL_RAW_DATA, $iv );
 
         if ( false === $decrypted ) {
-            return new \WP_Error( 'decryption_failed', 'Failed to decrypt the data.' );
+            return new Exception( 'decryption_failed', 'Failed to decrypt the data.' );
         }
 
         return $decrypted;

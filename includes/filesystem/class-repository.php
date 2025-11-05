@@ -193,13 +193,13 @@ abstract class Repository extends FileSystem {
      * Validate if a ZIP file can be opened safely.
      *
      * @param string $filename Relative filename inside current slug dir.
-     * @return string|\WP_Error
+     * @return string|Exception
      */
     public function validate_zip( $filename ) {
         $real = $this->real_path( $this->path( $filename ) );
 
         if ( ! $real || ! $this->fs->exists( $real ) ) {
-            return new \WP_Error( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ), [ 'status' => 404 ] );
+            return new Exception( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ), [ 'status' => 404 ] );
         }
 
         $zip = new ZipArchive();
@@ -209,25 +209,25 @@ abstract class Repository extends FileSystem {
             return $real;
         }
 
-        return new \WP_Error( 'zip_invalid', __( 'Unable to open ZIP file.', 'smart-license-server' ), [ 'status' => 400 ] );
+        return new Exception( 'zip_invalid', __( 'Unable to open ZIP file.', 'smart-license-server' ), [ 'status' => 400 ] );
     }
 
     /**
      * List contents of a ZIP archive (inside current slug dir).
      *
      * @param string $filename Relative filename.
-     * @return array|\WP_Error
+     * @return array|Exception
      */
     public function list_zip_contents( $filename ) {
         $real = $this->real_path( $this->path( $filename ) );
 
         if ( ! $real || ! $this->fs->exists( $real ) ) {
-            return new \WP_Error( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ) );
+            return new Exception( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ) );
         }
 
         $zip = new ZipArchive();
         if ( $zip->open( $real ) !== true ) {
-            return new \WP_Error( 'zip_invalid', __( 'Unable to open ZIP file.', 'smart-license-server' ) );
+            return new Exception( 'zip_invalid', __( 'Unable to open ZIP file.', 'smart-license-server' ) );
         }
 
         $files = [];
@@ -245,24 +245,24 @@ abstract class Repository extends FileSystem {
      * @param string $zip_filename ZIP filename relative to current slug.
      * @param string $file_inside Filename inside the ZIP.
      * @param string $dest_filename Destination filename relative to current slug.
-     * @return bool|\WP_Error
+     * @return bool|Exception
      */
     public function extract_file( $zip_filename, $file_inside, $dest_filename ) {
         $real_zip = $this->real_path( $this->path( $zip_filename ) );
 
         if ( ! $real_zip || ! $this->fs->exists( $real_zip ) ) {
-            return new \WP_Error( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ) );
+            return new Exception( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ) );
         }
 
         $zip = new ZipArchive();
         if ( $zip->open( $real_zip ) !== true ) {
-            return new \WP_Error( 'zip_invalid', __( 'Unable to open ZIP file.', 'smart-license-server' ) );
+            return new Exception( 'zip_invalid', __( 'Unable to open ZIP file.', 'smart-license-server' ) );
         }
 
         $stream = $zip->getStream( $file_inside );
         if ( ! $stream ) {
             $zip->close();
-            return new \WP_Error( 'file_missing', __( 'File not found in ZIP.', 'smart-license-server' ) );
+            return new Exception( 'file_missing', __( 'File not found in ZIP.', 'smart-license-server' ) );
         }
 
         $contents = stream_get_contents( $stream );
@@ -271,7 +271,7 @@ abstract class Repository extends FileSystem {
         $written = $this->put_contents( $dest_filename, $contents );
         $zip->close();
 
-        return $written ? true : new \WP_Error( 'write_failed', __( 'Failed to write file.', 'smart-license-server' ) );
+        return $written ? true : new Exception( 'write_failed', __( 'Failed to write file.', 'smart-license-server' ) );
     }
 
     /**
@@ -281,23 +281,23 @@ abstract class Repository extends FileSystem {
      *
      * @param string $tmp_path Temporary uploaded file path.
      * @param string $dest_path Absolute destination path where ZIP should be moved.
-     * @return string|\WP_Error Absolute path of stored ZIP or WP_Error on failure.
+     * @return string|Exception Absolute path of stored ZIP or Exception on failure.
      */
     public function store_zip( $tmp_path, $dest_path ) {
         // Check uploaded file
         if ( ! is_uploaded_file( $tmp_path ) ) {
-            return new \WP_Error( 'invalid_temp_file', 'The temporary file is not valid.' );
+            return new Exception( 'invalid_temp_file', 'The temporary file is not valid.' );
         }
 
         // Ensure .zip extension
         $file_info = wp_check_filetype( $dest_path );
         if ( $file_info['ext'] !== 'zip' ) {
-            return new \WP_Error( 'invalid_file_type', 'Only ZIP files are allowed.' );
+            return new Exception( 'invalid_file_type', 'Only ZIP files are allowed.' );
         }
 
         // Move uploaded file
         if ( ! $this->rename( $tmp_path, $dest_path ) ) {
-            return new \WP_Error( 'move_failed', 'Failed to move uploaded file to repository.' );
+            return new Exception( 'move_failed', 'Failed to move uploaded file to repository.' );
         }
 
         $this->chmod( $dest_path, FS_CHMOD_FILE );
@@ -306,7 +306,7 @@ abstract class Repository extends FileSystem {
         $zip = new \ZipArchive();
         if ( $zip->open( $dest_path ) !== true ) {
             $this->delete( $dest_path );
-            return new \WP_Error( 'zip_invalid', 'Uploaded ZIP could not be opened.' );
+            return new Exception( 'zip_invalid', 'Uploaded ZIP could not be opened.' );
         }
         $zip->close();
 
@@ -367,7 +367,7 @@ abstract class Repository extends FileSystem {
      * @abstract
      * @param string $slug The application slug.
      * @param string $filename The filename inside the application directory.
-     * @return string|\WP_Error The asset path or WP_Error on failure.
+     * @return string|Exception The asset path or Exception on failure.
      */
     abstract public function get_asset_path( string $slug, string $filename );
 }

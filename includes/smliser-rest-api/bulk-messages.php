@@ -8,8 +8,7 @@
 
 namespace SmartLicenseServer\REST_API;
 
-use 
-SmartLicenseServer\Bulk_Messages,
+use SmartLicenseServer\Bulk_Messages,
 WP_REST_Request,
 WP_REST_Response,
 WP_Error;
