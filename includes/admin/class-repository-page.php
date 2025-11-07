@@ -88,13 +88,13 @@ class Repository_Page {
         $method = "get_{$type}";
 
         if ( ! class_exists( $class ) || ! method_exists( $class, $method ) ) {
-            wp_die( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+            smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
 
         $app = $class::$method( $id );
         
         if ( ! $app ) {
-            wp_die( smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+            smliser_abort_request( smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
         $essential_fields   = self::prepare_essential_app_fields( $app );
         $type_title = ucfirst( $type );

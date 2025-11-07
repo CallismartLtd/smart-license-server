@@ -9,12 +9,15 @@
 
 namespace SmartLicenseServer;
 
+use SmartLicenseServer\DownloadsApi\FileRequestController;
+use SmartLicenseServer\DownloadsApi\FileRequest;
+
 defined( 'ABSPATH'  ) || exit;
 
 /**
  * Serves as a request controller and a proxy server for downloads and assets.
  */
-class Server {
+class Server extends FileRequestController {
 
     /**
      * Single instance of this class.
@@ -27,8 +30,8 @@ class Server {
      * Class constructor.
      */
     public function __construct() {
-        add_action( 'admin_post_smliser_admin_download', array( __CLASS__, 'serve_admin_download' ) );
-        add_action( 'template_redirect', array( $this, 'download_server' ) );
+        add_action( 'admin_post_smliser_admin_download', array( __CLASS__, 'init_request' ) );
+        add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
         add_action( 'template_redirect', array( $this, 'asset_server' ) );
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
         add_action( 'admin_post_smliser_download_image', array( __CLASS__, 'proxy_image_download' ) );
@@ -36,138 +39,75 @@ class Server {
     }
 
     /**
-     * Call the correct item download handler.
+     *  Handle incoming requests for this application.
      */
-    public static function download_server() {
-        if ( 'smliser-downloads' !== get_query_var( 'pagename' ) ) {
-            return;
+    public static function init_request() {
+        if ( 'smliser-downloads' === get_query_var( 'pagename' ) ) {
+            self::parse_download_request();
         }
 
-        $app_type = get_query_var( 'smliser_app_type' );
-
-        switch ( $app_type ) {
-            case 'plugin':
-                self::serve_package_download();
-                break;
-            case 'theme':
-                // Handle themes download.
-                break;
-            case 'software':
-                // Handle software download.
-                break;
-            case 'documents':
-                self::instance()->serve_license_document_download();
-                break;
-            default:
-                //redirect to repository page.
+        if ( 'smliser_admin_download' === \smliser_get_query_param( 'action' ) ) {
+            self::parse_admin_download_request();
         }
-        
+
     }
 
     /**
-     * Serve plugin Download.
-     * 
-     * The expected URL should be siteurl/donloads-page/plugins/plugin_slug.zip
-     * Additionally for licensed plugins, append the download token to the URL query parameter like
-     * siteurl/donloads-page/plugins/plugin_slug.zip?download_token={{token}} or
-     * in the http authorization bearer header.
+     * Parses request meant for an application zip file download.
      */
-    private static function serve_package_download() {
-        $app_type   = get_query_var( 'smliser_app_type' );
-        $app_slug   = sanitize_and_normalize_path( get_query_var( 'smliser_app_slug' ) );
+    private static function parse_download_request() {
+        $app_type = get_query_var( 'smliser_app_type' );
+        $app_slug = sanitize_and_normalize_path( get_query_var( 'smliser_app_slug' ) );
 
         if ( empty( $app_slug ) ) {
-            wp_die( __( 'Please provide the correct application slug', 'smliser' ), 'Bad Request', array( 'response' => 400 ) );
+            smliser_abort_request(
+                __( 'Please provide the correct application slug', 'smliser' ),
+                'Bad Request',
+                array( 'response' => 400 )
+            );
         }
 
-        $app_class  = \Smliser_Software_Collection::get_app_class( $app_type );
-        $method     = "get_by_slug";
+        // Construct the FileRequest object.
+        $request = new FileRequest([
+            'app_type'        => $app_type,
+            'app_slug'        => $app_slug,
+            'download_token'  => smliser_get_query_param( 'download_token' ),
+            'authorization'   => smliser_get_authorization_header(),
+            'user_agent'      => smliser_get_user_agent(),
+            'request_time'    => time(),
+            'client_ip'       => \smliser_get_client_ip(),
+        ]);
 
-        if ( ! method_exists( $app_class, $method ) ) {
-            wp_die( __( 'Unsupported application type', 'smliser' ), 'Invalid App Type', array( 'response' => 400 ) );
+        self::serve_package( $request );
+    }
+
+    /**
+     * Parses requests when admin downloads a ackage from the backend.
+     */
+    private static function parse_admin_download_request() {
+        if ( ! wp_verify_nonce( smliser_get_query_param( 'download_token' ) , 'smliser_download_token' ) ) {
+            smliser_abort_request( __( 'Expired download link, please refresh current page.', 'smliser' ), 'Expired Link', array( 'response' => 400 ) );
         }
 
-        /**
-         * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $app
-         */
-        $app    = $app_class::$method( $app_slug );
-
-        if ( ! $app ) {
-            wp_die( __( 'The requested application was not found', 'smliser' ), 'Not Found', array( 'response' => 404 ) );
+        if ( ! is_admin() || ! current_user_can( 'install_plugins' ) ) {
+            smliser_abort_request( __( 'You are not authorized to perform this action.', 'smliser' ), 'Unathorized Download', array( 'response' => 400 ) );
         }
 
-        /**
-         * Serve download for monetized plugin
-         */
-        if ( $app->is_monetized() ) {
-            $download_token    = smliser_get_query_param( 'download_token' );
+        $type   = smliser_get_query_param( 'type' );
+        $id     = smliser_get_query_param( 'id' );
 
-            if ( empty( $download_token ) ) { // fallback to authorization header.
-                $authorization = smliser_get_authorization_header();
-
-                if ( $authorization ) {
-                    $parts = explode( ' ', $authorization );
-                    $download_token = sanitize_text_field( unslash( $parts[1] ) );
-                }
-            
-            }
-
-            if ( empty( $download_token ) ) {
-                wp_die( __( 'Monetized application, please purchase a license.', 'smliser' ), 'Payment Required', array( 'response' => 402 ) );
-            }
-
-            if ( ! smliser_verify_item_token( $download_token, $app ) ) {
-                wp_die( __( 'Invalid download token', 'smliser' ), 'Unauthorized', array( 'response' => 401 ) );
-            }
-
+        if ( empty( $type ) || empty( $id ) ) {
+            smliser_abort_request( __( 'Invalid download request.', 'smliser' ), 'Invalid Request', array( 'response' => 400 ) );
         }
 
-        $repo_class = \Smliser_Software_Collection::get_app_repository_class( $app_type );
+        $request = new FileRequest([
+            'app_type'  => $type,
+            'app_id'    => $id
+        ]);
 
-        if ( ! $repo_class ) {
-            wp_die( __( 'This application type is not supported.', 'smliser' ), 'Unsupported Type', array( 'response' => 400 ) );
-        }
-        
-        $file_path    = $app->get_zip_file();
+        $response = self::serve_admin_download( $request );
 
-        if ( ! $repo_class->exists( $file_path ) || ! $repo_class->is_valid_zip( $file_path ) ) {
-            \wp_die( __( 'The requested file was not found.', 'smliser' ), 'File Not Found', array( 'response' => 404 ) );
-        }
-
-        // Serve the file for download.
-        if ( $repo_class->is_readable( $file_path ) ) {
-
-            /**
-             * Fires for download stats syncronization.
-             * 
-             * @param string $context The context which the hook is fired.
-             * @param Smliser_Plugin The plugin object (optional).
-             */
-            do_action( 'smliser_stats', \sprintf( '%s_download', $app->get_type() ), $app );
-
-            status_header( 200 );
-            header( 'x-content-type-options: nosniff' );
-            header( 'x-Robots-tag: noindex, nofollow', true );
-            header( 'content-description: file transfer' );
-            if ( isset($_SERVER['HTTP_USER_AGENT'] ) && strpos( $_SERVER['HTTP_USER_AGENT'], 'MSIE' ) ) {
-                header( 'content-Type: application/force-download' );
-            } else {
-                header( 'content-Type: application/zip' );
-            }
-            
-            header( 'content-disposition: attachment; filename="' . basename( $file_path ) . '"' );
-            header( 'expires: 0' );
-            header( 'cache-control: must-revalidate' );
-            header( 'pragma: public' );
-            header( 'content-length: ' . $repo_class->filesize( $file_path ) );
-            header( 'content-transfer-encoding: binary' );
-            
-            $repo_class->readfile( $file_path );
-            exit;
-        }
-
-        wp_die( __( 'Error: The file cannot be read.', 'smliser' ), 'File Reading Error', array( 'response' => 500 ) );
-        
+        $response->send();
     }
 
     /**
@@ -182,7 +122,7 @@ class Server {
         $license_id = absint( get_query_var( 'license_id' ) );
 
         if ( ! $license_id ) {
-            wp_die( __( 'Please provide the correct license ID', 'smliser' ), 'License ID Required',  400 );
+            smliser_abort_request( __( 'Please provide the correct license ID', 'smliser' ), 'License ID Required',  400 );
         }
 
         $download_token = smliser_get_query_param( 'download_token' );
@@ -197,18 +137,18 @@ class Server {
         }
 
         if ( empty( $download_token ) ) {
-            wp_die( __( 'Download token is required', 'smliser' ), 'Missing token', 401 );
+            smliser_abort_request( __( 'Download token is required', 'smliser' ), 'Missing token', 401 );
         }
 
         $license = Smliser_license::get_by_id( $license_id );
 
         if ( ! $license ) {
-            wp_die( __( 'License was not found', 'smliser' ), 'Not found', 404 );
+            smliser_abort_request( __( 'License was not found', 'smliser' ), 'Not found', 404 );
         }
 
         $item_id = $license->get_item_id();
         if ( ! smliser_verify_item_token( $download_token, $item_id ) ) {
-            wp_die( __( 'Token verification failed.', 'smliser' ), 'Unauthorized', 403 );
+            smliser_abort_request( __( 'Token verification failed.', 'smliser' ), 'Unauthorized', 403 );
         }
 
         $license_key    = $license->get_license_key();
@@ -281,73 +221,6 @@ class Server {
     }
 
     /**
-     * Serve admin plugin download.
-     */
-    public static function serve_admin_download() {
-        if ( ! wp_verify_nonce( smliser_get_query_param( 'download_token' ) , 'smliser_download_token' ) ) {
-            \wp_die( __( 'Expired download link, please refresh current page.', 'smliser' ), 'Expired Link', array( 'response' => 400 ) );
-        }
-
-        if ( ! is_admin() || ! current_user_can( 'install_plugins' ) ) {
-            wp_die( __( 'You are not authorized to perform this action.', 'smliser' ), 'Unathorized Download', array( 'response' => 400 ) );
-        }
-
-        $type  = smliser_get_query_param( 'type' );
-        $id     = smliser_get_query_param( 'id' );
-
-        if ( empty( $type ) || empty( $id ) ) {
-            wp_die( __( 'Invalid download request.', 'smliser' ), 'Invalid Request', array( 'response' => 400 ) );
-        }
-
-        $app_class  = \Smliser_Software_Collection::get_app_class( $type );
-        $method     = "get_{$type}";
-
-        if ( ! \method_exists( $app_class, $method ) ) {
-            wp_die( __( 'Invalid application type.', 'smliser' ), 'Invalid Type', array( 'response' => 400 ) );
-        }
-
-        $repo_class = \Smliser_Software_Collection::get_app_repository_class( $type );
-
-        if ( ! $repo_class ) {
-            wp_die( __( 'This application type is not supported.', 'smliser' ), 'Unsupported Type', array( 'response' => 400 ) );
-        }
-
-        /**
-         * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $app
-         */
-        $app = $app_class::$method( $id );
-
-        $file_path  = $app->get_zip_file();
-        
-        if ( ! $repo_class->exists( $file_path ) || ! $repo_class->is_valid_zip( $file_path ) ) {
-            \wp_die( __( 'The requested file was not found.', 'smliser' ), 'File Not Found', array( 'response' => 404 ) );
-        }
-
-        // Serve the file for download.
-        if ( $repo_class->is_readable( $file_path ) ) {
-            /**
-             * Fires for download stats syncronization.
-             * 
-             * @param string $context The context which the hook is fired.
-             * @param Smliser_Plugin The plugin object (optional).
-             */
-            do_action( 'smliser_stats', \sprintf( '%s_download', $app->get_type() ), $app );
-
-            header( 'content-description: File Transfer' );
-            header( 'content-type: application/zip' );
-            header( 'content-disposition: attachment; filename="' . basename( $file_path ) . '"' );
-            header( 'expires: 0' );
-            header( 'cache-control: must-revalidate' );
-            header( 'pragma: public' );
-            header( 'content-length: ' . $repo_class->filesize( $file_path ) );
-            $repo_class->readfile( $file_path );
-            exit;
-        }
-        
-        wp_die( __( 'Error: The file cannot be read.', 'smliser' ), 'File Reading Error', array( 'response' => 500 ) );
-    }
-
-    /**
      * Serve inline static assets and images with aggressive caching.
      */
     public function asset_server() {
@@ -361,16 +234,16 @@ class Server {
 
         $repo_class = Smliser_Software_Collection::get_app_repository_class( $app_type );
         if ( ! $repo_class ) {
-            wp_die( 'Invalid app type', 'Asset Error', [ 'response' => 400 ] );
+            smliser_abort_request( 'Invalid app type', 'Asset Error', [ 'response' => 400 ] );
         }
 
         $file_path = $repo_class->get_asset_path( $app_slug, $asset_name );
         if ( is_smliser_error( $file_path ) ) {
-            wp_die( $file_path->get_error_message(), 'Asset Error', [ 'response' => $file_path->get_error_code() ] );
+            smliser_abort_request( $file_path->get_error_message(), 'Asset Error', [ 'response' => $file_path->get_error_code() ] );
         }
 
         if ( ! $repo_class->is_readable( $file_path ) ) {
-            wp_die( 'Invalid or corrupted file', 'Asset Error', [ 'response' => 500 ] );
+            smliser_abort_request( 'Invalid or corrupted file', 'Asset Error', [ 'response' => 500 ] );
         }
 
         // --- File details ---
@@ -413,19 +286,19 @@ class Server {
      */
     public static function proxy_image_download() {
         if ( ! wp_verify_nonce( smliser_get_query_param( 'security' ), 'smliser_nonce' ) ) {
-            wp_die( 'Expired link please refresh current page' );
+            smliser_abort_request( 'Expired link please refresh current page' );
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( 'You are not authorized to perform this action.' );
+            smliser_abort_request( 'You are not authorized to perform this action.' );
         }
 
-        $image_url  = smliser_get_query_param( 'image_url', false ) ?: wp_die( 'Image URL is required' );
+        $image_url  = smliser_get_query_param( 'image_url', false ) ?: smliser_abort_request( 'Image URL is required' );
 
         $file = download_url( $image_url );
 
         if ( is_smliser_error( $file ) ) {
-            wp_die( $file->get_error_message() );
+            smliser_abort_request( $file->get_error_message() );
         }
         
         $content_type = mime_content_type( $file );
@@ -433,7 +306,7 @@ class Server {
 
         if ( ! in_array( $content_type, $allowed_types, true ) ) {
             @unlink( $file );
-            wp_die( 'Only valid image types are allowed.' );
+            smliser_abort_request( 'Only valid image types are allowed.' );
         }
 
         $filename = basename( parse_url( $image_url, PHP_URL_PATH ) );

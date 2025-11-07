@@ -92,3 +92,4 @@ defined( 'ABSPATH' ) || exit; ?>
         </div>
     </div>
 <?php endif;
+echo gmdate('D, d M Y H:i:s \G\M\T');

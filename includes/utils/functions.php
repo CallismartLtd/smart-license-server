@@ -13,6 +13,27 @@ use SmartLicenseServer\Exception;
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Check whether debug mode is enabled.
+ *
+ * @return bool
+ */
+function smliser_debug_enabled() : bool {
+    if ( defined( 'DEBUG_MODE' ) && constant( 'DEBUG_MODE' )  ) {
+        return true;
+    } 
+    
+    if ( defined( 'WP_DEBUG_DISPLAY' ) && constant( 'WP_DEBUG_DISPLAY' ) ) {
+        return true;
+    }
+
+    if ( defined( 'WP_DEBUG' ) && constant( 'WP_DEBUG' ) ) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * The License page url function
  * can be useful to get the url to the License page in all scenerio
  */
@@ -164,7 +185,6 @@ function smliser_form_message( $texts ) {
     $notice .= '</div>';
 
     return $notice;
-
 }
 
 /**
@@ -201,7 +221,106 @@ function smliser_get_client_ip() {
     return 'unresoved_ip';
 }
 
+/**
+ * Parses a user agent string and returns a short description.
+ *
+ * @param string $user_agent_string The user agent string to parse.
+ * @return string Description in the format: "Browser Version on OS (Device)".
+ */
+function smliser_parse_user_agent( $user_agent_string ) {
+    $info = array(
+        'browser' => 'Unknown Browser',
+        'version' => '',
+        'os'      => 'Unknown OS',
+        'device'  => 'Desktop',
+    );
 
+    // Detect OS
+    if ( preg_match( '/Windows NT ([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        $os_version = $matches[1];
+        $info['os'] = match ( $os_version ) {
+            '10.0' => 'Windows 10',
+            '6.3'  => 'Windows 8.1',
+            '6.2'  => 'Windows 8',
+            '6.1'  => 'Windows 7',
+            '6.0'  => 'Windows Vista',
+            '5.1'  => 'Windows XP',
+            default => 'Windows ' . $os_version
+        };
+    } elseif ( preg_match( '/Mac OS X ([0-9_.]+)/i', $user_agent_string, $matches ) ) {
+        $info['os'] = 'macOS ' . str_replace( '_', '.', $matches[1] );
+    } elseif ( preg_match( '/Linux/i', $user_agent_string ) && ! preg_match( '/Android/i', $user_agent_string ) ) {
+        $info['os'] = 'Linux';
+    } elseif ( preg_match( '/Android ([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        $info['os']     = 'Android ' . $matches[1];
+        $info['device'] = 'Mobile';
+    } elseif ( preg_match( '/iPhone|iPad|iPod/i', $user_agent_string, $matches ) ) {
+        $info['os']     = 'iOS';
+        $info['device'] = ( 'iPad' === $matches[0] ) ? 'Tablet' : 'Mobile';
+    }
+
+    // Detect device type
+    if ( preg_match( '/BlackBerry|Mobile Safari|Opera Mini|Opera Mobi|Firefox Mobile|webOS|NokiaBrowser|Series40|NintendoBrowser/i', $user_agent_string ) ) {
+        $info['device'] = 'Mobile';
+    } elseif ( preg_match( '/Tablet|iPad|Nexus 7|Nexus 10|GT-P|SM-T/i', $user_agent_string ) ) {
+        $info['device'] = 'Tablet';
+    }
+
+    // Detect browser & version
+    if ( preg_match( '/Edg\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        // New Chromium-based Edge
+        $info['browser'] = 'Edge';
+        $info['version'] = $matches[1];
+    } elseif ( preg_match( '/Edge\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        // Legacy Edge
+        $info['browser'] = 'Edge';
+        $info['version'] = $matches[1];
+    } elseif ( preg_match( '/(OPR|Opera)\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        $info['browser'] = 'Opera';
+        $info['version'] = $matches[2];
+    } elseif ( preg_match( '/CriOS\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        $info['browser'] = 'Chrome iOS';
+        $info['version'] = $matches[1];
+    } elseif ( preg_match( '/Chrome\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        $info['browser'] = 'Chrome';
+        $info['version'] = $matches[1];
+    } elseif ( preg_match( '/Firefox\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        $info['browser'] = 'Firefox';
+        $info['version'] = $matches[1];
+    } elseif ( preg_match( '/Safari\/([0-9.]+)/i', $user_agent_string, $matches ) && ! preg_match( '/Chrome|Edg/i', $user_agent_string ) ) {
+        $info['browser'] = 'Safari';
+        if ( preg_match( '/Version\/([0-9.]+)/i', $user_agent_string, $version_matches ) ) {
+            $info['version'] = $version_matches[1];
+        } else {
+            $info['version'] = $matches[1];
+        }
+    } elseif ( preg_match( '/MSIE ([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        $info['browser'] = 'Internet Explorer';
+        $info['version'] = $matches[1];
+    } elseif ( preg_match( '/Trident\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
+        $info['browser'] = 'Internet Explorer';
+        $info['version'] = ( '7.0' === $matches[1] ) ? '11.0' : 'Unknown IE';
+    }
+
+    // Build the return string
+    return trim( sprintf(
+        '%s%s on %s (%s)',
+        $info['browser'],
+        $info['version'] ? ' ' . $info['version'] : '',
+        $info['os'],
+        $info['device']
+    ) );
+}
+
+/**
+ * Get user agent
+ * 
+ * @return string
+ */
+function smliser_get_user_agent() {
+    $user_agent_string = smliser_get_param( 'HTTP_USER_AGENT', '', $_SERVER );
+    return smliser_parse_user_agent( $user_agent_string );
+}
 
 /**
  * Extract the token from the authorization header.
@@ -823,4 +942,141 @@ function parse_args( $args, $defaults ) {
     $defaults = (array) $defaults;
 
     return array_intersect_key( array_merge( $defaults, $args ), $defaults );
+}
+
+/**
+ * Kills appliaction execution and displays HTML page with an error message.
+ *
+ * This function complements the `die()` PHP function. The difference is that
+ * HTML will be displayed to the user. It is recommended to use this function
+ * only when the execution should not continue any further. It is not recommended
+ * to call this function very often, and try to handle as many errors as possible
+ * silently or more gracefully.
+ *
+ * As a shorthand, the desired HTTP response code may be passed as an integer to
+ * the `$title` parameter (the default title would apply) or the `$args` parameter.
+ *
+ *
+ * @param string|SmartLicenseServer\Exception  $message Optional. Error message. If this is an error object,
+ *                                  and not an Ajax or XML-RPC request, the error's messages are used.
+ *                                  Default empty string.
+ * @param string|int       $title   Optional. Error title. If `$message` is a `SmartLicenseServer\Exception;` object,
+ *                                  error data with the key 'title' may be used to specify the title.
+ *                                  If `$title` is an integer, then it is treated as the response code.
+ *                                  Default empty string.
+ * @param string|array|int $args {
+ *     Optional. Arguments to control behavior. If `$args` is an integer, then it is treated
+ *     as the response code. Default empty array.
+ *
+ *     @type int    $response       The HTTP response code. Default 200 for Ajax requests, 500 otherwise.
+ *     @type string $link_url       A URL to include a link to. Only works in combination with $link_text.
+ *                                  Default empty string.
+ *     @type string $link_text      A label for the link to include. Only works in combination with $link_url.
+ *                                  Default empty string.
+ *     @type bool   $back_link      Whether to include a link to go back. Default false.
+ *                                  Default is the value of is_rtl().
+ *     @type string $charset        Character set of the HTML output. Default 'utf-8'.
+ *     @type string $code           Error code to use. Default is 'smliser_error', or the main error code if $message
+ *                                  is a WP_Error.
+ *     @type bool   $exit           Whether to exit the process after completion. Default true.
+ * }
+ */
+function smliser_abort_request( $message = '', $title = '', $args = [] ) {
+    $defaults = [
+        'response'  => 500, // Default HTTP status for a fatal error
+        'link_url'  => '',
+        'link_text' => '',
+        'back_link' => false,
+        'charset'   => 'utf-8',
+        'code'      => 'smliser_error',
+        'exit'      => true,
+    ];
+
+    // Handle HTTP response code passed as an integer shorthand.
+    if ( is_int( $title ) ) {
+        $args = [ 'response' => $title ];
+        $title = '';
+    } elseif ( is_int( $args ) ) {
+        $args = [ 'response' => $args ];
+    }
+    
+    // Resolve final configuration array
+    $r = parse_args( $args, $defaults );
+
+    $error_object = null;
+    if ( is_smliser_error( $message ) ) {
+        $error_object = $message;
+
+        // Fetch primary data from the error object's internal structure
+        $error_data = $error_object->get_error_data();
+
+        // Overwrite defaults with structured error data
+        $r['response'] = $error_data['status'] ?? $r['response'];
+        $r['code']     = $error_object->get_error_code() ?: $r['code'];
+        $title         = $title ?: ($error_data['title'] ?? 'Application Error');
+        
+
+        $message = smliser_debug_enabled() ? sprintf( '<pre>%s</pre>', $error_object->__toString() ) : $error_object->get_error_message();
+    }
+    
+    // Fallback if initial message was empty string
+    $message = $message ?: 'An unknown fatal error occurred.';
+    $title   = $title ?: 'Fatal Error';
+
+    if ( function_exists( 'wp_die' ) && $error_object === null ) {
+        // If we only have string inputs, use the native WP handler
+        // Note: $error_object is not passed here as it complicates wp_die's native flow.
+        wp_die( $message, $title, $r );
+    }
+
+    $http_response_code = (int) $r['response'];
+    if ( ! headers_sent() ) {
+        http_response_code( $http_response_code );
+        header( "Content-Type: text/html; charset={$r['charset']}" );
+    }
+
+    // --- 5. Prepare HTML Content ---
+    $link_html = '';
+
+    if ( ! empty( $r['link_url'] ) && ! empty( $r['link_text'] ) ) {
+        $link_html .= '<p><a href="' . esc_url( $r['link_url'] ) . '">' . esc_html( $r['link_text'] ) . '</a></p>';
+    }
+
+    if ( $r['back_link'] ) {
+        $link_html .= '<p><a href="javascript:history.back()">Go Back</a></p>';
+    }
+
+    $safe_message = $message;
+    $safe_title   = $title;
+
+    // --- 6. Output and Exit ---
+    die( '
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="' . esc_attr( $r['charset'] ) . '">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>' . $safe_title . '</title>
+        <style>
+            body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 50px; }
+            .error-container { max-width: 80%; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1); overflow-wrap: anywhere }
+            h1 { color: #e74c3c; margin-top: 0; font-size: 24px; }
+            p { font-size: 16px; color: #333; }
+            a { color: #3498db; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+            pre div { max-width: 100%; background-color: #f1f1f1; overflow-x: auto; padding: 10px; scrollbar-width: thin; }
+        </style>
+    </head>
+    <body>
+        <div class="error-container">
+            ' . $safe_message
+            . '<p>' . $link_html . '</p>
+        </div>
+    </body>
+    </html>' );
+
+    // The die() call above handles the exit, but this line is left for explicit clarity.
+    if ( $r['exit'] ) {
+        exit;
+    }
 }

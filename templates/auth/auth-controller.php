@@ -27,10 +27,10 @@ $sanitized_params = array_map( function( $value ) {
     return sanitize_text_field( unslash( $value ) );
 }, $merged_params );
 
-// Check for missing required parameters and use wp_die() to show a message.
+// Check for missing required parameters and use smliser_abort_request() to show a message.
 foreach ( $default_params as $key => $value ) {
     if ( empty( $sanitized_params[$key] ) ) {
-        wp_die( sprintf( 'Missing required parameter: "%s"', esc_html( $key ) ) );
+        smliser_abort_request( sprintf( 'Missing required parameter: "%s"', esc_html( $key ) ) );
     }
 }
 
@@ -43,7 +43,7 @@ if ( 'read_write' === $sanitized_params['scope'] ) {
     $permission = 'Write';
     $verb       = 'Create';
 } elseif ( 'read' !== $sanitized_params['scope'] && 'read_write' !== $sanitized_params['scope'] && 'write' !== $sanitized_params['scope'] ) {
-    wp_die( sprintf( 'Invalid scope: "%s".', esc_html( $sanitized_params['scope'] ) ) );
+    smliser_abort_request( sprintf( 'Invalid scope: "%s".', esc_html( $sanitized_params['scope'] ) ) );
 }
 
 

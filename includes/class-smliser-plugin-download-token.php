@@ -266,7 +266,7 @@ class Smliser_Plugin_Download_Token {
        $license_key = isset( $_GET['license_key'] ) ? sanitize_text_field( unslash( $_GET['license_key'] ) ) : '';
 
         if ( empty( $item_id ) || empty( $license_key ) ) {
-            wp_die( 'Missing required parameters' );
+            smliser_abort_request( 'Missing required parameters' );
         }
 
         $plugin         = new Smliser_Plugin();

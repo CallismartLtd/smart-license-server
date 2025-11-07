@@ -177,10 +177,7 @@ class Exception extends \Exception {
 	 * @return bool If the instance contains errors.
 	 */
 	public function has_errors() {
-		if ( ! empty( $this->errors ) ) {
-			return true;
-		}
-		return false;
+		return ! empty( $this->errors );
 	}
 
 	/**
@@ -392,7 +389,7 @@ class Exception extends \Exception {
         }
 
         return sprintf(
-            "SmartLicenseServer\\Exception: %s\n\nAll Errors:\n%s\n\nError Codes: %s\nData: %s\nTrace:\n%s%s\n",
+            "SmartLicenseServer\\Exception: %s\n\nAll Errors:\n%s\n\nError Codes: %s\nData: %s\nTrace:\n <div>%s</div>%s\n",
             $this->getMessage(),
             $formatted,
             implode( ', ', $this->get_error_codes() ),

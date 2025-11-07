@@ -576,7 +576,7 @@ class Smliser_API_Cred {
 
             foreach ( $required_fields as $required_field ) {
                 if ( empty( $required_field ) ) {
-                    wp_die( $required_field . ' is missing.', 403 );
+                    smliser_abort_request( $required_field . ' is missing.', 403 );
                 }
             }
 
@@ -600,7 +600,7 @@ class Smliser_API_Cred {
                 $credentials = self::$instance->insert_new();
                 
                 if ( false === $credentials ) {
-                    wp_die( 'Unable to generate API Key credentials' );
+                    smliser_abort_request( 'Unable to generate API Key credentials' );
                 }
         
                 $api_credentials    = array( 
@@ -626,7 +626,7 @@ class Smliser_API_Cred {
                 $response = wp_remote_post( $callback_url, $request_body );
 
                 if ( is_smliser_error( $response ) ) {
-                    wp_die( $response->get_error_message() );
+                    smliser_abort_request( $response->get_error_message() );
                 }
 
                 $params = http_build_query( array(
@@ -677,7 +677,7 @@ class Smliser_API_Cred {
             }
         }
 
-        wp_die( 'Fill the required fields', 401 );
+        smliser_abort_request( 'Fill the required fields', 401 );
         
     }
 

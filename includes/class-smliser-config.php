@@ -735,20 +735,26 @@ class SmartLicense_config {
      * Include files
      */
     public function include() {
-        require_once SMLISER_PATH . 'includes/exceptions/exception.php';
-        require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
-
+        require_once SMLISER_PATH . 'includes/utils/conditional-functions.php';
         require_once SMLISER_PATH . 'includes/utils/functions.php';
         require_once SMLISER_PATH . 'includes/utils/sanitization-functions.php';
-        require_once SMLISER_PATH . 'includes/utils/conditional-functions.php';
         require_once SMLISER_PATH . 'includes/utils/formating-functions.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
         require_once SMLISER_PATH . 'includes/utils/class-callismart-markdown-parser.php';
+        
+        require_once SMLISER_PATH . 'includes/exceptions/exception.php';
+        require_once SMLISER_PATH . 'includes/core/class-request.php';
+        require_once SMLISER_PATH . 'includes/core/class-response.php';
 
-        // require_once SMLISER_PATH . 'includes/filesystem/class-smliser-repository.php';
+        require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
+
         require_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
+        require_once SMLISER_PATH . 'includes/filesystem/class-filesystem-helper.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-plugin-repository.php';
+        require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileRequest.php';
+        require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileResponse.php';
+        require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-controller.php';
     
         require_once SMLISER_PATH . 'includes/hosted-apps/hosted-apps-interface.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-software-collection.php';
@@ -756,8 +762,9 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-theme.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-software.php';
 
-        require_once SMLISER_PATH . 'includes/class-smlicense.php';
         require_once SMLISER_PATH . 'includes/class-smliser-server.php';
+
+        require_once SMLISER_PATH . 'includes/class-smlicense.php';
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
         require_once SMLISER_PATH . 'includes/class-smliser-api-cred.php';
         require_once SMLISER_PATH . 'includes/class-smliser-plugin-download-token.php';
@@ -767,6 +774,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-plugin-rest-api.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-repository-rest-api.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/bulk-messages.php';
+
         require_once SMLISER_PATH . 'includes/monetization/class-monetization.php';
         require_once SMLISER_PATH . 'includes/monetization/class-pricing-tier.php';
         require_once SMLISER_PATH . 'includes/monetization/provider-collection.php';
