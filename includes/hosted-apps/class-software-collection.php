@@ -659,6 +659,10 @@ class Smliser_Software_Collection {
      * @return SmartLicenseServer\PluginRepository|SmartLicenseServer\ThemeRepository|SmartLicenseServer\SoftwareRepository|null The app's repository class instance.
      */
     public static function get_app_repository_class( $type ) {
+        if ( ! $type || ! is_string( $type ) ) {
+            return null;
+        }
+
         $class = 'SmartLicenseServer\\' . ucfirst( $type ) . 'Repository';
 
         if ( class_exists( $class ) ) {

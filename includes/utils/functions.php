@@ -1101,10 +1101,11 @@ function smliser_download_url( $url, $timeout = 30 ) {
 
     if ( function_exists( 'download_url' ) ) {
         $tmp_file = download_url( $url, $timeout );
-        if ( ! is_smliser_error( $tmp_file ) ) {
+        if ( is_smliser_error( $tmp_file ) ) {
             throw  ( new FileRequestException( 'wp_error' ) )->from_wp_error( $tmp_file );
         }
-        // If WP download fails, continue to other methods (do NOT throw exception here yet)
+        
+        return $tmp_file;
     }
 
     if ( class_exists( 'Illuminate\Support\Facades\Http' ) ) {

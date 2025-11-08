@@ -122,6 +122,32 @@ class FileRequestController {
     }
 
     /**
+     * Serves remote asset as a proxy, bypassing CORs restrictions for clients.
+     * 
+     * @param FileRequest $request The file request object.
+     */
+    public static function get_proxy_asset( FileRequest $request ) {
+        try {
+            $asset_url  = $request->get( 'asset_url' );
+
+            if ( ! $asset_url ) {
+                throw new FileRequestException( 'missing_parameter', 'Asset URL is required.', ['status' => 400] );
+            }
+            
+            $file       = smliser_download_url( $asset_url );
+            $asset_name = $request->get( 'asset_name' );
+            
+            $response   = new FileResponse( $file );
+            $response->set_header( 'Content-Disposition', $response->get_content_disposition( $asset_name, '', true ) );
+
+            return $response;
+            
+        } catch ( FileRequestException $e ) {
+            return new FileResponse( $e );
+        }    
+    }
+
+    /**
      * Process and server static asset for all hosted applications.
      * 
      * @param FileRequest $request The file request object.

@@ -11,6 +11,7 @@ namespace SmartLicenseServer;
 
 use SmartLicenseServer\DownloadsApi\FileRequestController;
 use SmartLicenseServer\DownloadsApi\FileRequest;
+use SmartLicenseServer\DownloadsApi\FileResponse;
 use SmartLicenseServer\Exception\FileRequestException;
 
 defined( 'ABSPATH'  ) || exit;
@@ -19,7 +20,7 @@ defined( 'ABSPATH'  ) || exit;
  * Wordpress adapter bridges the gap beween Smart License Server and request from
  * WP environments
  */
-class WP_Adapter {
+class WPAdapter {
 
     /**
      * Single instance of this class.
@@ -34,8 +35,9 @@ class WP_Adapter {
     public function __construct() {
         add_action( 'admin_post_smliser_admin_download', array( __CLASS__, 'init_request' ) );
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
+        add_action( 'admin_post_smliser_download_image', array( __CLASS__, 'init_request' ) );
+
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
-        // add_action( 'admin_post_smliser_download_image', array( __CLASS__, 'proxy_image_download' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
     }
 
@@ -43,9 +45,6 @@ class WP_Adapter {
      *  Handle incoming requests for this application.
      */
     public static function init_request() {
-        global $wp_query;
-
-
         $page   = get_query_var( 'pagename' );
 
         if ( ! $page ) {
@@ -62,8 +61,6 @@ class WP_Adapter {
         ];
 
         $callback = $handler_map[$page] ?? '';
-
-        // \pretty_print( $callback );
 
         is_callable( $callback ) && call_user_func( $callback );
         
@@ -162,19 +159,19 @@ class WP_Adapter {
     /**
      * Serve inline static assets and images with aggressive caching.
      */
-    public static function parse_app_asset_request() {
+    private static function parse_app_asset_request() {
         $app_type   = sanitize_text_field( unslash( get_query_var( 'smliser_app_type' ) ) );
         $app_slug   = sanitize_text_field( unslash( get_query_var( 'smliser_app_slug' ) ) );
         $asset_name = sanitize_text_field( unslash( get_query_var( 'smliser_asset_name' ) ) );
         
         // Construct the FileRequest object.
         $request = new FileRequest([
-            'app_type'          => $app_type,
-            'app_slug'          => $app_slug,
-            'asset_name'        => $asset_name,
-            'user_agent'        => smliser_get_user_agent(),
-            'request_time'      => time(),
-            'client_ip'         => smliser_get_client_ip(),
+            'app_type'      => $app_type,
+            'app_slug'      => $app_slug,
+            'asset_name'    => $asset_name,
+            'user_agent'    => smliser_get_user_agent(),
+            'request_time'  => time(),
+            'client_ip'     => smliser_get_client_ip(),
         ]);
 
         $response = FileRequestController::get_app_static_asset( $request );
@@ -196,34 +193,26 @@ class WP_Adapter {
 
         $image_url  = smliser_get_query_param( 'image_url', false ) ?: smliser_abort_request( 'Image URL is required' );
 
-        $file = download_url( $image_url );
+        // Construct the FileRequest object.
+        $request = new FileRequest([
+            'asset_url'     => $image_url,
+            'asset_name'    => smliser_get_query_param( 'asset_name', '' ),
+            'user_agent'    => smliser_get_user_agent(),
+            'request_time'  => time(),
+            'client_ip'     => smliser_get_client_ip(),
+        ]);
 
-        if ( is_smliser_error( $file ) ) {
-            smliser_abort_request( $file->get_error_message() );
-        }
-        
-        $content_type = mime_content_type( $file );
-        $allowed_types = array( 'image/png', 'image/jpeg', 'image/gif', 'image/webp' );
+        $response = FileRequestController::get_proxy_asset( $request );
 
-        if ( ! in_array( $content_type, $allowed_types, true ) ) {
-            @unlink( $file );
-            smliser_abort_request( 'Only valid image types are allowed.' );
-        }
-
-        $filename = basename( parse_url( $image_url, PHP_URL_PATH ) );
-
-        status_header( 200 );
-        header( 'content-description: File Transfer' );
-        header( 'content-type: ' . $content_type );
-        header( 'content-disposition: inline; filename="' . $filename . '"' );
-        header( 'expires: 0' );
-        header( 'cache-control: public, max-age=86400' );
-        header( 'access-control-allow-Origin: ' . esc_url_raw( site_url() ) );
-        header( 'content-length: ' . filesize( $file ) );
-        readfile( $file );
-
-        @unlink( $file );
-        exit;
+        /**
+         * Makes sure the temporary file is removed.
+         */
+        $response->register_after_serve_callback(
+            function( $response ) {
+                @unlink( $response->get_file() );
+            }
+        );
+        $response->send();
     }
 
     /**
@@ -284,4 +273,4 @@ class WP_Adapter {
     }
 }
 
-WP_Adapter::instance();
+WPAdapter::instance();

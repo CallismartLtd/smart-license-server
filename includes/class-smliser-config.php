@@ -763,7 +763,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-theme.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-software.php';
 
-        require_once SMLISER_PATH . 'includes/class-smliser-server.php';
+        require_once SMLISER_PATH . 'includes/class-WPAdapter.php';
 
         require_once SMLISER_PATH . 'includes/class-smlicense.php';
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
