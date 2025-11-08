@@ -743,6 +743,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/utils/class-callismart-markdown-parser.php';
         
         require_once SMLISER_PATH . 'includes/exceptions/exception.php';
+        require_once SMLISER_PATH . 'includes/exceptions/class-FileRequestException.php';
         require_once SMLISER_PATH . 'includes/core/class-request.php';
         require_once SMLISER_PATH . 'includes/core/class-response.php';
 
@@ -754,7 +755,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/filesystem/class-plugin-repository.php';
         require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileRequest.php';
         require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileResponse.php';
-        require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-controller.php';
+        require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileRequestController.php';
     
         require_once SMLISER_PATH . 'includes/hosted-apps/hosted-apps-interface.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-software-collection.php';
@@ -908,19 +909,23 @@ class SmartLicense_config {
         );
         
         /** 
-         * File Download URI Rule 
+         * License document download rule (specific)
          */
         add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/([^/]+)(?:\.zip)?/?$',
+            '^' . $download_slug . '/([^/]+)/([0-9]+)/?$',
+            'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]&license_id=$matches[2]',
+            'top'
+        );
+
+        /** 
+         * File Download URI Rule
+         */
+        add_rewrite_rule(
+            '^' . $download_slug . '/([^/]+)/((?![0-9]+$)[^/]+)(?:\.zip)?/?$',
             'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]',
             'top'
         );
 
-        add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/([^/]+)/?$',
-            'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]&license_id=$matches[2]',
-            'top'
-        );
         
         /**OAUTH authorization endpoint */
         add_rewrite_rule(

@@ -389,8 +389,9 @@ class Exception extends \Exception {
         }
 
         return sprintf(
-            "SmartLicenseServer\\Exception: %s\n\nAll Errors:\n%s\n\nError Codes: %s\nData: %s\nTrace:\n <div>%s</div>%s\n",
-            $this->getMessage(),
+            "%s: %s\n\nAll Errors:\n%s\n\nError Codes: %s\nData: %s\nTrace:\n <div>%s</div>%s\n",
+            get_called_class(),
+			$this->getMessage(),
             $formatted,
             implode( ', ', $this->get_error_codes() ),
             smliser_safe_json_encode( $this->error_data, JSON_PRETTY_PRINT ),

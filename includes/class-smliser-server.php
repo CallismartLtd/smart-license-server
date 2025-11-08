@@ -1,6 +1,6 @@
 <?php
 /**
- * REST API Server file
+ * File for the WordPress adapter
  * 
  * @author Callistus
  * @package SmartLicenseServer\classes
@@ -11,13 +11,15 @@ namespace SmartLicenseServer;
 
 use SmartLicenseServer\DownloadsApi\FileRequestController;
 use SmartLicenseServer\DownloadsApi\FileRequest;
+use SmartLicenseServer\Exception\FileRequestException;
 
 defined( 'ABSPATH'  ) || exit;
 
 /**
- * Serves as a request controller and a proxy server for downloads and assets.
+ * Wordpress adapter bridges the gap beween Smart License Server and request from
+ * WP environments
  */
-class Server extends FileRequestController {
+class WP_Adapter {
 
     /**
      * Single instance of this class.
@@ -32,9 +34,8 @@ class Server extends FileRequestController {
     public function __construct() {
         add_action( 'admin_post_smliser_admin_download', array( __CLASS__, 'init_request' ) );
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
-        add_action( 'template_redirect', array( $this, 'asset_server' ) );
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
-        add_action( 'admin_post_smliser_download_image', array( __CLASS__, 'proxy_image_download' ) );
+        // add_action( 'admin_post_smliser_download_image', array( __CLASS__, 'proxy_image_download' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
     }
 
@@ -42,20 +43,36 @@ class Server extends FileRequestController {
      *  Handle incoming requests for this application.
      */
     public static function init_request() {
-        if ( 'smliser-downloads' === get_query_var( 'pagename' ) ) {
-            self::parse_download_request();
+        global $wp_query;
+
+
+        $page   = get_query_var( 'pagename' );
+
+        if ( ! $page ) {
+            $page = smliser_get_query_param( 'action' );
         }
 
-        if ( 'smliser_admin_download' === \smliser_get_query_param( 'action' ) ) {
-            self::parse_admin_download_request();
-        }
+        $handler_map    = [
+            'smliser-downloads'         => function() {
+                ( self::resolve_download_callback() )();
+            },
+            'smliser-repository-assets' => [__CLASS__, 'parse_app_asset_request'],
+            'smliser_admin_download'    => [__CLASS__, 'parse_admin_download_request'],
+            'smliser_download_image'    => [__CLASS__, 'parse_proxy_image_request']
+        ];
 
+        $callback = $handler_map[$page] ?? '';
+
+        // \pretty_print( $callback );
+
+        is_callable( $callback ) && call_user_func( $callback );
+        
     }
 
     /**
      * Parses request meant for an application zip file download.
      */
-    private static function parse_download_request() {
+    private static function parse_public_package_download() {
         $app_type = get_query_var( 'smliser_app_type' );
         $app_slug = sanitize_and_normalize_path( get_query_var( 'smliser_app_slug' ) );
 
@@ -78,7 +95,13 @@ class Server extends FileRequestController {
             'client_ip'       => \smliser_get_client_ip(),
         ]);
 
-        self::serve_package( $request );
+        $response = FileRequestController::get_application_zip_file( $request );
+
+        if ( ! $response->is_valid_zip_file() ) {
+            $response->set_exception( new FileRequestException( 'file_corrupted' ) );
+        }
+        
+        $response->send();
     }
 
     /**
@@ -105,186 +128,64 @@ class Server extends FileRequestController {
             'app_id'    => $id
         ]);
 
-        $response = self::serve_admin_download( $request );
+        $response = FileRequestController::get_admin_application_zip_file( $request );
+
+        $response->send();
+    }
+    
+    /**
+     * Parse the license document download request.
+     * @example The expected URL will look like siteurl/downloads-page/documents/licence_id/
+     * @example The download token is required, and must be in the url query parameter like
+     *              siteurl/downloads-page/documents/licence_id/?download_token={{token}} or in the
+     *              http authorization bearer header.
+    */
+    private static function parse_license_document_download() {
+        // Construct the FileRequest object.
+        $request = new FileRequest([
+            'license_id'        => absint( get_query_var( 'license_id' ) ),
+            'download_token'    => smliser_get_query_param( 'download_token' ),
+            'authorization'     => smliser_get_authorization_header(),
+            'user_agent'        => smliser_get_user_agent(),
+            'request_time'      => time(),
+            'client_ip'         => smliser_get_client_ip(),
+            'is_authorized'     => current_user_can( 'manage_options' ),
+            'issuer'            => get_option( 'smliser_company_name', get_bloginfo( 'name' ) ),
+            'terms_url'         => get_option( 'smliser_license_term_url', 'https://callismart.com.ng/terms/' )
+        ]);
+
+        $response = FileRequestController::get_license_document( $request );
 
         $response->send();
     }
 
     /**
-     * Serve license document download.
-     * 
-     * The expected URL should be siteurl/downloads-page/documents/licence_id/
-     * The download token is required, and must be in the url query parameter like
-     * siteurl/downloads-page/documents/licence_id/?download_token={{token}} or in the
-     * http authorization bearer header.
-     */
-    private function serve_license_document_download() {
-        $license_id = absint( get_query_var( 'license_id' ) );
-
-        if ( ! $license_id ) {
-            smliser_abort_request( __( 'Please provide the correct license ID', 'smliser' ), 'License ID Required',  400 );
-        }
-
-        $download_token = smliser_get_query_param( 'download_token' );
-        if ( empty( $download_token ) ) { // fallback to authorization header.
-            $authorization = smliser_get_authorization_header();
-
-            if ( $authorization ) {
-                $parts = explode( ' ', $authorization );
-                $download_token = sanitize_text_field( unslash( $parts[1] ) );
-            }
-        
-        }
-
-        if ( empty( $download_token ) ) {
-            smliser_abort_request( __( 'Download token is required', 'smliser' ), 'Missing token', 401 );
-        }
-
-        $license = Smliser_license::get_by_id( $license_id );
-
-        if ( ! $license ) {
-            smliser_abort_request( __( 'License was not found', 'smliser' ), 'Not found', 404 );
-        }
-
-        $item_id = $license->get_item_id();
-        if ( ! smliser_verify_item_token( $download_token, $item_id ) ) {
-            smliser_abort_request( __( 'Token verification failed.', 'smliser' ), 'Unauthorized', 403 );
-        }
-
-        $license_key    = $license->get_license_key();
-        $service_id     = $license->get_service_id();
-        $issued         = $license->get_start_date();
-        $expiry         = $license->get_end_date();
-        $company_name   = get_option( 'smliser_company_name', get_bloginfo( 'name' ) );
-        $terms_url      = get_option( 'smliser_license_terms_url', 'https://callismart.com.ng/terms/' );
-        $today          = date_i18n( 'Y-m-d H:i:s' );
-        $site_limit     = $license->get_allowed_sites();
-        
-        $document = <<<EOT
-        ========================================
-        SOFTWARE LICENSE CERTIFICATE
-        Issued by {$company_name}
-        ========================================
-        ----------------------------------------
-        License Details
-        ----------------------------------------
-        Service ID:     {$service_id}
-        License Key:    {$license_key}
-        (Ref: Item ID {$item_id})
-
-        ----------------------------------------
-        License Validity
-        ----------------------------------------
-        Start Date:     {$issued}
-        End Date:       {$expiry}
-        Allowed Sites:  {$site_limit}
-
-        ----------------------------------------
-        Activation Guide
-        ----------------------------------------
-        Use the Service ID and License Key above to activate this software.
-
-        Note:
-        - The software already includes its internal ID.
-        - Activation may vary by product. Refer to product documentation.
-
-        ----------------------------------------
-        License Terms (Summary)
-        ----------------------------------------
-        ✔ Use on up to {$site_limit} site(s)
-        ✔ Allowed for personal or client projects
-        ✘ Not allowed to resell, redistribute, or modify for resale
-
-        Full License Agreement:
-        {$terms_url}
-
-        ----------------------------------------
-        Issued By:      Smart Woo Licensing System
-        Generated On:   {$today}
-        ========================================
-        EOT;
-       
-        
-        status_header( 200 );
-        header( 'X-Content-Type-Options: nosniff' );
-        header( 'X-Robots-Tag: noindex, nofollow' );
-        header( 'Content-Description: File Transfer' );
-        header( 'Content-Type: text/plain; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename="license-document.txt"' );
-        header( 'Expires: 0' );
-        header( 'Cache-Control: must-revalidate' );
-        header( 'Pragma: public' );
-        header( 'Content-Length: ' . strlen( $document ) );
-        header( 'Content-Transfer-encoding: binary' );
-        echo $document;
-        exit;
-    }
-
-    /**
      * Serve inline static assets and images with aggressive caching.
      */
-    public function asset_server() {
-        if ( 'smliser-repository-assets' !== get_query_var( 'pagename' ) ) {
-            return;
-        }
-
+    public static function parse_app_asset_request() {
         $app_type   = sanitize_text_field( unslash( get_query_var( 'smliser_app_type' ) ) );
         $app_slug   = sanitize_text_field( unslash( get_query_var( 'smliser_app_slug' ) ) );
         $asset_name = sanitize_text_field( unslash( get_query_var( 'smliser_asset_name' ) ) );
+        
+        // Construct the FileRequest object.
+        $request = new FileRequest([
+            'app_type'          => $app_type,
+            'app_slug'          => $app_slug,
+            'asset_name'        => $asset_name,
+            'user_agent'        => smliser_get_user_agent(),
+            'request_time'      => time(),
+            'client_ip'         => smliser_get_client_ip(),
+        ]);
 
-        $repo_class = Smliser_Software_Collection::get_app_repository_class( $app_type );
-        if ( ! $repo_class ) {
-            smliser_abort_request( 'Invalid app type', 'Asset Error', [ 'response' => 400 ] );
-        }
+        $response = FileRequestController::get_app_static_asset( $request );
 
-        $file_path = $repo_class->get_asset_path( $app_slug, $asset_name );
-        if ( is_smliser_error( $file_path ) ) {
-            smliser_abort_request( $file_path->get_error_message(), 'Asset Error', [ 'response' => $file_path->get_error_code() ] );
-        }
-
-        if ( ! $repo_class->is_readable( $file_path ) ) {
-            smliser_abort_request( 'Invalid or corrupted file', 'Asset Error', [ 'response' => 500 ] );
-        }
-
-        // --- File details ---
-        $mime          = wp_check_filetype( $file_path );
-        $mime_type     = $mime['type'] ?: 'application/octet-stream';
-        $filesize      = $repo_class->filesize( $file_path );
-        $last_modified = gmdate( 'D, d M Y H:i:s', $repo_class->filemtime( $file_path ) ) . ' GMT';
-        $etag          = '"' . md5( $filesize . $last_modified ) . '"';
-
-        // --- Handle conditional requests (304) ---
-        if (
-            ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && trim( $_SERVER['HTTP_IF_NONE_MATCH'] ) === $etag ) ||
-            ( isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) && trim( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) === $last_modified )
-        ) {
-            status_header( 304 );
-            header( 'Cache-Control: public, max-age=31536000, immutable' );
-            header( 'ETag: ' . $etag );
-            header( 'Last-Modified: ' . $last_modified );
-            exit;
-        }
-
-        // --- Send headers ---
-        status_header( 200 );
-        header( 'Content-Type: ' . $mime_type );
-        header( 'Content-Length: ' . $filesize );
-        header( 'Content-Disposition: inline; filename="' . basename( $file_path ) . '"' );
-        header( 'Cache-Control: public, max-age=31536000, immutable' );
-        header( 'Pragma: public' );
-        header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + 31536000 ) . ' GMT' );
-        header( 'ETag: ' . $etag );
-        header( 'Last-Modified: ' . $last_modified );
-
-        // --- Stream the file ---
-        $repo_class->readfile( $file_path );
-        exit;
+        $response->send();
     }
 
     /**
      * Proxy image download
      */
-    public static function proxy_image_download() {
+    public static function parse_proxy_image_request() {
         if ( ! wp_verify_nonce( smliser_get_query_param( 'security' ), 'smliser_nonce' ) ) {
             smliser_abort_request( 'Expired link please refresh current page' );
         }
@@ -355,6 +256,32 @@ class Server extends FileRequestController {
 
         return self::$instance;
     }
+
+    /**
+     * Get the download request callback.
+     *  
+     * @return callable
+     */
+    private static function resolve_download_callback() {
+        switch ( get_query_var( 'smliser_app_type' ) ) {
+            case 'plugin':
+            case 'plugins':
+            case 'theme':
+            case 'themes':
+            case 'software':
+            case 'softwares':
+                return [__CLASS__, 'parse_public_package_download'];
+            case 'document':
+            case 'documents':
+                return [__CLASS__, 'parse_license_document_download'];
+
+            
+        }
+
+        return function () {
+            smliser_abort_request( new Exception( 'unsupported_route', 'The rquested route is not supported', ['status' => 404 ] ) );
+        };
+    }
 }
 
-Server::instance();
+WP_Adapter::instance();

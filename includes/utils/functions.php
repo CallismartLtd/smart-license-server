@@ -9,6 +9,7 @@
  */
 
 use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exception\FileRequestException;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -1079,4 +1080,88 @@ function smliser_abort_request( $message = '', $title = '', $args = [] ) {
     if ( $r['exit'] ) {
         exit;
     }
+}
+
+/**
+ * Unified download function.
+ *
+ * Attempts WordPress download_url, Laravel HTTP client, PHP fopen/file_get_contents, or cURL.
+ *
+ * @param string $url URL to download.
+ * @param int    $timeout Timeout in seconds.
+ * @return string Local temporary file path on success.
+ * @throws FileRequestException On failure.
+ */
+function smliser_download_url( $url, $timeout = 30 ) {
+
+    // Validate URL
+    if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+        throw new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
+    }
+
+    if ( function_exists( 'download_url' ) ) {
+        $tmp_file = download_url( $url, $timeout );
+        if ( ! is_smliser_error( $tmp_file ) ) {
+            throw  ( new FileRequestException( 'wp_error' ) )->from_wp_error( $tmp_file );
+        }
+        // If WP download fails, continue to other methods (do NOT throw exception here yet)
+    }
+
+    if ( class_exists( 'Illuminate\Support\Facades\Http' ) ) {
+        try {
+            $tmp_file = tempnam( sys_get_temp_dir(), 'smliser_' );
+            $response = \Illuminate\Support\Facades\Http::timeout( $timeout )
+                ->sink( $tmp_file )
+                ->get( $url );
+            if ( $response->successful() ) {
+                return $tmp_file;
+            }
+            @unlink( $tmp_file );
+            throw new FileRequestException( 'remote_download_failed', 'Laravel HTTP client failed to download file.' );
+        } catch ( \Throwable $e ) {
+            // Use the remote_download_failed slug and pass the underlying message
+            throw new FileRequestException( 'remote_download_failed', 'Laravel client exception: ' . $e->getMessage() );
+        }
+    }
+
+    if ( ini_get( 'allow_url_fopen' ) ) {
+        $tmp_file = tempnam( sys_get_temp_dir(), 'smliser_' );
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => $timeout,
+                'header'  => "User-Agent: SmliserDownload/1.0\r\n"
+            ]
+        ]);
+        $data = @file_get_contents( $url, false, $context );
+        if ( $data !== false ) {
+            file_put_contents( $tmp_file, $data );
+            return $tmp_file;
+        }
+        @unlink( $tmp_file );
+        throw new FileRequestException( 'remote_download_failed', 'PHP file_get_contents failed.' );
+    }
+
+    if ( function_exists( 'curl_init' ) ) {
+        $tmp_file = tempnam( sys_get_temp_dir(), 'smliser_' );
+        $fp = fopen( $tmp_file, 'w+' );
+        $ch = curl_init( $url );
+        curl_setopt( $ch, CURLOPT_FILE, $fp );
+        curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
+        curl_setopt( $ch, CURLOPT_TIMEOUT, $timeout );
+        curl_setopt( $ch, CURLOPT_USERAGENT, 'SmliserDownload/1.0' );
+        $success = curl_exec( $ch );
+        $err     = curl_error( $ch );
+        $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE ); 
+        curl_close( $ch );
+        fclose( $fp );
+
+        if ( $success && $http_code === 200 ) {
+            return $tmp_file;
+        }
+        @unlink( $tmp_file );
+
+        throw new FileRequestException( 'remote_download_failed', 'cURL failed. HTTP code: ' . $http_code . ', Error: ' . $err );
+    }
+
+    throw new FileRequestException( 'no_download_method', 'No suitable download method available (WP, Laravel, fopen, cURL).' );
 }

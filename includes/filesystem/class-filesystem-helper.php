@@ -308,17 +308,18 @@ class FileSystemHelper {
         }
 
         return [
-            'path'       => $path,
-            'exists'     => true,
-            'is_dir'     => $fs->is_dir( $path ),
-            'is_file'    => $fs->is_file( $path ),
-            'size'       => $fs->filesize( $path ),
-            'mtime'      => $fs->filemtime( $path ),
-            'extension'  => self::get_extension( $path ),
-            'mime_type'  => self::get_mime_type( $path ),
-            'checksum'   => self::checksum( $path ),
-            'is_image'   => self::is_image( $path ),
-            'is_archive' => self::is_archive( $path ),
+            'path'          => $path,
+            'exists'        => true,
+            'is_dir'        => $fs->is_dir( $path ),
+            'is_file'       => $fs->is_file( $path ),
+            'size'          => $fs->filesize( $path ),
+            'mtime'         => $fs->filemtime( $path ),
+            'extension'     => self::get_extension( $path ),
+            'mime_type'     => self::get_mime_type( $path ),
+            'checksum'      => self::checksum( $path ),
+            'is_image'      => self::is_image( $path ),
+            'is_archive'    => self::is_archive( $path ),
+            'is_valid_file' => self::is_valid_file( $path ),
         ];
     }
 }

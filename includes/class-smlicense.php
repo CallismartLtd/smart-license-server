@@ -1144,4 +1144,12 @@ class Smliser_license {
         return $task_queue;
     }
 
+    /**
+     * The associated app
+     * 
+     * @return SmartLicenseServer\HostedApps\Hosted_Apps_Interface
+     */
+    public function get_app() {
+        
+    }
 }

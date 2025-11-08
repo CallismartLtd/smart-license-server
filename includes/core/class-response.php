@@ -333,13 +333,18 @@ class Response {
 	/**
 	 * Send headers to the client.
 	 *
+	 * Handles multi-word capitalization and respects already sent headers.
+	 *
 	 * @return void
 	 */
 	public function send_headers() {
-		if ( headers_sent() ) {
+		if ( headers_sent( $file, $line ) ) {
+			// Optional: debug log or trigger warning
+			error_log( sprintf( 'Headers already sent in %s on line %d', $file, $line ) );
 			return;
 		}
 
+		// Send the status line
 		header(
 			sprintf(
 				'HTTP/%s %d %s',
@@ -351,16 +356,27 @@ class Response {
 			$this->status_code
 		);
 
+		// Normalize header name for proper capitalization
+		$normalize_name = function( $name ) {
+			// Converts "x-content-type-options" -> "X-Content-Type-Options"
+			$parts = explode( '-', $name );
+			$parts = array_map( 'ucfirst', $parts );
+			return implode( '-', $parts );
+		};
+
 		foreach ( $this->headers as $name => $value ) {
+			$name = $normalize_name( $name );
+
 			if ( is_array( $value ) ) {
 				foreach ( $value as $v ) {
-					header( ucfirst( $name ) . ': ' . $v, false );
+					header( $name . ': ' . $v, false );
 				}
 			} else {
-				header( ucfirst( $name ) . ': ' . $value );
+				header( $name . ': ' . $value );
 			}
 		}
 	}
+
 
 	/**
 	 * Send the response body.
@@ -377,7 +393,7 @@ class Response {
 	 * @return void
 	 */
 	public function send() {
-        if ( $this->error->has_errors() ) {
+        if ( $this->has_errors() ) {
             \smliser_abort_request( $this->error );
         }
 		
@@ -388,7 +404,7 @@ class Response {
 	/*--------------------------------------------------------------
 	# Error Methods
 	--------------------------------------------------------------*/
-/**
+	/**
      * Add an error or append an additional message to an existing error.
      *
      * Delegates to the internal Exception object.
