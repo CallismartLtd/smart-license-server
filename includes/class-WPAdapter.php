@@ -11,7 +11,7 @@ namespace SmartLicenseServer;
 
 use SmartLicenseServer\DownloadsApi\FileRequestController;
 use SmartLicenseServer\DownloadsApi\FileRequest;
-use SmartLicenseServer\DownloadsApi\FileResponse;
+use Smliser_Software_Collection as AppCollection;
 use SmartLicenseServer\Exception\FileRequestException;
 
 defined( 'ABSPATH'  ) || exit;
@@ -39,6 +39,14 @@ class WPAdapter {
 
         add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
+        
+        add_action( 'wp_ajax_smliser_save_plugin', [AppCollection::class, 'save_app'] );
+        add_action( 'wp_ajax_smliser_save_theme', [AppCollection::class, 'save_app'] );
+        add_action( 'wp_ajax_smliser_save_software', [AppCollection::class, 'save_app'] );
+
+        add_action( 'wp_ajax_smliser_app_asset_upload', [AppCollection::class, 'app_asset_upload'] );
+        add_action( 'wp_ajax_smliser_app_asset_delete', [AppCollection::class, 'app_asset_delete'] );
+        
     }
 
     /**

@@ -16,6 +16,12 @@ defined( 'ABSPATH' ) || exit;
  * Provides methods to perform CRUD operations across multiple hosted application types (plugins, themes, software) and their assets.
  */
 class Smliser_Software_Collection {
+    /**
+     * Allowed app types
+     * 
+     * @var array $allowed_app_types
+     */
+    protected $allowed_app_types = [ 'plugin', 'theme', 'software' ];
 
     /**
      * Get hosted applications across multiple types with pagination.
@@ -37,7 +43,7 @@ class Smliser_Software_Collection {
      * }
      */
     public static function get_apps( $args = array() ) {
-        global $wpdb;
+        $db = smliser_dbclass();
 
         $defaults = array(
             'page'   => 1,
@@ -57,7 +63,7 @@ class Smliser_Software_Collection {
 
         if ( in_array( 'plugin', $types, true ) ) {
             $table_name = SMLISER_PLUGIN_ITEM_TABLE;
-            $sql_parts[] = $wpdb->prepare(
+            $sql_parts[] = $db->prepare(
                 "SELECT id, 'plugin' AS type, last_updated
                 FROM {$table_name}
                 WHERE status = %s",
@@ -67,7 +73,7 @@ class Smliser_Software_Collection {
 
         if ( in_array( 'theme', $types, true ) ) {
             $table_name = SMLISER_THEME_ITEM_TABLE;
-            $sql_parts[] = $wpdb->prepare(
+            $sql_parts[] = $db->prepare(
                 "SELECT id, 'theme' AS type, last_updated
                 FROM {$table_name}
                 WHERE status = %s",
@@ -77,7 +83,7 @@ class Smliser_Software_Collection {
 
         if ( in_array( 'software', $types, true ) ) {
             $table_name = SMLISER_APPS_ITEM_TABLE;
-            $sql_parts[] = $wpdb->prepare(
+            $sql_parts[] = $db->prepare(
                 "SELECT id, 'software' AS type, last_updated
                 FROM {$table_name}
                 WHERE status = %s",
@@ -104,11 +110,11 @@ class Smliser_Software_Collection {
         // Total count
         $count_sql = "SELECT COUNT(*) FROM ( {$union_sql} ) AS apps_count ";
         
-        $total     = (int) $wpdb->get_var( $count_sql );
+        $total     = (int) $db->get_var( $count_sql );
         
 
         // Fetch paginated rows
-        $sql = $wpdb->prepare(
+        $sql = $db->prepare(
             "SELECT * FROM ( {$union_sql} ) AS apps
             ORDER BY last_updated DESC
             LIMIT %d OFFSET %d",
@@ -116,7 +122,7 @@ class Smliser_Software_Collection {
             $offset
         );
 
-        $rows    = $wpdb->get_results( $sql, ARRAY_A );
+        $rows    = $db->get_results( $sql, ARRAY_A );
         $objects = array();
 
         foreach ( $rows as $row ) {
@@ -161,7 +167,7 @@ class Smliser_Software_Collection {
      * }
      */
     public static function get_apps_balanced( $args = array() ) {
-        global $wpdb;
+        $db = smliser_dbclass();
 
         $defaults = array(
             'page'   => 1,
@@ -199,16 +205,16 @@ class Smliser_Software_Collection {
             }
 
             // Count query for this type
-            $count_sql = $wpdb->prepare(
+            $count_sql = $db->prepare(
                 "SELECT COUNT(*) FROM {$table_name} WHERE status = %s",
                 $status
             );
-            $type_total = (int) $wpdb->get_var( $count_sql );
+            $type_total = (int) $db->get_var( $count_sql );
             $total     += $type_total;
 
             // Paginated query for this type
-            $rows = $wpdb->get_results(
-                $wpdb->prepare(
+            $rows = $db->get_results(
+                $db->prepare(
                     "SELECT id FROM {$table_name}
                     WHERE status = %s
                     ORDER BY last_updated DESC
@@ -313,7 +319,7 @@ class Smliser_Software_Collection {
      * }
      */
     public static function search_apps( $args = array() ) {
-        global $wpdb;
+        $db = smliser_dbclass();
 
         $defaults = array(
             'term'   => '',
@@ -343,21 +349,21 @@ class Smliser_Software_Collection {
             );
         }
 
-        $like        = '%' . $wpdb->esc_like( $term ) . '%';
+        $like        = '%' . $db->esc_like( $term ) . '%';
         $sql_parts   = array();
         $count_parts = array();
 
         // Plugins
         if ( in_array( 'plugin', $types, true ) ) {
             $table = SMLISER_PLUGIN_ITEM_TABLE;
-            $sql_parts[] = $wpdb->prepare(
+            $sql_parts[] = $db->prepare(
                 "SELECT id, 'plugin' AS type, last_updated
                 FROM {$table}
                 WHERE status = %s
                 AND ( name LIKE %s OR slug LIKE %s OR author LIKE %s )",
                 $status, $like, $like, $like
             );
-            $count_parts[] = $wpdb->prepare(
+            $count_parts[] = $db->prepare(
                 "SELECT COUNT(*) AS total
                 FROM {$table}
                 WHERE status = %s
@@ -369,14 +375,14 @@ class Smliser_Software_Collection {
         // Themes
         if ( in_array( 'theme', $types, true ) ) {
             $table = SMLISER_THEME_ITEM_TABLE;
-            $sql_parts[] = $wpdb->prepare(
+            $sql_parts[] = $db->prepare(
                 "SELECT id, 'theme' AS type, last_updated
                 FROM {$table}
                 WHERE status = %s
                 AND ( name LIKE %s OR slug LIKE %s OR author LIKE %s )",
                 $status, $like, $like, $like
             );
-            $count_parts[] = $wpdb->prepare(
+            $count_parts[] = $db->prepare(
                 "SELECT COUNT(*) AS total
                 FROM {$table}
                 WHERE status = %s
@@ -388,14 +394,14 @@ class Smliser_Software_Collection {
         // Software
         if ( in_array( 'software', $types, true ) ) {
             $table = SMLISER_APPS_ITEM_TABLE;
-            $sql_parts[] = $wpdb->prepare(
+            $sql_parts[] = $db->prepare(
                 "SELECT id, 'software' AS type, last_updated
                 FROM {$table}
                 WHERE status = %s
                 AND ( name LIKE %s OR slug LIKE %s OR author LIKE %s )",
                 $status, $like, $like, $like
             );
-            $count_parts[] = $wpdb->prepare(
+            $count_parts[] = $db->prepare(
                 "SELECT COUNT(*) AS total
                 FROM {$table}
                 WHERE status = %s
@@ -418,7 +424,7 @@ class Smliser_Software_Collection {
 
         // Main query (fetch matching IDs + types)
         $union_sql = implode( " UNION ALL ", $sql_parts );
-        $sql       = $wpdb->prepare(
+        $sql       = $db->prepare(
             "SELECT * FROM ( {$union_sql} ) AS apps
             ORDER BY last_updated DESC
             LIMIT %d OFFSET %d",
@@ -426,11 +432,11 @@ class Smliser_Software_Collection {
             $offset
         );
 
-        $rows = $wpdb->get_results( $sql, ARRAY_A );
+        $rows = $db->get_results( $sql, ARRAY_A );
 
         // Count query (aggregate totals across all tables)
         $count_sql = "SELECT SUM(total) FROM ( " . implode( " UNION ALL ", $count_parts ) . " ) AS counts";
-        $total     = (int) $wpdb->get_var( $count_sql );
+        $total     = (int) $db->get_var( $count_sql );
         $total_pages = ( $total > 0 ) ? ceil( $total / $limit ) : 0;
 
         // Instantiate app objects
@@ -673,16 +679,38 @@ class Smliser_Software_Collection {
     }
 
     /**
-     * Run hooks
+     * Get allowed app types
+     * 
+     * @return array
      */
-    public static function run_hooks() {
-        add_action( 'wp_ajax_smliser_save_plugin', [__CLASS__, 'save_app'] );
-        add_action( 'wp_ajax_smliser_save_theme', [__CLASS__, 'save_app'] );
-        add_action( 'wp_ajax_smliser_save_software', [__CLASS__, 'save_app'] );
+    public function get_allowed_app_types() {
+        return $this->allowed_app_types;
+    }
 
-        add_action( 'wp_ajax_smliser_app_asset_upload', [__CLASS__, 'app_asset_upload'] );
-        add_action( 'wp_ajax_smliser_app_asset_delete', [__CLASS__, 'app_asset_delete'] );
-        // add_action( 'wp_ajax_smliser_update_software', [__CLASS__, 'update_software'] );
+    /**
+     * Add allowed app types
+     * 
+     * @param string $value
+     */
+    public function add_allowed_app_types( $value ) {
+        $types = $this->allowed_app_types;
+
+        $types[] = $value;
+
+        $this->allowed_app_types = array_filter( $types );
+    }
+
+    /**
+     * Remove allowed app types
+     * 
+     * @param string $value
+     */
+    public function remove_allowed_app_type( $value ) {
+        foreach ( $this->allowed_app_types as $k => $v ) {
+            if ( $v === $value ){
+                unset( $this->allowed_app_types[$k] );
+            }
+        }
     }
 
     /**
@@ -692,10 +720,8 @@ class Smliser_Software_Collection {
      */
     public static function app_type_is_allowed( $app_type ) {
 
-        $allowed_types  = apply_filters( 'smliser_allowed_app_types', array( 'plugin', 'theme', 'software' ) );
+        $allowed_types  = array( );
 
         return in_array( $app_type, $allowed_types, true );
     }
 }
-
-Smliser_Software_Collection::run_hooks();

@@ -1166,3 +1166,14 @@ function smliser_download_url( $url, $timeout = 30 ) {
 
     throw new FileRequestException( 'no_download_method', 'No suitable download method available (WP, Laravel, fopen, cURL).' );
 }
+
+/**
+ * Get the database class instance.
+ * 
+ * @return object;
+ */
+function smliser_dbclass() {
+    if ( defined( 'ABSPATH' ) ) {
+        return $GLOBALS['wpdb'];
+    }
+}
