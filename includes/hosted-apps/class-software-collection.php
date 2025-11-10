@@ -593,78 +593,130 @@ class Smliser_Software_Collection {
     }
 
     /**
-     * Handles an application's asset upload
+     * Handles an application's asset upload using a standardized Request object.
+     *
+     * @param Request $request The standardized request object.
+     * @return Response Returns a Response object on success.
+     * @throws RequestException On business logic failure.
      */
-    public static function app_asset_upload() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+    public static function app_asset_upload( Request $request ) {
+        try {
+            // must still enforce the permission if the adapter missed it (defense-in-depth).
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'permission_denied', 'Missing required authorization flag.' ); 
+            }
+
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+            $asset_type = $request->get( 'asset_type' );
+            $asset_name = $request->get( 'asset_name', '' );
+            $asset_file = $request->get( 'asset_file' );
+
+            if ( empty( $app_type ) || empty( $app_slug ) || empty( $asset_type ) || empty( $asset_file ) ) {
+                throw new RequestException( 'missing_data', 'Missing required application, slug, asset type, or file data.' );
+            }
+            
+            if ( ! self::app_type_is_allowed( $app_type ) ) {
+                throw new RequestException( 
+                    'invalid_input', 
+                    sprintf( 'The app type "%s" is not supported.', $app_type ) 
+                );
+            }
+            
+            if ( ! is_array( $asset_file ) || ! isset( $asset_file['tmp_name'] ) ) {
+                 throw new RequestException( 'invalid_input', 'Uploaded asset file is invalid or missing.' );
+            }
+
+            $repo_class = self::get_app_repository_class( $app_type );
+            if ( ! $repo_class ) {
+                throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
+            }
+            
+            $url = $repo_class->upload_asset( $app_slug, $asset_file, $asset_type, $asset_name );
+
+            if ( is_smliser_error( $url ) ) {
+                throw new RequestException( $url->get_error_code() ?: 'remote_download_failed', $url->get_error_message() );
+            }
+            
+            $config = array(
+                'asset_type'    => $asset_type,
+                'app_slug'      => $app_slug,
+                'app_type'      => $app_type,
+                'asset_name'    => basename( $url ),
+                'asset_url'     => $url
+            );
+
+            // Return a success JSON response object
+            $data   = array( 'message' => 'Asset uploaded successfully', 'config' => $config );
+            $response   = [
+                'success'   => true,
+                'data'      => $data
+            ];
+
+            return ( new Response( 200, array(), smliser_safe_json_encode( $response ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
-
-        if ( ! current_user_can( 'manage_options' ) ) {
-            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
-        }
-
-        $app_type   = smliser_get_post_param( 'app_type', null ) ?? smliser_send_json_error( array( 'message' => 'Application type is required' ) );
-        if ( ! self::app_type_is_allowed( $app_type ) ) {
-            smliser_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
-        }
-
-        $app_slug   = smliser_get_post_param( 'app_slug', null ) ?? smliser_send_json_error( array( 'message' => 'Application slug is required' ) );
-        $asset_type = smliser_get_post_param( 'asset_type', null ) ?? smliser_send_json_error( array( 'message' => 'Asset type is required' ) );
-        $asset_name = smliser_get_post_param( 'asset_name', '' );
-        
-        $asset_file = isset( $_FILES['asset_file'] ) && UPLOAD_ERR_OK === $_FILES['asset_file']['error'] ? $_FILES['asset_file'] : smliser_send_json_error( array( 'message' => 'Uploaded file missing or corrupted' ) );
-
-        $repo_class = self::get_app_repository_class( $app_type ) ?? smliser_send_json_error( array( 'message' => 'Unable to reolve repository class' ), 500 );
-        
-        $url = $repo_class->upload_asset( $app_slug, $asset_file, $asset_type, $asset_name );
-
-        if ( is_smliser_error( $url ) ) {
-            smliser_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
-        }
-        
-        $config = array(
-            'asset_type'    => $asset_type,
-            'app_slug'      => $app_slug,
-            'app_type'      => $app_type,
-            'asset_name'    => basename( $url ),
-            'asset_url'     => $url
-        );
-
-        smliser_send_json_success( array( 'message' => 'Uploaded', 'config' => $config ) );
     }
 
     /**
-     * Handles an application's asset deletion
+     * Handles an application's asset deletion using a standardized Request object.
+     *
+     * @param Request $request The standardized request object.
+     * @return Response Returns a Response object on success.
+     * @throws RequestException On business logic failure.
      */
-    public static function app_asset_delete() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+    public static function app_asset_delete( Request $request ) {
+        try {
+            // Check authorization flag passed by the adapter (defense-in-depth)
+            if ( ! $request->get( 'is_authorized' ) ) {
+                throw new RequestException( 'permission_denied', 'Missing required authorization flag.' );
+            }
+
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+            $asset_name = $request->get( 'asset_name' );
+
+            if ( empty( $app_type ) || empty( $app_slug ) || empty( $asset_name ) ) {
+                throw new RequestException( 'missing_data', 'Application type, slug, and asset name are required.' );
+            }
+
+            if ( ! self::app_type_is_allowed( $app_type ) ) {
+                throw new RequestException(
+                    'invalid_input',
+                    sprintf( 'The app type "%s" is not supported', $app_type )
+                );
+            }
+
+            $repo_class = self::get_app_repository_class( $app_type );
+            if ( ! $repo_class ) {
+                throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
+            }
+
+            $result = $repo_class->delete_asset( $app_slug, $asset_name );
+
+            if ( is_smliser_error( $result ) ) {
+                throw new RequestException( $result->get_error_code() ?: 'asset_deletion_failed', $result->get_error_message() );
+            }
+
+            $data       = array( 'message' => 'Asset deleted successfully.' );
+            $response   = [
+                'success'   => true,
+                'data'      => $data
+            ];
+
+            return ( new Response( 200, array(), smliser_safe_json_encode( $response ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
-
-        if ( ! current_user_can( 'manage_options' ) ) {
-            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
-        }
-
-        $app_type   = smliser_get_post_param( 'app_type', null ) ?? smliser_send_json_error( array( 'message' => 'Application type is required' ) );
-        if ( ! self::app_type_is_allowed( $app_type ) ) {
-            smliser_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
-        }
-
-        $app_slug   = smliser_get_post_param( 'app_slug', null ) ?? smliser_send_json_error( array( 'message' => 'Application slug is required' ) );
-        $asset_name = smliser_get_post_param( 'asset_name', null ) ?? smliser_send_json_error( array( 'message' => 'Asset name is required' ) );
-        
-
-        $repo_class = self::get_app_repository_class( $app_type ) ?? smliser_send_json_error( array( 'message' => 'Unable to reolve repository class' ), 500 );
-        
-        $url = $repo_class->delete_asset( $app_slug, $asset_name );
-
-        if ( is_smliser_error( $url ) ) {
-            smliser_send_json_error( array( 'message' => $url->get_error_message() ), $url->get_error_code() );
-        }
-        
-        smliser_send_json_success( array( 'message' => 'Uploaded', 'image_url' => $url ) );
-
     }
 
     /*

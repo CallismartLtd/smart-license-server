@@ -63,8 +63,8 @@ class WPAdapter {
             'smliser_save_theme'        => [__CLASS__, 'parse_save_app_request'],
             'smliser_save_software'     => [__CLASS__, 'parse_save_app_request'],
 
-            'smliser_app_asset_upload'  => [AppCollection::class, 'app_asset_upload'],
-            'smliser_app_asset_delete'  => [AppCollection::class, 'app_asset_delete'],
+            'smliser_app_asset_upload'  => [__CLASS__, 'parse_app_asset_upload_request'],
+            'smliser_app_asset_delete'  => [__CLASS__, 'parse_app_asset_delete_request'],
 
             'smliser_authorize_app'     => [Smliser_Api_Cred::class, 'oauth_client_consent_handler'],
         ];
@@ -259,6 +259,78 @@ class WPAdapter {
         $response   = AppCollection::save_app( $request );
         $response->register_after_serve_callback( function() { die; } );
         
+        $response->send();
+    }
+
+    /**
+     * Parses the WP request for application asset upload, builds the Request object,
+     * and calls the core controller.
+     * * @throws RequestException On security or basic validation failure.
+     */
+    private static function parse_app_asset_upload_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            throw new RequestException( 'invalid_nonce', 'This action failed basic security check.' );
+        }
+
+        $is_authorized = current_user_can( 'manage_options' );
+        if ( ! $is_authorized ) {
+            throw new RequestException( 'permission_denied', 'You do not have the required permission to perform this operation.' );
+        }
+        
+        $asset_file = null;
+        if ( ! ( isset( $_FILES['asset_file'] ) && UPLOAD_ERR_OK === $_FILES['asset_file']['error'] ) ) {
+             // Throw exception if file is missing or corrupted
+             throw new RequestException( 'invalid_input', 'Uploaded file missing or corrupted.' );
+        }
+        $asset_file = $_FILES['asset_file'];
+
+        $request = new Request([
+            'is_authorized' => $is_authorized,
+            'app_type'      => smliser_get_post_param( 'app_type' ),
+            'app_slug'      => smliser_get_post_param( 'app_slug' ),
+            'asset_type'    => smliser_get_post_param( 'asset_type' ),
+            'asset_name'    => smliser_get_post_param( 'asset_name', '' ),
+            'asset_file'    => $asset_file, // Pass the normalized file array
+            'user_agent'    => smliser_get_user_agent(),
+            'request_time'  => time(),
+            'client_ip'     => smliser_get_client_ip(),
+        ]);
+
+        $response = AppCollection::app_asset_upload( $request );
+        $response->register_after_serve_callback( function() { die; } );
+        
+        $response->send();
+    }
+
+    /**
+     * Parses the WP request for application asset deletion, builds the Request object,
+     * and calls the core controller.
+     *
+     * @throws RequestException On security or basic validation failure.
+     */
+    private static function parse_app_asset_delete_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            throw new RequestException( 'invalid_nonce', 'This action failed basic security check.' );
+        }
+
+        $is_authorized = current_user_can( 'manage_options' );
+        if ( ! $is_authorized ) {
+            throw new RequestException( 'permission_denied', 'You do not have the required permission to perform this operation.' );
+        }
+
+        $request = new Request([
+            'is_authorized' => $is_authorized,
+            'app_type'      => smliser_get_post_param( 'app_type' ),
+            'app_slug'      => smliser_get_post_param( 'app_slug' ),
+            'asset_name'    => smliser_get_post_param( 'asset_name' ),
+            'user_agent'    => smliser_get_user_agent(),
+            'request_time'  => time(),
+            'client_ip'     => smliser_get_client_ip(),
+        ]);
+
+        $response = AppCollection::app_asset_delete( $request );
+        $response->register_after_serve_callback( function() { die; } );
+
         $response->send();
     }
 

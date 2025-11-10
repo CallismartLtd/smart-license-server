@@ -497,12 +497,11 @@ const modalActions = {
             const contentType = response.headers.get( 'Content-Type' );
             
             if ( ! response.ok ) {
-                let errorMessage = await response.text();
+                let isJson  = contentType.includes( 'application/json' );
+                let data    = isJson ? await response.json() : await response.text();
 
-                if ( contentType.includes( 'application/json' ) ) {
-                    const data = await response.json();
-                    errorMessage = data?.data?.message ?? errorMessage;
-                }
+                let errorMessage = data?.data?.message ?? data;
+                
                 throw new Error( errorMessage );
             }
 

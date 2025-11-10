@@ -1199,7 +1199,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 });
 
                 const contentType   = response.headers.get( 'content-type' );
-                const isJson       = contentType && contentType.includes( 'application/json' );
+                const isJson        = contentType && contentType.includes( 'application/json' );
                 const responseData  = isJson  ? await response.json() : await response.text();
                 if ( ! response.ok ) {
                     const errorMessage = isJson ? ( responseData.data?.message || 'An error occurred' ) : responseData;
@@ -1228,7 +1228,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 } else if ( error.type === 'SMLISER_NOT_OK' || error.type === 'SMLISER_FAILURE' ) {
                     smliserNotify( error.message, 6000 );
                 } else {
-                    smliserNotify( 'An unexpected error occurred.', 6000 );
+                    smliserNotify( 'An unexpected error occurred.', 10000 );
                 }
 
             } finally {
