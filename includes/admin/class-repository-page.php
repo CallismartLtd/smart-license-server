@@ -66,16 +66,16 @@ class Repository_Page {
     private static function upload_page() {
         $type = smliser_get_query_param( 'type', null );
 
-        $upload_dash    = SMLISER_PATH . 'templates/admin/repository/upload.php';
-        $uploader_temp  = SMLISER_PATH . 'templates/admin/repository/uploader.php';
-        $file   = $type ? $uploader_temp : $upload_dash;
+        $app_upload_dashboard   = SMLISER_PATH . 'templates/admin/repository/upload.php';
+        $app_upload_template    = SMLISER_PATH . 'templates/admin/repository/uploader.php';
+        $app_upload_page        = $type ? $app_upload_template : $app_upload_dashboard;
 
         $title      = $type ? ucfirst( $type ) : '';
         $type_title = $type ? ucfirst( $type ) : '';
 
         $essential_fields = self::prepare_essential_app_fields();
         
-        include_once $file;
+        include_once $app_upload_page;
     }
 
     /**
@@ -97,8 +97,8 @@ class Repository_Page {
             smliser_abort_request( smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
         $essential_fields   = self::prepare_essential_app_fields( $app );
-        $type_title = ucfirst( $type );
-        $file    = SMLISER_PATH . 'templates/admin/repository/edit-' . $type. '.php';
+        $type_title         = ucfirst( $type );
+        $file               = sprintf( SMLISER_PATH . 'templates/admin/repository/edit-%s.php', $type );
         include_once $file;
     }
 

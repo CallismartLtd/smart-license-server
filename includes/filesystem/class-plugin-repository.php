@@ -386,18 +386,41 @@ class PluginRepository extends Repository {
 
         switch ( $type ) {
             case 'banners':
-                $files = [
-                    'low'  => $assets_dir . 'banner-772x250.png',
-                    'high' => $assets_dir . 'banner-1544x500.png',
-                ];
-                break;
+                $urls = [];
+                foreach ( [
+                    'low'  => 'banner-772x250',
+                    'high' => 'banner-1544x500',
+                ] as $key => $basename ) {
+                    $pattern = $assets_dir . $basename . '.{png,gif,svg}';
+                    $matches = glob( $pattern, GLOB_BRACE );
+                    $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
+                        ? smliser_get_app_asset_url( 'plugin', $slug, basename( $matches[0] ) )
+                        : '';
+                }
+                return $urls;
 
             case 'icons':
-                $files = [
-                    '1x'    => $assets_dir . 'icon-128x128.png',
-                    '2x'    => $assets_dir . 'icon-256x256.png',
-                ];
-                break;
+                $urls = [];
+
+                // Check the usual sized icons
+                foreach ( [
+                    '1x' => 'icon-128x128',
+                    '2x' => 'icon-256x256',
+                ] as $key => $basename ) {
+                    $pattern = $assets_dir . $basename . '.{png,gif,svg}';
+                    $matches = glob( $pattern, GLOB_BRACE );
+                    $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
+                        ? smliser_get_app_asset_url( 'plugin', $slug, basename( $matches[0] ) )
+                        : '';
+                }
+
+                // Check for universal icon.svg and use it as fallback for 1x if no 128x128 exists
+                $universal = $assets_dir . 'icon.svg';
+                if ( $this->is_file( $universal ) && empty( $urls['1x'] ) ) {
+                    $urls['1x'] = smliser_get_app_asset_url( 'plugin', $slug, 'icon.svg' );
+                }
+
+                return $urls;
 
             case 'screenshots':
                 $pattern = $assets_dir . 'screenshot-*.{png,jpg,jpeg,gif,svg}';
@@ -409,17 +432,17 @@ class PluginRepository extends Repository {
         }
 
         // --- Banners & Icons: keyed results ---
-        if ( in_array( $type, [ 'banners', 'icons' ], true ) ) {
-            $urls = [];
-            foreach ( $files as $key => $file_path ) {
-                if ( $this->is_file( $file_path ) ) {
-                    $urls[ $key ] = smliser_get_app_asset_url( 'plugin', $slug, basename( $file_path ) );
-                } else {
-                    $urls[ $key ] = '';
-                }
-            }
-            return $urls;
-        }
+        // if ( in_array( $type, [ 'banners', 'icons' ], true ) ) {
+        //     $urls = [];
+        //     foreach ( $files as $key => $file_path ) {
+        //         if ( $this->is_file( $file_path ) ) {
+        //             $urls[ $key ] = smliser_get_app_asset_url( 'plugin', $slug, basename( $file_path ) );
+        //         } else {
+        //             $urls[ $key ] = '';
+        //         }
+        //     }
+        //     return $urls;
+        // }
 
         // --- Screenshots: indexed results ---
         if ( 'screenshots' === $type && $files ) {
