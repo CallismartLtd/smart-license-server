@@ -264,11 +264,18 @@ const modalActions = {
         }
     },
 
+    /**
+     * Submits the uploaded image to the repository.
+     * 
+     * @param {Object} json The configuration object.
+     * @param {HTMLElement} clickedBtn The button clicked.
+     * @returns void
+     */
     'uploadToRepository': async ( json, clickedBtn ) => {
         if ( ! smliserCurrentImage ) {
             smliserNotify( 'Please upload an image.', 3000 );
             return;
-        }
+        }        
 
         clickedBtn.setAttribute( 'disabled', true );
         const container = document.querySelector( `.app-uploader-asset-container.${smliserCurrentConfig.get( 'asset_type' )}` );
@@ -357,6 +364,12 @@ const modalActions = {
         }
     },
 
+    /**
+     * Process uploaded image and show it in the modal.
+     * 
+     * @param {Event} e - The event object.
+     * 
+     */
     'processUploadedImage': async ( e ) => {
         let image = e.target.files[0];
         if ( ! image ) {
@@ -365,7 +378,7 @@ const modalActions = {
         }
 
         if ( ! image.type.includes( 'image/png' ) ) {
-            image = await modalActions.convertToPng( image );
+            // image = await modalActions.convertToPng( image );
         }
 
         smliserCurrentImage = image;
@@ -397,10 +410,10 @@ const modalActions = {
 
                    
             const blob          = await response.blob();
-            const fileName      = imageUrl.split( '/' ).pop() ?? 'image.png';
+            const fileName      = imageUrl.split( '/' ).pop() ?? 'image.png';            
             
             if ( ! contentType.includes( 'image/png' ) ) {
-                return await modalActions.convertToPng( blob, fileName );
+                // return await modalActions.convertToPng( blob, fileName );
             }
 
             return new File( [ blob ], fileName, { type: 'image/png' } );

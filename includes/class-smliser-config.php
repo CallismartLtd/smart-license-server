@@ -743,6 +743,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/utils/class-callismart-markdown-parser.php';
         
         require_once SMLISER_PATH . 'includes/exceptions/exception.php';
+        require_once SMLISER_PATH . 'includes/exceptions/RequestException.php';
         require_once SMLISER_PATH . 'includes/exceptions/class-FileRequestException.php';
         require_once SMLISER_PATH . 'includes/core/class-request.php';
         require_once SMLISER_PATH . 'includes/core/class-response.php';

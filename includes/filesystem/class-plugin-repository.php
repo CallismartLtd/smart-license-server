@@ -217,16 +217,14 @@ class PluginRepository extends Repository {
      * @return string|Exception Relative path to stored asset or Exception on failure.
      */
     public function upload_asset( string $slug, array $file, string $type, string $filename = '' ) {
-        $allowed_mimes = [ 'jpg|jpeg' => 'image/jpeg', 'png' => 'image/png' ];
 
         // Validate upload
         if ( ! is_uploaded_file( $file['tmp_name'] ) ) {
             return new Exception( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );
         }
 
-        $check = wp_check_filetype( $file['name'], $allowed_mimes );
-        if ( empty( $check['ext'] ) ) {
-            return new Exception( 'invalid_type', 'Only PNG or JPG images are allowed.', [ 'status' => 400 ] );
+        if ( ! FileSystemHelper::is_image( $file['tmp_name'] ) ) {
+            return new Exception( 'invalid_type', 'Only images are allowed.', [ 'status' => 400 ] );
         }
 
         $slug = $this->real_slug( $slug );
@@ -246,50 +244,70 @@ class PluginRepository extends Repository {
 
         if ( ! $this->is_dir( $asset_dir ) && ! $this->mkdir( $asset_dir, FS_CHMOD_DIR ) ) {
             return new Exception( 'repo_error', 'Unable to create asset directory.', [ 'status' => 500 ] );
+
+        }
+
+        $ext    = FileSystemHelper::get_canonical_extension( $file['tmp_name'] );
+
+        if ( ! $ext ) {
+            return new Exception( 'repo_error', 'The extension for the for this image could not be trusted.', [ 'status' => 400 ] );
         }
 
         // --- Enforce naming rules ---
         switch ( $type ) {
             case 'banner':
-                $allowed = [ 'banner-772x250.png', 'banner-1544x500.png' ];
-                if ( ! in_array( strtolower( $file['name'] ), $allowed, true ) ) {
+                $allowed_names = [ 'banner-772x250', 'banner-1544x500' ];
+
+                if ( ! in_array( pathinfo( $file['name'], PATHINFO_FILENAME ), $allowed_names, true ) 
+                    || ! in_array( $ext, [ 'png', 'gif', 'svg' ], true ) ) {
                     return new Exception(
                         'invalid_banner_name',
-                        'Banner must be named banner-772x250.png or banner-1544x500.png.',
+                        'Banner must be named banner-772x250 or banner-1544x500 and be a PNG, GIF, or SVG.',
                         [ 'status' => 400 ]
                     );
                 }
-                $target_name = strtolower( $file['name'] );
+                $target_name = strtolower( pathinfo( $file['name'], PATHINFO_FILENAME ) . '.' . $ext );
                 break;
 
             case 'icon':
-                $allowed = [ 'icon-128x128.png', 'icon-256x256.png' ];
-                if ( ! in_array( strtolower( $file['name'] ), $allowed, true ) ) {
+                $allowed_names = [ 'icon-128x128', 'icon-256x256', 'icon' ];
+                if ( ! in_array( pathinfo( $file['name'], PATHINFO_FILENAME ), $allowed_names, true ) 
+                    || ! in_array( $ext, [ 'png', 'gif', 'svg' ], true ) ) {
                     return new Exception(
                         'invalid_icon_name',
-                        'Icon must be named icon-128x128.png or icon-256x256.png.',
+                        'Icon must be named icon-128x128 or icon-256x256 and be a PNG, GIF, or SVG.',
                         [ 'status' => 400 ]
                     );
                 }
-                $target_name = strtolower( $file['name'] );
+                $target_name = strtolower( pathinfo( $file['name'], PATHINFO_FILENAME ) . '.' . $ext );
                 break;
 
             case 'screenshot':
+                $ext = strtolower( $ext );
+                $allowed_exts = [ 'png', 'jpg', 'jpeg', 'gif', 'svg' ];
+
+                if ( ! in_array( $ext, $allowed_exts, true ) ) {
+                    return new Exception(
+                        'invalid_screenshot_type',
+                        'Screenshots must be PNG, JPG, JPEG, GIF, or SVG.',
+                        [ 'status' => 400 ]
+                    );
+                }
+
                 if ( ! empty( $filename ) ) {
-                    $ext = strtolower( $check['ext'] );
                     if ( preg_match( '/screenshot-(\d+)\./', $filename, $m ) ) {
                         $target_name = sprintf( 'screenshot-%d.%s', $m[1], $ext );
                     } else {
                         return new Exception(
                             'invalid_screenshot_name',
-                            'Screenshots must be named screenshot-{index}.png or screenshot-{index}.jpg.',
+                            'Screenshots must be named screenshot-{index} with a valid image extension.',
                             [ 'status' => 400 ]
                         );
                     }
                 } else {
                     // Auto-generate next index
-                    $existing    = glob( $asset_dir . 'screenshot-*.{png,jpg,jpeg}', GLOB_BRACE );
-                    $indexes     = [];
+                    $existing = glob( $asset_dir . 'screenshot-*.{png,jpg,jpeg,gif,svg}', GLOB_BRACE );
+                    $indexes  = [];
 
                     foreach ( $existing as $shot ) {
                         if ( preg_match( '/screenshot-(\d+)\./', basename( $shot ), $m ) ) {
@@ -298,7 +316,7 @@ class PluginRepository extends Repository {
                     }
 
                     $next_index  = empty( $indexes ) ? 1 : ( max( $indexes ) + 1 );
-                    $target_name = sprintf( 'screenshot-%d.%s', $next_index, strtolower( $check['ext'] ) );
+                    $target_name = sprintf( 'screenshot-%d.%s', $next_index, $ext );
                 }
                 break;
 
@@ -382,7 +400,7 @@ class PluginRepository extends Repository {
                 break;
 
             case 'screenshots':
-                $pattern = $assets_dir . 'screenshot-*.{png,jpg,jpeg}';
+                $pattern = $assets_dir . 'screenshot-*.{png,jpg,jpeg,gif,svg}';
                 $files   = glob( $pattern, GLOB_BRACE );
                 break;
 
@@ -495,7 +513,6 @@ class PluginRepository extends Repository {
         }
 
         return true;
-
     }
 
     /**

@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer;
 
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\DownloadsApi\FileRequestController;
 use SmartLicenseServer\DownloadsApi\FileRequest;
 use Smliser_Software_Collection as AppCollection;
@@ -33,19 +34,9 @@ class WPAdapter {
      * Class constructor.
      */
     public function __construct() {
-        add_action( 'admin_post_smliser_admin_download', array( __CLASS__, 'init_request' ) );
+        add_action( 'admin_init', [__CLASS__, 'init_request'] );
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
-        add_action( 'admin_post_smliser_download_image', array( __CLASS__, 'init_request' ) );
-
-        add_action( 'admin_post_smliser_authorize_app', array( 'Smliser_Api_Cred', 'oauth_client_consent_handler' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
-        
-        add_action( 'wp_ajax_smliser_save_plugin', [AppCollection::class, 'save_app'] );
-        add_action( 'wp_ajax_smliser_save_theme', [AppCollection::class, 'save_app'] );
-        add_action( 'wp_ajax_smliser_save_software', [AppCollection::class, 'save_app'] );
-
-        add_action( 'wp_ajax_smliser_app_asset_upload', [AppCollection::class, 'app_asset_upload'] );
-        add_action( 'wp_ajax_smliser_app_asset_delete', [AppCollection::class, 'app_asset_delete'] );
         
     }
 
@@ -53,24 +44,37 @@ class WPAdapter {
      *  Handle incoming requests for this application.
      */
     public static function init_request() {
-        $page   = get_query_var( 'pagename' );
+        $trigger   = get_query_var( 'pagename' );
 
-        if ( ! $page ) {
-            $page = smliser_get_query_param( 'action' );
+		if ( ! $trigger && isset( $_REQUEST['action'] ) ) {
+			$trigger = sanitize_text_field( unslash( $_REQUEST['action'] ) );
+		}
+
+        if ( empty( $trigger ) || ! is_string( $trigger ) ) {
+            return;
         }
 
         $handler_map    = [
-            'smliser-downloads'         => function() {
-                ( self::resolve_download_callback() )();
-            },
+            'smliser-downloads'         => function() { ( self::resolve_download_callback() )(); },
             'smliser-repository-assets' => [__CLASS__, 'parse_app_asset_request'],
             'smliser_admin_download'    => [__CLASS__, 'parse_admin_download_request'],
-            'smliser_download_image'    => [__CLASS__, 'parse_proxy_image_request']
+            'smliser_download_image'    => [__CLASS__, 'parse_proxy_image_request'],
+            'smliser_save_plugin'       => [__CLASS__, 'parse_save_app_request'],
+            'smliser_save_theme'        => [__CLASS__, 'parse_save_app_request'],
+            'smliser_save_software'     => [__CLASS__, 'parse_save_app_request'],
+
+            'smliser_app_asset_upload'  => [AppCollection::class, 'app_asset_upload'],
+            'smliser_app_asset_delete'  => [AppCollection::class, 'app_asset_delete'],
+
+            'smliser_authorize_app'     => [Smliser_Api_Cred::class, 'oauth_client_consent_handler'],
         ];
 
-        $callback = $handler_map[$page] ?? '';
+        if ( isset( $handler_map[$trigger] ) ) {
+            $callback   = $handler_map[$trigger];
+            is_callable( $callback ) && $callback();
 
-        is_callable( $callback ) && call_user_func( $callback );
+        }
+
         
     }
 
@@ -220,6 +224,41 @@ class WPAdapter {
                 @unlink( $response->get_file() );
             }
         );
+        $response->send();
+    }
+
+    /**
+     * Parse request to save a hosted application.
+     */
+    private static function parse_save_app_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+        }
+
+        // Construct the FileRequest object.
+        $request = new Request([
+            'is_authorized'             => current_user_can( 'manage_options' ),
+            'app_type'                  => smliser_get_post_param( 'app_type', null ),
+            'app_id'                    => smliser_get_post_param( 'app_id', 0 ),
+            'app_name'                  => smliser_get_post_param( 'app_name', null ),
+            'app_author'                => smliser_get_post_param( 'app_author', null ),
+            'app_author_url'            => smliser_get_post_param( 'app_author_url', null ),
+            'app_version'               => smliser_get_post_param( 'app_version', null ),
+            'app_required_php_version'  => smliser_get_post_param( 'app_required_php_version', null ),
+            'app_required_wp_version'   => smliser_get_post_param( 'app_required_wp_version', null ),
+            'app_tested_wp_version'     => smliser_get_post_param( 'app_tested_wp_version', null ),
+            'app_download_url'          => smliser_get_post_param( 'app_download_url', null ),
+            'support_url'               => smliser_get_post_param( 'support_url', null ),
+            'homepage_url'              => smliser_get_post_param( 'homepage_url', null ),
+            'app_file'                  => isset( $_FILES['app_file'] ) && UPLOAD_ERR_OK === $_FILES['app_file']['error'] ? $_FILES['app_file'] : null,
+            'user_agent'                => smliser_get_user_agent(),
+            'request_time'              => time(),
+            'client_ip'                 => smliser_get_client_ip(),
+        ]);
+
+        $response   = AppCollection::save_app( $request );
+        $response->register_after_serve_callback( function() { die; } );
+        
         $response->send();
     }
 

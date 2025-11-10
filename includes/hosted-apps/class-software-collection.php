@@ -6,7 +6,10 @@
  * @since 0.0.6
  */
 
+use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exception\RequestException;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -21,7 +24,7 @@ class Smliser_Software_Collection {
      * 
      * @var array $allowed_app_types
      */
-    protected $allowed_app_types = [ 'plugin', 'theme', 'software' ];
+    protected Static $allowed_app_types = [ 'plugin', 'theme', 'software' ];
 
     /**
      * Get hosted applications across multiple types with pagination.
@@ -42,7 +45,7 @@ class Smliser_Software_Collection {
      *     }
      * }
      */
-    public static function get_apps( $args = array() ) {
+    public static function get_apps( array $args = array() ) {
         $db = smliser_dbclass();
 
         $defaults = array(
@@ -166,7 +169,7 @@ class Smliser_Software_Collection {
      *     }
      * }
      */
-    public static function get_apps_balanced( $args = array() ) {
+    public static function get_apps_balanced( array $args = array() ) {
         $db = smliser_dbclass();
 
         $defaults = array(
@@ -262,7 +265,7 @@ class Smliser_Software_Collection {
      * }
      * @return array Array containing 'items' (plugin objects) and 'pagination' info.
      */
-    public static function get_plugins( $args = array() ) {
+    public static function get_plugins( array $args = array() ) {
         $args['types'] = array( 'plugin' );
         return self::get_apps( $args );
     }
@@ -279,7 +282,7 @@ class Smliser_Software_Collection {
      * }
      * @return array Array containing 'items' (theme objects) and 'pagination' info.
      */
-    public static function get_themes( $args = array() ) {
+    public static function get_themes( array $args = array() ) {
         $args['types'] = array( 'theme' );
         return self::get_apps( $args );
     }
@@ -296,7 +299,7 @@ class Smliser_Software_Collection {
      * }
      * @return array Array containing 'items' (software objects) and 'pagination' info.
      */
-    public static function get_softwares( $args = array() ) {
+    public static function get_softwares( array $args = array() ) {
         $args['types'] = array( 'software' );
         return self::get_apps( $args );
     }
@@ -318,7 +321,7 @@ class Smliser_Software_Collection {
      *     @type array $pagination Pagination info (page, limit, total, total_pages).
      * }
      */
-    public static function search_apps( $args = array() ) {
+    public static function search_apps( array $args = array() ) {
         $db = smliser_dbclass();
 
         $defaults = array(
@@ -469,98 +472,122 @@ class Smliser_Software_Collection {
 
     /**
      * Ajax callback method to handle app form submission.
+     * 
+     * @param Request $request
      */
-    public static function save_app() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
-        }
-
-        if ( ! current_user_can( 'manage_options' ) ) {
-            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this operation.' ), 403 );
-        }
-
-        $app_type   = smliser_get_post_param( 'app_type', null ) ?? smliser_send_json_error( array( 'message' => 'Application type is missing' ) );
-        
-        if ( ! self::app_type_is_allowed( $app_type ) ) {
-            smliser_send_json_error( array( 'message' => sprintf( 'The app type "%s" is not supported', $app_type ) ) );
-        }
-        
-        $app_id         = smliser_get_post_param( 'app_id', 0 );
-        $app_class      = self::get_app_class( $app_type );
-        $init_method    = "get_{$app_type}";
-
-        if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $init_method ) ) {
-            smliser_send_json_error( array( 'message' => 'The app type is not supported' ) );
-        }
-        
-        /**
-         * The app instance
-         * 
-         * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $class
-         */
-        if ( $app_id ) {
-            $class = $app_class::$init_method( $app_id );
-        } else {
-            $class = new $app_class();
-        }
-        
-        $name       = smliser_get_post_param( 'app_name', null ) ?? smliser_send_json_error( array( 'message' => 'Application name is required' ) );
-        $author     = smliser_get_post_param( 'app_author', null ) ?? smliser_send_json_error( array( 'message' => 'Application author name is required' ) );
-        $app_file   = isset( $_FILES['app_file'] ) && UPLOAD_ERR_OK === $_FILES['app_file']['error'] ? $_FILES['app_file'] : null;
-
-        $author_url = smliser_get_post_param( 'app_author_url', '' );
-        $version    = smliser_get_post_param( 'app_version', '' );
-
-        $class->set_name( $name );
-        $class->set_author( $author );
-        $class->set_author_profile( $author_url );
-        $class->set_version( $version );
-        $class->set_file( $app_file );
-
-        if ( ! empty( $app_id ) ) {
-            $class->set_id( $app_id );
-
-            $update_method = "update_{$app_type}";
-
-            if ( ! method_exists( __CLASS__, $update_method ) ) {
-                smliser_send_json_error( array( 'message' => sprintf( 'The update method for the application type "%s" was not found!', $app_type ) ) );
+    public static function save_app( Request $request ) {
+        try {
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
             }
 
-            $updated = self::$update_method( $class );
+            $app_type = $request->get( 'app_type', null );
 
-            if ( is_smliser_error( $updated ) ) {
-                smliser_send_json_error( array( 'message' => $updated->get_error_message() ), 503 );
+            if ( ! $app_type ) {
+                throw new RequestException( 'invalid_parameter_type', 'The app type parameter is required.' , array( 'status' => 400 ) );
+            }
+
+            if ( ! self::app_type_is_allowed( $app_type ) ) {
+                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , array( 'status' => 400 ) );
+            }
+            $app_id         = $request->get( 'app_id', 0 );
+            $app_class      = self::get_app_class( $app_type );
+            $init_method    = "get_{$app_type}";
+
+            if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $init_method ) ) {
+                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , array( 'status' => 400 ) );
             }
             
+            if ( $app_id ) {
+                $class = $app_class::$init_method( $app_id );
+            } else {
+                $class = new $app_class();
+            }
+
+            /**
+             * The app instance
+             * 
+             * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $class
+             */
+            
+            $name       = $request->get( 'app_name', null );
+
+            if ( empty( $name ) ) {
+                throw new RequestException( 'invalid_input', 'Application name parameter is required' , array( 'status' => 400 ) );
+            }
+            $author     = $request->get( 'app_author', null );
+
+            if ( empty( $author ) ) {
+                throw new RequestException( 'invalid_input', 'Application author name is required' , array( 'status' => 400 ) );
+            }
+
+            $app_file   = $request->get( 'app_file' );
+
+            $author_url = $request->get( 'app_author_url', '' );
+            $version    = $request->get( 'app_version', '' );
+
+            $class->set_name( $name );
+            $class->set_author( $author );
+            $class->set_author_profile( $author_url );
+            $class->set_version( $version );
+            $class->set_file( $app_file );
+        
+            if ( ! empty( $app_id ) ) {
+                $class->set_id( $app_id );
+
+                $update_method = "update_{$app_type}";
+
+                if ( ! method_exists( __CLASS__, $update_method ) ) {
+                    throw new RequestException( 'internal_server_error', sprintf( 'The update method for the application type "%s" was not found!', $app_type ) , array( 'status' => 500 ) );
+                }
+
+                $updated = self::$update_method( $class, $request );
+
+                if ( is_smliser_error( $updated ) ) {
+                    throw $updated;
+                }
+                
+            }
+
+            $result = $class->save();
+
+            if ( is_smliser_error( $result ) ) {
+                throw $result;
+            }
+
+            $data = array( 'data' => array(
+                'message' => sprintf( '%s Saved', ucfirst( $app_type ) ),
+                'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'item_id' => $class->get_id() ) )
+            ));
+
+            return ( new Response( 200, array(), smliser_safe_json_encode( $data ) ) )
+            ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
-
-        $result = $class->save();
-
-        if ( is_smliser_error( $result ) ) {
-            smliser_send_json_error( array( 'message' => $result->get_error_message() ) );
-        }
-
-        smliser_send_json_success( array( 'message' => sprintf( '%s Saved', ucfirst( $app_type ) ), 'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'item_id' => $class->get_id() ) ) ) );
     }
 
     /**
      * Update a plugin.
      * 
      * @param Smliser_Plugin $class The plugin ID.
-     * @return true|Exception
+     * @param Request $request The request object.
+     * @return true|RequestException
      */
-    public static function update_plugin( &$class ) {
+    public static function update_plugin( &$class, Request $request ) {
         if ( ! $class instanceof Smliser_Plugin ) {
-            return new Exception( 'message', 'Wrong plugin object passed' );
+            return new RequestException( 'message', 'Wrong plugin object passed' );
         }
 
-        $class->set_required_php( smliser_get_post_param( 'app_required_php_version' ) );
-        $class->set_required( smliser_get_post_param( 'app_required_wp_version' ) );
-        $class->set_tested( smliser_get_post_param( 'app_tested_wp_version' ) );
-        $class->set_download_link( smliser_get_post_param( 'app_download_url' ) );
+        $class->set_required_php( $request->get( 'app_required_php_version' ) );
+        $class->set_required( $request->get( 'app_required_wp_version' ) );
+        $class->set_tested( $request->get( 'app_tested_wp_version' ) );
+        $class->set_download_link( $request->get( 'app_download_url' ) );
 
-        $class->update_meta( 'support_url', smliser_get_post_param( 'app_support_url' ) );
-        $class->update_meta( 'homepage_url', smliser_get_post_param( 'app_homepage_url', '' ) );
+        $class->update_meta( 'support_url', $request->get( 'app_support_url' ) );
+        $class->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
 
         return true;
     }
@@ -684,7 +711,7 @@ class Smliser_Software_Collection {
      * @return array
      */
     public function get_allowed_app_types() {
-        return $this->allowed_app_types;
+        return self::$allowed_app_types;
     }
 
     /**
@@ -693,11 +720,11 @@ class Smliser_Software_Collection {
      * @param string $value
      */
     public function add_allowed_app_types( $value ) {
-        $types = $this->allowed_app_types;
+        $types = self::$allowed_app_types;
 
         $types[] = $value;
 
-        $this->allowed_app_types = array_filter( $types );
+        self::$allowed_app_types = array_filter( $types );
     }
 
     /**
@@ -706,9 +733,9 @@ class Smliser_Software_Collection {
      * @param string $value
      */
     public function remove_allowed_app_type( $value ) {
-        foreach ( $this->allowed_app_types as $k => $v ) {
+        foreach ( self::$allowed_app_types as $k => $v ) {
             if ( $v === $value ){
-                unset( $this->allowed_app_types[$k] );
+                unset( self::$allowed_app_types[$k] );
             }
         }
     }
@@ -719,9 +746,6 @@ class Smliser_Software_Collection {
      * @param mixed $app_type The app type to check.
      */
     public static function app_type_is_allowed( $app_type ) {
-
-        $allowed_types  = array( );
-
-        return in_array( $app_type, $allowed_types, true );
+        return in_array( $app_type, self::$allowed_app_types, true );
     }
 }

@@ -89,4 +89,13 @@ class Request {
     public function all(): array {
         return $this->props;
     }
+
+    /**
+     * Whether a request is authorized
+     * 
+     * @return boolean
+     */
+    public function is_authorized() : bool {
+        return boolval( $this->get( 'is_authorized' ) );
+    }
 }

@@ -44,12 +44,6 @@ class FileResponse extends Response {
      * @var string|Exception $file Absolute path to the file or the file string.
      */
     protected $file;
-    /**
-     * Registered callbacks to be executed after file is served.
-     *
-     * @var array
-     */
-    protected $after_serve_callbacks = array();
 
     /**
      * Class constructor.
@@ -415,58 +409,5 @@ class FileResponse extends Response {
             return false;
         }
     }
-
-    /**
-     * Register a callback to run after serving the file.
-     *
-     * @param callable $callback   The function or method to call.
-     * @param array    $args       Optional. Arguments to pass to the callback.
-     *
-     * @return void
-     */
-    public function register_after_serve_callback( callable $callback, array $args = array() ) {
-        $this->after_serve_callbacks[] = array(
-            'callback' => $callback,
-            'args'     => $args,
-        );
-    }
-
-    /**
-     * Trigger all registered after-serve callbacks.
-     *
-     * Automatically injects the current FileResponse instance ($this)
-     * as the last parameter.
-     *
-     * @return void
-     */
-    protected function trigger_after_serve_callbacks() {
-        foreach ( $this->after_serve_callbacks as $item ) {
-            $callback = $item['callback'];
-            $args     = $item['args'];
-
-            array_push( $args, $this );
-
-            try {
-                call_user_func_array( $callback, $args );
-
-            } catch ( \Throwable $e ) {
-                $callback_name = 'closure';
-                if ( is_array( $callback ) ) {
-                    $callback_name = ( is_object( $callback[0] ) ? get_class( $callback[0] ) : $callback[0] ) . '::' . $callback[1];
-                } elseif ( is_string( $callback ) ) {
-                    $callback_name = $callback;
-                }
-
-                error_log( sprintf(
-                    '[FileResponse] Post-serve callback failed (%s): %s in %s:%d',
-                    $callback_name,
-                    $e->getMessage(),
-                    $e->getFile(),
-                    $e->getLine()
-                ) );
-            }
-        }
-    }
-
     
 }

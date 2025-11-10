@@ -47,6 +47,13 @@ class Response {
 	 */
 	protected $headers = array();
 
+    /**
+     * Registered callbacks to be executed after file is served.
+     *
+     * @var array
+     */
+    protected $after_serve_callbacks = array();
+
 	/**
 	 * Response body.
 	 *
@@ -375,6 +382,10 @@ class Response {
 				header( $name . ': ' . $value );
 			}
 		}
+		
+		if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] ) {
+			exit;
+		}
 	}
 
 
@@ -394,11 +405,17 @@ class Response {
 	 */
 	public function send() {
         if ( $this->has_errors() ) {
-            \smliser_abort_request( $this->error );
+			if ( $this->is_json_response() ) {
+				smliser_send_json_error( $this->error );
+			}
+			
+            smliser_abort_request( $this->error );
         }
 		
 		$this->send_headers();
 		$this->send_body();
+
+		$this->trigger_after_serve_callbacks();
 	}
 
 	/*--------------------------------------------------------------
@@ -494,5 +511,91 @@ class Response {
 	# Utility Methods
 	--------------------------------------------------------------*/
 
+	/**
+	 * Check whether the current request is a json response
+	 * 
+	 * 
+	 * @return bool
+	 */
+	public function is_json_response() : bool {
+		$content_type = $this->get_header( 'Content-Type' );
+		if ( is_array( $content_type ) ) {
+			$content_type = reset( $content_type );
+		}
+		return is_string( $content_type ) && stripos( $content_type, 'application/json' ) !== false;
+	}
 
+
+	/**
+	 * Determines whether a response is okay.
+	 * 
+	 * @return bool
+	 */
+	public function ok() : bool {
+
+		return ! $this->has_errors() && ( $this->status_code >= 200 && $this->status_code < 300 );
+	}
+
+	/**
+	 * Clear headers
+	 *
+	 * @return self
+	 */
+	public function clear_headers(): self {
+		$this->headers = array();
+		return $this;
+	}
+
+
+    /**
+     * Register a callback to run after serving the file.
+     *
+     * @param callable $callback   The function or method to call.
+     * @param array    $args       Optional. Arguments to pass to the callback.
+     *
+     * @return void
+     */
+    public function register_after_serve_callback( callable $callback, array $args = array() ) {
+        $this->after_serve_callbacks[] = array(
+            'callback' => $callback,
+            'args'     => $args,
+        );
+    }
+
+    /**
+     * Trigger all registered after-serve callbacks.
+     *
+     * Automatically injects the current FileResponse instance ($this)
+     * as the last parameter.
+     *
+     * @return void
+     */
+    protected function trigger_after_serve_callbacks() {
+        foreach ( $this->after_serve_callbacks as $item ) {
+            $callback = $item['callback'];
+            $args     = $item['args'];
+
+            array_push( $args, $this );
+
+            try {
+                call_user_func_array( $callback, $args );
+
+            } catch ( \Throwable $e ) {
+                $callback_name = 'closure';
+                if ( is_array( $callback ) ) {
+                    $callback_name = ( is_object( $callback[0] ) ? get_class( $callback[0] ) : $callback[0] ) . '::' . $callback[1];
+                } elseif ( is_string( $callback ) ) {
+                    $callback_name = $callback;
+                }
+
+                error_log( sprintf(
+                    '[FileResponse] Post-serve callback failed (%s): %s in %s:%d',
+                    $callback_name,
+                    $e->getMessage(),
+                    $e->getFile(),
+                    $e->getLine()
+                ) );
+            }
+        }
+    }
 }

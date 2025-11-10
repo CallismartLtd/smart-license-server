@@ -489,7 +489,7 @@ function smliser_safe_json_encode( mixed $data, int $flags = 0, int $depth = 512
  */
 function smliser_send_json( $data, $status_code = 200, $flags = 0 ) {
     if ( function_exists( 'wp_send_json' ) ) {
-        wp_send_json( $data, $status_code = 200, $flags = 0 );
+        wp_send_json( $data, $status_code, $flags );
     }
 
     if ( ! headers_sent() ) {
@@ -509,7 +509,7 @@ function smliser_send_json( $data, $status_code = 200, $flags = 0 ) {
  * @param int $flags JSON encode flags.
  */
 function smliser_send_json_error( $data = null, $status_code = 400, $flags = 0 ) {
-    if ( function_exists( 'wp_send_json_error' ) ) {
+    if ( function_exists( 'wp_send_json_error' ) && ( ! $data instanceof Exception ) ) {
         wp_send_json_error( $data, $status_code, $flags );
     }
 
@@ -520,9 +520,16 @@ function smliser_send_json_error( $data = null, $status_code = 400, $flags = 0 )
             /**
              * @var SmartLicenseServer\Exception $data
              */
-            $result = $data->to_array();
+            $error_data = $data->to_array();
+            if ( smliser_debug_enabled() ) {
+                unset( $error_data['trace'] );
+            } 
 
-            $response['data'] = $result;
+            $response['data'] = $error_data;
+
+            if ( isset( $data->get_error_data()['status'] ) ) {
+                $status_code = $data->get_error_data()['status'];
+            }
         } else {
             $response['data'] = $data;
         }

@@ -6,6 +6,7 @@
  * @package SmartLicenseServer\Exceptions
  */
 namespace SmartLicenseServer;
+use Exception as PHPException;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -15,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * @copyright WordPress.org
  * @license GNU General Public License v2 or later
  */
-class Exception extends \Exception {
+class Exception extends PHPException {
 	/**
 	 * Stores the list of errors.
 	 *
@@ -282,6 +283,8 @@ class Exception extends \Exception {
         if ( $error instanceof self || ( class_exists( 'WP_Error' ) && $error instanceof \WP_Error ) ) {
             static::copy_errors( $error, $this );
         }
+
+		return $this;
     }
 
     /**
