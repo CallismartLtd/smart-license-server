@@ -293,7 +293,7 @@ class Bulk_Messages {
      * @return boolean
      */
     public function save() {
-        global $wpdb;
+        $db = \smliser_dbclass();
 
         $table = SMLISER_BULK_MESSAGES_TABLE;
 
@@ -309,12 +309,12 @@ class Bulk_Messages {
         );
 
         if ( $this->id > 0 ) {
-            $result  = $wpdb->update( $table, $data, array( 'id' => $this->id ) );
+            $result  = $db->update( $table, $data, array( 'id' => $this->id ) );
         } else {
             $data['created_at'] = current_time( 'mysql' );
-            $result  = $wpdb->insert( $table, $data );
+            $result  = $db->insert( $table, $data );
             
-            $this->set_id( $wpdb->insert_id );
+            $this->set_id( $db->get_insert_id() );
         }
 
         // Sync associated apps
@@ -329,7 +329,7 @@ class Bulk_Messages {
      * @return void
      */
     protected function save_associated_apps() {
-        global $wpdb;
+        $db = \smliser_dbclass();
 
         if ( ! $this->id ) {
             return;
@@ -337,7 +337,7 @@ class Bulk_Messages {
 
         $table = SMLISER_BULK_MESSAGES_APPS_TABLE;
         // Delete old associations
-        $wpdb->delete( $table, array( 'message_id' => $this->message_id ), array( '%s' ) );
+        $db->delete( $table, array( 'message_id' => $this->message_id ), array( '%s' ) );
         
         if ( empty( $this->associated_apps ) ) {
             return;
@@ -345,7 +345,7 @@ class Bulk_Messages {
 
         foreach ( $this->associated_apps as $type => $slugs ) {
             foreach ( (array) $slugs as $slug ) {
-                $wpdb->insert(
+                $db->insert(
                     $table,
                     array(
                         'message_id' => $this->message_id,
@@ -365,7 +365,7 @@ class Bulk_Messages {
      * @return self[]
      */
     public static function get_all( $args = array() ) {
-        global $wpdb;
+        $db = \smliser_dbclass();
 
         $defaults = array(
             'page'  => 1,
@@ -377,13 +377,10 @@ class Bulk_Messages {
 
         $table = SMLISER_BULK_MESSAGES_TABLE;
 
-        $sql = $wpdb->prepare(
-            "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT %d OFFSET %d",
-            $args['limit'],
-            $offset
-        );
-
-        $results    = $wpdb->get_results( $sql, ARRAY_A );
+        $sql = "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $params = [$args['limit'], $offset];
+        
+        $results    = $db->get_results( $sql, $params );
         $messages   = array();
 
         foreach ( $results as $result ) {
@@ -400,14 +397,13 @@ class Bulk_Messages {
      * @return self|null
      */
     public static function get_message( $id_or_message_id ) {
-        global $wpdb;
+        $db = \smliser_dbclass();
         $id_or_message_id = is_numeric( $id_or_message_id ) ? absint( $id_or_message_id ) : sanitize_text_field( unslash( $id_or_message_id ) );
 
         $table = SMLISER_BULK_MESSAGES_TABLE;
 
-        $query  = $wpdb->prepare( "SELECT * FROM {$table} WHERE `id` = %d OR `message_id` = %s", $id_or_message_id, $id_or_message_id );
-
-        $result = $wpdb->get_row( $query );
+        $query  = "SELECT * FROM {$table} WHERE `id` = ? OR `message_id` = ?";
+        $result = $db->get_row( $query, [ $id_or_message_id, $id_or_message_id ] );
 
         if ( ! empty( $result ) ) {
             return self::from_array( $result );
@@ -423,7 +419,7 @@ class Bulk_Messages {
      * @return array
      */
     public static function get_for_app( $args = array() ) {
-        global $wpdb;
+        $db = \smliser_dbclass();
 
         $defaults = array(
             'app_type' => '',
@@ -438,20 +434,15 @@ class Bulk_Messages {
         $msg_table          = SMLISER_BULK_MESSAGES_TABLE;
         $msgs_apps_table    = SMLISER_BULK_MESSAGES_APPS_TABLE;
 
-        $sql = $wpdb->prepare(
-            "SELECT m.* 
-             FROM {$msg_table} m
-             INNER JOIN {$msgs_apps_table} a ON m.message_id = a.message_id
-             WHERE a.app_type = %s AND a.app_slug = %s
-             ORDER BY m.created_at DESC
-             LIMIT %d OFFSET %d",
-            $args['app_type'],
-            $args['app_slug'],
-            $args['limit'],
-            $offset
-        );
+        $sql = "SELECT m.* FROM {$msg_table} m
+            INNER JOIN {$msgs_apps_table} a ON m.message_id = a.message_id
+            WHERE a.app_type = ? AND a.app_slug = ?
+            ORDER BY m.created_at DESC
+            LIMIT %d OFFSET ?";
+        $params = [$args['app_type'], $args['app_slug'], $args['limit'], $offset];
+        
 
-        return $wpdb->get_results( $sql, ARRAY_A );
+        return $db->get_results( $sql, $params );
     }
 
     /**
@@ -469,7 +460,7 @@ class Bulk_Messages {
      * @return self[] Array of Bulk_Messages objects.
      */
     public static function get_for_slugs( $args = array() ) {
-        global $wpdb;
+        $db = \smliser_dbclass();
 
         $defaults = array(
             'app_slugs' => array(),
@@ -495,33 +486,30 @@ class Bulk_Messages {
         $params = array();
 
         // Add slugs condition.
-        $slug_placeholders = implode( ',', array_fill( 0, count( $app_slugs ), '%s' ) );
+        $slug_placeholders = implode( ',', array_fill( 0, count( $app_slugs ), '?' ) );
         $where[] = "a.app_slug IN ($slug_placeholders)";
         $params = array_merge( $params, $app_slugs );
 
         // Add app type condition if provided.
         if ( ! empty( $app_types ) ) {
-            $type_placeholders = implode( ',', array_fill( 0, count( $app_types ), '%s' ) );
+            $type_placeholders = implode( ',', array_fill( 0, count( $app_types ), '?' ) );
             $where[] = "a.app_type IN ($type_placeholders)";
             $params = array_merge( $params, $app_types );
         }
 
         $where_sql = implode( ' AND ', $where );
 
-        $sql = "
-            SELECT DISTINCT m.*
-            FROM {$msg_table} m
+        $sql = "SELECT DISTINCT m.* FROM {$msg_table} m
             INNER JOIN {$assoc_table} a ON m.message_id = a.message_id
             WHERE {$where_sql}
             ORDER BY m.created_at DESC
-            LIMIT %d OFFSET %d
+            LIMIT ? OFFSET ?
         ";
 
         $params[] = absint( $args['limit'] );
         $params[] = absint( $offset );
 
-        $prepared = $wpdb->prepare( $sql, $params );
-        $results  = $wpdb->get_results( $prepared, ARRAY_A );
+        $results  = $db->get_results( $sql, $params );
 
         $messages = array();
         foreach ( $results as $result ) {
@@ -536,7 +524,7 @@ class Bulk_Messages {
      * Delete a message and its associations.
      */
     public function delete() {
-        global $wpdb;
+        $db = \smliser_dbclass();
 
         if ( ! $this->id && ! $this->message_id ) {
             return false;
@@ -545,8 +533,8 @@ class Bulk_Messages {
         $msg_table          = SMLISER_BULK_MESSAGES_TABLE;
         $msgs_apps_table    = SMLISER_BULK_MESSAGES_APPS_TABLE;
 
-        $wpdb->delete( $msg_table, array( 'id' => $this->id ) );
-        $wpdb->delete( $msgs_apps_table, array( 'message_id' => $this->message_id ) );
+        $db->delete( $msg_table, array( 'id' => $this->id ) );
+        $db->delete( $msgs_apps_table, array( 'message_id' => $this->message_id ) );
 
         return true;
     }
@@ -604,17 +592,11 @@ class Bulk_Messages {
      * @return array
      */
     private static function load_associated_apps( $message_id ) {
-        global $wpdb;
+        $db = \smliser_dbclass();
 
         $table = SMLISER_BULK_MESSAGES_APPS_TABLE;
 
-        $results = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT `app_type`, `app_slug` FROM `{$table}` WHERE `message_id` = %s",
-                $message_id
-            ),
-            ARRAY_A
-        );
+        $results = $db->get_results( "SELECT `app_type`, `app_slug` FROM `{$table}` WHERE `message_id` = ?", [$message_id] );
 
         $apps = array();
 
