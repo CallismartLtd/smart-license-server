@@ -62,36 +62,28 @@ class Smliser_Software_Collection {
         $status = $args['status'];
         $types  = (array) $args['types'];
 
-        $sql_parts = array();
+        $sql_parts = [];
+        $params    = [];
 
         if ( in_array( 'plugin', $types, true ) ) {
-            $table_name = SMLISER_PLUGIN_ITEM_TABLE;
-            $sql_parts[] = $db->prepare(
-                "SELECT id, 'plugin' AS type, last_updated
-                FROM {$table_name}
-                WHERE status = %s",
-                $status
-            );
+            $table_name     = SMLISER_PLUGIN_ITEM_TABLE;
+            $sql_parts[]    = "SELECT id, 'plugin' AS type, last_updated FROM {$table_name} WHERE status = ?";
+            $params[]       = $status;
+            
         }
 
         if ( in_array( 'theme', $types, true ) ) {
             $table_name = SMLISER_THEME_ITEM_TABLE;
-            $sql_parts[] = $db->prepare(
-                "SELECT id, 'theme' AS type, last_updated
-                FROM {$table_name}
-                WHERE status = %s",
-                $status
-            );
+            $sql_parts[] = "SELECT id, 'theme' AS type, last_updated FROM {$table_name} WHERE status = ?";
+            $params[] = $status;
+            
         }
 
         if ( in_array( 'software', $types, true ) ) {
-            $table_name = SMLISER_APPS_ITEM_TABLE;
-            $sql_parts[] = $db->prepare(
-                "SELECT id, 'software' AS type, last_updated
-                FROM {$table_name}
-                WHERE status = %s",
-                $status
-            );
+            $table_name     = SMLISER_APPS_ITEM_TABLE;
+            $sql_parts[]    = "SELECT id, 'software' AS type, last_updated FROM {$table_name} WHERE status = ?";
+            $params[]       = $status;
+            
         }
 
         if ( empty( $sql_parts ) ) {
@@ -109,23 +101,15 @@ class Smliser_Software_Collection {
         // Build union
         $union_sql = implode( " UNION ALL ", $sql_parts );
 
-        
         // Total count
         $count_sql = "SELECT COUNT(*) FROM ( {$union_sql} ) AS apps_count ";
-        
-        $total     = (int) $db->get_var( $count_sql );
-        
+        $total     = (int) $db->get_var( $count_sql, $params );
 
         // Fetch paginated rows
-        $sql = $db->prepare(
-            "SELECT * FROM ( {$union_sql} ) AS apps
-            ORDER BY last_updated DESC
-            LIMIT %d OFFSET %d",
-            $limit,
-            $offset
-        );
+        $sql            = "SELECT * FROM ( {$union_sql} ) AS apps ORDER BY last_updated DESC LIMIT ? OFFSET ?";
+        $query_params   = array_merge( $params, [ $limit, $offset ] );
 
-        $rows    = $db->get_results( $sql, ARRAY_A );
+        $rows    = $db->get_results( $sql, $query_params );
         $objects = array();
 
         foreach ( $rows as $row ) {
@@ -151,7 +135,7 @@ class Smliser_Software_Collection {
     /**
      * Get hosted applications across multiple types with balanced pagination.
      *
-     * Each type is given an equal share of the limit (rounded).
+     * Each type is given an approximately equal share of the total limit per page.
      *
      * @param array $args {
      *     @type int    $page   Current page number. Default 1.
@@ -169,15 +153,15 @@ class Smliser_Software_Collection {
      *     }
      * }
      */
-    public static function get_apps_balanced( array $args = array() ) {
+    public static function get_apps_balanced( array $args = [] ): array {
         $db = smliser_dbclass();
 
-        $defaults = array(
+        $defaults = [
             'page'   => 1,
             'limit'  => 20,
             'status' => 'active',
-            'types'  => array( 'plugin', 'theme', 'software' ),
-        );
+            'types'  => ['plugin', 'theme', 'software'],
+        ];
         $args = parse_args( $args, $defaults );
 
         $page   = max( 1, (int) $args['page'] );
@@ -185,49 +169,38 @@ class Smliser_Software_Collection {
         $status = $args['status'];
         $types  = array_values( (array) $args['types'] );
 
-        $objects = array();
+        $type_tables = [
+            'plugin'   => SMLISER_PLUGIN_ITEM_TABLE,
+            'theme'    => SMLISER_THEME_ITEM_TABLE,
+            'software' => SMLISER_APPS_ITEM_TABLE,
+        ];
+
+        $objects = [];
         $total   = 0;
 
-        // Distribute limit equally per type
         $per_type_limit = (int) ceil( $limit / count( $types ) );
-        $offset         = ( $page - 1 ) * $per_type_limit;
 
         foreach ( $types as $type ) {
-            switch ( $type ) {
-                case 'plugin':
-                    $table_name = SMLISER_PLUGIN_ITEM_TABLE;
-                    break;
-                case 'theme':
-                    $table_name = SMLISER_THEME_ITEM_TABLE;
-                    break;
-                case 'software':
-                    $table_name = SMLISER_APPS_ITEM_TABLE;
-                    break;
-                default:
-                    continue 2;
+            if ( ! isset( $type_tables[ $type ] ) ) {
+                continue;
             }
 
-            // Count query for this type
-            $count_sql = $db->prepare(
-                "SELECT COUNT(*) FROM {$table_name} WHERE status = %s",
-                $status
-            );
-            $type_total = (int) $db->get_var( $count_sql );
-            $total     += $type_total;
+            $table_name = $type_tables[ $type ];
 
-            // Paginated query for this type
-            $rows = $db->get_results(
-                $db->prepare(
-                    "SELECT id FROM {$table_name}
-                    WHERE status = %s
-                    ORDER BY last_updated DESC
-                    LIMIT %d OFFSET %d",
-                    $status,
-                    $per_type_limit,
-                    $offset
-                ),
-                ARRAY_A
-            );
+            // Count total items for this type
+            $count_sql   = "SELECT COUNT(*) FROM {$table_name} WHERE status = ?";
+            $type_total  = (int) $db->get_var( $count_sql, [$status] );
+            $total      += $type_total;
+
+            // Calculate offset per type
+            $offset = ( $page - 1 ) * $per_type_limit;
+
+            // Fetch paginated rows for this type
+            $select_sql = "SELECT id FROM {$table_name} 
+                        WHERE status = ? 
+                        ORDER BY last_updated DESC 
+                        LIMIT ? OFFSET ?";
+            $rows = $db->get_results( $select_sql, [$status, $per_type_limit, $offset] );
 
             foreach ( $rows as $row ) {
                 $class  = self::get_app_class( $type );
@@ -239,18 +212,18 @@ class Smliser_Software_Collection {
             }
         }
 
-        // Slice in case we went slightly over limit
+        // Ensure total limit is not exceeded
         $objects = array_slice( $objects, 0, $limit );
 
-        return array(
+        return [
             'items'      => $objects,
-            'pagination' => array(
+            'pagination' => [
                 'total'       => $total,
                 'page'        => $page,
                 'limit'       => $limit,
                 'total_pages' => ( $limit > 0 ) ? ceil( $total / $limit ) : 1,
-            ),
-        );
+            ],
+        ];
     }
 
     /**
@@ -338,9 +311,9 @@ class Smliser_Software_Collection {
         $limit  = max( 1, (int) $args['limit'] );
         $offset = ( $page - 1 ) * $limit;
         $status = $args['status'];
-        $types  = (array) $args['types'];
+        $types  = array_filter( (array) $args['types'] );
 
-        if ( empty( $term ) ) {
+        if ( empty( $term ) || empty( $types ) ) {
             return array(
                 'items'      => array(),
                 'pagination' => array(
@@ -352,98 +325,50 @@ class Smliser_Software_Collection {
             );
         }
 
-        $like        = '%' . $db->esc_like( $term ) . '%';
-        $sql_parts   = array();
-        $count_parts = array();
+        $like        = '%' . $term . '%';
+        $sql_parts   = [];
+        $count_parts = [];
+        $params_sql  = [];
+        $params_count = [];
 
-        // Plugins
-        if ( in_array( 'plugin', $types, true ) ) {
-            $table = SMLISER_PLUGIN_ITEM_TABLE;
-            $sql_parts[] = $db->prepare(
-                "SELECT id, 'plugin' AS type, last_updated
-                FROM {$table}
-                WHERE status = %s
-                AND ( name LIKE %s OR slug LIKE %s OR author LIKE %s )",
-                $status, $like, $like, $like
-            );
-            $count_parts[] = $db->prepare(
-                "SELECT COUNT(*) AS total
-                FROM {$table}
-                WHERE status = %s
-                AND ( name LIKE %s OR slug LIKE %s OR author LIKE %s )",
-                $status, $like, $like, $like
-            );
+        foreach ( $types as $type ) {
+            switch ( $type ) {
+                case 'plugin':
+                    $table = SMLISER_PLUGIN_ITEM_TABLE;
+                    break;
+                case 'theme':
+                    $table = SMLISER_THEME_ITEM_TABLE;
+                    break;
+                case 'software':
+                    $table = SMLISER_APPS_ITEM_TABLE;
+                    break;
+                default:
+                    continue 2;
+            }
+
+            // Query for fetching IDs
+            $sql_parts[]    = "SELECT id, '{$type}' AS type, last_updated FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
+            $params_sql     = array_merge( $params_sql, [ $status, $like, $like, $like ] );
+
+            // Query for counting matches
+            $count_parts[]  = "SELECT COUNT(*) AS total FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
+            $params_count   = array_merge( $params_count, [ $status, $like, $like, $like ] );
         }
 
-        // Themes
-        if ( in_array( 'theme', $types, true ) ) {
-            $table = SMLISER_THEME_ITEM_TABLE;
-            $sql_parts[] = $db->prepare(
-                "SELECT id, 'theme' AS type, last_updated
-                FROM {$table}
-                WHERE status = %s
-                AND ( name LIKE %s OR slug LIKE %s OR author LIKE %s )",
-                $status, $like, $like, $like
-            );
-            $count_parts[] = $db->prepare(
-                "SELECT COUNT(*) AS total
-                FROM {$table}
-                WHERE status = %s
-                AND ( name LIKE %s OR slug LIKE %s OR author LIKE %s )",
-                $status, $like, $like, $like
-            );
-        }
-
-        // Software
-        if ( in_array( 'software', $types, true ) ) {
-            $table = SMLISER_APPS_ITEM_TABLE;
-            $sql_parts[] = $db->prepare(
-                "SELECT id, 'software' AS type, last_updated
-                FROM {$table}
-                WHERE status = %s
-                AND ( name LIKE %s OR slug LIKE %s OR author LIKE %s )",
-                $status, $like, $like, $like
-            );
-            $count_parts[] = $db->prepare(
-                "SELECT COUNT(*) AS total
-                FROM {$table}
-                WHERE status = %s
-                AND ( name LIKE %s OR slug LIKE %s OR author LIKE %s )",
-                $status, $like, $like, $like
-            );
-        }
-
-        if ( empty( $sql_parts ) ) {
-            return array(
-                'items'      => array(),
-                'pagination' => array(
-                    'page'        => $page,
-                    'limit'       => $limit,
-                    'total'       => 0,
-                    'total_pages' => 0,
-                ),
-            );
-        }
-
-        // Main query (fetch matching IDs + types)
+        // Build union query
         $union_sql = implode( " UNION ALL ", $sql_parts );
-        $sql       = $db->prepare(
-            "SELECT * FROM ( {$union_sql} ) AS apps
-            ORDER BY last_updated DESC
-            LIMIT %d OFFSET %d",
-            $limit,
-            $offset
-        );
+        $query_sql = "{$union_sql} ORDER BY last_updated DESC LIMIT ? OFFSET ?";
+        $params_sql = array_merge( $params_sql, [ $limit, $offset ] );
 
-        $rows = $db->get_results( $sql, ARRAY_A );
+        // Fetch rows via adapter
+        $rows = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS apps", $params_sql, ARRAY_A );
 
-        // Count query (aggregate totals across all tables)
-        $count_sql = "SELECT SUM(total) FROM ( " . implode( " UNION ALL ", $count_parts ) . " ) AS counts";
-        $total     = (int) $db->get_var( $count_sql );
-        $total_pages = ( $total > 0 ) ? ceil( $total / $limit ) : 0;
+        // Aggregate count
+        $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
+        $total = (int) $db->get_var( $count_sql, $params_count );
 
         // Instantiate app objects
-        $objects = array();
+        $objects = [];
         foreach ( $rows as $row ) {
             $class  = self::get_app_class( $row['type'] );
             $method = "get_" . $row['type'];
@@ -459,7 +384,7 @@ class Smliser_Software_Collection {
                 'page'        => $page,
                 'limit'       => $limit,
                 'total'       => $total,
-                'total_pages' => $total_pages,
+                'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
             ),
         );
     }

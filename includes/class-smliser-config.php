@@ -735,6 +735,10 @@ class SmartLicense_config {
      * Include files
      */
     public function include() {
+        require_once SMLISER_PATH . 'includes/database/DatabaseAdapterInterface.php';
+        require_once SMLISER_PATH . 'includes/database/class-Database.php';
+        require_once SMLISER_PATH . 'includes/database/class-WPAdapter.php';
+
         require_once SMLISER_PATH . 'includes/utils/conditional-functions.php';
         require_once SMLISER_PATH . 'includes/utils/functions.php';
         require_once SMLISER_PATH . 'includes/utils/sanitization-functions.php';
@@ -747,6 +751,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/exceptions/class-FileRequestException.php';
         require_once SMLISER_PATH . 'includes/core/class-request.php';
         require_once SMLISER_PATH . 'includes/core/class-response.php';
+        require_once SMLISER_PATH . 'includes/core/class-URL.php';
 
         require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
 

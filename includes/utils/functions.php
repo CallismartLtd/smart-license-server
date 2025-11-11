@@ -1175,12 +1175,13 @@ function smliser_download_url( $url, $timeout = 30 ) {
 }
 
 /**
- * Get the database class instance.
- * 
- * @return object;
+ * Get the database class singleton instance.
+ *
+ * Provides access to the environment-agnostic database class
+ * for the Smart License Server plugin.
+ *
+ * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
  */
-function smliser_dbclass() {
-    if ( defined( 'ABSPATH' ) ) {
-        return $GLOBALS['wpdb'];
-    }
+function smliser_dbclass() : \SmartLicenseServer\Database\Database {
+    return \SmartLicenseServer\Database\Database::instance();
 }
