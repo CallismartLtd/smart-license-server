@@ -254,10 +254,7 @@ function smliserSelect2AppSelect( selectEl ) {
         },
         allowClear: true,
         minimumInputLength: 2
-    });
-
-    console.log( 'loaded' );
-    
+    });    
 }
 
 document.addEventListener( 'DOMContentLoaded', function() {
@@ -1138,6 +1135,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
         monetizationUI.addEventListener('change', e => {
             const input = e.target.closest('.smliser_toggle-switch-input');
+            console.log( input.dataset.action );
             if ( input && input.dataset.action === 'toggleMonetization' ) {
                 const monetizationId = input.dataset.monetizationId;
                 const enabled = input.checked ? 1 : 0;

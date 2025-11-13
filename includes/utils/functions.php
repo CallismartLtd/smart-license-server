@@ -821,7 +821,7 @@ function smliser_render_toggle_switch( $attrs = array() ) {
         'class' => 'smliser_toggle-switch-input',
     );
 
-    $attrs = parse_args( $attrs, $defaults );
+    $attrs = array_merge( $attrs, $defaults );
 
     // Extract value to determine checked state
     $value = (int) $attrs['value'];

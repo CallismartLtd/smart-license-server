@@ -10,6 +10,8 @@
 namespace SmartLicenseServer;
 
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\DownloadsApi\FileRequestController;
 use SmartLicenseServer\DownloadsApi\FileRequest;
 use Smliser_Software_Collection as AppCollection;
@@ -56,18 +58,19 @@ class WPAdapter {
         }
 
         $handler_map    = [
-            'smliser-downloads'         => function() { ( self::resolve_download_callback() )(); },
-            'smliser-repository-assets' => [__CLASS__, 'parse_app_asset_request'],
-            'smliser_admin_download'    => [__CLASS__, 'parse_admin_download_request'],
-            'smliser_download_image'    => [__CLASS__, 'parse_proxy_image_request'],
-            'smliser_save_plugin'       => [__CLASS__, 'parse_save_app_request'],
-            'smliser_save_theme'        => [__CLASS__, 'parse_save_app_request'],
-            'smliser_save_software'     => [__CLASS__, 'parse_save_app_request'],
-            'smliser_save_license'      => [__CLASS__, 'parse_license_save_request'],
-            'smliser_app_asset_upload'  => [__CLASS__, 'parse_app_asset_upload_request'],
-            'smliser_app_asset_delete'  => [__CLASS__, 'parse_app_asset_delete_request'],
-
-            'smliser_authorize_app'     => [Smliser_Api_Cred::class, 'oauth_client_consent_handler'],
+            'smliser-downloads'                 => function() { ( self::resolve_download_callback() )(); },
+            'smliser-repository-assets'         => [__CLASS__, 'parse_app_asset_request'],
+            'smliser_admin_download'            => [__CLASS__, 'parse_admin_download_request'],
+            'smliser_download_image'            => [__CLASS__, 'parse_proxy_image_request'],
+            'smliser_save_plugin'               => [__CLASS__, 'parse_save_app_request'],
+            'smliser_save_theme'                => [__CLASS__, 'parse_save_app_request'],
+            'smliser_save_software'             => [__CLASS__, 'parse_save_app_request'],
+            'smliser_save_license'              => [__CLASS__, 'parse_license_save_request'],
+            'smliser_app_asset_upload'          => [__CLASS__, 'parse_app_asset_upload_request'],
+            'smliser_app_asset_delete'          => [__CLASS__, 'parse_app_asset_delete_request'],
+            'smliser_save_monetization_tier'    => [__CLASS__, 'parse_monetization_tier_form'], // This is the parser that needs to be written
+            'smliser_authorize_app'             => [Smliser_Api_Cred::class, 'oauth_client_consent_handler'],
+            'smliser_bulk_action'               => [__CLASS__, 'parse_bulk_action_request'],
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {
@@ -369,6 +372,69 @@ class WPAdapter {
     }
 
     /**
+     * Parse bulk action
+     */
+    private static function parse_bulk_action_request() {
+
+        if ( ! wp_verify_nonce( smliser_get_post_param( 'smliser_table_nonce' ), 'smliser_table_nonce' ) ) {
+            wp_safe_redirect( \wp_get_referer() );
+            exit;
+        }
+
+        $context    = \smliser_get_post_param( 'context', null ) ?? \smliser_abort_request( 'Bulk action context is required', 'Context Required', array( 'status_code' => 400 ) );
+        $handler    = self::resolve_bulk_action_handler( $context );
+
+        $request    = new Request([
+            'license_ids'   => smliser_get_post_param( 'license_ids', [] ),
+            'bulk_action'   => \smliser_get_post_param( 'bulk_action' )
+        ]);
+
+        /** @var Response $response */
+        $response   = \call_user_func( $handler, $request );
+
+        if ( 200 === $response->get_status_code() ) {
+            $url    = new URL( smliser_license_page() );
+            $url->add_query_param( 'message', $response->get_response_data()->get( 'message' ) );
+            wp_safe_redirect( $url->get_href() );
+            exit;
+        }
+        wp_safe_redirect( \wp_get_referer() );
+        exit;
+    }
+
+    /**
+     * Parses the WP request for saving a monetization tier, builds the Request object,
+     * and calls the refactored core controller.
+     */
+    private static function parse_monetization_tier_form() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+        }
+
+        $request = new Request([
+            'is_authorized'     => current_user_can( 'manage_options' ),
+            'monetization_id'   => smliser_get_post_param( 'monetization_id', 0 ),
+            'item_id'           => smliser_get_post_param( 'item_id', 0 ),
+            'tier_id'           => smliser_get_post_param( 'tier_id', 0 ),
+            'item_type'         => smliser_get_post_param( 'item_type' ),
+            'tier_name'         => smliser_get_post_param( 'tier_name' ),
+            'product_id'        => smliser_get_post_param( 'product_id' ),
+            'billing_cycle'     => smliser_get_post_param( 'billing_cycle' ),
+            'provider_id'       => smliser_get_post_param( 'provider_id' ),
+            'max_sites'         => smliser_get_post_param( 'max_sites', -1 ),
+            'features'          => smliser_get_post_param( 'features' ),
+            'user_agent'        => smliser_get_user_agent(),
+            'request_time'      => time(),
+            'client_ip'         => smliser_get_client_ip(),
+        ]);
+
+        $response = Controller::save_monetization( $request );
+        $response->register_after_serve_callback( function() { die; } ); // Ensure the process exits
+
+        $response->send();
+    }
+
+    /**
      * Authentication Tempalte file loader
      */
     public function load_auth_template( $template ) {
@@ -423,6 +489,26 @@ class WPAdapter {
         return function () {
             smliser_abort_request( new Exception( 'unsupported_route', 'The rquested route is not supported', ['status' => 404 ] ) );
         };
+    }
+
+    /**
+     * Resolves the bulk action handler
+     * 
+     * @param string $context
+     * @return callable
+     */
+    private static function resolve_bulk_action_handler( $context ) {
+        $context = (string) $context;
+
+        switch( $context ) {
+            case 'license':
+                $handler = [Controller::class, 'license_bulk_action'];
+                break;
+            default:
+            $handler = 'smliser_abort_request';
+        }
+
+        return $handler;
     }
 }
 

@@ -38,8 +38,8 @@ $item_object = $object->get_item_object();
     <?php echo wp_kses_post( smliser_not_found_container( 'Repository item does not exists <a href="' . smliser_repo_page() . '">Back</a>' ) ); ?>
 <?php else : ?>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-database"></span> Repository</a>
-    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', $item_object->get_item_id() ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-visibility"></span> View</a>
-    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', $item_object->get_item_id() ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-edit"></span> Edit Plugin</a>
+    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', $item_object->get_id() ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-visibility"></span> View</a>
+    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', $item_object->get_id() ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-edit"></span> Edit Plugin</a>
     <p><span class="dashicons dashicons-info"></span><?php printf( 'Use this interface to %s monetization for <strong>%s</strong>', ( $item_object->is_monetized() ) ? 'manage' :'set up', $item_object->get_name() ); ?></p>
 
     <div class="smliser-monetization-ui">

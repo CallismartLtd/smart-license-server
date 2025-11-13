@@ -85,7 +85,6 @@ class License_Page {
             $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );    
         }
 
-        // \pretty_print( $license ); exit;
         include_once SMLISER_PATH . 'templates/admin/license/license-admin-view.php';    
     }
 

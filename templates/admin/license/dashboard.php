@@ -14,6 +14,10 @@ defined( 'ABSPATH' ) || exit; ?>
     <a href="<?php echo esc_url( $add_url ); ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-plus"></span> Add New</a>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=licenses&tab=logs' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-share-alt"></span> Activation Logs</a>
 
+    <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
+        <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+    <?php endif; ?>
+
     <?php if ( empty( $licenses ) ) : ?>
         <?php echo wp_kses_post( smliser_not_found_container( 'All licenses will appear here' ) ); ?>
     <?php else : ?>
@@ -23,9 +27,10 @@ defined( 'ABSPATH' ) || exit; ?>
                 <div class="smliser-bulk-actions">
                     <select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>
                         <option value=""><?php echo esc_html__( 'Bulk Actions', 'smliser' ); ?></option>
-                        <option value="deactivate"><?php echo esc_html__( 'Deactivate', 'smliser' ); ?></option>
-                        <option value="suspend"><?php echo esc_html__( 'Suspend', 'smliser' ); ?></option>
-                        <option value="revoke"><?php echo esc_html__( 'Revoke', 'smliser' ); ?></option>
+                        <option value=""><?php echo esc_html__( 'Auto Calc', 'smliser' ); ?></option>
+                        <option value="Deactivated"><?php echo esc_html__( 'Deactivate', 'smliser' ); ?></option>
+                        <option value="Suspended"><?php echo esc_html__( 'Suspend', 'smliser' ); ?></option>
+                        <option value="Revoked"><?php echo esc_html__( 'Revoke', 'smliser' ); ?></option>
                         <option value="delete"><?php echo esc_html__( 'Delete', 'smliser' ); ?></option>
                     </select>
                     <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
@@ -36,6 +41,7 @@ defined( 'ABSPATH' ) || exit; ?>
             </div>
         
             <input type="hidden" name="action" value="smliser_bulk_action">
+            <input type="hidden" name="context" value="license">
             <?php wp_nonce_field( 'smliser_table_nonce', 'smliser_table_nonce'); ?>
             <table class="widefat striped">
                 <thead>

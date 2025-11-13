@@ -627,10 +627,12 @@ class Response {
 	 * 
 	 * @param Request $request 
 	 */
-	public function set_response_data( Request $request ) {
+	public function set_response_data( Request $request ) : self {
 		$response_data = clone $request;
 
 		$this->response_data = $response_data;
+
+		return $this;
 	}
 
 	/**

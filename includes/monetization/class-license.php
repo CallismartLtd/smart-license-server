@@ -103,6 +103,16 @@ class License {
         'activated_on'  => array()
     );
 
+    public const STATUS_ACTIVE      = 'active';
+    public const STATUS_EXPIRED     = 'expired';
+    public const STATUS_LIFETIME    = 'lifetime';
+    public const STATUS_INACTIVE    = 'inactive';
+    public const STATUS_PENDING     = 'pending';
+    public const STATUS_SUSPENDED   = 'suspended';
+    public const STATUS_REVOKED     = 'revoked';
+    public const STATUS_DEACTIVATED = 'deactivated';
+
+
     /**
      * Class constructor
      */
@@ -339,12 +349,55 @@ class License {
 
     /**
      * Get license status.
-     * 
-     * @return string $status
+     *
+     * When $context is 'edit' the stored property value is returned as-is.
+     * When $context is 'view' (default) – if the stored status is empty the
+     * method derives the status from start/end dates. If the stored status
+     * is present it will be returned (normalized).
+     *
+     * @param string $context Context for the status: 'view' or 'edit'. Default 'view'.
+     * @return string
      */
-    public function get_status() {
-        return $this->status;
+    public function get_status( string $context = 'view' ) : string {
+        // When editing we want the raw stored value (no derivation).
+        if ( 'edit' === $context ) {
+            return (string) $this->status;
+        }
+
+        // Normalize stored status if present.
+        $stored = trim( (string) $this->status );
+        if ( '' !== $stored ) {
+            return strtolower( $stored );
+        }
+
+        // Derive status from dates because stored status is empty.
+        $start = $this->get_start_date();
+        $end   = $this->get_end_date();
+
+        // Lifetime when there is no end date.
+        if ( empty( $end ) ) {
+            return self::STATUS_LIFETIME;
+        }
+
+        // Convert to timestamps (use WP timezone via current_time()).
+        $now      = (int) current_time( 'timestamp' );
+        $start_ts = ! empty( $start ) ? strtotime( $start ) : 0;
+        $end_ts   = strtotime( $end );
+
+        // If start defined and now is before start -> pending.
+        if ( $start_ts > 0 && $now < $start_ts ) {
+            return self::STATUS_PENDING;
+        }
+
+        // If now is after end -> expired.
+        if ( $now > $end_ts ) {
+            return self::STATUS_EXPIRED;
+        }
+
+        // Otherwise we are within the active window.
+        return self::STATUS_ACTIVE;
     }
+
 
     /**
      * Get the license start date
@@ -597,7 +650,7 @@ class License {
 
         if ( 'view' === $context && is_array( $all_domains ) ) {
             $all_hosts = array_keys( $all_domains );
-            $all_domains = ! empty( $all_sites ) ? implode( ', ', $all_hosts ) : 'N/A';
+            $all_domains = ! empty( $all_hosts ) ? implode( ', ', $all_hosts ) : 'N/A';
         }
 
         return $all_domains;
@@ -729,32 +782,63 @@ class License {
     }
 
     /**
-     * Tells whether we can perform actions that requires license validity, and optionally in context
+     * Tells whether we can perform actions that require license validity, optionally in context
      * with the associated app.
      *
-     * @param int    $app_id The App ID associated with the license.
-     * @param string $context   The context in which the validity is being checked.
+     * @param int $app_id The App ID associated with the license.
      * @return true|Exception True if license can be served, otherwise Exception.
      */
     public function can_serve_license( $app_id ) {
         if ( ! $this->is_issued() ) {
-            return new Exception( 'license_error', 'Invalid license request.', array( 'status' => 400 ) );
+            return new Exception(
+                'license_error',
+                'Invalid license request.',
+                ['status' => 400]
+            );
         }
 
         if ( absint( $app_id ) !== $this->get_app_id() ) {
-            return new Exception( 'license_error', 'License was not issued to this application.', array( 'status' => 400 ) );
-        } elseif ( 'expired' === strtolower( $this->get_status() ) ) {
-            return new Exception( 'license_expired', 'This license has expired. Please renew it.', array( 'status' => 403 ) );
-        } elseif ( 'suspended' === strtolower( $this->get_status() ) ) {
-            return new Exception( 'license_suspended', 'This license has been suspended. Please contact support if you need further assistance.', array( 'status' => 403 ) );
-        } elseif ( 'revoked' === strtolower( $this->get_status() ) ) {
-            return new Exception( 'license_revoked', 'This license has been revoked. Please contact support if you need further assistance.', array( 'status' => 403 ) );
-        } elseif ( 'deactivated' === strtolower( $this->get_status() ) ) {
-            return new Exception( 'license_deactivated', 'This license has been deactivated. Please reactivate it or contact support if you need further assistance.', array( 'status' => 403 ) );
+            return new Exception(
+                'license_error',
+                'License was not issued to this application.',
+                ['status' => 400]
+            );
         }
 
-        return true;
+        // Get the derived status (context 'view')
+        $status = $this->get_status();
+
+        switch ( $status ) {
+            case self::STATUS_EXPIRED:
+                return new Exception(
+                    'license_expired',
+                    'This license has expired. Please renew it.',
+                    ['status' => 403]
+                );
+            case self::STATUS_SUSPENDED:
+                return new Exception(
+                    'license_suspended',
+                    'This license has been suspended. Please contact support if you need further assistance.',
+                    ['status' => 403]
+                );
+            case self::STATUS_REVOKED:
+                return new Exception(
+                    'license_revoked',
+                    'This license has been revoked. Please contact support if you need further assistance.',
+                    ['status' => 403]
+                );
+            case self::STATUS_DEACTIVATED:
+                return new Exception(
+                    'license_deactivated',
+                    'This license has been deactivated. Please reactivate it or contact support if you need further assistance.',
+                    ['status' => 403]
+                );
+            default:
+                // STATUS_ACTIVE, STATUS_LIFETIME, STATUS_PENDING are considered valid for serving
+                return true;
+        }
     }
+
 
     /**
      * Encode data to json.
@@ -822,4 +906,76 @@ class License {
         $obfuscated     = rtrim( str_repeat( '****-', 4 ), '-' );
         return sprintf( '%s-%s', $obfuscated, $partial );
     }
+
+    /**
+     * Regenerate the license key.
+     *
+     * This will generate a new, unique license key and optionally persist it to the database.
+     * The method updates the in-memory object via set_license_key().
+     *
+     * @param string  $prefix  Optional prefix to pass to generate_license_key().
+     * @param bool    $persist Whether to persist the new key to the database. Default true.
+     * @param int     $tries   Maximum attempts to generate a unique key. Default 10.
+     * @return string The newly generated license key.
+     * @throws \SmartLicenseServer\Exception If a unique key cannot be generated or DB persist fails.
+     */
+    public function regenerate_license_key( string $prefix = '', bool $persist = true, int $tries = 10 ) : string {
+        $db    = \smliser_dbclass();
+        $table = \SMLISER_LICENSE_TABLE;
+
+        $attempt = 0;
+        $new_key = '';
+
+        do {
+            $attempt++;
+            $new_key = $this->generate_license_key( $prefix );
+
+            // Check uniqueness
+            $sql = "SELECT COUNT(*) FROM {$table} WHERE `license_key` = ?";
+            $count = (int) $db->get_var( $sql, [ $new_key ] );
+
+            if ( 0 === $count ) {
+                break;
+            }
+        } while ( $attempt < max( 1, absint( $tries ) ) );
+
+        if ( $attempt >= max( 1, absint( $tries ) ) && $count > 0 ) {
+            throw new Exception(
+                'license_regeneration_failed',
+                'Unable to generate a unique license key after multiple attempts.',
+                [ 'status' => 500 ]
+            );
+        }
+
+        // Update in-memory value
+        $this->set_license_key( $new_key );
+
+        // Persist if requested and we have an ID
+        if ( $persist ) {
+            if ( ! $this->id ) {
+                throw new Exception(
+                    'license_persist_failed',
+                    'Cannot persist license key: license ID is not set.',
+                    [ 'status' => 400 ]
+                );
+            }
+
+            $updated = $db->update(
+                $table,
+                [ 'license_key' => $new_key ],
+                [ 'id' => $this->id ]
+            );
+
+            if ( false === $updated ) {
+                throw new Exception(
+                    'license_persist_failed',
+                    'Failed to persist regenerated license key to the database.',
+                    [ 'status' => 500 ]
+                );
+            }
+        }
+
+        return $new_key;
+    }
+
 }
