@@ -11,18 +11,19 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 
-<div class="smliser-task-main">
+<div class="smliser-admin-page">
     <h1>License Activation Log</h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=licenses' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-admin-home"></span> Licenses</a>
     <p>Logs over three months are automatically deleted</p>
-    <table class="smliser-table">
+    <table class="widefat striped">
         <tr>
             <th>Date</th>
-            <th>License ID</th>
-            <th>IP Address</th>
+            <th>Client IP Address</th>
             <th>Comment</th>
             <th>Duration</th>
             <th>Website</th>
+            <th></th>
+
         </tr>
         <?php if ( empty( $all_tasks ) ):?>
             <tr>
@@ -31,11 +32,11 @@ defined( 'ABSPATH' ) || exit;
         <?php else: foreach( $all_tasks as $date => $task_data ):?>
         <tr>
             <td><?php echo esc_html( $date );?></td>
-            <td><a href="<?php echo esc_url( smliser_license_admin_action_page( 'view', $task_data['license_id'] ) ) ?>"><?php echo esc_html( $task_data['license_id'] );?></a></td>
             <td><?php echo esc_html( $task_data['ip_address'] );?></td>
             <td><?php echo esc_html( $task_data['comment'] );?></td>
             <td><?php echo esc_html( smliser_readable_duration( $task_data['duration'] ) );?></td>
             <td><?php echo esc_html( smliser_get_base_url( $task_data['website'] ) );?></td>
+            <td><a href="<?php echo esc_url( smliser_license_admin_action_page( 'view', $task_data['license_id'] ) ) ?>">View License</a></td>
         </tr>
         <?php endforeach; endif;?>
     </table>

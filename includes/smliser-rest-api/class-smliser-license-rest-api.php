@@ -198,7 +198,7 @@ class Smliser_License_Rest_API {
             'duration'      => microtime( true ) - self::$instance->start_time
         );
 
-        $license->log_activation( $license_data );
+        \Smliser_Stats::log_activation( $license_data );
         return $response;
     }
     
