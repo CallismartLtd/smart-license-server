@@ -71,6 +71,7 @@ class WPAdapter {
             'smliser_save_monetization_tier'    => [__CLASS__, 'parse_monetization_tier_form'], // This is the parser that needs to be written
             'smliser_authorize_app'             => [Smliser_Api_Cred::class, 'oauth_client_consent_handler'],
             'smliser_bulk_action'               => [__CLASS__, 'parse_bulk_action_request'],
+            'smliser_all_actions'               => [__CLASS__, 'parse_bulk_action_request'],
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {
@@ -375,18 +376,20 @@ class WPAdapter {
      * Parse bulk action
      */
     private static function parse_bulk_action_request() {
-
-        if ( ! wp_verify_nonce( smliser_get_post_param( 'smliser_table_nonce' ), 'smliser_table_nonce' ) ) {
-            wp_safe_redirect( \wp_get_referer() );
+        $table_nonce_verified   = wp_verify_nonce( smliser_get_post_param( 'smliser_table_nonce' ), 'smliser_table_nonce' );
+        $smliser_nonce_verified = wp_verify_nonce( smliser_get_param( 'smliser_nonce', '', $_REQUEST ), 'smliser_nonce' );
+        if ( ! $table_nonce_verified && ! $smliser_nonce_verified ) {
+            \wp_safe_redirect( \wp_get_referer() );
             exit;
         }
 
-        $context    = \smliser_get_post_param( 'context', null ) ?? \smliser_abort_request( 'Bulk action context is required', 'Context Required', array( 'status_code' => 400 ) );
+        $context    = \smliser_get_param( 'context', null, $_REQUEST ) ?? \smliser_abort_request( 'Bulk action context is required', 'Context Required', array( 'status_code' => 400 ) );
         $handler    = self::resolve_bulk_action_handler( $context );
 
         $request    = new Request([
-            'license_ids'   => smliser_get_post_param( 'license_ids', [] ),
-            'bulk_action'   => \smliser_get_post_param( 'bulk_action' )
+            'license_ids'   => smliser_get_param( 'license_ids', [], $_REQUEST ),
+            'bulk_action'   => \smliser_get_param( 'bulk_action', '', $_REQUEST ),
+            'bulk_action'   => \smliser_get_param( 'real_action', '', $_REQUEST ),
         ]);
 
         /** @var Response $response */
