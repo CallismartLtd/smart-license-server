@@ -7,6 +7,8 @@
  * @since 1.0.0
  */
 
+use SmartLicenseServer\Monetization\License;
+
 defined( 'ABSPATH' ) || exit;
 
 class Smliser_Stats {
@@ -25,7 +27,7 @@ class Smliser_Stats {
     /**
      * License
      * 
-     * @var Smliser_license $license The license object.
+     * @var License $license The license object.
      */
     private $license;
 
@@ -62,7 +64,7 @@ class Smliser_Stats {
      */
     public function __construct() {
         $this->plugin   = new Smliser_Plugin();
-        $this->license  = new Smliser_license();   
+        $this->license  = new License();   
     }
 
     /**
@@ -231,7 +233,7 @@ class Smliser_Stats {
         $total_licenses = get_transient( 'smliser_total_licenses' );
         
         if ( false === $total_licenses ) {
-            $total_licenses = count( $this->license()->get_licenses() );
+            $total_licenses = count( $this->license()->get_all( 1, 200 ) );
         }
 
         return $total_licenses;

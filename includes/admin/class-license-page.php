@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\admin;
 
+use SmartLicenseServer\Monetization\License;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -42,9 +44,7 @@ class License_Page {
      * The license page dashbard
      */
     private static function dashboard() {
-        $obj        = new \Smliser_license();
-        $licenses   = $obj->get_licenses();
-
+        $licenses   = License::get_all();
         $add_url     = smliser_license_admin_action_page( 'add-new' );
     
         include_once SMLISER_PATH . 'templates/admin/license/dashboard.php';
@@ -64,7 +64,7 @@ class License_Page {
     private static function edit_license_page() {
 
         $license_id = smliser_get_query_param( 'license_id' );        
-        $license    = \Smliser_license::get_by_id( $license_id );
+        $license    = License::get_by_id( $license_id );
         $user_id    = ! empty( $license ) ? $license->get_user_id() : 0;
         include_once SMLISER_PATH . 'templates/admin/license/license-edit.php';
     
@@ -76,19 +76,17 @@ class License_Page {
     private static function license_view() {
         $license_id = smliser_get_query_param( 'license_id' );        
 
-        $license    = \Smliser_license::get_by_id( $license_id );
-        if ( empty( $license ) ) {
-            return wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) );
+        $license    = License::get_by_id( $license_id );
+        if ( ! empty( $license ) ) {
+            $user               = get_userdata( $license->get_user_id() );
+            $client_fullname    = $user ? $user->first_name . ' ' . $user->last_name : 'Guest';
+
+            $licensed_app       = $license->get_app();
+            $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );    
         }
 
-        $user               = get_userdata( $license->get_user_id() );
-        $client_full_name   = $user ? $user->first_name . ' ' . $user->last_name : 'N/L';
-        $plugin_obj         = new \Smliser_Plugin();
-        $licensed_plugin    = $license->has_item() ? $plugin_obj->get_plugin( $license->get_item_id() ) : false;
-        $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
-        $plugin_name        = $licensed_plugin ? $licensed_plugin->get_name() : 'N/A';
-        include_once SMLISER_PATH . 'templates/admin/license/license-admin-view.php';
-    
+        // \pretty_print( $license ); exit;
+        include_once SMLISER_PATH . 'templates/admin/license/license-admin-view.php';    
     }
 
     /**

@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) ||  exit;
 <h1>Add License <span class="dashicons dashicons-edit"></span></h1>
 <div class="smliser-form-container">
     <form id="smliserForm" class="smliser-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-        <input type="hidden" name="action" value="smliser_license_new">
+        <input type="hidden" name="action" value="smliser_save_license">
         <?php wp_nonce_field( 'smliser_nonce_field', 'smliser_nonce_field' ); ?>
         
         <div class="smliser-form-row">
@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) ||  exit;
                 array(
                     'name'              => 'user_id',
                     'show_option_none'  => esc_html__( 'Select a client', 'smliser' ),
-                    'option_none_value' => -1,
+                    'option_none_value' => 0,
                     'class'             => 'smliser-form-input',
                     'show'              => 'display_name_with_login',
                 )
@@ -34,17 +34,18 @@ defined( 'ABSPATH' ) ||  exit;
             <input type="text" class="smliser-form-input" name="service_id" id="service_id" value="">
         </div>
 
-        <!-- Item ID -->
+        <!-- Hosted App linking -->
         <div class="smliser-form-row">
-            <label for="item_id" class="smliser-form-label">Item ID</label>
-            <span class="smliser-form-description" title="Item ID uniquely identifies a License key. It is required when accessing the license validation API endpoint">?</span>
-            <input type="number" class="smliser-form-input" name="item_id" id="item_id" value="">
+            <label for="item_id" class="smliser-form-label">Target Application</label>
+            <span class="smliser-form-description" title="Choose the application to which this license will be issued.">?</span>
+            <select class="smliser-select-input license-app-select" name="app_prop" title="<?php esc_html_e( 'Select a hosted application to associate this message with.', 'smliser' ); ?>"></select>
+
         </div>
         
         <!-- Allowed Websites -->
         <div class="smliser-form-row">
-            <label for="allowed_sites" class="smliser-form-label">Allowed Websites</label>
-            <span class="smliser-form-description" title="Specify the number of websites this license can be activated on.">?</span>
+            <label for="allowed_sites" class="smliser-form-label">Max Allowed Domains</label>
+            <span class="smliser-form-description" title="Set the maximum number of domains allowed to activate license.">?</span>
             <input type="number" class="smliser-form-input" name="allowed_sites" id="allowed_sites" value="">
         </div>
 

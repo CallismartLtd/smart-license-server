@@ -140,4 +140,17 @@ class Database {
             sprintf( 'Method %s::%s does not exist.', get_class( $this->adapter ), $method )
         );
     }
+
+	/**
+	 * Calcualte query offset from page and limit.
+	 * 
+	 * @param int $page The current pagination number.
+	 * @param int $limit The result limit for the current request.
+	 * @return int $offset Calculated offset
+	 */
+	public static function calculate_query_offset( $page, $limit ) {
+		$page	= max( 1, $page );
+
+		return absint( max( 0, ( $page - 1 ) * $limit ) );
+	}
 }

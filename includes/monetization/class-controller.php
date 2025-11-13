@@ -10,6 +10,10 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Exception\RequestException;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -256,6 +260,47 @@ class Controller {
                 ? __( 'Monetization enabled successfully.', 'smliser' )
                 : __( 'Monetization disabled successfully.', 'smliser' ),
         ) );
+    }
+
+    /**
+     * Process license save request
+     * 
+     * @param Request $request The Request object.
+     * @return Response 
+     */
+    public static function save_license( Request $request ) : Response {
+        try {
+            $id                     = $request->get( 'license_id' );
+            $user_id                = $request->get( 'user_id' );
+            $service_id             = $request->get( 'service_id' );
+            $status                 = $request->get( 'status' );
+            $start_date             = $request->get( 'start_date' );
+            $end_date               = $request->get( 'end_date' );
+            $app_prop               = $request->get( 'app_prop', '' );
+            $max_allowed_domains    = $request->get( 'max_allowed_domains', '' );
+
+            if ( ! empty( $app_prop ) ) {
+                $app_prop   = \str_replace( ':', '/', $app_prop );
+            }
+
+            $data       = compact( 'id', 'user_id', 'service_id', 'max_allowed_domains', 'service_id', 'status', 'start_date', 'end_date', 'app_prop' );
+            
+            $license    = License::from_array( $data );
+
+            if ( ! $license->save() ) {
+                throw new RequestException( 'license_error', 'Unable to save the license' );
+            }
+
+            $request->set( 'license', $license );
+
+            $response = new Response();
+            $response->set_response_data( $request );
+
+            return $response;
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e );
+        }
     }
 
 }

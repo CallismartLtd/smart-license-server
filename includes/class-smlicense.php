@@ -240,14 +240,9 @@ class Smliser_license {
         ob_start();
         ?>
         <div class="smliser-key-div">
-            <!-- The container for the partially hidden key -->
             <p class="smliser-partially-hidden-license-key-container"><?php echo esc_html( substr( $license_key, 0, 16 ) . 'xxxxxxxxxxxxx' ); ?></p>
-            
-            <!-- Container for the fully displayed and copyable license key -->
             <div class="smliser-visible-license-key" style="display: none;">
-                <!-- The license key field -->
                 <input type="text" class="smliser-license-key-field" value="<?php echo esc_attr( $license_key ); ?>" readonly>
-                <!-- The button used to copy the text -->
                 <button class="smliser-to-copy">Copy<span class="dashicons dashicons-clipboard"></span></button>
             </div>
             

@@ -14,6 +14,7 @@ use SmartLicenseServer\DownloadsApi\FileRequestController;
 use SmartLicenseServer\DownloadsApi\FileRequest;
 use Smliser_Software_Collection as AppCollection;
 use SmartLicenseServer\Exception\FileRequestException;
+use SmartLicenseServer\Monetization\Controller;
 
 defined( 'ABSPATH'  ) || exit;
 
@@ -62,7 +63,7 @@ class WPAdapter {
             'smliser_save_plugin'       => [__CLASS__, 'parse_save_app_request'],
             'smliser_save_theme'        => [__CLASS__, 'parse_save_app_request'],
             'smliser_save_software'     => [__CLASS__, 'parse_save_app_request'],
-
+            'smliser_save_license'      => [__CLASS__, 'parse_license_save_request'],
             'smliser_app_asset_upload'  => [__CLASS__, 'parse_app_asset_upload_request'],
             'smliser_app_asset_delete'  => [__CLASS__, 'parse_app_asset_delete_request'],
 
@@ -332,6 +333,39 @@ class WPAdapter {
         $response->register_after_serve_callback( function() { die; } );
 
         $response->send();
+    }
+
+    /**
+     * Parse license save form request
+     */
+    private static function parse_license_save_request() {
+        if ( ! wp_verify_nonce( smliser_get_post_param( 'smliser_nonce_field' ), 'smliser_nonce_field' ) ) {
+            wp_safe_redirect( smliser_license_admin_action_page() );
+            exit;
+        }
+
+        $request    = new Request([
+            'is_authorized'         => current_user_can( 'manage_options' ),
+            'license_id'            => smliser_get_post_param( 'license_id', 0 ),
+            'user_id'               => smliser_get_post_param( 'user_id', 0 ),
+            'service_id'            => smliser_get_post_param( 'service_id' ),
+            'status'                => smliser_get_post_param( 'status' ),
+            'start_date'            => smliser_get_post_param( 'start_date' ),
+            'end_date'              => smliser_get_post_param( 'end_date' ),
+            'app_prop'              => smliser_get_post_param( 'app_prop' ),
+            'max_allowed_domains'   => smliser_get_post_param( 'allowed_sites' ),
+        ]);
+
+        $response   = Controller::save_license( $request );
+
+        if ( $response->ok() ) {
+            $license_id = $response->get_response_data()->get( 'license' )->get_id();
+            wp_safe_redirect( smliser_license_admin_action_page( 'edit', $license_id ) );
+            exit;
+        }
+
+        wp_safe_redirect( smliser_license_admin_action_page() );
+        exit;
     }
 
     /**

@@ -337,7 +337,7 @@ class Bulk_Messages {
 
         $table = SMLISER_BULK_MESSAGES_APPS_TABLE;
         // Delete old associations
-        $db->delete( $table, array( 'message_id' => $this->message_id ), array( '%s' ) );
+        $db->delete( $table, array( 'message_id' => $this->message_id ) );
         
         if ( empty( $this->associated_apps ) ) {
             return;
@@ -352,7 +352,6 @@ class Bulk_Messages {
                         'app_type'   => $type,
                         'app_slug'   => $slug,
                     ),
-                    array( '%s', '%s', '%s' )
                 );
             }
         }
@@ -371,6 +370,7 @@ class Bulk_Messages {
             'page'  => 1,
             'limit' => 30,
         );
+
         $args = parse_args( $args, $defaults );
 
         $offset = ( $args['page'] - 1 ) * $args['limit'];

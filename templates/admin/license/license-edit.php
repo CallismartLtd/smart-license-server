@@ -1,6 +1,8 @@
 <?php
 /**
- * License edit form
+ * License edit form.
+ * 
+ * @var SmartLicenseServer\Monetization\License $license
  */
 
 defined( 'ABSPATH' ) ||  exit;
@@ -20,7 +22,7 @@ defined( 'ABSPATH' ) ||  exit;
             <?php echo wp_kses_post( smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ) ;?>
         <?php endif;?>
         <form id="smliserForm" class="smliser-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-            <input type="hidden" name="action" value="smliser_license_update">
+        <input type="hidden" name="action" value="smliser_save_license">
             <input type="hidden" name="license_id" value="<?php echo esc_attr( $license->get_id() ) ?>">
             <?php wp_nonce_field( 'smliser_nonce_field', 'smliser_nonce_field' ); ?>
             
@@ -49,18 +51,23 @@ defined( 'ABSPATH' ) ||  exit;
                 <input type="text" class="smliser-form-input" name="service_id" id="service_id" value="<?php echo esc_attr( $license->get_service_id() ); ?>">
             </div>
 
-            <!-- Item ID -->
+            <!-- Hosted App linking -->
             <div class="smliser-form-row">
-                <label for="item_id" class="smliser-form-label">Item ID</label>
-                <span class="smliser-form-description" title="Item ID uniquely identifies a License key. It is required when accessing the license validation API endpoint">?</span>
-                <input type="number" class="smliser-form-input" name="item_id" id="item_id" value="<?php echo esc_attr( $license->get_item_id() ); ?>">
+                <label for="item_id" class="smliser-form-label">Target Application</label>
+                <span class="smliser-form-description" title="Choose the application to which this license will be issued.">?</span>
+                <select class="smliser-select-input license-app-select" name="app_prop" title="<?php esc_html_e( 'Select a hosted application to associate this message with.', 'smliser' ); ?>">
+                    <?php if ( $license->is_issued() ) : ?>
+                        <option value="<?php printf( '%s', str_replace( '/', ':', $license->get_app_prop() ) ); ?>" selected><?php echo esc_html( $license->get_app()->get_name() ); ?></option>
+                    <?php endif; ?>
+                </select>
+
             </div>
             
-            <!-- Allowed Websites -->
+            <!-- Allowed Domains -->
             <div class="smliser-form-row">
-                <label for="allowed_sites" class="smliser-form-label">Allowed Websites</label>
-                <span class="smliser-form-description" title="Item ID uniquely identifies a License key. It is required when accessing the license validation API endpoint">?</span>
-                <input type="number" class="smliser-form-input" name="allowed_sites" id="allowed_sites" value="<?php echo esc_attr( $license->get_allowed_sites() ); ?>">
+                <label for="allowed_sites" class="smliser-form-label">Max Allowed Domains</label>
+                <span class="smliser-form-description" title="Set the maximum number of domains allowed to activate license.">?</span>
+                <input type="number" class="smliser-form-input" name="allowed_sites" id="allowed_sites" value="<?php echo esc_attr( $license->get_max_allowed_domains() ); ?>">
             </div>
 
             <!-- Status -->

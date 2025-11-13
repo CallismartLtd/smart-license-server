@@ -1,6 +1,6 @@
 <?php
 /**
- * file name class-license-server-config.php
+ * file name class-smliser-config.php
  * License Server environment configuration file
  * 
  * @author Callistus
@@ -170,8 +170,6 @@ class SmartLicense_config {
         add_action( 'init', array( $this, 'init_hooks' ) );
         add_action( 'admin_post_smliser_bulk_action', array( 'Smliser_license', 'bulk_action') );
         add_action( 'admin_post_smliser_all_actions', array( 'Smliser_license', 'bulk_action') );
-        add_action( 'admin_post_smliser_license_new', array( 'Smliser_license', 'license_form_controller') );
-        add_action( 'admin_post_smliser_license_update', array( 'Smliser_license', 'license_form_controller' ) );
         add_action( 'admin_post_smliser_plugin_upload', array( 'Smliser_Plugin', 'plugin_upload_controller' ) );
         add_action( 'admin_notices', array( __CLASS__, 'print_notice' ) );
         add_action( 'wp_ajax_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler' ) );
@@ -753,8 +751,6 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/core/class-response.php';
         require_once SMLISER_PATH . 'includes/core/class-URL.php';
 
-        require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
-
         require_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-filesystem-helper.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
@@ -782,6 +778,8 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-repository-rest-api.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/bulk-messages.php';
 
+        require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
+        require_once SMLISER_PATH . 'includes/monetization/class-license.php';
         require_once SMLISER_PATH . 'includes/monetization/class-monetization.php';
         require_once SMLISER_PATH . 'includes/monetization/class-pricing-tier.php';
         require_once SMLISER_PATH . 'includes/monetization/provider-collection.php';
@@ -812,7 +810,7 @@ class SmartLicense_config {
             wp_enqueue_script( 'smliser-chart', SMLISER_URL . 'assets/js/chart.js', array(), SMLISER_VER, true );
         }
 
-        if ( 'smart-license-server_page_smliser-bulk-message' === $s ) {
+        if ( 'smart-license-server_page_smliser-bulk-message' === $s || 'smart-license-server_page_licenses' === $s ) {
             wp_enqueue_script( 'select2' );
         }
 
@@ -841,7 +839,7 @@ class SmartLicense_config {
         wp_register_style( 'select2', SMLISER_URL . 'assets/css/select2.min.css', array(), SMLISER_VER, 'all' );
     
         
-        if ( 'smart-license-server_page_smliser-bulk-message' === $s ) {
+        if ( 'smart-license-server_page_smliser-bulk-message' === $s || 'smart-license-server_page_licenses' === $s ) {
             wp_enqueue_style( 'select2' );
         }
     

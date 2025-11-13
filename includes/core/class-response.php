@@ -41,6 +41,13 @@ class Response {
 	protected $reason_phrase = 'OK';
 
 	/**
+	 * A likely modified version of the request object used to pass message.
+	 * 
+	 * @var Request $response_data
+	 */
+	protected $response_data;
+
+	/**
 	 * Response headers.
 	 *
 	 * @var array
@@ -383,7 +390,7 @@ class Response {
 			}
 		}
 		
-		if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] ) {
+		if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] || self::is_redirect() ) {
 			exit;
 		}
 	}
@@ -525,6 +532,22 @@ class Response {
 		return is_string( $content_type ) && stripos( $content_type, 'application/json' ) !== false;
 	}
 
+	/**
+	 * Check whether the current request is redirect response.
+	 * 
+	 * 
+	 * @return bool
+	 */
+	public function is_redirect() : bool {
+		$redirect_header = $this->get_header( 'Location' );
+		if ( is_array( $redirect_header ) ) {
+			$redirect_header = reset( $redirect_header );
+		}
+		return ( $this->status_code >= 300 && $this->status_code < 400 ) 
+			&& 
+		stripos( $redirect_header, 'http' ) !== false;
+	}
+
 
 	/**
 	 * Determines whether a response is okay.
@@ -598,4 +621,24 @@ class Response {
             }
         }
     }
+
+	/**
+	 * Set response data using a modified request object.
+	 * 
+	 * @param Request $request 
+	 */
+	public function set_response_data( Request $request ) {
+		$response_data = clone $request;
+
+		$this->response_data = $response_data;
+	}
+
+	/**
+	 * Get the response data
+	 * 
+	 * @return Request
+	 */
+	public function get_response_data() : Request {
+		return $this->response_data;
+	}
 }

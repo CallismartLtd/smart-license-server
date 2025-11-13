@@ -22,7 +22,7 @@
 
 /* Spinner image styling */
 .spinner-img {
-    width: 50px; /* Adjust the width of the spinner image */
+    width: 50px;
     height: 50px;
 }
 
@@ -30,30 +30,66 @@
 .smliser-tooltip {
     cursor: help;
 }
-.smliser-key-div .smliser-partially-hidden-license-key-container{
-    margin-bottom: 10px;
-    font-weight: bold;
-    background-color: #c5ffc09f;
-    color: #0716f567;
-    margin-left: .5px;
-    border-radius: 4px;
-    
+
+.smliser-license-obfuscation {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
 }
 
-.smliser-visible-license-key {
-    margin-bottom: 10px;
-    display: none;
+.smliser-license-obfuscation_data {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 62px;
+    height: 55px;
+    overflow: hidden;
+    align-items: center;
 }
 
-.smliser-visible-license-key input[type="text"] {
-    font-size: 10px;
-    font-weight: bold;
-    border: 1px solid #070000;
-    background-color: rgb(238, 233, 232);
-    color: rgb(3, 3, 0);
-    border-radius: 9px;
-    width: 200px;
-    margin: 10px auto;
+.smliser-obfuscated-license-text {
+    font-size: 12px;
+    color: #333;
+    font-style: italic;
+    opacity: 1;
+    transition: opacity .5s ease;
+}
+.smliser-license-obfuscation:has( .smliser-license-input.active ) .smliser-obfuscated-license-text {
+    opacity: 0;
+    visibility: hidden;
+}
+
+input.smliser-license-text[type="text"] {
+    height: 25px;
+    max-height: 25px;
+    min-height: 10px;
+    width: 150px;
+    max-width: 100%;
+    border: solid 2px #dcdcde;
+    font-size: 12px;
+}
+
+.smliser-license-input {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .1s ease-in-out;
+}
+
+.smliser-license-input.active {
+    max-height: 200px;
+    transition: max-height .5s ease-in-out;
+}
+
+.smliser-license-input span.dashicons-admin-page {
+    cursor: pointer;
+}
+
+input[type="checkbox"].smliser-licence-key-visibility-toggle {
+    width: 15px;
+    height: 15px;
 }
 
 

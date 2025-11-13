@@ -24,6 +24,9 @@ class Smliser_install {
             [__CLASS__, 'migration_006' ],
 
         ),
+        '0.1.1' => array(
+            [__Class__, 'migration_011']
+        )
 
     );
 
@@ -93,7 +96,7 @@ class Smliser_install {
             'user_id MEDIUMINT(9) DEFAULT NULL',
             'license_key VARCHAR(300) NOT NULL UNIQUE',
             'service_id VARCHAR(300) NOT NULL',
-            'item_id MEDIUMINT(9) NOT NULL',
+            'app_prop VARCHAR(600) DEFAULT NULL',
             'allowed_sites MEDIUMINT(9) DEFAULT NULL',
             'status VARCHAR(30) DEFAULT NULL',
             'start_date DATE DEFAULT NULL',
@@ -465,6 +468,59 @@ class Smliser_install {
             );
         }
     }
+
+    /**
+     * Migration of the license table to support multiple hosted applications.
+     * Before now this table only supported hosted plugins, but now needs to support other hosted apps.
+     *
+     * @version 0.1.1
+     */
+    public static function migration_011() {
+        $db    = smliser_dbclass();
+        $table = SMLISER_LICENSE_TABLE;
+
+        $results = $db->get_results( "SELECT `id`, `item_id` FROM {$table}" );
+
+        $plugin_ids = [];
+        foreach ( $results as $row ) {
+            $plugin_ids[ $row['id'] ] = $row['item_id'];
+        }
+
+        set_transient( 'smliser_db_migrate_011', $plugin_ids, WEEK_IN_SECONDS );
+
+        // --- Alter item_id to app_prop if column exists ---
+        $column_exists = $db->get_var(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+            [$table, 'item_id']
+        );
+
+        if ( $column_exists ) {
+            $sql = "ALTER TABLE `{$table}` CHANGE COLUMN `item_id` `app_prop` VARCHAR(600) DEFAULT NULL";
+            $db->query( $sql );
+
+            // Move plugin data to new column
+            foreach ( $plugin_ids as $row_id => $plugin_id ) {
+                $plugin = Smliser_Plugin::get_plugin( $plugin_id );
+                if ( ! $plugin ) {
+                    continue;
+                }
+                $app_prop = sprintf( '%s/%s', $plugin->get_type(), $plugin->get_slug() );
+                $db->update( $table, [ 'app_prop' => $app_prop ], [ 'id' => $row_id ] );
+            }
+        }
+
+        // --- Alter allowed_sites to max_allowed_domains if column exists ---
+        $column_exists = $db->get_var(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+            [$table, 'allowed_sites']
+        );
+
+        if ( $column_exists ) {
+            $sql = "ALTER TABLE `{$table}` CHANGE COLUMN `allowed_sites` `max_allowed_domains` VARCHAR(600) DEFAULT NULL";
+            $db->query( $sql );
+        }
+    }
+
 
 
     /**

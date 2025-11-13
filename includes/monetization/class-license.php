@@ -8,6 +8,9 @@
  */
 
 namespace SmartLicenseServer\Monetization;
+
+use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exception;
 use \SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 
 defined( 'ABSPATH' ) || exit;
@@ -96,7 +99,9 @@ class License {
      * 
      * @var array $meta_data
      */
-    protected $meta_data = array();
+    protected $meta_data = array(
+        'activated_on'  => array()
+    );
 
     /**
      * Class constructor
@@ -204,7 +209,7 @@ class License {
      * @return self
      */
     public function set_start_date( $start_date ) : self {
-        $this->start_date = $start_date;
+        $this->start_date = '0000-00-00' === $start_date ? '' : $start_date;
 
         return $this;
     }
@@ -216,7 +221,7 @@ class License {
      * @return self
      */
     public function set_end_date( $end_date ) : self {
-        $this->end_date = $end_date;
+        $this->end_date = '0000-00-00' === $end_date ? '' : $end_date;
 
         return $this;
     }
@@ -237,11 +242,11 @@ class License {
      * Set the value of the given meta data name
      * 
      * @param string $meta_name The name of the meta data to set.
-     * @param string $meta_value The value of the meta data.
+     * @param mixed $meta_value The value of the meta data.
      * @return self
      */
     public function set_meta( $meta_name, $meta_value ) : self {
-        $this->meta_data[\sanitize_key( $meta_name )]    = \sanitize_text_field( \unslash( $meta_value ) );
+        $this->meta_data[\sanitize_key( $meta_name )]    = \unslash( $meta_value );
 
         return $this;
     }
@@ -285,8 +290,8 @@ class License {
      * 
      * @return int
      */
-    public function get_user_id( $user_id ) {
-        $this->user_id = max( 0, intval( $user_id ) );
+    public function get_user_id() {
+        return $this->user_id;
     }
 
     /**
@@ -310,9 +315,16 @@ class License {
     /**
      * Get the properties of the app associated with this license.
      * 
-     * @return string
+     * @param string $context The context to retrieve the app prop.
+     * @return array|string
      */
-    public function get_app_prop(){
+    public function get_app_prop( string $context = 'view' ) : array|string {
+        if ( 'view' === $context ) {
+            $prop       = array_filter( $this->app_prop );
+            $formatted  = implode( '/', $prop );
+            return $formatted;
+        }
+
         return $this->app_prop;
     }
 
@@ -394,11 +406,420 @@ class License {
      * @param string $license_key   The license key
      * @return self|null
      */
-    public static function get_license() : ?self {
-        $db = \smliser_dbclass();
+    public static function get_license( $service_id, $license_key ) : ?self {
+        $db     = \smliser_dbclass();
+        $table  = \SMLISER_LICENSE_TABLE;
+        $sql    = "SELECT * FROM {$table} WHERE `service_id` = ? AND `license_key` = ?";
+        $params = [$service_id, $license_key];
 
+        $result = $db->get_row( $sql, $params );
 
-        return null;
+        return $result ? self::from_array( $result ) : null;
+
     }
- 
+
+    /**
+     * Get license by ID
+     * 
+     * @param int $id
+     * @return self|null
+     */
+    public static function get_by_id( $id ) : ?self {
+        $db = smliser_dbclass();
+
+        $table  = SMLISER_LICENSE_TABLE;
+        $sql    = "SELECT * FROM {$table} WHERE `id` = ?";
+
+        $result = $db->get_row( $sql, [$id] );
+
+        return $result ? self::from_array( $result ) : null;
+    }
+
+    /**
+     * Get all licenses from the database
+     * 
+     * @param int $page     The current pagination number.
+     * @param int $limit    The number of license object to return.
+     * @return self[]
+     */
+    public static function get_all( int $page = 1, int $limit = 30 ) : array {
+        $db         = smliser_dbclass();
+        $table      = \SMLISER_LICENSE_TABLE;
+        $licenses   = [];
+
+        $offset     = $db->calculate_query_offset( $page, $limit );
+        $sql        = "SELECT * FROM {$table} LIMIT {$limit} OFFSET {$offset}";
+
+        $results    = $db->get_results( $sql );
+        
+        if ( ! empty( $results ) ) {
+            foreach ( $results as $result ) {
+                $licenses[] = self::from_array( $result );
+            }
+        }
+
+        return $licenses;
+    }
+
+    /**
+     * Save the license.
+     * 
+     * @return bool True when license is save, false otherwise
+     */
+    public function save() : bool {
+        $db         = smliser_dbclass();
+        $table      = \SMLISER_LICENSE_TABLE;
+        $meta_table = \SMLISER_LICENSE_META_TABLE;
+
+        $data       = $this->to_array();
+        $meta_data  = $data['meta_data'];
+        $app_prop   = $this->get_app_prop( 'view' );
+
+        unset( $data['app'], $data['meta_data'], $data['app_prop'] );
+
+        $license_data   = array_merge( $data, compact( 'app_prop' ) );
+
+        
+        if ( $this->id ) {
+            unset( $license_data['license_key'] );
+
+            $updated        = $db->update( $table, $license_data, ['id' => $this->id] );
+            $updated_meta   = 0;
+
+            foreach ( $meta_data as $k => $v ) {
+                $sql        = "SELECT `id` FROM {$meta_table} WHERE `meta_key` = ? AND `license_id` = ?";
+                $meta_id    = $db->get_var( $sql, [$k, $this->id] );
+
+                $metadata   = [
+                    'meta_key'      => $k,
+                    'meta_value'    => ! \is_scalar( $v ) ? \serialize( $v ) : $v,
+                    'license_id'    => $this->id
+                ];
+
+                if ( $meta_id ) {
+                    $metadata['id'] = $meta_id;
+                }
+
+                $done   = $db->update( $meta_table, $metadata, ['license_id' => $this->id] );
+
+                $done && $updated_meta++;
+            }
+
+            $result = ( false !== $updated ) || ( $updated_meta > 0 );
+
+        } else {
+            $license_data['license_key'] = $this->generate_license_key();
+            $inserted       = $db->insert( $table, $license_data );
+            $inserted_meta  = 0;
+            if ( $inserted ) {
+                $this->set_id( $db->get_insert_id() );
+
+                foreach ( $meta_data as $k => $v ) {
+                    $metadata  = [
+                        'meta_key'      => $k,
+                        'meta_value'    => ! \is_scalar( $v ) ? \serialize( $v ) : $v,
+                        'license_id'    => $this->id
+                    ];
+                    $done   = $db->insert( $meta_table, $metadata );
+
+                    $done && $inserted_meta++;
+                }
+                
+            }
+            
+            $result = ( false !== $inserted ) || ( $inserted_meta > 0 );
+        }
+
+        return false !== $result;
+
+    }
+
+    /**
+     * Load the metadata from the database
+     *
+     * @return self
+     */
+    public function load_meta() : self {
+        $db         = smliser_dbclass();
+        $table      = SMLISER_LICENSE_META_TABLE;
+        $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `license_id` = ?";
+
+        $results    = $db->get_results( $sql, [$this->get_id()] );
+
+        foreach( $results as $result ) {
+            $value      = $result['meta_value'] ?? '';
+            $meta_name  = $result['meta_key'] ?? '';
+            $meta_value = \is_serialized( $value ) ? \unserialize( $value ) : $value;
+
+            if ( ! empty( $meta_name ) ) {
+                $this->set_meta( $meta_name, $meta_value );
+            }
+        }
+
+
+        return $this;
+    }
+
+    /**
+     * Delete license from the database
+     * 
+     * @return bool True on success, fase otherwise.
+     */
+    public function delete() {
+        if ( ! $this->id ) {
+            return false;
+        }
+
+        $db         = smliser_dbclass();
+        $table      = \SMLISER_LICENSE_TABLE;
+        $meta_table = \SMLISER_LICENSE_META_TABLE;
+
+        $deleted     = $db->delete( $table, ['id' => $this->id] );
+        if ( $deleted ) {
+            $db->delete( $meta_table, ['license_id' => $this->id] );
+        }
+
+        return false !== $deleted;
+
+    }
+
+    /**
+    |---------------------
+    | UTILITY METHODS
+    |---------------------
+    */
+
+    /**
+     * Get All active licensed Websites.
+     */
+    public function get_active_domains( $context = 'view' ) {
+        $all_domains = $this->get_meta( 'activated_on', array() );
+
+        if ( 'view' === $context && is_array( $all_domains ) ) {
+            $all_hosts = array_keys( $all_domains );
+            $all_domains = ! empty( $all_sites ) ? implode( ', ', $all_hosts ) : 'N/A';
+        }
+
+        return $all_domains;
+        
+    }
+
+    /**
+     * Converts and return associative array to object of this class.
+     * 
+     * @param array $data   Associative array containing result from database
+     */
+    public static function from_array( $data ) : self {
+        $self = new self();
+        $self->set_id( $data['id'] ?? '' );
+        $self->set_user_id( $data['user_id'] ?? 0 );
+        $self->set_service_id( $data['service_id'] ?? '' );
+        $self->set_license_key( $data['license_key'] ?? '' );
+        $self->set_status( $data['status'] ?? '' );
+        $self->set_start_date( $data['start_date'] ?? '' );
+        $self->set_end_date( $data['end_date'] ?? '' );
+        $self->set_max_allowed_domains( $data['max_allowed_domains'] ?? '' );
+
+        if ( ! empty( $data['app_prop'] ) && preg_match( '#^[^/]+/[^/]+$#', (string) $data['app_prop'] ) ) {
+            list( $app_type, $app_slug ) = explode( '/', $data['app_prop'], 2 );
+            $app_class  = \Smliser_Software_Collection::get_app_class( $app_type );
+            $method     = "get_by_slug";
+
+            if ( \class_exists( $app_class ) && \method_exists( $app_class, $method ) ) {
+                /** @var Hosted_Apps_Interface|null $app */
+                $app = $app_class::$method( $app_slug );
+
+                ( $app instanceof Hosted_Apps_Interface ) && $self->set_app( $app );
+            }
+        }
+
+        $self->load_meta();
+
+        return $self;
+    }
+
+    /**
+     * Convert to array
+     * 
+     * @return array
+     */
+    public function to_array() : array {
+        return get_object_vars( $this );
+    }
+
+    /**
+     * Get total domains using this license.
+     */
+    public function get_total_active_domains() {
+        return count( $this->get_meta( 'activated_on', array() ) );
+    }
+
+    /**
+     * Add or update the domains where this license is currently activated.
+     * 
+     * `NOTE`: It is the duty of the caller to check the validity of the domain and construct a valid URL. 
+     * 
+     * @param string $url The url of the site to be added.
+     * @param string $site_secret The secret key for the site.
+     */
+    public function update_active_domains( $url, $site_secret ) {
+        $sites  = $this->get_meta( 'activated_on', array() );
+        if ( ! is_array( $sites ) ) {
+            $sites = array();
+        }
+        
+        $url    = new URL( $url );
+        $origin = $url->get_origin();
+        $host   = $url->get_host();
+        
+        $sites[$host] = array(
+            'origin'    => $origin,
+            'secret'    => $site_secret,
+        );
+
+        return $this->set_meta( 'activated_on', $sites );
+    }
+
+    /**
+     * Remove a domain from activated list.
+     * 
+     * @param $url The name of the website.
+     */
+    public function remove_activated_domain( $url ) : bool {
+        $sites  = $this->get_meta( 'activated_on' );
+
+        if ( empty( $sites ) || ! is_array( $sites ) ) {
+            return false;
+        }
+        
+        $url    = new URL( $url );
+        $host = $url->get_host();
+
+        unset( $sites[$host] );
+        $this->set_meta( 'activated_on', $sites );
+        return true;
+    }
+
+    /**
+     * Whether license has reached max allowed domains.
+     */
+    public function has_reached_max_allowed_domains() {
+       return $this->get_total_active_domains() >= $this->get_max_allowed_domains();
+    }
+
+    /**
+     * Checks whether the a given domain is a new domain
+     * 
+     * @param string $domain The name of the website.
+     */
+    public function is_new_domain( $domain ) {
+        $domain         = sanitize_url( $domain, array( 'http', 'https' ) );
+        $domain         = wp_parse_url( $domain, PHP_URL_HOST );
+        $all_sites      = $this->get_active_domains( 'edit' );
+        return ! isset( $all_sites[$domain] );
+    }
+
+    /**
+     * Tells whether this license is issued to an app.
+     * 
+     * @return bool
+     */
+    public function is_issued() : bool {
+        return ( $this->app instanceof Hosted_Apps_Interface );
+    }
+
+    /**
+     * Tells whether we can perform actions that requires license validity, and optionally in context
+     * with the associated app.
+     *
+     * @param int    $app_id The App ID associated with the license.
+     * @param string $context   The context in which the validity is being checked.
+     * @return true|Exception True if license can be served, otherwise Exception.
+     */
+    public function can_serve_license( $app_id ) {
+        if ( ! $this->is_issued() ) {
+            return new Exception( 'license_error', 'Invalid license request.', array( 'status' => 400 ) );
+        }
+
+        if ( absint( $app_id ) !== $this->get_app_id() ) {
+            return new Exception( 'license_error', 'License was not issued to this application.', array( 'status' => 400 ) );
+        } elseif ( 'expired' === strtolower( $this->get_status() ) ) {
+            return new Exception( 'license_expired', 'This license has expired. Please renew it.', array( 'status' => 403 ) );
+        } elseif ( 'suspended' === strtolower( $this->get_status() ) ) {
+            return new Exception( 'license_suspended', 'This license has been suspended. Please contact support if you need further assistance.', array( 'status' => 403 ) );
+        } elseif ( 'revoked' === strtolower( $this->get_status() ) ) {
+            return new Exception( 'license_revoked', 'This license has been revoked. Please contact support if you need further assistance.', array( 'status' => 403 ) );
+        } elseif ( 'deactivated' === strtolower( $this->get_status() ) ) {
+            return new Exception( 'license_deactivated', 'This license has been deactivated. Please reactivate it or contact support if you need further assistance.', array( 'status' => 403 ) );
+        }
+
+        return true;
+    }
+
+    /**
+     * Encode data to json.
+     */
+    public function encode() {
+        if ( ! $this->id ) {
+            return new Exception( 'invalid_data', 'Invalid License' );
+        }
+        $data = array(
+            'license_key'   => $this->get_license_key(),
+            'service_id'    => $this->get_service_id(),
+            'app_id'        => $this->get_app_id(),
+            'start_date'    => $this->get_start_date(),
+            'expiry_date'   => $this->get_end_date(),
+        );
+        return smliser_safe_json_encode( $data );
+    }
+
+    /**
+     * Get the ID of the item associated with this license.
+     * 
+     * @return int|null
+     */
+    public function get_app_id() {
+        return isset( $this->app ) ? $this->app->get_id() : null;
+    }
+
+    /**
+     * Generate a new license key.
+     *
+     * @param string $prefix The prefix to be added to the license key.
+     * @return string The generated license key.
+     */
+    public function generate_license_key( $prefix = '' ) {
+        if ( empty( $prefix ) ) {
+            $prefix = get_option( 'smliser_license_prefix', 'SMLISER' );
+        }
+
+        $uid            = sha1( uniqid( '', true ) );
+        $secure_bytes   = random_bytes( 16 );
+        $random_hex     = bin2hex( $secure_bytes );
+        $combined_key   = strtoupper( str_replace( '-', '', $uid ) . $random_hex );
+        $license_key    = $prefix . $combined_key;
+
+        // Insert hyphens at every 8-character interval.
+        $real_license_key = '';
+        for ( $i = 0; $i < strlen( $license_key ); $i += 8 ) {
+            if ( $i > 0 ) {
+                $real_license_key .= '-';
+            }
+            $real_license_key .= substr( $license_key, $i, 8 );
+        }
+
+        return $real_license_key;
+    }
+
+    /**
+     * Obfuscate the license key and return a partial ending...
+     * 
+     * @return string
+     */
+    public function get_partial_key() : string {
+        $license_key    = $this->get_license_key();
+        $partial        = substr( $license_key, strlen( $license_key) - 12 );
+        $obfuscated     = rtrim( str_repeat( '****-', 4 ), '-' );
+        return sprintf( '%s-%s', $obfuscated, $partial );
+    }
 }

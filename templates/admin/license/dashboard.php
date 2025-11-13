@@ -4,6 +4,7 @@
  * 
  * @author Callistus Nwachukwu
  * @package Smliser\templates
+ * @var SmartLicenseServer\Monetization\License[] $licenses
  */
 
 defined( 'ABSPATH' ) || exit; ?>
@@ -44,7 +45,7 @@ defined( 'ABSPATH' ) || exit; ?>
                     <th><?php echo esc_html__( 'Client Name', 'smliser' ); ?></th>
                     <th><?php echo esc_html__( 'License Key', 'smliser' ); ?></th>
                     <th><?php echo esc_html__( 'Service ID', 'smliser' ); ?></th>
-                    <th><?php echo esc_html__( 'Item ID', 'smliser' ); ?></th>
+                    <th><?php echo esc_html__( 'Licensed App', 'smliser' ); ?></th>
                     <th><?php echo esc_html__( 'Status', 'smliser' ); ?></th>
                 </tr>
                 </thead>
@@ -64,9 +65,23 @@ defined( 'ABSPATH' ) || exit; ?>
                             </td>
                         
                             <td><?php echo esc_html( $client_full_name ); ?></td>
-                            <td><?php echo $license->get_copyable_Lkey(); ?></td>
+                            <td>
+                                <div class="smliser-license-obfuscation">
+                                    <div class="smliser-license-obfuscation_data">
+                                        <span class="smliser-license-input">
+                                            <input type="text" id="<?php echo esc_html( $license->get_id() ); ?>" value="<?php echo esc_html( $license->get_license_key()) ?>" readonly class="smliser-license-text" />
+                                            <span class="dashicons dashicons-admin-page copy-key smliser-tooltip" title="copy license key"></span>
+                                        </span>
+
+                                        <span class="smliser-obfuscated-license-text">
+                                            <?php echo $license->get_partial_key(); ?>
+                                        </span>
+                                    </div>
+                                    <input type="checkbox" id="<?php echo esc_html( $license->get_start_date() ); ?>" class="smliser-licence-key-visibility-toggle smliser-tooltip" title="toggle visibility">
+                                </div>
+                            </td>
                             <td><?php echo esc_html( $license->get_service_id() ); ?></td>
-                            <td><?php echo esc_html( $license->get_item_id() ); ?></td>
+                            <td><?php echo esc_html( $license->get_app_prop() ); ?></td>
                             <td><?php echo esc_html( $license->get_status() ); ?></td>
                         </tr>
                     <?php endforeach; ?>

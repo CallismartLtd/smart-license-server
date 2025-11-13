@@ -200,9 +200,69 @@ const StringUtils = {
 
 };
 
+/**
+ * App section via select2
+ * 
+ * @param {HTMLElement} selectEl 
+ */
+function smliserSelect2AppSelect( selectEl ) {
+    if ( ! selectEl instanceof HTMLElement ) {
+        console.warn( 'Could not instantiate app selection, invalid html element' );        
+    }
+
+    const prepareArgs = ( params ) => {
+        return {
+            search: params.term
+        };
+    };
+
+    const processResults = ( data ) => {
+
+        // Group apps by type (plugin, theme, etc.)
+        const grouped = {};
+
+        data.apps.forEach( app => {
+            if ( ! grouped[ app.type ] ) {
+                grouped[ app.type ] = [];
+            }
+
+            grouped[ app.type ].push({
+                id: `${app.type}:${app.slug}`, // unique id combining both
+                text: app.name,
+                type: app.type,
+            });
+        });
+
+        // Convert to Select2’s optgroup structure
+        const results = Object.keys( grouped ).map( type => ({
+            text: type.charAt(0).toUpperCase() + type.slice(1),
+            children: grouped[ type ]
+        }));
+
+        return { results };
+    };
+
+    jQuery( selectEl ).select2({
+        placeholder: 'Search apps',
+        ajax: {
+            url: smliser_var.app_search_api,
+            dataType: 'json',
+            delay: 1000,
+            data: prepareArgs,
+            processResults: processResults,
+            cache: true,
+        },
+        allowClear: true,
+        minimumInputLength: 2
+    });
+
+    console.log( 'loaded' );
+    
+}
+
 document.addEventListener( 'DOMContentLoaded', function() {
     let tokenBtn                = document.getElementById( 'smliserDownloadTokenBtn' );
-    let licenseKeyContainers    = document.querySelectorAll( '.smliser-key-div' );
+    let licenseKeyContainers    = document.querySelectorAll( '.smliser-license-obfuscation' );
     let searchInput             = document.getElementById('smliser-search');
     let tooltips                = document.querySelectorAll('.smliser-form-description, .smliser-tooltip');
     let deleteBtn               = document.getElementById( 'smliser-license-delete-button' );
@@ -215,6 +275,9 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let monetizationUI          = document.querySelector( '.smliser-monetization-ui' );
     let optionForms             = document.querySelectorAll( 'form.smliser-options-form' );
     const bulkMessageForm       = document.querySelector( 'form.smliser-compose-message-container' );
+    const licenseAppSelect      = document.querySelector( '.license-app-select' );
+
+    licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
 
     if ( optionForms ) {
         optionForms.forEach( form => {
@@ -386,35 +449,44 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
     if ( licenseKeyContainers.length ) {
         licenseKeyContainers.forEach(container => {
-            const licenseKeyField = container.querySelector('.smliser-license-key-field');
-            const showLicenseKeyCheckbox = container.querySelector('.smliser-show-license-key');
-            const visibleLicenseKeyDiv = container.querySelector('.smliser-visible-license-key');
-            const partiallyHiddenLicenseKeyDiv = container.querySelector('.smliser-partially-hidden-license-key-container');
-            const copyButton = container.querySelector('.smliser-to-copy');
+            const inputField    = container.querySelector( '.smliser-license-input' );
 
-            if (showLicenseKeyCheckbox) {
-                showLicenseKeyCheckbox.addEventListener('change', function () {
-                    if (this.checked) {
-                        // visibleLicenseKeyDiv.style.display          = 'block';
-                        jQuery(visibleLicenseKeyDiv).fadeIn().css('display', 'block')
-                        partiallyHiddenLicenseKeyDiv.style.display  = 'none';
-                    } else {
-                        visibleLicenseKeyDiv.style.display          = 'none';
-                        jQuery(partiallyHiddenLicenseKeyDiv).fadeIn().css('display', 'block');
-
-                    }
-                });
-
-                copyButton.addEventListener('click', function ( event ) {
-                    event.preventDefault();
-                    
+            container.addEventListener( 'click', (e) => {
+                const checkToggle = e.target.closest( '.smliser-licence-key-visibility-toggle' );
+                const copyButton = e.target.closest( '.copy-key' );
+                if ( checkToggle ) {
+                    inputField.classList.toggle( 'active' );
+                    return;
+                }
+                if ( copyButton ) {
+                    const licenseKeyField = container.querySelector( '.smliser-license-text' );
                     navigator.clipboard.writeText(licenseKeyField.value).then(function() {
                         smliserNotify('copied', 2000)
                     }).catch(function(error) {
                         smliserNotify( error, 2000)
                     });
-                });
-            }
+                }
+            });
+
+            // if (showLicenseKeyCheckbox) {
+            //     showLicenseKeyCheckbox.addEventListener('change', function () {
+            //         if (this.checked) {
+            //             // visibleLicenseKeyDiv.style.display          = 'block';
+            //             jQuery(visibleLicenseKeyDiv).fadeIn().css('display', 'block')
+            //             partiallyHiddenLicenseKeyDiv.style.display  = 'none';
+            //         } else {
+            //             visibleLicenseKeyDiv.style.display          = 'none';
+            //             jQuery(partiallyHiddenLicenseKeyDiv).fadeIn().css('display', 'block');
+
+            //         }
+            //     });
+
+            //     copyButton.addEventListener('click', function ( event ) {
+            //         event.preventDefault();
+                    
+
+            //     });
+            // }
         });
     }
 
@@ -1081,6 +1153,10 @@ document.addEventListener( 'DOMContentLoaded', function() {
     if ( bulkMessageForm ) {
         let appSelect   = bulkMessageForm.querySelector( '#smliser-app-select' );
 
+        if ( appSelect ) {
+            smliserSelect2AppSelect( appSelect );
+        }
+
         //Initialize the editor.
         tinymce.init({
             selector: '#message-body',
@@ -1098,52 +1174,6 @@ document.addEventListener( 'DOMContentLoaded', function() {
             font_formats: 'Inter=Inter, sans-serif; Arial=Arial, Helvetica, sans-serif; Verdana=Verdana, Geneva, sans-serif; Tahoma=Tahoma, Geneva, sans-serif; Trebuchet MS=Trebuchet MS, Helvetica, sans-serif; Times New Roman=Times New Roman, Times, serif; Georgia=Georgia, serif; Palatino Linotype=Palatino Linotype, Palatino, serif; Courier New=Courier New, Courier, monospace',
             toolbar_mode: 'sliding',
             content_style: 'body { font-family: "Inter", sans-serif; font-size: 16px; }',
-        });
-
-        const prepareArgs = ( params ) => {
-            return {
-                search: params.term
-            };
-        };
-
-        const processResults = ( data ) => {
-
-            // Group apps by type (plugin, theme, etc.)
-            const grouped = {};
-
-            data.apps.forEach( app => {
-                if ( ! grouped[ app.type ] ) {
-                    grouped[ app.type ] = [];
-                }
-
-                grouped[ app.type ].push({
-                    id: `${app.type}:${app.slug}`, // unique id combining both
-                    text: app.name,
-                    type: app.type,
-                });
-            });
-
-            // Convert to Select2’s optgroup structure
-            const results = Object.keys( grouped ).map( type => ({
-                text: type.charAt(0).toUpperCase() + type.slice(1),
-                children: grouped[ type ]
-            }));
-
-            return { results };
-        };
-
-        jQuery( appSelect ).select2({
-            placeholder: 'Search apps',
-            ajax: {
-                url: smliser_var.app_search_api,
-                dataType: 'json',
-                delay: 1000,
-                data: prepareArgs,
-                processResults: processResults,
-                cache: true,
-            },
-            allowClear: true,
-            minimumInputLength: 2
         });
 
         const clearValidity = ( e ) => {
