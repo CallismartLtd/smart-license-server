@@ -5,6 +5,7 @@
  * @package Smliser\classes
  */
 
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\PluginRepository;
@@ -1272,176 +1273,13 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         return $wpdb->get_var( $query ) > 0; // phpcs:disable
     }
 
-
-    /**
-     * Check if a given plugin is licensed.
-     * 
-     * @return bool true if plugin is licensed, false otherwise.
-     */
-    public function is_licensed() {
-        if ( empty( $this->item_id ) ) {
-            return false; // Plugin must exist.
-        }
-        
-        global $wpdb;
-        $table_name = SMLISER_LICENSE_TABLE;
-        $query      = $wpdb->prepare( "SELECT `item_id` FROM {$table_name} WHERE `item_id` = %d", absint( $this->item_id ) );
-        $result     = $wpdb->get_var( $query ); // phpcs:disable
-
-        return ! empty( $result );
-    }
-
     /**
      * Get a sample of download URL for licensed plugin
      */
     public function licensed_download_url() {
-        $download_url   = add_query_arg( array( 'download_token' => '{token}' ), $this->get_download_url() );
+        $download_url   = ( new URL( $this->get_download_url() ) )
+            ->add_query_param( 'download_token', '{token}' );
         return $download_url;
-    }
-
-    /**
-     * Normalize a plugin slug as plugin-slug/plugin-slug.
-     * 
-     * @param string $slug The slug.
-     */
-    public static function normalize_slug( $slug ) {
-        if ( empty( $slug ) || ! is_string( $slug ) ) {
-            return '';
-        }
-
-        // Check whether the slug contains forward slash
-        $parts = explode( '/', $slug );
-
-        if ( 1 === count( $parts ) ) {
-            if ( str_contains( $parts[0], '.' ) ) {
-                $slug = substr( $parts[0], 0, strpos( $parts[0], '.' ) );
-            }
-
-            $slug = trailingslashit( $slug ) . $slug;
-        } elseif ( count( $parts ) >= 2) {
-            if ( $parts[1] !== $parts[0] ) {
-                // assumming the first string is actual slug.
-                $slug = trailingslashit ( $parts[0] ) . $parts[0];
-            }
-        }
-        
-        if ( ! str_ends_with( $slug, '.zip' ) ) {
-            if ( str_contains( $slug, '.' ) ) {
-                $slug = substr( $slug, 0, strpos( $slug, '.' ) );
-            }
-            
-            $slug = $slug . '.zip';
-        }
-
-        return sanitize_and_normalize_path( $slug );
-    }
-
-    /*
-    |-------------------------------
-    | ACTION HANDLERS / CONTROLLERS
-    |-------------------------------
-    */
-
-    /**
-     * Plugin ajax action handler
-     */
-    public static function action_handler() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
-        }
-
-        if ( ! current_user_can( 'install_plugins' ) ) {
-            smliser_send_json_error( array( 'message' => 'You do not have the required permission to do this.' ), 403 );
-
-        }
-        
-        $item_id = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
-        $action  = isset( $_GET['real_action'] ) ? sanitize_text_field( $_GET['real_action'] ) : '';
-
-        if ( empty( $item_id ) ) {
-            return;
-        }
-
-        $obj    = new self();
-        $self   = $obj->get_plugin( absint( $item_id ) );
-        
-        if ( empty( $self ) ) {
-            return;
-        }
-
-        switch ( $action ) {
-            case 'delete':
-                $result = $self->delete();
-                $message = 'Plugin deleted';
-                break;
-        }
-
-        if ( is_smliser_error( $result ) ) {
-            /**
-             * @var Exception $result WordPress error object
-             */
-            smliser_send_json_error( array( 'message' => $result->get_error_message() ) );
-        }
-
-        smliser_send_json_success( array( 'message' => $message, 'redirect_url' => smliser_repo_page() ) );
-       
-    }
-
-    /**
-     * Form controller.
-     */
-    public static function plugin_upload_controller () {
-        if ( isset( $_POST['smliser_plugin_form_nonce'] ) && wp_verify_nonce( sanitize_text_field( unslash( $_POST['smliser_plugin_form_nonce'] ) ), 'smliser_plugin_form_nonce' ) ) {
-            $is_new     = isset( $_POST['smliser_plugin_upload_new'] );
-            $is_update  = isset( $_POST['smliser_plugin_upload_update'] );
-
-            if ( $is_new ) {
-                $self = new self();
-            } elseif ( $is_update ) {
-                $id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
-                $self = self::get_plugin( $id );
-            }
-
-            $file = isset( $_FILES['smliser_plugin_file'] ) && UPLOAD_ERR_OK === $_FILES['smliser_plugin_file']['error'] ? $_FILES['smliser_plugin_file'] : null;
-            $self->set_file( $file );
-            $self->set_name( isset( $_POST['smliser_plugin_name']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_name'] ) ) : '' );
-            $self->set_author( isset( $_POST['smliser_plugin_author']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_author'] ) ) : '' );
-            $self->set_author_profile( isset( $_POST['smliser_plugin_author_profile']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_author_profile'] ) ) : '' );
-            $self->set_required( isset( $_POST['smliser_plugin_requires']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_requires'] ) ) : '' );
-            $self->set_tested( isset( $_POST['smliser_plugin_tested']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_tested'] ) ) : '' );
-            $self->set_required_php( isset( $_POST['smliser_plugin_requires_php']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_requires_php'] ) ) : '' );
-            $self->set_version( isset( $_POST['smliser_plugin_version']  ) ? sanitize_text_field( unslash( $_POST['smliser_plugin_version'] ) ) : '' );
-            $self->set_download_link( isset( $_POST['smliser_plugin_download_link']  ) ? sanitize_url( unslash( $_POST['smliser_plugin_download_link'] ), array( 'http', 'https' ) ) : '' );
-
-            if ( $is_new ) {
-                $item_id = $self->save();
-                if ( is_smliser_error( $item_id ) ) {
-                    set_transient( 'smliser_form_validation_message', $item_id->get_error_message(), 15 );
-                    wp_safe_redirect( smliser_admin_repo_tab() );
-                    exit;
-                }
-                set_transient( 'smliser_form_success', true, 4 );
-                wp_safe_redirect( smliser_admin_repo_tab( 'edit', $item_id ) );
-                exit;
-            }
-            
-            if ( $is_update ) {
-                $self->update_meta( 'support_url', isset( $_POST['smliser_plugin_support_url'] ) ? sanitize_url( unslash( $_POST['smliser_plugin_support_url'] ), array( 'http', 'https' ) ) : '' );
-                $update = $self->save();
-                if ( is_smliser_error( $update ) ) {
-                    set_transient( 'smliser_form_validation_message', $update->get_error_message(), 5 );
-                } else {
-                    set_transient( 'smliser_form_success', true, 4 );
-
-                }
-                
-                wp_safe_redirect( smliser_admin_repo_tab( 'edit', $id ) );
-                exit;
-            }
-
-        }
-        wp_safe_redirect( smliser_admin_repo_tab() );
-        exit;
     }
 
 }
