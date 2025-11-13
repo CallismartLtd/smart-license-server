@@ -860,10 +860,10 @@ class License {
     /**
      * Get the ID of the item associated with this license.
      * 
-     * @return int|null
+     * @return int
      */
     public function get_app_id() {
-        return isset( $this->app ) ? $this->app->get_id() : null;
+        return isset( $this->app ) ? $this->app->get_id() : 0;
     }
 
     /**
