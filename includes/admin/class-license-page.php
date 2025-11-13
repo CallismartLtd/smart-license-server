@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\admin;
 
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'ABSPATH' ) || exit;
@@ -80,9 +81,11 @@ class License_Page {
         if ( ! empty( $license ) ) {
             $user               = get_userdata( $license->get_user_id() );
             $client_fullname    = $user ? $user->first_name . ' ' . $user->last_name : 'Guest';
-
             $licensed_app       = $license->get_app();
-            $delete_link        = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_all_actions', 'real_action' => 'delete', 'license_id' => $license_id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );    
+            $delete_url         = new URL( admin_url( 'admin-post.php' ) );
+
+            $delete_url->add_query_params( ['action' => 'smliser_all_actions', 'real_action' => 'delete', 'context' => 'license', 'license_ids' => $license_id] );
+            $delete_link    = wp_nonce_url( $delete_url->get_href(), 'smliser_nonce', 'smliser_nonce' );    
         }
 
         include_once SMLISER_PATH . 'templates/admin/license/license-admin-view.php';    
@@ -92,10 +95,7 @@ class License_Page {
      * License activation log page.
      */
     private static function logs_page() {
-        $all_tasks      = \Smliser_license::get_task_logs();
-        $cron_handle    = wp_get_scheduled_event( 'smliser_validate_license' );
-        $cron_timestamp = $cron_handle ? $cron_handle->timestamp : 0;
-        $next_date      = smliser_tstmp_to_date( $cron_timestamp );
+        $all_tasks  = \Smliser_Stats::get_task_logs();
 
         include_once SMLISER_PATH . 'templates/admin/license/logs.php';
         return;
