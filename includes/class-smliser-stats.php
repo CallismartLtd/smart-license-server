@@ -746,4 +746,64 @@ class Smliser_Stats {
 
         }
     }
+
+    /*
+    |------------------------------------------
+    | LICENSE STATS METHODS
+    |------------------------------------------
+    */
+
+
+    /**
+     * Record a license activation.
+     * 
+     * @param array $data Associative contanining the executed task.
+     * @return void
+     */
+    public static function log_activation( $data ) {
+        $logs = self::get_task_logs();
+        
+        $logs[ current_time( 'mysql' ) ] = array(
+            'license_id'    => $data['license_id'] ?? 'N/A',
+            'ip_address'    => $data['ip_address'] ?? 'N/A',
+            'website'       => $data['website'] ?? 'N/A',
+            'comment'       => $data['comment'] ?? 'N/A',
+            'duration'      => $data['duration'] ?? 'N/A',
+        );
+        
+        update_option( 'smliser_task_log', $logs );
+    }
+
+    /**
+     * Get license verification log for the last three month.
+     * 
+     * @return array $schedules An array of task logs
+     */
+    public static function get_task_logs() {
+        $schedules  = get_option( 'smliser_task_log', false );
+        
+        if ( false === $schedules ) {
+            return array(); // Returns empty array.
+        }
+
+        if ( ! is_array( $schedules ) ) {
+            $schedules = (array) $schedules;
+        }
+
+        ksort( $schedules );
+
+        foreach ( $schedules as $time => $schedule ) {
+            $timestamp  = strtotime( $time );
+            $expiration = time() - ( 3 * MONTH_IN_SECONDS );
+
+            if ( $timestamp < $expiration ) {
+                unset( $schedules[$time] );
+                update_option( 'smliser_task_log', $schedules );
+            }
+
+        }
+
+        return $schedules;
+    }
+
 }
