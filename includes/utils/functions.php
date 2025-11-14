@@ -1087,7 +1087,7 @@ function smliser_download_url( $url, $timeout = 30 ) {
     if ( function_exists( 'download_url' ) ) {
         $tmp_file = download_url( $url, $timeout );
         if ( is_smliser_error( $tmp_file ) ) {
-            throw  ( new FileRequestException( 'wp_error' ) )->from_wp_error( $tmp_file );
+            throw new FileRequestException( $tmp_file->get_error_code() );
         }
         
         return $tmp_file;

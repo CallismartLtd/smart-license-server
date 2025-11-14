@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 ?>
 
 <div class="smliser-admin-page">
-    <h1>License Activation Log</h1>
+    <h1>License Activity Log</h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=licenses' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-admin-home"></span> Licenses</a>
     <p>Logs over three months are automatically deleted</p>
     <table class="widefat striped">

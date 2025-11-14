@@ -10,6 +10,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\Exception\RequestException;
+use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -387,6 +388,48 @@ class Smliser_Software_Collection {
                 'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
             ),
         );
+    }
+
+    /**
+     * Get a single hosted application using its slug.
+     *
+     * @param string $app_type The app type can be one of the allowed app types.
+     * @param string $app_slug The app slug.
+     * @return Hosted_Apps_Interface|null The instance of a hosted application or null on failure.
+     */
+    public static function get_app_by_slug( $app_type, $app_slug ) : Hosted_Apps_Interface|null {
+        $app_class  = self::get_app_class( $app_type );
+        $method     = "get_by_slug";
+
+        if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $method ) ) {
+            return null;
+        }
+
+        /** @var Hosted_Apps_Interface|null */
+        $app    = $app_class::$method( $app_slug );
+
+        return $app;
+    }
+    
+    /**
+     * Get a single hosted application using its ID.
+     *
+     * @param string $app_type The app type can be one of the allowed app types.
+     * @param int $id The app ID.
+     * @return Hosted_Apps_Interface|null The instance of a hosted application or null on failure.
+     */
+    public static function get_app_by_id( $app_type, $id ) : Hosted_Apps_Interface|null {
+        $app_class  = self::get_app_class( $app_type );
+        $method     = "get_{$app_type}";
+
+        if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $method ) ) {
+            return null;
+        }
+
+        /** @var Hosted_Apps_Interface|null */
+        $app    = $app_class::$method( $id );
+
+        return $app;
     }
 
     /*

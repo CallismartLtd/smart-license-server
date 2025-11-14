@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit; ?>
 <div class="smliser-table-wrapper">
     <h1>Licenses</h1>
     <a href="<?php echo esc_url( $add_url ); ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-plus"></span> Add New</a>
-    <a href="<?php echo esc_url( admin_url( 'admin.php?page=licenses&tab=logs' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-share-alt"></span> Activation Logs</a>
+    <a href="<?php echo esc_url( admin_url( 'admin.php?page=licenses&tab=logs' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-share-alt"></span> Activity Logs</a>
 
     <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
         <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>

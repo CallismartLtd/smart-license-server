@@ -122,7 +122,13 @@ class FileRequestException extends Exception {
             'title'   => 'App Not Found',
             'message' => 'The requested application (slug or ID) was not found in the repository.'
         ],
+        
         'file_not_found' => [
+            'status'  => 404,
+            'title'   => 'File Not Found',
+            'message' => 'The corresponding file could not be located on the server.'
+        ],
+        'http_404' => [
             'status'  => 404,
             'title'   => 'File Not Found',
             'message' => 'The corresponding file could not be located on the server.'

@@ -111,7 +111,7 @@ class WPAdapter {
 
         $response = FileRequestController::get_application_zip_file( $request );
 
-        if ( ! $response->is_valid_zip_file() ) {
+        if ( ! $response->is_valid_zip_file() && $response->ok() ) {
             $response->set_exception( new FileRequestException( 'file_corrupted' ) );
         }
         

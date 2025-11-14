@@ -357,6 +357,37 @@ class Exception extends PHPException {
         return $exception;
     }
 
+	/**
+	 * Converts this exception into a WP_Error instance.
+	 *
+	 * @since 0.1.1
+	 *
+	 * @return \WP_Error
+	 */
+	public function to_wp_error() {
+		$wp_error = new \WP_Error();
+
+		foreach ( $this->get_error_codes() as $code ) {
+			$messages = $this->get_error_messages( $code );
+
+			foreach ( $messages as $message ) {
+				$wp_error->add( $code, $message );
+			}
+
+			$data_items = $this->get_all_error_data( $code );
+			foreach ( $data_items as $datum ) {
+				$wp_error->add_data( $datum, $code );
+			}
+		}
+
+		// If the WP_Error has no message (rare), fall back to the Exception's own message.
+		if ( empty( $wp_error->get_error_messages() ) && $this->getMessage() ) {
+			$wp_error->add( $this->get_error_code() ?: 'exception', $this->getMessage() );
+		}
+
+		return $wp_error;
+	}
+
 
     /**
      * Converts the exception to string, including all nested exceptions.

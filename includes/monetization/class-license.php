@@ -707,7 +707,7 @@ class License {
      * Get total domains using this license.
      */
     public function get_total_active_domains() {
-        return count( $this->get_meta( 'activated_on', array() ) );
+        return count( (array) $this->get_meta( 'activated_on', array() ) );
     }
 
     /**
@@ -787,8 +787,16 @@ class License {
     }
 
     /**
-     * Tells whether we can perform actions that require license validity, optionally in context
-     * with the associated app.
+     * Tells whether the license is deactivated.
+     * 
+     * @return bool
+     */
+    public function is_deactivated() : bool {
+        return strtolower( $this->get_status() === self::STATUS_DEACTIVATED );
+    }
+
+    /**
+     * Tells whether we can perform actions that require license validity.
      *
      * @param int $app_id The App ID associated with the license.
      * @return true|Exception True if license can be served, otherwise Exception.
@@ -798,7 +806,7 @@ class License {
             return new Exception(
                 'license_error',
                 'Invalid license request.',
-                ['status' => 400]
+                array( 'status' => 400 )
             );
         }
 
@@ -806,43 +814,47 @@ class License {
             return new Exception(
                 'license_error',
                 'License was not issued to this application.',
-                ['status' => 400]
+                array( 'status' => 403 ) // fixed
             );
         }
 
-        // Get the derived status (context 'view')
         $status = $this->get_status();
 
         switch ( $status ) {
+
             case self::STATUS_EXPIRED:
                 return new Exception(
                     'license_expired',
                     'This license has expired. Please renew it.',
-                    ['status' => 403]
+                    array( 'status' => 403 )
                 );
+
             case self::STATUS_SUSPENDED:
                 return new Exception(
                     'license_suspended',
-                    'This license has been suspended. Please contact support if you need further assistance.',
-                    ['status' => 403]
+                    'This license has been suspended. Please contact support.',
+                    array( 'status' => 403 )
                 );
+
             case self::STATUS_REVOKED:
                 return new Exception(
                     'license_revoked',
-                    'This license has been revoked. Please contact support if you need further assistance.',
-                    ['status' => 403]
+                    'This license has been revoked. Please contact support.',
+                    array( 'status' => 403 )
                 );
+
             case self::STATUS_DEACTIVATED:
                 return new Exception(
                     'license_deactivated',
-                    'This license has been deactivated. Please reactivate it or contact support if you need further assistance.',
-                    ['status' => 403]
+                    'This license has been deactivated. Please reactivate it.',
+                    array( 'status' => 409 )
                 );
+
             default:
-                // STATUS_ACTIVE, STATUS_LIFETIME, STATUS_PENDING are considered valid for serving
                 return true;
         }
     }
+
 
 
     /**

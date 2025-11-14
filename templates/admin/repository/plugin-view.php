@@ -87,7 +87,7 @@ defined( 'ABSPATH' ) || exit; ?>
             </div>
 
             <div class="smliser-admin-view-page-body-item">
-                <p>Public Download URL: <p><?php echo $plugin->is_monetized() ? $plugin->licensed_download_url() : esc_html( $plugin->get_download_url()  ); ?></p></p>
+                <p>Public Download URL: <p><?php echo $plugin->is_monetized() ? $plugin->monetized_url_sample() : esc_html( $plugin->get_download_url()  ); ?></p></p>
             </div>
         </div>
     </div>

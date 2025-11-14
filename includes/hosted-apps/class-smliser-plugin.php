@@ -1276,10 +1276,8 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     /**
      * Get a sample of download URL for licensed plugin
      */
-    public function licensed_download_url() {
-        $download_url   = ( new URL( $this->get_download_url() ) )
-            ->add_query_param( 'download_token', '{token}' );
-        return $download_url;
+    public function monetized_url_sample() {
+        return sprintf( '%s?download_token={token}', $this->get_download_url() );
     }
 
 }

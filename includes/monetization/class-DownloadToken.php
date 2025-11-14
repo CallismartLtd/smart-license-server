@@ -340,7 +340,7 @@ class DownloadToken {
         $raw_token  = self::generate_token();
         $secret     = self::derive_key();
 
-        $self->set_token( hash_hmac( 'sha256', $raw_token, $secret ) );
+        $self->set_token( \hash_hmac( 'sha256', $raw_token, $secret ) );
 
         $payload = [
             'license_id'    => $license->get_id(),
@@ -419,7 +419,7 @@ class DownloadToken {
      *
      * @return string 32-byte encryption key.
      */
-    private static function derive_key() {
+    public static function derive_key() {
         $secret = defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : 'zNqTILD04P3jQ8$Ev[v$Tec[Wf*(6>RxYukbrv{|qUOUr>($1@uO:ur%*<VX@:]&';
         $salt   = defined( 'SECURE_AUTH_SALT' ) ? SECURE_AUTH_SALT : '7RY@sFBq:]9?JR`21~_45]$Iy.*bF8bO4(L{Ks9(yBxur +i=3D9@`b-fRF_K8JJ';
 

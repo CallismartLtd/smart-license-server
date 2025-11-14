@@ -755,12 +755,12 @@ class Smliser_Stats {
 
 
     /**
-     * Record a license activation.
+     * Record a license activity.
      * 
      * @param array $data Associative contanining the executed task.
      * @return void
      */
-    public static function log_activation( $data ) {
+    public static function log_license_activity( $data ) {
         $logs = self::get_task_logs();
         
         $logs[ current_time( 'mysql' ) ] = array(
