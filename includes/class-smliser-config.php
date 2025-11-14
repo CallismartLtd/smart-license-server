@@ -204,14 +204,6 @@ class SmartLicense_config {
                 'callback'            =>  array( 'Smliser_License_Rest_API', 'license_activation_response' ),
                 'permission_callback' => array( 'Smliser_License_Rest_API', 'license_activation_permission_callback'),
                 'args'  => array(
-                    // 'item_id'   => array(
-                    //     'required'          => true,
-                    //     'type'              => 'integer',
-                    //     'description'       => 'The ID of the item associated with the license.',
-                    //     'sanitize_callback' => array( __CLASS__, 'sanitize' ),
-                    //     'validate_callback' => array( __CLASS__, 'is_int' ),
-                    // ),
-
                     'service_id'    => array(
                         'required'          => true,
                         'type'              => 'string',
