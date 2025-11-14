@@ -1099,6 +1099,9 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 })
                 .catch( error => {
                     smliserNotify( error.message || 'An unexpected error occurred', 6000 );
+                    const toggle    = monetizationUI.querySelector( '.smliser_toggle-switch-input' );
+                    const current   = toggle?.checked;
+                    toggle.checked  = ! current;
                 });
             }
         };
@@ -1135,7 +1138,6 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
         monetizationUI.addEventListener('change', e => {
             const input = e.target.closest('.smliser_toggle-switch-input');
-            console.log( input.dataset.action );
             if ( input && input.dataset.action === 'toggleMonetization' ) {
                 const monetizationId = input.dataset.monetizationId;
                 const enabled = input.checked ? 1 : 0;
