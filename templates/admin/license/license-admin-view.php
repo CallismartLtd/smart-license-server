@@ -36,8 +36,8 @@ defined( 'ABSPATH' ) || exit;
 
             <div class="smliser-admin-view-page-header-child">
                 <h2>Statistics</h2>
-                <p><span class="dashicons dashicons-admin-site-alt"></span> Max Allowed Sites: <?php echo esc_html( $license->get_max_allowed_domains() ) ?></p>
-                <p><span class="dashicons dashicons-admin-site-alt3"></span> Total Sites Activated: <?php echo absint( $license->get_total_active_domains() )?></p>
+                <p><span class="dashicons dashicons-admin-site-alt"></span> Max Allowed Domains: <?php echo esc_html( $license->get_max_allowed_domains() ) ?></p>
+                <p><span class="dashicons dashicons-admin-site-alt3"></span> Total Domains Activated: <?php echo absint( $license->get_total_active_domains() )?></p>
                 <p><span class="dashicons dashicons-plugins-checked"></span> App Prop: <?php echo esc_html( $license->get_app_prop() ) ?></p>
             </div>
 

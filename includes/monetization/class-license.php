@@ -540,6 +540,7 @@ class License {
             $updated_meta   = 0;
 
             foreach ( $meta_data as $k => $v ) {
+                
                 $sql        = "SELECT `id` FROM {$meta_table} WHERE `meta_key` = ? AND `license_id` = ?";
                 $meta_id    = $db->get_var( $sql, [$k, $this->id] );
 
@@ -551,9 +552,11 @@ class License {
 
                 if ( $meta_id ) {
                     $metadata['id'] = $meta_id;
-                }
+                    $done   = $db->update( $meta_table, $metadata, ['license_id' => $this->id] );
+                } else {
+                    $done   = $db->insert( $meta_table, $metadata );
 
-                $done   = $db->update( $meta_table, $metadata, ['license_id' => $this->id] );
+                }
 
                 $done && $updated_meta++;
             }
@@ -730,7 +733,8 @@ class License {
             'secret'    => $site_secret,
         );
 
-        return $this->set_meta( 'activated_on', $sites );
+        $this->set_meta( 'activated_on', $sites );
+        $this->save();
     }
 
     /**
@@ -750,6 +754,7 @@ class License {
 
         unset( $sites[$host] );
         $this->set_meta( 'activated_on', $sites );
+        $this->save();
         return true;
     }
 
@@ -844,9 +849,6 @@ class License {
      * Encode data to json.
      */
     public function encode() {
-        if ( ! $this->id ) {
-            return new Exception( 'invalid_data', 'Invalid License' );
-        }
         $data = array(
             'license_key'   => $this->get_license_key(),
             'service_id'    => $this->get_service_id(),

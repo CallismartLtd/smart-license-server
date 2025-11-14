@@ -8,6 +8,8 @@
  * @since 1.0.0
  */
 
+use SmartLicenseServer\Core\URL;
+
 defined( 'ABSPATH' ) || exit;
 
 class SmartLicense_config {
@@ -31,7 +33,7 @@ class SmartLicense_config {
      * 
      * @var string
      */
-    private $activation_route = '/license-activation/';
+    private $activation_route = '/license-activation/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
 
     /** 
      * License deactivation REST API route
@@ -114,6 +116,7 @@ class SmartLicense_config {
         define( 'SMLISER_API_ACCESS_LOG_TABLE', $wpdb->prefix . 'smliser_api_access_logs' );
         define( 'SMLISER_API_CRED_TABLE', $wpdb->prefix . 'smliser_api_creds' );
         define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_item_download_token' );
+        define( 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_app_download_tokens' );
         define( 'SMLISER_MONETIZATION_TABLE', $wpdb->prefix . 'smliser_monetization' );
         define( 'SMLISER_PRICING_TIER_TABLE', $wpdb->prefix . 'smliser_pricing_tiers' );
         define( 'SMLISER_BULK_MESSAGES_TABLE', $wpdb->prefix . 'smliser_bulk_messages' );
@@ -201,13 +204,13 @@ class SmartLicense_config {
                 'callback'            =>  array( 'Smliser_License_Rest_API', 'license_activation_response' ),
                 'permission_callback' => array( 'Smliser_License_Rest_API', 'license_activation_permission_callback'),
                 'args'  => array(
-                    'item_id'   => array(
-                        'required'          => true,
-                        'type'              => 'integer',
-                        'description'       => 'The ID of the item associated with the license.',
-                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
-                        'validate_callback' => array( __CLASS__, 'is_int' ),
-                    ),
+                    // 'item_id'   => array(
+                    //     'required'          => true,
+                    //     'type'              => 'integer',
+                    //     'description'       => 'The ID of the item associated with the license.',
+                    //     'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                    //     'validate_callback' => array( __CLASS__, 'is_int' ),
+                    // ),
 
                     'service_id'    => array(
                         'required'          => true,
@@ -686,16 +689,20 @@ class SmartLicense_config {
     }
 
     /**
-     * Prempt REST API request callbacks.
+     * Preempt REST API request callbacks.
      * 
-	 * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response Result to send to the client.
-	 *                                                                   Usually a WP_REST_Response or WP_Error.
-	 * @param array                                            $handler  Route handler used for the request.
-	 * @param WP_REST_Request                                  $request  Request used to generate the response.
+     * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response Result to send to the client.
+     *                                                                   Usually a WP_REST_Response or WP_Error.
+     * @param array                                            $handler  Route handler used for the request.
+     * @param WP_REST_Request                                  $request  Request used to generate the response.
      */
     public static function rest_request_before_callbacks( $response, $handler, $request ) {
-        // Bail if not our namespace.
-        if ( ! str_starts_with( $request->get_route(), self::namespace() ) ) {
+        
+        $route     = ltrim( $request->get_route(), '/' );
+        $namespace = trim( self::namespace(), '/' );
+
+        // Match if route starts with namespace
+        if ( ! preg_match( '#^' . preg_quote( $namespace, '#' ) . '(/|$)#', $route ) ) {
             return $response;
         }
 
@@ -705,6 +712,7 @@ class SmartLicense_config {
 
         return $response;
     }
+
 
 
     /**
@@ -778,6 +786,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
         require_once SMLISER_PATH . 'includes/monetization/class-license.php';
         require_once SMLISER_PATH . 'includes/monetization/class-monetization.php';
+        require_once SMLISER_PATH . 'includes/monetization/class-DownloadToken.php';
         require_once SMLISER_PATH . 'includes/monetization/class-pricing-tier.php';
         require_once SMLISER_PATH . 'includes/monetization/provider-collection.php';
         require_once SMLISER_PATH . 'includes/monetization/class-woocomerce-provider.php';
@@ -1068,14 +1077,18 @@ class SmartLicense_config {
             return new WP_Error( 'rest_invalid_param', __( 'The domain parameter is required.', 'smliser' ), array( 'status' => 400 ) );
         }
 
-        $url        = self::sanitize_url( $url );
-        $parsed_url = wp_parse_url( $url );
-        if ( ! is_array( $parsed_url ) || empty( $parsed_url['scheme'] ) ) {
+        $url        = new URL( $url );
+
+        if ( ! $url->has_scheme() ) {
             return new WP_Error( 'rest_invalid_param', __( 'Invalid URL format.', 'smliser' ), array( 'status' => 400 ) );
         }
 
-        if ( ! in_array( strtolower( $parsed_url['scheme'] ), array( 'http', 'https' ), true ) ) {
-            return new WP_Error( 'rest_invalid_param', __( 'Only HTTP and HTTPS URLs are allowed.', 'smliser' ), array( 'status' => 400 ) );
+        if ( ! $url->is_ssl() ) {
+            return new WP_Error( 'rest_invalid_param', __( 'Only HTTPS URLs are allowed.', 'smliser' ), array( 'status' => 400 ) );
+        }
+
+        if ( ! $url->validate( true ) ) {
+            return new WP_Error( 'rest_invalid_param', __( 'The URL does not resolve to a valid host.', 'smliser' ), array( 'status' => 400 ) );
         }
 
         return true;

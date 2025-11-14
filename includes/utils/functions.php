@@ -10,6 +10,9 @@
 
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\Exception\FileRequestException;
+use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
+use SmartLicenseServer\Monetization\DownloadToken;
+use SmartLicenseServer\Monetization\License;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -352,66 +355,41 @@ function smliser_get_auth_token( WP_REST_Request $request ) {
 /**
  * Generate a download token for the given licensed item.
  * 
- * @param int $item_id    The item ID associated with the license.
- * @param string $license_key License Key associated with the item.
- * @param int $expiry The expiry date for the token.
+ * @param License $license  The License object associated with the item.
+ * @param int     $expiry   Expiry duration in seconds (optional).
+ * @return string|false     The signed, base64url-encoded token or false on failure.
  */
-function smliser_generate_item_token( $item_id = 0, $license_key = '', $expiry = 0 ) {
-    $item_id        = absint( $item_id );
-    $license_key    = sanitize_text_field( unslash( $license_key ) );
-    $expiry         = ! empty( $expiry ) ? absint( $expiry ) : time() + ( 10 * DAY_IN_SECONDS );
-
-    $key_props = array(
-        'item_id'     => $item_id,
-        'license_key' => $license_key,
-        'expiry'      => $expiry,
-    );
-
-    $raw_token = Smliser_Plugin_Download_Token::insert_helper( $key_props );
-
-    if ( empty( $raw_token ) ) {
+function smliser_generate_item_token( License $license, int $expiry = 864000 ) {
+    try {
+        // Create a new download token
+        $token = DownloadToken::create_token( $license, $expiry );
+        return $token;
+    } catch ( Exception $e ) {
+        // You can log $e->getMessage() here if needed
         return false;
     }
-
-    $decoy  = substr( $license_key, 0, 8 );
-    $payload    = $decoy . '|' . $raw_token;
-
-    $token = Callismart\Utilities\Encryption::encrypt( $payload );
-
-    return is_smliser_error( $token ) ? false : $token;
 }
-
 
 /**
  * Verify a licensed plugin download token.
  *
- * @param string $token     The encrypted download token.
- * @param int    $item_id   The expected item ID.
- * @return bool             True if the token is valid and matches the item ID.
+ * @param string                  $client_token The base64url-encoded token received from the client.
+ * @param Hosted_Apps_Interface    $app          The app context to validate against.
+ * @return DownloadToken|false                  Returns the DownloadToken object on success, false on failure.
  */
-function smliser_verify_item_token( $token, $item_id ) {
-    if ( empty( $token ) || empty( $item_id ) ) {
+function smliser_verify_item_token( string $client_token, Hosted_Apps_Interface $app ) {
+    if ( empty( $client_token ) || ! $app ) {
         return false;
     }
 
-    $decrypted = Callismart\Utilities\Encryption::decrypt( $token );
-
-    if ( is_smliser_error( $decrypted ) || ! str_contains( $decrypted, '|' ) ) {
+    try {
+        // Verify token within the app context
+        $download_token = DownloadToken::verify_token_for_app( $client_token, $app );
+        return $download_token;
+    } catch ( Exception $e ) {
+        // Invalid or expired token
         return false;
     }
-
-    list( $decoy, $raw_token ) = explode( '|', $decrypted, 2 );
-
-    $t_obj  = new Smliser_Plugin_Download_Token();
-    $t_data = $t_obj->get_token( $raw_token );
-
-    if ( ! $t_data ) {
-        return false;
-    }
-
-    $key_item_id = absint( $t_data->get_item_id() );
-
-    return $key_item_id === absint( $item_id );
 }
 
 

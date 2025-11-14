@@ -318,6 +318,13 @@ class URL {
     }
 
     /**
+     * Check whether the url has scheme
+     */
+    public function has_scheme() : bool {
+        return isset( $this->components['scheme'] );
+    }
+
+    /**
      * Check if URL has a port explicitly defined.
      *
      * @return bool True if port is set, false otherwise.
