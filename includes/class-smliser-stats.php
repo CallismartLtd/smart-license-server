@@ -761,11 +761,12 @@ class Smliser_Stats {
      * @return void
      */
     public static function log_license_activity( $data ) {
-        $logs = self::get_task_logs();
+        $logs = self::get_license_activity_logs();
         
         $logs[ current_time( 'mysql' ) ] = array(
             'license_id'    => $data['license_id'] ?? 'N/A',
-            'ip_address'    => $data['ip_address'] ?? 'N/A',
+            'ip_address'    => $data['ip_address'] ?? smliser_get_client_ip(),
+            'user_agent'    => $data['user_agent'] ?? smliser_get_user_agent(),
             'website'       => $data['website'] ?? 'N/A',
             'comment'       => $data['comment'] ?? 'N/A',
             'duration'      => $data['duration'] ?? 'N/A',
@@ -779,7 +780,7 @@ class Smliser_Stats {
      * 
      * @return array $schedules An array of task logs
      */
-    public static function get_task_logs() {
+    public static function get_license_activity_logs() {
         $schedules  = get_option( 'smliser_task_log', false );
         
         if ( false === $schedules ) {
