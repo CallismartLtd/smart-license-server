@@ -235,11 +235,13 @@ function smliser_parse_user_agent( $user_agent_string ) {
     $info = array(
         'browser' => 'Unknown Browser',
         'version' => '',
-        'os'      => 'Unknown OS',
+        'os'      => '',
         'device'  => 'Desktop',
     );
 
+    // ---------------------------------------------
     // Detect OS
+    // ---------------------------------------------
     if ( preg_match( '/Windows NT ([0-9.]+)/i', $user_agent_string, $matches ) ) {
         $os_version = $matches[1];
         $info['os'] = match ( $os_version ) {
@@ -255,28 +257,30 @@ function smliser_parse_user_agent( $user_agent_string ) {
         $info['os'] = 'macOS ' . str_replace( '_', '.', $matches[1] );
     } elseif ( preg_match( '/Linux/i', $user_agent_string ) && ! preg_match( '/Android/i', $user_agent_string ) ) {
         $info['os'] = 'Linux';
-    } elseif ( preg_match( '/Android ([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $info['os']     = 'Android ' . $matches[1];
+    } elseif ( preg_match( '/Android ?([0-9.]*)/i', $user_agent_string, $matches ) ) {
+        $info['os']     = trim( 'Android ' . ( $matches[1] ?? '' ) );
         $info['device'] = 'Mobile';
     } elseif ( preg_match( '/iPhone|iPad|iPod/i', $user_agent_string, $matches ) ) {
         $info['os']     = 'iOS';
         $info['device'] = ( 'iPad' === $matches[0] ) ? 'Tablet' : 'Mobile';
     }
 
-    // Detect device type
+    // ---------------------------------------------
+    // Detect device
+    // ---------------------------------------------
     if ( preg_match( '/BlackBerry|Mobile Safari|Opera Mini|Opera Mobi|Firefox Mobile|webOS|NokiaBrowser|Series40|NintendoBrowser/i', $user_agent_string ) ) {
         $info['device'] = 'Mobile';
     } elseif ( preg_match( '/Tablet|iPad|Nexus 7|Nexus 10|GT-P|SM-T/i', $user_agent_string ) ) {
         $info['device'] = 'Tablet';
     }
 
-    // Detect browser & version
+    // ---------------------------------------------
+    // Detect browser & version (Standard browsers)
+    // ---------------------------------------------
     if ( preg_match( '/Edg\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        // New Chromium-based Edge
         $info['browser'] = 'Edge';
         $info['version'] = $matches[1];
     } elseif ( preg_match( '/Edge\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        // Legacy Edge
         $info['browser'] = 'Edge';
         $info['version'] = $matches[1];
     } elseif ( preg_match( '/(OPR|Opera)\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
@@ -293,6 +297,7 @@ function smliser_parse_user_agent( $user_agent_string ) {
         $info['version'] = $matches[1];
     } elseif ( preg_match( '/Safari\/([0-9.]+)/i', $user_agent_string, $matches ) && ! preg_match( '/Chrome|Edg/i', $user_agent_string ) ) {
         $info['browser'] = 'Safari';
+
         if ( preg_match( '/Version\/([0-9.]+)/i', $user_agent_string, $version_matches ) ) {
             $info['version'] = $version_matches[1];
         } else {
@@ -306,7 +311,59 @@ function smliser_parse_user_agent( $user_agent_string ) {
         $info['version'] = ( '7.0' === $matches[1] ) ? '11.0' : 'Unknown IE';
     }
 
-    // Build the return string
+    // ---------------------------------------------
+    // NEW: Generic fallback for custom UAs
+    // Detect first "Something/1.2.3"
+    // ---------------------------------------------
+    if ( 'Unknown Browser' === $info['browser'] ) {
+        if ( preg_match( '/([A-Za-z0-9._-]+)\/([0-9.]+)/', $user_agent_string, $m ) ) {
+            $info['browser'] = $m[1];
+            $info['version'] = $m[2];
+        }
+    }
+
+    // ---------------------------------------------
+    // NEW: Secondary OS/device hints for custom UAs
+    // e.g. "(Linux; x86_64)" or "(Android; Phone)"
+    // ---------------------------------------------
+    if ( 'Unknown OS' === $info['os'] ) {
+        if ( preg_match( '/\(([^)]+)\)/', $user_agent_string, $m ) ) {
+
+            $raw = $m[1];
+
+            if ( preg_match( '/linux/i', $raw ) ) {
+                $info['os'] = 'Linux';
+            } elseif ( preg_match( '/android/i', $raw ) ) {
+                $info['os']     = 'Android';
+                $info['device'] = 'Mobile';
+            } elseif ( preg_match( '/iphone|ipod/i', $raw ) ) {
+                $info['os']     = 'iOS';
+                $info['device'] = 'Mobile';
+            } elseif ( preg_match( '/ipad/i', $raw ) ) {
+                $info['os']     = 'iOS';
+                $info['device'] = 'Tablet';
+            } elseif ( preg_match( '/mac|darwin/i', $raw ) ) {
+                $info['os'] = 'macOS';
+            } elseif ( preg_match( '/win/i', $raw ) ) {
+                $info['os'] = 'Windows';
+            }
+        }
+    }
+
+    // ---------------------------------------------
+    // Ensure fallback device type
+    // ---------------------------------------------
+    if ( 'Desktop' === $info['device'] ) {
+        if ( preg_match( '/mobile|phone/i', $user_agent_string ) ) {
+            $info['device'] = 'Mobile';
+        } elseif ( preg_match( '/tablet|ipad/i', $user_agent_string ) ) {
+            $info['device'] = 'Tablet';
+        }
+    }
+
+    // ---------------------------------------------
+    // Output
+    // ---------------------------------------------
     return trim( sprintf(
         '%s%s on %s (%s)',
         $info['browser'],
@@ -315,6 +372,7 @@ function smliser_parse_user_agent( $user_agent_string ) {
         $info['device']
     ) );
 }
+
 
 /**
  * Get user agent
@@ -373,13 +431,13 @@ function smliser_generate_item_token( License $license, int $expiry = 864000 ) {
 /**
  * Verify a licensed plugin download token.
  *
- * @param string                  $client_token The base64url-encoded token received from the client.
- * @param Hosted_Apps_Interface    $app          The app context to validate against.
- * @return DownloadToken|false                  Returns the DownloadToken object on success, false on failure.
+ * @param string                  $client_token     The base64url-encoded token received from the client.
+ * @param Hosted_Apps_Interface    $app             app context to validate against.
+ * @return DownloadToken|Exception                  Returns the DownloadToken object on success, false on failure.
  */
-function smliser_verify_item_token( string $client_token, Hosted_Apps_Interface $app ) {
-    if ( empty( $client_token ) || ! $app ) {
-        return false;
+function smliser_verify_item_token( string $client_token, Hosted_Apps_Interface $app ) : DownloadToken|Exception {
+    if ( empty( $client_token ) ) {
+        return new Exception( 'empty_token', 'Download token cannot be empty' );
     }
 
     try {
@@ -388,7 +446,7 @@ function smliser_verify_item_token( string $client_token, Hosted_Apps_Interface 
         return $download_token;
     } catch ( Exception $e ) {
         // Invalid or expired token
-        return false;
+        return $e;
     }
 }
 
@@ -799,7 +857,7 @@ function smliser_render_toggle_switch( $attrs = array() ) {
         'class' => 'smliser_toggle-switch-input',
     );
 
-    $attrs = array_merge( $attrs, $defaults );
+    $attrs = array_merge( $defaults, $attrs );
 
     // Extract value to determine checked state
     $value = (int) $attrs['value'];

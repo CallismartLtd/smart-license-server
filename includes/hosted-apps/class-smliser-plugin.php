@@ -1268,7 +1268,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     public function is_monetized() : bool {
         global $wpdb;
         $table_name = SMLISER_MONETIZATION_TABLE;
-        $query = $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = %s AND `item_id` = %d AND `enabled` = %s", 'plugin', absint( $this->item_id ), '1' );
+        $query = $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = %s AND `item_id` = %d AND `enabled` = %s", $this->get_type(), absint( $this->item_id ), '1' );
 
         return $wpdb->get_var( $query ) > 0; // phpcs:disable
     }

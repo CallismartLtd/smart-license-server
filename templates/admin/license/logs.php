@@ -18,6 +18,7 @@ defined( 'ABSPATH' ) || exit;
     <table class="widefat striped">
         <tr>
             <th>Date</th>
+            <th>User Agent</th>
             <th>Client IP Address</th>
             <th>Comment</th>
             <th>Duration</th>
@@ -32,10 +33,11 @@ defined( 'ABSPATH' ) || exit;
         <?php else: foreach( $all_tasks as $date => $task_data ):?>
         <tr>
             <td><?php echo esc_html( $date );?></td>
-            <td><?php echo esc_html( $task_data['ip_address'] );?></td>
-            <td><?php echo esc_html( $task_data['comment'] );?></td>
-            <td><?php echo esc_html( smliser_readable_duration( $task_data['duration'] ) );?></td>
-            <td><?php echo esc_html( smliser_get_base_url( $task_data['website'] ) );?></td>
+            <td><?php echo esc_html( $task_data['user_agent'] ?? 'N/A' );?></td>
+            <td><?php echo esc_html( $task_data['ip_address'] ?? 'N/A' );?></td>
+            <td><?php echo esc_html( $task_data['comment'] ?? 'N/A' );?></td>
+            <td><?php echo esc_html( smliser_readable_duration( $task_data['duration'] ?? 0 ) );?></td>
+            <td><?php echo esc_html( smliser_get_base_url( $task_data['website']?? 'N/A' ) );?></td>
             <td><a href="<?php echo esc_url( smliser_license_admin_action_page( 'view', $task_data['license_id'] ) ) ?>">View License</a></td>
         </tr>
         <?php endforeach; endif;?>

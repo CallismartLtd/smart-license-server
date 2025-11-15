@@ -95,7 +95,7 @@ class License_Page {
      * License activation log page.
      */
     private static function logs_page() {
-        $all_tasks  = \Smliser_Stats::get_task_logs();
+        $all_tasks  = \Smliser_Stats::get_license_activity_logs();
 
         include_once SMLISER_PATH . 'templates/admin/license/logs.php';
         return;
