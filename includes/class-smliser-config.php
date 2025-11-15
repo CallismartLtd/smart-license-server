@@ -54,7 +54,7 @@ class SmartLicense_config {
      * 
      * @var string
      */
-    private $license_validity_route = '/license-validity-test/';
+    private $license_validity_route = '/license-validity-test/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
 
     /** 
      * Repository REST API route.
@@ -82,7 +82,7 @@ class SmartLicense_config {
      * 
      * @var string
      */
-    private $download_reauth = '/download-token-reauthentication/';
+    private $download_reauth = '/download-token-reauthentication/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
 
     /**
      * RESE endoint for bulk bulk messages fetching.
@@ -331,13 +331,6 @@ class SmartLicense_config {
                         'description'       => 'The URL of the website where the license is currently activated.',
                         'sanitize_callback' => array( __CLASS__, 'sanitize_url' ),
                         'validate_callback' => array( __CLASS__, 'is_url' ),
-                    ),
-                    'item_id'       => array(
-                        'required'          => true,
-                        'type'              => 'integer',
-                        'description'       => 'The ID of the software this license is associated with.',
-                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
-                        'validate_callback' => array( __CLASS__, 'is_int' ),
                     )
                 ),
             )
@@ -419,17 +412,10 @@ class SmartLicense_config {
                         'sanitize_callback' => array( __CLASS__, 'sanitize' ),
                         'validate_callback' => array( __CLASS__, 'not_empty' )
                     ),
-                    'item_id'   => array(
-                        'required'          => true,
-                        'type'              => 'integer',
-                        'description'       => 'The ID of the item associated with the license.',
-                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
-                        'validate_callback' => array( __CLASS__, 'is_int' ),
-                    ),
                     'download_token'    => array(
                         'required'         => true,
                         'type'              => 'string',
-                        'description'       => 'The base64 encoded download token issued during license activation.',
+                        'description'       => 'The base64 encoded download token issued during license activation or the last reauthentication token.',
                         'sanitize_callback' => array( __CLASS__, 'sanitize' ),
                         'validate_callback' => array( __CLASS__, 'not_empty' ),
                     ),
