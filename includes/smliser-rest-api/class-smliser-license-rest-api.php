@@ -107,7 +107,7 @@ class Smliser_License_Rest_API {
 
         if ( $license->is_new_domain( $domain ) && ! $license->has_reached_max_allowed_domains() ) {
             $domain_secret                  = 'sc_' . bin2hex( random_bytes( 32 ) );
-            $response_data['site_secret']   = base64_encode( $domain_secret );
+            $response_data['data']['site_secret']   = base64_encode( $domain_secret );
             $domain_secret_hash             = hash_hmac( 'sha256', $domain_secret, DownloadToken::derive_key() );
             
             $license->update_active_domains( $domain, $domain_secret_hash );
@@ -186,7 +186,6 @@ class Smliser_License_Rest_API {
             );
 
             $status_code = 200;
-            $log_data['comment']    = $response_data['message'];
 
         } else {
             $response_data = array(
@@ -199,9 +198,9 @@ class Smliser_License_Rest_API {
 
             $status_code = 503;
 
-            $log_data['comment']    = $response_data['message'];
         }
 
+        $log_data['comment']    = $response_data['message'];
         Smliser_Stats::log_license_activity( $log_data );
         $response = new WP_REST_Response( $response_data, $status_code );
         
@@ -234,15 +233,25 @@ class Smliser_License_Rest_API {
             )
         );
 
+        $log_data   = array(
+            'license_id'    => $license->get_id(),
+            'ip_address'    => smliser_get_client_ip(),
+            'website'       => $domain,
+            'comment'       => '',
+            'duration'      => microtime( true ) - self::$start_time
+        );
+
         if ( $license->remove_activated_domain( $domain ) ) {
-            $response_data['message']   = sprintf( 'Your domain %s has been uninstalled successfully.', $domain );
+            $response_data['message']   = sprintf( 'The license uninstalled for the domain "%s" successfully.', $domain );
             $status_code                = 200;
         } else {
             $response_data['message']   = sprintf( 'Unable to unstall %s please try again later.', $domain );
             $status_code                = 503;   
         }
 
+        $log_data['comment']    = $response_data['message'];
         $response = new WP_REST_Response( $response_data, $status_code );
+        Smliser_Stats::log_license_activity( $log_data );
 
         return $response;
     }
@@ -316,7 +325,7 @@ class Smliser_License_Rest_API {
             )
         );
 
-        $response = new WP_REST_Response( array( 'data' => $response_data ), 200 );
+        $response = new WP_REST_Response( $response_data, 200 );
 
         return $response;
 
@@ -433,9 +442,8 @@ class Smliser_License_Rest_API {
         /** @var License $license */
         $license        = $request->get_param( 'license' );
         $domain         = $request->get_param( 'domain' );
-        $known_domains  = $license->get_active_domains( 'edit' );
 
-        $domain_data    = isset( $known_domains[$domain] ) ? $known_domains[$domain] : false;
+        $domain_data    = $license->get_active_domain( $domain );
 
         if ( ! isset( $domain_data['secret'] ) ) {
             return new WP_Error( 'site_token_missing', sprintf( 'Invalid domain, please activate the domain %s to access this route', $domain ), array( 'status' => 401 ) );

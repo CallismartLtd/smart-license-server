@@ -711,6 +711,32 @@ class License {
     }
 
     /**
+     * Get the value of a domain from the active list.
+     * 
+     * @param string $url The domain or website name.
+     * @param bool $all_data  Whether to include the values of the domain.
+     * @return mixed
+     */
+    public function get_active_domain( $url, $all_data = true ) {
+        $all_domains = $this->get_active_domains( 'edit' );
+
+        $url    = new URL( $url );
+        $host   = $url->get_host();
+
+        if ( ! isset( $all_domains[$host] ) ) {
+            return null;
+        }
+
+        $domain_data    = $all_domains[$host];
+
+        if ( $all_data ) {
+            return $domain_data;
+        }
+        return $domain_data['origin'];
+        
+    }
+
+    /**
      * Add or update the domains where this license is currently activated.
      * 
      * `NOTE`: It is the duty of the caller to check the validity of the domain and construct a valid URL. 

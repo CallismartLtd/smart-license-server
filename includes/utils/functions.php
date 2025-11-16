@@ -394,7 +394,6 @@ function smliser_get_auth_token( WP_REST_Request $request ) {
     // Get the authorization header.
     $headers = $request->get_headers();
     
-    // Check if the authorization header is set
     if ( isset( $headers['authorization'] ) ) {
         $auth_header = $headers['authorization'][0];
         
@@ -406,7 +405,6 @@ function smliser_get_auth_token( WP_REST_Request $request ) {
         }
     }
     
-    // Return null if no valid token is found.
     return null;
 }
 
@@ -1133,19 +1131,18 @@ function smliser_abort_request( $message = '', $title = '', $args = [] ) {
  * @param string $url URL to download.
  * @param int    $timeout Timeout in seconds.
  * @return string Local temporary file path on success.
- * @throws FileRequestException On failure.
  */
 function smliser_download_url( $url, $timeout = 30 ) {
 
     // Validate URL
     if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
-        throw new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
+        return new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
     }
 
     if ( function_exists( 'download_url' ) ) {
         $tmp_file = download_url( $url, $timeout );
         if ( is_smliser_error( $tmp_file ) ) {
-            throw new FileRequestException( $tmp_file->get_error_code() );
+            return new FileRequestException( $tmp_file->get_error_code() );
         }
         
         return $tmp_file;
@@ -1161,10 +1158,10 @@ function smliser_download_url( $url, $timeout = 30 ) {
                 return $tmp_file;
             }
             @unlink( $tmp_file );
-            throw new FileRequestException( 'remote_download_failed', 'Laravel HTTP client failed to download file.' );
+            return new FileRequestException( 'remote_download_failed', 'Laravel HTTP client failed to download file.' );
         } catch ( \Throwable $e ) {
             // Use the remote_download_failed slug and pass the underlying message
-            throw new FileRequestException( 'remote_download_failed', 'Laravel client exception: ' . $e->getMessage() );
+            return new FileRequestException( 'remote_download_failed', 'Laravel client exception: ' . $e->getMessage() );
         }
     }
 
@@ -1182,7 +1179,7 @@ function smliser_download_url( $url, $timeout = 30 ) {
             return $tmp_file;
         }
         @unlink( $tmp_file );
-        throw new FileRequestException( 'remote_download_failed', 'PHP file_get_contents failed.' );
+        return new FileRequestException( 'remote_download_failed', 'PHP file_get_contents failed.' );
     }
 
     if ( function_exists( 'curl_init' ) ) {
@@ -1204,10 +1201,10 @@ function smliser_download_url( $url, $timeout = 30 ) {
         }
         @unlink( $tmp_file );
 
-        throw new FileRequestException( 'remote_download_failed', 'cURL failed. HTTP code: ' . $http_code . ', Error: ' . $err );
+        return new FileRequestException( 'remote_download_failed', 'cURL failed. HTTP code: ' . $http_code . ', Error: ' . $err );
     }
 
-    throw new FileRequestException( 'no_download_method', 'No suitable download method available (WP, Laravel, fopen, cURL).' );
+    return new FileRequestException( 'no_download_method', 'No suitable download method available (WP, Laravel, fopen, cURL).' );
 }
 
 /**
