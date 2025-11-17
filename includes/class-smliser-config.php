@@ -178,11 +178,8 @@ class SmartLicense_config {
         add_action( 'smliser_stats', array( 'Smliser_Stats', 'action_handler' ), 10, 4 );
         add_action( 'wp_ajax_smliser_key_generate', array( 'Smliser_API_Cred', 'admin_create_cred_form' ) );
         add_action( 'wp_ajax_smliser_revoke_key', array( 'Smliser_API_Cred', 'revoke' ) );
-        add_action( 'wp_ajax_smliser_token_gen_form', array( 'Smliser_Plugin_Download_Token', 'ajax_token_form' ) );
-        add_action( 'wp_ajax_smliser_generate_item_token', array( 'Smliser_Plugin_Download_Token', 'get_new_token' ) );
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
-        add_action( 'smliser_clean', array( 'Smliser_Plugin_Download_Token', 'clean_expired_tokens' ) );
 
         add_action( 'wp_enqueue_scripts', array( $this, 'load_styles' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
@@ -762,7 +759,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/smliser-rest-api/bulk-messages.php';
 
         require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
-        require_once SMLISER_PATH . 'includes/monetization/class-license.php';
+        require_once SMLISER_PATH . 'includes/monetization/class-License.php';
         require_once SMLISER_PATH . 'includes/monetization/class-monetization.php';
         require_once SMLISER_PATH . 'includes/monetization/class-DownloadToken.php';
         require_once SMLISER_PATH . 'includes/monetization/class-pricing-tier.php';

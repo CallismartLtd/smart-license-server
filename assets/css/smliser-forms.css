@@ -168,7 +168,7 @@ display: inline-block;
   display:block;
   background-color: #ffffff;
   margin: 80px auto;
-  width: 450px;
+  width: 80%;
   border-radius: 9px;
 }
 .smliser-token-body.added {
@@ -328,6 +328,7 @@ display: inline-block;
   background-color: #fff;
   padding: 10px;
   transform: translate(-50%, -50%);
+  border-radius: 8px;
 }
 
 .smliser-admin-modal_content .remove-modal,

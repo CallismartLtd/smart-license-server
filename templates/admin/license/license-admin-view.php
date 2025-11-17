@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=licenses' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-admin-home"></span> Licenses</a>
     <a href="<?php echo esc_url( smliser_license_admin_action_page( 'edit', $license->get_id() ) ); ?>" class="button action smliser-nav-btn"> <span class="dashicons dashicons-edit"></span> Edit License</a>
     <?php if ( $license->is_issued() && $licensed_app ) : ?>
-        <a data-item-id="<?php echo absint( $licensed_app->get_id() ); ?>" data-license-key="<?php echo esc_attr( $license->get_license_key() ); ?>" data-plugin-name="<?php echo esc_html( $licensed_app->get_name() ); ?>" class="button action smliser-nav-btn" id="smliserDownloadTokenBtn"><span class="dashicons dashicons-download"></span> Generate Download Token</a>
+        <a data-license-id="<?php echo absint( $license->get_id() ); ?>" data-plugin-name="<?php echo esc_html( $licensed_app->get_name() ); ?>" class="button action smliser-nav-btn" id="smliserDownloadTokenBtn"><span class="dashicons dashicons-download"></span> Generate Download Token</a>
     <?php endif;?>
     <a href="<?php echo esc_url( $delete_link ); ?>" class="button action smliser-nav-btn" id="smliser-license-delete-button"> <span class="dashicons dashicons-trash"></span>Delete License</a>
     <div class="smliser-admin-view-page-wrapper">

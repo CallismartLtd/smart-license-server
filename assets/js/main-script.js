@@ -341,11 +341,9 @@ document.addEventListener( 'DOMContentLoaded', function() {
     }
 
     if ( tokenBtn ) {
-        let spinnerDiv          = document.querySelector( '.smliser-loader-container' );
-        let licenseKey          = tokenBtn.getAttribute( 'data-license-key' );
-        let itemId              = tokenBtn.getAttribute( 'data-item-id' );
+        let licenseId           = tokenBtn.getAttribute( 'data-license-id' );
         let pluginName          = tokenBtn.getAttribute( 'data-plugin-name' );
-        let contentContainner   = document.getElementById( 'ajaxContentContainer' );
+        let contentContainer    = document.getElementById( 'ajaxContentContainer' );
         let templateContainer   = document.createElement( 'div' );
         templateContainer.classList.add( 'smliser-gen-token-form-container' )
 
@@ -361,36 +359,34 @@ document.addEventListener( 'DOMContentLoaded', function() {
             <div id="smliserNewToken"></div>
             <div class="smliser-token-expiry-field" id="formBody">
                 <label for="expiryDate">Choose Expiry Date</label>
-                <input type="datetime-Local" id="expiryDate" />
-                <input type="hidden" id="pop-up-license-key" name="license_key" value="${licenseKey}"/>
-                <input type="hidden" id="popup-item-id" name="item_id" value="${itemId}"/>
+                <input type="date" id="expiryDate" />
             </div>
             <button id="createToken" class="button action smliser-nav-btn">generate token</button>
         </div>`;
         templateContainer.innerHTML = bodyContent;
-        jQuery( contentContainner ).hide();
-        contentContainner.appendChild( templateContainer );
+        jQuery( contentContainer ).hide();
+        contentContainer.appendChild( templateContainer );
         
         tokenBtn.addEventListener( 'click', (event) => {
             event.preventDefault();
-            jQuery( contentContainner ).fadeIn();
+            jQuery( contentContainer ).fadeIn();
             
         });
 
-        let removeBtn = document.getElementById( 'remove' );
-        let createTokenBtn = document.getElementById( 'createToken' );
+        let removeBtn       = document.getElementById( 'remove' );
+        let createTokenBtn  = document.getElementById( 'createToken' );
+        
         let removeModal = () =>{
-            jQuery( contentContainner ).fadeOut();
+            jQuery( contentContainer ).fadeOut();
         }
 
         removeBtn.addEventListener( 'click', removeModal );
+
         createTokenBtn.addEventListener( 'click', (event) => {
             event.preventDefault();
             let spinner = document.getElementById('spinner');
             
             let expiryDate = document.getElementById( 'expiryDate' ).value;
-            let licenseKey = document.getElementById( 'pop-up-license-key' ).value;
-            let itemId     = document.getElementById( 'popup-item-id' ).value;
             
             spinner.setAttribute( 'style', 'display: block; border: 5px dotted #000' );
 
@@ -399,21 +395,21 @@ document.addEventListener( 'DOMContentLoaded', function() {
             }
             let url = new URL( smliser_var.smliser_ajax_url );
             let payLoad = new FormData();
-            payLoad.set( 'action', 'smliser_generate_item_token' );
+            payLoad.set( 'action', 'smliser_generate_download_token' );
             payLoad.set( 'security', smliser_var.nonce );
             payLoad.set( 'expiry', expiryDate );
-            payLoad.set( 'license_key', licenseKey );
-            payLoad.set( 'item_id', itemId );
-            fetch(url, {
+            payLoad.set( 'license_id', licenseId );
+
+            fetch( url, {
                 method: 'POST',
                 body: payLoad,
-            }).then(response => {
-                if (!response.ok) {
-                    throw new Error(response.statusText);
+            }).then( response => {
+                if ( ! response.ok ) {
+                    throw new Error( response.statusText );
                 }
                 return response.json();
-            }).then(data => {
-                if (data.success) {
+            }).then( data => {
+                if ( data.success ) {
                     downloadToken = data.data.token;
                     var credentialsDiv = document.createElement('div');
                     credentialsDiv.classList.add( 'smliser-token-body' );

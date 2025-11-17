@@ -17,6 +17,7 @@ use SmartLicenseServer\DownloadsApi\FileRequest;
 use Smliser_Software_Collection as AppCollection;
 use SmartLicenseServer\Exception\FileRequestException;
 use SmartLicenseServer\Monetization\Controller;
+use SmartLicenseServer\Monetization\License;
 
 defined( 'ABSPATH'  ) || exit;
 
@@ -40,7 +41,7 @@ class WPAdapter {
         add_action( 'admin_init', [__CLASS__, 'init_request'] );
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
-        
+        add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
     }
 
     /**
@@ -72,15 +73,15 @@ class WPAdapter {
             'smliser_authorize_app'             => [Smliser_Api_Cred::class, 'oauth_client_consent_handler'],
             'smliser_bulk_action'               => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_all_actions'               => [__CLASS__, 'parse_bulk_action_request'],
+            'smliser_generate_download_token'   => [__CLASS__, 'parse_download_token_generation_request'],
+                    
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {
             $callback   = $handler_map[$trigger];
             is_callable( $callback ) && $callback();
 
-        }
-
-        
+        }        
     }
 
     /**
@@ -449,6 +450,40 @@ class WPAdapter {
         return $template;
     }
 
+    /**
+     * Parse donwload token generation request
+     *
+     * @return void
+     */
+    private static function parse_download_token_generation_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            \smliser_send_json_error( array( 'message' => 'Invalid CSRF token, please refresh current page.' ) );
+        }
+        if ( ! current_user_can( 'install_plugins' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to do this.') );
+        }
+        
+        $license_id = \smliser_get_post_param( 'license_id', null ) ?? \smliser_send_json_error( array( 'message' => 'License ID is required.' ) );
+        $expiry     = \smliser_get_post_param( 'expiry', 10 * \DAY_IN_SECONDS ) ?: 10 * \DAY_IN_SECONDS;
+
+        $license    = License::get_by_id( $license_id );
+
+        if ( ! $license ) {
+            \smliser_send_json_error( array( 'message' => 'This license does not exist.' ) );
+        }
+
+        if ( \is_string( $expiry ) ) {
+            $expiry = \strtotime( $expiry ) - time();
+            if ( $expiry < 0 ) {
+                $expiry = 10 * \DAY_IN_SECONDS;
+            }
+        }
+
+        $token  = \smliser_generate_item_token( $license, $expiry );
+
+        smliser_send_json_success( array( 'token' => $token ) );
+
+    }
     /*
     |----------------
     |UTILITY METHODS

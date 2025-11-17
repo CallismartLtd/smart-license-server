@@ -636,7 +636,6 @@ class License {
         }
 
         return false !== $deleted;
-
     }
 
     /**

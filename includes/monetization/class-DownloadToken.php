@@ -264,6 +264,19 @@ class DownloadToken {
         return $row ? self::from_array( $row ) : null;
     }
 
+    /**
+     * Clean expired tokens
+     */
+    public static function clean_expired_tokens() {
+        $db     = \smliser_dbclass();
+        $table  = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
+
+        $sql    = "DELETE FROM {$table} WHERE expiry < ?";
+
+        $db->query( $sql, [\time()] );
+
+    }
+
     /*
     |-----------------
     | UTILITY METHODS
