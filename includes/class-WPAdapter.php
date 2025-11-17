@@ -17,6 +17,7 @@ use SmartLicenseServer\DownloadsApi\FileRequest;
 use Smliser_Software_Collection as AppCollection;
 use SmartLicenseServer\Exception\FileRequestException;
 use SmartLicenseServer\Monetization\Controller;
+use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'ABSPATH'  ) || exit;
