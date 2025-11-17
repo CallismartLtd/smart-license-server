@@ -965,10 +965,6 @@ class SmartLicense_config {
      * Schedule event.
      */
     public function run_automation() {
-        if ( ! wp_next_scheduled( 'smliser_validate_license' ) ) {
-			wp_schedule_event( time(), 'smliser_three_minutely', 'smliser_validate_license' );
-		}
-
         if ( ! wp_next_scheduled( 'smliser_clean' ) ) {
             wp_schedule_event( time(), 'smliser_4_hourly', 'smliser_clean' );
         }
