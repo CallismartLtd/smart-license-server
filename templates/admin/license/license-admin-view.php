@@ -6,6 +6,7 @@
  * @package Smliser\templates.
  * @since 1.0.0
  * @var \SmartLicenseServer\Monetization\License $license
+ * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $licensed_app
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -50,19 +51,30 @@ defined( 'ABSPATH' ) || exit;
         <div id="ajaxContentContainer"></div>
 
         <div class="smliser-admin-view-page-body">
-            <table class="widefat striped smliser-license-table">
+            <table class="widefat smliser-license-table">
                 <tbody>
                     <tr>
                         <th>License ID</th>
                         <td><?php echo esc_html( absint( $license->get_id() ) ); ?></td>
                     </tr>
-
+ 
                     <tr>
-                        <th>Plugin Name</th>
+                        <th>Is issued</th>
                         <td>
                             <?php if ( $license->is_issued() ) : ?>
-                                <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', $licensed_app->get_item_id() ) ); ?>">
-                                    <?php echo esc_html( $licensed_app->get_name() ); ?>
+                                <span class="dashicons dashicons-yes-alt"></span>
+                            <?php else: ?>
+                                <span class="dashicons dashicons-no"></span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>App Info</th>
+                        <td>
+                            <?php if ( $license->is_issued() ) : ?>
+                                <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', $licensed_app->get_id() ) ); ?>">
+                                    <?php echo esc_html( $licensed_app->get_name() ); ?> » <?php printf( '%s/%s', esc_html( $licensed_app->get_type() ), esc_html( $licensed_app->get_slug() ) ) ?>
                                 </a>
                             <?php else : ?>
                                 <span>N/L</span>
