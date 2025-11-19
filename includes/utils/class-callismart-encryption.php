@@ -1,5 +1,5 @@
 <?php
-namespace Callismart\Utilities;
+namespace Callismart\Utils;
 
 use SmartLicenseServer\Exception;
 

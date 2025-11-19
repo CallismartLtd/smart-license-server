@@ -10,6 +10,10 @@
 
 namespace SmartLicenseServer;
 
+use \SmartLicenseServer\Utils\MDParser;
+
+use function SmartLicenseServer\Utils\smliser_markdown_parser;
+
 defined( 'ABSPATH' ) || exit;
 
 class PluginRepository extends Repository {
@@ -17,7 +21,7 @@ class PluginRepository extends Repository {
     /**
      * Our readme parser class.
      * 
-     * @var Callismart_Markdown_to_HTML $parser
+     * @var MDParser $parser
      */
     protected $parser;
 
@@ -27,9 +31,8 @@ class PluginRepository extends Repository {
      * Always bind to the `plugins` subdirectory.
      */
     public function __construct() {
-        global $smliser_md_html;
         parent::__construct( 'plugins' );
-        $this->parser = $smliser_md_html;
+        $this->parser = smliser_markdown_parser();
     }
     
     /**

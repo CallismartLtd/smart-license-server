@@ -1,0 +1,14 @@
+{
+    "name": "callismartltd/smart-license-server",
+    "description": "Custom software, WordPress plugin and theme repository",
+    "license": "gpl 3.0",
+    "authors": [
+        {
+            "name": "CallismartLtd",
+            "email": "admin@callismart.com.ng"
+        }
+    ],
+    "require": {
+        "league/commonmark": "^2.7"
+    }
+}
