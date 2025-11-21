@@ -12,7 +12,7 @@ namespace SmartLicenseServer;
 
 use \SmartLicenseServer\Utils\MDParser;
 
-use function SmartLicenseServer\Utils\smliser_markdown_parser;
+use function SmartLicenseServer\Utils\md_parser;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -32,7 +32,7 @@ class PluginRepository extends Repository {
      */
     public function __construct() {
         parent::__construct( 'plugins' );
-        $this->parser = smliser_markdown_parser();
+        $this->parser = md_parser();
     }
     
     /**
@@ -553,6 +553,9 @@ class PluginRepository extends Repository {
         if ( ! $readme_contents ) {
             return '';
         }
+
+        // Normalize line endings
+        $readme_contents = str_replace( ["\r\n", "\r"], "\n", $readme_contents );
         
         // Step 1: Start from Description block
         if ( preg_match('/==\s*Description\s*==\s*(.+)/si', $readme_contents, $matches) ) {
@@ -561,9 +564,8 @@ class PluginRepository extends Repository {
             // Step 2: Remove official sections that might appear afterwards
             $official_sections = ['Installation', 'Changelog', 'Frequently Asked Questions', 'Screenshots', 'Upgrade Notice'];
             foreach ( $official_sections as $section ) {
-                // Remove everything from == Section == to the next ==
-                $pattern = '/==\s*' . preg_quote($section, '/') . '\s*==.*?(?==\s*\w+\s*==|$)/si';
-                $description = preg_replace( $pattern, '', $description );
+                $pattern = '/==\s*' . preg_quote( $section, '/' ) . '\s*==.*?(?=^==\s*\w.*==|\z)/msi';
+                $description = preg_replace( $pattern, '', $description );;
             }
 
             // Step 3: Optional cleanup of stray metadata lines
@@ -586,7 +588,7 @@ class PluginRepository extends Repository {
             }
 
             $final_text = implode("\n", $cleaned);
-            return $this->parser->parse( esc_html($final_text) );
+            return $this->parser->parse( $final_text );
         }
 
     }

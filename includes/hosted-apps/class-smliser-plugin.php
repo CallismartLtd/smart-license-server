@@ -14,7 +14,7 @@ use SmartLicenseServer\Exception;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Class representation of plugin meta data
+ * Represents a typical plugin hosted in this repository.
  */
 class Smliser_Plugin implements Hosted_Apps_Interface {
     /**

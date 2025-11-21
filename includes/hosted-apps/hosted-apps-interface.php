@@ -232,22 +232,4 @@ interface Hosted_Apps_Interface {
      * @return string
      */
     public function get_zip_file();
-
-    // /**
-    //  * Get the assets for a given hosted application.
-    //  * 
-    //  * @param string $slug The application slug.
-    //  * @param string $type The application type.
-    //  */
-    // public function get_assets( string $slug, string $type );
-
-    // /**
-    //  * Get the path to a given hosted application.
-    //  * 
-    //  * 
-    //  * @param string $slug The application slug.
-    //  * @param string $filename The filename inside the application directory.
-    //  * @return string|\WP_Error The asset path or WP_Error on failure.
-    //  */
-    // public function get_asset_path( string $slug, string $filename );
 }
