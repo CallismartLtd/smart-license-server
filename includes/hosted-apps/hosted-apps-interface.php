@@ -9,6 +9,7 @@
  */
 
 namespace SmartLicenseServer\HostedApps;
+use SmartLicenseServer\Exception;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -182,7 +183,7 @@ interface Hosted_Apps_Interface {
     /**
      * Save or update the application data.
      * 
-     * @return true|\WP_Error True on success, WordPress Error on failure
+     * @return true|Exception True on success, WordPress Error on failure
      */
     public function save();
 
