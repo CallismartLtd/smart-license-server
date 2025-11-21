@@ -29,8 +29,8 @@ defined( 'SMLISER_PATH' ) || exit;
  * @method void begin_transaction()
  * @method void commit()
  * @method void rollback()
- * @method string|null get_last_error()
- * @method int|null get_insert_id()
+ * @method string|null get_last_error() Get last database error.
+ * @method int|null get_insert_id() Get the last insertion ID
  */
 
 class Database {
