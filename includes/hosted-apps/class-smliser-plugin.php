@@ -18,9 +18,18 @@ defined( 'ABSPATH' ) || exit;
  */
 class Smliser_Plugin implements Hosted_Apps_Interface {
     /**
-     * A singleton instance of this class
+     * The plugin database table name.
+     * 
+     * @var string
      */
-    protected static $instance = null;
+    const TABLE = SMLISER_PLUGIN_ITEM_TABLE;
+
+    /**
+     * Plugin metadata table
+     * 
+     * @var string
+     */
+    const META_TABLE = SMLISER_PLUGIN_META_TABLE;
 
     /**
      * Item ID.
@@ -200,16 +209,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * Class constructor.
      */
     public function __construct() {}
-
-    /**
-     * Instanciate a single instance of this class
-     */
-    public static function instance() {
-        if ( is_null( self::$instance ) ) {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }
 
     /**
      * Get application type
@@ -796,29 +795,22 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     */
 
     /**
-     * Get a plugin by slug.
+     * Get a plugin by it's slug.
      * 
-     * @param string $value The  plugin slug.
-     * @return self|null    The plugin object or null if not found.
+     * @param string $slug The plugin slug.
+     * @return self|null   The plugin object or null if not found.
      */
+    public static function get_by_slug( $slug ) {
+        $db     = smliser_dbclass();
+        $table  = self::TABLE;
+        $slug   = basename( $slug, '.zip' );
 
-    public static function get_by_slug( $value ) {
-        global $wpdb;
-
-        /**
-         * @var wpdb $wpdb
-         */
-
-        $value = basename( $value, '.zip' );
-
-        if ( ! is_string( $value ) || empty( $value ) ) {
+        if ( ! is_string( $slug ) || empty( $slug ) ) {
             return null;
         }        
     
-        // phpcs:disable 
-        $query      = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE `slug` = %s", $value );
-        $result = $wpdb->get_row( $query, ARRAY_A );
-        // phpcs:enable
+        $sql    = "SELECT * FROM {$table} WHERE `slug` = ?";
+        $result = $db->get_row( $sql, [$slug] );
 
         if ( ! empty( $result ) ){
             return self::from_array( $result );
@@ -834,16 +826,17 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @return self|null
      */
     public static function get_plugin( $id = 0 ) {
-        $id = absint( $id );
+        $db     = smliser_dbclass();
+        $table  = self::TABLE;
+        $id     = absint( $id );
+
         if ( empty( $id ) ) {
             return null;
         }
 
-        // phpcs:disable
-        global $wpdb;
-        $query  = $wpdb->prepare( "SELECT * FROM " . SMLISER_PLUGIN_ITEM_TABLE . " WHERE `id` = %d", $id );
-        $result = $wpdb->get_row( $query, ARRAY_A );
-        // phpcs:enable
+        $sql    = "SELECT * FROM {$table} WHERE `id` = ?";
+        $result = $db->get_row( $sql, [$id] );
+
         if ( $result ) {
             return self::from_array( $result );
         }
@@ -858,7 +851,8 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @return self[] An array of Smliser_Plugin objects.
      */
     public static function get_plugins( $args = array() ) {
-        global $wpdb;
+        $db     = smliser_dbclass();
+        $table  = self::TABLE;
 
         $default_args = array(
             'page'      => 1,
@@ -866,12 +860,13 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         );
 
         $parsed_args = parse_args( $args, $default_args );
+        $page       = $parsed_args['page'];
+        $limit      = $parsed_args['page'];
 
-        $offset     = ( absint( $parsed_args['page'] ) - 1 ) * absint( $parsed_args['limit'] );
-        $table_name = SMLISER_PLUGIN_ITEM_TABLE;
+        $offset     = $db->calculate_query_offset( $page, $limit );
 
-        $query      = $wpdb->prepare( "SELECT * FROM {$table_name} ORDER BY id ASC LIMIT %d OFFSET %d", absint( $parsed_args['limit'] ), absint( $offset ) );
-        $results    = $wpdb->get_results( $query, ARRAY_A );
+        $sql        = "SELECT * FROM {$table} ORDER BY id ASC LIMIT ? OFFSET ?";
+        $results    = $db->get_results( $sql, [$limit, $offset] );
         $plugins    = array();
 
         if ( $results ) {
@@ -889,8 +884,9 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * 
      * @return true|Exception True on success, false on failure.
      */
-    public function save() {
-        global $wpdb;
+    public function save() : true|Exception {
+        $db     = smliser_dbclass();
+        $table  = self::TABLE;
 
         $file           = $this->file;
         $filename       = strtolower( str_replace( ' ', '-', $this->get_name() ) );
@@ -923,16 +919,8 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
                 }
             }
 
-            $plugin_data['last_updated']    = current_time( 'mysql' );
-            $data_formats[]                 = '%s';
-            
-            $result = $wpdb->update(
-                SMLISER_PLUGIN_ITEM_TABLE,
-                $plugin_data,
-                array( 'id' => absint( $this->get_id() ) ),
-                $data_formats,
-                array( '%d' )
-            );
+            $plugin_data['last_updated']    = current_time( 'mysql' );            
+            $result = $db->update( $table, $plugin_data, array( 'id' => absint( $this->get_id() ) ) );
 
         } else {
             if ( ! is_array( $file ) ) {
@@ -950,32 +938,21 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             $plugin_data['slug']        = $this->get_slug();
             $plugin_data['created_at']  = current_time( 'mysql' );
 
-            $data_formats = $data_formats + array( '%s', '%s' );
+            $result = $db->insert( $table, $plugin_data );
 
-            $result = $wpdb->insert( 
-                SMLISER_PLUGIN_ITEM_TABLE, 
-                $plugin_data, 
-                $data_formats
-            );
-
-            $this->set_id( $wpdb->insert_id );
+            $this->set_id( $db->get_insert_id() );
         }
 
-
-        if ( false !== $result ) {
-            do_action( 'smliser_plugin_saved', $this );
-            delete_transient( 'smliser_total_plugins' );
-            return true;
-        }
-
-        return new Exception( 'db_insert_error', $wpdb->last_error );
+        return ( false !== $result ) ? true : new Exception( 'db_insert_error', $db->get_last_error() );
     }
 
     /**
      * Delete a plugin.
+     * 
+     * @return bool True on success, false on otherwise.
      */
-    public function delete() {
-        global $wpdb;
+    public function delete() : bool {
+        $db     = smliser_dbclass();
 
         if ( empty( $this->item_id ) ) {
             return false; // A valid plugin should have an ID.
@@ -983,17 +960,17 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     
         $repo_class = new PluginRepository();
         
-        $item_id        = $this->get_item_id();
+        $id             = $this->get_id();
         $file_delete    = $repo_class->delete_from_repo( $this->get_slug() );
 
         if ( is_smliser_error( $file_delete ) ) {
             return $file_delete;
         }
 
-        $plugin_deletion    = $wpdb->delete( SMLISER_PLUGIN_ITEM_TABLE, array( 'id' => $item_id ), array( '%d' ) );
-        $meta_deletion      = $wpdb->delete( SMLISER_PLUGIN_META_TABLE, array( 'plugin_id' => $item_id ), array( '%d' ) );
+        $plugin_deletion    = $db->delete( self::TABLE, array( 'id' => $id ) );
+        $meta_deletion      = $db->delete( self::META_TABLE, array( 'plugin_id' => $id ) );
 
-        return $plugin_deletion && $meta_deletion !== false;
+        return ( $plugin_deletion || $meta_deletion ) !== false;
     }
 
     /**
@@ -1004,7 +981,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @return bool True on success, false on failure.
      */
     public function add_meta( $key, $value ) {
-        global $wpdb;
+        $db     = smliser_dbclass();
 
         // Sanitize inputs
         $item_id    = absint( $this->get_item_id() );
@@ -1018,12 +995,9 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'meta_value'    => $meta_value,
         );
 
-        $data_format = array( '%d', '%s', '%s' );
-
-        $result = $wpdb->insert( SMLISER_PLUGIN_META_TABLE, $data, $data_format );
+        $result = $db->insert( self::META_TABLE, $data );
+        
         return $result !== false;
-
-        return false;
     }
 
     /**
@@ -1037,11 +1011,11 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         if ( ! $this->get_item_id() ) {
             return false;
         }
-        global $wpdb;
+        $db     = smliser_dbclass();
+        $table  = self::TABLE;
 
-        $table_name = SMLISER_PLUGIN_META_TABLE;
-        $key        = sanitize_text_field( $key );
-        $value      = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value );
+        $key    = sanitize_text_field( $key );
+        $value  = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value );
 
         // Prepare data for insertion/update.
         $data = array(
@@ -1050,31 +1024,20 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'meta_value'    => $value,
         );
 
-        $data_format = array( '%d', '%s', '%s' );
+        $meta_id = $db->get_var( "SELECT `id` FROM {$table} WHERE `plugin_id` = ? AND `meta_key` = ?", [absint( $this->get_item_id() ), $key] );
 
-        // Check if the meta_key already exists for the given plugin ID
-        $exists = $wpdb->get_var( $wpdb->prepare(
-            "SELECT 1 FROM {$table_name} WHERE plugin_id = %d AND meta_key = %s",
-            absint( $this->get_item_id() ),
-            $key
-        ) );
-
-        if ( ! $exists ) {
-            // Insert new record if it doesn't exist
-            $inserted = $wpdb->insert( $table_name, $data, $data_format );
+        if ( ! $meta_id ) {
+            $inserted = $db->insert( $table, $data );
 
             return $inserted !== false;
         } else {
-            // Update existing record
-            $updated = $wpdb->update(
-                $table_name,
+            $updated = $db->update( $table, 
                 array( 'meta_value' => $value ),
                 array(
                     'plugin_id' => absint( $this->get_item_id() ),
-                    'meta_key'   => $key,
-                ),
-                array( '%s' ),
-                array( '%d', '%s' )
+                    'id'        => $meta_id,
+                    'meta_key'  => $key,
+                )
             );
 
             return $updated !== false;
@@ -1089,15 +1052,14 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @return mixed|null $value The value.
      */
     public function get_meta( $meta_key, $default_to = null ) {
-        global $wpdb;
+        $db     = smliser_dbclass();
+        $table  = self::META_TABLE;
 
-        $query  = $wpdb->prepare( 
-            "SELECT `meta_value` FROM " . SMLISER_PLUGIN_META_TABLE . " WHERE `plugin_id` = %d AND `meta_key` = %s", 
-            absint( $this->get_item_id() ), 
-            sanitize_text_field( $meta_key )
-        );
+        $sql    = "SELECT `meta_value` FROM {$table} WHERE `plugin_id` = ? AND `meta_key` = ?";
+        $params = [absint( $this->get_item_id() ), sanitize_text_field( $meta_key )];
+        
 
-        $result = $wpdb->get_var( $query );
+        $result = $db->get_var( $sql, $params );
 
         if ( is_null( $result ) ) {
             return $default_to;
@@ -1112,7 +1074,8 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @return bool True on success, false on failure.
      */
     public function delete_meta( $meta_key ) {
-        global $wpdb;
+        $db     = smliser_dbclass();
+        $table  = self::META_TABLE;
 
         $item_id    = absint( $this->get_item_id() );
         $meta_key   = sanitize_text_field( $meta_key );
@@ -1121,12 +1084,8 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'meta_key'  => $meta_key
         );
 
-        $where_format = array( '%d', '%s' );
+        $deleted = $db->delete( $table, $where );
 
-        // Execute the delete query
-        $deleted = $wpdb->delete( SMLISER_PLUGIN_META_TABLE, $where, $where_format );
-
-        // Return true on success, false on failure
         return $deleted !== false;
     }
 
@@ -1227,7 +1186,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'type'              => $this->get_type(),
             'slug'              => $pseudo_slug ,
             'version'           => $this->get_version(),
-            'author'            => '<a href="' . esc_url( $this->get_author_profile() ) . '">' . $this->get_author() . '</a>',
+            'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile(), $this->get_author() ),
             'author_profile'    => $this->get_author_profile(),
             'homepage'          => $this->get_homepage(),
             'package'           => $this->get_download_link(),
@@ -1266,11 +1225,11 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @return bool true if monetized, false otherwise.
      */
     public function is_monetized() : bool {
-        global $wpdb;
+        $db         = smliser_dbclass();
         $table_name = SMLISER_MONETIZATION_TABLE;
-        $query = $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = %s AND `item_id` = %d AND `enabled` = %s", $this->get_type(), absint( $this->item_id ), '1' );
-
-        return $wpdb->get_var( $query ) > 0; // phpcs:disable
+        $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = ? AND `item_id` = ? AND `enabled` = ?";
+        $params     = [$this->get_type(), absint( $this->item_id ), '1'];
+        return $db->get_var( $query, $params ) > 0;
     }
 
     /**
