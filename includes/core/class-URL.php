@@ -277,6 +277,15 @@ class URL {
     }
 
     /**
+     * Tells wether the url is valid
+     * 
+     * @param bool $dns_check Whether to perform DNS lookup for the host. Default false.
+     */
+    public function is_valid( $dns_check = false ) : bool {
+        return true === $this->validate( $dns_check );
+    }
+
+    /**
      * Check if the URL uses HTTPS scheme.
      *
      * @return bool True if URL scheme is https, false otherwise.
