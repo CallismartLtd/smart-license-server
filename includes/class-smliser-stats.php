@@ -106,7 +106,7 @@ class Smliser_Stats {
         $total_plugins = get_transient( 'smliser_total_plugins' );
 
         if ( false === $total_plugins ) {
-            $total_plugins = count( $this->plugin()->get_plugins() );
+            $total_plugins = 10;
             set_transient( 'smliser_total_plugins', absint( $total_plugins ), 7 * DAY_IN_SECONDS );
         }
 
@@ -120,7 +120,7 @@ class Smliser_Stats {
      * @return bool true on success| false otherwise.
      */
     public function log_download( $plugin_id ) {
-        $this->plugin()->set_item_id( $plugin_id );
+        $this->plugin()->set_id( $plugin_id );
         
         $current_timestamp      = current_time( 'timestamp' );
         $download_timestamps    = $this->plugin()->get_meta( 'download_timestamps', array() );
@@ -142,7 +142,7 @@ class Smliser_Stats {
      */
     public function get_downloads( $plugin_id ) {
         
-        $this->plugin()->set_item_id( $plugin_id );
+        $this->plugin()->set_id( $plugin_id );
         return $this->plugin()->get_meta( 'download_count', 0 );
     }
 
@@ -152,7 +152,6 @@ class Smliser_Stats {
      * @return int $count The total plugin downloads served
      */
     public function get_total_downloads_served() {
-        // delete_transient( 'smliser_total_served_downloads' );
         $count = get_transient( 'smliser_total_served_downloads' );
 
         if ( false === $count ) {
@@ -177,7 +176,7 @@ class Smliser_Stats {
      * @return float|int Average daily downloads.
      */
     public function get_average_daily_downloads( $plugin_id ) {
-        $this->plugin()->set_item_id( $plugin_id );
+        $this->plugin()->set_id( $plugin_id );
 
         $download_count         = $this->plugin()->get_meta( 'download_count', 0 );
         $download_timestamps    = $this->plugin()->get_meta( 'download_timestamps', array() );
