@@ -1,4 +1,403 @@
 <?php
 /**
+ * The Smliser_Theme class file
  * 
+ * @author Callistus Nwachukwu <admin@callismart.com.ng>
+ * @package Smliser_Hosted_Application.
  */
+
+use SmartLicenseServer\Exception;
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Represents a typical theme hosted in the repository.
+ */
+class Smliser_Theme extends AbstractHostedApp {
+    /**
+     * The database table for themes.
+     * 
+     * @var string
+     */
+    const TABLE = SMLISER_THEME_ITEM_TABLE;
+
+    /**
+     * The theme metadata table
+     * 
+     * @var string
+     */
+    const META_TABLE    = SMLISER_THEME_META_TABLE;
+
+    /**
+     * Author .
+     * 
+     * @var array $author The properties of the theme author.
+     */
+    protected $author = [
+        'user_nicename' => '',
+        'profile'       => '',
+        'avatar'        => '',
+        'display_name'  => '',
+        'author'        => '',
+        'author_url'    => ''
+    ];
+
+    /**
+     * The url to the theme's screenshot.png file
+     * 
+     * @var string $screenshot_url
+     */
+    protected $screenshot_url = '';
+
+    /**
+     * Theme homepage URL
+     * 
+     * @var string $homepage
+     */
+    protected $homepage = '';
+
+
+    /**
+     * Number of downloads
+     * 
+     * @var int $downloaded
+     */
+    protected $downloaded = 0;
+
+    /**
+     * Theme creation time
+     * 
+     * @var string $creation_time
+     */
+    protected $creation_time = '';
+
+    /**
+     * The theme sections
+     * @var array $sections
+     */
+    protected $sections = [
+        'description'   => ''
+    ];
+
+    /**
+     * Short description.
+     * 
+     * @var string $short_description A brief description of the theme.
+     */
+    protected $short_description = '';
+
+    /**
+     * An array of different theme screenshots.
+     * 
+     * @var array $screenshots
+     */
+    protected $screenshots = array();
+
+    /**
+     * An array of of theme icons.
+     * 
+     * @var array $screenshots
+     */
+    protected $icons = array();
+
+    /**
+     * The theme zip file download link.
+     * 
+     * @var string $download_link
+     */
+    protected $download_link = '';
+
+    /**
+     * The searchable tags for the theme.
+     * 
+     * @var array $tags
+     */
+    protected $tags = [];
+
+    /**
+     * The theme file
+     * 
+     * @var string|array $file Absolute path to the theme zip file or an array of uploaded file.
+     */
+    protected $file;
+
+    /**
+     * Class constructor
+     */
+    public function __construct() {}
+
+    /**
+     * Get application type
+     * @return string
+     */
+    public function get_type() {
+        return 'theme';
+    }
+
+    /**
+     * Get the author profile URL
+     * 
+     * @return string
+     */
+    public function get_author_profile() {
+        return $this->author['author_url'];
+    }
+
+    /**
+     * Get the absolute path to the plugin zip file
+     * 
+     * @return string|Exception The file path or Exception on failure.
+     */
+    public function get_zip_file() {
+        $file = $this->file;
+        if ( ! is_array( $file ) ) {
+            return $file;
+        }
+
+        if ( is_array( $file ) && isset( $file['tempname'] ) ) {
+            return $file['tempname'];
+        }
+
+        return new Exception( 'file_not_found', __( 'Plugin file not found.', 'smliser' ), array( 'status' => 404 ) );
+    }
+    /**
+    |--------------
+    | CRUD METHODS
+    |--------------
+    */
+
+    /**
+     * Get a theme by its id
+     * 
+     * @param int $id
+     * @return self|null
+     */
+    public static function get_theme( $id = 0 ) {
+        $db     = smliser_dbclass();
+        $table  = self::TABLE;
+        $id     = absint( $id );
+
+        if ( empty( $id ) ) {
+            return null;
+        }
+
+        $sql    = "SELECT * FROM {$table} WHERE `id` = ?";
+        $result = $db->get_row( $sql, [$id] );
+
+        if ( $result ) {
+            return self::from_array( $result );
+        }
+
+        return null;
+    }
+
+    /**
+     * Create new theme or update the existing one.
+     * 
+     * @return true|Exception True on success, false on failure.
+     */
+    public function save() : true|Exception {
+        $db     = smliser_dbclass();
+        $table  = self::TABLE;
+
+        $file           = $this->file;
+        $filename       = strtolower( str_replace( ' ', '-', $this->get_name() ) );
+        $repo_class     = new PluginRepository();
+
+        // $plugin_data = array(
+        //     'name'          => $this->get_name(),
+        //     'version'       => $this->get_version(),
+        //     'author'        => $this->get_author(),
+        //     'author_profile'=> $this->get_author_profile(),
+        //     'requires'      => $this->get_required(),
+        //     'tested'        => $this->get_tested(),
+        //     'requires_php'  => $this->get_required_php(),
+        //     'download_link' => $this->get_download_link(),
+        // );
+
+        $data_formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' );
+
+        if ( $this->get_id() ) {
+            if ( is_array( $this->file ) ) {
+                $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
+                if ( is_smliser_error( $slug ) ) {
+                    return $slug;
+                }
+
+                if ( $slug !== $this->get_slug() ) {
+                    $plugin_data['slug'] = $slug;
+                    $data_formats[]      = '%s';
+                    $this->set_slug( $slug );
+                }
+            }
+
+            $plugin_data['last_updated']    = current_time( 'mysql' );            
+            $result = $db->update( $table, $plugin_data, array( 'id' => absint( $this->get_id() ) ) );
+
+        } else {
+            if ( ! is_array( $file ) ) {
+                return new Exception( 'no_file_provided', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
+            }
+
+            $slug = $repo_class->upload_zip( $file, $filename );
+
+            if ( is_smliser_error( $slug ) ) {
+                return $slug;
+            }
+
+            $this->set_slug( $slug );
+
+            $plugin_data['slug']        = $this->get_slug();
+            $plugin_data['created_at']  = current_time( 'mysql' );
+
+            $result = $db->insert( $table, $plugin_data );
+
+            $this->set_id( $db->get_insert_id() );
+        }
+
+        return ( false !== $result ) ? true : new Exception( 'db_insert_error', $db->get_last_error() );
+    }
+
+    /**
+     * Delete a plugin.
+     * 
+     * @return bool True on success, false on otherwise.
+     */
+    public function delete() : bool {
+        $db     = smliser_dbclass();
+
+        if ( empty( $this->item_id ) ) {
+            return false; // A valid plugin should have an ID.
+        }
+    
+        $repo_class = new PluginRepository();
+        
+        $id             = $this->get_id();
+        $file_delete    = $repo_class->delete_from_repo( $this->get_slug() );
+
+        if ( is_smliser_error( $file_delete ) ) {
+            return $file_delete;
+        }
+
+        $plugin_deletion    = $db->delete( self::TABLE, array( 'id' => $id ) );
+        $meta_deletion      = $db->delete( self::META_TABLE, array( 'plugin_id' => $id ) );
+
+        return ( $plugin_deletion || $meta_deletion ) !== false;
+    }
+
+    /**
+     * Get the database table name.
+     * 
+     * @return string
+     */
+    public static function get_db_table() : string {
+        return self::TABLE;
+    }
+
+    /**
+     * Get the database table name.
+     * 
+     * @return string
+     */
+    public static function get_db_meta_table() : string {
+        return self::META_TABLE;
+    }
+
+    /**
+    |--------------------
+    | UTILITY METHODS
+    |--------------------
+    */
+
+    /**
+     * Converts associative array to object of this class.
+     */
+    public static function from_array( $result ) {
+        // $self = new self();
+        // $self->set_item_id( $result['id'] ?? 0 );
+        // $self->set_name( $result['name'] ?? '' );
+        // $self->set_slug( $result['slug'] ?? '' );
+        // $self->set_version( $result['version'] ?? '' );
+        // $self->set_author( $result['author'] ?? '' );
+        // $self->set_author_profile( $result['author_profile'] ?? '' );
+        // $self->set_required( $result['requires'] ?? '' );
+        // $self->set_tested( $result['tested'] ?? '' );
+        // $self->set_required_php( $result['requires_php'] ?? '' );
+        // $self->set_download_link( $result['download_link'] ?? '' );
+        // $self->set_created_at( $result['created_at'] ?? '' );
+        // $self->set_last_updated( $result['last_updated'] ?? '' );
+        // $self->set_homepage( $self->get_meta( 'homepage_url', '#' ) );
+        
+        // /** 
+        //  * Set file information
+        //  * 
+        //  * @var SmartLicenseServer\PluginRepository $repo_class
+        //  */
+        // $repo_class         = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
+        // $plugin_file_path   = $repo_class->locate( $self->get_slug() );
+        // if ( ! is_smliser_error( $plugin_file_path ) ) {
+        //     $self->set_file( $plugin_file_path );
+        // } else {
+        //     $self->set_file( null );
+        // }
+
+        // /** 
+        //  * Section informations 
+        //  */
+        // $sections = array(
+        //     'description'   => $repo_class->get_description( $self->get_slug() ),
+        //     'changelog'     => $repo_class->get_changelog( $self->get_slug() ),
+        //     'installation'  => $repo_class->get_installation( $self->get_slug() ),
+        //     'screenshots'   => $repo_class->get_screenshot_html( $self->get_slug() ),
+        // );
+        // $self->set_section( $sections );
+
+        // /**
+        //  * Icons
+        //  */
+        // $self->set_icons( $repo_class->get_assets( $self->get_slug(), 'icons' ) );
+
+        // /**
+        //  * Screenshots
+        //  */
+        // $self->set_screenshots( $repo_class->get_screenshots( $self->get_slug() ) );
+
+        // /**
+        //  *  Banners.
+        //  */
+        // $self->set_banners( $repo_class->get_assets( $self->get_slug(), 'banners' ) );
+
+        // /**
+        //  * Set short description
+        //  */
+        // $self->short_description = $repo_class->get_short_description( $self->get_slug() );
+
+        // $self->set_ratings( $self->get_meta( 'ratings', 
+        //     array(
+        //         '5' => 0,
+        //         '4' => 0,
+        //         '3' => 0,
+        //         '2' => 0,
+        //         '1' => 0,
+        //     )
+        // ));
+
+        // $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
+        // $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
+
+        // return $self;
+    }
+
+    /**
+     * Get the REST API response object for themes
+     * 
+     * @return array
+     */
+    public function get_rest_response() : array {
+
+
+        return array();
+    }
+
+}

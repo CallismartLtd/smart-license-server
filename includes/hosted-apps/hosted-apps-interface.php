@@ -40,11 +40,11 @@ interface Hosted_Apps_Interface {
     public function set_name( $name );
 
     /**
-     * Set app author name
+     * Set app author
      * 
-     * @param string $name
+     * @param string|array $value
      */
-    public function set_author( $name );
+    public function set_author( $value );
 
     /**
      * Set app homepage URL

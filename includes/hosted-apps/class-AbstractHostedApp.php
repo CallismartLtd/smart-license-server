@@ -1,0 +1,560 @@
+<?php
+/**
+ * AbstractHostedApp class file
+ * 
+ * @author Callistus Nwachukwu <admin@callismart.com.ng>
+ * @package SmartLicenseServer\HostedApps
+ */
+namespace SmartLicenseServer\HostedApps;
+
+use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Monetization\Monetization;
+use SmartLicenseServer\Exception;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Abstract Hosted Application Base Class
+ * Provides shared implementation for Hosted_Apps_Interface.
+ * 
+ * @package SmartLicenseServer\HostedApps
+ */
+abstract class AbstractHostedApp implements Hosted_Apps_Interface {
+
+    /**
+     * App database ID
+     * 
+     * @var int $id The app ID.
+     */
+    protected $id = 0;
+
+    /**
+     * The name of the app..
+     * 
+     * @var string $name The app's name.
+     */
+    protected $name = '';
+
+    /**
+     * App slug.
+     * 
+     * @var string $slug app slug.
+     */
+    protected $slug = '';
+
+    /**
+     * App Version.
+     * 
+     * @var string $version The current version of the app.
+     */
+    protected $version = '';
+
+    /**
+     * Author .
+     * 
+     * @var string|array $author The author of the app
+     */
+    protected $author;
+
+    /**
+     * Author profile.
+     * 
+     * @var string $author_profile The author's app link or information.
+     */
+    protected $author_profile = '';
+
+    /**
+     * WordPress version requirement.
+     * 
+     * @var string $requires The minimum WordPress version required to run the app.
+     */
+    protected $requires = '';
+
+    /**
+     * Version Tested up to.
+     * 
+     * @var string $tested The latest WordPress version the app has been tested with.
+     */
+    protected $tested = '';
+
+    /**
+     * PHP version requirement.
+     * 
+     * @var string $requires_php The minimum PHP version required to run the app.
+     */
+    protected $requires_php = '';
+
+    /**
+     * Update time.
+     * 
+     * @var string $last_updated The last time the app was updated
+     */
+    protected $last_updated = '';
+
+    /**
+     * Date created
+     * 
+     * @var string $created_at When app was created.
+     */
+    protected $created_at;
+
+    /**
+     * An array of different sections of app information (e.g., description, installation, FAQ).
+     * 
+     * @var array $sections
+     */
+    protected $sections = array(
+        'description'   => '',
+        'installation'  => '',
+        'changelog'     => '',
+        'screenshots'   => '',
+    );
+
+    /**
+     * Short description.
+     * 
+     * @var string $short_description A brief description of the app.
+     */
+    protected $short_description = '';
+
+    /**
+     * An array of different app screenshots.
+     * 
+     * @var array $screenshots
+     */
+    protected $screenshots = array();
+
+    /**
+     * An array of of app icons.
+     * 
+     * @var array $screenshots
+     */
+    protected $icons = array();
+
+    /**
+     * An array of banner images for the app..
+     * 
+     * @var array $banners
+     */
+    protected $banners = array(
+        'high'    => '',
+        'low'    => '',
+    );
+
+    /**
+     *  An array of app ratings.
+     * 
+     * @var array $ratings
+     */
+    protected $ratings = array(
+        '5' => 0,
+        '4' => 0,
+        '3' => 0,
+        '2' => 0,
+        '1' => 0,
+    );
+
+    /**
+     * Number of ratings
+     * 
+     * @var int $num_ratings
+     */
+    protected $num_ratings = 0;
+
+    /**
+     * The number of active installations
+     * 
+     * @var int $active_installs
+     */
+    protected $active_installs = 0;
+
+    /**
+     * Download link.
+     * 
+     * @var string $download_link The file url.
+     */
+    protected $download_link = '#';
+
+    /**
+     * The app support URL
+     * 
+     * @var string $support_url
+     */
+    protected $support_url = '';
+
+    /**
+     * The app homepage URL
+     * 
+     * @var string $homepage
+     */
+    protected $homepage = '#';
+
+    /**
+     * Plugin zip file.
+     * 
+     * @var string|array $file The absolute path to the app zip file or an array of uploaded file data.
+     */
+    protected $file;
+
+    /**
+    |----------------
+    | SETTERS
+    |----------------
+    */
+
+    /**
+     * Set the theme's database ID
+     * 
+     * @param int $id
+     */
+    public function set_id( $id ) {
+        $this->id = absint( $id );
+    }
+
+    /**
+     * Set the theme name
+     * 
+     * @param string $name
+     */
+    public function set_name( $name ) {
+        $this->name = sanitize_text_field( unslash( $name ) );
+    }
+
+    /**
+     * Set the slug
+     * 
+     * @param string $slug
+     */
+    public function set_slug( $slug ) {
+        $this->slug = sanitize_text_field( unslash( $slug ) );
+    }
+
+    /**
+     * Set theme author property.
+     * 
+     * @param string|array $value
+     */
+    public function set_author( $value ) {
+        if ( is_array( $value ) ) {
+            $this->author = array_intersect_key( $value, $this->author );
+        } else {
+            $this->author = $value;
+        }
+        
+    }
+
+    /**
+     * set theme homepage URL
+     * 
+     * @param string $url
+     */
+    public function set_homepage( $url ) {
+        $this->homepage = sanitize_url( $url, array( 'https' ) );
+    }
+
+    /**
+     * Set the link to the author's profile
+     * 
+     * @param string $url
+     */
+    public function set_author_profile( $url ) {
+        $this->author['author_url'] = sanitize_url( $url );
+    }
+
+    /**
+     * Set theme version
+     * 
+     * @param string $version
+     */
+    public function set_version( $version ) {
+        $this->version = sanitize_text_field( unslash( $version ) );
+    }
+    /**
+     * Set Download url.
+     * 
+     * @param string $link The download url.
+     */
+    public function set_download_url( $link = '' ) {
+        $url            = new URL( $link );
+        if ( $url->is_valid() ) {
+            $this->download_link = $url->__toString();
+        } else {
+            $slug           = $this->get_slug();
+            $download_slug  = smliser_get_download_slug();
+            $type           = $this->get_type();
+            $slug           = basename( $slug, '.zip' );
+
+            $parts          = [ $download_slug, $type, $slug ];
+            $path           = sprintf( '%s.zip', implode( '/', $parts ) );
+            $download_link  = site_url( $path );
+
+            $this->download_link = sanitize_url( $download_link, array( 'http', 'https' ) );            
+        }
+    }
+
+    /**
+     *  Set the file
+     * 
+     * @param array|string $file
+     */
+    public function set_file( $file ) {
+        $this->file = $file;
+    }
+
+    /**
+    |------------
+    | GETTERS
+    |------------
+    */
+
+    /**
+     * Get the app ID.
+     * 
+     * @return int
+     */
+    public function get_id() {
+        return $this->id;
+    }
+
+
+    /**
+     * Get the application name.
+     * 
+     * @return string
+     */
+    public function get_name() {
+        return $this->name;
+    }
+
+    /**
+     * Get the application version.
+     * 
+     * @return string
+     */
+    public function get_version() {
+        return $this->version;
+    }
+
+    /**
+     * Get the download URL for the application.
+     * 
+     * @return string
+     */
+    public function get_download_url() {
+        return $this->download_link;
+    }
+
+    /**
+     * Get the application author.
+     * 
+     * @return string|array
+     */
+    public function get_author() {
+        return $this->author;
+    }
+
+    /**
+     * Get the application slug (URL-friendly name).
+     * 
+     * @return string
+     */
+    public function get_slug() {
+        return $this->slug;
+    }
+
+    /**
+     * Get the application homepage URL.
+     * 
+     * @return string
+     */
+    public function get_homepage() {
+        return $this->homepage;
+    }
+
+    /**
+     * Get the application description.
+     * 
+     * @return string
+     */
+    public function get_description() {
+        return $this->sections['description'];
+    }
+
+    /**
+     * Get application short description.
+     */
+    public function get_short_description() {
+        return $this->short_description;
+    }
+
+    /**
+     * Get the application changelog.
+     * 
+     * @return string
+     */
+    public function get_changelog() {
+        return $this->sections['changelog'];
+    }
+
+    /**
+     * Get application support URL.
+     */
+    public function get_support_url() {
+        return $this->support_url;
+    }
+
+    /**
+     * Get a plugin section information
+     * 
+     * @param string $name  Section name.
+     * @return string The particular section name
+     */
+    public function get_section( $name ) {
+        return isset($this->sections[$name] ) ? $this->sections[$name] : '';
+    }
+
+
+    /**
+     * Get ratings
+     * 
+     * @return array $ratings
+     */
+    public function get_ratings() {
+        return $this->ratings;
+    }
+
+    /**
+     * Get number of rating
+     * 
+     * @return int
+     */
+    public function get_num_ratings() {
+        return $this->num_ratings;
+    }
+
+    /**
+     * Get average rating
+     * 
+     * @return float
+     */
+    public function get_average_rating() {
+        $total_ratings  = array_sum( $this->ratings );
+        $num_ratings    = $this->get_num_ratings();
+
+        if ( $num_ratings > 0 ) {
+            return round( $total_ratings / $num_ratings, 2 );
+        }
+
+        return 0;
+    }
+
+    /**
+     * The number of active installations
+     */
+    public function get_active_installs() {
+        return $this->active_installs;
+    }
+
+    /**
+     * Get the file
+     */
+    public function get_file() {
+        return $this->file;
+    }
+
+    /**
+     * Get Sections
+     * 
+     * @return array $sections.
+     */
+    public function get_sections() {
+        return $this->sections;
+    }
+    
+    /**
+    |-------------------------------------------
+    | ABSTRACT METHODS THAT MUST BE IMPLEMENTED
+    |-------------------------------------------
+    */
+
+    /**
+     * get author profile
+     * 
+     * @return string
+     */
+    abstract public function get_author_profile();
+
+    /**
+     * Get the application type (e.g., 'plugin', 'theme', 'library').
+     * 
+     * @return string
+     */
+    abstract public function get_type();
+
+    /**
+     * Method to get the database table name.
+     */
+    abstract public static function get_db_table();
+
+    /**
+     * Method to get the database meta table name.
+     */
+    abstract public static function get_db_meta_table();
+
+    /**
+     * Get an instance of this class from an array
+     * @param array $data
+     */
+    abstract public static function from_array( $data );
+
+    /**
+    |---------------------
+    | SHARED CRUD METHODS
+    |---------------------
+    */
+    /**
+     * Get a app by it's slug.
+     * 
+     * @param string $slug The app slug.
+     * @return self|null   The app object or null if not found.
+     */
+    public static function get_by_slug( $slug ) {
+        $db     = smliser_dbclass();
+        $table  = self::get_db_table();
+        $slug   = basename( $slug, '.zip' );
+
+        if ( ! is_string( $slug ) || empty( $slug ) ) {
+            return null;
+        }        
+    
+        $sql    = "SELECT * FROM {$table} WHERE `slug` = ?";
+        $result = $db->get_row( $sql, [$slug] );
+
+        if ( ! empty( $result ) ){
+            return self::from_array( $result );
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if this plugin is monetized.
+     * 
+     * @return bool true if monetized, false otherwise.
+     */
+    public function is_monetized() : bool {
+        $db         = smliser_dbclass();
+        $table_name = SMLISER_MONETIZATION_TABLE;
+        $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = ? AND `item_id` = ? AND `enabled` = ?";
+        $params     = [$this->get_type(), absint( $this->id ), '1'];
+        return $db->get_var( $query, $params ) > 0;
+    }
+
+    /**
+     * Get a sample of download URL for licensed plugin
+     */
+    public function monetized_url_sample() {
+        return sprintf( '%s?download_token={token}', $this->get_download_url() );
+    }
+
+}

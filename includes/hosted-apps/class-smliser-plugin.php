@@ -1,22 +1,23 @@
 <?php
 /**
- * The Smart License Product Class file.
+ * The Smliser_Plugin class file.
  * 
+ * @author Callistus Nwachukwu <admin@callismart.com.ng>
  * @package Smliser\classes
  */
 
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\PluginRepository;
 use SmartLicenseServer\Exception;
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Represents a typical plugin hosted in this repository.
  */
-class Smliser_Plugin implements Hosted_Apps_Interface {
+class Smliser_Plugin extends AbstractHostedApp {
     /**
      * The plugin database table name.
      * 
@@ -32,89 +33,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     const META_TABLE = SMLISER_PLUGIN_META_TABLE;
 
     /**
-     * Item ID.
-     * @var int $item_id The plugin ID.
-     */
-    protected $item_id = 0;
-
-    /**
-     * The name of the plugin..
-     * 
-     * @var string $name The plugin's name.
-     */
-    protected $name = '';
-        
-    /**
-     * License key for the plugin.
-     * 
-     * @var string $license_key
-     */
-    protected $license_key = '';
-
-    /**
-     * Plugin slug.
-     * 
-     * @var string $slug Plugin slug.
-     */
-    protected $slug = '';
-
-    /**
-     * Plugin Version.
-     * 
-     * @var string $version The current version of the plugin.
-     */
-    protected $version = '';
-
-    /**
-     * Author .
-     * 
-     * @var string $author The author of the plugin
-     */
-    protected $author = '';
-
-    /**
-     * Author profile.
-     * 
-     * @var string $author_profile The author's profile link or information.
-     */
-    protected $author_profile = '';
-
-    /**
-     * WordPress Version requirement.
-     * 
-     * @var string $requires The minimum WordPress version required to run the plugin.
-     */
-    protected $requires = '';
-
-    /**
-     * Version Tested up to.
-     * 
-     * @var string $tested The latest WordPress version the plugin has been tested with.
-     */
-    protected $tested = '';
-
-    /**
-     * PHP version requirement.
-     * 
-     * @var string $requires_php The minimum PHP version required to run the plugin.
-     */
-    protected $requires_php = '';
-
-    /**
-     * Update time.
-     * 
-     * @var string $last_updated The last time the plugin was updated
-     */
-    protected $last_updated = '';
-
-    /**
-     * Date created
-     * 
-     * @var string $created_at When plugin was created.
-     */
-    protected $created_at;
-
-    /**
      * An array of different sections of plugin information (e.g., description, installation, FAQ).
      * 
      * @var array $sections
@@ -125,13 +43,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         'changelog'     => '',
         'screenshots'   => '',
     );
-
-    /**
-     * Short description.
-     * 
-     * @var string $short_description A brief description of the plugin.
-     */
-    protected $short_description = '';
 
     /**
      * An array of different plugin screenshots.
@@ -156,54 +67,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         'high'    => '',
         'low'    => '',
     );
-
-    /**
-     *  An array of plugin ratings.
-     * 
-     * @var array $ratings
-     */
-    protected $ratings = array(
-        '5' => 0,
-        '4' => 0,
-        '3' => 0,
-        '2' => 0,
-        '1' => 0,
-    );
-
-    /**
-     * Number of ratings
-     * 
-     * @var int $num_ratings
-     */
-    protected $num_ratings = 0;
-
-    /**
-     * The number of active installations
-     * 
-     * @var int $active_installs
-     */
-    protected $active_installs = 0;
-
-    /**
-     * Download link.
-     * 
-     * @var string $download_link The file url.
-     */
-    protected $download_link = '#';
-
-    /**
-     * The plugin homepage URL
-     * 
-     * @var string $homepage
-     */
-    protected $homepage = '#';
-
-    /**
-     * Plugin zip file.
-     * 
-     * @var string|array $file The absolute path to the plugin zip file or an array of uploaded file data.
-     */
-    protected $file;
 
     /**
      * Class constructor.
@@ -271,60 +134,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     | SETTERS
     |----------
     */
-
-    /**
-     * Set Item ID
-     * 
-     * @param int $id The database id.
-     */
-    public function set_id( $id  ) {
-        $this->item_id = absint( $id );
-    }
-
-    /**
-     * Set Item ID
-     * 
-     * @param int $item_id The database id.
-     */
-    public function set_item_id( $item_id  ) {
-        $this->set_id( $item_id );
-    }
-
-    /**
-     * Set plugin name
-     * 
-     * @param string $name The plugin name
-     */
-    public function set_name( $name ) {
-        $this->name = sanitize_text_field( $name );
-    }
-
-    /**
-     * Set license key.
-     * 
-     * @param string $license_key
-     */
-    public function set_license_key( $license_key ) {
-        $this->license_key = sanitize_text_field( $license_key );
-    }
-
-    /**
-     * Set Slug.
-     * 
-     * @param string $slug Plugin slug from repository.
-     */
-    public function set_slug( $slug ) {
-        $this->slug = sanitize_text_field( $slug );
-    }
-
-    /**
-     * Set version
-     * 
-     * @param string $version Plugin version.
-     */
-    public function set_version( $version ) {
-        $this->version = sanitize_text_field( $version );
-    }
 
     /**
      * Set Author
@@ -403,9 +212,9 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @param string $link The download link.
      */
     public function set_download_link( $link = '' ) {
-        if ( ! empty( $link ) && '#' !== $link ) {
-            $this->download_link = sanitize_url( $link, array( 'http', 'https' ) );
-           
+        $url            = new URL( $link );
+        if ( $url->is_valid() ) {
+            $this->download_link = $url->__toString();
         } else {
             $slug           = $this->get_slug();
             $download_slug  = smliser_get_download_slug();
@@ -546,7 +355,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      * @return int
      */
     public function get_id() {
-        return $this->item_id;
+        return $this->id;
     }
 
     /**
@@ -669,63 +478,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     }
 
     /**
-     * Get ratings
-     * 
-     * @return array $ratings
-     */
-    public function get_ratings() {
-        return $this->ratings;
-    }
-
-    /**
-     * Get number of rating
-     * 
-     * @return int
-     */
-    public function get_num_ratings() {
-        return $this->num_ratings;
-    }
-
-    /**
-     * Get average rating
-     * 
-     * @return float
-     */
-    public function get_average_rating() {
-        $total_ratings  = array_sum( $this->ratings );
-        $num_ratings    = $this->get_num_ratings();
-
-        if ( $num_ratings > 0 ) {
-            return round( $total_ratings / $num_ratings, 2 );
-        }
-
-        return 0;
-    }
-
-    /**
-     * The number of active installations
-     */
-    public function get_active_installs() {
-        return $this->active_installs;
-    }
-
-    /**
-     * Get the file
-     */
-    public function get_file() {
-        return $this->file;
-    }
-
-    /**
-     * Get license key.
-     * 
-     * @return string
-     */
-    public function get_license_key() {
-        return $this->license_key;
-    }
-
-    /**
      * Get the URL to view the plugin.
      */
     public function get_url() {
@@ -734,16 +486,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         $url        = site_url( 'plugins/'. $slug_parts[0] );
         return esc_url_raw( $url );
 
-    }
-
-    /**
-     * Get a plugin section information
-     * 
-     * @param string $name  Section name.
-     * @return string The particular section name
-     */
-    public function get_section( $name ) {
-        return isset($this->sections[$name] ) ? $this->sections[$name] : '';
     }
 
     /**
@@ -772,14 +514,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     public function get_changelog() {
         return $this->get_section( 'changelog' );
     }
-    /**
-     * Get Sections
-     * 
-     * @return array $sections.
-     */
-    public function get_sections() {
-        return $this->sections;
-    }
 
     /**
      * Get support url
@@ -793,31 +527,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     | CRUD METHODS
     |--------------
     */
-
-    /**
-     * Get a plugin by it's slug.
-     * 
-     * @param string $slug The plugin slug.
-     * @return self|null   The plugin object or null if not found.
-     */
-    public static function get_by_slug( $slug ) {
-        $db     = smliser_dbclass();
-        $table  = self::TABLE;
-        $slug   = basename( $slug, '.zip' );
-
-        if ( ! is_string( $slug ) || empty( $slug ) ) {
-            return null;
-        }        
-    
-        $sql    = "SELECT * FROM {$table} WHERE `slug` = ?";
-        $result = $db->get_row( $sql, [$slug] );
-
-        if ( ! empty( $result ) ){
-            return self::from_array( $result );
-        }
-
-        return null;
-    }
 
     /**
      * Get a plugin by it's ID.
@@ -842,41 +551,6 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         }
 
         return null;
-    }
-
-    /**
-     * Get all plugins.
-     * 
-     * @param array $args Optional arguments for querying plugins.
-     * @return self[] An array of Smliser_Plugin objects.
-     */
-    public static function get_plugins( $args = array() ) {
-        $db     = smliser_dbclass();
-        $table  = self::TABLE;
-
-        $default_args = array(
-            'page'      => 1,
-            'limit'     => 25,
-        );
-
-        $parsed_args = parse_args( $args, $default_args );
-        $page       = $parsed_args['page'];
-        $limit      = $parsed_args['page'];
-
-        $offset     = $db->calculate_query_offset( $page, $limit );
-
-        $sql        = "SELECT * FROM {$table} ORDER BY id ASC LIMIT ? OFFSET ?";
-        $results    = $db->get_results( $sql, [$limit, $offset] );
-        $plugins    = array();
-
-        if ( $results ) {
-
-            foreach ( $results as $result ) {
-                $plugins[] = self::from_array( $result );
-            }
-        }
-
-        return $plugins;
     }
 
     /**
@@ -954,7 +628,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
     public function delete() : bool {
         $db     = smliser_dbclass();
 
-        if ( empty( $this->item_id ) ) {
+        if ( empty( $this->id ) ) {
             return false; // A valid plugin should have an ID.
         }
     
@@ -1012,7 +686,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             return false;
         }
         $db     = smliser_dbclass();
-        $table  = self::TABLE;
+        $table  = self::META_TABLE;
 
         $key    = sanitize_text_field( $key );
         $value  = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value );
@@ -1100,7 +774,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
      */
     public static function from_array( $result ) {
         $self = new self();
-        $self->set_item_id( $result['id'] ?? 0 );
+        $self->set_id( $result['id'] ?? 0 );
         $self->set_name( $result['name'] ?? '' );
         $self->set_slug( $result['slug'] ?? '' );
         $self->set_version( $result['version'] ?? '' );
@@ -1190,6 +864,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'author_profile'    => $this->get_author_profile(),
             'homepage'          => $this->get_homepage(),
             'package'           => $this->get_download_link(),
+            'download_link'     => $this->get_download_link(),
             'banners'           => $this->get_banners(),
             'screenshots'       => $this->get_screenshots(),
             'icons'             => $this->get_icons(),
@@ -1197,6 +872,7 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
             'tested'            => $this->get_tested(),
             'requires_php'      => $this->get_required_php(),
             'requires_plugins'  => [],
+            'tags'              => [],
             'added'             => $this->get_date_created(),
             'last_updated'      => $this->get_last_updated(),
             'short_description' => $this->get_short_description(),
@@ -1228,15 +904,25 @@ class Smliser_Plugin implements Hosted_Apps_Interface {
         $db         = smliser_dbclass();
         $table_name = SMLISER_MONETIZATION_TABLE;
         $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = ? AND `item_id` = ? AND `enabled` = ?";
-        $params     = [$this->get_type(), absint( $this->item_id ), '1'];
+        $params     = [$this->get_type(), absint( $this->id ), '1'];
         return $db->get_var( $query, $params ) > 0;
     }
 
     /**
-     * Get a sample of download URL for licensed plugin
+     * Get the database table name
+     * 
+     * @return string
      */
-    public function monetized_url_sample() {
-        return sprintf( '%s?download_token={token}', $this->get_download_url() );
+    public static function get_db_table() {
+        return self::TABLE;
     }
 
+    /**
+     * Get the database metadate table name.
+     * 
+     * @return string
+     */
+    public static function get_db_meta_table() {
+        return self::META_TABLE;
+    }
 }
