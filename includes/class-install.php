@@ -165,7 +165,6 @@ class Smliser_install {
             'tested VARCHAR(9) DEFAULT NULL',           // Tested up to version
             'requires_php VARCHAR(9) DEFAULT NULL',
             'template VARCHAR(255) DEFAULT NULL',       // For child themes (parent slug)
-            'tags VARCHAR(500) DEFAULT NULL',           // Theme tags/categories
             'download_link VARCHAR(400) DEFAULT NULL',
             'created_at DATETIME DEFAULT NULL',
             'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
