@@ -106,11 +106,26 @@ class SmartLicense_config {
 
         define( 'SMLISER_REPOSITORY_ROUTE', $this->repository_route );
         define( 'SMLISER_LICENSE_TABLE', $wpdb->prefix.'smliser_licenses' );
-        define( 'SMLISER_PLUGIN_META_TABLE', $wpdb->prefix . 'smliser_plugin_meta' );
-        define( 'SMLISER_THEME_META_TABLE', $wpdb->prefix . 'smliser_theme_meta' );
         define( 'SMLISER_LICENSE_META_TABLE', $wpdb->prefix . 'smliser_license_meta' );
+
+        /**
+         * The plugin database table name
+         */
         define( 'SMLISER_PLUGIN_ITEM_TABLE', $wpdb->prefix . 'smliser_plugins' );
+        /**
+         * The plugin database metadata table name.
+         */
+        define( 'SMLISER_PLUGIN_META_TABLE', $wpdb->prefix . 'smliser_plugin_meta' );
+
+        /**
+         * The theme database table name.
+         */
         define( 'SMLISER_THEME_ITEM_TABLE', $wpdb->prefix . 'smliser_themes' );
+        /**
+         * The themes database metadata table name.
+         */
+        define( 'SMLISER_THEME_META_TABLE', $wpdb->prefix . 'smliser_theme_meta' );
+
         define( 'SMLISER_APPS_ITEM_TABLE', $wpdb->prefix . 'smliser_applications' );
         define( 'SMLISER_APPS_META_TABLE', $wpdb->prefix . 'smliser_applications_meta' );
         define( 'SMLISER_API_ACCESS_LOG_TABLE', $wpdb->prefix . 'smliser_api_access_logs' );
@@ -736,12 +751,13 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-filesystem-helper.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
-        require_once SMLISER_PATH . 'includes/filesystem/class-plugin-repository.php';
+        require_once SMLISER_PATH . 'includes/filesystem/class-PluginRepository.php';
         require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileRequest.php';
         require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileResponse.php';
         require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileRequestController.php';
     
         require_once SMLISER_PATH . 'includes/hosted-apps/hosted-apps-interface.php';
+        require_once SMLISER_PATH . 'includes/hosted-apps/class-AbstractHostedApp.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-software-collection.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-plugin.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-theme.php';
