@@ -332,3 +332,16 @@ function smliser_allowed_html( $wp_html, $context ) {
 
     return array_merge( $wp_html, $allowed_tags );
 }
+
+/**
+ * Safely JSON-encode data for use inside HTML attributes.
+ *
+ * This ensures that characters like quotes, apostrophes, tags, and ampersands
+ * are safely escaped so they won’t break the HTML structure or parsing.
+ *
+ * @param mixed $data The data to encode.
+ * @return string The safely JSON-encoded string for use in attributes.
+ */
+function smliser_json_encode_attr( $data ) {
+	return smliser_safe_json_encode( $data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
+}
