@@ -632,7 +632,6 @@ class Smliser_Software_Collection {
      *
      * @param Request $request The standardized request object.
      * @return Response Returns a Response object on success.
-     * @throws RequestException On business logic failure.
      */
     public static function app_asset_delete( Request $request ) {
         try {
@@ -677,6 +676,50 @@ class Smliser_Software_Collection {
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
         } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
+    }
+
+    /**
+     * Delete the given hosted application
+     *
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function delete_app( Request $request ) : Response {
+        try {
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
+            }
+
+            $app_slug   = $request->get( 'slug' );
+            $app_type   = $request->get( 'type' );
+
+            $app        = self::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app ) {
+                throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found', $app_type, $app_slug ), array( 'status' => 404 ) );
+            }
+
+            if ( ! $app->delete() ) {
+                throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was could not be deleted', $app_type, $app_slug ), array( 'status' => 500 ) );
+            }
+
+            $data = array(
+                'message'       => 'App deleted successfully.',
+                'redirect_url'  => smliser_repo_page()
+            );
+            $response   = [
+                'success'   => true,
+                'data'      => $data
+            ];
+
+            return ( new Response( 200, array(), smliser_safe_json_encode( $response ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        }  catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
