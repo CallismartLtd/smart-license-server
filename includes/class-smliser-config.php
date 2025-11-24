@@ -187,7 +187,6 @@ class SmartLicense_config {
         add_action( 'plugins_loaded', array( $this, 'include' ) );
         add_action( 'init', array( $this, 'init_hooks' ) );
         add_action( 'admin_notices', array( __CLASS__, 'print_notice' ) );
-        add_action( 'wp_ajax_smliser_plugin_action', array( 'Smliser_Plugin', 'action_handler' ) );
         add_action( 'wp_ajax_smliser_upgrade', array( 'Smliser_Install', 'ajax_update' ) );
         add_action( 'admin_post_nopriv_smliser_oauth_login', array( 'Smliser_API_Cred', 'oauth_login_form_handler' ) );
         add_action( 'smliser_stats', array( 'Smliser_Stats', 'action_handler' ), 10, 4 );
