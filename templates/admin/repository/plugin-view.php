@@ -72,7 +72,7 @@ defined( 'ABSPATH' ) || exit; ?>
             </div>
 
             <div class="smliser-admin-view-page-body-item">
-                <p>Tested WP version: <p> <?php echo esc_html( $plugin->get_tested() ) ?></p></p>
+                <p>Tested WP version: <p> <?php echo esc_html( $plugin->get_tested_up_to() ) ?></p></p>
             </div>
             <div class="smliser-admin-view-page-body-item">
                 <p>Support URL: <p><?php echo esc_html( $plugin->get_support_url() ?: 'N/A' ) ?></p></p>

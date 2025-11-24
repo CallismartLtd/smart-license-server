@@ -78,7 +78,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     protected $created_at;
 
     /**
-     * An array of different sections of app information (e.g., description, installation, FAQ).
+     * An array of app sections (e.g., description, installation, FAQ).
      * 
      * @var array $sections
      */
@@ -90,6 +90,13 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     );
 
     /**
+     * An array of of plugin icons.
+     * 
+     * @var array $icons
+     */
+    protected $icons = array();
+    
+    /**
      * Short description.
      * 
      * @var string $short_description A brief description of the app.
@@ -97,28 +104,11 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     protected $short_description = '';
 
     /**
-     * An array of different app screenshots.
+     * An array of app screenshots.
      * 
      * @var array $screenshots
      */
     protected $screenshots = array();
-
-    /**
-     * An array of of app icons.
-     * 
-     * @var array $screenshots
-     */
-    protected $icons = array();
-
-    /**
-     * An array of banner images for the app..
-     * 
-     * @var array $banners
-     */
-    protected $banners = array(
-        'high'    => '',
-        'low'    => '',
-    );
 
     /**
      *  An array of app ratings.

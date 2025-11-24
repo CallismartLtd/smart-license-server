@@ -255,6 +255,7 @@ class WPAdapter {
             'app_required_wp_version'   => smliser_get_post_param( 'app_required_wp_version', null ),
             'app_tested_wp_version'     => smliser_get_post_param( 'app_tested_wp_version', null ),
             'app_download_url'          => smliser_get_post_param( 'app_download_url', null ),
+            'app_support_url'           => smliser_get_post_param( 'app_support_url', null ),
             'support_url'               => smliser_get_post_param( 'support_url', null ),
             'homepage_url'              => smliser_get_post_param( 'homepage_url', null ),
             'app_file'                  => isset( $_FILES['app_file'] ) && UPLOAD_ERR_OK === $_FILES['app_file']['error'] ? $_FILES['app_file'] : null,

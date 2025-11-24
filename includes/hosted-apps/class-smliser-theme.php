@@ -211,7 +211,7 @@ class Smliser_Theme extends AbstractHostedApp {
         //     'author'        => $this->get_author(),
         //     'author_profile'=> $this->get_author_profile(),
         //     'requires'      => $this->get_required(),
-        //     'tested'        => $this->get_tested(),
+        //     'tested'        => $this->get_tested_up_to(),
         //     'requires_php'  => $this->get_required_php(),
         //     'download_link' => $this->get_download_link(),
         // );
