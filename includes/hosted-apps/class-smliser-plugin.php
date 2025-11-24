@@ -6,7 +6,6 @@
  * @package Smliser\classes
  */
 
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\PluginRepository;
 use SmartLicenseServer\Exception;
@@ -54,32 +53,6 @@ class Smliser_Plugin extends AbstractHostedApp {
     protected $requires_php = '';
 
     /**
-     * An array of different sections of plugin information (e.g., description, installation, FAQ).
-     * 
-     * @var array $sections
-     */
-    protected $sections = array(
-        'description'   => '',
-        'installation'  => '',
-        'changelog'     => '',
-        'screenshots'   => '',
-    );
-
-    /**
-     * An array of different plugin screenshots.
-     * 
-     * @var array $screenshots
-     */
-    protected $screenshots = array();
-
-    /**
-     * An array of of plugin icons.
-     * 
-     * @var array $screenshots
-     */
-    protected $icons = array();
-
-    /**
      * An array of banner images for the plugin..
      * 
      * @var array $banners
@@ -88,6 +61,13 @@ class Smliser_Plugin extends AbstractHostedApp {
         'high'    => '',
         'low'    => '',
     );
+
+    /**
+     * Plugin meta data
+     * 
+     * @var array $meta_data
+     */
+    protected $meta_data = [];
 
     /**
      * Class constructor.
@@ -259,7 +239,7 @@ class Smliser_Plugin extends AbstractHostedApp {
     /**
      * Get WordPress version tested up to.
      */
-    public function get_tested() {
+    public function get_tested_up_to() {
         return $this->tested_up_to ;
     }
 
@@ -356,7 +336,7 @@ class Smliser_Plugin extends AbstractHostedApp {
             'author'        => $this->get_author(),
             'author_profile'=> $this->get_author_profile(),
             'requires'      => $this->get_required(),
-            'tested'        => $this->get_tested(),
+            'tested'        => $this->get_tested_up_to(),
             'requires_php'  => $this->get_required_php(),
             'download_link' => $this->get_download_link(),
         );
@@ -402,151 +382,230 @@ class Smliser_Plugin extends AbstractHostedApp {
     }
 
     /**
-     * Delete a plugin.
-     * 
-     * @return bool True on success, false on otherwise.
-     */
-    public function delete() : bool {
-        $db     = smliser_dbclass();
-
-        if ( empty( $this->id ) ) {
-            return false; // A valid plugin should have an ID.
-        }
-    
-        $repo_class = new PluginRepository();
-        
-        $id             = $this->get_id();
-        $file_delete    = $repo_class->delete_from_repo( $this->get_slug() );
-
-        if ( is_smliser_error( $file_delete ) ) {
-            return $file_delete;
-        }
-
-        $plugin_deletion    = $db->delete( self::TABLE, array( 'id' => $id ) );
-        $meta_deletion      = $db->delete( self::META_TABLE, array( 'plugin_id' => $id ) );
-
-        return ( $plugin_deletion || $meta_deletion ) !== false;
-    }
-
-    /**
-     * Add a new metadata.
-     * 
-     * @param mixed $key Meta Key.
-     * @param mixed $value Meta value.
+     * Deletes a plugin.
+     *
      * @return bool True on success, false on failure.
      */
-    public function add_meta( $key, $value ) {
-        $db     = smliser_dbclass();
+    public function delete() : bool {
+        $plugin_id = absint( $this->get_id() );
 
-        // Sanitize inputs
-        $item_id    = absint( $this->get_item_id() );
-        $meta_key   = sanitize_text_field( $key );
-        $meta_value = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value );
+        if ( ! $plugin_id ) {
+            return false;
+        }
 
-        // Prepare data for insertion
-        $data = array(
-            'plugin_id'    => $item_id,
-            'meta_key'      => $meta_key,
-            'meta_value'    => $meta_value,
+        $db          = smliser_dbclass();
+        $repo_class  = new PluginRepository();
+        $slug        = $this->get_slug();
+
+        $file_delete = $repo_class->delete_from_repo( $slug );
+
+        if ( is_smliser_error( $file_delete ) ) {
+            error_log( 'Plugin delete failed: ' . $file_delete->get_error_message() );
+            return false;
+        }
+
+        $meta_deleted = $db->delete(
+            self::META_TABLE,
+            [ 'plugin_id' => $plugin_id ]
         );
 
-        $result = $db->insert( self::META_TABLE, $data );
-        
-        return $result !== false;
+        $plugin_deleted = $db->delete(
+            self::TABLE,
+            [ 'id' => $plugin_id ]
+        );
+
+        if ( isset( $this->meta_data ) ) {
+            $this->meta_data = [];
+        }
+
+        return ( $plugin_deleted > 0 || $meta_deleted > 0 );
     }
 
     /**
-     * Update existing metadata
-     * 
-     * @param mixed $key Meta key.
+     * Load all metadata for this plugin into internal cache.
+     *
+     * Limits results to 50 rows for performance.
+     *
+     * @return array Loaded metadata in key => value format.
+     */
+    public function load_meta() : array {
+
+        if ( ! $this->get_id() ) {
+            return [];
+        }
+
+        $db     = smliser_dbclass();
+        $table  = self::META_TABLE;
+        $plugin_id = absint( $this->get_id() );
+
+        $sql    = "SELECT `meta_key`, `meta_value` 
+                FROM {$table} 
+                WHERE `plugin_id` = ? 
+                ORDER BY `id` ASC 
+                LIMIT 50";
+
+        $results = $db->get_results( $sql, [ $plugin_id ] );
+
+        $meta = [];
+
+        if ( ! empty( $results ) ) {
+            foreach ( $results as $row ) {
+
+                $key   = sanitize_key( $row['meta_key'] );
+                $value = $row['meta_value'];
+
+                if ( is_serialized( $value ) ) {
+                    $value = unserialize( $value );
+                }
+
+                $meta[ $key ] = $value;
+            }
+        }
+
+        $this->meta_data = $meta;
+
+        return $meta;
+    }
+
+    /**
+     * Update existing metadata.
+     *
+     * @param mixed $key   Meta key.
      * @param mixed $value New value.
      * @return bool True on success, false on failure.
      */
     public function update_meta( $key, $value ) {
-        if ( ! $this->get_id() ) {
+        $plugin_id = absint( $this->get_id() );
+
+        if ( ! $plugin_id ) {
             return false;
         }
-        $db     = smliser_dbclass();
-        $table  = self::META_TABLE;
 
-        $key    = sanitize_key( $key );
-        $value  = maybe_serialize( $value );
-        
-        if ( 'support_url' === $key ) {
-            error_log( $value );
-        }
+        $db    = smliser_dbclass();
+        $table = self::META_TABLE;
 
-        // Prepare data for insertion/update.
-        $data = array(
-            'plugin_id'     => absint( $this->get_id() ),
-            'meta_key'      => $key,
-            'meta_value'    => $value,
+        $key   = sanitize_key( $key );
+        $store = maybe_serialize( $value );
+
+        // Look for existing meta row.
+        $meta_id = $db->get_var(
+            "SELECT `id` FROM {$table} WHERE `plugin_id` = ? AND `meta_key` = ?",
+            [ $plugin_id, $key ]
         );
 
-        $meta_id = $db->get_var( "SELECT `id` FROM {$table} WHERE `plugin_id` = ? AND `meta_key` = ?", [absint( $this->get_id() ), $key] );
-
         if ( empty( $meta_id ) ) {
-            $inserted = $db->insert( $table, $data );
-
-            return $inserted !== false;
-        } else {
-            $updated = $db->update( $table, 
-                array( 'meta_value' => $value ),
-                array(
-                    'plugin_id' => absint( $this->get_item_id() ),
-                    'id'        => $meta_id,
-                    'meta_key'  => $key,
-                )
+            // INSERT
+            $inserted = $db->insert(
+                $table,
+                [
+                    'plugin_id'  => $plugin_id,
+                    'meta_key'   => $key,
+                    'meta_value' => $store,
+                ]
             );
 
-            return $updated !== false;
+            if ( $inserted !== false ) {
+                $this->meta_data[ $key ] = $value;
+                return true;
+            }
+
+            return false;
+
+        } else {
+            // UPDATE existing meta
+            $updated = $db->update(
+                $table,
+                [ 'meta_value' => $store ],
+                [
+                    'plugin_id' => $plugin_id,
+                    'id'        => $meta_id,
+                    'meta_key'  => $key,
+                ]
+            );
+
+            if ( $updated !== false ) {
+                $this->meta_data[ $key ] = $value;
+                return true;
+            }
+
+            return false;
         }
     }
 
+
     /**
-     * Get the value of a metadata
-     * 
-     * @param $meta_key The meta key.
-     * @param $default_to What to return when nothing is found.
-     * @return mixed|null $value The value.
+     * Get the value of a metadata.
+     *
+     * @param string $meta_key   The meta key.
+     * @param mixed  $default_to The fallback value.
+     * @return mixed|null
      */
     public function get_meta( $meta_key, $default_to = null ) {
+        $meta_key = sanitize_text_field( $meta_key );
+
+        if ( array_key_exists( $meta_key, $this->meta_data ) ) {
+            return $this->meta_data[ $meta_key ];
+        }
+
         $db     = smliser_dbclass();
         $table  = self::META_TABLE;
 
         $sql    = "SELECT `meta_value` FROM {$table} WHERE `plugin_id` = ? AND `meta_key` = ?";
-        $params = [absint( $this->get_id() ), sanitize_text_field( $meta_key )];
-        
+        $params = [ absint( $this->get_id() ), $meta_key ];
 
         $result = $db->get_var( $sql, $params );
 
         if ( is_null( $result ) ) {
+            $this->meta_data[ $meta_key ] = $default_to;
             return $default_to;
         }
-        return is_serialized( $result ) ? unserialize( $result ) : $result;
+
+        $value = is_serialized( $result ) ? unserialize( $result ) : $result;
+
+        $this->meta_data[ $meta_key ] = $value;
+
+        return $value;
     }
 
     /**
      * Delete a metadata.
-     * 
+     *
      * @param string $meta_key The meta key.
      * @return bool True on success, false on failure.
      */
     public function delete_meta( $meta_key ) {
-        $db     = smliser_dbclass();
-        $table  = self::META_TABLE;
+        $plugin_id = absint( $this->get_id() );
 
-        $item_id    = absint( $this->get_item_id() );
-        $meta_key   = sanitize_text_field( $meta_key );
-        $where      = array(
-            'plugin_id' => $item_id,
-            'meta_key'  => $meta_key
+        if ( ! $plugin_id ) {
+            return false;
+        }
+
+        $db       = smliser_dbclass();
+        $table    = self::META_TABLE;
+        $meta_key = sanitize_key( $meta_key );
+
+        // Delete from database.
+        $deleted = $db->delete(
+            $table,
+            [
+                'plugin_id' => $plugin_id,
+                'meta_key'  => $meta_key,
+            ]
         );
 
-        $deleted = $db->delete( $table, $where );
+        if ( $deleted !== false ) {
 
-        return $deleted !== false;
+            // Remove from instance cache if it exists.
+            if ( isset( $this->meta_data[ $meta_key ] ) ) {
+                unset( $this->meta_data[ $meta_key ] );
+            }
+
+            return true;
+        }
+
+        return false;
     }
+
 
     /*
     |---------------
@@ -565,6 +624,7 @@ class Smliser_Plugin extends AbstractHostedApp {
         $self->set_author( $result['author'] ?? '' );
         $self->set_author_profile( $result['author_profile'] ?? '' );
 
+        $self->load_meta();
         /** 
          * Set file information
          * 
@@ -661,7 +721,7 @@ class Smliser_Plugin extends AbstractHostedApp {
             'screenshots'       => $this->get_screenshots(),
             'icons'             => $this->get_icons(),
             'requires'          => $this->get_required(),
-            'tested'            => $this->get_tested(),
+            'tested'            => $this->get_tested_up_to(),
             'requires_php'      => $this->get_required_php(),
             'requires_plugins'  => [],
             'tags'              => [],
