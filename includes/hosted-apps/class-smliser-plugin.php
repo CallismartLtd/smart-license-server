@@ -606,7 +606,6 @@ class Smliser_Plugin extends AbstractHostedApp {
         return false;
     }
 
-
     /*
     |---------------
     |UTILITY METHODS

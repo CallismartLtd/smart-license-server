@@ -8,8 +8,6 @@
 namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Monetization\Monetization;
-use SmartLicenseServer\Exception;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -95,7 +93,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      * @var array $icons
      */
     protected $icons = array();
-    
+
     /**
      * Short description.
      * 
