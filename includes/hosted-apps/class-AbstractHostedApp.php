@@ -258,7 +258,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      * @param string $url
      */
     public function set_author_profile( $url ) {
-        $this->author['author_url'] = sanitize_url( $url );
+        $this->author_profile = sanitize_url( $url );
     }
 
     /**
@@ -293,6 +293,47 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
 
     /**
+     * Set last updated
+     * 
+     * @param $date
+     */
+    public function set_last_updated( $date ) {
+        $this->last_updated = sanitize_text_field( $date );
+    }
+
+    /**
+     * Set When created
+     * 
+     * @param $date
+     */
+    public function set_created_at( $date ) {
+        $this->created_at = sanitize_text_field( $date );
+    }
+
+    /**
+     * Set Section
+     * 
+     * @param array $section_data An associative array containing each section information.
+     */
+    public function set_section( array $section_data ) {
+        if ( isset( $section_data['description'] ) ) {
+            $this->sections['description'] = $section_data['description'];
+        } 
+        
+        if ( isset( $section_data['installation'] ) ) {
+            $this->sections['installation'] = $section_data['installation'];
+        }
+        
+        if ( isset( $section_data['changelog'] ) ) {
+            $this->sections['changelog'] = $section_data['changelog'];
+        }
+
+        if ( isset( $section_data['screenshots'] ) ) {
+            $this->sections['screenshots'] = $section_data['screenshots'];
+        }
+    }
+
+    /**
      *  Set the file
      * 
      * @param array|string $file
@@ -301,6 +342,42 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
         $this->file = $file;
     }
 
+    /**
+     * Set ratings
+     * 
+     * @param array $ratings
+     */
+    public function set_ratings( $ratings ) {
+        $this->ratings = array_intersect_key( $ratings, $this->ratings );
+    }
+
+    /**
+     * Get number of rating
+     * 
+     * @param int $value
+     */
+    public function set_num_ratings( $value ) {
+        $this->num_ratings  = absint( $value );
+    }
+
+    /**
+     * The number of active installations
+     * @param int $value
+     */
+    public function set_active_installs( $value ) {
+        $this->active_installs = absint( $value );
+    }
+
+    /**
+     * Set the app support URL
+     *
+     * @param string $url The support URL
+     * @return void
+     */
+    public function set_support_url( $url ) {
+        $this->support_url = $url;
+    }
+    
     /**
     |------------
     | GETTERS
@@ -393,7 +470,15 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      * @return string
      */
     public function get_changelog() {
-        return $this->sections['changelog'];
+        return $this->get_section( 'changelog' );
+    }
+    /**
+     * Get the plugin installation text.
+     * 
+     * @return string a parsed HTML string from the readme file.
+     */
+    public function get_installation() {
+        return $this->get_section( 'installation' );
     }
 
     /**
@@ -472,6 +557,19 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
     
     /**
+     * Get last updated
+     */
+    public function get_last_updated() {
+        return $this->last_updated;
+    }
+    /**
+     * Get when updated
+     */
+    public function get_date_created() {
+        return $this->created_at;
+    }
+
+    /**
     |-------------------------------------------
     | ABSTRACT METHODS THAT MUST BE IMPLEMENTED
     |-------------------------------------------
@@ -512,6 +610,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     | SHARED CRUD METHODS
     |---------------------
     */
+    
     /**
      * Get a app by it's slug.
      * 
@@ -520,7 +619,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      */
     public static function get_by_slug( $slug ) {
         $db     = smliser_dbclass();
-        $table  = self::get_db_table();
+        $table  = static::get_db_table();
         $slug   = basename( $slug, '.zip' );
 
         if ( ! is_string( $slug ) || empty( $slug ) ) {
@@ -531,7 +630,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
         $result = $db->get_row( $sql, [$slug] );
 
         if ( ! empty( $result ) ){
-            return self::from_array( $result );
+            return static::from_array( $result );
         }
 
         return null;
@@ -555,6 +654,26 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      */
     public function monetized_url_sample() {
         return sprintf( '%s?download_token={token}', $this->get_download_url() );
+    }
+
+    /*
+    |------------------------
+    | SHARED UTILITY METHODS
+    |------------------------
+    */
+        
+    /**
+     * Get the URL to view the plugin.
+     * 
+     * @return string
+     */
+    public function get_url() {
+        $slug   = basename( $this->get_slug(), '.zip' );
+        $type   = $this->get_type();
+        $url    = new URL( site_url() );
+        $url->set_path( $type . '/' . $slug );
+
+        return $url->__toString();
     }
 
 }
