@@ -478,7 +478,7 @@ class Smliser_Software_Collection {
              * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $class
              */
             
-            $name       = $request->get( 'app_name', null );
+            $name   = $request->get( 'app_name', null );
 
             if ( empty( $name ) ) {
                 throw new RequestException( 'invalid_input', 'Application name parameter is required' , array( 'status' => 400 ) );
@@ -549,11 +549,7 @@ class Smliser_Software_Collection {
             return new RequestException( 'message', 'Wrong plugin object passed' );
         }
 
-        $class->set_required_php( $request->get( 'app_required_php_version' ) );
-        $class->set_required( $request->get( 'app_required_wp_version' ) );
-        $class->set_tested( $request->get( 'app_tested_wp_version' ) );
-        $class->set_download_link( $request->get( 'app_download_url' ) );
-
+        $class->set_download_url( $request->get( 'app_download_url' ) );
         $class->update_meta( 'support_url', $request->get( 'app_support_url' ) );
         $class->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
 
