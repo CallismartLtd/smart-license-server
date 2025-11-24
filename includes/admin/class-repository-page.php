@@ -154,7 +154,9 @@ class Repository_Page {
                     'value' => $app ? $app->get_version() : '',
                     'attr'  => array(
                         'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
+                        'spellcheck'    => 'off',
+                        'readonly'      => true,
+                        'title'         => 'Use app manifest file to edit version'
                     )
                 )
             ),
