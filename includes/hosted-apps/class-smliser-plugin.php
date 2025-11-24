@@ -12,7 +12,7 @@ use SmartLicenseServer\PluginRepository;
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_PATH' ) || exit;
 
 /**
  * Represents a typical plugin hosted in this repository.
@@ -136,24 +136,6 @@ class Smliser_Plugin extends AbstractHostedApp {
     */
 
     /**
-     * Set Author
-     * 
-     * @param string $author The author name.
-     */
-    public function set_author( $author ) {
-        $this->author = sanitize_text_field( $author );
-    }
-
-    /**
-     * Set the author profile.
-     * 
-     * @param string $url   URL for the profile
-     */
-    public function set_author_profile( $url ) {
-        $this->author_profile = sanitize_text_field( $url );
-    }
-
-    /**
      * Set WordPress required version for plugin.
      * 
      * @param string $wp_version.
@@ -178,97 +160,6 @@ class Smliser_Plugin extends AbstractHostedApp {
      */
     public function set_required_php( $version ) {
         $this->requires_php = sanitize_text_field( $version );
-    }
-
-    /**
-     * Set last updated
-     * 
-     * @param $date
-     */
-    public function set_last_updated( $date ) {
-        $this->last_updated = sanitize_text_field( $date );
-    }
-    /**
-     * Set When created
-     * 
-     * @param $date
-     */
-    public function set_created_at( $date ) {
-        $this->created_at = sanitize_text_field( $date );
-    }
-
-    /**
-     * Set download url
-     * 
-     * @param string $url
-     */
-    public function set_download_url( $url = '' ) {
-        $this->set_download_link( $url );
-    }
-
-    /**
-     * Set Download link.
-     * 
-     * @param string $link The download link.
-     */
-    public function set_download_link( $link = '' ) {
-        $url            = new URL( $link );
-        if ( $url->is_valid() ) {
-            $this->download_link = $url->__toString();
-        } else {
-            $slug           = $this->get_slug();
-            $download_slug  = smliser_get_download_slug();
-            $type           = $this->get_type();
-            $slug           = basename( $slug, '.zip' );
-
-            $parts          = [ $download_slug, $type, $slug ];
-            $path           = sprintf( '%s.zip', implode( '/', $parts ) );
-            $download_link  = site_url( $path );
-
-            $this->download_link = sanitize_url( $download_link, array( 'http', 'https' ) );            
-        }
-    }
-
-    /**
-     *  Set the file
-     * 
-     * @param array|string $file
-     */
-    public function set_file( $file ) {
-        $this->file = $file;
-    }
-
-    /**
-     * Set Section
-     * 
-     * @param array $section_data An associative array containing each section information.
-     * @see Smliser_Plugin::$sections.
-     */
-    public function set_section( $section_data ) {
-        if ( isset( $section_data['description'] ) ) {
-            $this->sections['description'] = $section_data['description'];
-        } 
-        
-        if ( isset( $section_data['installation'] ) ) {
-            $this->sections['installation'] = $section_data['installation'];
-        } 
-        
-        if ( isset( $section_data['changelog'] ) ) {
-            $this->sections['changelog'] = $section_data['changelog'];
-        }
-
-        if ( isset( $section_data['screenshots'] ) ) {
-            $this->sections['screenshots'] = $section_data['screenshots'];
-        }
-    }
-
-    /**
-     * Set app homepage.
-     * 
-     * @param string $url
-     */
-    public function set_homepage( $url ) {
-        $this->homepage = sanitize_url( $url, array( 'https', 'http' ) );
     }
     
     /**
@@ -315,32 +206,6 @@ class Smliser_Plugin extends AbstractHostedApp {
     public function set_icons( array $icons ) {
         $this->icons    = array_map( 'sanitize_url', unslash( $icons ) );
 
-    }
-
-    /**
-     * Set ratings
-     * 
-     * @param array $ratings
-     */
-    public function set_ratings( $ratings ) {
-        $this->ratings = array_intersect_key( $ratings, $this->ratings );
-    }
-
-    /**
-     * Get number of rating
-     * 
-     * @param int $value
-     */
-    public function set_num_ratings( $value ) {
-        $this->num_ratings  = absint( $value );
-    }
-
-    /**
-     * The number of active installations
-     * @param int $value
-     */
-    public function set_active_installs( $value ) {
-        $this->active_installs = absint( $value );
     }   
 
     /*
@@ -350,47 +215,10 @@ class Smliser_Plugin extends AbstractHostedApp {
     */
 
     /**
-     * Get the application unique identifier.
-     * 
-     * @return int
-     */
-    public function get_id() {
-        return $this->id;
-    }
-
-    /**
      * Get Item ID
      */
     public function get_item_id() {
         return $this->get_id();
-    }
-
-    /**
-     * Get plugin name
-     */
-    public function get_name() {
-        return $this->name;
-    }
-
-    /**
-     * Get Slug.
-     */
-    public function get_slug() {
-        return $this->slug;
-    }
-
-    /**
-     * Get version
-     */
-    public function get_version() {
-        return $this->version;
-    }
-
-    /**
-     * Get Author
-     */
-    public function get_author() {
-        return $this->author;
     }
 
     /**
@@ -419,26 +247,6 @@ class Smliser_Plugin extends AbstractHostedApp {
      */
     public function get_required_php() {
         return $this->requires_php;
-    }
-
-    /**
-     * Get last updated
-     */
-    public function get_last_updated() {
-        return $this->last_updated;
-    }
-    /**
-     * Get when updated
-     */
-    public function get_date_created() {
-        return $this->created_at;
-    }
-
-    /**
-     * Get Download URL.
-     */
-    public function get_download_url() {
-        return $this->download_link;
     }
 
     /**
@@ -475,51 +283,6 @@ class Smliser_Plugin extends AbstractHostedApp {
     public function get_icons() {
         return $this->icons;
 
-    }
-
-    /**
-     * Get the URL to view the plugin.
-     */
-    public function get_url() {
-        $slug       = $this->get_slug();
-        $slug_parts = explode( '/', $slug );
-        $url        = site_url( 'plugins/'. $slug_parts[0] );
-        return esc_url_raw( $url );
-
-    }
-
-    /**
-     * Get plugin descripion
-     * 
-     * @return string a parsed HTML string from the readme file.
-     */
-    public function get_description() {
-        return $this->get_section( 'description' );
-    }
-
-    /**
-     * Get the plugin installation text.
-     * 
-     * @return string a parsed HTML string from the readme file.
-     */
-    public function get_installation() {
-        return $this->get_section( 'installation' );
-    }
-
-    /**
-     * Get the plugin changelog from the readme.txt file.
-     * 
-     * @return string a parsed HTML string from the readme file.
-     */
-    public function get_changelog() {
-        return $this->get_section( 'changelog' );
-    }
-
-    /**
-     * Get support url
-     */
-    public function get_support_url() {
-        return $this->get_meta( 'support_url', '' );
     }
 
     /*
@@ -783,7 +546,7 @@ class Smliser_Plugin extends AbstractHostedApp {
         $self->set_required( $result['requires'] ?? '' );
         $self->set_tested( $result['tested'] ?? '' );
         $self->set_required_php( $result['requires_php'] ?? '' );
-        $self->set_download_link( $result['download_link'] ?? '' );
+        $self->set_download_url( $result['download_link'] ?? '' );
         $self->set_created_at( $result['created_at'] ?? '' );
         $self->set_last_updated( $result['last_updated'] ?? '' );
         $self->set_homepage( $self->get_meta( 'homepage_url', '#' ) );
@@ -845,6 +608,7 @@ class Smliser_Plugin extends AbstractHostedApp {
         $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
         $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
 
+        $self->set_support_url( $self->get_meta( 'support_url', '' ) );
         return $self;
     }
 
