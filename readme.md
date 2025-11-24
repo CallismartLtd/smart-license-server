@@ -451,7 +451,7 @@ This section handles the download of hosted plugins from the repository, combini
 
    * Check for a download token in query parameters.
    * If missing, fallback to the `Authorization` header.
-   * Validate the token using `smliser_verify_item_token()` against the plugin's item ID.
+   * Validate the token using `smliser_verify_item_token()` against the plugin's ID.
 5. Retrieve the plugin file path from the repository.
 6. Check file existence and readability.
 7. Serve the file for download with proper headers.
