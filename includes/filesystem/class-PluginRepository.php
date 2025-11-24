@@ -471,7 +471,6 @@ class PluginRepository extends Repository {
         return [];
     }
 
-
     /**
      * Get the absolute path to a given application asset.
      *
@@ -839,4 +838,96 @@ class PluginRepository extends Repository {
         
         return $this->get_contents( $file_path );
     }
+
+    /**
+     * Get plugin metadata from the readme.txt header.
+     *
+     * @param string $slug The plugin slug.
+     * @return array<string, mixed>
+     */
+    public function get_metadata( $slug ): array {
+        $readme_contents = $this->get_readme_txt( $slug );
+
+        if ( ! $readme_contents ) {
+            return [];
+        }
+
+        $metadata = [];
+        $lines    = preg_split( '/\r\n|\r|\n/', $readme_contents );
+        $first_line_processed = false;
+
+        foreach ( $lines as $line ) {
+            $line = trim( $line );
+
+            // Stop when the first section header begins (Description, Installation, etc).
+            if ( preg_match( '/^==\s*[\w\s]+\s*==$/', $line ) ) {
+                break;
+            }
+
+            // Skip empty lines until we've captured the title and/or headers.
+            if ( '' === $line ) {
+                continue;
+            }
+
+            /*
+            * Detect plugin title.
+            * Valid formats:
+            *   === Plugin Name ===
+            *   == Plugin Name ==
+            *   # Plugin Name
+            *   Plugin Name (H1 fallback)
+            */
+            if ( ! $first_line_processed ) {
+                if ( preg_match( '/^={1,3}\s*(.+?)\s*={1,3}$/', $line, $m ) ) {
+                    $metadata['plugin_name'] = trim( $m[1] );
+                    $first_line_processed = true;
+                    continue;
+                }
+                if ( preg_match( '/^#\s*(.+)$/', $line, $m ) ) {
+                    $metadata['plugin_name'] = trim( $m[1] );
+                    $first_line_processed = true;
+                    continue;
+                }
+
+                // Fallback: treat the first non-empty line as title
+                $metadata['plugin_name'] = $line;
+                $first_line_processed = true;
+                continue;
+            }
+
+            /*
+            * Parse key: value fields
+            * Example:
+            *   Requires at least: 6.0
+            *   Tested up to: 6.7
+            *   Contributors: callistus, john
+            */
+            if ( preg_match( '/^([^:]+):\s*(.+)$/', $line, $matches ) ) {
+
+                $raw_key = trim( $matches[1] );
+                $value   = trim( $matches[2] );
+
+                // Normalize key -> stable_tag, tested_up_to, etc.
+                $normalized_key = strtolower(
+                    str_replace( ' ', '_', $raw_key )
+                );
+
+                switch ( $normalized_key ) {
+                    case 'contributors':
+                    case 'tags':
+                        $metadata[ $normalized_key ] = array_map(
+                            'trim',
+                            explode( ',', $value )
+                        );
+                        break;
+
+                    default:
+                        $metadata[ $normalized_key ] = $value;
+                }
+            }
+        }
+
+        return $metadata;
+    }
+
 }
