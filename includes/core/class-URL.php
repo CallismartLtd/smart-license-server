@@ -194,6 +194,18 @@ class URL {
     }
 
     /**
+     * Append the URL path
+     * 
+     * @param string $pathname
+     * @return self
+     */
+    public function append_path( $pathname ) : self {
+        $this->components['path'] .= sprintf( '/%s', ltrim( $pathname, '/' ) );
+
+        return $this;
+    }
+
+    /**
      * Set or replace the URL fragment/hash.
      *
      * @param string $hash New fragment (with or without '#').
