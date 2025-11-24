@@ -29,7 +29,7 @@ defined( 'ABSPATH' ) || exit; ?>
             <table class="widefat striped">
                 <thead>
                     <tr>
-                        <th><?php echo esc_html__( 'Item ID', 'smliser' ); ?></th>
+                        <th><?php echo esc_html__( 'APP ID', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'App Name', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'App Author', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'Version', 'smliser' ); ?></th>
