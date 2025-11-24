@@ -264,7 +264,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let tooltips                = document.querySelectorAll('.smliser-form-description, .smliser-tooltip');
     let deleteBtn               = document.getElementById( 'smliser-license-delete-button' );
     let updateBtn               = document.querySelector('#smliser-update-btn');
-    let deletePluginBtn         = document.querySelector( '#smliser-plugin-delete-button' );
+    let appDeleteBtns           = document.querySelectorAll( '.smliser-app-delete-button' );
     let selectAllCheckbox       = document.querySelector('#smliser-select-all');
     let dashboardPage           = document.getElementById( 'smliser-admin-dasboard-wrapper' );
     let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
@@ -614,38 +614,49 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-    if ( deletePluginBtn ) {
-        deletePluginBtn.addEventListener('click', (e)=>{
-            let confirmed = confirm('You are about to delete this plugin from the repository, this action cannot be reversed!');
-            if (! confirmed ) {
-                e.preventDefault();
-                return;
-            }
-            let url = new URL( smliser_var.smliser_ajax_url );
-            url.searchParams.set( 'action', 'smliser_plugin_action');
-            url.searchParams.set( 'real_action', 'delete' );
-            url.searchParams.set( 'item_id', deletePluginBtn.getAttribute( 'item-id' ) );
-            url.searchParams.set( 'security', smliser_var.nonce );
-            
-            fetch(url)
-                .then( response=>{
-                    if ( ! response.ok ) {
-                        smliserNotify(`Error: [${response.status}] ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then( responseData=>{
-                    if ( responseData.success ) {
-                        smliserNotify(`Success: ${responseData.data.message}`, 3000);
-                        setTimeout(()=>{
-                            window.location.href = responseData.data.redirect_url;
-                        }, 3000);
-                    } else {
-                        smliserNotify(`Error: ${responseData.data.message}`, 6000);
+    if ( appDeleteBtns.length ) {
+        appDeleteBtns.forEach( appDeleteBtn => {
+            appDeleteBtn.addEventListener('click', (e)=>{
+                let confirmed = confirm('You are about to delete this plugin from the repository, this action cannot be reversed!');
+                if ( ! confirmed ) {
+                    e.preventDefault();
+                    return;
+                }
+                let appInfo    = '';
 
-                    }
-                });
-            
+                try {
+                    appInfo = JSON.parse( appDeleteBtn.getAttribute( 'data-plugin-info' ) );
+                } catch (error) {
+                    smliserNotify( 'App data not found' );
+                    return;
+                }
+                let url = new URL( smliser_var.smliser_ajax_url );
+                url.searchParams.set( 'action', 'smliser_delete_app' );
+                url.searchParams.set( 'slug', appInfo.slug );
+                url.searchParams.set( 'type', appInfo.type );
+                url.searchParams.set( 'security', smliser_var.nonce );
+                
+                fetch(url)
+                    .then( response=>{
+                        if ( ! response.ok ) {
+                            smliserNotify(`Error: [${response.status}] ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then( responseData => {
+                        
+                        if ( responseData.success ) {
+                            smliserNotify(`Success: ${responseData.data.message}`, 3000);
+                            setTimeout( () => {
+                                window.location.href = responseData.data.redirect_url;
+                            }, 3000);
+                        } else {
+                            smliserNotify(`Error: ${responseData.data.message}`, 6000);
+
+                        }
+                    });
+                
+            });
         });
     }
 
