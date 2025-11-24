@@ -765,10 +765,8 @@ class SmartLicense_config {
 
         require_once SMLISER_PATH . 'includes/class-WPAdapter.php';
 
-        require_once SMLISER_PATH . 'includes/class-smlicense.php';
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
         require_once SMLISER_PATH . 'includes/class-smliser-api-cred.php';
-        require_once SMLISER_PATH . 'includes/class-smliser-plugin-download-token.php';
         require_once SMLISER_PATH . 'includes/class-bulk-messages.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-rest-auth.php';
         require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-license-rest-api.php';
