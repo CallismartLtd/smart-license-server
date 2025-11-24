@@ -33,6 +33,27 @@ class Smliser_Plugin extends AbstractHostedApp {
     const META_TABLE = SMLISER_PLUGIN_META_TABLE;
 
     /**
+     * WordPress version requirement.
+     * 
+     * @var string $requires_at_least The minimum WordPress version required to run the app.
+     */
+    protected $requires_at_least = '';
+
+    /**
+     * Version Tested up to.
+     * 
+     * @var string $tested_up_to The latest WordPress version the app has been tested with.
+     */
+    protected $tested_up_to = '';
+
+    /**
+     * PHP version requirement.
+     * 
+     * @var string $requires_php The minimum PHP version required to run the app.
+     */
+    protected $requires_php = '';
+
+    /**
      * An array of different sections of plugin information (e.g., description, installation, FAQ).
      * 
      * @var array $sections
@@ -140,8 +161,8 @@ class Smliser_Plugin extends AbstractHostedApp {
      * 
      * @param string $wp_version.
      */
-    public function set_required( $wp_version ) {
-        $this->requires = sanitize_text_field( $wp_version );
+    public function set_requires_at_least( $wp_version ) {
+        $this->requires_at_least = sanitize_text_field( $wp_version );
     }
 
     /**
@@ -149,8 +170,8 @@ class Smliser_Plugin extends AbstractHostedApp {
      * 
      * @param string $version
      */
-    public function set_tested( $version ) {
-        $this->tested = sanitize_text_field( $version );
+    public function set_tested_up_to( $version ) {
+        $this->tested_up_to = sanitize_text_field( $version );
     }
 
     /**
@@ -158,7 +179,7 @@ class Smliser_Plugin extends AbstractHostedApp {
      * 
      * @param string $version
      */
-    public function set_required_php( $version ) {
+    public function set_requires_php( $version ) {
         $this->requires_php = sanitize_text_field( $version );
     }
     
@@ -232,14 +253,14 @@ class Smliser_Plugin extends AbstractHostedApp {
      * Get WordPress required version for plugin.
      */
     public function get_required() {
-        return $this->requires;
+        return $this->requires_at_least;
     }
 
     /**
      * Get WordPress version tested up to.
      */
     public function get_tested() {
-        return $this->tested ;
+        return $this->tested_up_to ;
     }
 
     /**
@@ -322,8 +343,8 @@ class Smliser_Plugin extends AbstractHostedApp {
      * @return true|Exception True on success, false on failure.
      */
     public function save() : true|Exception {
-        $db     = smliser_dbclass();
-        $table  = self::TABLE;
+        $db             = smliser_dbclass();
+        $table          = self::TABLE;
 
         $file           = $this->file;
         $filename       = strtolower( str_replace( ' ', '-', $this->get_name() ) );
@@ -340,8 +361,6 @@ class Smliser_Plugin extends AbstractHostedApp {
             'download_link' => $this->get_download_link(),
         );
 
-        $data_formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' );
-
         if ( $this->get_id() ) {
             if ( is_array( $this->file ) ) {
                 $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
@@ -351,7 +370,6 @@ class Smliser_Plugin extends AbstractHostedApp {
 
                 if ( $slug !== $this->get_slug() ) {
                     $plugin_data['slug'] = $slug;
-                    $data_formats[]      = '%s';
                     $this->set_slug( $slug );
                 }
             }
@@ -445,25 +463,29 @@ class Smliser_Plugin extends AbstractHostedApp {
      * @return bool True on success, false on failure.
      */
     public function update_meta( $key, $value ) {
-        if ( ! $this->get_item_id() ) {
+        if ( ! $this->get_id() ) {
             return false;
         }
         $db     = smliser_dbclass();
         $table  = self::META_TABLE;
 
-        $key    = sanitize_text_field( $key );
-        $value  = sanitize_text_field( is_array( $value ) ? maybe_serialize( $value ) : $value );
+        $key    = sanitize_key( $key );
+        $value  = maybe_serialize( $value );
+        
+        if ( 'support_url' === $key ) {
+            error_log( $value );
+        }
 
         // Prepare data for insertion/update.
         $data = array(
-            'plugin_id'     => absint( $this->get_item_id() ),
+            'plugin_id'     => absint( $this->get_id() ),
             'meta_key'      => $key,
             'meta_value'    => $value,
         );
 
-        $meta_id = $db->get_var( "SELECT `id` FROM {$table} WHERE `plugin_id` = ? AND `meta_key` = ?", [absint( $this->get_item_id() ), $key] );
+        $meta_id = $db->get_var( "SELECT `id` FROM {$table} WHERE `plugin_id` = ? AND `meta_key` = ?", [absint( $this->get_id() ), $key] );
 
-        if ( ! $meta_id ) {
+        if ( empty( $meta_id ) ) {
             $inserted = $db->insert( $table, $data );
 
             return $inserted !== false;
@@ -493,7 +515,7 @@ class Smliser_Plugin extends AbstractHostedApp {
         $table  = self::META_TABLE;
 
         $sql    = "SELECT `meta_value` FROM {$table} WHERE `plugin_id` = ? AND `meta_key` = ?";
-        $params = [absint( $this->get_item_id() ), sanitize_text_field( $meta_key )];
+        $params = [absint( $this->get_id() ), sanitize_text_field( $meta_key )];
         
 
         $result = $db->get_var( $sql, $params );
@@ -540,26 +562,31 @@ class Smliser_Plugin extends AbstractHostedApp {
         $self->set_id( $result['id'] ?? 0 );
         $self->set_name( $result['name'] ?? '' );
         $self->set_slug( $result['slug'] ?? '' );
-        $self->set_version( $result['version'] ?? '' );
         $self->set_author( $result['author'] ?? '' );
         $self->set_author_profile( $result['author_profile'] ?? '' );
-        $self->set_required( $result['requires'] ?? '' );
-        $self->set_tested( $result['tested'] ?? '' );
-        $self->set_required_php( $result['requires_php'] ?? '' );
-        $self->set_download_url( $result['download_link'] ?? '' );
-        $self->set_created_at( $result['created_at'] ?? '' );
-        $self->set_last_updated( $result['last_updated'] ?? '' );
-        $self->set_homepage( $self->get_meta( 'homepage_url', '#' ) );
-        
+
         /** 
          * Set file information
          * 
          * @var SmartLicenseServer\PluginRepository $repo_class
          */
-        $repo_class         = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
-        $plugin_file_path   = $repo_class->locate( $self->get_slug() );
-        if ( ! is_smliser_error( $plugin_file_path ) ) {
-            $self->set_file( $plugin_file_path );
+        $repo_class = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
+
+        $plugin_meta    = $repo_class->get_metadata( $self->get_slug() );
+        
+        $self->set_version( $plugin_meta['stable_tag'] ?? '' );
+        $self->set_requires_at_least( $plugin_meta['requires_at_least'] ?? '' );
+        $self->set_tested_up_to( $plugin_meta['tested_up_to'] ?? '' );
+        $self->set_requires_php( $plugin_meta['requires_php'] ?? '' );
+
+        $self->set_download_url( $result['download_link'] ?? '' );
+        $self->set_created_at( $result['created_at'] ?? '' );
+        $self->set_last_updated( $result['last_updated'] ?? '' );
+        
+        $file       = $repo_class->locate( $self->get_slug() );
+
+        if ( ! is_smliser_error( $file ) ) {
+            $self->set_file( $file );
         } else {
             $self->set_file( null );
         }
@@ -607,8 +634,9 @@ class Smliser_Plugin extends AbstractHostedApp {
 
         $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
         $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
-
         $self->set_support_url( $self->get_meta( 'support_url', '' ) );
+        $self->set_homepage( $self->get_meta( 'homepage_url', '' ) );
+
         return $self;
     }
 
