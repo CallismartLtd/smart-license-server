@@ -75,7 +75,7 @@ class WPAdapter {
             'smliser_bulk_action'               => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_all_actions'               => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_generate_download_token'   => [__CLASS__, 'parse_download_token_generation_request'],
-                    
+            'smliser_delete_app'                => [__CLASS__, 'parse_app_delete_request'],
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {
@@ -485,6 +485,33 @@ class WPAdapter {
 
         smliser_send_json_success( array( 'token' => $token ) );
 
+    }
+
+    /**
+     * Parse app deletion request
+     *
+     * @return void
+     */
+    private static function parse_app_delete_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            \smliser_send_json_error( array( 'message' => 'Invalid CSRF token, please refresh current page.' ) );
+        }
+
+        if ( ! current_user_can( 'install_plugins' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to do this.') );
+        }
+    
+        $request    = new Request([
+            'slug'          => \smliser_get_query_param( 'slug' ),
+            'type'          => \smliser_get_query_param( 'type' ),
+            'is_authorized' => true,
+        ]);
+
+        $response   = AppCollection::delete_app( $request );
+
+        $response->register_after_serve_callback( function() { die; } );
+        $response->send();
+    
     }
     /*
     |----------------
