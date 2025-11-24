@@ -64,27 +64,6 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     protected $author_profile = '';
 
     /**
-     * WordPress version requirement.
-     * 
-     * @var string $requires The minimum WordPress version required to run the app.
-     */
-    protected $requires = '';
-
-    /**
-     * Version Tested up to.
-     * 
-     * @var string $tested The latest WordPress version the app has been tested with.
-     */
-    protected $tested = '';
-
-    /**
-     * PHP version requirement.
-     * 
-     * @var string $requires_php The minimum PHP version required to run the app.
-     */
-    protected $requires_php = '';
-
-    /**
      * Update time.
      * 
      * @var string $last_updated The last time the app was updated
@@ -610,7 +589,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     | SHARED CRUD METHODS
     |---------------------
     */
-    
+
     /**
      * Get a app by it's slug.
      * 
