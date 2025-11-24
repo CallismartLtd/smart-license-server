@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\DownloadsApi;
 
 use SmartLicenseServer\Exception\FileRequestException;
+use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_PATH' ) || exit;
 
@@ -200,7 +201,7 @@ class FileRequestController {
                 throw new FileRequestException( 'invalid_param_license_id' );
             }
 
-            $license = \Smliser_license::get_by_id( $license_id );
+            $license = License::get_by_id( $license_id );
             if ( ! $license ) {
                 throw new FileRequestException( 'file_not_found' );
             }
