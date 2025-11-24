@@ -17,7 +17,9 @@ $other_fields   = array(
             'value' => $app->get_required_php(),
             'attr'  => array(
                 'autocomplete'  => 'off',
-                'spellcheck'    => 'off'
+                'spellcheck'    => 'off',
+                'readonly'      => true,
+                'title'         => 'Use plugin readme.txt file to edit the plugin\'s required PHP version.'
             )
         )
     ),
@@ -30,7 +32,9 @@ $other_fields   = array(
             'value' => $app->get_required(),
             'attr'  => array(
                 'autocomplete'  => 'off',
-                'spellcheck'    => 'off'
+                'spellcheck'    => 'off',
+                'readonly'      => true,
+                'title'         => 'Use plugin readme.txt file to edit the minimum WordPress version required to install the plugin'
             )
         )
     ),
@@ -43,7 +47,9 @@ $other_fields   = array(
             'value' => $app->get_tested(),
             'attr'  => array(
                 'autocomplete'  => 'off',
-                'spellcheck'    => 'off'
+                'spellcheck'    => 'off',
+                'readonly'      => true,
+                'title'         => 'Use plugin the readme.txt file to edit the WordPress version this plugin has been tested up to.'
             )
         )
     ),
