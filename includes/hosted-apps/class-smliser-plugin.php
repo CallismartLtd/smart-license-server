@@ -78,7 +78,7 @@ class Smliser_Plugin extends AbstractHostedApp {
      * Get application type
      * @return string
      */
-    public function get_type() {
+    public function get_type() : string {
         return 'plugin';
     }
 
@@ -110,24 +110,6 @@ class Smliser_Plugin extends AbstractHostedApp {
             return $this->get_url();
         }
         return $this->homepage;
-    }
-
-    /**
-     * Get the absolute path to the plugin zip file
-     * 
-     * @return string|Exception The file path or Exception on failure.
-     */
-    public function get_zip_file() {
-        $file = $this->get_file();
-        if ( ! is_array( $file ) ) {
-            return $file;
-        }
-
-        if ( is_array( $file ) && isset( $file['tempname'] ) ) {
-            return $file['tempname'];
-        }
-
-        return new Exception( 'file_not_found', __( 'Plugin file not found.', 'smliser' ), array( 'status' => 404 ) );
     }
 
     /*
@@ -744,19 +726,6 @@ class Smliser_Plugin extends AbstractHostedApp {
         }
 
         return $data;
-    }
-
-    /**
-     * Check if this plugin is monetized.
-     * 
-     * @return bool true if monetized, false otherwise.
-     */
-    public function is_monetized() : bool {
-        $db         = smliser_dbclass();
-        $table_name = SMLISER_MONETIZATION_TABLE;
-        $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = ? AND `item_id` = ? AND `enabled` = ?";
-        $params     = [$this->get_type(), absint( $this->id ), '1'];
-        return $db->get_var( $query, $params ) > 0;
     }
 
     /**
