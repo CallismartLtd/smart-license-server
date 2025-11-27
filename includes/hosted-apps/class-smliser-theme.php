@@ -44,76 +44,11 @@ class Smliser_Theme extends AbstractHostedApp {
     ];
 
     /**
-     * The url to the theme's screenshot.png file
+     * The theme's screenshot.png url
      * 
      * @var string $screenshot_url
      */
     protected $screenshot_url = '';
-
-    /**
-     * Theme homepage URL
-     * 
-     * @var string $homepage
-     */
-    protected $homepage = '';
-
-
-    /**
-     * Number of downloads
-     * 
-     * @var int $downloaded
-     */
-    protected $downloaded = 0;
-
-    /**
-     * Theme creation time
-     * 
-     * @var string $creation_time
-     */
-    protected $creation_time = '';
-
-    /**
-     * The theme sections
-     * @var array $sections
-     */
-    protected $sections = [
-        'description'   => ''
-    ];
-
-    /**
-     * Short description.
-     * 
-     * @var string $short_description A brief description of the theme.
-     */
-    protected $short_description = '';
-
-    /**
-     * An array of different theme screenshots.
-     * 
-     * @var array $screenshots
-     */
-    protected $screenshots = array();
-
-    /**
-     * An array of of theme icons.
-     * 
-     * @var array $screenshots
-     */
-    protected $icons = array();
-
-    /**
-     * The theme zip file download link.
-     * 
-     * @var string $download_link
-     */
-    protected $download_link = '';
-
-    /**
-     * The searchable tags for the theme.
-     * 
-     * @var array $tags
-     */
-    protected $tags = [];
 
     /**
      * The theme file
@@ -131,7 +66,7 @@ class Smliser_Theme extends AbstractHostedApp {
      * Get application type
      * @return string
      */
-    public function get_type() {
+    public function get_type() : string {
         return 'theme';
     }
 
@@ -144,23 +79,6 @@ class Smliser_Theme extends AbstractHostedApp {
         return $this->author['author_url'];
     }
 
-    /**
-     * Get the absolute path to the plugin zip file
-     * 
-     * @return string|Exception The file path or Exception on failure.
-     */
-    public function get_zip_file() {
-        $file = $this->file;
-        if ( ! is_array( $file ) ) {
-            return $file;
-        }
-
-        if ( is_array( $file ) && isset( $file['tempname'] ) ) {
-            return $file['tempname'];
-        }
-
-        return new Exception( 'file_not_found', __( 'Plugin file not found.', 'smliser' ), array( 'status' => 404 ) );
-    }
     /**
     |--------------
     | CRUD METHODS
@@ -267,8 +185,8 @@ class Smliser_Theme extends AbstractHostedApp {
     public function delete() : bool {
         $db     = smliser_dbclass();
 
-        if ( empty( $this->item_id ) ) {
-            return false; // A valid plugin should have an ID.
+        if ( empty( $this->id ) ) {
+            return false; // A valid theme should have an ID.
         }
     
         $repo_class = new PluginRepository();
@@ -314,8 +232,8 @@ class Smliser_Theme extends AbstractHostedApp {
      * Converts associative array to object of this class.
      */
     public static function from_array( $result ) {
-        // $self = new self();
-        // $self->set_item_id( $result['id'] ?? 0 );
+        $self = new self();
+        $self->set_id( $result['id'] ?? 0 );
         // $self->set_name( $result['name'] ?? '' );
         // $self->set_slug( $result['slug'] ?? '' );
         // $self->set_version( $result['version'] ?? '' );
@@ -395,9 +313,58 @@ class Smliser_Theme extends AbstractHostedApp {
      * @return array
      */
     public function get_rest_response() : array {
-
-
-        return array();
+        return array(
+            'name'                  => $this->get_name(),
+            'slug'                  => $this->get_slug(),
+            'version'               => $this->get_version(),
+            'preview_url'           => '',
+            'author'                => array(
+                'user_nicename' => '',
+                'profile'        => '',
+                'avatar'         => '',
+                'display_name'   => '',
+                'author'         => '',
+                'author_url'     => '',
+            ),
+            'screenshot_url'        => '',
+            'rating'                => 0,
+            'num_ratings'           => 0,
+            'reviews_url'           => '',
+            'downloaded'            => 0,
+            'last_updated'          => $this->get_last_updated(),
+            'last_updated_time'     => date( 'Y-m-d H:i:s', strtotime( $this->get_last_updated() ) ),
+            'creation_time'         => $this->get_date_created(),
+            'homepage'              => $this->get_homepage(),
+            'sections'              => $this->get_sections(),
+            'download_link'         => '',
+            'tags'                  => array(
+                'blog'                 => '',
+                'custom-colors'        => '',
+                'custom-logo'          => '',
+                'custom-menu'          => '',
+                'e-commerce'           => '',
+                'editor-style'         => '',
+                'entertainment'        => '',
+                'featured-images'      => '',
+                'full-width-template'  => '',
+                'left-sidebar'         => '',
+                'microformats'         => '',
+                'one-column'           => '',
+                'post-formats'          => '',
+                'right-sidebar'         => '',
+                'rtl-language-support'  => '',
+                'theme-options'         => '',
+                'threaded-comments'     => '',
+                'translation-ready'     => '',
+                'two-columns'           => '',
+            ),
+            'requires'                  => '',
+            'requires_php'              => '',
+            'is_monetized'              => $this->is_monetized(),
+            'external_support_url'      => '',
+            'is_community'              => false,
+            'external_repository_url'   => '',
+        );
     }
 
 }
