@@ -88,7 +88,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     );
 
     /**
-     * An array of of plugin icons.
+     * An array of of app icons.
      * 
      * @var array $icons
      */
@@ -157,11 +157,18 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     protected $homepage = '#';
 
     /**
-     * Plugin zip file.
+     * Absolute path to the application's zip file.
      * 
      * @var string|array $file The absolute path to the app zip file or an array of uploaded file data.
      */
     protected $file;
+
+    /**
+     * The app tags.
+     * 
+     * @var array $tags
+     */
+    protected $tags = [];
 
     /**
     |----------------
@@ -170,7 +177,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     */
 
     /**
-     * Set the theme's database ID
+     * Set the database ID
      * 
      * @param int $id
      */
@@ -179,7 +186,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
 
     /**
-     * Set the theme name
+     * Set the app name
      * 
      * @param string $name
      */
@@ -197,7 +204,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
 
     /**
-     * Set theme author property.
+     * Set app author property.
      * 
      * @param string|array $value
      */
@@ -211,7 +218,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
 
     /**
-     * set theme homepage URL
+     * set app homepage URL
      * 
      * @param string $url
      */
@@ -229,7 +236,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
 
     /**
-     * Set theme version
+     * Set app version
      * 
      * @param string $version
      */
@@ -440,7 +447,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
         return $this->get_section( 'changelog' );
     }
     /**
-     * Get the plugin installation text.
+     * Get the application's installation guide.
      * 
      * @return string a parsed HTML string from the readme file.
      */
@@ -456,7 +463,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
 
     /**
-     * Get a plugin section information
+     * Get the value of a specific section property.
      * 
      * @param string $name  Section name.
      * @return string The particular section name
@@ -554,7 +561,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      * 
      * @return string
      */
-    abstract public function get_type();
+    abstract public function get_type() : string;
 
     /**
      * Method to get the database table name.
@@ -604,7 +611,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
 
     /**
-     * Check if this plugin is monetized.
+     * Check if this app is monetized.
      * 
      * @return bool true if monetized, false otherwise.
      */
@@ -617,7 +624,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
 
     /**
-     * Get a sample of download URL for licensed plugin
+     * Get a sample of download URL for licensed app
      */
     public function monetized_url_sample() {
         return sprintf( '%s?download_token={token}', $this->get_download_url() );
@@ -630,7 +637,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     */
         
     /**
-     * Get the URL to view the plugin.
+     * Get the URL to view the app.
      * 
      * @return string
      */
@@ -641,6 +648,24 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
         $url->set_path( $type . '/' . $slug );
 
         return $url->__toString();
+    }
+
+    /**
+     * Get the absolute path to the app zip file
+     * 
+     * @return string|Exception The file path or Exception on failure.
+     */
+    public function get_zip_file() {
+        $file = $this->get_file();
+        if ( ! is_array( $file ) ) {
+            return $file;
+        }
+
+        if ( is_array( $file ) && isset( $file['tempname'] ) ) {
+            return $file['tempname'];
+        }
+
+        return new Exception( 'file_not_found', \sprintf( '%s zip file not found', $this->get_type() ), array( 'status' => 404 ) );
     }
 
 }
