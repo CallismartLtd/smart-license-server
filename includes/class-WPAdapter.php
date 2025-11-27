@@ -45,7 +45,6 @@ class WPAdapter {
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
         add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
         add_action( 'init', array( Provider_Collection::class, 'auto_load' ) );
-
     }
 
     /**
@@ -63,22 +62,23 @@ class WPAdapter {
         }
 
         $handler_map    = [
-            'smliser-downloads'                 => function() { ( self::resolve_download_callback() )(); },
-            'smliser-repository-assets'         => [__CLASS__, 'parse_app_asset_request'],
-            'smliser_admin_download'            => [__CLASS__, 'parse_admin_download_request'],
-            'smliser_download_image'            => [__CLASS__, 'parse_proxy_image_request'],
-            'smliser_save_plugin'               => [__CLASS__, 'parse_save_app_request'],
-            'smliser_save_theme'                => [__CLASS__, 'parse_save_app_request'],
-            'smliser_save_software'             => [__CLASS__, 'parse_save_app_request'],
-            'smliser_save_license'              => [__CLASS__, 'parse_license_save_request'],
-            'smliser_app_asset_upload'          => [__CLASS__, 'parse_app_asset_upload_request'],
-            'smliser_app_asset_delete'          => [__CLASS__, 'parse_app_asset_delete_request'],
-            'smliser_save_monetization_tier'    => [__CLASS__, 'parse_monetization_tier_form'], // This is the parser that needs to be written
-            'smliser_authorize_app'             => [Smliser_Api_Cred::class, 'oauth_client_consent_handler'],
-            'smliser_bulk_action'               => [__CLASS__, 'parse_bulk_action_request'],
-            'smliser_all_actions'               => [__CLASS__, 'parse_bulk_action_request'],
-            'smliser_generate_download_token'   => [__CLASS__, 'parse_download_token_generation_request'],
-            'smliser_delete_app'                => [__CLASS__, 'parse_app_delete_request'],
+            'smliser-downloads'                             => function() { ( self::resolve_download_callback() )(); },
+            'smliser-repository-assets'                     => [__CLASS__, 'parse_app_asset_request'],
+            'smliser_admin_download'                        => [__CLASS__, 'parse_admin_download_request'],
+            'smliser_download_image'                        => [__CLASS__, 'parse_proxy_image_request'],
+            'smliser_save_plugin'                           => [__CLASS__, 'parse_save_app_request'],
+            'smliser_save_theme'                            => [__CLASS__, 'parse_save_app_request'],
+            'smliser_save_software'                         => [__CLASS__, 'parse_save_app_request'],
+            'smliser_save_license'                          => [__CLASS__, 'parse_license_save_request'],
+            'smliser_app_asset_upload'                      => [__CLASS__, 'parse_app_asset_upload_request'],
+            'smliser_app_asset_delete'                      => [__CLASS__, 'parse_app_asset_delete_request'],
+            'smliser_save_monetization_tier'                => [__CLASS__, 'parse_monetization_tier_form'], // This is the parser that needs to be written
+            'smliser_authorize_app'                         => [Smliser_Api_Cred::class, 'oauth_client_consent_handler'],
+            'smliser_bulk_action'                           => [__CLASS__, 'parse_bulk_action_request'],
+            'smliser_all_actions'                           => [__CLASS__, 'parse_bulk_action_request'],
+            'smliser_generate_download_token'               => [__CLASS__, 'parse_download_token_generation_request'],
+            'smliser_delete_app'                            => [__CLASS__, 'parse_app_delete_request'],
+            'smliser_save_monetization_provider_options'    => [Provider_Collection::class, 'save_provider_options'],
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {

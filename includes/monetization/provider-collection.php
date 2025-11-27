@@ -290,6 +290,3 @@ class Provider_Collection {
         }
     }
 }
-
-add_action( 'init', array( Provider_Collection::class, 'auto_load' ) );
-add_action( 'wp_ajax_smliser_save_monetization_provider_options', array( Provider_Collection::class, 'save_provider_options' ) );
