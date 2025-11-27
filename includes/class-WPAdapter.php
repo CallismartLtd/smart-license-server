@@ -19,6 +19,7 @@ use SmartLicenseServer\Exception\FileRequestException;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Monetization\Provider_Collection;
 
 defined( 'ABSPATH'  ) || exit;
 
@@ -43,6 +44,8 @@ class WPAdapter {
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
         add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
+        add_action( 'init', array( Provider_Collection::class, 'auto_load' ) );
+
     }
 
     /**
