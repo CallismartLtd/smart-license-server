@@ -93,7 +93,7 @@ class FileSystemHelper {
             $finfo = @finfo_open( FILEINFO_MIME_TYPE );
             if ( $finfo ) {
                 $mime = finfo_file( $finfo, $path );
-                finfo_close( $finfo );
+                // finfo_close( $finfo ); // Deprecated in PHP 8.0, no longer needed.
                 if ( $mime ) {
                     return strtolower( $mime );
                 }

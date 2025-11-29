@@ -520,7 +520,7 @@ class Smliser_Software_Collection {
             $result = $class->save();
 
             if ( is_smliser_error( $result ) ) {
-                throw $result;
+                throw new RequestException( $result->get_error_code() ?: 'save_failed', $result->get_error_message(), array( 'status' => 500 )  );
             }
 
             $data = array( 'data' => array(

@@ -10,8 +10,8 @@
 
 namespace SmartLicenseServer;
 
-use \SmartLicenseServer\Utils\MDParser;
-
+use SmartLicenseServer\Utils\MDParser;
+use SmartLicenseServer\FileSystemHelper;
 use function SmartLicenseServer\Utils\md_parser;
 
 defined( 'ABSPATH' ) || exit;
@@ -96,15 +96,13 @@ class PluginRepository extends Repository {
             return new Exception( 'invalid_filename', 'The new filename cannot be empty.', [ 'status' => 400 ] );
         }
 
-        $tmp_name = $file['tmp_name'];
+        $tmp_name = $file['tmp_name'] ?? '';
 
         if ( ! is_uploaded_file( $tmp_name ) ) {
             return new Exception( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
         }
 
-        // Ensure it's a ZIP
-        $file_type_info = wp_check_filetype( $file['name'] );
-        if ( $file_type_info['ext'] !== 'zip' ) {
+        if ( 'zip' !== FileSystemHelper::get_canonical_extension( $tmp_name ) ) {
             return new Exception( 'invalid_file_type', 'Invalid file type, the plugin must be in ZIP format.', [ 'status' => 400 ] );
         }
 
