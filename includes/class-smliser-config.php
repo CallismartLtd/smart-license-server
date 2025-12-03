@@ -926,7 +926,6 @@ class SmartLicense_config {
             'top'
         );
 
-        
         /**OAUTH authorization endpoint */
         add_rewrite_rule(
             '^smliser-auth/v1/authorize$',
