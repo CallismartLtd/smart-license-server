@@ -122,6 +122,24 @@ class FileSystem {
     }
 
     /**
+     * Tells whether the given $input is a stream wrapper
+     * 
+     * @param mixed $thing
+     * @return bool
+     */
+    function is_stream( $thing ) {
+        $scheme_separator = strpos( $thing, '://' );
+
+        if ( false === $scheme_separator ) {
+            return false;
+        }
+
+        $stream = substr( $thing, 0, $scheme_separator );
+
+        return in_array( $stream, stream_get_wrappers(), true );
+    }
+
+    /**
      * Get file contents.
      *
      * @param string $file Absolute path to the file
@@ -166,7 +184,75 @@ class FileSystem {
      * @return bool
      */
     public function mkdir( $path, $chmod = false, $recursive = true ) {
-        return $this->fs->mkdir( $path, $chmod, $recursive );
+
+        if ( ( $this->fs instanceof \WP_Filesystem_Base ) && $recursive ) {
+            // Does not suppport recursive creation, so we do it manually.
+            return $this->mkdir_r( $path, $chmod );
+            
+        }
+        return $this->fs->mkdir( $path, $chmod );
+    }
+
+    /**
+     * Create directories recursively.
+     * 
+     * @param string $path
+     * @param int|false $chmod
+     * @return bool
+     */
+    protected function mkdir_r( $path, $chmod = false ) {
+        $stream_wrapper = null;
+
+        // Handle stream wrappers like s3:// or ftp://
+        if ( $this->is_stream( $path ) ) {
+            $parts = explode( '://', $path, 2 );
+            $stream_wrapper = $parts[0];
+            $path = $parts[1];
+        }
+
+        $path = \sanitize_and_normalize_path( $path );
+        if ( \is_smliser_error( $path ) ) {
+            return false;
+        }
+
+        if ( $stream_wrapper !== null ) {
+            $path = $stream_wrapper . '://' . $path;
+        }
+
+        $path = rtrim( $path, '/' );
+        if ( empty( $path ) ) {
+            $path = '/';
+        }
+
+        // Find highest existing parent directory
+        $dest_parent = dirname( $path );
+        while ( $dest_parent !== '.' && ! is_dir( $dest_parent ) && dirname( $dest_parent ) !== $dest_parent ) {
+            $dest_parent = dirname( $dest_parent );
+        }
+
+        // Get parent permission bits
+        $stats = @stat( $dest_parent );
+        $perms = $stats ? ( $stats['mode'] & 0777 ) : 0755;
+        if ( $chmod !== false ) {
+            $perms = $chmod;
+        }
+
+        // Build and create all intermediate directories
+        $relative_parts = explode( '/', ltrim( substr( $path, strlen( $dest_parent ) ), '/' ) );
+        $current = $dest_parent;
+
+        foreach ( $relative_parts as $part ) {
+            $current .= '/' . $part;
+
+            if ( ! is_dir( $current ) ) {
+                if ( ! mkdir( $current, $perms ) ) {
+                    return false;
+                }
+                @chmod( $current, $perms );
+            }
+        }
+
+        return true;
     }
 
     /**
