@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer;
 
+use SimplePie\File;
 use ZipArchive;
 
 defined( 'ABSPATH' ) || exit;
@@ -96,7 +97,7 @@ abstract class Repository extends FileSystem {
 
         // Build relative path from base
         $relative = $this->current_dir . '/' . $slug;
-        $real     = $this->real_path( $relative );
+        $real     = $this->full_path( $relative );
 
         if ( ! $real || ! $this->is_dir( $real ) ) {
             throw new \InvalidArgumentException( sprintf(
@@ -133,7 +134,7 @@ abstract class Repository extends FileSystem {
         $relative = implode( '/', $parts );
 
         // Use FileSystem to get absolute path
-        return $this->real_path( $relative );
+        return $this->full_path( $relative );
     }
 
     /**
@@ -155,30 +156,24 @@ abstract class Repository extends FileSystem {
     /* -------------------------------------------------------------------------
      * ZIP Utilities
      * ---------------------------------------------------------------------- */
-
+    
     /**
-     * Validate if a ZIP file can be opened safely.
-     *
-     * @param string $filename Relative filename inside current slug dir.
-     * @return string|Exception
+     * Check whether the given file is a valid zip file.
+     * 
+     * @param string $path Absolute path
+     * @return bool
      */
-    public function validate_zip( $filename ) {
-        $real = $this->real_path( $this->path( $filename ) );
+    public function is_valid_zip( $path ) {
+        $zip = new \ZipArchive();
+        $res = $zip->open( $path );
 
-        if ( ! $real || ! $this->fs->exists( $real ) ) {
-            return new Exception( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ), [ 'status' => 404 ] );
-        }
-
-        $zip = new ZipArchive();
-        $res = $zip->open( $real );
-        if ( $res === true ) {
+        if ( true === $res ) {
             $zip->close();
-            return $real;
+            return true;
         }
 
-        return new Exception( 'zip_invalid', __( 'Unable to open ZIP file.', 'smart-license-server' ), [ 'status' => 400 ] );
+        return false;
     }
-
     /**
      * List contents of a ZIP archive (inside current slug dir).
      *
@@ -186,7 +181,7 @@ abstract class Repository extends FileSystem {
      * @return array|Exception
      */
     public function list_zip_contents( $filename ) {
-        $real = $this->real_path( $this->path( $filename ) );
+        $real = $this->full_path( $this->path( $filename ) );
 
         if ( ! $real || ! $this->fs->exists( $real ) ) {
             return new Exception( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ) );
@@ -207,77 +202,110 @@ abstract class Repository extends FileSystem {
     }
 
     /**
-     * Extract a single file from a ZIP archive into current slug dir.
-     *
-     * @param string $zip_filename ZIP filename relative to current slug.
-     * @param string $file_inside Filename inside the ZIP.
-     * @param string $dest_filename Destination filename relative to current slug.
-     * @return bool|Exception
-     */
-    public function extract_file( $zip_filename, $file_inside, $dest_filename ) {
-        $real_zip = $this->real_path( $this->path( $zip_filename ) );
-
-        if ( ! $real_zip || ! $this->fs->exists( $real_zip ) ) {
-            return new Exception( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ) );
-        }
-
-        $zip = new ZipArchive();
-        if ( $zip->open( $real_zip ) !== true ) {
-            return new Exception( 'zip_invalid', __( 'Unable to open ZIP file.', 'smart-license-server' ) );
-        }
-
-        $stream = $zip->getStream( $file_inside );
-        if ( ! $stream ) {
-            $zip->close();
-            return new Exception( 'file_missing', __( 'File not found in ZIP.', 'smart-license-server' ) );
-        }
-
-        $contents = stream_get_contents( $stream );
-        fclose( $stream );
-
-        $written = $this->put_contents( $dest_filename, $contents );
-        $zip->close();
-
-        return $written ? true : new Exception( 'write_failed', __( 'Failed to write file.', 'smart-license-server' ) );
-    }
-
-    /**
      * Safely store a ZIP file in the repository.
      *
      * Does not handle folder creation or metadata extraction. Returns the stored path.
      *
-     * @param string $tmp_path Temporary uploaded file path.
-     * @param string $dest_path Absolute destination path where ZIP should be moved.
-     * @return string|Exception Absolute path of stored ZIP or Exception on failure.
+     * @param string $from Absolute temporary file path.
+     * @param string $to   Absolute destination file path.
+     * @return string|\SmartLicenseServer\Exception Absolute path of stored ZIP or Exception on failure.
      */
-    public function store_zip( $tmp_path, $dest_path ) {
-        // Check uploaded file
-        if ( ! is_uploaded_file( $tmp_path ) ) {
-            return new Exception( 'invalid_temp_file', 'The temporary file is not valid.' );
+    private function save_zip_file( $from, $to ) {
+        // Ensure destination file name ends with .zip.
+        $ext    = FileSystemHelper::get_extension( $to );
+        if ( 'zip' !== strtolower( $ext ) ) {
+            return new Exception( 'invalid_file_type', 'The file must have a .zip extension.', [ 'status' => 400 ] );
         }
 
-        // Ensure .zip extension
-        $file_info = wp_check_filetype( $dest_path );
-        if ( $file_info['ext'] !== 'zip' ) {
-            return new Exception( 'invalid_file_type', 'Only ZIP files are allowed.' );
+        // Save the file to the destination.
+        if ( ! $this->rename( $from, $to ) ) {
+            return new Exception( 'file_saving_failed', 'Failed to save the uploaded ZIP file.', [ 'status' => 500 ] );
         }
 
-        // Move uploaded file
-        if ( ! $this->rename( $tmp_path, $dest_path ) ) {
-            return new Exception( 'move_failed', 'Failed to move uploaded file to repository.' );
+        @$this->chmod( $to, FS_CHMOD_FILE );
+
+        // Quick ZIP sanity check.
+        if ( ! $this->is_valid_zip( $to ) ) {
+            $this->delete( $to );
+            return new Exception( 'zip_invalid', 'The uploaded file is not a valid ZIP archive.', [ 'status' => 400 ] );
         }
 
-        $this->chmod( $dest_path, FS_CHMOD_FILE );
+        return $to;
+    }
 
-        // Quick ZIP sanity check
-        $zip = new \ZipArchive();
-        if ( $zip->open( $dest_path ) !== true ) {
-            $this->delete( $dest_path );
-            return new Exception( 'zip_invalid', 'Uploaded ZIP could not be opened.' );
+    /**
+     * Safely upload or update an application ZIP file in the repository.
+     *
+     * @param array  $file      The uploaded file ($_FILES format).
+     * @param string $new_name  The preferred filename (without path).
+     * @param bool   $update    Whether this is an update to an existing plugin.
+     * @return string|\SmartLicenseServer\Exception Relative path to stored ZIP on success, Exception on failure.
+     */
+    protected function safe_zip_upload( array $file, string $new_name, bool $update = false ) {
+        if ( empty( $file ) || ! isset( $file['tmp_name'], $file['name'] ) ) {
+            return new Exception( 'invalid_file', 'No file uploaded.', [ 'status' => 400 ] );
         }
-        $zip->close();
 
-        return $dest_path;
+        if ( empty( $new_name ) ) {
+            return new Exception( 'invalid_filename', 'The new filename cannot be empty.', [ 'status' => 400 ] );
+        }
+
+        $tmp_name = $file['tmp_name'] ?? '';
+
+        if ( ! is_uploaded_file( $tmp_name ) ) {
+            return new Exception( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
+        }
+
+        if ( 'zip' !== FileSystemHelper::get_canonical_extension( $tmp_name ) ) {
+            return new Exception( 'invalid_file_type', 'IThe application archive file must be in ZIP format.', [ 'status' => 400 ] );
+        }
+
+        // Normalize filename
+        $new_name  = FileSystemHelper::sanitize_filename( $new_name );
+
+        try {
+            $slug = $this->real_slug( $new_name );
+        } catch ( \InvalidArgumentException $e ) {
+            return new Exception( 'invalid_slug', $e->getMessage(), [ 'status' => 400 ] );
+        }
+
+        // Force the filename to strictly be "{slug}.zip".
+        $file_name = "{$slug}.zip";
+
+        // Build destination folder and file path
+        try {
+            $base_folder = $this->path( $slug );
+            $dest_path   = FileSystemHelper::join_path( $base_folder, $file_name );
+        } catch ( \RuntimeException $e ) {
+            return new Exception( 'repo_error', $e->getMessage(), [ 'status' => 500 ] );
+        }
+
+        if ( ! $update ) {
+            // New upload: prevent overwriting existing slug.
+            if ( $this->is_dir( $base_folder ) ) {
+                return new Exception(
+                    'plugin_slug_exists',
+                    sprintf( 'The slug "%s" is not available, you can change the plugin name and try again.', $slug ),
+                    [ 'status' => 400 ]
+                );
+            }
+
+            if ( ! $this->mkdir( $base_folder, FS_CHMOD_DIR ) ) {
+                return new Exception( 'repo_error', 'Unable to create plugin directory.', [ 'status' => 500 ] );
+            }
+            
+        } else {
+            // Update: ensure slug folder and plugin already exists.
+            if ( ! $this->is_dir( $base_folder ) && ! $this->mkdir( $base_folder, FS_CHMOD_DIR )) {
+                return new Exception(
+                    'plugin_not_found',
+                    sprintf( 'The plugin slug "%s" does not exist in the repository, and attempt to create one failed.', $slug ),
+                    [ 'status' => 404 ]
+                );
+            }
+        }
+
+        return $this->save_zip_file( $tmp_name, $dest_path );
     }
 
     /**
@@ -305,36 +333,19 @@ abstract class Repository extends FileSystem {
     }
 
     /**
-     * Get the real path
+     * Construct the full absolute path inside the repository.
      * 
      * @param $relative_path
+     * @return string|false Absolute path or false on failure.
      */
-    public function real_path( $relative_path ) {
+    public function full_path( $relative_path ) {
         $cleaned = \sanitize_and_normalize_path( $relative_path );
 
         if ( is_smliser_error( $cleaned ) ) {
             return false;
         }
 
-        return trailingslashit( $this->base_dir ) . $cleaned;
-    }
-
-    /**
-     * Check whether the given file is a valid zip file.
-     * 
-     * @param string $path Absolute path
-     * @return bool
-     */
-    public function is_valid_zip( $path ) {
-        $zip = new \ZipArchive();
-        $res = $zip->open( $path );
-
-        if ( true === $res ) {
-            $zip->close();
-            return true;
-        }
-
-        return false;
+        return FileSystemHelper::join_path( $this->base_dir, $cleaned );
     }
 
     /**
@@ -410,7 +421,6 @@ abstract class Repository extends FileSystem {
         return $exception->has_errors() ? $exception : true;
     }
 
-
     /**
      * Protects the given repository directory using an .htaccess file.
      *
@@ -422,7 +432,7 @@ abstract class Repository extends FileSystem {
      * @return bool|\SmartLicenseServer\Exception True on success, Exception instance on failure.
      */
     public static function protect_repository_directory( string $repo_dir, $fs ) {
-        $htaccess_path    = trailingslashit( $repo_dir ) . '.htaccess';
+        $htaccess_path    = FileSystemHelper::join_path( $repo_dir, '.htaccess' );
         $htaccess_content = "Deny from all";
 
         if ( ! $fs->exists( $htaccess_path ) ) {
