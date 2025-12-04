@@ -10,6 +10,7 @@
 
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\Exception\FileRequestException;
+use SmartLicenseServer\FileSystemHelper;
 use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
@@ -621,44 +622,10 @@ function smliser_utf8ize( mixed $data ) {
  * Sanitize and normalize a file path to prevent directory traversal attacks.
  *
  * @param string $path The input path.
- * @return string|Exception The sanitized and normalized path, or Exception on failure.
+ * @return string|SmartLicenseServer\Exception The sanitized and normalized path, or Exception on failure.
  */
 function sanitize_and_normalize_path( $path ) {
-    $original_path = $path;
-    
-    $is_absolute = str_starts_with( $path, '/' );
-    $path = str_replace( array( '\\', '/' ), DIRECTORY_SEPARATOR, $path );
-    $parts = explode( DIRECTORY_SEPARATOR, $path );
-
-    $new_path = array();
-    foreach ( $parts as $part ) {
-        $part = trim($part);
-        if ( '.' === $part ) continue;
-        if ( '..' === $part ) {
-            return new Exception( 'invalid_path', 'Parent directory references are not allowed.' );
-        }
-
-        $new_path[] = sanitize_text_field( $part );
-    }
-
-    $normalized_path = wp_normalize_path( implode( DIRECTORY_SEPARATOR, $new_path ) );
-
-    // Check for null bytes *after* normalization to prevent bypasses.
-    if ( preg_match( '/\0/', $normalized_path ) ) {
-        return new Exception( 'invalid_path', 'invalid path provided' );
-    }
-
-    //Check if the path contains any encoded characters after normalization.
-    if ( preg_match( '/(%|&#)/i', $normalized_path ) ) {
-        return new Exception( 'invalid_chars', 'Path contains invalid characters' );
-    }
-
-    // Restore absolute paths (Linux)
-    if ( $is_absolute ) {
-        $normalized_path = '/' . $normalized_path;
-    }
-    
-    return $normalized_path;
+    return FileSystemHelper::sanitize_path( $path );
 }
 
 /**
