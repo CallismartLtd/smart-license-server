@@ -34,7 +34,7 @@ class Smliser_Plugin extends AbstractHostedApp {
     /**
      * WordPress version requirement.
      * 
-     * @var string $requires_at_least The minimum WordPress version required to run the app.
+     * @var string $requires_at_least The minimum WordPress version required to run the plugin.
      */
     protected $requires_at_least = '';
 
