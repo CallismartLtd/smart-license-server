@@ -215,7 +215,7 @@ class FileSystem {
 	 * @return bool True on success, false on failure.
 	 */
 	public function chmod( $file, $mode = false, $recursive = false ) {
-        return $this->fs->chmod( $file, $mode, $recursive );
+        return @$this->fs->chmod( $file, $mode, $recursive );
     }
 
 	/**
