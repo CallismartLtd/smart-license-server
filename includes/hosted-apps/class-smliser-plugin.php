@@ -613,12 +613,12 @@ class Smliser_Plugin extends AbstractHostedApp {
          */
         $repo_class = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
 
-        $plugin_meta    = $repo_class->get_metadata( $self->get_slug() );
-        
+        $plugin_meta    = $repo_class->get_metadata( $self->get_slug() );        
         $self->set_version( $plugin_meta['stable_tag'] ?? '' );
         $self->set_requires_at_least( $plugin_meta['requires_at_least'] ?? '' );
         $self->set_tested_up_to( $plugin_meta['tested_up_to'] ?? '' );
         $self->set_requires_php( $plugin_meta['requires_php'] ?? '' );
+        $self->set_tags( $plugin_meta['tags'] ?? array() );
 
         $self->set_download_url( $result['download_link'] ?? '' );
         $self->set_created_at( $result['created_at'] ?? '' );
@@ -705,7 +705,7 @@ class Smliser_Plugin extends AbstractHostedApp {
             'tested'            => $this->get_tested_up_to(),
             'requires_php'      => $this->get_required_php(),
             'requires_plugins'  => [],
-            'tags'              => [],
+            'tags'              => $this->get_tags(),
             'added'             => $this->get_date_created(),
             'last_updated'      => $this->get_last_updated(),
             'short_description' => $this->get_short_description(),
