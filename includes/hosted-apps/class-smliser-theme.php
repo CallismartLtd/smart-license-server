@@ -8,6 +8,7 @@
 
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\ThemeRepository;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -28,6 +29,27 @@ class Smliser_Theme extends AbstractHostedApp {
      * @var string
      */
     const META_TABLE    = SMLISER_THEME_META_TABLE;
+
+    /**
+     * WordPress version requirement.
+     * 
+     * @var string $requires_at_least The minimum WordPress version required to run the plugin.
+     */
+    protected $requires_at_least = '';
+
+    /**
+     * Version Tested up to.
+     * 
+     * @var string $tested_up_to The latest WordPress version the app has been tested with.
+     */
+    protected $tested_up_to = '';
+
+    /**
+     * PHP version requirement.
+     * 
+     * @var string $requires_php The minimum PHP version required to run the app.
+     */
+    protected $requires_php = '';
 
     /**
      * Author .
@@ -71,6 +93,23 @@ class Smliser_Theme extends AbstractHostedApp {
     }
 
     /**
+     * Get the theme author name
+     * 
+     * @param string $property The author property to return. 
+     * @return string
+     */
+    public function get_author( $context = 'author' ) {
+        $author = parent::get_author();
+
+        if ( ! empty( $context ) && array_key_exists( $context, $author ) ) {
+            return $author[ $context ];
+        }
+
+        return $author;
+
+    }
+
+    /**
      * Get the author profile URL
      * 
      * @return string
@@ -79,6 +118,59 @@ class Smliser_Theme extends AbstractHostedApp {
         return $this->author['author_url'];
     }
 
+    /**
+     * Get WordPress required version for plugin.
+     */
+    public function get_required() {
+        return $this->requires_at_least;
+    }
+
+    /**
+     * Get WordPress version tested up to.
+     */
+    public function get_tested_up_to() {
+        return $this->tested_up_to;
+    }
+
+    /**
+     * Get PHP required version for plugin.
+     */
+    public function get_required_php() {
+        return $this->requires_php;
+    }
+
+    /*
+    |---------------
+    | SETTER METHODS
+    |---------------
+    */
+    /**
+     * Set WordPress required version for plugin.
+     * 
+     * @param string $version
+     */
+    public function set_requires_at_least( $version ) {
+        $this->requires_at_least = $version;
+    }
+
+    /**
+     * Set WordPress tested up to version for plugin.
+     * 
+     * @param string $version
+     */
+    public function set_tested_up_to( $version ) {
+        $this->tested_up_to = $version;
+    }
+
+    /**
+     * Set PHP required version for plugin.
+     * 
+     * @param string $version
+     */
+    public function set_requires_php( $version ) {
+        $this->requires_php = $version;
+    }
+    
     /**
     |--------------
     | CRUD METHODS
@@ -121,20 +213,12 @@ class Smliser_Theme extends AbstractHostedApp {
 
         $file           = $this->file;
         $filename       = strtolower( str_replace( ' ', '-', $this->get_name() ) );
-        $repo_class     = new PluginRepository();
+        $repo_class     = new ThemeRepository();
 
-        // $plugin_data = array(
-        //     'name'          => $this->get_name(),
-        //     'version'       => $this->get_version(),
-        //     'author'        => $this->get_author(),
-        //     'author_profile'=> $this->get_author_profile(),
-        //     'requires'      => $this->get_required(),
-        //     'tested'        => $this->get_tested_up_to(),
-        //     'requires_php'  => $this->get_required_php(),
-        //     'download_link' => $this->get_download_link(),
-        // );
-
-        $data_formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' );
+        $theme_data = array(
+            'name'          => $this->get_name(),
+            'download_link' => $this->get_download_url(),
+        );
 
         if ( $this->get_id() ) {
             if ( is_array( $this->file ) ) {
@@ -144,14 +228,13 @@ class Smliser_Theme extends AbstractHostedApp {
                 }
 
                 if ( $slug !== $this->get_slug() ) {
-                    $plugin_data['slug'] = $slug;
-                    $data_formats[]      = '%s';
+                    $theme_data['slug'] = $slug;
                     $this->set_slug( $slug );
                 }
             }
 
-            $plugin_data['last_updated']    = current_time( 'mysql' );            
-            $result = $db->update( $table, $plugin_data, array( 'id' => absint( $this->get_id() ) ) );
+            $theme_data['last_updated']    = current_time( 'mysql' );            
+            $result = $db->update( $table, $theme_data, array( 'id' => absint( $this->get_id() ) ) );
 
         } else {
             if ( ! is_array( $file ) ) {
@@ -166,10 +249,10 @@ class Smliser_Theme extends AbstractHostedApp {
 
             $this->set_slug( $slug );
 
-            $plugin_data['slug']        = $this->get_slug();
-            $plugin_data['created_at']  = current_time( 'mysql' );
+            $theme_data['slug']        = $this->get_slug();
+            $theme_data['created_at']  = current_time( 'mysql' );
 
-            $result = $db->insert( $table, $plugin_data );
+            $result = $db->insert( $table, $theme_data );
 
             $this->set_id( $db->get_insert_id() );
         }
@@ -234,17 +317,36 @@ class Smliser_Theme extends AbstractHostedApp {
     public static function from_array( $result ) {
         $self = new self();
         $self->set_id( $result['id'] ?? 0 );
-        // $self->set_name( $result['name'] ?? '' );
-        // $self->set_slug( $result['slug'] ?? '' );
-        // $self->set_version( $result['version'] ?? '' );
-        // $self->set_author( $result['author'] ?? '' );
-        // $self->set_author_profile( $result['author_profile'] ?? '' );
-        // $self->set_required( $result['requires'] ?? '' );
-        // $self->set_tested( $result['tested'] ?? '' );
-        // $self->set_required_php( $result['requires_php'] ?? '' );
-        // $self->set_download_link( $result['download_link'] ?? '' );
-        // $self->set_created_at( $result['created_at'] ?? '' );
-        // $self->set_last_updated( $result['last_updated'] ?? '' );
+        $self->set_name( $result['name'] ?? '' );
+        $self->set_slug( $result['slug'] ?? '' );
+        $self->set_download_url( $result['download_link'] ?? '' );
+        $self->set_created_at( $result['created_at'] ?? '' );
+        $self->set_last_updated( $result['last_updated'] ?? '' );
+
+        /** 
+         * Set file information
+         * 
+         * @var \SmartLicenseServer\ThemeRepository $repo_class
+         */
+        $repo_class = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
+
+        $theme_metadata = $repo_class->get_metadata( $self->get_slug() );
+        $self->set_version( $theme_metadata['version'] ?? '' );
+        $self->set_author( array(
+            'user_nicename' => $theme_metadata['author_nicename'] ?? '',
+            'profile'       => $theme_metadata['author_profile'] ?? '',
+            'avatar'        => $theme_metadata['author_avatar'] ?? '',
+            'display_name'  => $theme_metadata['author_display_name'] ?? '',
+            'author'        => $theme_metadata['author'] ?? '',
+            'author_url'    => $theme_metadata['author_uri'] ?? '',
+        ));
+
+        $self->set_author_profile( $theme_datadata['author_profile'] ?? '' );
+        $self->set_requires_at_least( $theme_datadata['requires_at_least'] ?? '' );
+        $self->set_tested_up_to( $theme_datadata['tested_up_to'] ?? '' );
+        $self->set_requires_php( $result['requires_php'] ?? '' );
+        
+
         // $self->set_homepage( $self->get_meta( 'homepage_url', '#' ) );
         
         // /** 
@@ -304,7 +406,7 @@ class Smliser_Theme extends AbstractHostedApp {
         // $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
         // $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
 
-        // return $self;
+        return $self;
     }
 
     /**
