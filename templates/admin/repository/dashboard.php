@@ -17,7 +17,18 @@ defined( 'ABSPATH' ) || exit; ?>
     <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'theme' ), smliser_repo_page() )); ?>" class="button action smliser-nav-btn">Theme Repository</a>
     <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'software' ), smliser_repo_page() ) ); ?>" class="button action smliser-nav-btn">Software Repository</a>
     <?php if ( empty( $apps ) ) : ?>
-        <?php echo wp_kses_post( smliser_not_found_container( sprintf( 'Your %s repository is empty, upload your first %s.', ( $type ? ucfirst( $type ) : '' ), $type ?? 'application' ) ) ); ?>           
+        <?php 
+            $type_name  = $type ? ucfirst( $type ) : 'Software';
+            $upload_url = smliser_admin_repo_tab( 'add-new', array( 'type' => $type ) );
+            echo wp_kses_post( 
+                    smliser_not_found_container(
+                    sprintf( 'Your %1$s repository is empty, upload your first %1$s <a href="%2$s">here</a>.',
+                        esc_html( $type_name ), 
+                        esc_url( $upload_url )
+                    )
+                )
+            );
+        ?>           
     <?php else: ?>
         <form id="smliser-bulk-action-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
             <div class="smliser-actions-wrapper">
@@ -32,6 +43,7 @@ defined( 'ABSPATH' ) || exit; ?>
                         <th><?php echo esc_html__( 'APP ID', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'App Name', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'App Author', 'smliser' ); ?></th>
+                        <th><?php echo esc_html__( 'App Type', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'Version', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'Slug', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'Created at', 'smliser' ); ?></th>
@@ -51,6 +63,7 @@ defined( 'ABSPATH' ) || exit; ?>
                             </td>
                             <td><?php echo esc_html( $app->get_name() ); ?></td>
                             <td><?php echo $app->get_author(); ?></td>
+                            <td><code><?php echo esc_html( $app->get_type() ); ?></code></td>
                             <td><?php echo esc_html( $app->get_version() ); ?></td>
                             <td><?php echo esc_html( $app->get_slug() ); ?></td>
                             <td><?php echo esc_html( smliser_check_and_format( $app->get_date_created(), true ) ); ?></td>
