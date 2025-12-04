@@ -33,7 +33,7 @@ class Smliser_Theme extends AbstractHostedApp {
     /**
      * WordPress version requirement.
      * 
-     * @var string $requires_at_least The minimum WordPress version required to run the plugin.
+     * @var string $requires_at_least The minimum WordPress version required to run the theme.
      */
     protected $requires_at_least = '';
 
@@ -119,7 +119,7 @@ class Smliser_Theme extends AbstractHostedApp {
     }
 
     /**
-     * Get WordPress required version for plugin.
+     * Get WordPress required version for theme.
      */
     public function get_required() {
         return $this->requires_at_least;
@@ -133,7 +133,7 @@ class Smliser_Theme extends AbstractHostedApp {
     }
 
     /**
-     * Get PHP required version for plugin.
+     * Get PHP required version for theme.
      */
     public function get_required_php() {
         return $this->requires_php;
@@ -145,7 +145,7 @@ class Smliser_Theme extends AbstractHostedApp {
     |---------------
     */
     /**
-     * Set WordPress required version for plugin.
+     * Set WordPress required version for theme.
      * 
      * @param string $version
      */
@@ -154,7 +154,7 @@ class Smliser_Theme extends AbstractHostedApp {
     }
 
     /**
-     * Set WordPress tested up to version for plugin.
+     * Set WordPress tested up to version for theme.
      * 
      * @param string $version
      */
@@ -163,7 +163,7 @@ class Smliser_Theme extends AbstractHostedApp {
     }
 
     /**
-     * Set PHP required version for plugin.
+     * Set PHP required version for theme.
      * 
      * @param string $version
      */
@@ -238,7 +238,7 @@ class Smliser_Theme extends AbstractHostedApp {
 
         } else {
             if ( ! is_array( $file ) ) {
-                return new Exception( 'no_file_provided', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
+                return new Exception( 'no_file_provided', __( 'No theme file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
             }
 
             $slug = $repo_class->upload_zip( $file, $filename );
@@ -261,7 +261,7 @@ class Smliser_Theme extends AbstractHostedApp {
     }
 
     /**
-     * Delete a plugin.
+     * Delete a theme.
      * 
      * @return bool True on success, false on otherwise.
      */
@@ -272,7 +272,7 @@ class Smliser_Theme extends AbstractHostedApp {
             return false; // A valid theme should have an ID.
         }
     
-        $repo_class = new PluginRepository();
+        $repo_class = new ThemeRepository();
         
         $id             = $this->get_id();
         $file_delete    = $repo_class->delete_from_repo( $this->get_slug() );
@@ -281,10 +281,10 @@ class Smliser_Theme extends AbstractHostedApp {
             return $file_delete;
         }
 
-        $plugin_deletion    = $db->delete( self::TABLE, array( 'id' => $id ) );
-        $meta_deletion      = $db->delete( self::META_TABLE, array( 'plugin_id' => $id ) );
+        $theme_deletion = $db->delete( self::TABLE, array( 'id' => $id ) );
+        $meta_deletion  = $db->delete( self::META_TABLE, array( 'theme_id' => $id ) );
 
-        return ( $plugin_deletion || $meta_deletion ) !== false;
+        return ( $theme_deletion || $meta_deletion ) !== false;
     }
 
     /**
@@ -332,6 +332,7 @@ class Smliser_Theme extends AbstractHostedApp {
 
         $theme_metadata = $repo_class->get_metadata( $self->get_slug() );
         $self->set_version( $theme_metadata['version'] ?? '' );
+        $self->set_tags( $theme_metadata['tags'] ?? [] );
         $self->set_author( array(
             'user_nicename' => $theme_metadata['author_nicename'] ?? '',
             'profile'       => $theme_metadata['author_profile'] ?? '',
@@ -341,37 +342,30 @@ class Smliser_Theme extends AbstractHostedApp {
             'author_url'    => $theme_metadata['author_uri'] ?? '',
         ));
 
-        $self->set_author_profile( $theme_datadata['author_profile'] ?? '' );
-        $self->set_requires_at_least( $theme_datadata['requires_at_least'] ?? '' );
-        $self->set_tested_up_to( $theme_datadata['tested_up_to'] ?? '' );
-        $self->set_requires_php( $result['requires_php'] ?? '' );
+        $self->set_author_profile( $theme_metadata['author_profile'] ?? '' );
+        $self->set_requires_at_least( $theme_metadata['requires_at_least'] ?? '' );
+        $self->set_tested_up_to( $theme_metadata['tested_up_to'] ?? '' );
+        $self->set_requires_php( $theme_metadata['requires_php'] ?? '' );
         
-
         // $self->set_homepage( $self->get_meta( 'homepage_url', '#' ) );
         
-        // /** 
-        //  * Set file information
-        //  * 
-        //  * @var SmartLicenseServer\PluginRepository $repo_class
-        //  */
-        // $repo_class         = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
-        // $plugin_file_path   = $repo_class->locate( $self->get_slug() );
-        // if ( ! is_smliser_error( $plugin_file_path ) ) {
-        //     $self->set_file( $plugin_file_path );
-        // } else {
-        //     $self->set_file( null );
-        // }
+        $theme_file   = $repo_class->locate( $self->get_slug() );
+        if ( ! is_smliser_error( $theme_file ) ) {
+            $self->set_file( $theme_file );
+        } else {
+            $self->set_file( null );
+        }
 
-        // /** 
-        //  * Section informations 
-        //  */
-        // $sections = array(
-        //     'description'   => $repo_class->get_description( $self->get_slug() ),
-        //     'changelog'     => $repo_class->get_changelog( $self->get_slug() ),
-        //     'installation'  => $repo_class->get_installation( $self->get_slug() ),
-        //     'screenshots'   => $repo_class->get_screenshot_html( $self->get_slug() ),
-        // );
-        // $self->set_section( $sections );
+        /** 
+         * Section informations 
+         */
+        $sections = array(
+            'description'   => $repo_class->get_description( $self->get_slug() ),
+            'changelog'     => '',
+            'installation'  => '',
+            'screenshots'   => [],
+        );
+        $self->set_section( $sections );
 
         // /**
         //  * Icons
@@ -420,14 +414,7 @@ class Smliser_Theme extends AbstractHostedApp {
             'slug'                  => $this->get_slug(),
             'version'               => $this->get_version(),
             'preview_url'           => '',
-            'author'                => array(
-                'user_nicename' => '',
-                'profile'        => '',
-                'avatar'         => '',
-                'display_name'   => '',
-                'author'         => '',
-                'author_url'     => '',
-            ),
+            'author'                => $this->get_author( '' ),
             'screenshot_url'        => '',
             'rating'                => 0,
             'num_ratings'           => 0,
@@ -439,27 +426,7 @@ class Smliser_Theme extends AbstractHostedApp {
             'homepage'              => $this->get_homepage(),
             'sections'              => $this->get_sections(),
             'download_link'         => '',
-            'tags'                  => array(
-                'blog'                 => '',
-                'custom-colors'        => '',
-                'custom-logo'          => '',
-                'custom-menu'          => '',
-                'e-commerce'           => '',
-                'editor-style'         => '',
-                'entertainment'        => '',
-                'featured-images'      => '',
-                'full-width-template'  => '',
-                'left-sidebar'         => '',
-                'microformats'         => '',
-                'one-column'           => '',
-                'post-formats'          => '',
-                'right-sidebar'         => '',
-                'rtl-language-support'  => '',
-                'theme-options'         => '',
-                'threaded-comments'     => '',
-                'translation-ready'     => '',
-                'two-columns'           => '',
-            ),
+            'tags'                  => $this->get_tags(),
             'requires'                  => '',
             'requires_php'              => '',
             'is_monetized'              => $this->is_monetized(),
