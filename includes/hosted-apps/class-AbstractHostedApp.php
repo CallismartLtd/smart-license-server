@@ -351,6 +351,15 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     public function set_support_url( $url ) {
         $this->support_url = $url;
     }
+
+    /**
+     * Set the APP tags.
+     * 
+     * @param array $tags
+     */
+    public function set_tags( $tags ) {
+        $this->tags = array_map( 'sanitize_text_field', $tags );
+    }
     
     /**
     |------------
@@ -541,6 +550,15 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      */
     public function get_date_created() {
         return $this->created_at;
+    }
+
+    /**
+     * Get the app tags.
+     * 
+     * @return array $tags
+     */
+    public function get_tags() {
+        return $this->tags;
     }
 
     /**
