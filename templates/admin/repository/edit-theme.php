@@ -54,6 +54,45 @@ $other_fields   = array(
             )
         )
     ),
+    
+    array(
+        'label' => __( 'Theme Homepage', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_homepage_url',
+            'value' => $app->get_homepage(),
+            'attr'  => array(
+                'autocomplete'  => 'off',
+                'spellcheck'    => 'off'
+            )
+        )
+    ),
+
+    array(
+        'label' => __( 'External Repository URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_external_repository_url',
+            'value' => $app->get_meta( 'external_repository_url' ),
+            'attr'  => array(
+                'autocomplete'  => 'off',
+                'spellcheck'    => 'off'
+            )
+        )
+    ),
+
+    array(
+        'label' => __( 'Theme Preview URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_preview_url',
+            'value' => $app->get_meta( 'preview_url' ),
+            'attr'  => array(
+                'autocomplete'  => 'off',
+                'spellcheck'    => 'off'
+            )
+        )
+    ),
 
     array(
         'label' => __( 'Theme Support URL', 'smliser' ),
@@ -80,21 +119,6 @@ $other_fields   = array(
             )
         )
     ),
-
-    array(
-        'label' => __( 'Theme Homepage', 'smliser' ),
-        'input' => array(
-            'type'  => 'text',
-            'name'  => 'app_homepage_url',
-            'value' => $app->get_homepage(),
-            'attr'  => array(
-                'autocomplete'  => 'off',
-                'spellcheck'    => 'off'
-            )
-        )
-    ),
-
-
 );
 
 $screenshots = $app->get_screenshots();

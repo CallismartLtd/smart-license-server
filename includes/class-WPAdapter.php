@@ -260,6 +260,8 @@ class WPAdapter {
             'app_download_url'          => smliser_get_post_param( 'app_download_url', null ),
             'app_support_url'           => smliser_get_post_param( 'app_support_url', null ),
             'app_homepage_url'          => smliser_get_post_param( 'app_homepage_url', null ),
+            'app_preview_url'          => smliser_get_post_param( 'app_preview_url', null ),
+            'app_external_repository_url'   => smliser_get_post_param( 'app_external_repository_url', null ),
             'app_file'                  => isset( $_FILES['app_file'] ) && UPLOAD_ERR_OK === $_FILES['app_file']['error'] ? $_FILES['app_file'] : null,
             'user_agent'                => smliser_get_user_agent(),
             'request_time'              => time(),

@@ -572,6 +572,8 @@ class Smliser_Software_Collection {
         $theme->set_download_url( $request->get( 'app_download_url' ) );
         $theme->update_meta( 'support_url', $request->get( 'app_support_url' ) );
         $theme->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
+        $theme->update_meta( 'preview_url', $request->get( 'app_preview_url', '' ) );
+        $theme->update_meta( 'external_repository_url', $request->get( 'app_external_repository_url', '' ) );
 
         return true;
     }
