@@ -174,17 +174,21 @@ const modalActions = {
         
     },
     'closeModal': () => {
-        modalActions.resetModal();
+        modalActions.resetModal( true );
         appAssetUploadModal.classList.add( 'hidden' );
     },
 
-    'resetModal': () => {
+    'resetModal': ( all = false ) => {
         assetImageUploaderContainer.classList.remove( 'has-image' );
         smliserCurrentImage     = null;
         imageFileInput.value    = '';
         imageUrlInput.value     = '';
-        smliserCurrentConfig.get( 'observer' )?.disconnect();
-        smliserCurrentConfig.clear();
+        
+        if ( all ) {
+            smliserCurrentConfig.get( 'observer' )?.disconnect();
+            smliserCurrentConfig.clear();
+        }
+
     },
 
     'uploadFromDevice': () => {
@@ -302,8 +306,17 @@ const modalActions = {
             );
 
             if ( ! response.ok ) {
-                const error = new Error( `Upload error: ${response.statusText}` );
-                throw error;
+                const contentType = response.headers.get( 'Content-Type' );
+                let errorMessage    = 'Something went wrong!';
+
+                if ( contentType.includes( 'application/json' ) ) {
+                    const data = await response.json();
+                    errorMessage = data?.data?.message || errorMessage;
+                } else {
+                    errorMessage = await response.text();
+                }
+
+                throw new Error( errorMessage );
             }
 
             const data = await response.json();
@@ -377,8 +390,17 @@ const modalActions = {
             return;
         }
 
-        if ( ! image.type.includes( 'image/png' ) ) {
-            // image = await modalActions.convertToPng( image );
+        let shouldConvert = () => {
+            const assetType = smliserCurrentConfig.get( 'asset_type' );
+            const appType   = smliserCurrentConfig.get( 'app_type' );
+
+            return ( 'theme' === appType ) && ( 'screenshot' === assetType );
+        }
+        
+        if ( ! image.type.includes( 'image/png' ) && shouldConvert() ) {            
+            image = await modalActions.convertToPng( image );
+
+            smliserNotify( 'Image has been converted to PNG', 5000 );
         }
 
         smliserCurrentImage = image;
@@ -411,10 +433,19 @@ const modalActions = {
                    
             const blob          = await response.blob();
             const fileName      = imageUrl.split( '/' ).pop() ?? 'image.png';            
-            
-            if ( ! contentType.includes( 'image/png' ) ) {
-                // return await modalActions.convertToPng( blob, fileName );
+            let shouldConvert = () => {
+                const assetType = smliserCurrentConfig.get( 'asset_type' );
+                const appType   = smliserCurrentConfig.get( 'app_type' );
+
+                return ( 'theme' === appType ) && ( 'screenshot' === assetType );
             }
+        
+            if ( ! contentType.includes( 'image/png' ) && shouldConvert() ) {            
+                image = await modalActions.convertToPng( blob, fileName );
+                smliserNotify( 'Image has been converted to PNG', 5000 );
+                return image;
+            }
+         
 
             return new File( [ blob ], fileName, { type: 'image/png' } );
 
