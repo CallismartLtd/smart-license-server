@@ -143,6 +143,22 @@ class ThemeRepository extends Repository {
     }
 
     /**
+     * Delete a theme from the repository.
+     * 
+     * @param string $slug The theme slug.
+     * @return bool True on success, false on failure.
+     */
+    public function delete_from_repo( string $slug ): bool {
+        try {
+            $this->enter_slug( $slug );
+        } catch ( \InvalidArgumentException $e ) {
+            return false;
+        }
+
+        return $this->rmdir( $this->path(), true );
+    }
+
+    /**
      * Abstract Implementation: Get theme assets as URLs.
      *
      * Theme assets usually include screenshots (screenshot.png, etc.).
@@ -183,6 +199,21 @@ class ThemeRepository extends Repository {
         }
 
         return $abs_path;
+    }
+
+    /**
+     * Get the theme descriptions.
+     * 
+     * @return string The theme description in HTML format.
+     */
+    public function get_description( $slug ) : string {
+        $metadata = $this->get_metadata( $slug );
+
+        if ( ! isset( $metadata['description'] ) ) {
+            return '';
+        }
+
+        return $this->parser->parse( $metadata['description'] );
     }
 
     /**
