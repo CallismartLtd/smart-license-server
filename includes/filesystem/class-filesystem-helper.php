@@ -11,6 +11,8 @@
 
 namespace SmartLicenseServer;
 
+use Normalizer;
+
 defined( 'SMLISER_PATH' ) || exit; // phpcs:ignore
 
 /**
@@ -293,4 +295,158 @@ class FileSystemHelper {
             'is_valid_file' => self::is_valid_file( $path ),
         ];
     }
+
+    /**
+     * Sanitizes a file name string for safe cross-platform filesystem use.
+     *
+     * - Removes traversal sequences (../, ..\, ./, .\)
+     * - Decodes URL-encoded characters
+     * - Normalizes Unicode (if intl extension exists) + transliteration (iconv)
+     * - Removes invalid OS characters
+     * - Collapses separators (spaces, dots, underscores, hyphens)
+     * - Preserves extension optionally
+     * - Removes leading dots → prevents hidden/system files (.env, .htaccess)
+     * - Handles Windows reserved device names
+     * - Multibyte-safe
+     *
+     * @param string $filename           Raw file name.
+     * @param bool   $preserve_extension Whether to preserve the last dot segment as extension.
+     *
+     * @return string Sanitized file name.
+     */
+    public static function sanitize_filename( string $filename, bool $preserve_extension = true ): string {
+        $extension  = '';
+        $max_length = 255;
+
+        // 1. Decode and trim.
+        $filename = rawurldecode( $filename );
+        $filename = trim( $filename );
+
+        // Remove traversal sequences.
+        $filename = preg_replace( '#(\.\./|\.\.\\\\|\.\/|\\\\\.)+#u', '', $filename );
+
+        // 2. Unicode normalization.
+        if ( class_exists( 'Normalizer' ) ) {
+            $filename = Normalizer::normalize( $filename, Normalizer::FORM_C );
+        }
+
+        // Transliteration (fixes full-width, accents, symbols).
+        if ( function_exists( 'iconv' ) ) {
+            $converted = @iconv( 'UTF-8', 'ASCII//TRANSLIT', $filename );
+            if ( $converted !== false ) {
+                $filename = $converted;
+            }
+        }
+
+        // 3. Extract extension safely.
+        $base_filename = $filename;
+
+        if ( $preserve_extension ) {
+            $parts = explode( '.', $filename );
+
+            if ( count( $parts ) > 1 && end( $parts ) !== '' ) {
+                $extension      = array_pop( $parts );
+                $base_filename  = implode( '.', $parts );
+
+                // Strict extension sanitization: letters + numbers only.
+                $extension = preg_replace( '/[^a-zA-Z0-9]/', '', $extension );
+                $extension = $extension ? '.' . $extension : '';
+            }
+        }
+
+        $filename = $base_filename;
+
+        // 4. Strip control characters.
+        $filename = preg_replace( '/[\x00-\x1F\x7F]/u', '', $filename );
+
+        // Replace invalid OS characters.
+        $invalid = array( '\\', '/', ':', '*', '?', '"', '<', '>', '|' );
+        $filename = str_replace( $invalid, '-', $filename );
+
+        // Remove emojis and invalid unicode symbols.
+        $filename = preg_replace( '/[^\p{L}\p{N}\.\-\_ ]/u', '', $filename );
+
+        // 5. Normalize separators.
+        $filename = str_replace(
+            array( '–', '—', '−' ),
+            '-',
+            $filename
+        );
+
+        // Convert spaces, dots, and underscores to hyphens.
+        $filename = preg_replace( '/[\s\.\_]+/u', '-', $filename );
+
+        // Collapse repeated hyphens.
+        $filename = preg_replace( '/-+/u', '-', $filename );
+
+        // 6. Final cleanup.
+        $filename = trim( $filename, ".-_" );
+
+        // Windows reserved device names.
+        $reserved = array(
+            'con', 'prn', 'aux', 'nul',
+            'com1', 'com2', 'com3', 'com4', 'com5', 'com6', 'com7', 'com8', 'com9',
+            'lpt1', 'lpt2', 'lpt3', 'lpt4', 'lpt5', 'lpt6', 'lpt7', 'lpt8', 'lpt9',
+        );
+
+        if ( in_array( strtolower( $filename ), $reserved, true ) ) {
+            $filename .= '_';
+        }
+
+        // 7. Enforce max length.
+        $name_len = mb_strlen( $filename, 'UTF-8' );
+        $ext_len  = mb_strlen( $extension, 'UTF-8' );
+
+        if ( ( $name_len + $ext_len ) > $max_length ) {
+            $filename = mb_substr( $filename, 0, $max_length - $ext_len, 'UTF-8' );
+        }
+
+        // 8. Fallback → prevents hidden/system files.
+        if ( empty( $filename ) ) {
+            return 'untitled' . $extension;
+        }
+
+        return $filename . $extension;
+    }
+
+    /**
+     * Safely join multiple path segments into a single path using aggressive cleaning.
+     *
+     * @param string ...$segments Path segments to join.
+     * @return string Normalized path.
+     */
+    public static function join_path( string ...$segments ) {
+        if ( empty( $segments ) ) {
+            return '';
+        }
+
+        $cleaned_segments   = array();
+        $segments           = array_filter( $segments );
+
+        $first_segment = \str_replace( '\\', '/', $segments[0] ?? '' );
+        $last_segment  = str_replace( '\\', '/', $segments[count( $segments ) - 1] ?? '' );
+
+        $has_leading_slash  = str_starts_with( $first_segment, '/' ) || ( preg_match( '/^[A-Za-z]:\\\\/', $first_segment ) === 1 );
+        $has_trailing_slash = str_ends_with( $last_segment, '/' ) || str_ends_with( $last_segment, '\\' );
+
+        foreach( $segments as $segment ) {
+            $part = trim( $segment, "/\\ " );
+            if ( $part === '' || $part === '.' || $part === '\\' || $part === '/' ) {
+                continue;
+            }
+            $cleaned_segments[] = $part;
+        }
+        $joined = implode( '/', $cleaned_segments );
+
+        if ( $has_leading_slash ) {
+            $joined = \sprintf( '/%s', \ltrim( $joined, '/' ) );
+        }
+
+        if ( $has_trailing_slash ) {
+            $joined = \sprintf( '%s/', rtrim( $joined, '/' ) );
+        }
+
+        return $joined;
+    }
+
 }
