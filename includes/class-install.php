@@ -127,9 +127,10 @@ class Smliser_install {
             'download_link VARCHAR(400) DEFAULT NULL',
             'created_at DATETIME DEFAULT NULL',
             'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'INDEX download_link_index (download_link)',
-            'INDEX slug_index (slug)',
-            'INDEX author_index (author)',
+            'INDEX plugin_download_link_index (download_link)',
+            'INDEX plugin_slug_index (slug)',
+            'INDEX plugin_author_index (author)',
+            'INDEX plugin_status_index (status)',
         );
 
         self::run_db_delta( $plugin_table_name, $plugin_table_columns );
@@ -161,9 +162,9 @@ class Smliser_install {
             'download_link VARCHAR(400) DEFAULT NULL', // Could be external URL.
             'created_at DATETIME DEFAULT NULL',
             'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'INDEX slug_index (slug)',
-            'INDEX author_index (author)',
-            'INDEX download_link_index (download_link)',
+            'INDEX theme_slug_index (slug)',
+            'INDEX theme_download_link_index (download_link)',
+            'INDEX theme_status_index (status)',
         );
 
         self::run_db_delta( $theme_table_name, $theme_table_columns );
@@ -195,8 +196,8 @@ class Smliser_install {
             'status VARCHAR(55) DEFAULT \'active\'',
             'version VARCHAR(50) DEFAULT NULL',
             'short_description VARCHAR(500) DEFAULT NULL',
-            'description LONGTEXT DEFAULT NULL',         // Full product description
-            'changelog LONGTEXT DEFAULT NULL',           // Optional: product changelog
+            'description LONGTEXT DEFAULT NULL',
+            'changelog LONGTEXT DEFAULT NULL',
             'author VARCHAR(255) DEFAULT NULL',
             'author_profile VARCHAR(400) DEFAULT NULL',
             'homepage VARCHAR(400) DEFAULT NULL',
@@ -425,13 +426,15 @@ class Smliser_install {
      * @return bool|Exception True on success, Exception on failure.
      */
     private static function init_repo_dir() {
-        include_once SMLISER_PATH . 'includes/exceptions/exception.php';
-        include_once SMLISER_PATH . 'includes/utils/functions.php';
-        include_once SMLISER_PATH . 'includes/utils/sanitization-functions.php';
-        include_once SMLISER_PATH . 'includes/utils/conditional-functions.php';
-        include_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
-        include_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
+        // include_once SMLISER_PATH . 'includes/exceptions/exception.php';
+        // include_once SMLISER_PATH . 'includes/utils/functions.php';
+        // include_once SMLISER_PATH . 'includes/utils/sanitization-functions.php';
+        // include_once SMLISER_PATH . 'includes/utils/conditional-functions.php';
+        // include_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
+        // include_once SMLISER_PATH . 'includes/filesystem/class-filesystem-helper.php';
+        // include_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
     
+        SmartLicense_config::instance()->include();
         return SmartLicenseServer\Repository::create_repository_directories();
     }
 

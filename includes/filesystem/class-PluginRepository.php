@@ -16,6 +16,11 @@ use function SmartLicenseServer\Utils\md_parser;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Plugin repository class provides filesystem APIs to interact with hosted plugins in the repository.
+ * 
+ * Note: it does not represent a single hosted plugin @see \Smliser_Plugin
+ */
 class PluginRepository extends Repository {
 
     /**
@@ -143,9 +148,8 @@ class PluginRepository extends Repository {
      * @return string|Exception Relative path to stored asset or Exception on failure.
      */
     public function upload_asset( string $slug, array $file, string $type, string $filename = '' ) {
-
         // Validate upload
-        if ( ! is_uploaded_file( $file['tmp_name'] ) ) {
+        if ( ! is_uploaded_file( $file['tmp_name'] ?? '' ) ) {
             return new Exception( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );
         }
 
@@ -208,7 +212,6 @@ class PluginRepository extends Repository {
                 break;
 
             case 'screenshot':
-                $ext = strtolower( $ext );
                 $allowed_exts = [ 'png', 'jpg', 'jpeg', 'gif', 'svg' ];
 
                 if ( ! in_array( $ext, $allowed_exts, true ) ) {
@@ -256,7 +259,7 @@ class PluginRepository extends Repository {
         if ( ! $this->rename( $file['tmp_name'], $dest_path ) ) {
             return new Exception( 'move_failed', 'Failed to save uploaded asset.', [ 'status' => 500 ] );
         }
-        $this->chmod( $dest_path, FS_CHMOD_FILE );
+        @$this->chmod( $dest_path, FS_CHMOD_FILE );
 
     
         return smliser_get_app_asset_url( 'plugin', $slug, $target_name );
@@ -287,7 +290,7 @@ class PluginRepository extends Repository {
     /**
      * Get plugin assets as URLs.
      *
-     * Uses real_slug() and enter_slug() to ensure we operate inside the repository sandbox.
+     * @uses self::real_slug() and self::enter_slug() to ensure we operate inside the repository sandbox.
      *
      * @param string $slug Plugin slug.
      * @param string $type Asset type: 'banners', 'icons', 'screenshots'.
@@ -298,12 +301,12 @@ class PluginRepository extends Repository {
         $slug = $this->real_slug( $slug );
 
         try {
-            $folder = $this->enter_slug( $slug );
+            $base_dir = $this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
             return [];
         }
 
-        $assets_dir = trailingslashit( $folder ) . 'assets/';
+        $assets_dir = trailingslashit( $base_dir ) . 'assets/';
 
         if ( ! $this->is_dir( $assets_dir ) ) {
             return [];
@@ -356,19 +359,6 @@ class PluginRepository extends Repository {
                 return [];
         }
 
-        // --- Banners & Icons: keyed results ---
-        // if ( in_array( $type, [ 'banners', 'icons' ], true ) ) {
-        //     $urls = [];
-        //     foreach ( $files as $key => $file_path ) {
-        //         if ( $this->is_file( $file_path ) ) {
-        //             $urls[ $key ] = smliser_get_app_asset_url( 'plugin', $slug, basename( $file_path ) );
-        //         } else {
-        //             $urls[ $key ] = '';
-        //         }
-        //     }
-        //     return $urls;
-        // }
-
         // --- Screenshots: indexed results ---
         if ( 'screenshots' === $type && $files ) {
             usort( $files, function( $a, $b ) {
@@ -391,35 +381,6 @@ class PluginRepository extends Repository {
         }
 
         return [];
-    }
-
-    /**
-     * Get the absolute path to a given application asset.
-     *
-     * @param string $slug      App slug.
-     * @param string $filename  File name within the assets directory.
-     * @return string|Exception Absolute path to asset or Exception if not found.
-     */
-    public function get_asset_path( string $slug, string $filename ) {
-        $slug = $this->real_slug( $slug );
-        try {
-            $base_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
-            return new Exception( 'invalid_dir', $e->getMessage(), [ 'status' => 400 ] );
-        }
-
-        $asset_dir = trailingslashit( $base_dir ) . 'assets/';
-        $abs_path  = smliser_sanitize_path( trailingslashit( $asset_dir ) . basename( $filename ) );
-
-        if ( ! $this->exists( $abs_path ) ) {
-            return new Exception(
-                'asset_not_found',
-                sprintf( 'Asset "%s" not found.', esc_html( $filename ) ),
-                [ 'status' => 404 ]
-            );
-        }
-
-        return $abs_path;
     }
 
     /**

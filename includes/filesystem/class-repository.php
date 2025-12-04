@@ -451,14 +451,16 @@ abstract class Repository extends FileSystem {
     abstract public function get_assets( string $slug, string $type );
 
     /**
-     * Get the path to a given hosted application.
+     * Upload an asset for a given hosted application.
      * 
      * @abstract
-     * @param string $slug The application slug.
-     * @param string $filename The filename inside the application directory.
+     * @param string $app_slug The application slug.
+     * @param array $asset_file The uploaded file ($_FILES format).
+     * @param string $asset_type The asset type (e.g., screenshot, banner).
+     * @param string $asset_name The preferred asset filename.
      * @return string|Exception The asset path or Exception on failure.
      */
-    abstract public function get_asset_path( string $slug, string $filename );
+    abstract public function upload_asset( string $app_slug, array $asset_file, string $asset_type, string $asset_name );
 
     /**
     |---------------------------
@@ -565,5 +567,34 @@ abstract class Repository extends FileSystem {
      */
     private static function safe_esc_html( string $text ): string {
         return function_exists( 'esc_html' ) ? esc_html( $text ) : htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
+    }
+
+    /**
+     * Get the absolute path to a given application asset.
+     *
+     * @param string $slug      App slug.
+     * @param string $filename  File name within the assets directory.
+     * @return string|Exception Absolute path to asset or Exception if not found.
+     */
+    public function get_asset_path( string $slug, string $filename ) {
+        $slug = $this->real_slug( $slug );
+        try {
+            $base_dir = $this->enter_slug( $slug );
+        } catch ( \InvalidArgumentException $e ) {
+            return new Exception( 'invalid_dir', $e->getMessage(), [ 'status' => 400 ] );
+        }
+
+        $filename   = FileSystemHelper::sanitize_filename( $filename );
+        $asset_dir  = FileSystemHelper::join_path( $base_dir, 'assets', $filename );
+
+        if ( ! $this->exists( $asset_dir ) ) {
+            return new Exception(
+                'asset_not_found',
+                sprintf( 'Asset "%s" not found.', esc_html( $filename ) ),
+                [ 'status' => 404 ]
+            );
+        }
+
+        return $asset_dir;
     }
 }

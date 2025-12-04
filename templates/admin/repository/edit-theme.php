@@ -1,13 +1,14 @@
 <?php
 /**
- * Plugin edit file prepare the variables that will be used by the uploader.php
+ * Theme edit file prepares the variables that will be used by the uploader.php
  * 
  * @author Callistus Nwachukwu
+ * @var Smliser_Theme $app
  */
 
 defined( 'ABSPATH' ) || exit;
 
-$title          = sprintf( 'Edit Plugin: %s', $app->get_name() );
+$title          = sprintf( 'Edit Theme: %s', $app->get_name() );
 $other_fields   = array(
     array(
         'label' => __( 'Required PHP Version', 'smliser' ),
@@ -19,7 +20,7 @@ $other_fields   = array(
                 'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
                 'readonly'      => true,
-                'title'         => 'Use plugin readme.txt file to edit the plugin\'s required PHP version.'
+                'title'         => 'Use theme style.css file to edit the minimum PHP version required to install the theme'
             )
         )
     ),
@@ -34,7 +35,7 @@ $other_fields   = array(
                 'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
                 'readonly'      => true,
-                'title'         => 'Use plugin readme.txt file to edit the minimum WordPress version required to install the plugin'
+                'title'         => 'Use theme style.css file to edit the minimum WordPress version required to install the theme'
             )
         )
     ),
@@ -49,26 +50,26 @@ $other_fields   = array(
                 'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
                 'readonly'      => true,
-                'title'         => 'Use plugin the readme.txt file to edit the WordPress version this plugin has been tested up to.'
+                'title'         => 'Use theme style.css file to edit the WordPress version the theme has been tested up to'
             )
         )
     ),
 
     array(
-        'label' => __( 'Plugin Support URL', 'smliser' ),
+        'label' => __( 'Theme Support URL', 'smliser' ),
         'input' => array(
             'type'  => 'text',
             'name'  => 'app_support_url',
             'value' => $app->get_support_url(),
             'attr'  => array(
-                'autocomplete'  => 'off',
+                // 'autocomplete'  => 'on',
                 'spellcheck'    => 'off'
             )
         )
     ),
 
     array(
-        'label' => __( 'Plugin Download URL', 'smliser' ),
+        'label' => __( 'Theme Download URL', 'smliser' ),
         'input' => array(
             'type'  => 'text',
             'name'  => 'app_download_url',
@@ -81,7 +82,7 @@ $other_fields   = array(
     ),
 
     array(
-        'label' => __( 'Plugin Homepage', 'smliser' ),
+        'label' => __( 'Theme Homepage', 'smliser' ),
         'input' => array(
             'type'  => 'text',
             'name'  => 'app_homepage_url',
@@ -96,33 +97,22 @@ $other_fields   = array(
 
 );
 
-$screenshots = [];
-
-foreach( $app->get_screenshots() as $screenshot ) {
-    $screenshots[] = $screenshot['src'] ?? '';
-}
-
+$screenshots = $app->get_screenshots();
 
 $assets = array(
-    'icon' => array(
-        'title'     => 'Icons',
-        'limit'     => 2,
-        'images'    => $app->get_icons(),
-        'total'    => count( array_filter( $app->get_icons() ) )
-    ),
-    'banner' => array(
-        'title'     => 'Banners',
-        'limit'     => 2,
-        'images'    => $app->get_banners(),
-        'total'     => count( array_filter( $app->get_banners() ) )
-    ),
     'screenshot' => array(
-        'title'     => 'Screenshots',
+        'title'     => 'Screenshot',
+        'limit'     => 1,
+        'images'    => $app->get_screenshot_url() ? [$app->get_screenshot_url()] : [],
+        'total'     => $app->get_screenshot_url() ? 1 : 0
+    ),
+
+    'additional_screenshots' => array(
+        'title'     => 'Additional Screenshots',
         'limit'     => 10,
         'images'    => $screenshots,
         'total'    => count( array_filter( $screenshots ) )
     ),
 );
-
 
 include SMLISER_PATH . 'templates/admin/repository/uploader.php';

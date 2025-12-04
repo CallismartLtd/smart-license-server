@@ -248,26 +248,6 @@ class Smliser_Plugin extends AbstractHostedApp {
         return $this->banners;
     }
 
-    /**
-     * Get plugin screenshots
-     * 
-     * @return array $screenshots
-     */
-    public function get_screenshots() {
-        return $this->screenshots;
-
-    }
-
-    /**
-     * Get plugin icons
-     * 
-     * @return array $screenshots
-     */
-    public function get_icons() {
-        return $this->icons;
-
-    }
-
     /*
     |--------------
     | CRUD METHODS
@@ -305,12 +285,12 @@ class Smliser_Plugin extends AbstractHostedApp {
      * @return true|Exception True on success, false on failure.
      */
     public function save() : true|Exception {
-        $db             = smliser_dbclass();
-        $table          = self::TABLE;
+        $db         = smliser_dbclass();
+        $table      = self::TABLE;
 
-        $file           = $this->file;
-        $filename       = strtolower( str_replace( ' ', '-', $this->get_name() ) );
-        $repo_class     = new PluginRepository();
+        $file       = $this->file;
+        $filename   = strtolower( str_replace( ' ', '-', $this->get_name() ) );
+        $repo_class = new PluginRepository();
 
         $plugin_data = array(
             'name'          => $this->get_name(),
@@ -406,8 +386,6 @@ class Smliser_Plugin extends AbstractHostedApp {
     /**
      * Load all metadata for this plugin into internal cache.
      *
-     * Limits results to 50 rows for performance.
-     *
      * @return array Loaded metadata in key => value format.
      */
     public function load_meta() : array {
@@ -416,17 +394,11 @@ class Smliser_Plugin extends AbstractHostedApp {
             return [];
         }
 
-        $db     = smliser_dbclass();
-        $table  = self::META_TABLE;
-        $plugin_id = absint( $this->get_id() );
-
-        $sql    = "SELECT `meta_key`, `meta_value` 
-                FROM {$table} 
-                WHERE `plugin_id` = ? 
-                ORDER BY `id` ASC 
-                LIMIT 50";
-
-        $results = $db->get_results( $sql, [ $plugin_id ] );
+        $db         = smliser_dbclass();
+        $table      = self::META_TABLE;
+        $plugin_id  = absint( $this->get_id() );
+        $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `plugin_id` = ? ORDER BY `id` ASC";
+        $results    = $db->get_results( $sql, [ $plugin_id ] );
 
         $meta = [];
 
@@ -513,7 +485,6 @@ class Smliser_Plugin extends AbstractHostedApp {
             return false;
         }
     }
-
 
     /**
      * Get the value of a metadata.

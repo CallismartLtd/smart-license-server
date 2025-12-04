@@ -10,6 +10,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\Exception\RequestException;
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 
 defined( 'ABSPATH' ) || exit;
@@ -37,7 +38,7 @@ class Smliser_Software_Collection {
      *     @type array  $types  List of types to query. Default all ['plugin','theme','software'].
      * }
      * @return array {
-     *     @type SmartLicenseServer\HostedApps\Hosted_Apps_Interface[] $items        Instantiated application objects.
+     *     @type SmartLicenseServer\HostedApps\AbstractHostedApp[] $items        Instantiated application objects.
      *     @type array $pagination {
      *         @type int $total       Total number of matching items.
      *         @type int $page        Current page number.
@@ -395,9 +396,9 @@ class Smliser_Software_Collection {
      *
      * @param string $app_type The app type can be one of the allowed app types.
      * @param string $app_slug The app slug.
-     * @return Hosted_Apps_Interface|null The instance of a hosted application or null on failure.
+     * @return AbstractHostedApp|null The instance of a hosted application or null on failure.
      */
-    public static function get_app_by_slug( $app_type, $app_slug ) : Hosted_Apps_Interface|null {
+    public static function get_app_by_slug( $app_type, $app_slug ) : AbstractHostedApp|null {
         $app_class  = self::get_app_class( $app_type );
         $method     = "get_by_slug";
 
@@ -405,7 +406,7 @@ class Smliser_Software_Collection {
             return null;
         }
 
-        /** @var Hosted_Apps_Interface|null */
+        /** @var AbstractHostedApp|null */
         $app    = $app_class::$method( $app_slug );
 
         return $app;
@@ -416,9 +417,9 @@ class Smliser_Software_Collection {
      *
      * @param string $app_type The app type can be one of the allowed app types.
      * @param int $id The app ID.
-     * @return Hosted_Apps_Interface|null The instance of a hosted application or null on failure.
+     * @return AbstractHostedApp|null The instance of a hosted application or null on failure.
      */
-    public static function get_app_by_id( $app_type, $id ) : Hosted_Apps_Interface|null {
+    public static function get_app_by_id( $app_type, $id ) : AbstractHostedApp|null {
         $app_class  = self::get_app_class( $app_type );
         $method     = "get_{$app_type}";
 
@@ -426,7 +427,7 @@ class Smliser_Software_Collection {
             return null;
         }
 
-        /** @var Hosted_Apps_Interface|null */
+        /** @var AbstractHostedApp|null */
         $app    = $app_class::$method( $id );
 
         return $app;
@@ -475,7 +476,7 @@ class Smliser_Software_Collection {
             /**
              * The app instance
              * 
-             * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $class
+             * @var \SmartLicenseServer\HostedApps\AbstractHostedApp $class
              */
             
             $name   = $request->get( 'app_name', null );
@@ -551,7 +552,26 @@ class Smliser_Software_Collection {
 
         $class->set_download_url( $request->get( 'app_download_url' ) );
         $class->update_meta( 'support_url', $request->get( 'app_support_url' ) );
-        $class->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
+        $class->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
+
+        return true;
+    }
+
+    /**
+     * Update a theme.
+     * 
+     * @param Smliser_Theme $theme
+     * @param Request $request
+     * @return true|RequestException
+     */
+    public static function update_theme( &$theme, Request $request ) {
+        if ( ! $theme instanceof Smliser_Theme ) {
+            return new RequestException( 'message', 'Wrong theme object passed' );
+        }
+
+        $theme->set_download_url( $request->get( 'app_download_url' ) );
+        $theme->update_meta( 'support_url', $request->get( 'app_support_url' ) );
+        $theme->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
 
         return true;
     }
@@ -588,7 +608,7 @@ class Smliser_Software_Collection {
             }
             
             if ( ! is_array( $asset_file ) || ! isset( $asset_file['tmp_name'] ) ) {
-                 throw new RequestException( 'invalid_input', 'Uploaded asset file is invalid or missing.' );
+                throw new RequestException( 'invalid_input', 'Uploaded asset file is invalid or missing.' );
             }
 
             $repo_class = self::get_app_repository_class( $app_type );

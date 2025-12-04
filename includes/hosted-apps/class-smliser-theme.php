@@ -80,6 +80,13 @@ class Smliser_Theme extends AbstractHostedApp {
     protected $file;
 
     /**
+     * Theme meta data
+     * 
+     * @var array $meta_data
+     */
+    protected $meta_data = [];
+
+    /**
      * Class constructor
      */
     public function __construct() {}
@@ -139,6 +146,15 @@ class Smliser_Theme extends AbstractHostedApp {
         return $this->requires_php;
     }
 
+    /**
+     * Get the theme screenshot URL.
+     * 
+     * @return string
+     */
+    public function get_screenshot_url() : string {
+        return $this->screenshot_url;
+    }
+
     /*
     |---------------
     | SETTER METHODS
@@ -169,6 +185,15 @@ class Smliser_Theme extends AbstractHostedApp {
      */
     public function set_requires_php( $version ) {
         $this->requires_php = $version;
+    }
+
+    /**
+     * Set the theme screenshot URL.
+     * 
+     * @param string $url
+     */
+    public function set_screenshot_url( $url ) {
+        $this->screenshot_url = $url;
     }
     
     /**
@@ -208,12 +233,12 @@ class Smliser_Theme extends AbstractHostedApp {
      * @return true|Exception True on success, false on failure.
      */
     public function save() : true|Exception {
-        $db     = smliser_dbclass();
-        $table  = self::TABLE;
+        $db         = smliser_dbclass();
+        $table      = self::TABLE;
 
-        $file           = $this->file;
-        $filename       = strtolower( str_replace( ' ', '-', $this->get_name() ) );
-        $repo_class     = new ThemeRepository();
+        $file       = $this->file;
+        $filename   = strtolower( str_replace( ' ', '-', $this->get_name() ) );
+        $repo_class = new ThemeRepository();
 
         $theme_data = array(
             'name'          => $this->get_name(),
@@ -288,6 +313,183 @@ class Smliser_Theme extends AbstractHostedApp {
     }
 
     /**
+     * Load all metadata for this theme into internal cache.
+     *
+     * @return array Loaded metadata in key => value format.
+     */
+    public function load_meta() : array {
+
+        if ( ! $this->get_id() ) {
+            return [];
+        }
+
+        $db     = smliser_dbclass();
+        $table  = self::META_TABLE;
+        $theme_id = absint( $this->get_id() );
+
+        $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `theme_id` = ? ORDER BY `id` ASC";
+        $results    = $db->get_results( $sql, [ $theme_id ] );
+
+        $meta = [];
+
+        if ( ! empty( $results ) ) {
+            foreach ( $results as $row ) {
+
+                $key   = sanitize_key( $row['meta_key'] );
+                $value = $row['meta_value'];
+
+                if ( is_serialized( $value ) ) {
+                    $value = unserialize( $value );
+                }
+
+                $meta[ $key ] = $value;
+            }
+        }
+
+        $this->meta_data = $meta;
+
+        return $meta;
+    }
+
+    /**
+     * Update existing metadata.
+     *
+     * @param mixed $key   Meta key.
+     * @param mixed $value New value.
+     * @return bool True on success, false on failure.
+     */
+    public function update_meta( $key, $value ) {
+        $theme_id = absint( $this->get_id() );
+
+        if ( ! $theme_id ) {
+            return false;
+        }
+
+        $db    = smliser_dbclass();
+        $table = self::META_TABLE;
+
+        $key   = sanitize_key( $key );
+        $store = maybe_serialize( $value );
+
+        // Look for existing meta row.
+        $meta_id = $db->get_var(
+            "SELECT `id` FROM {$table} WHERE `theme_id` = ? AND `meta_key` = ?",
+            [ $theme_id, $key ]
+        );
+
+        if ( empty( $meta_id ) ) {
+            // INSERT
+            $inserted = $db->insert(
+                $table,
+                [
+                    'theme_id'  => $theme_id,
+                    'meta_key'   => $key,
+                    'meta_value' => $store,
+                ]
+            );
+
+            if ( $inserted !== false ) {
+                $this->meta_data[ $key ] = $value;
+                return true;
+            }
+
+            return false;
+
+        } else {
+            // UPDATE existing meta
+            $updated = $db->update(
+                $table,
+                [ 'meta_value' => $store ],
+                [
+                    'theme_id' => $theme_id,
+                    'id'        => $meta_id,
+                    'meta_key'  => $key,
+                ]
+            );
+
+            if ( $updated !== false ) {
+                $this->meta_data[ $key ] = $value;
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    /**
+     * Get the value of a metadata.
+     *
+     * @param string $meta_key   The meta key.
+     * @param mixed  $default_to The fallback value.
+     * @return mixed|null
+     */
+    public function get_meta( $meta_key, $default_to = null ) {
+        $meta_key = sanitize_text_field( $meta_key );
+
+        if ( array_key_exists( $meta_key, $this->meta_data ) ) {
+            return $this->meta_data[ $meta_key ];
+        }
+
+        $db     = smliser_dbclass();
+        $table  = self::META_TABLE;
+
+        $sql    = "SELECT `meta_value` FROM {$table} WHERE `theme_id` = ? AND `meta_key` = ?";
+        $params = [ absint( $this->get_id() ), $meta_key ];
+
+        $result = $db->get_var( $sql, $params );
+
+        if ( is_null( $result ) ) {
+            $this->meta_data[ $meta_key ] = $default_to;
+            return $default_to;
+        }
+
+        $value = is_serialized( $result ) ? unserialize( $result ) : $result;
+
+        $this->meta_data[ $meta_key ] = $value;
+
+        return $value;
+    }
+
+    /**
+     * Delete a metadata.
+     *
+     * @param string $meta_key The meta key.
+     * @return bool True on success, false on failure.
+     */
+    public function delete_meta( $meta_key ) {
+        $theme_id = absint( $this->get_id() );
+
+        if ( ! $theme_id ) {
+            return false;
+        }
+
+        $db       = smliser_dbclass();
+        $table    = self::META_TABLE;
+        $meta_key = sanitize_key( $meta_key );
+
+        // Delete from database.
+        $deleted = $db->delete(
+            $table,
+            [
+                'theme_id' => $theme_id,
+                'meta_key'  => $meta_key,
+            ]
+        );
+
+        if ( $deleted !== false ) {
+
+            // Remove from instance cache if it exists.
+            if ( isset( $this->meta_data[ $meta_key ] ) ) {
+                unset( $this->meta_data[ $meta_key ] );
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Get the database table name.
      * 
      * @return string
@@ -313,8 +515,11 @@ class Smliser_Theme extends AbstractHostedApp {
 
     /**
      * Converts associative array to object of this class.
+     * 
+     * @param array $result The associative array representing a theme.
+     * @return self
      */
-    public static function from_array( $result ) {
+    public static function from_array( $result ) : self {
         $self = new self();
         $self->set_id( $result['id'] ?? 0 );
         $self->set_name( $result['name'] ?? '' );
@@ -322,6 +527,8 @@ class Smliser_Theme extends AbstractHostedApp {
         $self->set_download_url( $result['download_link'] ?? '' );
         $self->set_created_at( $result['created_at'] ?? '' );
         $self->set_last_updated( $result['last_updated'] ?? '' );
+
+        $self->load_meta();
 
         /** 
          * Set file information
@@ -347,7 +554,7 @@ class Smliser_Theme extends AbstractHostedApp {
         $self->set_tested_up_to( $theme_metadata['tested_up_to'] ?? '' );
         $self->set_requires_php( $theme_metadata['requires_php'] ?? '' );
         
-        // $self->set_homepage( $self->get_meta( 'homepage_url', '#' ) );
+        $self->set_homepage( $self->get_meta( 'homepage_url' ) ?: $theme_metadata['theme_uri'] ?? '' );
         
         $theme_file   = $repo_class->locate( $self->get_slug() );
         if ( ! is_smliser_error( $theme_file ) ) {
@@ -363,42 +570,38 @@ class Smliser_Theme extends AbstractHostedApp {
             'description'   => $repo_class->get_description( $self->get_slug() ),
             'changelog'     => '',
             'installation'  => '',
-            'screenshots'   => [],
+            'screenshots'   =>  [],
         );
         $self->set_section( $sections );
 
-        // /**
-        //  * Icons
-        //  */
-        // $self->set_icons( $repo_class->get_assets( $self->get_slug(), 'icons' ) );
+        /**
+         * The theme screenshot
+         */
+        $self->set_screenshot_url( $repo_class->get_assets( $self->get_slug(), 'screenshot' ) );
 
-        // /**
-        //  * Screenshots
-        //  */
-        // $self->set_screenshots( $repo_class->get_screenshots( $self->get_slug() ) );
+        /**
+         * Screenshots
+         */
+        $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'additional_screenshots' ));
 
-        // /**
-        //  *  Banners.
-        //  */
-        // $self->set_banners( $repo_class->get_assets( $self->get_slug(), 'banners' ) );
+        /**
+         * Set short description
+         */
+        $self->short_description = $repo_class->get_short_description( $self->get_slug() );
 
-        // /**
-        //  * Set short description
-        //  */
-        // $self->short_description = $repo_class->get_short_description( $self->get_slug() );
+        $self->set_ratings( $self->get_meta( 'ratings', 
+            array(
+                '5' => 0,
+                '4' => 0,
+                '3' => 0,
+                '2' => 0,
+                '1' => 0,
+            )
+        ));
 
-        // $self->set_ratings( $self->get_meta( 'ratings', 
-        //     array(
-        //         '5' => 0,
-        //         '4' => 0,
-        //         '3' => 0,
-        //         '2' => 0,
-        //         '1' => 0,
-        //     )
-        // ));
-
-        // $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
-        // $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
+        $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
+        $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
+        $self->set_support_url( $self->get_meta( 'support_url', '' ) );
 
         return $self;
     }

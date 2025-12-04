@@ -70,8 +70,8 @@ class Repository_Page {
         $app_upload_template    = SMLISER_PATH . 'templates/admin/repository/uploader.php';
         $app_upload_page        = $type ? $app_upload_template : $app_upload_dashboard;
 
-        $title      = $type ? ucfirst( $type ) : '';
         $type_title = $type ? ucfirst( $type ) : '';
+        $title      = \sprintf( 'Upload New %s', $type_title );
 
         $essential_fields = self::prepare_essential_app_fields();
         

@@ -227,6 +227,24 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     }
 
     /**
+     * Set app screenshots
+     * 
+     * @param array $screenshots
+     */
+    public function set_screenshots( array $screenshots ) {
+        $this->screenshots = $screenshots;
+    }
+
+    /**
+     * Set App icons
+     * 
+     * @param array $icons
+     */
+    public function set_icons( array $icons ) {
+        $this->icons = $icons;
+
+    }
+    /**
      * Set the link to the author's profile
      * 
      * @param string $url
@@ -429,6 +447,25 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      */
     public function get_homepage() {
         return $this->homepage;
+    }
+    /**
+     * Get plugin screenshots
+     * 
+     * @return array $screenshots
+     */
+    public function get_screenshots() {
+        return $this->screenshots;
+
+    }
+
+    /**
+     * Get plugin icons
+     * 
+     * @return array $screenshots
+     */
+    public function get_icons() {
+        return $this->icons;
+
     }
 
     /**
