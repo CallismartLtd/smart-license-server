@@ -158,14 +158,7 @@ class Smliser_install {
             'name VARCHAR(255) NOT NULL',
             'slug VARCHAR(300) DEFAULT NULL',
             'status VARCHAR(55) DEFAULT \'active\'',
-            'version VARCHAR(300) DEFAULT NULL',
-            'author VARCHAR(255) DEFAULT NULL',
-            'author_profile VARCHAR(255) DEFAULT NULL',
-            'requires VARCHAR(9) DEFAULT NULL',         // WordPress min version
-            'tested VARCHAR(9) DEFAULT NULL',           // Tested up to version
-            'requires_php VARCHAR(9) DEFAULT NULL',
-            'template VARCHAR(255) DEFAULT NULL',       // For child themes (parent slug)
-            'download_link VARCHAR(400) DEFAULT NULL',
+            'download_link VARCHAR(400) DEFAULT NULL', // Could be external URL.
             'created_at DATETIME DEFAULT NULL',
             'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
             'INDEX slug_index (slug)',
