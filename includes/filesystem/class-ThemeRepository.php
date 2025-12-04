@@ -11,6 +11,7 @@
 
 namespace SmartLicenseServer;
 
+use SimplePie\File;
 use \ZipArchive;
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\Utils\MDParser;
@@ -86,17 +87,59 @@ class ThemeRepository extends Repository {
     /**
      * Safely upload or update a theme ZIP in the repository.
      *
-     * - Pre-upload: determines destination folder and slug.
-     * - Core upload: uses Repository::store_zip() to move the file safely.
-     * - Post-upload: validates ZIP and extracts readme.txt to plugin folder.
+     * - Post-upload: validates the theme style.css and metadata.
      *
      * @param array  $file      The uploaded file ($_FILES format).
      * @param string $new_name  The preferred filename (without path).
-     * @param bool   $update    Whether this is an update to an existing plugin.
+     * @param bool   $update    Whether this is an update to an existing theme.
      * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
      */
     public function upload_zip( array $file, string $new_name = '', bool $update = false ) {
-        
+        // --- Core upload via Repository::safe_zip_upload() ---
+        $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
+        if ( is_smliser_error( $stored_path ) ) {
+            return $stored_path;
+        }
+
+        $base_folder    = dirname( $stored_path );
+        $slug           = basename( $stored_path, '.zip' );
+
+        $cleanup_func = function() use ( $update, $stored_path, $base_folder ) {
+            if ( $update ) {
+                $this->delete( $stored_path ); // only remove bad zip.
+            } else {
+                $this->rmdir( $base_folder, true ); // remove new folder completely.
+            }
+        };
+
+        // --- Post-upload validation: Check style.css and metadata ---
+        $zip = new ZipArchive();
+
+        if ( true !== $zip->open( $stored_path ) ) {
+            $cleanup_func();
+            return new Exception( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
+        }
+        $firstEntry         = $zip->getNameIndex(0);
+        $rootDir            = explode( '/', $firstEntry )[0];
+        $style_css_index    = $zip->locateName( $rootDir . '/style.css', \ZipArchive::FL_NOCASE );
+
+        if ( false === $style_css_index ) {
+            $zip->close();
+            $cleanup_func();
+            return new Exception( 'style_missing', 'The theme zip file must contain a style.css file', [ 'status' => 400 ] );
+        }
+
+        $style_css_content = $zip->getFromIndex( $style_css_index );
+        $zip->close();
+
+        $style_css_path = FileSystemHelper::join_path( $base_folder, 'style.css' );
+
+        if ( ! $this->put_contents( $style_css_path, $style_css_content ) ) {
+            $cleanup_func();
+            return new Exception( 'style_css_save_faild', 'Could not save the theme style.css file', [ 'status' => 500 ] );
+        }
+
+        return $slug;
     }
 
     /**
@@ -143,6 +186,57 @@ class ThemeRepository extends Repository {
     }
 
     /**
+     * Get the content of the theme style.css file.
+     * 
+     * @param string $slug The theme slug.
+     * @return string Style.css contents or empty string if not found.
+     */
+    public function get_style_css( $slug ): string {
+        $slug = $this->real_slug( $slug );
+
+        try {
+            $base_dir = $this->enter_slug( $slug );
+        } catch ( \InvalidArgumentException $e ) {
+            return '';
+        }
+
+        $style_path = FileSystemHelper::join_path( $base_dir, 'style.css' );
+
+        if ( ! $this->exists( $style_path ) ) {
+            // We attempt to read fom the zip file as a fallback.
+            $zip_path   = $this->locate( $slug );
+
+            if ( is_smliser_error( $zip_path ) ) {
+                return '';
+            }
+
+            $zip = new \ZipArchive();
+            if ( $zip->open( $zip_path ) !== true ) {
+                return '';
+            }
+
+            $firstEntry = $zip->getNameIndex(0);
+            $rootDir = explode('/', $firstEntry)[0];
+            $style_css_index = $zip->locateName( $rootDir . '/style.css', \ZipArchive::FL_NOCASE );
+            if ( false === $style_css_index ) {
+                $zip->close();
+                return '';
+            }
+            $style_contents = $zip->getFromIndex( $style_css_index );
+            $zip->close();
+
+            // cache the style.css for future use.
+            if ( ! $this->put_contents( $style_path, $style_contents ) ) {
+                // TODO: Log error?
+            }
+
+            return $style_contents;
+        }
+
+        return $this->get_contents( $style_path ) ?: '';
+    }
+
+    /**
      * Get theme metadata from the style.css header.
      *
      * This method would parse the style.css file for theme headers (Theme Name, Version, etc.)
@@ -150,8 +244,80 @@ class ThemeRepository extends Repository {
      * @param string $slug The theme slug.
      * @return array<string, mixed>
      */
+    
     public function get_metadata( $slug ): array {
-        // TODO: Implementation to read style.css from the zip, similar to get_readme_txt.
-        return [];
+        $style_contents = $this->get_style_css( $slug );
+
+        if ( ! $style_contents ) {
+            return [];
+        }
+
+        $metadata = [];
+        $lines    = preg_split( '/\r\n|\r|\n/', $style_contents );
+
+        /**
+         * Expected header block looks like:
+         *
+         * /*
+         * Theme Name: My Theme
+         * Description: Example theme
+         * Version: 1.0
+         * Tags: blog, clean, minimal
+         * * /
+         */
+
+        $header_started = false;
+
+        foreach ( $lines as $line ) {
+            $line = trim( $line );
+
+            // Detect beginning of comment block.
+            if ( ! $header_started && preg_match( '/^\/\*/', $line ) ) {
+                $header_started = true;
+                continue;
+            }
+
+            // Stop when comment block closes.
+            if ( $header_started && preg_match( '/\*\//', $line ) ) {
+                break;
+            }
+
+            if ( ! $header_started || '' === $line ) {
+                continue;
+            }
+
+            /*
+            * Parse key: value fields
+            * Example:
+            *   Theme Name: Smart Portal
+            *   Version: 1.0.0
+            *   Tags: dashboard, smart-woo
+            */
+            if ( preg_match( '/^([^:]+):\s*(.+)$/', $line, $matches ) ) {
+
+                $raw_key = trim( $matches[1] );
+                $value   = trim( $matches[2] );
+
+                // Normalize to WP-style lowercase keys (similar to plugin parser).
+                $normalized_key = strtolower(
+                    str_replace( ' ', '_', $raw_key )
+                );
+
+                switch ( $normalized_key ) {
+                    case 'tags':
+                        $metadata[ $normalized_key ] = array_map(
+                            'trim',
+                            explode( ',', $value )
+                        );
+                        break;
+
+                    default:
+                        $metadata[ $normalized_key ] = $value;
+                }
+            }
+        }
+
+        return $metadata;
     }
+
 }
