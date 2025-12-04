@@ -449,4 +449,87 @@ class FileSystemHelper {
         return $joined;
     }
 
+    /**
+     * Sanitize and normalize a filesystem path (no dependencies).
+     *
+     * - Prevents directory traversal ("..")
+     * - Blocks encoded traversal (%2e%2e etc.)
+     * - Blocks unicode traversal
+     * - Normalizes slashes
+     * - Cross-platform (Linux + Windows)
+     * - Allows only safe filename characters
+     * - Preserves absolute paths
+     *
+     * @param string $path
+     * @return string|\SmartLicenseServer\Exception
+     */
+    public static function sanitize_path( $path ) {
+
+        if ( ! is_string( $path ) || trim( $path ) === '' ) {
+            return new Exception( 'invalid_path', 'Path must be a non-empty string.' );
+        }
+
+        // Normalize slashes early.
+        $path = str_replace( array( '\\', '/' ), '/', $path );
+
+        // Determine absolute paths: "/var/", "C:/var/"
+        $is_windows_abs = (bool) preg_match( '#^[A-Za-z]:/#', $path );
+        $is_linux_abs   = str_starts_with( $path, '/' );
+
+        // Extract drive letter if present.
+        $drive = '';
+        if ( $is_windows_abs ) {
+            $drive = substr( $path, 0, 2 ); // e.g., "C:"
+            $path  = substr( $path, 2 );    // remove drive prefix
+        }
+
+        // Split into segments.
+        $parts = explode( '/', $path );
+        $safe  = array();
+
+        foreach ( $parts as $part ) {
+            $part = trim( $part );
+
+            // Skip empty / dot segments.
+            if ( $part === '' || $part === '.' ) {
+                continue;
+            }
+
+            // Block directory traversal.
+            if ( $part === '..' ) {
+                return new Exception( 'invalid_path', 'Parent directory references not allowed.' );
+            }
+
+            // Disallow encoded characters.
+            if ( preg_match( '/(%|&#)/i', $part ) ) {
+                return new Exception( 'invalid_path', 'Encoded characters are not allowed.' );
+            }
+
+            // Allow safe characters only.
+            // You can expand allowed characters if needed.
+            if ( ! preg_match( '/^[A-Za-z0-9._-]+$/', $part ) ) {
+                return new Exception( 'invalid_chars', "Illegal characters in path segment: {$part}" );
+            }
+
+            $safe[] = $part;
+        }
+
+        // Rebuild the path.
+        $normalized = implode( '/', $safe );
+
+        // Restore absolute prefix.
+        if ( $is_windows_abs ) {
+            $normalized = $drive . '/' . $normalized;
+        } elseif ( $is_linux_abs ) {
+            $normalized = '/' . $normalized;
+        }
+
+        // Null byte check.
+        if ( strpos( $normalized, "\0" ) !== false ) {
+            return new Exception( 'invalid_path', 'Null bytes not allowed.' );
+        }
+
+        return $normalized;
+    }
+
 }
