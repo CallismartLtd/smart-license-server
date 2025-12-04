@@ -78,8 +78,6 @@ class PluginRepository extends Repository {
     /**
      * Safely upload or update a plugin ZIP in the repository.
      *
-     * - Pre-upload: determines destination folder and slug.
-     * - Core upload: uses Repository::store_zip() to move the file safely.
      * - Post-upload: validates ZIP and extracts readme.txt to plugin folder.
      *
      * @param array  $file      The uploaded file ($_FILES format).
@@ -88,119 +86,46 @@ class PluginRepository extends Repository {
      * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
      */
     public function upload_zip( array $file, string $new_name, bool $update = false ) {
-        if ( empty( $file ) || ! isset( $file['tmp_name'], $file['name'] ) ) {
-            return new Exception( 'invalid_file', 'No file uploaded.', [ 'status' => 400 ] );
-        }
-
-        if ( empty( $new_name ) ) {
-            return new Exception( 'invalid_filename', 'The new filename cannot be empty.', [ 'status' => 400 ] );
-        }
-
-        $tmp_name = $file['tmp_name'] ?? '';
-
-        if ( ! is_uploaded_file( $tmp_name ) ) {
-            return new Exception( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
-        }
-
-        if ( 'zip' !== FileSystemHelper::get_canonical_extension( $tmp_name ) ) {
-            return new Exception( 'invalid_file_type', 'Invalid file type, the plugin must be in ZIP format.', [ 'status' => 400 ] );
-        }
-
-        // Normalize filename
-        $new_name  = sanitize_file_name( basename( $new_name ) );
-
-        try {
-            $slug = $this->real_slug( $new_name );
-        } catch ( \InvalidArgumentException $e ) {
-            return new Exception( 
-                'invalid_slug', 
-                $e->getMessage(),
-                [ 'status' => 400 ] 
-            );
-        }
-
-        // Force the filename to strictly be "{slug}.zip"
-        $file_name = $slug . '.zip';
-
-        // Destination folder and file path
-        $base_folder = $this->path( $slug );
-        $dest_path   = trailingslashit( $base_folder ) . $file_name;
-
-        if ( ! $update ) {
-            // New upload: prevent overwriting existing slug
-            if ( $this->is_dir( $base_folder ) ) {
-                return new Exception(
-                    'plugin_slug_exists',
-                    sprintf( 'The slug "%s" is not available, you can change the plugin name and try again.', $slug ),
-                    [ 'status' => 400 ]
-                );
-            }
-            if ( ! $this->mkdir( $base_folder, FS_CHMOD_DIR ) ) {
-                return new Exception( 'repo_error', 'Unable to create plugin directory.', [ 'status' => 500 ] );
-            }
-        } else {
-            // Update: ensure slug folder and plugin already exists.
-
-            if ( ! $this->is_dir( $base_folder ) && ! $this->mkdir( $base_folder, FS_CHMOD_DIR )) {
-                return new Exception(
-                    'plugin_not_found',
-                    sprintf( 'The plugin slug "%s" does not exist in the repository, and attempt to create one failed.', $slug ),
-                    [ 'status' => 404 ]
-                );
-            }
-
-            // Optional: enforce slug consistency
-            $expected_slug = $this->real_slug( $slug );
-            if ( $slug !== $expected_slug ) {
-                return new Exception(
-                    'slug_mismatch',
-                    sprintf( 'Uploaded plugin "%s" does not match the target slug "%s".', $slug, $expected_slug ),
-                    [ 'status' => 400 ]
-                );
-            }
-        }
-
-        // --- Core upload via Repository::store_zip() ---
-        $stored_path = $this->store_zip( $tmp_name, $dest_path );
+        // --- Core upload via Repository::safe_zip_upload() ---
+        $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
         if ( is_smliser_error( $stored_path ) ) {
             return $stored_path;
         }
 
+        $base_folder    = dirname( $stored_path );
+        $slug           = basename( $stored_path, '.zip' );
+
+        $cleanup_func = function() use ( $update, $stored_path, $base_folder ) {
+            if ( $update ) {
+                $this->delete( $stored_path ); // only remove bad zip.
+            } else {
+                $this->rmdir( $base_folder, true ); // remove new folder completely.
+            }
+        };
+
         // --- Post-upload: Validate ZIP and extract readme.txt ---
         $zip = new \ZipArchive();
         if ( $zip->open( $stored_path ) !== true ) {
-            // Cleanup differs depending on upload vs update
-            if ( $update ) {
-                $this->delete( $stored_path ); // only remove bad zip
-            } else {
-                $this->rmdir( $base_folder, true ); // remove new folder completely
-            }
+            $cleanup_func();        
             return new Exception( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
         }
 
-        $firstEntry = $zip->getNameIndex(0);
-        $rootDir = explode('/', $firstEntry)[0];
-        $readme_index = $zip->locateName( $rootDir . '/readme.txt', \ZipArchive::FL_NOCASE );
+        $firstEntry     = $zip->getNameIndex(0);
+        $rootDir        = explode( '/', $firstEntry )[0];
+        $readme_index   = $zip->locateName( $rootDir . '/readme.txt', \ZipArchive::FL_NOCASE );
         if ( $readme_index === false ) {
             $zip->close();
-            if ( $update ) {
-                $this->delete( $stored_path ); // keep old plugin, remove bad upload
-            } else {
-                $this->rmdir( $base_folder, true );
-            }
+            $cleanup_func();
             return new Exception( 'readme_missing', 'The plugin ZIP must contain a readme.txt file.', [ 'status' => 400 ] );
         }
 
         $readme_contents = $zip->getFromIndex( $readme_index );
         $zip->close();
 
-        $readme_path = trailingslashit( $base_folder ) . 'readme.txt';
+        $readme_path = FileSystemHelper::join_path( $base_folder, 'readme.txt' );
+
         if ( ! $this->put_contents( $readme_path, $readme_contents ) ) {
-            if ( $update ) {
-                $this->delete( $stored_path );
-            } else {
-                $this->rmdir( $base_folder, true );
-            }
+            $cleanup_func();
             return new Exception( 'readme_save_failed', 'Failed to save readme.txt.', [ 'status' => 500 ] );
         }
 
@@ -245,7 +170,6 @@ class PluginRepository extends Repository {
 
         if ( ! $this->is_dir( $asset_dir ) && ! $this->mkdir( $asset_dir, FS_CHMOD_DIR ) ) {
             return new Exception( 'repo_error', 'Unable to create asset directory.', [ 'status' => 500 ] );
-
         }
 
         $ext    = FileSystemHelper::get_canonical_extension( $file['tmp_name'] );
@@ -834,7 +758,7 @@ class PluginRepository extends Repository {
             return $readme_contents;
         }
         
-        return $this->get_contents( $file_path );
+        return $this->get_contents( $file_path ) ?: '';
     }
 
     /**
