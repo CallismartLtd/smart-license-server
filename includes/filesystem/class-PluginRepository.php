@@ -409,7 +409,7 @@ class PluginRepository extends Repository {
         }
 
         $asset_dir = trailingslashit( $base_dir ) . 'assets/';
-        $abs_path  = sanitize_and_normalize_path( trailingslashit( $asset_dir ) . basename( $filename ) );
+        $abs_path  = smliser_sanitize_path( trailingslashit( $asset_dir ) . basename( $filename ) );
 
         if ( ! $this->exists( $abs_path ) ) {
             return new Exception(

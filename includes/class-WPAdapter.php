@@ -93,7 +93,7 @@ class WPAdapter {
      */
     private static function parse_public_package_download() {
         $app_type = get_query_var( 'smliser_app_type' );
-        $app_slug = sanitize_and_normalize_path( get_query_var( 'smliser_app_slug' ) );
+        $app_slug = smliser_sanitize_path( get_query_var( 'smliser_app_slug' ) );
 
         if ( empty( $app_slug ) ) {
             smliser_abort_request(

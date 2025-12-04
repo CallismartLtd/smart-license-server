@@ -345,7 +345,7 @@ abstract class Repository extends FileSystem {
      * @return string|false Absolute path or false on failure.
      */
     public function full_path( $relative_path ) {
-        $cleaned = \sanitize_and_normalize_path( $relative_path );
+        $cleaned = \smliser_sanitize_path( $relative_path );
 
         if ( is_smliser_error( $cleaned ) ) {
             return false;

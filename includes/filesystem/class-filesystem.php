@@ -210,7 +210,7 @@ class FileSystem {
             $path = $parts[1];
         }
 
-        $path = \sanitize_and_normalize_path( $path );
+        $path = \smliser_sanitize_path( $path );
         if ( \is_smliser_error( $path ) ) {
             return false;
         }

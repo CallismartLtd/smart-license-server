@@ -188,7 +188,7 @@ class ThemeRepository extends Repository {
         }
 
         // Themes primarily use the root directory for standard assets like screenshot.png
-        $abs_path  = sanitize_and_normalize_path( trailingslashit( $base_dir ) . basename( $filename ) );
+        $abs_path  = smliser_sanitize_path( trailingslashit( $base_dir ) . basename( $filename ) );
 
         if ( ! $this->exists( $abs_path ) ) {
             return new Exception(

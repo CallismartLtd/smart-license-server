@@ -624,7 +624,7 @@ function smliser_utf8ize( mixed $data ) {
  * @param string $path The input path.
  * @return string|SmartLicenseServer\Exception The sanitized and normalized path, or Exception on failure.
  */
-function sanitize_and_normalize_path( $path ) {
+function smliser_sanitize_path( $path ) {
     return FileSystemHelper::sanitize_path( $path );
 }
 
