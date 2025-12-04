@@ -751,6 +751,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/filesystem/class-filesystem-helper.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
         require_once SMLISER_PATH . 'includes/filesystem/class-PluginRepository.php';
+        require_once SMLISER_PATH . 'includes/filesystem/class-ThemeRepository.php';
         require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileRequest.php';
         require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileResponse.php';
         require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileRequestController.php';
