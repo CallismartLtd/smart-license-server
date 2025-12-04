@@ -369,6 +369,28 @@ class ThemeRepository extends Repository {
     }
 
     /**
+     * Delete a theme asset from the repository
+     * 
+     * @param string $slug     Theme slug (e.g., "my-theme").
+     * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
+     * @param string $filename The filename to delete.
+     *
+     * @return true|Exception True on success, Exception on failure.
+     */
+    public function delete_asset( $slug, $filename ) {
+        $path = $this->get_asset_path( $slug, $filename );
+
+        if ( is_smliser_error( $path ) ) {
+            return $path;
+        }
+
+        if ( ! $this->delete( $path ) ) {
+            return new Exception( 'unable_to_delete', sprintf( 'Unable to delete the file %s', $filename ), [ 'status', 500 ] );
+        }
+        return true;
+    }
+
+    /**
      * Get the theme descriptions.
      * 
      * @return string The theme description in HTML format.
@@ -505,7 +527,6 @@ class ThemeRepository extends Repository {
                 $raw_key = trim( $matches[1] );
                 $value   = trim( $matches[2] );
 
-                // Normalize to WP-style lowercase keys (similar to plugin parser).
                 $normalized_key = strtolower(
                     str_replace( ' ', '_', $raw_key )
                 );
