@@ -425,37 +425,43 @@ class PluginRepository extends Repository {
     /**
      * Delete a plugin by it's given slug.
      * 
-     * @param string $slug The plugin slug
+     * @param string $slug The plugin slug.
+     * @return true|Exception True on success, Exception on failure.
      */
-    public function delete_from_repo( $plugin_slug ) {
+    public function trash( string $plugin_slug ) {
         if ( empty( $plugin_slug ) ) {
             return new Exception( 'invalid_slug', 'The application slug cannot be empty' );
         }
 
         $slug = $this->real_slug( $plugin_slug );
-        try {
-            $repo_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
-            return new Exception( 
-                'invalid_slug', 
-                $e->getMessage(),
-                [ 'status' => 400 ] 
+        
+        if ( ! $this->queue_app_for_deletion( $slug ) ) {
+            return new Exception(
+                'deletion_failed',
+                \sprintf('Failed to queue plugin "%s" for deletion.', $slug )
             );
         }
 
-        if ( ! $this->is_dir( $repo_dir ) ) {
-            return new Exception( 
-                'plugin_repo_error', 
-                sprintf( 'The plugin with slug "%s" does not exist in the repository', $slug ),
-                [ 'status' => 404 ] 
-            );
+        return true;
+    }
+
+    /**
+     * Restore a plugin from the trash.
+     * 
+     * @param string $plugin_slug The plugin slug.
+     * @return true|Exception True on success, Exception on failure.
+     */
+    public function restore_from_trash( string $slug ) {
+        if ( empty( $slug ) ) {
+            return new Exception( 'invalid_slug', 'The application slug cannot be empty' );
         }
 
-        if ( ! $this->rmdir( $repo_dir, true ) ) {
-            return new Exception( 
-                'plugin_repo_error', 
-                sprintf( 'Unable to delete the plugin with slug "%s"!', $slug ),
-                [ 'status' => 500 ] 
+        $slug = $this->real_slug( $slug );
+
+        if ( ! $this->restore_queued_deletion( $slug ) ) {
+            return new Exception(
+                'restore_failed',
+                \sprintf('Failed to restore plugin "%s" from trash.', $slug )
             );
         }
 

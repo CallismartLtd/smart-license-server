@@ -39,7 +39,13 @@ abstract class Repository extends FileSystem {
      * 
      * @var string
      */
-    const TRASH_DIR = 'trash';
+    const TRASH_DIR = '.trash';
+    /**
+     * Trash metadata filename.
+     * 
+     * @var string
+     */
+    const TRASH_METADATA_FILE = '.smliser_meta';
 
     /**
      * Currently active subdirectory.
@@ -59,11 +65,15 @@ abstract class Repository extends FileSystem {
      * Constructor.
      *
      * @param string $dir One of the allowed directories.
+     * @param bool $switch Whether to switch to the given dir immediately.
      */
-    public function __construct( $dir ) {
+    public function __construct( $dir, $switch = true ) {
         parent::__construct();
-        $this->base_dir = wp_normalize_path( SMLISER_REPO_DIR );
-        $this->switch( $dir );
+        $this->base_dir = FileSystemHelper::sanitize_path( SMLISER_REPO_DIR );
+
+        if ( $switch ) {
+            $this->switch( $dir );
+        }
     }
 
     /**
@@ -355,29 +365,81 @@ abstract class Repository extends FileSystem {
     }
 
     /**
-     * Queues the given app slug for deletion from the repository.
-     * 
+     * Queue the given app slug for deletion from the repository.
+     * Adds a timestamp for reliable later cleanup.
+     *
      * @param string $slug The application slug.
      * @return bool True on success, false on failure.
      */
     public function queue_app_for_deletion( string $slug ) {
         $trash_dir = FileSystemHelper::join_path( $this->base_dir, self::TRASH_DIR );
 
+        // Ensure trash base exists.
         if ( ! $this->is_dir( $trash_dir ) && ! $this->mkdir( $trash_dir, FS_CHMOD_DIR, true ) ) {
             return false;
         }
 
-        $app_dir    = $this->path( $slug );
-        $app_type   = $this->current_dir;
+        $app_dir     = $this->path( $slug );
+        $app_type    = $this->current_dir;
         $destination = FileSystemHelper::join_path( $trash_dir, $app_type, $slug );
-        
+
+        // Ensure destination folder exists.
         if ( ! $this->is_dir( $destination ) && ! $this->mkdir( $destination, FS_CHMOD_DIR, true ) ) {
             return false;
         }
 
-        return $this->rename( $app_dir, $destination );
+        // Move application files.
+        if ( ! $this->move( $app_dir, $destination, true ) ) {
+            return false;
+        }
 
+        // Write timestamp file for cleanup.
+        $timestamp_file = FileSystemHelper::join_path( $destination, self::TRASH_METADATA_FILE );
+
+        if ( ! $this->put_contents( $timestamp_file, (string) time() ) ) {
+            return false;
+        }
+
+        return true;
     }
+
+    /**
+     * Restore queued deletions.
+     *
+     * @param string $slug
+     * @return bool True on success, false on failure.
+     */
+    public function restore_queued_deletion( string $slug ) {
+        $type      = $this->current_dir;
+        $trash_dir = FileSystemHelper::join_path( $this->base_dir, self::TRASH_DIR, $type, $slug );
+        $dest_dir  = FileSystemHelper::join_path( $this->base_dir, $type, $slug );
+
+        if ( ! $this->is_dir( $trash_dir ) ) {
+            return false;
+        }
+
+        if ( $this->is_dir( $dest_dir ) ) {
+            return false; // destination already exists
+        }
+
+        if ( ! $this->move( $trash_dir, $dest_dir, true ) ) {
+            return false;
+        }
+
+        // Remove timestamp file if it exists.
+        $timestamp_file = FileSystemHelper::join_path( $dest_dir, self::TRASH_METADATA_FILE );
+        if ( $this->exists( $timestamp_file ) ) {
+            $this->delete( $timestamp_file );
+        }
+
+        return true;
+    }
+
+    /**
+    |---------------------------
+    | ABSTRACT METHODS
+    |---------------------------
+     */
 
     /**
      * Get the assets for a given hosted application.

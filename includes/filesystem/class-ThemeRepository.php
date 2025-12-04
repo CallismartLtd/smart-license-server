@@ -146,17 +146,50 @@ class ThemeRepository extends Repository {
      * Delete a theme from the repository.
      * 
      * @param string $slug The theme slug.
-     * @return bool True on success, false on failure.
+     * @return true|Exception True on success, Exception on failure.
      */
-    public function delete_from_repo( string $slug ): bool {
-        try {
-            $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
-            return false;
+    public function trash( string $slug ) {
+        if ( empty( $slug ) ) {
+            return new Exception( 'invalid_slug', 'The theme slug cannot be empty', ['status' => 400] );
         }
 
-        return $this->rmdir( $this->path(), true );
+        $slug = $this->real_slug( $slug );
+        
+        if ( ! $this->queue_app_for_deletion( $slug ) ) {
+            return new Exception(
+                'deletion_failed',
+                sprintf( 'Failed to queue theme "%s" for deletion.', esc_html( $slug ) ),
+                [ 'status' => 500 ]
+            );
+        }
+
+        return true;
     }
+
+    /**
+     * Restore a theme from the trash.
+     * 
+     * @param string $slug The theme slug.
+     * @return true|Exception True on success, Exception on failure.
+     */
+    public function restore_from_trash( string $slug ) {
+        if ( empty( $slug ) ) {
+            return new Exception( 'invalid_slug', 'The theme slug cannot be empty', ['status' => 400] );
+        }
+
+        $slug = $this->real_slug( $slug );
+
+        if ( ! $this->restore_queued_deletion( $slug ) ) {
+            return new Exception(
+                'restore_failed',
+                sprintf( 'Failed to restore theme "%s" from trash.', esc_html( $slug ) ),
+                [ 'status' => 500 ]
+            );
+        }
+
+        return true;
+    }
+   
 
     /**
      * Abstract Implementation: Get theme assets as URLs.

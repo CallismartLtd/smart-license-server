@@ -187,7 +187,7 @@ class FileSystem {
 
         if ( ( $this->fs instanceof \WP_Filesystem_Base ) && $recursive ) {
             // Does not suppport recursive creation, so we do it manually.
-            return $this->mkdir_r( $path, $chmod );
+            return $this->mkdir_recursive( $path, $chmod );
             
         }
         return $this->fs->mkdir( $path, $chmod );
@@ -200,7 +200,7 @@ class FileSystem {
      * @param int|false $chmod
      * @return bool
      */
-    protected function mkdir_r( $path, $chmod = false ) {
+    protected function mkdir_recursive( $path, $chmod = false ) {
         $stream_wrapper = null;
 
         // Handle stream wrappers like s3:// or ftp://
@@ -275,8 +275,19 @@ class FileSystem {
      * @return bool
      */
     public function copy( $source, $dest, $overwrite = false ) {
-
         return $this->fs->copy( $source, $dest, $overwrite, FS_CHMOD_FILE );
+    }
+
+    /**
+     * Move a file/directory.
+     * 
+     * @param string $source
+     * @param string $dest
+     * @param bool   $overwrite
+     * @return bool
+     */
+    public function move( $source, $dest, $overwrite = false ) {
+        return $this->fs->move( $source, $dest, $overwrite );
     }
 
     /**
@@ -287,7 +298,7 @@ class FileSystem {
      * @return bool
      */
     public function rename( $source, $dest ) {
-        return $this->fs->move( $source, $dest, true );
+        return $this->move( $source, $dest, true );
     }
 
 	/**

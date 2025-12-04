@@ -275,7 +275,7 @@ class Smliser_Theme extends AbstractHostedApp {
         $repo_class = new ThemeRepository();
         
         $id             = $this->get_id();
-        $file_delete    = $repo_class->delete_from_repo( $this->get_slug() );
+        $file_delete    = $repo_class->trash( $this->get_slug() );
 
         if ( is_smliser_error( $file_delete ) ) {
             return $file_delete;

@@ -379,7 +379,7 @@ class Smliser_Plugin extends AbstractHostedApp {
         $repo_class  = new PluginRepository();
         $slug        = $this->get_slug();
 
-        $file_delete = $repo_class->delete_from_repo( $slug );
+        $file_delete = $repo_class->trash( $slug );
 
         if ( is_smliser_error( $file_delete ) ) {
             error_log( 'Plugin delete failed: ' . $file_delete->get_error_message() );
