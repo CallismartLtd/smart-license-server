@@ -8,7 +8,6 @@
 
 namespace SmartLicenseServer;
 
-use SimplePie\File;
 use ZipArchive;
 
 defined( 'ABSPATH' ) || exit;
@@ -36,6 +35,13 @@ abstract class Repository extends FileSystem {
     protected $allowed_dirs = [ 'plugins', 'themes', 'softwares' ];
 
     /**
+     * The trash directory for queued deletions.
+     * 
+     * @var string
+     */
+    const TRASH_DIR = 'trash';
+
+    /**
      * Currently active subdirectory.
      *
      * @var string
@@ -56,7 +62,7 @@ abstract class Repository extends FileSystem {
      */
     public function __construct( $dir ) {
         parent::__construct();
-        $this->base_dir = wp_normalize_path( SMLISER_NEW_REPO_DIR );
+        $this->base_dir = wp_normalize_path( SMLISER_REPO_DIR );
         $this->switch( $dir );
     }
 
@@ -346,6 +352,31 @@ abstract class Repository extends FileSystem {
         }
 
         return FileSystemHelper::join_path( $this->base_dir, $cleaned );
+    }
+
+    /**
+     * Queues the given app slug for deletion from the repository.
+     * 
+     * @param string $slug The application slug.
+     * @return bool True on success, false on failure.
+     */
+    public function queue_app_for_deletion( string $slug ) {
+        $trash_dir = FileSystemHelper::join_path( $this->base_dir, self::TRASH_DIR );
+
+        if ( ! $this->is_dir( $trash_dir ) && ! $this->mkdir( $trash_dir, FS_CHMOD_DIR, true ) ) {
+            return false;
+        }
+
+        $app_dir    = $this->path( $slug );
+        $app_type   = $this->current_dir;
+        $destination = FileSystemHelper::join_path( $trash_dir, $app_type, $slug );
+        
+        if ( ! $this->is_dir( $destination ) && ! $this->mkdir( $destination, FS_CHMOD_DIR, true ) ) {
+            return false;
+        }
+
+        return $this->rename( $app_dir, $destination );
+
     }
 
     /**
