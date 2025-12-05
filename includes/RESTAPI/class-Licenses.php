@@ -41,7 +41,7 @@ class Licenses {
      * 
      * @param WP_REST_Request $request The current request object.
      */
-    public static function license_activation_permission_callback( WP_REST_Request $request ) {
+    public static function activation_permission_callback( WP_REST_Request $request ) {
         self::$start_time = microtime( true );
         $service_id     = $request->get_param( 'service_id' );
         $license_key    = $request->get_param( 'license_key' );
@@ -94,7 +94,7 @@ class Licenses {
      * 
      * @param WP_REST_Request $request The current request object.
      */
-    public static function license_activation_response( WP_REST_Request $request ) {
+    public static function activation_response( WP_REST_Request $request ) {
         $service_id     = $request->get_param( 'service_id' );
         $license_key    = $request->get_param( 'license_key' );
         $domain         = $request->get_param( 'domain' );
@@ -141,7 +141,7 @@ class Licenses {
      * @param WP_REST_Request $request The REST API request object
      * @return WP_Error|true
      */
-    public static function license_deactivation_permission( WP_REST_Request $request ) {
+    public static function deactivation_permission( WP_REST_Request $request ) {
         self::$start_time = microtime( true );
         $license_key    = $request->get_param( 'license_key' );
         $service_id     = $request->get_param( 'service_id' );
@@ -168,7 +168,7 @@ class Licenses {
      * @param WP_REST_Request $request
      * @return WP_REST_Response
      */
-    public static function license_deactivation_response( WP_REST_Request $request ) {
+    public static function deactivation_response( WP_REST_Request $request ) {
         $domain = smliser_get_base_url( $request->get_param( 'domain' ) );
         /** @var License $license */
         $license            = $request->get_param( 'license' );
@@ -220,8 +220,8 @@ class Licenses {
      * @param WP_REST_Request $request The REST Request Object.
      * @return WP_Error|true
      */
-    public static function license_uninstallation_permission( WP_REST_Request $request ) {
-        return self::license_deactivation_permission( $request );
+    public static function uninstallation_permission( WP_REST_Request $request ) {
+        return self::deactivation_permission( $request );
     }
 
     /**
@@ -229,7 +229,7 @@ class Licenses {
      * 
      * @param WP_REST_Request $request The REST Request Object
      */
-    public static function license_uninstallation_response( WP_REST_Request $request ) {
+    public static function uninstallation_response( WP_REST_Request $request ) {
         $domain         = smliser_get_base_url( $request->get_param( 'domain' ) );
         /** @var License $license */
         $license        = $request->get_param( 'license' );
@@ -269,7 +269,7 @@ class Licenses {
      * @param WP_REST_Request $request The REST API request object.
      * @return WP_Error|true
      */
-    public static function license_validity_test_permission( WP_REST_Request $request ) {
+    public static function validity_test_permission( WP_REST_Request $request ) {
         self::$start_time = microtime( true );
         $service_id     = $request->get_param( 'service_id' );
         $license_key    = $request->get_param( 'license_key' );
@@ -312,7 +312,7 @@ class Licenses {
      * - Domain validity.
      * - Download token validity.
      */
-    public static function license_validity_test( WP_REST_Request $request ) {
+    public static function validity_test_response( WP_REST_Request $request ) {
         /** @var License $license */
         $license    = $request->get_param( 'license' );
 
@@ -321,6 +321,7 @@ class Licenses {
 
         $download_token = $request->get_header( 'x-download-token' );
         $token_validity = smliser_verify_item_token( $download_token, $hosted_app );
+        
         $response_data = array(
             'message'   => 'License validity test result is ready.',
             'data' => array(
@@ -344,7 +345,7 @@ class Licenses {
      * @param WP_REST_Request $request
      * @return WP_Error|true
      */
-    public static function item_download_reauth_permission( WP_REST_Request $request ) {
+    public static function download_reauth_permission( WP_REST_Request $request ) {
         self::$start_time = microtime( true );
         $service_id     = $request->get_param( 'service_id' );
         $license_key    = $request->get_param( 'license_key' );
@@ -400,7 +401,7 @@ class Licenses {
      * @param WP_REST_Request $request.
      * @return WP_REST_Response
      */
-    public static function item_download_reauth( WP_REST_Request $request ) {
+    public static function app_download_reauth( WP_REST_Request $request ) {
         /** @var License $license */
         $license        = $request->get_param( 'license' );
         $two_weeks      = 2 * WEEK_IN_SECONDS;

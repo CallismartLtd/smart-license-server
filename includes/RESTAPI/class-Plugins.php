@@ -15,6 +15,9 @@ use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Handles REST API Requests for hosted plugins.
+ */
 class Plugin {
 
     /**
@@ -27,7 +30,7 @@ class Plugin {
         /**
          * We handle the required parameters here.
          */
-        $plugin_id  = $request->get_param( 'plugin_id' );
+        $plugin_id  = $request->get_param( 'id' );
         $slug       = $request->get_param( 'slug' );
 
         if ( empty( $plugin_id ) && empty( $slug ) ) {
@@ -57,7 +60,7 @@ class Plugin {
      * @param WP_REST_Request $request The REST API request object.
      * @return WP_REST_Response The REST API response object.
      */
-    public static function plugin_info( WP_REST_Request $request ) {
+    public static function plugin_info_response( WP_REST_Request $request ) {
         /** @var Smliser_Plugin $plugin */
         $plugin = $request->get_param( 'smliser_resource' );
 

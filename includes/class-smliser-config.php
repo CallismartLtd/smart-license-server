@@ -29,6 +29,13 @@ class SmartLicense_config {
     private $plugin_info   = '/plugin-info/';
 
     /** 
+     * Theme info REST API route.
+     * 
+     * @var string
+     */
+    private $theme_info   = '/theme-info/';
+
+    /** 
      * License activation REST API route.
      * 
      * @var string
@@ -64,11 +71,11 @@ class SmartLicense_config {
     private $repository_route = '/repository/';
 
     /** 
-     * Repository REST API route for specific plugin.
+     * Repository REST API route for specific hosted application type.
      * 
      * @var string
      */
-    private $repository_plugin_route = '/repository/(?P<slug>[^/]+)/(?P<scope>read|write|read-write)';
+    private $repository_app_route = '/repository/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
     
     /** 
      * Client authentication REST API route, essentially for token regeneration.
@@ -212,8 +219,8 @@ class SmartLicense_config {
         register_rest_route( $this->namespace, $this->activation_route, 
             array(
                 'methods'             => WP_REST_Server::CREATABLE,
-                'callback'            =>  array( SmartLicenseServer\RESTAPI\Licenses::class, 'license_activation_response' ),
-                'permission_callback' => array( SmartLicenseServer\RESTAPI\Licenses::class, 'license_activation_permission_callback'),
+                'callback'            =>  array( SmartLicenseServer\RESTAPI\Licenses::class, 'activation_response' ),
+                'permission_callback' => array( SmartLicenseServer\RESTAPI\Licenses::class, 'activation_permission_callback'),
                 'args'  => array(
                     'service_id'    => array(
                         'required'          => true,
@@ -248,8 +255,8 @@ class SmartLicense_config {
         register_rest_route( $this->namespace, $this->deactivation_route, 
             array(
                 'methods'             => WP_REST_Server::EDITABLE,
-                'callback'            => array( 'Smliser_License_Rest_API', 'license_deactivation_response' ),
-                'permission_callback' => array( 'Smliser_License_Rest_API', 'license_deactivation_permission' ),
+                'callback'            => array( SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_response' ),
+                'permission_callback' => array( SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_permission' ),
                 'args'  => array(
                     'license_key'   => array(
                         'required'          => true,
@@ -283,8 +290,8 @@ class SmartLicense_config {
         register_rest_route( $this->namespace, $this->license_uninstallation_route, 
             array(
                 'methods'             => WP_REST_Server::EDITABLE,
-                'callback'            => array( 'Smliser_License_Rest_API', 'license_uninstallation_response' ),
-                'permission_callback' => array( 'Smliser_License_Rest_API', 'license_uninstallation_permission' ),
+                'callback'            => array( SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_response' ),
+                'permission_callback' => array( SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_permission' ),
                 'args'  => array(
                     'license_key'   => array(
                         'required'          => true,
@@ -318,8 +325,8 @@ class SmartLicense_config {
         register_rest_route( $this->namespace, $this->license_validity_route, 
             array(
                 'methods'             => 'POST',
-                'callback'            => array( 'Smliser_License_Rest_API', 'license_validity_test' ),
-                'permission_callback' => array( 'Smliser_License_Rest_API', 'license_validity_test_permission' ),
+                'callback'            => array( SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_response' ),
+                'permission_callback' => array( SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_permission' ),
                 'args'  => array(
                     'license_key'   => array(
                         'required'          => true,
@@ -353,8 +360,55 @@ class SmartLicense_config {
          */
         register_rest_route( $this->namespace, $this->plugin_info, array(
             'methods'             => WP_REST_Server::READABLE,
-            'permission_callback' => array( 'Smliser_Plugin_REST_API', 'plugin_info_permission_callback' ),
-            'callback'            => array( 'Smliser_Plugin_REST_API', 'plugin_info' ),
+            'permission_callback' => array( SmartLicenseServer\RESTAPI\Plugin::class, 'info_permission_callback' ),
+            'callback'            => array( SmartLicenseServer\RESTAPI\Plugin::class, 'plugin_info_response' ),
+            'args'  => array(
+                'item_id'   => array(
+                    'required'          => false,
+                    'type'              => 'integer',
+                    'description'       => 'The plugin ID',
+                    'sanitize_callback' => 'absint',
+                ),
+                'slug'      => array(
+                    'required'          => false,
+                    'type'              => 'string',
+                    'description'       => 'The plugin slug eg. plugin-slug/plugin-slug',
+                    'sanitize_callback' => array( __CLASS__, 'sanitize' )
+                ),
+            ),
+            
+
+        ));
+
+        /** 
+         * Register REST API route for querying entire repository
+         */
+        register_rest_route( $this->namespace, $this->repository_route, 
+            array(
+                'methods'               => WP_REST_Server::READABLE,
+                'callback'              => array( SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_response' ),
+                'permission_callback'   => array( SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_access_permission' ),
+                'args'  => array(
+                    'search'   => array(
+                        'required'          => false,
+                        'type'              => 'string',
+                        'description'       => 'The search term',
+                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
+                        'validate_callback' => '__return_true'
+                    )
+                ),
+            )
+        );
+
+        /** 
+         * Register dynamic repository route for hosted applications.
+         * 
+         * This route is designed for CRUD operations on all hosted apps.
+         */
+        register_rest_route( $this->namespace, $this->repository_app_route, array(
+            'methods'             => WP_REST_Server::ALLMETHODS,
+            'permission_callback' => array( SmartLicenseServer\RESTAPI\Plugin::class, 'info_permission_callback' ),
+            'callback'            => array( SmartLicenseServer\RESTAPI\Plugin::class, 'plugin_info_response' ),
             'args'  => array(
                 'item_id'   => array(
                     'required'          => false,
@@ -373,26 +427,6 @@ class SmartLicense_config {
 
         ) );
 
-        /** 
-         * Register REST API route for querying entire repository
-         */
-        register_rest_route( $this->namespace, $this->repository_route, 
-            array(
-                'methods'               => WP_REST_Server::READABLE,
-                'callback'              => array( 'Smliser_Repository_Rest_API', 'repository_response' ),
-                'permission_callback'   => array( 'Smliser_Repository_Rest_API', 'repository_access_permission' ),
-                'args'  => array(
-                    'search'   => array(
-                        'required'          => false,
-                        'type'              => 'string',
-                        'description'       => 'The search term',
-                        'sanitize_callback' => array( __CLASS__, 'sanitize' ),
-                        'validate_callback' => '__return_true'
-                    )
-                ),
-            )
-        );
-
         /** Register Oauth client authentication route */
         register_rest_route( $this->namespace, $this->app_reauth, array(
             'methods'               => 'GET',
@@ -406,8 +440,8 @@ class SmartLicense_config {
         register_rest_route( $this->namespace, $this->download_reauth, 
             array(
                 'methods'               => 'POST',
-                'callback'              => array( 'Smliser_License_Rest_API', 'item_download_reauth' ),
-                'permission_callback'   => array( 'Smliser_License_Rest_API', 'item_download_reauth_permission' ),
+                'callback'              => array( SmartLicenseServer\RESTAPI\Licenses::class, 'app_download_reauth' ),
+                'permission_callback'   => array( SmartLicenseServer\RESTAPI\Licenses::class, 'download_reauth_permission' ),
                 'args'  => array(
                     'domain'    => array(
                         'required'  => true,

@@ -6,13 +6,19 @@
  * @package Smliser\classes
  * @since 1.0.0
  */
+namespace SmartLicenseServer\RESTAPI;
+
+use Smliser_Software_Collection;
+use WP_REST_Request;
+use WP_REST_Response;
+use WP_Error;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Handles the repository REST API route.
+ * Dedicated WordPress REST API endpoint for perform CRUD operations on hosted apps. 
  */
-class Smliser_Repository_Rest_API {
+class AppCollection {
 
     /**
      * Repository REST API Route permission handler
