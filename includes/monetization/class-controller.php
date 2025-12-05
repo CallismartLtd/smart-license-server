@@ -72,7 +72,7 @@ class Controller {
                 throw new RequestException( 'invalid_provider', 'The selected monetization provider does not exist.', array( 'field_id' => 'provider_id', 'status' => 400 ) );
             }
 
-            $monetization = Monetization::get_by_item( $item_type, $item_id ) ?: new Monetization();
+            $monetization = Monetization::get_by_app( $item_type, $item_id ) ?: new Monetization();
             $monetization->set_item_id( $item_id )
                         ->set_item_type( $item_type );
 

@@ -16,17 +16,17 @@ use SmartLicenseServer\Monetization\Monetization,
 defined( 'ABSPATH' ) || exit; 
 
 $id         = smliser_get_query_param( 'item_id' );
-$item_type  = smliser_get_query_param( 'type' );
+$app_type   = smliser_get_query_param( 'type' );
 $is_new     = false;
 
-$object     = Monetization::get_by_item( $item_type, $id );
+$object     = Monetization::get_by_app( $app_type, $id );
 $providers  = Provider_Collection::instance()->get_providers();
 
 if ( empty( $object ) ) {
     $is_new = true;
     $object = new Monetization();
     $object->set_item_id( $id )
-        ->set_item_type( $item_type );
+        ->set_item_type( $app_type );
 }
 
 $item_object = $object->get_item_object();
@@ -167,7 +167,7 @@ $item_object = $object->get_item_object();
                     <input type="hidden" name="action" value="">
                     <input type="hidden" name="monetization_id" value="<?php echo absint( $object->get_id() ); ?>">
                     <input type="hidden" name="item_id" value="<?php echo absint( $item_object->get_id() ); ?>">
-                    <input type="hidden" name="item_type" value="<?php echo esc_attr( $object->get_item_type() ); ?>">
+                    <input type="hidden" name="item_type" value="<?php echo esc_attr( $object->get_app_type() ); ?>">
                     <input type="hidden" name="tier_id">
                     <label for="tier_name">Tier Name:
                         <input type="text" name="tier_name" id="tier_name" field-name="Tier Name">

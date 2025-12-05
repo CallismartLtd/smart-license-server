@@ -87,11 +87,11 @@ class Monetization {
     }
 
     /**
-     * Get the item type (e.g. plugin, theme).
+     * Get the app type (e.g. plugin, theme).
      * 
      * @return string
      */
-    public function get_item_type() {
+    public function get_app_type() {
         return $this->item_type;
     }
 
@@ -402,20 +402,20 @@ class Monetization {
     }
 
     /**
-     * Get monetization record by item type + item ID.
+     * Get monetization record by App type + item ID.
      *
-     * @param string $item_type
-     * @param int|string $item_id
+     * @param string $app_type
+     * @param int|string $app_id
      * @return Monetization|null
      */
-    public static function get_by_item( $item_type, $item_id ) {
+    public static function get_by_app( $app_type, $app_id ) {
         global $wpdb;
 
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM " . SMLISER_MONETIZATION_TABLE . " WHERE item_type = %s AND item_id = %s",
-                sanitize_text_field( $item_type ),
-                sanitize_text_field( $item_id )
+                sanitize_text_field( $app_type ),
+                sanitize_text_field( $app_id )
             )
         );
 

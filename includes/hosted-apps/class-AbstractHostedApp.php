@@ -178,6 +178,13 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     protected $tags = [];
 
     /**
+     * App meta data
+     * 
+     * @var array $meta_data
+     */
+    protected $meta_data = [];
+
+    /**
      * App trash status
      * 
      * @var string
@@ -661,6 +668,13 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     abstract public static function get_db_meta_table();
 
     /**
+     * Get the foreign key column name for metadata table
+     * 
+     * @return string
+     */
+    abstract protected function get_meta_foreign_key() : string;
+
+    /**
      * Get an instance of this class from an array
      * @param array $data
      */
@@ -695,6 +709,184 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
         }
 
         return null;
+    }
+
+    /**
+     * Load all metadata for this app into internal cache.
+     *
+     * @return array Loaded metadata in key => value format.
+     */
+    public function load_meta() : array {
+        if ( ! $this->get_id() ) {
+            return [];
+        }
+
+        $db         = smliser_dbclass();
+        $table      = static::get_db_meta_table();
+        $app_id     = absint( $this->get_id() );
+        $fk_column  = $this->get_meta_foreign_key();
+
+        $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `{$fk_column}` = ? ORDER BY `id` ASC";
+        $results    = $db->get_results( $sql, [ $app_id ] );
+
+        $meta = [];
+
+        if ( ! empty( $results ) ) {
+            foreach ( $results as $row ) {
+                $key   = sanitize_key( $row['meta_key'] );
+                $value = $row['meta_value'];
+
+                if ( is_serialized( $value ) ) {
+                    $value = unserialize( $value );
+                }
+
+                $meta[ $key ] = $value;
+            }
+        }
+
+        $this->meta_data = $meta;
+
+        return $meta;
+    }
+
+    /**
+     * Update existing metadata.
+     *
+     * @param mixed $key   Meta key.
+     * @param mixed $value New value.
+     * @return bool True on success, false on failure.
+     */
+    public function update_meta( $key, $value ) {
+        $app_id = absint( $this->get_id() );
+
+        if ( ! $app_id ) {
+            return false;
+        }
+
+        $db         = smliser_dbclass();
+        $table      = static::get_db_meta_table();
+        $fk_column  = $this->get_meta_foreign_key();
+
+        $key   = sanitize_key( $key );
+        $store = maybe_serialize( $value );
+
+        // Look for existing meta row
+        $meta_id = $db->get_var(
+            "SELECT `id` FROM {$table} WHERE `{$fk_column}` = ? AND `meta_key` = ?",
+            [ $app_id, $key ]
+        );
+
+        if ( empty( $meta_id ) ) {
+            // INSERT
+            $inserted = $db->insert(
+                $table,
+                [
+                    $fk_column   => $app_id,
+                    'meta_key'   => $key,
+                    'meta_value' => $store,
+                ]
+            );
+
+            if ( $inserted !== false ) {
+                $this->meta_data[ $key ] = $value;
+                return true;
+            }
+
+            return false;
+
+        } else {
+            // UPDATE existing meta
+            $updated = $db->update(
+                $table,
+                [ 'meta_value' => $store ],
+                [
+                    $fk_column  => $app_id,
+                    'id'        => $meta_id,
+                    'meta_key'  => $key,
+                ]
+            );
+
+            if ( $updated !== false ) {
+                $this->meta_data[ $key ] = $value;
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    /**
+     * Get the value of a metadata.
+     *
+     * @param string $meta_key   The meta key.
+     * @param mixed  $default_to The fallback value.
+     * @return mixed|null
+     */
+    public function get_meta( $meta_key, $default_to = null ) {
+        $meta_key = sanitize_text_field( $meta_key );
+
+        if ( array_key_exists( $meta_key, $this->meta_data ) ) {
+            return $this->meta_data[ $meta_key ];
+        }
+
+        $db         = smliser_dbclass();
+        $table      = static::get_db_meta_table();
+        $fk_column  = $this->get_meta_foreign_key();
+
+        $sql    = "SELECT `meta_value` FROM {$table} WHERE `{$fk_column}` = ? AND `meta_key` = ?";
+        $params = [ absint( $this->get_id() ), $meta_key ];
+
+        $result = $db->get_var( $sql, $params );
+
+        if ( is_null( $result ) ) {
+            $this->meta_data[ $meta_key ] = $default_to;
+            return $default_to;
+        }
+
+        $value = is_serialized( $result ) ? unserialize( $result ) : $result;
+
+        $this->meta_data[ $meta_key ] = $value;
+
+        return $value;
+    }
+
+    /**
+     * Delete a metadata.
+     *
+     * @param string $meta_key The meta key.
+     * @return bool True on success, false on failure.
+     */
+    public function delete_meta( $meta_key ) {
+        $app_id = absint( $this->get_id() );
+
+        if ( ! $app_id ) {
+            return false;
+        }
+
+        $db         = smliser_dbclass();
+        $table      = static::get_db_meta_table();
+        $fk_column  = $this->get_meta_foreign_key();
+        $meta_key   = sanitize_key( $meta_key );
+
+        // Delete from database
+        $deleted = $db->delete(
+            $table,
+            [
+                $fk_column => $app_id,
+                'meta_key' => $meta_key,
+            ]
+        );
+
+        if ( $deleted !== false ) {
+            // Remove from instance cache if it exists
+            if ( isset( $this->meta_data[ $meta_key ] ) ) {
+                unset( $this->meta_data[ $meta_key ] );
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**

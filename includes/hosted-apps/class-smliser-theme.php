@@ -8,6 +8,7 @@
 
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\ThemeRepository;
 
 defined( 'ABSPATH' ) || exit;
@@ -78,13 +79,6 @@ class Smliser_Theme extends AbstractHostedApp {
      * @var string|array $file Absolute path to the theme zip file or an array of uploaded file.
      */
     protected $file;
-
-    /**
-     * Theme meta data
-     * 
-     * @var array $meta_data
-     */
-    protected $meta_data = [];
 
     /**
      * Class constructor
@@ -310,184 +304,7 @@ class Smliser_Theme extends AbstractHostedApp {
         $theme_deletion = $db->delete( self::TABLE, array( 'id' => $id ) );
         $meta_deletion  = $db->delete( self::META_TABLE, array( 'theme_id' => $id ) );
 
-        return ( $theme_deletion || $meta_deletion ) !== false;
-    }
-
-    /**
-     * Load all metadata for this theme into internal cache.
-     *
-     * @return array Loaded metadata in key => value format.
-     */
-    public function load_meta() : array {
-
-        if ( ! $this->get_id() ) {
-            return [];
-        }
-
-        $db     = smliser_dbclass();
-        $table  = self::META_TABLE;
-        $theme_id = absint( $this->get_id() );
-
-        $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `theme_id` = ? ORDER BY `id` ASC";
-        $results    = $db->get_results( $sql, [ $theme_id ] );
-
-        $meta = [];
-
-        if ( ! empty( $results ) ) {
-            foreach ( $results as $row ) {
-
-                $key   = sanitize_key( $row['meta_key'] );
-                $value = $row['meta_value'];
-
-                if ( is_serialized( $value ) ) {
-                    $value = unserialize( $value );
-                }
-
-                $meta[ $key ] = $value;
-            }
-        }
-
-        $this->meta_data = $meta;
-
-        return $meta;
-    }
-
-    /**
-     * Update existing metadata.
-     *
-     * @param mixed $key   Meta key.
-     * @param mixed $value New value.
-     * @return bool True on success, false on failure.
-     */
-    public function update_meta( $key, $value ) {
-        $theme_id = absint( $this->get_id() );
-
-        if ( ! $theme_id ) {
-            return false;
-        }
-
-        $db    = smliser_dbclass();
-        $table = self::META_TABLE;
-
-        $key   = sanitize_key( $key );
-        $store = maybe_serialize( $value );
-
-        // Look for existing meta row.
-        $meta_id = $db->get_var(
-            "SELECT `id` FROM {$table} WHERE `theme_id` = ? AND `meta_key` = ?",
-            [ $theme_id, $key ]
-        );
-
-        if ( empty( $meta_id ) ) {
-            // INSERT
-            $inserted = $db->insert(
-                $table,
-                [
-                    'theme_id'  => $theme_id,
-                    'meta_key'   => $key,
-                    'meta_value' => $store,
-                ]
-            );
-
-            if ( $inserted !== false ) {
-                $this->meta_data[ $key ] = $value;
-                return true;
-            }
-
-            return false;
-
-        } else {
-            // UPDATE existing meta
-            $updated = $db->update(
-                $table,
-                [ 'meta_value' => $store ],
-                [
-                    'theme_id' => $theme_id,
-                    'id'        => $meta_id,
-                    'meta_key'  => $key,
-                ]
-            );
-
-            if ( $updated !== false ) {
-                $this->meta_data[ $key ] = $value;
-                return true;
-            }
-
-            return false;
-        }
-    }
-
-    /**
-     * Get the value of a metadata.
-     *
-     * @param string $meta_key   The meta key.
-     * @param mixed  $default_to The fallback value.
-     * @return mixed|null
-     */
-    public function get_meta( $meta_key, $default_to = null ) {
-        $meta_key = sanitize_text_field( $meta_key );
-
-        if ( array_key_exists( $meta_key, $this->meta_data ) ) {
-            return $this->meta_data[ $meta_key ];
-        }
-
-        $db     = smliser_dbclass();
-        $table  = self::META_TABLE;
-
-        $sql    = "SELECT `meta_value` FROM {$table} WHERE `theme_id` = ? AND `meta_key` = ?";
-        $params = [ absint( $this->get_id() ), $meta_key ];
-
-        $result = $db->get_var( $sql, $params );
-
-        if ( is_null( $result ) ) {
-            $this->meta_data[ $meta_key ] = $default_to;
-            return $default_to;
-        }
-
-        $value = is_serialized( $result ) ? unserialize( $result ) : $result;
-
-        $this->meta_data[ $meta_key ] = $value;
-
-        return $value;
-    }
-
-    /**
-     * Delete a metadata.
-     *
-     * @param string $meta_key The meta key.
-     * @return bool True on success, false on failure.
-     */
-    public function delete_meta( $meta_key ) {
-        $theme_id = absint( $this->get_id() );
-
-        if ( ! $theme_id ) {
-            return false;
-        }
-
-        $db       = smliser_dbclass();
-        $table    = self::META_TABLE;
-        $meta_key = sanitize_key( $meta_key );
-
-        // Delete from database.
-        $deleted = $db->delete(
-            $table,
-            [
-                'theme_id' => $theme_id,
-                'meta_key'  => $meta_key,
-            ]
-        );
-
-        if ( $deleted !== false ) {
-
-            // Remove from instance cache if it exists.
-            if ( isset( $this->meta_data[ $meta_key ] ) ) {
-                unset( $this->meta_data[ $meta_key ] );
-            }
-
-            return true;
-        }
-
-        return false;
+        return boolval( $theme_deletion ?: $meta_deletion );
     }
 
     /**
@@ -506,6 +323,15 @@ class Smliser_Theme extends AbstractHostedApp {
      */
     public static function get_db_meta_table() : string {
         return self::META_TABLE;
+    }
+
+    /**
+     * Get the foreign key column name for metadata table
+     * 
+     * @return string
+     */
+    protected function get_meta_foreign_key() : string {
+        return 'theme_id';
     }
 
     /**
@@ -613,7 +439,7 @@ class Smliser_Theme extends AbstractHostedApp {
      * @return array
      */
     public function get_rest_response() : array {
-        return array(
+        $data = array(
             'name'                  => $this->get_name(),
             'slug'                  => $this->get_slug(),
             'version'               => $this->get_version(),
@@ -637,7 +463,17 @@ class Smliser_Theme extends AbstractHostedApp {
             'external_support_url'      => $this->get_support_url(),
             'support_url'               => $this->get_support_url(),
             'external_repository_url'   => '',
+            'monetization'              => []
         );
+        
+        if ( $this->is_monetized() ) {
+            $monetization = Monetization::get_by_app( $this->get_type(), $this->get_id() );
+
+            $data['monetization'] = $monetization->to_array() ?: [];
+        }
+
+        return $data;
+
     }
 
 }
