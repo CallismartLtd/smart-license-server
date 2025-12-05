@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\classes
  */
 
-namespace SmartLicenseServer\REST_API;
+namespace SmartLicenseServer\RESTAPI;
 
 use SmartLicenseServer\Bulk_Messages,
 WP_REST_Request,
