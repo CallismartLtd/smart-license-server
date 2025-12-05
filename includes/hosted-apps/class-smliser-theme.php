@@ -242,6 +242,7 @@ class Smliser_Theme extends AbstractHostedApp {
 
         $theme_data = array(
             'name'          => $this->get_name(),
+            'status'        => $this->get_status(),
             'download_link' => $this->get_download_url(),
         );
 

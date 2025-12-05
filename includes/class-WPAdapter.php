@@ -511,7 +511,7 @@ class WPAdapter {
             'is_authorized' => true,
         ]);
 
-        $response   = AppCollection::delete_app( $request );
+        $response   = AppCollection::trash_app( $request );
 
         $response->register_after_serve_callback( function() { die; } );
         $response->send();

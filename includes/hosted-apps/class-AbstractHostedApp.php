@@ -34,6 +34,13 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     protected $name = '';
 
     /**
+     * The app status
+     * 
+     * @var string $status
+     */
+    protected $status = 'active';
+
+    /**
      * App slug.
      * 
      * @var string $slug app slug.
@@ -171,6 +178,13 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
     protected $tags = [];
 
     /**
+     * App trash status
+     * 
+     * @var string
+     */
+    const STATUS_TRASH = 'trash';
+
+    /**
     |----------------
     | SETTERS
     |----------------
@@ -201,6 +215,15 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      */
     public function set_slug( $slug ) {
         $this->slug = sanitize_text_field( unslash( $slug ) );
+    }
+
+    /**
+     * Set the app status
+     * 
+     * @param string $status
+     */
+    public function set_status( $status ) {
+        $this->status = \sanitize_text_field( \unslash( $status ) );
     }
 
     /**
@@ -402,6 +425,15 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      */
     public function get_name() {
         return $this->name;
+    }
+
+    /**
+     * Get the app status
+     * 
+     * @return string
+     */
+    public function get_status() {
+        return $this->status;
     }
 
     /**
@@ -663,6 +695,17 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
         }
 
         return null;
+    }
+
+    /**
+     * Move this app to trash
+     * 
+     * @return bool
+     */
+    public function trash() {
+        $this->set_status( self::STATUS_TRASH );
+
+        return false === \is_smliser_error( $this->save() );
     }
 
     /**

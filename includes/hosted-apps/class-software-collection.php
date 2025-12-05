@@ -433,6 +433,36 @@ class Smliser_Software_Collection {
         return $app;
     }
 
+    /**
+     * Get trashed applications across multiple types with pagination.
+     *
+     * @param array $args {
+     *     @type int    $page   Current page number. Default 1.
+     *     @type int    $limit  Number of items per page. Default 20.
+     *     @type array  $types  List of types to query. Default all ['plugin','theme','software'].
+     * }
+     * @return array {
+     *     @type SmartLicenseServer\HostedApps\AbstractHostedApp[] $items        Instantiated application objects.
+     *     @type array $pagination {
+     *         @type int $total       Total number of matching items.
+     *         @type int $page        Current page number.
+     *         @type int $limit       Number of items per page.
+     *         @type int $total_pages Total number of pages.
+     *     }
+     * }
+     */
+    public static function get_trashed_apps( array $args = array() ) {
+        $defaults = array(
+            'page'   => 1,
+            'limit'  => 20,
+            'types'  => array( 'plugin', 'theme', 'software' ),
+        );
+        $args = parse_args( $args, $defaults );
+        $args['status'] = AbstractHostedApp::STATUS_TRASH;
+
+        return self::get_apps( $args );
+    }
+
     /*
     |---------------------------
     | CREATE OPERATION METHODS
@@ -705,12 +735,12 @@ class Smliser_Software_Collection {
     }
 
     /**
-     * Delete the given hosted application
+     * Move the given hosted application to trash
      *
      * @param Request $request The request object.
      * @return Response
      */
-    public static function delete_app( Request $request ) : Response {
+    public static function trash_app( Request $request ) : Response {
         try {
             if ( ! $request->is_authorized() ) {
                 throw new RequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
@@ -725,12 +755,12 @@ class Smliser_Software_Collection {
                 throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found', $app_type, $app_slug ), array( 'status' => 404 ) );
             }
 
-            if ( ! $app->delete() ) {
+            if ( ! $app->trash() ) {
                 throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was could not be deleted', $app_type, $app_slug ), array( 'status' => 500 ) );
             }
 
             $data = array(
-                'message'       => 'App deleted successfully.',
+                'message'       => 'App moved to trash successfully.',
                 'redirect_url'  => smliser_repo_page()
             );
             $response   = [

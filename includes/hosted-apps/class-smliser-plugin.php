@@ -296,6 +296,7 @@ class Smliser_Plugin extends AbstractHostedApp {
             'name'          => $this->get_name(),
             'version'       => $this->get_version(),
             'author'        => $this->get_author(),
+            'status'        => $this->get_status(),
             'author_profile'=> $this->get_author_profile(),
             'requires'      => $this->get_required(),
             'tested'        => $this->get_tested_up_to(),
