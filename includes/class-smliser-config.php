@@ -179,7 +179,7 @@ class SmartLicense_config {
          */
         define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/software' );
         
-        register_activation_hook( SMLISER_FILE, array( 'Smliser_install', 'install' ) );
+        register_activation_hook( SMLISER_FILE, array( SmartLicenseServer\Install::class, 'install' ) );
 
         // Register REST endpoints.
         add_action( 'rest_api_init', array( $this, 'rest_load' ) );
@@ -779,9 +779,9 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/Exceptions/class-RequestException.php';
         require_once SMLISER_PATH . 'includes/Exceptions/class-FileRequestException.php';
 
-        require_once SMLISER_PATH . 'includes/core/class-request.php';
-        require_once SMLISER_PATH . 'includes/core/class-response.php';
-        require_once SMLISER_PATH . 'includes/core/class-URL.php';
+        require_once SMLISER_PATH . 'includes/Core/class-request.php';
+        require_once SMLISER_PATH . 'includes/Core/class-response.php';
+        require_once SMLISER_PATH . 'includes/Core/class-URL.php';
 
         require_once SMLISER_PATH . 'includes/Filesystem/class-FileSystem.php';
         require_once SMLISER_PATH . 'includes/Filesystem/class-FileSystemHelper.php';
@@ -803,7 +803,7 @@ class SmartLicense_config {
 
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
         require_once SMLISER_PATH . 'includes/class-smliser-api-cred.php';
-        require_once SMLISER_PATH . 'includes/class-bulk-messages.php';
+        require_once SMLISER_PATH . 'includes/class-BulkMessages.php';
 
         require_once SMLISER_PATH . 'includes/RESTAPI/class-rest-auth.php';
         require_once SMLISER_PATH . 'includes/RESTAPI/class-Licenses.php';

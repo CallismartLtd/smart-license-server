@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\RESTAPI;
 
-use SmartLicenseServer\Bulk_Messages,
+use SmartLicenseServer\BulkMessages,
 WP_REST_Request,
 WP_REST_Response,
 WP_Error;
@@ -22,7 +22,7 @@ class Bulk_Messages_API {
     /**
      * The bulk messages instance.
      * 
-     * @var Bulk_Messages $bulk_messages
+     * @var BulkMessages $bulk_messages
      */
     protected static $bulk_messages;
 
@@ -54,9 +54,9 @@ class Bulk_Messages_API {
         $app_types  = array_filter( $app_types, 'sanitize_text_field' );
 
         if ( empty( $app_types ) && empty( $app_slugs ) ) {
-            self::$bulk_messages = Bulk_Messages::get_all( compact( 'page', 'limit' ) );
+            self::$bulk_messages = BulkMessages::get_all( compact( 'page', 'limit' ) );
         } else {
-            self::$bulk_messages = Bulk_Messages::get_for_slugs( compact( 'app_slugs', 'app_types', 'page', 'limit' ) );
+            self::$bulk_messages = BulkMessages::get_for_slugs( compact( 'app_slugs', 'app_types', 'page', 'limit' ) );
         }
 
         if ( empty( self::$bulk_messages ) ) {

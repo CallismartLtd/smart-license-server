@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\admin;
 
-use \SmartLicenseServer\Bulk_Messages;
+use \SmartLicenseServer\BulkMessages;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -41,7 +41,7 @@ class Bulk_Message_Page {
      * Bulk messages page dashbard.
      */
     private static function dashboard() {
-        $messages   = Bulk_Messages::get_all();
+        $messages   = BulkMessages::get_all();
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/dashboard.php';
     
     }
@@ -59,7 +59,7 @@ class Bulk_Message_Page {
     private static function edit_message_page() {
         $message_id = smliser_get_query_param( 'msg_id' );
         
-        $message    = Bulk_Messages::get_message( $message_id );
+        $message    = BulkMessages::get_message( $message_id );
    
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/edit.php';
     }
@@ -70,7 +70,7 @@ class Bulk_Message_Page {
     private static function delete_page() {
         $message_id = smliser_get_query_param( 'msg_id' );
         
-        $message    = Bulk_Messages::get_message( $message_id );
+        $message    = BulkMessages::get_message( $message_id );
 
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/delete.php';
        
@@ -141,7 +141,7 @@ class Bulk_Message_Page {
                 smliser_send_json_error( ['message' => __( 'Invalid or deleted message', 'smliser' )] );
             }
         } else {
-            $bulk_msg   = new Bulk_Messages();
+            $bulk_msg   = new BulkMessages();
         }
         
 
@@ -179,7 +179,7 @@ class Bulk_Message_Page {
 
             case 'delete': 
                 foreach( (array) $message_ids as $id ) {
-                    $message = Bulk_Messages::get_message( $id );
+                    $message = BulkMessages::get_message( $id );
 
                     if ( $message ) {
                         $message->delete();

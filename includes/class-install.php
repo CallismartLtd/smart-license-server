@@ -7,12 +7,15 @@
  * @package Smliser\classes
  * @since 1.0.0
  */
+namespace SmartLicenseServer;
 
+use SmartLicense_config;
 use SmartLicenseServer\Exception;
+use Smliser_Software_Collection;
 
 defined( 'ABSPATH' ) || exit;
 
-class Smliser_install {
+class Install {
 
     /**
      * Database version migration callbacks
@@ -427,17 +430,9 @@ class Smliser_install {
      *
      * @return bool|Exception True on success, Exception on failure.
      */
-    private static function init_repo_dir() {
-        // include_once SMLISER_PATH . 'includes/exceptions/exception.php';
-        // include_once SMLISER_PATH . 'includes/utils/functions.php';
-        // include_once SMLISER_PATH . 'includes/utils/sanitization-functions.php';
-        // include_once SMLISER_PATH . 'includes/utils/conditional-functions.php';
-        // include_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
-        // include_once SMLISER_PATH . 'includes/filesystem/class-filesystem-helper.php';
-        // include_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
-    
+    private static function init_repo_dir() {    
         SmartLicense_config::instance()->include();
-        return SmartLicenseServer\Repository::create_repository_directories();
+        return Repository::create_repository_directories();
     }
 
     /**
@@ -519,8 +514,6 @@ class Smliser_install {
             $db->query( $sql );
         }
     }
-
-
 
     /**
      * Handle ajax update
