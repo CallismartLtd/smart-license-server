@@ -7,16 +7,23 @@
  * @since 1.0.0
  */
 
-defined( 'ABSPATH' ) || exit;
+namespace SmartLicenseServer\RESTAPI;
 
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
+use WP_REST_Request;
+use WP_REST_Response;
+use WP_Error;
+use Smliser_Software_Collection;
+use Smliser_Stats;
+
+defined( 'ABSPATH' ) || exit;
 
 /**
  * Handles all the REST API for the license endpoints.
  */
-class Smliser_License_Rest_API {
+class Licenses {
     /**
      * A flag to monitor response duration.
      * 
@@ -313,7 +320,7 @@ class Smliser_License_Rest_API {
         $hosted_app     = $request->get_param( 'hosted_app' );
 
         $download_token = $request->get_header( 'x-download-token' );
-        
+        $token_validity = smliser_verify_item_token( $download_token, $hosted_app );
         $response_data = array(
             'message'   => 'License validity test result is ready.',
             'data' => array(
@@ -321,7 +328,7 @@ class Smliser_License_Rest_API {
                     'status'        => $license->get_status(),
                     'expiry_date'   => $license->get_end_date()
                 ),
-                'token_validity'    => smliser_verify_item_token( $download_token, $hosted_app ) ? 'Valid' : 'Invalid',                
+                'token_validity'    => \is_smliser_error( $token_validity ) ? 'Invalid' : 'Valid',                
             )
         );
 
