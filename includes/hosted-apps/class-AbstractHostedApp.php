@@ -678,7 +678,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      * Get an instance of this class from an array
      * @param array $data
      */
-    abstract public static function from_array( $data );
+    abstract public static function from_array( $data ) : static;
 
     /**
     |---------------------
@@ -692,7 +692,7 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      * @param string $slug The app slug.
      * @return self|null   The app object or null if not found.
      */
-    public static function get_by_slug( $slug ) {
+    public static function get_by_slug( $slug ) : static|null {
         $db     = smliser_dbclass();
         $table  = static::get_db_table();
         $slug   = basename( $slug, '.zip' );

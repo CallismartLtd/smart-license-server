@@ -346,8 +346,8 @@ class Smliser_Theme extends AbstractHostedApp {
      * @param array $result The associative array representing a theme.
      * @return self
      */
-    public static function from_array( $result ) : self {
-        $self = new self();
+    public static function from_array( $result ) : static {
+        $self = new static();
         $self->set_id( $result['id'] ?? 0 );
         $self->set_name( $result['name'] ?? '' );
         $self->set_slug( $result['slug'] ?? '' );

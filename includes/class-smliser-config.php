@@ -768,11 +768,13 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/class-smliser-stats.php';
         require_once SMLISER_PATH . 'includes/class-smliser-api-cred.php';
         require_once SMLISER_PATH . 'includes/class-bulk-messages.php';
-        require_once SMLISER_PATH . 'includes/smliser-rest-api/class-rest-auth.php';
-        require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-license-rest-api.php';
-        require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-plugin-rest-api.php';
-        require_once SMLISER_PATH . 'includes/smliser-rest-api/class-smliser-repository-rest-api.php';
-        require_once SMLISER_PATH . 'includes/smliser-rest-api/bulk-messages.php';
+
+        require_once SMLISER_PATH . 'includes/RESTAPI/class-rest-auth.php';
+        require_once SMLISER_PATH . 'includes/RESTAPI/class-smliser-license-rest-api.php';
+        require_once SMLISER_PATH . 'includes/RESTAPI/class-Plugins.php';
+        require_once SMLISER_PATH . 'includes/RESTAPI/class-Themes.php';
+        require_once SMLISER_PATH . 'includes/RESTAPI/class-smliser-repository-rest-api.php';
+        require_once SMLISER_PATH . 'includes/RESTAPI/bulk-messages.php';
 
         require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
         require_once SMLISER_PATH . 'includes/monetization/class-License.php';
