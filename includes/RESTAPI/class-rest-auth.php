@@ -197,15 +197,6 @@ class Smliser_REST_Authentication {
     }
 
     /**
-     * Instance of Smliser_REST_Authentication
-     */
-    public static function instance() {
-        if ( is_null( self::$instance ) ) {
-            self::$instance = new self();
-        }
-    }
-
-    /**
      * Extract token from request header.
      * 
      * @param WP_REST_Request $request The WordPress REST response object.
@@ -229,6 +220,14 @@ class Smliser_REST_Authentication {
         return null;
     }
 
-}
+    /**
+     * Perform a REST API authentication
+     * 
+     * @param WP_REST_Request $request The REST API request object.
+     * @return bool
+     */
+    public static function authenticate( WP_REST_Request $request ) : bool {
+        return false; // TODO: Implement REST API authentication.
+    }
 
-Smliser_REST_Authentication::instance();
+}

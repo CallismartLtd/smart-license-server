@@ -26,8 +26,12 @@ class AppCollection {
      * @param WP_REST_Request $request The current request object.
      * @return bool
      */
-    public static function repository_access_permission( WP_REST_Request $request ) {
-        return true; // Public endpoint for now
+    public static function repository_access_permission( WP_REST_Request $request ) : bool|WP_Error {
+        if ( 'GET' === \strtoupper( $request->get_method() ) ) {
+            return true;
+        }
+
+        return \Smliser_REST_Authentication::authenticate( $request );
     }
 
     /**
@@ -36,7 +40,7 @@ class AppCollection {
      * @param WP_REST_Request $request The current request object.
      * @return WP_REST_Response
      */
-    public static function repository_response( $request ) {
+    public static function repository_response( $request ) : WP_REST_Response {
         $search = $request->get_param( 'search' );
         $page   = $request->get_param( 'page' ) ?? 1;
         $limit  = $request->get_param( 'limit' ) ?? 25;
@@ -75,6 +79,24 @@ class AppCollection {
         );
 
         return new WP_REST_Response( $response, 200 );
+    }
+
+    /**
+     * Perform CRUD operation on a single hosted app
+     * 
+     * @param WP_REST_Request $request The REST API request object.
+     */
+    public static function single_app_crud( WP_REST_Request $request ) : WP_Error|WP_REST_Response {
+        $app_type   = $request->get_param( 'app_type' );
+        $app_slug   = $request->get_param( 'app_slug' );
+
+        $app        = Smliser_Software_Collection::get_app_by_slug( $app_type, $app_slug );
+
+        if ( ! $app ) {
+            return new WP_Error( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );
+        }
+
+        return new WP_REST_Response( $app->get_rest_response(), 200 );
     }
 }
 

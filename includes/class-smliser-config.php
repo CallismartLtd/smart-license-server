@@ -404,11 +404,12 @@ class SmartLicense_config {
          * Register dynamic repository route for hosted applications.
          * 
          * This route is designed for CRUD operations on all hosted apps.
+         * URL: route/repository/app_type/app_slug
          */
         register_rest_route( $this->namespace, $this->repository_app_route, array(
             'methods'             => WP_REST_Server::ALLMETHODS,
-            'permission_callback' => array( SmartLicenseServer\RESTAPI\Plugin::class, 'info_permission_callback' ),
-            'callback'            => array( SmartLicenseServer\RESTAPI\Plugin::class, 'plugin_info_response' ),
+            'permission_callback' => array( SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_access_permission' ),
+            'callback'            => array( SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_crud' ),
             'args'  => array(
                 'item_id'   => array(
                     'required'          => false,
@@ -807,7 +808,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/RESTAPI/class-Licenses.php';
         require_once SMLISER_PATH . 'includes/RESTAPI/class-Plugins.php';
         require_once SMLISER_PATH . 'includes/RESTAPI/class-Themes.php';
-        require_once SMLISER_PATH . 'includes/RESTAPI/class-smliser-repository-rest-api.php';
+        require_once SMLISER_PATH . 'includes/RESTAPI/class-AppCollection.php';
         require_once SMLISER_PATH . 'includes/RESTAPI/bulk-messages.php';
 
         require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
