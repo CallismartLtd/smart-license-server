@@ -775,21 +775,22 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/Utils/class-WPReadmeParser.php';
         require_once SMLISER_PATH . 'includes/Utils/class-MDParser.php';
         
-        require_once SMLISER_PATH . 'includes/exceptions/exception.php';
-        require_once SMLISER_PATH . 'includes/exceptions/RequestException.php';
-        require_once SMLISER_PATH . 'includes/exceptions/class-FileRequestException.php';
+        require_once SMLISER_PATH . 'includes/Exceptions/exception.php';
+        require_once SMLISER_PATH . 'includes/Exceptions/RequestException.php';
+        require_once SMLISER_PATH . 'includes/Exceptions/class-FileRequestException.php';
+
         require_once SMLISER_PATH . 'includes/core/class-request.php';
         require_once SMLISER_PATH . 'includes/core/class-response.php';
         require_once SMLISER_PATH . 'includes/core/class-URL.php';
 
-        require_once SMLISER_PATH . 'includes/filesystem/class-filesystem.php';
-        require_once SMLISER_PATH . 'includes/filesystem/class-filesystem-helper.php';
-        require_once SMLISER_PATH . 'includes/filesystem/class-repository.php';
-        require_once SMLISER_PATH . 'includes/filesystem/class-PluginRepository.php';
-        require_once SMLISER_PATH . 'includes/filesystem/class-ThemeRepository.php';
-        require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileRequest.php';
-        require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileResponse.php';
-        require_once SMLISER_PATH . 'includes/filesystem/downloads-api/class-FileRequestController.php';
+        require_once SMLISER_PATH . 'includes/Filesystem/class-FileSystem.php';
+        require_once SMLISER_PATH . 'includes/Filesystem/class-FileSystemHelper.php';
+        require_once SMLISER_PATH . 'includes/Filesystem/class-Repository.php';
+        require_once SMLISER_PATH . 'includes/Filesystem/class-PluginRepository.php';
+        require_once SMLISER_PATH . 'includes/Filesystem/class-ThemeRepository.php';
+        require_once SMLISER_PATH . 'includes/Filesystem/DownloadsApi/class-FileRequest.php';
+        require_once SMLISER_PATH . 'includes/Filesystem/DownloadsApi/class-FileResponse.php';
+        require_once SMLISER_PATH . 'includes/Filesystem/DownloadsApi/class-FileRequestController.php';
     
         require_once SMLISER_PATH . 'includes/hosted-apps/hosted-apps-interface.php';
         require_once SMLISER_PATH . 'includes/hosted-apps/class-AbstractHostedApp.php';

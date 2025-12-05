@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
-use SmartLicenseServer\Exception\RequestException;
+use SmartLicenseServer\Exceptions\RequestException;
 
 defined( 'ABSPATH' ) || exit;
 

@@ -6,9 +6,9 @@
  * @package SmartLicenseServer\FileRequestController
  */
 
-namespace SmartLicenseServer\DownloadsApi;
+namespace SmartLicenseServer\Filesystem\DownloadsApi;
 
-use SmartLicenseServer\Exception\FileRequestException;
+use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_PATH' ) || exit;
@@ -21,7 +21,7 @@ class FileRequestController {
      * Process and serve download request for a hosted application zip file.
      *
      * @param FileRequest $request The file request object.
-     * @return \SmartLicenseServer\DownloadsApi\FileResponse
+     * @return \SmartLicenseServer\Filesystem\DownloadsApi\FileResponse
      */
     public static function get_application_zip_file( FileRequest $request ): FileResponse {
         try {

@@ -9,7 +9,7 @@
  */
 
 use SmartLicenseServer\Exception;
-use SmartLicenseServer\Exception\FileRequestException;
+use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystemHelper;
 use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 use SmartLicenseServer\Monetization\DownloadToken;

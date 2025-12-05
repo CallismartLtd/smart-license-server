@@ -9,7 +9,7 @@
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exception;
-use SmartLicenseServer\Exception\RequestException;
+use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 

@@ -10,7 +10,7 @@
  * @author Callistus
  */
 
-namespace SmartLicenseServer\Exception;
+namespace SmartLicenseServer\Exceptions;
 
 use SmartLicenseServer\Exception; // Assuming this is your base exception
 
