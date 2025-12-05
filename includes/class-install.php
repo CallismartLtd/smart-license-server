@@ -158,11 +158,13 @@ class Smliser_install {
             'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
             'name VARCHAR(255) NOT NULL',
             'slug VARCHAR(300) DEFAULT NULL',
+            'author VARCHAR(255) DEFAULT NULL',
             'status VARCHAR(55) DEFAULT \'active\'',
             'download_link VARCHAR(400) DEFAULT NULL', // Could be external URL.
             'created_at DATETIME DEFAULT NULL',
             'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
             'INDEX theme_slug_index (slug)',
+            'INDEX theme_author_index (author)',
             'INDEX theme_download_link_index (download_link)',
             'INDEX theme_status_index (status)',
         );
