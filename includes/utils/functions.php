@@ -26,10 +26,6 @@ function smliser_debug_enabled() : bool {
     if ( defined( 'DEBUG_MODE' ) && constant( 'DEBUG_MODE' )  ) {
         return true;
     } 
-    
-    if ( defined( 'WP_DEBUG_DISPLAY' ) && constant( 'WP_DEBUG_DISPLAY' ) ) {
-        return true;
-    }
 
     if ( defined( 'WP_DEBUG' ) && constant( 'WP_DEBUG' ) ) {
         return true;
