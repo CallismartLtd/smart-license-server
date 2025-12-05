@@ -499,7 +499,7 @@ class Smliser_install {
 
             // Move plugin data to new column
             foreach ( $plugin_ids as $row_id => $plugin_id ) {
-                $plugin = Smliser_Plugin::get_plugin( $plugin_id );
+                $plugin = Smliser_Software_Collection::get_app_by_id( 'plugin', $plugin_id );
                 if ( ! $plugin ) {
                     continue;
                 }

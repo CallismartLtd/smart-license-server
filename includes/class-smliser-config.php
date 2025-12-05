@@ -767,13 +767,13 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/database/class-Database.php';
         require_once SMLISER_PATH . 'includes/database/class-WPAdapter.php';
 
-        require_once SMLISER_PATH . 'includes/utils/conditional-functions.php';
-        require_once SMLISER_PATH . 'includes/utils/functions.php';
-        require_once SMLISER_PATH . 'includes/utils/sanitization-functions.php';
-        require_once SMLISER_PATH . 'includes/utils/formating-functions.php';
-        require_once SMLISER_PATH . 'includes/utils/class-callismart-encryption.php';
-        require_once SMLISER_PATH . 'includes/utils/class-WPReadmeParser.php';
-        require_once SMLISER_PATH . 'includes/utils/class-MDParser.php';
+        require_once SMLISER_PATH . 'includes/Utils/conditional-functions.php';
+        require_once SMLISER_PATH . 'includes/Utils/functions.php';
+        require_once SMLISER_PATH . 'includes/Utils/sanitization-functions.php';
+        require_once SMLISER_PATH . 'includes/Utils/formating-functions.php';
+        require_once SMLISER_PATH . 'includes/Utils/class-callismart-encryption.php';
+        require_once SMLISER_PATH . 'includes/Utils/class-WPReadmeParser.php';
+        require_once SMLISER_PATH . 'includes/Utils/class-MDParser.php';
         
         require_once SMLISER_PATH . 'includes/exceptions/exception.php';
         require_once SMLISER_PATH . 'includes/exceptions/RequestException.php';
@@ -811,21 +811,21 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/RESTAPI/class-AppCollection.php';
         require_once SMLISER_PATH . 'includes/RESTAPI/bulk-messages.php';
 
-        require_once SMLISER_PATH . 'includes/monetization/provider-interface.php';
-        require_once SMLISER_PATH . 'includes/monetization/class-License.php';
-        require_once SMLISER_PATH . 'includes/monetization/class-monetization.php';
-        require_once SMLISER_PATH . 'includes/monetization/class-DownloadToken.php';
-        require_once SMLISER_PATH . 'includes/monetization/class-pricing-tier.php';
-        require_once SMLISER_PATH . 'includes/monetization/provider-collection.php';
-        require_once SMLISER_PATH . 'includes/monetization/class-woocomerce-provider.php';
-        require_once SMLISER_PATH . 'includes/monetization/class-controller.php';
+        require_once SMLISER_PATH . 'includes/Monetization/provider-interface.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-License.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-monetization.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-DownloadToken.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-pricing-tier.php';
+        require_once SMLISER_PATH . 'includes/Monetization/provider-collection.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-woocomerce-provider.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-controller.php';
 
-        require_once SMLISER_PATH . 'includes/admin/class-menu.php';
-        require_once SMLISER_PATH . 'includes/admin/class-dashboard-page.php';
-        require_once SMLISER_PATH . 'includes/admin/class-bulk-messages-page.php';
-        require_once SMLISER_PATH . 'includes/admin/class-repository-page.php';
-        require_once SMLISER_PATH . 'includes/admin/class-license-page.php';
-        require_once SMLISER_PATH . 'includes/admin/class-options-page.php';
+        require_once SMLISER_PATH . 'includes/Admin/class-menu.php';
+        require_once SMLISER_PATH . 'includes/Admin/class-dashboard-page.php';
+        require_once SMLISER_PATH . 'includes/Admin/class-bulk-messages-page.php';
+        require_once SMLISER_PATH . 'includes/Admin/class-repository-page.php';
+        require_once SMLISER_PATH . 'includes/Admin/class-license-page.php';
+        require_once SMLISER_PATH . 'includes/Admin/class-options-page.php';
         
         do_action( 'smliser_loaded' );
         

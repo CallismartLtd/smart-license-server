@@ -1,6 +1,6 @@
 <?php
 /**
- * The Smliser_Plugin class file.
+ * The Hosted PLugin class file.
  * 
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  * @package Smliser\classes
