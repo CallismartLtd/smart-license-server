@@ -212,8 +212,8 @@ class SmartLicense_config {
         register_rest_route( $this->namespace, $this->activation_route, 
             array(
                 'methods'             => WP_REST_Server::CREATABLE,
-                'callback'            =>  array( 'Smliser_License_Rest_API', 'license_activation_response' ),
-                'permission_callback' => array( 'Smliser_License_Rest_API', 'license_activation_permission_callback'),
+                'callback'            =>  array( SmartLicenseServer\RESTAPI\Licenses::class, 'license_activation_response' ),
+                'permission_callback' => array( SmartLicenseServer\RESTAPI\Licenses::class, 'license_activation_permission_callback'),
                 'args'  => array(
                     'service_id'    => array(
                         'required'          => true,
@@ -591,8 +591,8 @@ class SmartLicense_config {
          */
         register_rest_route( $this->namespace, $this->bulk_messages_route, array(
             'methods'               => WP_REST_Server::READABLE,
-            'callback'              => array( \SmartLicenseServer\REST_API\Bulk_Messages_API::class, 'dispatch_response' ),
-            'permission_callback'   => array( \SmartLicenseServer\REST_API\Bulk_Messages_API::class, 'permission_callback' ),
+            'callback'              => array( \SmartLicenseServer\RESTAPI\Bulk_Messages_API::class, 'dispatch_response' ),
+            'permission_callback'   => array( \SmartLicenseServer\RESTAPI\Bulk_Messages_API::class, 'permission_callback' ),
             'args'                  => array(
                 'page' => array(
                     'required'          => false,
@@ -770,7 +770,7 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/class-bulk-messages.php';
 
         require_once SMLISER_PATH . 'includes/RESTAPI/class-rest-auth.php';
-        require_once SMLISER_PATH . 'includes/RESTAPI/class-smliser-license-rest-api.php';
+        require_once SMLISER_PATH . 'includes/RESTAPI/class-Licenses.php';
         require_once SMLISER_PATH . 'includes/RESTAPI/class-Plugins.php';
         require_once SMLISER_PATH . 'includes/RESTAPI/class-Themes.php';
         require_once SMLISER_PATH . 'includes/RESTAPI/class-smliser-repository-rest-api.php';
