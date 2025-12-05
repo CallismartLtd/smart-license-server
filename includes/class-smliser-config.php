@@ -775,8 +775,8 @@ class SmartLicense_config {
         require_once SMLISER_PATH . 'includes/Utils/class-WPReadmeParser.php';
         require_once SMLISER_PATH . 'includes/Utils/class-MDParser.php';
         
-        require_once SMLISER_PATH . 'includes/Exceptions/exception.php';
-        require_once SMLISER_PATH . 'includes/Exceptions/RequestException.php';
+        require_once SMLISER_PATH . 'includes/Exceptions/class-Exception.php';
+        require_once SMLISER_PATH . 'includes/Exceptions/class-RequestException.php';
         require_once SMLISER_PATH . 'includes/Exceptions/class-FileRequestException.php';
 
         require_once SMLISER_PATH . 'includes/core/class-request.php';
