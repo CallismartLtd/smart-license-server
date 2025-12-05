@@ -59,7 +59,7 @@ class FileRequestController {
                     throw new FileRequestException( 'payment_required' );
                 }
 
-                if ( ! smliser_verify_item_token( $token, $app ) ) {
+                if ( \is_smliser_error( smliser_verify_item_token( $token, $app ) ) ) {
                     throw new FileRequestException( 'invalid_token' );
                 }
             }
@@ -221,7 +221,7 @@ class FileRequestController {
                     throw new FileRequestException( 'license_payment_required' );
                 }
 
-                if ( ! smliser_verify_item_token( $token, $license->get_app() ) ) {
+                if ( \is_smliser_error( smliser_verify_item_token( $token, $license->get_app() ) ) ) {
                     throw new FileRequestException( 'invalid_token' );
                 }
             }
