@@ -442,6 +442,7 @@ class Smliser_Theme extends AbstractHostedApp {
         $data = array(
             'name'                  => $this->get_name(),
             'slug'                  => $this->get_slug(),
+            'type'                  => $this->get_type(),
             'version'               => $this->get_version(),
             'preview_url'           => $this->get_meta( 'preview_url' ),
             'author'                => $this->get_author( '' ),
