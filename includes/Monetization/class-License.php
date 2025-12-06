@@ -11,7 +11,8 @@ namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exception;
-use \SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
+use \SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
 defined( 'ABSPATH' ) || exit;
 /**
@@ -62,7 +63,7 @@ class License {
     /**
      * The instance of the hosted aplication this license is issued to.
      * 
-     * @var Hosted_Apps_Interface
+     * @var AbstractHostedApp
      */
     protected $app;
 
@@ -189,10 +190,10 @@ class License {
     /**
      * Set the app this license is issued to.
      * 
-     * @param Hosted_Apps_Interface $app
+     * @param AbstractHostedApp $app
      * @return self
      */
-    public function set_app( Hosted_Apps_Interface $app ) : self {
+    public function set_app( AbstractHostedApp $app ) : self {
         $this->app = $app;
 
         $this->set_app_prop( $app->get_type(), $app->get_slug() );
@@ -341,7 +342,7 @@ class License {
     /**
      * Get the app this license is issued to.
      * 
-     * @return Hosted_Apps_Interface $app
+     * @return AbstractHostedApp $app
      */
     public function get_app() {
         return $this->app;
@@ -677,14 +678,14 @@ class License {
 
         if ( ! empty( $data['app_prop'] ) && preg_match( '#^[^/]+/[^/]+$#', (string) $data['app_prop'] ) ) {
             list( $app_type, $app_slug ) = explode( '/', $data['app_prop'], 2 );
-            $app_class  = \Smliser_Software_Collection::get_app_class( $app_type );
+            $app_class  = SmliserSoftwareCollection::get_app_class( $app_type );
             $method     = "get_by_slug";
 
             if ( \class_exists( $app_class ) && \method_exists( $app_class, $method ) ) {
-                /** @var Hosted_Apps_Interface|null $app */
+                /** @var AbstractHostedApp|null $app */
                 $app = $app_class::$method( $app_slug );
 
-                ( $app instanceof Hosted_Apps_Interface ) && $self->set_app( $app );
+                ( $app instanceof AbstractHostedApp ) && $self->set_app( $app );
             }
         }
 
@@ -808,7 +809,7 @@ class License {
      * @return bool
      */
     public function is_issued() : bool {
-        return ( $this->app instanceof Hosted_Apps_Interface );
+        return ( $this->app instanceof AbstractHostedApp );
     }
 
     /**

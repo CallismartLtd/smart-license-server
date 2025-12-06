@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\RESTAPI;
 
-use Smliser_Theme;
+use SmartLicenseServer\HostedApps\Theme;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
@@ -41,7 +41,7 @@ class Themes {
         }
 
         // Let's identify the theme.
-        $theme = Smliser_Theme::get_theme( $theme_id ) ?? Smliser_Theme::get_by_slug( $slug );
+        $theme = Theme::get_theme( $theme_id ) ?? Theme::get_by_slug( $slug );
 
         if ( ! $theme ) {
             $message = __( 'The theme does not exist.', 'smliser' );
@@ -61,7 +61,7 @@ class Themes {
      * @return WP_REST_Response The REST API response object.
      */
     public static function theme_info_response( WP_REST_Request $request ) {
-        /** @var Smliser_Theme $theme */
+        /** @var Theme $theme */
         $theme = $request->get_param( 'smliser_resource' );
 
         $response = new WP_REST_Response( $theme->get_rest_response(), 200 );        

@@ -5,7 +5,7 @@
  * @author Callistus.
  * @package Smliser\templates.
  * @since 1.0.0
- * @var Smliser_Plugin $plugin The plugin object.
+ * @var SmartLicenseServer\HostedApps\Plugin $plugin The plugin object.
  * @var SmliserStats $stats The stats object.
  */
 

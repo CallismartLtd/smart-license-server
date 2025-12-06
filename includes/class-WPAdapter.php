@@ -14,7 +14,7 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Filesystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\Filesystem\DownloadsApi\FileRequest;
-use Smliser_Software_Collection as AppCollection;
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection as AppCollection;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Monetization\Controller;

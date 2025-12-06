@@ -8,16 +8,17 @@
 namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exception;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Abstract Hosted Application Base Class
- * Provides shared implementation for Hosted_Apps_Interface.
+ * Provides shared implementation for HostedAppsInterface.
  * 
  * @package SmartLicenseServer\HostedApps
  */
-abstract class AbstractHostedApp implements Hosted_Apps_Interface {
+abstract class AbstractHostedApp implements HostedAppsInterface {
 
     /**
      * App database ID
@@ -673,6 +674,8 @@ abstract class AbstractHostedApp implements Hosted_Apps_Interface {
      * @return string
      */
     abstract protected function get_meta_foreign_key() : string;
+    
+    abstract public function save() : true|Exception;
 
     /**
      * Get an instance of this class from an array

@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Filesystem\DownloadsApi;
 
 use SmartLicenseServer\Exceptions\FileRequestException;
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_PATH' ) || exit;
@@ -29,14 +30,14 @@ class FileRequestController {
             $app_slug = $request->get( 'app_slug' );
             $token    = $request->get( 'download_token' );
 
-            $app_class = \Smliser_Software_Collection::get_app_class( $app_type );
+            $app_class = SmliserSoftwareCollection::get_app_class( $app_type );
             $method    = 'get_by_slug';
 
             if ( ! method_exists( $app_class, $method ) ) {
                 throw new FileRequestException( 'invalid_app_type_method' );
             }
 
-            /** @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $app */
+            /** @var \SmartLicenseServer\HostedApps\AbstractHostedApp $app */
             $app = $app_class::$method( $app_slug );
 
             if ( ! $app ) {
@@ -86,7 +87,7 @@ class FileRequestController {
     public static function get_admin_application_zip_file( FileRequest $request ): FileResponse {
         try {
             $app_type   = $request->get( 'app_type', '' );
-            $app_class  = \Smliser_Software_Collection::get_app_class( $app_type );
+            $app_class  = SmliserSoftwareCollection::get_app_class( $app_type );
             $method     = "get_{$app_type}";
 
             if ( ! \method_exists( $app_class, $method ) ) {
@@ -97,7 +98,7 @@ class FileRequestController {
             $id = $request->get( 'app_id' );
 
             /**
-             * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface|null $app
+             * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $app
              */
             $app = $app_class::$method( $id );
 
@@ -159,7 +160,7 @@ class FileRequestController {
             $app_slug   = $request->get( 'app_slug' );
             $asset_name = $request->get( 'asset_name' );
 
-            $repo_class = \Smliser_Software_Collection::get_app_repository_class( $app_type );
+            $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app_type );
             if ( ! $repo_class ) {
                 throw new FileRequestException( 'unsupported_repo_type' );
             }

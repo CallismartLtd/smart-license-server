@@ -9,6 +9,7 @@
  */
 
 namespace SmartLicenseServer\HostedApps;
+
 use SmartLicenseServer\Exception;
 
 defined( 'ABSPATH' ) || exit;
@@ -17,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * Hosted Applications interface.
  * This interface defines the contract all the application types hosted in this repository must follow.
  */
-interface Hosted_Apps_Interface {
+interface HostedAppsInterface {
 
     /*
     |----------

@@ -6,12 +6,15 @@
  * @since 0.0.6
  */
 
+namespace SmartLicenseServer\HostedApps;
+
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
+use SmartLicenseServer\HostedApps\Plugin;
+use SmartLicenseServer\HostedApps\Theme;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -20,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
  * 
  * Provides methods to perform CRUD operations across multiple hosted application types (plugins, themes, software) and their assets.
  */
-class Smliser_Software_Collection {
+class SmliserSoftwareCollection {
     /**
      * Allowed app types
      * 
@@ -571,12 +574,12 @@ class Smliser_Software_Collection {
     /**
      * Update a plugin.
      * 
-     * @param Smliser_Plugin $class The plugin ID.
+     * @param Plugin $class The plugin ID.
      * @param Request $request The request object.
      * @return true|RequestException
      */
     public static function update_plugin( &$class, Request $request ) {
-        if ( ! $class instanceof Smliser_Plugin ) {
+        if ( ! $class instanceof Plugin ) {
             return new RequestException( 'message', 'Wrong plugin object passed' );
         }
 
@@ -590,12 +593,12 @@ class Smliser_Software_Collection {
     /**
      * Update a theme.
      * 
-     * @param Smliser_Theme $theme
+     * @param Theme $theme
      * @param Request $request
      * @return true|RequestException
      */
     public static function update_theme( &$theme, Request $request ) {
-        if ( ! $theme instanceof Smliser_Theme ) {
+        if ( ! $theme instanceof Theme ) {
             return new RequestException( 'message', 'Wrong theme object passed' );
         }
 
@@ -791,7 +794,7 @@ class Smliser_Software_Collection {
      * @return string $class_name The app's class name.
      */
     public static function get_app_class( $type ) {
-        $class = 'Smliser_' . ucfirst( $type );
+        $class = '\\SmartLicenseServer\\HostedApps\\' . ucfirst( $type );
 
         return $class;
     }

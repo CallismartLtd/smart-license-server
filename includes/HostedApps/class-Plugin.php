@@ -6,17 +6,18 @@
  * @package Smliser\classes
  */
 
+namespace SmartLicenseServer\HostedApps;
+
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\PluginRepository;
 use SmartLicenseServer\Exception;
-use SmartLicenseServer\HostedApps\AbstractHostedApp;
 
 defined( 'SMLISER_PATH' ) || exit;
 
 /**
  * Represents a typical plugin hosted in this repository.
  */
-class Smliser_Plugin extends AbstractHostedApp {
+class Plugin extends AbstractHostedApp {
     /**
      * The plugin database table name.
      * 
@@ -400,7 +401,7 @@ class Smliser_Plugin extends AbstractHostedApp {
          * 
          * @var SmartLicenseServer\PluginRepository $repo_class
          */
-        $repo_class = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
+        $repo_class = SmliserSoftwareCollection::get_app_repository_class( $self->get_type() );
 
         $plugin_meta    = $repo_class->get_metadata( $self->get_slug() );        
         $self->set_version( $plugin_meta['stable_tag'] ?? '' );

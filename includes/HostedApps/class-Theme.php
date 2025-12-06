@@ -1,10 +1,12 @@
 <?php
 /**
- * The Smliser_Theme class file
+ * The Hosted Theme class file
  * 
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  * @package Smliser_Hosted_Application.
  */
+
+namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
@@ -16,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Represents a typical theme hosted in the repository.
  */
-class Smliser_Theme extends AbstractHostedApp {
+class Theme extends AbstractHostedApp {
     /**
      * The database table for themes.
      * 
@@ -362,7 +364,7 @@ class Smliser_Theme extends AbstractHostedApp {
          * 
          * @var \SmartLicenseServer\ThemeRepository $repo_class
          */
-        $repo_class = Smliser_Software_Collection::get_app_repository_class( $self->get_type() );
+        $repo_class = SmliserSoftwareCollection::get_app_repository_class( $self->get_type() );
 
         $theme_metadata = $repo_class->get_metadata( $self->get_slug() );
         $self->set_version( $theme_metadata['version'] ?? '' );

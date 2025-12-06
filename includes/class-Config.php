@@ -187,12 +187,12 @@ class Config {
         require_once SMLISER_PATH . 'includes/Filesystem/DownloadsApi/class-FileResponse.php';
         require_once SMLISER_PATH . 'includes/Filesystem/DownloadsApi/class-FileRequestController.php';
     
-        require_once SMLISER_PATH . 'includes/hosted-apps/hosted-apps-interface.php';
-        require_once SMLISER_PATH . 'includes/hosted-apps/class-AbstractHostedApp.php';
-        require_once SMLISER_PATH . 'includes/hosted-apps/class-software-collection.php';
-        require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-plugin.php';
-        require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-theme.php';
-        require_once SMLISER_PATH . 'includes/hosted-apps/class-smliser-software.php';
+        require_once SMLISER_PATH . 'includes/HostedApps/interface-HostedAppsInterface.php';
+        require_once SMLISER_PATH . 'includes/HostedApps/class-AbstractHostedApp.php';
+        require_once SMLISER_PATH . 'includes/HostedApps/class-SmliserSoftwareCollection.php';
+        require_once SMLISER_PATH . 'includes/HostedApps/class-Plugin.php';
+        require_once SMLISER_PATH . 'includes/HostedApps/class-Theme.php';
+        require_once SMLISER_PATH . 'includes/HostedApps/class-Software.php';
 
         require_once SMLISER_PATH . 'includes/class-WPAdapter.php';
 

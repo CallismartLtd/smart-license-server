@@ -7,7 +7,10 @@
  */
 
 namespace SmartLicenseServer\Admin;
-use \Smliser_Plugin, \SmliserStats, SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
+
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmliserStats;
 
 /**
  * The Admin repository page handler
@@ -51,7 +54,7 @@ class RepositoryPage {
             $args['types']   = $type;
         }
 
-        $result     = \Smliser_Software_Collection::get_apps( $args );
+        $result     = SmliserSoftwareCollection::get_apps( $args );
         $apps       = $result['items'];
         $pagination = $result['pagination'];
         
@@ -84,7 +87,7 @@ class RepositoryPage {
     private static function edit_page() {
         $id     = smliser_get_query_param( 'item_id' );
         $type   = smliser_get_query_param( 'type' );
-        $class  = \Smliser_Software_Collection::get_app_class( $type );
+        $class  = SmliserSoftwareCollection::get_app_class( $type );
         $method = "get_{$type}";
 
         if ( ! class_exists( $class ) || ! method_exists( $class, $method ) ) {
@@ -107,10 +110,17 @@ class RepositoryPage {
      */
     private static function view_page() {
         $id     = smliser_get_query_param( 'item_id' );
+        $type   = smliser_get_query_param( 'type' );
+        $class  = SmliserSoftwareCollection::get_app_class( $type );
+        $method = "get_{$type}";
 
-        $plugin = Smliser_Plugin::get_plugin( $id );
+        if ( ! class_exists( $class ) || ! method_exists( $class, $method ) ) {
+            smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+        }
 
-        if ( ! empty( $plugin ) ) {
+        $app = $class::$method( $id );
+
+        if ( ! empty( $app ) ) {
             $delete_link    = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_plugin_action', 'real_action' => 'delete', 'item_id' => $id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
         }
 
@@ -130,9 +140,9 @@ class RepositoryPage {
     /**
      * Prepare essential application fields
      * 
-     * @param Hosted_Apps_Interface|null $app
+     * @param AbstractHostedApp|null $app
      */
-    private static function prepare_essential_app_fields( ?Hosted_Apps_Interface $app = null ) {
+    private static function prepare_essential_app_fields( ?AbstractHostedApp $app = null ) {
         return array(
             array(
                 'label' => __( 'Name', 'smliser' ),

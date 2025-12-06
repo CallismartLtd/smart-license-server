@@ -506,7 +506,7 @@ class Monetization {
     /**
      * Get the Item object this monetization belongs to.
      * 
-     * @return \SmartLicenseServer\HostedApps\Hosted_Apps_Interface|null
+     * @return \SmartLicenseServer\HostedApps\AbstractHostedApp|null
      */
     public function get_item_object() {
         if ( empty( $this->item_type ) || empty( $this->item_id ) ) {

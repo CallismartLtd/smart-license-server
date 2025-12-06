@@ -11,7 +11,7 @@
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystemHelper;
-use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 
@@ -427,10 +427,10 @@ function smliser_generate_item_token( License $license, int $expiry = 864000 ) {
  * Verify a licensed plugin download token.
  *
  * @param string                  $client_token     The base64url-encoded token received from the client.
- * @param Hosted_Apps_Interface    $app             app context to validate against.
+ * @param AbstractHostedApp    $app             app context to validate against.
  * @return DownloadToken|Exception                  Returns the DownloadToken object on success, false on failure.
  */
-function smliser_verify_item_token( string $client_token, Hosted_Apps_Interface $app ) : DownloadToken|Exception {
+function smliser_verify_item_token( string $client_token, AbstractHostedApp $app ) : DownloadToken|Exception {
     if ( empty( $client_token ) ) {
         return new Exception( 'empty_token', 'Download token cannot be empty' );
     }
@@ -1156,7 +1156,6 @@ function smliser_download_url( $url, $timeout = 30 ) {
         $success = curl_exec( $ch );
         $err     = curl_error( $ch );
         $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE ); 
-        curl_close( $ch );
         fclose( $fp );
 
         if ( $success && $http_code === 200 ) {

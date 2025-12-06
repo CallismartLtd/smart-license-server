@@ -8,7 +8,7 @@
  */
 namespace SmartLicenseServer\RESTAPI;
 
-use Smliser_Software_Collection;
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
@@ -49,14 +49,14 @@ class AppCollection {
 
         // Query repository
         $results = $search
-            ? Smliser_Software_Collection::search_apps( array(
+            ? SmliserSoftwareCollection::search_apps( array(
                 'term'   => $search,
                 'page'   => $page,
                 'limit'  => $limit,
                 'status' => $status,
                 'types'  => (array) $types,
             ) )
-            : Smliser_Software_Collection::get_apps( array(
+            : SmliserSoftwareCollection::get_apps( array(
                 'page'   => $page,
                 'limit'  => $limit,
                 'status' => $status,
@@ -90,7 +90,7 @@ class AppCollection {
         $app_type   = $request->get_param( 'app_type' );
         $app_slug   = $request->get_param( 'app_slug' );
 
-        $app        = Smliser_Software_Collection::get_app_by_slug( $app_type, $app_slug );
+        $app        = SmliserSoftwareCollection::get_app_by_slug( $app_type, $app_slug );
 
         if ( ! $app ) {
             return new WP_Error( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );

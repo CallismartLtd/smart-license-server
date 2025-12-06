@@ -13,14 +13,9 @@ defined( 'ABSPATH' ) || exit;
 
 class SmliserStats {
     /**
-     * ID
-     * 
-     * @var int $id The database table id of a stat
-     */
-    /**
      * Plugin
      * 
-     * @var Smliser_Plugin $plugin The instance of Smliser Plugin.
+     * @var \AbstractHostedApp $plugin The instance of Smliser Plugin.
      */
     private $plugin;
 
@@ -63,7 +58,7 @@ class SmliserStats {
      * Class constructor
      */
     public function __construct() {
-        $this->plugin   = new Smliser_Plugin();
+        $this->plugin   = new SmartLicenseServer\HostedApps\Plugin();
         $this->license  = new License();   
     }
 
@@ -682,11 +677,6 @@ class SmliserStats {
     /**
      * Handles stats sycronization.
      * 
-     * @param string $context The context which the hook is fired.
-     * @param Smliser_Plugin The plugin object (optional).
-     * @param Smliser_License The license object (optional).
-     * @param array $additional An associative array(callable => arg)
-     *                          only one argument is passed to the callback function
      */
     public static function action_handler() {
 

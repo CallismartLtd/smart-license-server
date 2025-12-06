@@ -10,7 +10,7 @@
 namespace SmartLicenseServer;
 
 use SmartLicenseServer\Exception;
-use Smliser_Software_Collection;
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -493,7 +493,7 @@ class Installer {
 
             // Move plugin data to new column
             foreach ( $plugin_ids as $row_id => $plugin_id ) {
-                $plugin = Smliser_Software_Collection::get_app_by_id( 'plugin', $plugin_id );
+                $plugin = SmliserSoftwareCollection::get_app_by_id( 'plugin', $plugin_id );
                 if ( ! $plugin ) {
                     continue;
                 }

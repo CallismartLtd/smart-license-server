@@ -6,7 +6,7 @@
  * @package Smliser\templates.
  * @since 1.0.0
  * @var \SmartLicenseServer\Monetization\License $license
- * @var \SmartLicenseServer\HostedApps\Hosted_Apps_Interface $licensed_app
+ * @var \SmartLicenseServer\HostedApps\AbstractHostedApp $licensed_app
  */
 
 defined( 'ABSPATH' ) || exit;

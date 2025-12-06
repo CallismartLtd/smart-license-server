@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\RESTAPI;
 
-use Smliser_Plugin;
+use SmartLicenseServer\HostedApps\Plugin as HostedPlugin;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
@@ -42,7 +42,7 @@ class Plugin {
         }
 
         // Let's identify the plugin.
-        $plugin = Smliser_Plugin::get_plugin( $plugin_id ) ?? Smliser_Plugin::get_by_slug( $slug );
+        $plugin = HostedPlugin::get_plugin( $plugin_id ) ?? HostedPlugin::get_by_slug( $slug );
 
         if ( ! $plugin ) {
             $message = __( 'The plugin does not exist, please check the typography or the plugin slug.', 'smliser' );
@@ -61,7 +61,7 @@ class Plugin {
      * @return WP_REST_Response The REST API response object.
      */
     public static function plugin_info_response( WP_REST_Request $request ) {
-        /** @var Smliser_Plugin $plugin */
+        /** @var HostedPlugin $plugin */
         $plugin = $request->get_param( 'smliser_resource' );
 
         $response = new WP_REST_Response( $plugin->formalize_response(), 200 );        

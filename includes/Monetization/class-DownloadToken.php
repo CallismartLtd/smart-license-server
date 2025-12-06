@@ -10,7 +10,7 @@
 namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\Exception;
-use SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_PATH' ) || exit;
@@ -381,10 +381,10 @@ class DownloadToken {
      * Verify the download token issued to the app in context.
      *
      * @param string $client_token
-     * @param Hosted_Apps_Interface $app
+     * @param AbstractHostedApp $app
      * @return self
      */
-    public static function verify_token_for_app( string $client_token, Hosted_Apps_Interface $app ) : self {
+    public static function verify_token_for_app( string $client_token, AbstractHostedApp $app ) : self {
         $decoded = self::base64url_decode( $client_token );
 
         $parts = explode('.', $decoded, 2);

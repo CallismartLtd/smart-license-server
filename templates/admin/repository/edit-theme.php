@@ -3,7 +3,7 @@
  * Theme edit file prepares the variables that will be used by the uploader.php
  * 
  * @author Callistus Nwachukwu
- * @var Smliser_Theme $app
+ * @var SmartLicenseServer\HostedApps\Theme $app
  */
 
 defined( 'ABSPATH' ) || exit;

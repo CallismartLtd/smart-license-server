@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Plugin repository class provides filesystem APIs to interact with hosted plugins in the repository.
  * 
- * Note: it does not represent a single hosted plugin @see \Smliser_Plugin
+ * Note: it does not represent a single hosted plugin @see \SmartLicenseServer\HostedApps\Plugin
  */
 class PluginRepository extends Repository {
 
