@@ -20,7 +20,7 @@ use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
-use SmartLicenseServer\Monetization\Provider_Collection;
+use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use \SmliserAPICred;
 use WP_Error;
@@ -52,7 +52,7 @@ class WPAdapter extends Config {
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
         add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
-        add_action( 'init', array( Provider_Collection::class, 'auto_load' ) );
+        add_action( 'init', array( ProviderCollection::class, 'auto_load' ) );
         add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 
         add_action( 'smliser_stats', array( 'SmliserStats', 'action_handler' ), 10, 4 );
@@ -93,7 +93,7 @@ class WPAdapter extends Config {
             'smliser_all_actions'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_generate_download_token'               => [__CLASS__, 'parse_download_token_generation_request'],
             'smliser_delete_app'                            => [__CLASS__, 'parse_app_delete_request'],
-            'smliser_save_monetization_provider_options'    => [Provider_Collection::class, 'save_provider_options'],
+            'smliser_save_monetization_provider_options'    => [ProviderCollection::class, 'save_provider_options'],
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {

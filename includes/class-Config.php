@@ -208,24 +208,21 @@ class Config {
         require_once SMLISER_PATH . 'includes/RESTAPI/class-AppCollection.php';
         require_once SMLISER_PATH . 'includes/RESTAPI/class-BulkMessages.php';
 
-        require_once SMLISER_PATH . 'includes/Monetization/provider-interface.php';
+        require_once SMLISER_PATH . 'includes/Monetization/interface-MonetizationProviderInterface.php';
         require_once SMLISER_PATH . 'includes/Monetization/class-License.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-monetization.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-Monetization.php';
         require_once SMLISER_PATH . 'includes/Monetization/class-DownloadToken.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-pricing-tier.php';
-        require_once SMLISER_PATH . 'includes/Monetization/provider-collection.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-woocomerce-provider.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-controller.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-PricingTier.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-ProviderCollection.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-WooCommerceProvider.php';
+        require_once SMLISER_PATH . 'includes/Monetization/class-Controller.php';
 
         require_once SMLISER_PATH . 'includes/Admin/class-Menu.php';
         require_once SMLISER_PATH . 'includes/Admin/class-DashboardPage.php';
         require_once SMLISER_PATH . 'includes/Admin/class-BulkMessagePage.php';
         require_once SMLISER_PATH . 'includes/Admin/class-RepositoryPage.php';
         require_once SMLISER_PATH . 'includes/Admin/class-LicensePage.php';
-        require_once SMLISER_PATH . 'includes/Admin/class-OptionsPage.php';
-        
-        do_action( 'smliser_loaded' );
-        
+        require_once SMLISER_PATH . 'includes/Admin/class-OptionsPage.php';        
     }
 
     /**

@@ -49,7 +49,7 @@ class Monetization {
     /**
      * Collection of pricing tiers available for this item.
      *
-     * @var Pricing_Tier[]
+     * @var PricingTier[]
      */
     protected $tiers = [];
 
@@ -116,7 +116,7 @@ class Monetization {
     /**
      * Get all pricing tiers.
      *
-     * @return Pricing_Tier[]
+     * @return PricingTier[]
      */
     public function get_tiers() {
         return $this->tiers;
@@ -126,7 +126,7 @@ class Monetization {
      * Find a pricing tier by its ID.
      *
      * @param int $tier_id
-     * @return Pricing_Tier|null
+     * @return PricingTier|null
      */
     public function get_tier( $tier_id ) {
         foreach ( $this->tiers as $tier ) {
@@ -206,13 +206,13 @@ class Monetization {
     /**
      * Assign multiple pricing tiers to this monetization.
      *
-     * @param Pricing_Tier[] $tiers
+     * @param PricingTier[] $tiers
      * @return self
      */
     public function set_tiers( array $tiers ) {
         foreach ( $tiers as $tier ) {
-            if ( ! ( $tier instanceof Pricing_Tier ) ) {
-                throw new \InvalidArgumentException( 'All elements of $tiers must be instances of Pricing_Tier.' );
+            if ( ! ( $tier instanceof PricingTier ) ) {
+                throw new \InvalidArgumentException( 'All elements of $tiers must be instances of "\SmartLicenseServer\Monetization\Monetization\PricingTier".' );
             }
         }
 
@@ -223,10 +223,10 @@ class Monetization {
     /**
      * Add a single pricing tier.
      *
-     * @param Pricing_Tier $tier
+     * @param PricingTier $tier
      * @return self
      */
-    public function add_tier( Pricing_Tier $tier ) {
+    public function add_tier( PricingTier $tier ) {
         $this->tiers[] = $tier;
         return $this;
     }
@@ -303,7 +303,7 @@ class Monetization {
 
         // Save tiers
         foreach ( $this->tiers as $tier ) {
-            if ( $tier instanceof Pricing_Tier ) {
+            if ( $tier instanceof PricingTier ) {
                 $tier->set_monetization_id( $this->id )->save();
             }
         }
@@ -396,7 +396,7 @@ class Monetization {
             ->set_updated_at( $row->updated_at );
 
         // hydrate tiers
-        $mon->set_tiers( Pricing_Tier::get_by_monetization_id( $row->id ) );
+        $mon->set_tiers( PricingTier::get_by_monetization_id( $row->id ) );
 
         return $mon;
     }
@@ -431,7 +431,7 @@ class Monetization {
             ->set_created_at( $row->created_at )
             ->set_updated_at( $row->updated_at );
 
-        $mon->set_tiers( Pricing_Tier::get_by_monetization_id( $row->id ) );
+        $mon->set_tiers( PricingTier::get_by_monetization_id( $row->id ) );
 
         return $mon;
     }

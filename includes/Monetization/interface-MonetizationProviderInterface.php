@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * - Gumroad
  * - Local Smart License Server provider
  */
-interface Monetization_Provider_Interface {
+interface MonetizationProviderInterface {
 
     /**
      * Get the provider unique key (e.g. 'woocommerce', 'edd', 'local').

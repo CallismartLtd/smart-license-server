@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  * Each pricing tier is tied to a monetization provider, and can define
  * billing cycles, site activation limits, and features available under that tier.
  */
-class Pricing_Tier {
+class PricingTier {
     /**
      * Unique identifier for the pricing tier.
      *
@@ -331,7 +331,7 @@ class Pricing_Tier {
      * Get a pricing tier by its ID.
      * 
      * @param int $id The ID of the pricing tier.
-     * @return Pricing_Tier|null The Pricing_Tier object if found, null otherwise.
+     * @return self|null The Pricing Tier object if found, null otherwise.
      */
     public static function get_by_id( $id ) {
         global $wpdb;
@@ -359,7 +359,7 @@ class Pricing_Tier {
      * Get all pricing tiers by monetization ID.
      *
      * @param int $monetization_id The monetization ID.
-     * @return Pricing_Tier[] Array of Pricing_Tier objects.
+     * @return self[] Array of Pricing Tier objects.
      */
     public static function get_by_monetization_id( $monetization_id ) {
         global $wpdb;
@@ -411,9 +411,9 @@ class Pricing_Tier {
 
         );
 
-        $provider       = Provider_Collection::instance()->get_provider( $this->get_provider_id() );
+        $provider       = ProviderCollection::instance()->get_provider( $this->get_provider_id() );
         $product_data   = $provider ? $provider->get_product( $this->get_product_id() ) : [];
-        $valid_product  = Provider_Collection::validate_product_data( $product_data );
+        $valid_product  = ProviderCollection::validate_product_data( $product_data );
 
         if ( ! is_smliser_error( $valid_product ) ) {
             $data['product'] = $valid_product;

@@ -68,7 +68,7 @@ class Controller {
 
             $features_array = array_map( 'trim', explode( ',', $features ) );
 
-            if ( ! Provider_Collection::instance()->has_provider( $provider_id ) ) {
+            if ( ! ProviderCollection::instance()->has_provider( $provider_id ) ) {
                 throw new RequestException( 'invalid_provider', 'The selected monetization provider does not exist.', array( 'field_id' => 'provider_id', 'status' => 400 ) );
             }
 
@@ -76,7 +76,7 @@ class Controller {
             $monetization->set_item_id( $item_id )
                         ->set_item_type( $item_type );
 
-            $pricing_tier = Pricing_Tier::get_by_id( $tier_id ) ?: new Pricing_Tier();
+            $pricing_tier = PricingTier::get_by_id( $tier_id ) ?: new PricingTier();
             $pricing_tier->set_monetization_id( $monetization_id )
                         ->set_id( $tier_id )
                         ->set_name( $tier_name )
@@ -190,7 +190,7 @@ class Controller {
         }
 
         // Resolve provider
-        $provider = Provider_Collection::instance()->get_provider( $provider_id );
+        $provider = ProviderCollection::instance()->get_provider( $provider_id );
         
         if ( ! $provider ) {
             smliser_send_json_error( array(
@@ -209,7 +209,7 @@ class Controller {
             ) );
         }
 
-        $valid_product = Provider_Collection::validate_product_data( $product );
+        $valid_product = ProviderCollection::validate_product_data( $product );
 
         if ( is_smliser_error( $valid_product ) ) {
             smliser_send_json_error( array(

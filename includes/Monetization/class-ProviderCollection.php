@@ -20,11 +20,11 @@ defined( 'ABSPATH' ) || exit;
  * This class manages the registration and retrieval of different
  * monetization providers integrated with the Smart License Server.
  */
-class Provider_Collection {
+class ProviderCollection {
     /**
      * Singleton instance.
      * 
-     * @var Provider_Collection $instance
+     * @var self $instance
      */
     protected static $instance = null;
 
@@ -34,7 +34,7 @@ class Provider_Collection {
     private function __construct() {}
 
     /**
-     * Get the singleton instance of the Provider_Collection.
+     * Get the singleton instance of the ProviderCollection.
      * 
      * @return self
      */
@@ -48,17 +48,17 @@ class Provider_Collection {
     /**
      * Registered providers.
      *
-     * @var Monetization_Provider_Interface[]
+     * @var MonetizationProviderInterface[]
      */
     protected $providers = [];
 
     /**
      * Register a new monetization provider.
      *
-     * @param Monetization_Provider_Interface $provider
+     * @param MonetizationProviderInterface $provider
      * @return void
      */
-    public function register_provider( Monetization_Provider_Interface $provider ) {
+    public function register_provider( MonetizationProviderInterface $provider ) {
         $id = $provider->get_id();
 
         $this->providers[ $id ] = $provider;
@@ -92,7 +92,7 @@ class Provider_Collection {
      * Get a registered provider by its ID.
      *
      * @param string $provider_id
-     * @return Monetization_Provider_Interface|null
+     * @return MonetizationProviderInterface|null
      */
     public function get_provider( $provider_id ) {
         return $this->providers[ $provider_id ] ?? null;
@@ -102,7 +102,7 @@ class Provider_Collection {
      * Get all registered providers.
      *
      * @param bool $assoc Whether to preserve keys by provider_id.
-     * @return Monetization_Provider_Interface[]
+     * @return MonetizationProviderInterface[]
      */
     public function get_providers( $assoc = true ) {
         return $assoc ? $this->providers : array_values( $this->providers );
@@ -284,7 +284,7 @@ class Provider_Collection {
         $classes = get_declared_classes();
 
         foreach ( $classes as $class ) {
-            if ( in_array( Monetization_Provider_Interface::class, class_implements( $class ) ) ) {
+            if ( in_array( MonetizationProviderInterface::class, class_implements( $class ) ) ) {
                 self::instance()->register_provider( new $class );
             }
         }

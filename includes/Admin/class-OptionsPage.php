@@ -6,7 +6,7 @@
  * @package Smliser\classes
  */
 namespace SmartLicenseServer\Admin;
-use SmartLicenseServer\Monetization\Provider_Collection;
+use SmartLicenseServer\Monetization\ProviderCollection;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -79,7 +79,7 @@ class OptionsPage {
             self::provider_settings();
 
         } else {
-            $providers = Provider_Collection::instance()->get_providers();
+            $providers = ProviderCollection::instance()->get_providers();
 
             include_once SMLISER_PATH . 'templates/admin/options/all-providers.php';
         }
@@ -89,7 +89,7 @@ class OptionsPage {
      * Settings page for individual monetization provider
      */
     private static function provider_settings() {
-        $provider = Provider_Collection::instance()->get_provider( smliser_get_query_param( 'provider' ) );
+        $provider = ProviderCollection::instance()->get_provider( smliser_get_query_param( 'provider' ) );
 
         if ( $provider ) {
             $name       = $provider->get_name();

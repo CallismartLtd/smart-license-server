@@ -14,12 +14,9 @@ namespace SmartLicenseServer\Monetization;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * WooCommerce Provider Class
- *
- * Implements Monetization_Provider_Interface for fetching SmartWoo products
- * from a WooCommerce store using the Store API.
+ * WooCommerce Monetization Provider Class
  */
-class WooCommerce_Provider implements Monetization_Provider_Interface {
+class WooCommerceProvider implements MonetizationProviderInterface {
 
     /**
      * WooCommerce site URL.
@@ -40,8 +37,8 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
      *
      */
     public function __construct() {
-        $this->store_url            = sanitize_url( Provider_Collection::get_option( $this->get_id(), 'store_url' ), array( 'https' ) );
-        $this->checkout_endpoint    = sanitize_text_field( unslash( Provider_Collection::get_option( $this->get_id(), 'checkout_url' ) ) );
+        $this->store_url            = sanitize_url( ProviderCollection::get_option( $this->get_id(), 'store_url' ), array( 'https' ) );
+        $this->checkout_endpoint    = sanitize_text_field( unslash( ProviderCollection::get_option( $this->get_id(), 'checkout_url' ) ) );
     }
 
     /**
@@ -112,7 +109,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
 
         if ( is_smliser_error( $response ) ) {
             error_log( sprintf(
-                'WooCommerce_Provider::get_product() - Request failed for product %d. Error: %s Endpoint: %s',
+                'WooCommerceProvider::get_product() - Request failed for product %d. Error: %s Endpoint: %s',
                 $product_id,
                 $response->get_error_message(),
                 $endpoint
@@ -123,7 +120,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
         $code = wp_remote_retrieve_response_code( $response );
         if ( 200 !== $code ) {
             error_log( sprintf(
-                'WooCommerce_Provider::get_product() - Invalid response (%d) for product %d Endpoint: %s',
+                'WooCommerceProvider::get_product() - Invalid response (%d) for product %d Endpoint: %s',
                 $code,
                 $product_id,
                 $endpoint
@@ -134,7 +131,7 @@ class WooCommerce_Provider implements Monetization_Provider_Interface {
         $product = json_decode( wp_remote_retrieve_body( $response ), true );
         if ( ! is_array( $product ) ) {
             error_log( sprintf(
-                'WooCommerce_Provider::get_product() - Failed to decode JSON for product %d',
+                'WooCommerceProvider::get_product() - Failed to decode JSON for product %d',
                 $product_id
             ) );
             return null;

@@ -9,7 +9,7 @@
  */
 
 use SmartLicenseServer\Monetization\Monetization,
-    SmartLicenseServer\Monetization\Provider_Collection;
+    SmartLicenseServer\Monetization\ProviderCollection;
 
 ;
 
@@ -20,7 +20,7 @@ $app_type   = smliser_get_query_param( 'type' );
 $is_new     = false;
 
 $object     = Monetization::get_by_app( $app_type, $id );
-$providers  = Provider_Collection::instance()->get_providers();
+$providers  = ProviderCollection::instance()->get_providers();
 
 if ( empty( $object ) ) {
     $is_new = true;
