@@ -179,7 +179,7 @@ class SmartLicense_config {
          */
         define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/software' );
         
-        register_activation_hook( SMLISER_FILE, array( SmartLicenseServer\Install::class, 'install' ) );
+        register_activation_hook( SMLISER_FILE, array( SmartLicenseServer\Installer::class, 'install' ) );
 
         // Register REST endpoints.
         add_action( 'rest_api_init', array( $this, 'rest_load' ) );

@@ -22,5 +22,5 @@ define( 'SMLISER_URL', plugin_dir_url( __FILE__ ) );
 define( 'SMLISER_APP_NAME', 'Smart License Server' );
 
 require_once SMLISER_PATH . 'includes/class-smliser-config.php';
-require_once SMLISER_PATH . 'includes/class-install.php';
+require_once SMLISER_PATH . 'includes/class-Installer.php';
 SmartLicense_config::instance();

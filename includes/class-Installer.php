@@ -15,7 +15,7 @@ use Smliser_Software_Collection;
 
 defined( 'ABSPATH' ) || exit;
 
-class Install {
+class Installer {
 
     /**
      * Database version migration callbacks
