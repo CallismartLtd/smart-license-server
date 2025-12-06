@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  * The bulk messages class provides the API to broadcast messages for the entire site
  * or for the given hosted application(s).
  */
-class Bulk_Messages {
+class BulkMessages {
     /**
      * The dataabase ID of this message
      * 

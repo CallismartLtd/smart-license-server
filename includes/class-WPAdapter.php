@@ -16,10 +16,14 @@ use SmartLicenseServer\Filesystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\Filesystem\DownloadsApi\FileRequest;
 use Smliser_Software_Collection as AppCollection;
 use SmartLicenseServer\Exceptions\FileRequestException;
+use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\Provider_Collection;
+use SmartLicenseServer\RESTAPI\Versions\V1;
+use Smliser_API_Cred;
+use WP_Error;
 
 defined( 'ABSPATH'  ) || exit;
 
@@ -45,6 +49,7 @@ class WPAdapter {
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
         add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
         add_action( 'init', array( Provider_Collection::class, 'auto_load' ) );
+        add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
     }
 
     /**
@@ -85,6 +90,26 @@ class WPAdapter {
             $callback   = $handler_map[$trigger];
             is_callable( $callback ) && $callback();
 
+        }        
+    }
+
+    public function register_rest_routes() {
+        $api_config = V1::get_routes();
+        $namespace = $api_config['namespace'];
+        $routes = $api_config['routes'];
+
+        // Loop through and register each route with WordPress
+        foreach ( $routes as $route_config ) {
+            register_rest_route(
+                $namespace,
+                $route_config['route'],
+                array(
+                    'methods'             => $route_config['methods'],
+                    'callback'            => $route_config['callback'],
+                    'permission_callback' => $route_config['permission'],
+                    'args'                => $this->validate_rest_args( $route_config['args'] ),
+                )
+            );
         }        
     }
 
@@ -581,6 +606,127 @@ class WPAdapter {
 
         return $handler;
     }
+
+    /**
+     * Add WordPress-specific validation and sanitization to route arguments.
+     * 
+     * @param array $args Route arguments.
+     * @return array Modified arguments with WordPress callbacks.
+     */
+    private function validate_rest_args( $args ) {
+        foreach ( $args as $key => &$arg ) {
+            // Add sanitization callbacks based on type
+            if ( $arg['type'] === 'string' ) {
+                if ( $key === 'domain' ) {
+                    $arg['sanitize_callback'] = array( __CLASS__, 'sanitize_url' );
+                    $arg['validate_callback'] = array( __CLASS__, 'is_url' );
+                } else {
+                    $arg['sanitize_callback'] = array( __CLASS__, 'sanitize' );
+                    $arg['validate_callback'] = array( __CLASS__, 'not_empty' );
+                }
+            } elseif ( $arg['type'] === 'integer' ) {
+                $arg['sanitize_callback'] = 'absint';
+            } elseif ( $arg['type'] === 'array' ) {
+                $arg['sanitize_callback'] = array( __CLASS__, 'sanitize' );
+                if ( ! isset( $arg['validate_callback'] ) ) {
+                    $arg['validate_callback'] = '__return_true';
+                }
+            }
+        }
+
+        return $args;
+    }
+
+    /**
+     * Encapsulted sanitization function for REST param.
+     * 
+     * @param mixed $value The value to sanitize.
+     */
+    public static function sanitize( $value ) {
+        if ( is_string( $value ) ) {
+            $value = sanitize_text_field( unslash( $value ) );
+        } elseif ( is_array( $value ) ) {
+            $value = array_map( 'sanitize_text_field', unslash( $value ) );
+        } elseif ( is_int( $value ) ) {
+            $value = absint( $value );
+        } elseif ( is_float( $value ) ) {
+            $value = floatval( $value );
+        }
+
+        return $value;
+    }
+
+    /**
+     * Sanitize a URL for REST API validation.
+     * 
+     * @param string $url The URL to sanitize.
+     * @return string Sanitized URL.
+     */
+    public static function sanitize_url( $url ) {
+        $url = esc_url_raw( $url );
+        if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+            return new WP_Error( 'rest_invalid_param', __( 'Invalid URL format.', 'smliser' ), array( 'status' => 400 ) );
+        }
+        return $url;
+    }
+
+    /**
+     * Check whether a value is empty for REST API validation.
+     * @param string $value The value to check.
+     * @return bool true if not empty, false otherwise.
+     */
+    public static function not_empty( $value ) {
+        if ( empty( $value ) ) {
+            return new WP_Error( 'rest_invalid_param', __( 'The value cannot be empty.', 'smliser' ), array( 'status' => 400 ) );
+        }
+        return true;
+    }
+
+    /**
+     * Validate if the given URL is an HTTP or HTTPS URL.
+     *
+     * @param string $url The URL to validate.
+     * @param WP_REST_Request $request The request object.
+     * @param string $param The parameter name.
+     * @return true|WP_Error
+     */
+    public static function is_url( $url, $request, $param ) {
+        if ( empty( $url ) ) {
+            return new WP_Error( 'rest_invalid_param', __( 'The domain parameter is required.', 'smliser' ), array( 'status' => 400 ) );
+        }
+
+        $url        = new URL( $url );
+
+        if ( ! $url->has_scheme() ) {
+            return new WP_Error( 'rest_invalid_param', __( 'Invalid URL format.', 'smliser' ), array( 'status' => 400 ) );
+        }
+
+        if ( ! $url->is_ssl() ) {
+            return new WP_Error( 'rest_invalid_param', __( 'Only HTTPS URLs are allowed.', 'smliser' ), array( 'status' => 400 ) );
+        }
+
+        if ( ! $url->validate( true ) ) {
+            return new WP_Error( 'rest_invalid_param', __( 'The URL does not resolve to a valid host.', 'smliser' ), array( 'status' => 400 ) );
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate if a given REST API parameter is an integer.
+     * 
+     * @param mixed $value The value to validate.
+     * @param WP_REST_Request $request The request object.
+     * @param string $key The parameter name.
+     * @return true|WP_Error Returns true if the value is an integer, otherwise returns a WP_Error object.
+     */
+    public static function is_int( $value, $request, $key ) {
+        if ( ! is_numeric( $value ) || intval( $value ) != $value ) {
+            return new WP_Error( 'rest_invalid_param', __( 'The value must be an integer.', 'smliser' ), array( 'status' => 400 ) );
+        }
+        return true;
+    }
+
 }
 
 WPAdapter::instance();

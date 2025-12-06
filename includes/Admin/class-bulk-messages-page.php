@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\admin;
 
 use \SmartLicenseServer\BulkMessages;
+use SmartLicenseServer\RESTAPI\Versions\V1;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -42,6 +43,7 @@ class Bulk_Message_Page {
      */
     private static function dashboard() {
         $messages   = BulkMessages::get_all();
+        $route_descriptions = V1::describe_routes('bulk-messages');   
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/dashboard.php';
     
     }
@@ -135,7 +137,7 @@ class Bulk_Message_Page {
         }
 
         if ( $message_id ) {
-            $bulk_msg = Bulk_messages::get_message( $message_id );
+            $bulk_msg = BulkMessages::get_message( $message_id );
 
             if ( ! $bulk_msg ) {
                 smliser_send_json_error( ['message' => __( 'Invalid or deleted message', 'smliser' )] );

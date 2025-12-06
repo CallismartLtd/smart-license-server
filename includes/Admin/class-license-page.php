@@ -10,6 +10,7 @@ namespace SmartLicenseServer\admin;
 
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\RESTAPI\Versions\V1;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -75,7 +76,8 @@ class License_Page {
      * License view page
      */
     private static function license_view() {
-        $license_id = smliser_get_query_param( 'license_id' );        
+        $license_id         = smliser_get_query_param( 'license_id' );
+        $route_descriptions = V1::describe_routes('license');   
 
         $license    = License::get_by_id( $license_id );
         if ( ! empty( $license ) ) {

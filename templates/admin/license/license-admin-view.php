@@ -134,6 +134,16 @@ defined( 'ABSPATH' ) || exit;
             </table>
         </div>
 
-        <h2>API Routes</h2>
+        <h2>REST API Documentation</h2>
+        <div class="smliser-admin-api-description-section">
+            <div class="smliser-api-base-url">
+                <strong>Base URL:</strong>
+                <code><?php echo esc_url( rest_url() ); ?></code>
+            </div>
+            
+            <?php foreach ( $route_descriptions as $path => $html ) : 
+                echo $html; // Already safely escaped in the V1 class
+            endforeach; ?>
+        </div>
     </div>
 <?php endif; ?>

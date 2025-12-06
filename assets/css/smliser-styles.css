@@ -571,3 +571,334 @@ input.smliser_toggle-switch-input {
     background: #f0f0f1;
     border-color: #999;
 }
+
+/* Smart License Server API Documentation Styles */
+
+.smliser-admin-api-description-section {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    max-width: 95%;
+}
+
+.smliser-api-base-url {
+    background: #2d2d30;
+    border-left: 4px solid #007acc;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: #d4d4d4;
+    font-size: 14px;
+}
+
+.smliser-api-base-url strong {
+    color: #4ec9b0;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.smliser-api-base-url code {
+    background: #1e1e1e;
+    padding: 4px 8px;
+    border-radius: 3px;
+    color: #ce9178;
+    font-size: 13px;
+}
+
+/* Route Card Styles */
+.smliser-api-route-card {
+    background: #252526;
+    border: 1px solid #3e3e42;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.smliser-api-route-card:hover {
+    border-color: #007acc;
+    box-shadow: 0 4px 12px rgba(0, 122, 204, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Route Header */
+.smliser-api-route-header {
+    background: #2d2d30;
+    padding: 16px 20px;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.smliser-api-route-name {
+    color: #4ec9b0;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+}
+
+/* Method Badges */
+.smliser-api-route-methods {
+    display: inline-flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.smliser-api-method-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+}
+
+.smliser-api-method-badge.method-get {
+    background: rgba(97, 175, 239, 0.2);
+    color: #61afef;
+    border: 1px solid rgba(97, 175, 239, 0.4);
+}
+
+.smliser-api-method-badge.method-post {
+    background: rgba(152, 195, 121, 0.2);
+    color: #98c379;
+    border: 1px solid rgba(152, 195, 121, 0.4);
+}
+
+.smliser-api-method-badge.method-put,
+.smliser-api-method-badge.method-patch {
+    background: rgba(229, 192, 123, 0.2);
+    color: #e5c07b;
+    border: 1px solid rgba(229, 192, 123, 0.4);
+}
+
+.smliser-api-method-badge.method-delete {
+    background: rgba(224, 108, 117, 0.2);
+    color: #e06c75;
+    border: 1px solid rgba(224, 108, 117, 0.4);
+}
+
+/* Route Path */
+.smliser-api-route-path-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.smliser-api-route-path {
+    flex: 1;
+    background: #1e1e1e;
+    padding: 10px 14px;
+    border-radius: 4px;
+    color: #ce9178;
+    font-size: 13px;
+    word-break: break-all;
+    font-family: 'Consolas', 'Monaco', monospace;
+    border: 1px solid #3e3e42;
+    line-height: 1.5;
+}
+
+/* Copy Button */
+.smliser-api-copy-btn {
+    background: #007acc;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.smliser-api-copy-btn:hover {
+    background: #005a9e;
+    transform: scale(1.05);
+}
+
+.smliser-api-copy-btn:active {
+    transform: scale(0.95);
+}
+
+/* Route Body */
+.smliser-api-route-body {
+    padding: 20px;
+}
+
+.smliser-api-arguments-title {
+    color: #c586c0;
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0 0 14px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Argument Styles */
+.smliser-api-argument {
+    background: #2d2d30;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border-radius: 5px;
+    border-left: 3px solid #007acc;
+    transition: all 0.2s ease;
+}
+
+.smliser-api-argument:hover {
+    background: #323233;
+    border-left-color: #4ec9b0;
+}
+
+.smliser-api-argument:last-child {
+    margin-bottom: 0;
+}
+
+.smliser-api-argument-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.smliser-api-argument-name {
+    color: #dcdcaa;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.smliser-api-argument-type {
+    background: rgba(78, 201, 176, 0.15);
+    color: #4ec9b0;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid rgba(78, 201, 176, 0.3);
+}
+
+.smliser-api-argument-required {
+    background: rgba(224, 108, 117, 0.15);
+    color: #e06c75;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid rgba(224, 108, 117, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.smliser-api-argument-optional {
+    background: rgba(229, 192, 123, 0.15);
+    color: #e5c07b;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid rgba(229, 192, 123, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.smliser-api-argument-default {
+    color: #858585;
+    font-size: 11px;
+    font-style: italic;
+}
+
+.smliser-api-argument-description {
+    color: #9cdcfe;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.smliser-api-no-arguments {
+    color: #858585;
+    font-style: italic;
+    padding: 16px;
+    text-align: center;
+    background: #2d2d30;
+    border-radius: 4px;
+    margin: 0;
+}
+
+/* Scrollbar Styling for Dark Theme */
+.smliser-admin-api-description-section::-webkit-scrollbar {
+    width: 10px;
+}
+
+.smliser-admin-api-description-section::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.smliser-admin-api-description-section::-webkit-scrollbar-thumb {
+    background: #3e3e42;
+    border-radius: 5px;
+}
+
+.smliser-admin-api-description-section::-webkit-scrollbar-thumb:hover {
+    background: #007acc;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .smliser-admin-api-description-section {
+        padding: 16px;
+    }
+    
+    .smliser-api-route-header {
+        padding: 12px 16px;
+    }
+    
+    .smliser-api-route-body {
+        padding: 16px;
+    }
+    
+    .smliser-api-route-path-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .smliser-api-copy-btn {
+        width: 100%;
+    }
+    
+    .smliser-api-route-path {
+        font-size: 12px;
+    }
+}
+
+/* Animation for Copy Button */
+@keyframes copySuccess {
+    0% {
+        background: #98c379;
+    }
+    100% {
+        background: #007acc;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .smliser-admin-api-description-section {
+        background: white;
+        color: black;
+    }
+    
+    .smliser-api-route-card {
+        border: 1px solid #ccc;
+        page-break-inside: avoid;
+    }
+    
+    .smliser-api-copy-btn {
+        display: none;
+    }
+}
