@@ -5,13 +5,16 @@
  * @author Callistus Nwachukwu
  * @package Smliser\classes
  */
+namespace SmartLicenseServer\RESTAPI;
+
+use WP_REST_Request;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Models a REST API user.
  */
-class Smliser_Rest_User {
+class RestUser {
     /**
      * The REST API user data
      * 

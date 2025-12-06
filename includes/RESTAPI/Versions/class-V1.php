@@ -9,6 +9,8 @@
 
 namespace SmartLicenseServer\RESTAPI\Versions;
 
+use SmartLicenseServer\RESTAPI\RESTAuthentication;
+
 \defined( 'SMLISER_PATH' ) || exit;
 
 /**
@@ -206,8 +208,8 @@ class V1 {
                 array(
                     'route'      => self::$app_reauth,
                     'methods'    => 'GET',
-                    'callback'   => array( \Smliser_REST_Authentication::class, 'client_authentication_response' ),
-                    'permission' => array( \Smliser_REST_Authentication::class, 'auth_permission' ),
+                    'callback'   => array( RESTAuthentication::class, 'client_authentication_response' ),
+                    'permission' => array( RESTAuthentication::class, 'auth_permission' ),
                     'args'       => array(),
                     'category'   => 'authentication',
                     'name'       => 'OAuth Client Authentication',

@@ -9,7 +9,6 @@
  */
 namespace SmartLicenseServer;
 
-use SmartLicense_config;
 use SmartLicenseServer\Exception;
 use Smliser_Software_Collection;
 
@@ -431,7 +430,7 @@ class Installer {
      * @return bool|Exception True on success, Exception on failure.
      */
     private static function init_repo_dir() {    
-        SmartLicense_config::instance()->include();
+        Config::instance()->include();
         return Repository::create_repository_directories();
     }
 

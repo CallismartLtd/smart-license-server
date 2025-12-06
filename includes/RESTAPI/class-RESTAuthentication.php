@@ -7,12 +7,17 @@
  * @since 1.0.0
  */
 
+namespace SmartLicenseServer\RESTAPI;
+
+use WP_REST_Request;
+use WP_REST_Response;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Rest API Authentication class
  */
-class Smliser_REST_Authentication {
+class RESTAuthentication {
 
 	/**
 	 * Authentication error.
@@ -20,13 +25,6 @@ class Smliser_REST_Authentication {
 	 * @var WP_Error
 	 */
 	protected $error = null;
-
-    /**
-     * Instance of current class.
-     * 
-     * @var Smliser_REST_Authentication
-     */
-    private static $instance = null;
 
 	/**
 	 * Resource Owner.
@@ -58,7 +56,7 @@ class Smliser_REST_Authentication {
         $consumer_secret    = ! empty( $request->get_param( 'consumer_secret' ) ) ? sanitize_text_field( unslash(urldecode( $request->get_param( 'consumer_secret' ) ) ) ) : '';
         
         if ( ! empty( $consumer_secret ) && ! empty( $consumer_public ) ) {
-            $api_cred_obj   = new Smliser_API_Cred();
+            $api_cred_obj   = new \SmliserAPICred();
             $the_api_cred    = $api_cred_obj->get_api_data( $consumer_public, $consumer_secret );
             
             if ( empty( $the_api_cred ) ) {
@@ -82,7 +80,7 @@ class Smliser_REST_Authentication {
         $consumer_secret    = ! empty( $request->get_param( 'consumer_secret' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'consumer_secret' ) ) ) ) : '';
         $app_name           = ! empty( $request->get_param( 'app_name' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'app_name' ) ) ) ) : '';
         $context            = ! empty( $request->get_param( 'context' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'context' ) ) ) ) : '';        
-        $api_cred_obj       = new Smliser_API_Cred();
+        $api_cred_obj       = new \SmliserAPICred();
         $the_api_cred       = $api_cred_obj->get_api_data( $consumer_public, $consumer_secret );
         $access_token       = '';
 
@@ -108,7 +106,7 @@ class Smliser_REST_Authentication {
 
         if ( 'reauth' === $context && 'Active' === $the_api_cred->get_status() && ! empty( $app_name ) && hash_equals( $app_name, $the_api_cred->get_token( 'app_name', 'edit' ) ) ) {
             // Old token validation.
-            $bearer = self::$instance->extract_token( $request );
+            $bearer = self::extract_token( $request );
        
             if ( empty( $bearer ) || ! hash_equals( $bearer, $the_api_cred->get_token( 'token' ) ) ) {
                 $response_data = array(
@@ -203,7 +201,7 @@ class Smliser_REST_Authentication {
      * @param string $context           The context in which the token is extracted. 
      *                                  Pass "raw" for the raw data defaults to "decode"
      */
-    public function extract_token( WP_REST_Request $request, $context = 'decode' ) {
+    public static function extract_token( WP_REST_Request $request, $context = 'decode' ) {
 
         // Get the authorization header.
         $access_token = smliser_get_auth_token( $request );

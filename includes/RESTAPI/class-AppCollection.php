@@ -31,7 +31,7 @@ class AppCollection {
             return true;
         }
 
-        return \Smliser_REST_Authentication::authenticate( $request );
+        return RESTAuthentication::authenticate( $request );
     }
 
     /**

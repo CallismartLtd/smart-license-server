@@ -82,11 +82,13 @@ class Database {
     protected static function detect_environment() {
         // --- 1. WordPress Environment (Highest Priority) ---
         if ( defined( 'ABSPATH' ) && class_exists( '\wpdb' ) && isset( $GLOBALS['wpdb'] ) ) {
+            require_once SMLISER_PATH . 'includes/Database/class-WPAdapter.php';
             return new WPAdapter( $GLOBALS['wpdb'] );
         }
 
         // --- 2. Laravel Environment ---
         if ( class_exists( 'Illuminate\Support\Facades\DB' ) ) {
+            require_once SMLISER_PATH . 'includes/Database/class-LaravelAdapter.php';
             return new LaravelAdapter();
         }
 
@@ -101,13 +103,13 @@ class Database {
 
         // --- 3. PDO Adapter (Preferred Standard PHP Fallback) ---
         if ( class_exists( 'PDO' ) && in_array( 'mysql', PDO::getAvailableDrivers() ) ) {
-            include_once \SMLISER_PATH . 'includes/database/class-PdoAdapter.php';
+            include_once \SMLISER_PATH . 'includes/Database/class-PdoAdapter.php';
             return new PdoAdapter( $config );
         }
 
         // --- 4. MySQLi Adapter (Basic Standard PHP Fallback) ---
         if ( class_exists( 'mysqli' ) ) {
-            include_once \SMLISER_PATH . 'includes/database/class-MysqliAdapter.php';
+            include_once \SMLISER_PATH . 'includes/Database/class-MysqliAdapter.php';
             return new MysqliAdapter( $config );
         }
         

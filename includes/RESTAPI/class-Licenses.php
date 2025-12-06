@@ -16,7 +16,7 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
 use Smliser_Software_Collection;
-use Smliser_Stats;
+use SmliserStats;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -130,7 +130,7 @@ class Licenses {
             'duration'      => microtime( true ) - self::$start_time
         );
 
-        Smliser_Stats::log_license_activity( $license_data );
+        SmliserStats::log_license_activity( $license_data );
         return $response;
     }
     
@@ -208,7 +208,7 @@ class Licenses {
         }
 
         $log_data['comment']    = $response_data['message'];
-        Smliser_Stats::log_license_activity( $log_data );
+        SmliserStats::log_license_activity( $log_data );
         $response = new WP_REST_Response( $response_data, $status_code );
         
         return $response;
@@ -258,7 +258,7 @@ class Licenses {
 
         $log_data['comment']    = $response_data['message'];
         $response = new WP_REST_Response( $response_data, $status_code );
-        Smliser_Stats::log_license_activity( $log_data );
+        SmliserStats::log_license_activity( $log_data );
 
         return $response;
     }

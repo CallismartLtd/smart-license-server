@@ -6,7 +6,7 @@
  * @package Smliser\class
  */
 
-namespace SmartLicenseServer\admin;
+namespace SmartLicenseServer\Admin;
 
 use \SmartLicenseServer\BulkMessages;
 use SmartLicenseServer\RESTAPI\Versions\V1;
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * The admin bulk message page class
  */
-class Bulk_Message_Page {
+class BulkMessagePage {
     /**
      * Page router
      */
@@ -195,4 +195,4 @@ class Bulk_Message_Page {
     }
 }
 
-Bulk_Message_Page::listen();
+BulkMessagePage::listen();

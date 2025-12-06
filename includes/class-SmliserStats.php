@@ -11,7 +11,7 @@ use SmartLicenseServer\Monetization\License;
 
 defined( 'ABSPATH' ) || exit;
 
-class Smliser_Stats {
+class SmliserStats {
     /**
      * ID
      * 
@@ -55,7 +55,7 @@ class Smliser_Stats {
     /**
      * Instance of current class.
      * 
-     * @var Smliser_Stats
+     * @var self
      */
     private static $instance = null;
 

@@ -5,12 +5,12 @@
  * @author Callistus Nwachukwu
  * @package Smliser\classes
  */
-namespace SmartLicenseServer\admin;
+namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\Monetization\Provider_Collection;
 
 defined( 'ABSPATH' ) || exit;
 
-class Options_Page {
+class OptionsPage {
     /**
      * Run action hooks.
      */
@@ -60,7 +60,7 @@ class Options_Page {
      * API Keys options page
      */
     private static function api_keys_option() {
-        $all_api_data   = \Smliser_API_Cred::get_all();
+        $all_api_data   = \SmliserAPICred::get_all();
         include_once SMLISER_PATH . 'templates/admin/options/api-keys.php';
     }
     /**

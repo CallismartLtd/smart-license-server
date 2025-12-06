@@ -6,13 +6,13 @@
  * @package Smliser\class
  */
 
-namespace SmartLicenseServer\admin;
-use \Smliser_Plugin, \Smliser_Stats, SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
+namespace SmartLicenseServer\Admin;
+use \Smliser_Plugin, \SmliserStats, SmartLicenseServer\HostedApps\Hosted_Apps_Interface;
 
 /**
  * The Admin repository page handler
  */
-class Repository_Page {
+class RepositoryPage {
     /**
      * Page router
      */
@@ -114,7 +114,7 @@ class Repository_Page {
             $delete_link    = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_plugin_action', 'real_action' => 'delete', 'item_id' => $id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
         }
 
-        $stats = new Smliser_Stats();
+        $stats = new SmliserStats();
         include_once SMLISER_PATH . 'templates/admin/repository/plugin-view.php';
     }
 

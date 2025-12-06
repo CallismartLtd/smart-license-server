@@ -22,8 +22,12 @@ use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\Provider_Collection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
-use Smliser_API_Cred;
+use \SmliserAPICred;
 use WP_Error;
+use WP_REST_Request;
+use WP_REST_Response;
+use WP_REST_Server;
+
 
 defined( 'ABSPATH'  ) || exit;
 
@@ -31,7 +35,7 @@ defined( 'ABSPATH'  ) || exit;
  * Wordpress adapter bridges the gap beween Smart License Server and request from
  * WP environments
  */
-class WPAdapter {
+class WPAdapter extends Config {
 
     /**
      * Single instance of this class.
@@ -50,6 +54,12 @@ class WPAdapter {
         add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
         add_action( 'init', array( Provider_Collection::class, 'auto_load' ) );
         add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+
+        add_action( 'smliser_stats', array( 'SmliserStats', 'action_handler' ), 10, 4 );
+        add_action( 'admin_post_nopriv_smliser_oauth_login', array( SmliserAPICred::class, 'oauth_login_form_handler' ) );
+        
+        add_action( 'wp_ajax_smliser_key_generate', array( SmliserAPICred::class, 'admin_create_cred_form' ) );
+        add_action( 'wp_ajax_smliser_revoke_key', array( SmliserAPICred::class, 'revoke' ) );
     }
 
     /**
@@ -78,7 +88,7 @@ class WPAdapter {
             'smliser_app_asset_upload'                      => [__CLASS__, 'parse_app_asset_upload_request'],
             'smliser_app_asset_delete'                      => [__CLASS__, 'parse_app_asset_delete_request'],
             'smliser_save_monetization_tier'                => [__CLASS__, 'parse_monetization_tier_form'], // This is the parser that needs to be written
-            'smliser_authorize_app'                         => [Smliser_Api_Cred::class, 'oauth_client_consent_handler'],
+            'smliser_authorize_app'                         => [SmliserAPICred::class, 'oauth_client_consent_handler'],
             'smliser_bulk_action'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_all_actions'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_generate_download_token'               => [__CLASS__, 'parse_download_token_generation_request'],
@@ -542,6 +552,89 @@ class WPAdapter {
         $response->send();
     
     }
+    
+    /**
+    |------------------------
+    | REST API Configuration
+    |------------------------
+     */
+    /**
+     * Ensures HTTPS/TLS for REST API endpoints within the plugin's namespace.
+     *
+     * Checks if the current REST API request belongs to the plugin's namespace
+     * and enforces HTTPS/TLS requirements if the environment is production.
+     *
+     * @return WP_Error|null WP_Error object if HTTPS/TLS requirement is not met, null otherwise.
+     */
+    public function enforce_https_for_rest_api( $result, $server, $request ) {
+        // Check if current request belongs to the plugin's namespace.
+        if ( ! str_contains( $request->get_route(), self::namespace() ) ) {
+            return;
+        }
+
+        // Check if environment is production and request is not over HTTPS.
+        if ( 'production' === wp_get_environment_type() && ! is_ssl() ) {
+            // Create WP_Error object to indicate insecure SSL.
+            $error = new WP_Error( 'connection_not_secure', 'HTTPS/TLS is required for secure communication.', array( 'status' => 400, ) );
+            
+            // Return the WP_Error object.
+            return $error;
+        }
+    }
+
+    /**
+     * Filter the REST API response.
+     *
+     * @param WP_REST_Response $response The REST API response object.
+     * @param WP_REST_Server   $server   The REST server object.
+     * @param WP_REST_Request  $request  The REST request object.
+     * @return WP_REST_Response Modified REST API response object.
+     */
+    public function filter_rest_response( WP_REST_Response $response, WP_REST_Server $server, WP_REST_Request $request ) {
+
+        if ( false !== strpos( $request->get_route(), self::namespace() ) ) {
+
+            $response->header( 'X-Plugin-Name', 'Smart License Server' );
+            $response->header( 'X-API', 'Smart License Server API' );
+            $response->header( 'X-Plugin-Version', SMLISER_VER );
+            $response->header( 'X-API-Version', 'v1' );
+
+            $data = $response->get_data();
+
+            if ( is_array( $data ) ) {
+                $data = array( 'success' => ! $response->is_error() ) + $data;
+                $response->set_data( $data );
+            }
+        }
+
+        return $response;
+    }
+
+    /**
+     * Preempt REST API request callbacks.
+     * 
+     * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response Result to send to the client.
+     *                                                                   Usually a WP_REST_Response or WP_Error.
+     * @param array                                            $handler  Route handler used for the request.
+     * @param WP_REST_Request                                  $request  Request used to generate the response.
+     */
+    public static function rest_request_before_callbacks( $response, $handler, $request ) {
+        
+        $route     = ltrim( $request->get_route(), '/' );
+        $namespace = trim( self::namespace(), '/' );
+
+        // Match if route starts with namespace
+        if ( ! preg_match( '#^' . preg_quote( $namespace, '#' ) . '(/|$)#', $route ) ) {
+            return $response;
+        }
+
+        if ( is_smliser_error( $response ) ) {
+            remove_filter( 'rest_post_dispatch', 'rest_send_allow_header' ); // Prevents calling the permission callback again.
+        }
+
+        return $response;
+    }
+    
     /*
     |----------------
     |UTILITY METHODS

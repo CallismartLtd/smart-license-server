@@ -6,7 +6,7 @@
  * @package Smliser\classes
  */
 
-namespace SmartLicenseServer\admin;
+namespace SmartLicenseServer\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -14,12 +14,6 @@ defined( 'ABSPATH' ) || exit;
  * The admin menu class handles all admin menu registry and routing.
  */
 class Menu {
-    /**
-     * The instance of the class.
-     *
-     * @var Menu
-     */
-    private static $instance = null;
 
     /**
      * The dashboard page ID.
@@ -58,26 +52,11 @@ class Menu {
 
 
     /**
-     * Class constructor.
+     * Start listening to menu calls
      */
-    private function __construct() {
-
-        self::$instance = $this;
-        add_action( 'admin_menu', array( self::$instance, 'register_menus' ) );
+    public static function listen() {
+        add_action( 'admin_menu', array( __CLASS__, 'register_menus' ) );
         add_action( 'admin_menu', array( __CLASS__, 'modify_sw_menu' ), 999 );
-    }
-
-    /**
-     * Get the instance of the class.
-     *
-     * @return Menu
-     */
-    public static function instance() {
-        if ( is_null( self::$instance ) ) {
-            self::$instance = new self();
-        }
-
-        return self::$instance;
     }
 
     /**
@@ -89,7 +68,7 @@ class Menu {
             'Smart License Server',
             'manage_options',
             'smliser-admin',
-            array( Dashboard_Page::class, 'router' ),
+            array( DashboardPage::class, 'router' ),
             'dashicons-database-view',
             3.1
         );
@@ -100,7 +79,7 @@ class Menu {
             'Repository',
             'manage_options',
             'repository',
-            array( Repository_Page::class, 'router' )
+            array( RepositoryPage::class, 'router' )
         );
 
         self::$license_page_id = add_submenu_page(
@@ -109,7 +88,7 @@ class Menu {
             'Licenses',
             'manage_options',
             'licenses',
-            array( License_Page::class, 'router' )
+            array( LicensePage::class, 'router' )
         );
 
         self::$bulk_message_page_id = add_submenu_page(
@@ -118,7 +97,7 @@ class Menu {
             'Bulk Message',
             'manage_options',
             'smliser-bulk-message',
-            array( Bulk_Message_Page::class, 'router' )
+            array( BulkMessagePage::class, 'router' )
         );
 
         self::$options_page_id = add_submenu_page(
@@ -127,7 +106,7 @@ class Menu {
             'Settings',
             'manage_options',
             'smliser-options',
-            array( Options_Page::class, 'router' )
+            array( OptionsPage::class, 'router' )
         );
     }
 
@@ -143,4 +122,4 @@ class Menu {
     }
 }
 
-Menu::instance();
+Menu::listen();

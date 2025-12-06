@@ -6,14 +6,14 @@
  * @package Smliser\classes
  */
 
-namespace SmartLicenseServer\admin;
+namespace SmartLicenseServer\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * The admin dashboard page handler.
  */
-class Dashboard_Page {
+class DashboardPage {
 
     /**
      * Page router
@@ -32,7 +32,7 @@ class Dashboard_Page {
      */
     private static function dashboard() {
         
-        $stats          = new \Smliser_Stats();
+        $stats          = new \SmliserStats();
         $status_codes   = $stats->get_status_codes_distribution();
         $error_codes    = $stats->get_top_errors( wp_rand( 50, 100 ) );
         // Prepare data for Chart.js

@@ -9,7 +9,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class Smliser_API_Cred {
+class SmliserAPICred {
     /**
      * Database id
      * 
@@ -68,7 +68,7 @@ class Smliser_API_Cred {
     /**
      * Instance of current class
      * 
-     * @var Smliser_API_Cred $instance
+     * @var self $instance
      */
     private static $instance = null;
 
@@ -308,7 +308,7 @@ class Smliser_API_Cred {
      * Retrieve all api keys
      */
     public static function get_all() {
-        $api_keys = wp_cache_get( 'Smliser_API_Creds' );
+        $api_keys = wp_cache_get( __CLASS__ . __METHOD__ );
         if ( false === $api_keys ) {
             global $wpdb;
             $table_name = SMLISER_API_CRED_TABLE;
@@ -320,7 +320,7 @@ class Smliser_API_Cred {
                 foreach( $results as $result ) {
                     $api_keys[] = self::from_array( $result );
                 }
-                wp_cache_set( 'Smliser_API_Creds', $api_keys, '', 2 * HOUR_IN_SECONDS );
+                wp_cache_set( __CLASS__ . __METHOD__, $api_keys, '', 2 * HOUR_IN_SECONDS );
             }
         }
     

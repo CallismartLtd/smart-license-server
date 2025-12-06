@@ -6,7 +6,7 @@
  * @package Smliser\class
  */
 
-namespace SmartLicenseServer\admin;
+namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\License;
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * The admin license page class
  */
-class License_Page {
+class LicensePage {
     /**
      * Page router
      */
@@ -97,7 +97,7 @@ class License_Page {
      * License activation log page.
      */
     private static function logs_page() {
-        $all_tasks  = \Smliser_Stats::get_license_activity_logs();
+        $all_tasks  = \SmliserStats::get_license_activity_logs();
 
         include_once SMLISER_PATH . 'templates/admin/license/logs.php';
         return;

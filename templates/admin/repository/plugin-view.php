@@ -6,7 +6,7 @@
  * @package Smliser\templates.
  * @since 1.0.0
  * @var Smliser_Plugin $plugin The plugin object.
- * @var Smliser_Stats $stats The stats object.
+ * @var SmliserStats $stats The stats object.
  */
 
 defined( 'ABSPATH' ) || exit; ?>
