@@ -120,12 +120,8 @@ class RepositoryPage {
 
         $app = $class::$method( $id );
 
-        if ( ! empty( $app ) ) {
-            $delete_link    = wp_nonce_url( add_query_arg( array( 'action' => 'smliser_plugin_action', 'real_action' => 'delete', 'item_id' => $id ), admin_url( 'admin-post.php' ) ), -1, 'smliser_nonce' );
-        }
-
         $stats = new SmliserStats();
-        include_once SMLISER_PATH . 'templates/admin/repository/plugin-view.php';
+        include_once SMLISER_PATH . 'templates/admin/repository/view-plugin.php';
     }
 
     /**

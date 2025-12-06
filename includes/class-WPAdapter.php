@@ -56,10 +56,9 @@ class WPAdapter extends Config {
         add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 
         add_action( 'smliser_stats', array( 'SmliserStats', 'action_handler' ), 10, 4 );
-        add_action( 'admin_post_nopriv_smliser_oauth_login', array( SmliserAPICred::class, 'oauth_login_form_handler' ) );
         
-        add_action( 'wp_ajax_smliser_key_generate', array( SmliserAPICred::class, 'admin_create_cred_form' ) );
-        add_action( 'wp_ajax_smliser_revoke_key', array( SmliserAPICred::class, 'revoke' ) );
+        add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
+        add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
     }
 
     /**
@@ -94,6 +93,11 @@ class WPAdapter extends Config {
             'smliser_generate_download_token'               => [__CLASS__, 'parse_download_token_generation_request'],
             'smliser_delete_app'                            => [__CLASS__, 'parse_app_delete_request'],
             'smliser_save_monetization_provider_options'    => [ProviderCollection::class, 'save_provider_options'],
+            'smliser_upgrade'                               => [Installer::class, 'ajax_update'],
+            'smliser_key_generate'                          => [SmliserAPICred::class, 'admin_create_cred_form'],
+            'smliser_revoke_key'                            => [SmliserAPICred::class, 'revoke'],
+            'smliser_oauth_login'                           => [SmliserAPICred::class, 'oauth_login_form_handler'],
+            'smliser_upgrade'                               => [Installer::class, 'ajax_update'],
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {

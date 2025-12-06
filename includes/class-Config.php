@@ -111,11 +111,6 @@ class Config {
         
         register_activation_hook( SMLISER_FILE, array( Installer::class, 'install' ) );
 
-        // Register REST endpoints.
-        add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https_for_rest_api' ), 10, 3 );
-        add_filter( 'rest_post_dispatch', array( $this, 'filter_rest_response' ), 10, 3 );
-        add_filter( 'rest_request_before_callbacks', array( __CLASS__, 'rest_request_before_callbacks' ), -1, 3 );
-
         add_filter( 'redirect_canonical', array( $this, 'disable_redirect_on_downloads' ), 10, 2 );
         add_filter( 'query_vars', array( $this, 'query_vars') );
         add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
@@ -123,10 +118,6 @@ class Config {
         add_action( 'plugins_loaded', array( $this, 'include' ) );
         add_action( 'init', array( $this, 'init_hooks' ) );
         add_action( 'admin_notices', array( __CLASS__, 'print_notice' ) );
-        add_action( 'wp_ajax_smliser_upgrade', array( Installer::class, 'ajax_update' ) );
-
-        add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
-        add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
 
         add_action( 'wp_enqueue_scripts', array( $this, 'load_styles' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );

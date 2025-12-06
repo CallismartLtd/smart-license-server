@@ -625,7 +625,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 let appInfo    = '';
 
                 try {
-                    appInfo = JSON.parse( appDeleteBtn.getAttribute( 'data-plugin-info' ) );
+                    appInfo = JSON.parse( appDeleteBtn.getAttribute( 'data-app-info' ) );
                 } catch (error) {
                     smliserNotify( 'App data not found' );
                     return;
