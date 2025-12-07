@@ -1093,7 +1093,7 @@ function smliser_abort_request( $message = '', $title = '', $args = [] ) {
  *
  * @param string $url URL to download.
  * @param int    $timeout Timeout in seconds.
- * @return string Local temporary file path on success.
+ * @return string|WP_Error|Exception Local temporary file path on success.
  */
 function smliser_download_url( $url, $timeout = 30 ) {
 
@@ -1179,4 +1179,13 @@ function smliser_download_url( $url, $timeout = 30 ) {
  */
 function smliser_dbclass() : \SmartLicenseServer\Database\Database {
     return \SmartLicenseServer\Database\Database::instance();
+}
+
+/**
+ * Get application placeholder image
+ * 
+ * @return string
+ */
+function smliser_get_app_placeholder_icon() : string {
+    return SMLISER_URL . 'assets/images/software-placeholder.svg';
 }

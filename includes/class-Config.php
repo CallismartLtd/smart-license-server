@@ -256,10 +256,15 @@ class Config {
         wp_enqueue_style( 'smliser-styles', SMLISER_URL . 'assets/css/smliser-styles.css', array(), SMLISER_VER, 'all' );
         wp_enqueue_style( 'smliser-form-styles', SMLISER_URL . 'assets/css/smliser-forms.css', array(), SMLISER_VER, 'all' );
         wp_register_style( 'select2', SMLISER_URL . 'assets/css/select2.min.css', array(), SMLISER_VER, 'all' );
+        wp_register_style( 'smliser-tabler-icons', SMLISER_URL . 'assets/icons/tabler-icons.min.css', array(), SMLISER_VER, 'all' );
     
         
         if ( 'smart-license-server_page_smliser-bulk-message' === $s || 'smart-license-server_page_licenses' === $s ) {
             wp_enqueue_style( 'select2' );
+        }
+
+        if ( \is_admin() ) {
+            wp_enqueue_style( 'mliser-tabler-icons' );
         }
     
     }

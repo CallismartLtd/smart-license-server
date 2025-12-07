@@ -151,6 +151,13 @@ class Theme extends AbstractHostedApp {
         return $this->screenshot_url;
     }
 
+    /**
+     * Get the theme main icon
+     */
+    public function get_icon() : string {
+        return smliser_get_app_placeholder_icon();
+    }
+
     /*
     |---------------
     | SETTER METHODS

@@ -501,7 +501,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     /**
      * Get plugin icons
      * 
-     * @return array $screenshots
+     * @return array
      */
     public function get_icons() {
         return $this->icons;
@@ -657,6 +657,13 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return string
      */
     abstract public function get_type() : string;
+
+    /**
+     * Get the app main icon
+     * 
+     * @return string
+     */
+    abstract function get_icon() : string;
 
     /**
      * Method to get the database table name.

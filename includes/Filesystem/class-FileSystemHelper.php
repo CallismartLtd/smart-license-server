@@ -532,4 +532,31 @@ class FileSystemHelper {
         return $normalized;
     }
 
+    /**
+     * Formats a filesize into a human-readable string.
+     *
+     * @param int|float $bytes     The size in bytes.
+     * @param int       $decimals  Number of decimals to include.
+     *
+     * @return string Formatted size string.
+     */
+    public static function format_file_size( $bytes, $decimals = 2 ) {
+       if ( $bytes <= 0 ) {
+            return sprintf( '%.' . (int) $decimals . 'f %s', 0, 'B' );
+        }
+
+        $units = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB' );
+        $factor = 0;
+
+        if ( $bytes > 0 ) {
+            $factor = (int) floor( log( $bytes, 1024 ) );
+            $factor = min( $factor, count( $units ) - 1 ); // Safety bound.
+        }
+
+        $size = $bytes / pow( 1024, $factor );
+
+        return sprintf( '%.' . (int) $decimals . 'f %s', $size, $units[ $factor ] );
+    }
+
+
 }

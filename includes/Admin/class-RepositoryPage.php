@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\Core\URL;
 use SmliserStats;
 
 /**
@@ -118,10 +119,70 @@ class RepositoryPage {
             smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
 
+        $file   = \sprintf( '%s/templates/admin/repository/view-%s.php', SMLISER_PATH, $type );
+
+        if ( ! file_exists( $file ) ) {
+            smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+        }
+
+        /** @var AbstractHostedApp|null */
         $app = $class::$method( $id );
 
+        if ( ! $app ) {
+            smliser_abort_request( smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+        }
+
+        $url            = new URL( admin_url( 'admin.php?page=repository' ) );
+        $download_url   = new URL( admin_url( 'admin-post.php' ) );
+        $download_url->add_query_params([ 'action' => 'smliser_admin_download', 'type' => $app->get_type(), 'id' => $app->get_id(), 'download_token' => wp_create_nonce( 'smliser_download_token' )] );
+
+        $template_header    = [
+            'icon'              => $app->get_icon(),
+            'name'              => $app->get_name(),
+            'badges'            => [ $app->get_status(), $app->get_type(), $app->get_version() ],
+            'short_description' => $app->get_short_description(),
+            'buttons'           => [
+                [
+                    'text'  => 'Repository',
+                    'url'   => $url->__toString(),
+                    'icon'  => '',
+                    'attr'  => []
+                ],
+
+                [
+                    'text'  => 'Monetization',
+                    'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'item_id' => $app->get_id(), 'type' => $app->get_type()] )->__toString(),
+                    'icon'  => '',
+                    'attr'  => []
+                ],
+
+                [
+                    'text'  => sprintf( 'Edit %s', ucfirst( $app->get_type() ) ),
+                    'url'   => $url->add_query_param( 'tab', 'edit' )->__toString(),
+                    'icon'  => '',
+                    'attr'  => []
+                ],
+
+                [
+                    'text'  => sprintf( 'Download %s', ucfirst( $app->get_type() ) ),
+                    'url'   => $download_url->__toString(),
+                    'icon'  => '',
+                    'attr'  => []
+                ],
+
+                [
+                    'text'  => sprintf( 'Delete %s', ucfirst( $app->get_type() ) ),
+                    'url'   => '',
+                    'icon'  => '',
+                    'attr'  => ['data-app-info' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type()] )]
+                ],
+            ]
+        ];
         $stats = new SmliserStats();
-        include_once SMLISER_PATH . 'templates/admin/repository/view-plugin.php';
+        
+
+        
+        include_once $file;
     }
 
     /**

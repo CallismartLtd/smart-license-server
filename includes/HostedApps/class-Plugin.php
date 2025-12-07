@@ -242,6 +242,16 @@ class Plugin extends AbstractHostedApp {
         return $this->banners;
     }
 
+    /**
+     * Get the icon
+     * 
+     * @return string
+     */
+    public function get_icon() : string {
+        $icons              = $this->get_icons();
+        return $icons['1x'] ?? $icons['2x'] ?? smliser_get_app_placeholder_icon();
+    }
+
     /*
     |--------------
     | CRUD METHODS
