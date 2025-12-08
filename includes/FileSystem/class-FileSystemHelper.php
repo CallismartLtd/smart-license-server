@@ -9,9 +9,10 @@
  * @since 0.0.6
  */
 
-namespace SmartLicenseServer;
+namespace SmartLicenseServer\FileSystem;
 
 use Normalizer;
+use SmartLicenseServer\Exception;
 
 defined( 'SMLISER_PATH' ) || exit; // phpcs:ignore
 

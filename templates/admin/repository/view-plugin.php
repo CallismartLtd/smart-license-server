@@ -9,7 +9,7 @@
  * @var SmliserStats $stats The stats object.
  */
 
-use SmartLicenseServer\FileSystemHelper;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
 defined( 'ABSPATH' ) || exit;

@@ -8,10 +8,10 @@
  * @since   0.0.6
  */
 
-namespace SmartLicenseServer;
+namespace SmartLicenseServer\FileSystem;
 
+use SmartLicenseServer\Exception;
 use SmartLicenseServer\Utils\MDParser;
-use SmartLicenseServer\FileSystemHelper;
 use function SmartLicenseServer\Utils\md_parser;
 
 defined( 'ABSPATH' ) || exit;

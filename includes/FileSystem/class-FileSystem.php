@@ -6,7 +6,7 @@
  * @since 0.0.6
  */
 
-namespace SmartLicenseServer;
+namespace SmartLicenseServer\FileSystem;
 
 defined( 'SMLISER_PATH' ) || exit; // phpcs-ignore
 

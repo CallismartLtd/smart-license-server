@@ -9,7 +9,7 @@
 namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Monetization\Monetization;
-use SmartLicenseServer\PluginRepository;
+use SmartLicenseServer\FileSystem\PluginRepository;
 use SmartLicenseServer\Exception;
 
 defined( 'SMLISER_PATH' ) || exit;
@@ -409,7 +409,7 @@ class Plugin extends AbstractHostedApp {
         /** 
          * Set file information
          * 
-         * @var SmartLicenseServer\PluginRepository $repo_class
+         * @var SmartLicenseServer\FileSystem\PluginRepository $repo_class
          */
         $repo_class = SmliserSoftwareCollection::get_app_repository_class( $self->get_type() );
 

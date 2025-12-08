@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer;
 
+use SmartLicenseServer\FileSystem\FileSystem;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -150,70 +151,18 @@ class Config {
      * Include files
      */
     public function include() {
+        // Load Composer autoloader (for vendor dependencies)
         require_once SMLISER_PATH . 'vendor/autoload.php';
-        require_once SMLISER_PATH . 'includes/Database/DatabaseAdapterInterface.php';
-        require_once SMLISER_PATH . 'includes/Database/class-Database.php';
 
+        // Load utility functions (non-class files that need to be loaded first)
         require_once SMLISER_PATH . 'includes/Utils/conditional-functions.php';
         require_once SMLISER_PATH . 'includes/Utils/functions.php';
         require_once SMLISER_PATH . 'includes/Utils/sanitization-functions.php';
         require_once SMLISER_PATH . 'includes/Utils/formating-functions.php';
-        require_once SMLISER_PATH . 'includes/Utils/class-WPReadmeParser.php';
-        require_once SMLISER_PATH . 'includes/Utils/class-MDParser.php';
-        
-        require_once SMLISER_PATH . 'includes/Exceptions/class-Exception.php';
-        require_once SMLISER_PATH . 'includes/Exceptions/class-RequestException.php';
-        require_once SMLISER_PATH . 'includes/Exceptions/class-FileRequestException.php';
 
-        require_once SMLISER_PATH . 'includes/Core/class-Request.php';
-        require_once SMLISER_PATH . 'includes/Core/class-Response.php';
-        require_once SMLISER_PATH . 'includes/Core/class-URL.php';
-
-        require_once SMLISER_PATH . 'includes/Filesystem/class-FileSystem.php';
-        require_once SMLISER_PATH . 'includes/Filesystem/class-FileSystemHelper.php';
-        require_once SMLISER_PATH . 'includes/Filesystem/class-Repository.php';
-        require_once SMLISER_PATH . 'includes/Filesystem/class-PluginRepository.php';
-        require_once SMLISER_PATH . 'includes/Filesystem/class-ThemeRepository.php';
-        require_once SMLISER_PATH . 'includes/Filesystem/DownloadsApi/class-FileRequest.php';
-        require_once SMLISER_PATH . 'includes/Filesystem/DownloadsApi/class-FileResponse.php';
-        require_once SMLISER_PATH . 'includes/Filesystem/DownloadsApi/class-FileRequestController.php';
-    
-        require_once SMLISER_PATH . 'includes/HostedApps/interface-HostedAppsInterface.php';
-        require_once SMLISER_PATH . 'includes/HostedApps/class-AbstractHostedApp.php';
-        require_once SMLISER_PATH . 'includes/HostedApps/class-SmliserSoftwareCollection.php';
-        require_once SMLISER_PATH . 'includes/HostedApps/class-Plugin.php';
-        require_once SMLISER_PATH . 'includes/HostedApps/class-Theme.php';
-        require_once SMLISER_PATH . 'includes/HostedApps/class-Software.php';
-
-        require_once SMLISER_PATH . 'includes/class-WPAdapter.php';
-
-        require_once SMLISER_PATH . 'includes/class-SmliserStats.php';
-        require_once SMLISER_PATH . 'includes/class-SmliserAPICred.php';
-        require_once SMLISER_PATH . 'includes/class-BulkMessages.php';
-
-        require_once SMLISER_PATH . 'includes/RESTAPI/class-RESTAuthentication.php';
-        require_once SMLISER_PATH . 'includes/RESTAPI/Versions/class-V1.php';
-        require_once SMLISER_PATH . 'includes/RESTAPI/class-Licenses.php';
-        require_once SMLISER_PATH . 'includes/RESTAPI/class-Plugins.php';
-        require_once SMLISER_PATH . 'includes/RESTAPI/class-Themes.php';
-        require_once SMLISER_PATH . 'includes/RESTAPI/class-AppCollection.php';
-        require_once SMLISER_PATH . 'includes/RESTAPI/class-BulkMessages.php';
-
-        require_once SMLISER_PATH . 'includes/Monetization/interface-MonetizationProviderInterface.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-License.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-Monetization.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-DownloadToken.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-PricingTier.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-ProviderCollection.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-WooCommerceProvider.php';
-        require_once SMLISER_PATH . 'includes/Monetization/class-Controller.php';
-
-        require_once SMLISER_PATH . 'includes/Admin/class-Menu.php';
-        require_once SMLISER_PATH . 'includes/Admin/class-DashboardPage.php';
-        require_once SMLISER_PATH . 'includes/Admin/class-BulkMessagePage.php';
-        require_once SMLISER_PATH . 'includes/Admin/class-RepositoryPage.php';
-        require_once SMLISER_PATH . 'includes/Admin/class-LicensePage.php';
-        require_once SMLISER_PATH . 'includes/Admin/class-OptionsPage.php';        
+        // Load and register PSR-4 autoloader for classes
+        require_once SMLISER_PATH . 'includes/class-Autoloader.php';
+        Autoloader::register();       
     }
 
     /**

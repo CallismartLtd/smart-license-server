@@ -7,11 +7,11 @@
 
 namespace SmartLicenseServer\Filesystem\DownloadsApi;
 
-use SmartLicenseServer\FileSystem;
-use SmartLicenseServer\FileSystemHelper;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exception;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
 defined( 'SMLISER_PATH' ) || exit;
@@ -35,7 +35,7 @@ class FileResponse extends Response {
     /**
      * The filesystem instance
      *
-     * @var \SmartLicenseServer\PluginRepository|\SmartLicenseServer\ThemeRepository|\SmartLicenseServer\SoftwareRepository|\SmartLicenseServer\Filesystem|null $repo_class The app's repository class instance.
+     * @var \SmartLicenseServer\FileSystem\PluginRepository|\SmartLicenseServer\FileSystem\ThemeRepository|\SmartLicenseServer\FileSystem\SoftwareRepository|\SmartLicenseServer\Filesystem|null $repo_class The app's repository class instance.
      */
     protected $repo_class;
 

@@ -5,7 +5,7 @@
  * This map is used by the FileSystemHelper to determine the *safe* file extension
  * based on the file's binary signature (MIME type).
  *
- * @package SmartLicenseServer\FileSystem
+ * @package SmartLicenseServer\FileSystem\FileSystem
  * @author Callistus
  */
 

@@ -6,8 +6,9 @@
  * @since   0.0.6
  */
 
-namespace SmartLicenseServer;
+namespace SmartLicenseServer\FileSystem;
 
+use SmartLicenseServer\Exception;
 use ZipArchive;
 
 defined( 'ABSPATH' ) || exit;
