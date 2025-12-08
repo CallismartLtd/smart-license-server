@@ -103,14 +103,6 @@ class BulkMessagePage {
     }
 
     /**
-     * Run action hooks
-     */
-    public static function listen() {
-        add_action( 'wp_ajax_smliser_publish_bulk_message', [__CLASS__, 'publish_bulk_message'] );
-        add_action( 'admin_post_smliser_bulk_message_bulk_action', [__CLASS__, 'bulk_action'] );
-    }
-
-    /**
      * Handle ajax bulk message publish
      */
     public static function publish_bulk_message() {
@@ -194,5 +186,3 @@ class BulkMessagePage {
         exit;
     }
 }
-
-BulkMessagePage::listen();

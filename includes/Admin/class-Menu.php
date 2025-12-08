@@ -59,15 +59,6 @@ class Menu {
      */
     public static $options_page_id;
 
-
-    /**
-     * Start listening to menu calls
-     */
-    public static function listen() {
-        add_action( 'admin_menu', array( __CLASS__, 'register_menus' ) );
-        add_action( 'admin_menu', array( __CLASS__, 'modify_sw_menu' ), 999 );
-    }
-
     /**
      * Register admin menus.
      */
@@ -139,5 +130,3 @@ class Menu {
         }
     }
 }
-
-Menu::listen();

@@ -12,13 +12,6 @@ defined( 'ABSPATH' ) || exit;
 
 class OptionsPage {
     /**
-     * Run action hooks.
-     */
-    public static function actions() {
-        add_action( 'admin_post_smliser_options', array( __CLASS__, 'options_form_handler' ) );
-    }
-
-    /**
      * Page router
      */
     public static function router() {

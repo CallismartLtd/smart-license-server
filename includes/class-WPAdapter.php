@@ -9,6 +9,9 @@
 
 namespace SmartLicenseServer;
 
+use SmartLicenseServer\Admin\BulkMessagePage;
+use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Admin\OptionsPage;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
@@ -59,6 +62,8 @@ class WPAdapter extends Config {
         
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
+        add_action( 'admin_menu', [Menu::class, 'register_menus'] );
+        add_action( 'admin_menu', [Menu::class, 'modify_sw_menu'], 999 );
     }
 
     /**
@@ -98,6 +103,12 @@ class WPAdapter extends Config {
             'smliser_revoke_key'                            => [SmliserAPICred::class, 'revoke'],
             'smliser_oauth_login'                           => [SmliserAPICred::class, 'oauth_login_form_handler'],
             'smliser_upgrade'                               => [Installer::class, 'ajax_update'],
+            'smliser_publish_bulk_message'                  => [BulkMessagePage::class, 'publish_bulk_message'],
+            'smliser_bulk_message_bulk_action'              => [BulkMessagePage::class, 'bulk_action'],
+            'smliser_options'                               => [OptionsPage::class, 'options_form_handler'],
+            'smliser_get_product_data'                      => [Controller::class, 'get_provider_product'],
+            'smliser_delete_monetization_tier'              => [Controller::class, 'delete_monetization_tier'],
+            'smliser_toggle_monetization'                   => [Controller::class, 'toggle_monetization'],
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {

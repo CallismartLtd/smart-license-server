@@ -59,7 +59,7 @@ $info   = sprintf(
 $template_sidebar   = [
     'Author'                => $author,
     'Performance Metrics'   => '', //TODO: Use Analytics class to build.
-    'App Info'           => $info,
+    'App Info'              => $info,
     'Installation'          => $app->get_installation(),
     'Changelog'             => $app->get_changelog(),
 
