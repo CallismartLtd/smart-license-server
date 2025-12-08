@@ -82,7 +82,7 @@ class Licenses {
             if ( method_exists( $error, 'to_wp_error' ) ) {
                 $error = $error->to_wp_error();
             }
-    
+
             return $error;
         }
 

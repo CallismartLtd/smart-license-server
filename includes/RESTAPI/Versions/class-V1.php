@@ -175,8 +175,8 @@ class V1 {
                 array(
                     'route'      => self::$plugin_info,
                     'methods'    => 'GET',
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\Plugin::class, 'plugin_info_response' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\Plugin::class, 'info_permission_callback' ),
+                    'callback'   => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'plugin_info_response' ),
+                    'permission' => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'info_permission_callback' ),
                     'args'       => self::get_plugin_info_args(),
                     'category'   => 'repository',
                     'name'       => 'Plugin Information',

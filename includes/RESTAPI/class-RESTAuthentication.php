@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\RESTAPI;
 
+use SmartLicenseServer\SmliserAPICred;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -56,7 +57,7 @@ class RESTAuthentication {
         $consumer_secret    = ! empty( $request->get_param( 'consumer_secret' ) ) ? sanitize_text_field( unslash(urldecode( $request->get_param( 'consumer_secret' ) ) ) ) : '';
         
         if ( ! empty( $consumer_secret ) && ! empty( $consumer_public ) ) {
-            $api_cred_obj   = new \SmliserAPICred();
+            $api_cred_obj   = new SmliserAPICred();
             $the_api_cred    = $api_cred_obj->get_api_data( $consumer_public, $consumer_secret );
             
             if ( empty( $the_api_cred ) ) {
@@ -80,7 +81,7 @@ class RESTAuthentication {
         $consumer_secret    = ! empty( $request->get_param( 'consumer_secret' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'consumer_secret' ) ) ) ) : '';
         $app_name           = ! empty( $request->get_param( 'app_name' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'app_name' ) ) ) ) : '';
         $context            = ! empty( $request->get_param( 'context' ) ) ? sanitize_text_field( unslash( urldecode( $request->get_param( 'context' ) ) ) ) : '';        
-        $api_cred_obj       = new \SmliserAPICred();
+        $api_cred_obj       = new SmliserAPICred();
         $the_api_cred       = $api_cred_obj->get_api_data( $consumer_public, $consumer_secret );
         $access_token       = '';
 

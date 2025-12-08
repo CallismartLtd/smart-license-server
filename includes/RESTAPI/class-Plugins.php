@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Handles REST API Requests for hosted plugins.
  */
-class Plugin {
+class Plugins {
 
     /**
      * Plugin info endpoint permission callback.

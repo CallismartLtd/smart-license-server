@@ -10,7 +10,7 @@
 namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use \SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
