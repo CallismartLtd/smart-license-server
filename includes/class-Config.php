@@ -125,7 +125,7 @@ class Config {
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
 
-        add_action( 'admin_notices', function() { self::check_filesystem_errors(); } );
+        add_action( 'admin_notices', [ __CLASS__, 'check_filesystem_errors'] );
     }
 
     /**
@@ -402,7 +402,7 @@ class Config {
      * 
      * @return void
      */
-    private static function check_filesystem_errors() {
+    public static function check_filesystem_errors() {
         $fs_instance    = FileSystem::instance();
         $wp_error       = $fs_instance->get_fs()->errors;
 

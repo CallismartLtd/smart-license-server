@@ -10,6 +10,7 @@
 namespace SmartLicenseServer;
 
 use SmartLicenseServer\Exception;
+use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
 defined( 'ABSPATH' ) || exit;

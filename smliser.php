@@ -23,6 +23,5 @@ define( 'SMLISER_DB_VER', '0.1.1' );
 define( 'SMLISER_URL', plugin_dir_url( __FILE__ ) );
 define( 'SMLISER_APP_NAME', 'Smart License Server' );
 
-require_once SMLISER_PATH . 'includes/class-Config.php';
-require_once SMLISER_PATH . 'includes/class-Installer.php';
-Config::instance();
+require_once SMLISER_PATH . 'includes/class-WPAdapter.php';
+WPAdapter::instance();

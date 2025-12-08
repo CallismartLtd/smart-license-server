@@ -803,7 +803,7 @@ class SmliserSoftwareCollection {
      * Get the repository class for a hosted application type
      * 
      * @param string $type The type name.
-     * @return SmartLicenseServer\FileSystem\PluginRepository|SmartLicenseServer\FileSystem\ThemeRepository|SmartLicenseServer\FileSystem\SoftwareRepository|null The app's repository class instance.
+     * @return \SmartLicenseServer\FileSystem\PluginRepository|\SmartLicenseServer\FileSystem\ThemeRepository|\SmartLicenseServer\FileSystem\SoftwareRepository|null The app's repository class instance.
      */
     public static function get_app_repository_class( $type ) {
         if ( ! $type || ! is_string( $type ) ) {

@@ -8,12 +8,13 @@
  * @package Smliser\functions
  */
 
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Utils\MDParser;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -1188,4 +1189,17 @@ function smliser_dbclass() : \SmartLicenseServer\Database\Database {
  */
 function smliser_get_app_placeholder_icon() : string {
     return SMLISER_URL . 'assets/images/software-placeholder.svg';
+}
+
+/**
+ * Returns the singleton instance of the parser.
+ *
+ * @return MDParser
+ */
+function smliser_md_parser() {
+	static $instance = null;
+	if ( null === $instance ) {
+		$instance = new MDParser();
+	}
+	return $instance;
 }

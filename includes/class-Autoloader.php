@@ -79,9 +79,6 @@ class Autoloader {
     private static function get_file_path( $base_dir, $class_name ) {
         // Replace namespace separators with directory separators
         $class_name = str_replace( '\\', \DIRECTORY_SEPARATOR, $class_name );
-
-        $not_found = [];
-
         // Try each prefix
         foreach ( self::$prefixes as $prefix ) {
             // Convert ClassName to class-ClassName.php
@@ -91,37 +88,43 @@ class Autoloader {
             
             if ( file_exists( $full_path ) ) {
                 return $full_path;
-            } else {
-
-                $not_found[] = $full_path;
-           
             }
         }
         
-        \pretty_print( $not_found );
-        // Try without prefix (for edge cases)
-        // $filename = self::class_to_filename( $class_base_name ) . '.php';
-        // $full_path = $base_dir . 
-        //              ( $directory ? $directory . '/' : '' ) . 
-        //              $filename;
+        // Try without prefix as fallback (for edge cases)
+        $filename = $class_name . '.php';
+        $full_path = $base_dir . $filename;
         
-        // return file_exists( $full_path ) ? $full_path : false;
+        return file_exists( $full_path ) ? $full_path : false;
     }
     
     /**
-     * Convert class name to filename.
+     * Convert class name to filename
      * 
-     * @param string $prefix The file prefix.
-     * @param string $class_name
-     * @return string
+     * Examples:
+     * - Admin\Menu + class- → Admin/class-Menu.php
+     * - Database\DatabaseAdapterInterface + interface- → Database/interface-DatabaseAdapterInterface.php
+     * 
+     * @param string $prefix     The file prefix (class-, interface-, etc.)
+     * @param string $class_name The relative class name with namespace separators replaced
+     * @return string The complete file path
      */
     private static function class_to_filename( $prefix, $class_name ) {
-        $parts      = explode( '/', $class_name );
-        $filename   = $prefix . end( $parts );
-
-        array_splice( $parts,  count( $parts ) - 1, count( $parts ), $filename );
+        // Split by directory separator
+        $parts = explode( DIRECTORY_SEPARATOR, $class_name );
         
-        return \sprintf( '%s.php', implode( '/', $parts ) );
+        // Get the last part (actual class name)
+        $class_basename = array_pop( $parts );
+        
+        // Add prefix to the class name
+        $filename = $prefix . $class_basename . '.php';
+        
+        // Rebuild the path: directory/prefix-ClassName.php
+        if ( ! empty( $parts ) ) {
+            return implode( DIRECTORY_SEPARATOR, $parts ) . DIRECTORY_SEPARATOR . $filename;
+        }
+        
+        return $filename;
     }
     
     /**

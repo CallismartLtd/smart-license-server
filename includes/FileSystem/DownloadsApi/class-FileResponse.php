@@ -5,11 +5,11 @@
  * @package SmartLicenseServer\FileRequestController
  */
 
-namespace SmartLicenseServer\Filesystem\DownloadsApi;
+namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Exceptions\FileRequestException;
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;

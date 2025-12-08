@@ -12,7 +12,7 @@
 namespace SmartLicenseServer\FileSystem;
 
 use Normalizer;
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 
 defined( 'SMLISER_PATH' ) || exit; // phpcs:ignore
 
@@ -41,8 +41,8 @@ class FileSystemHelper {
             return;
         }
 
-        self::$ext_mime_type_map = include \SMLISER_PATH . 'includes/Filesystem/bundles/ext-2-mime-type-map.php';
-        self::$mimes_to_ext_map  = include \SMLISER_PATH . 'includes/Filesystem/bundles/mime-type-2-ext-map.php';
+        self::$ext_mime_type_map = include \SMLISER_PATH . 'includes/FileSystem/bundles/ext-2-mime-type-map.php';
+        self::$mimes_to_ext_map  = include \SMLISER_PATH . 'includes/FileSystem/bundles/mime-type-2-ext-map.php';
     }
 
     /**

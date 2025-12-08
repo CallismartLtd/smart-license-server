@@ -5,7 +5,7 @@
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  */
 
-namespace SmartLicenseServer\Filesystem\DownloadsApi;
+namespace SmartLicenseServer\FileSystem\DownloadsApi;
 use SmartLicenseServer\Core\Request;
 
 defined( 'SMLISER_PATH' ) || exit;

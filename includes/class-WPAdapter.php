@@ -15,8 +15,9 @@ use SmartLicenseServer\Admin\OptionsPage;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Filesystem\DownloadsApi\FileRequestController;
-use SmartLicenseServer\Filesystem\DownloadsApi\FileRequest;
+use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
+use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection as AppCollection;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -25,7 +26,7 @@ use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
-use \SmliserAPICred;
+
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -33,7 +34,7 @@ use WP_REST_Server;
 
 
 defined( 'ABSPATH'  ) || exit;
-
+require_once SMLISER_PATH . 'includes/class-Config.php';
 /**
  * Wordpress adapter bridges the gap beween Smart License Server and request from
  * WP environments
@@ -51,6 +52,7 @@ class WPAdapter extends Config {
      * Class constructor.
      */
     public function __construct() {
+        parent::instance();
         add_action( 'admin_init', [__CLASS__, 'init_request'] );
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
@@ -58,7 +60,7 @@ class WPAdapter extends Config {
         add_action( 'init', array( ProviderCollection::class, 'auto_load' ) );
         add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 
-        add_action( 'smliser_stats', array( 'SmliserStats', 'action_handler' ), 10, 4 );
+        add_action( 'smliser_stats', array( SmliserStats::class, 'action_handler' ), 10, 4 );
         
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
@@ -836,5 +838,3 @@ class WPAdapter extends Config {
     }
 
 }
-
-WPAdapter::instance();

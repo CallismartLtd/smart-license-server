@@ -1,12 +1,14 @@
 <?php
 /**
- * filename class-smliser-plugin-stats.php
  * 
  * @author Callistus
  * @package Smliser\classes
  * @since 1.0.0
  */
 
+namespace SmartLicenseServer;
+
+use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'ABSPATH' ) || exit;
@@ -58,7 +60,7 @@ class SmliserStats {
      * Class constructor
      */
     public function __construct() {
-        $this->plugin   = new SmartLicenseServer\HostedApps\Plugin();
+        $this->plugin   = new Plugin();
         $this->license  = new License();   
     }
 

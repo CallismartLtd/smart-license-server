@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use ZipArchive;
 
 defined( 'ABSPATH' ) || exit;
@@ -475,7 +475,7 @@ abstract class Repository extends FileSystem {
      *
      * @since 1.0.0
      *
-     * @return true|\SmartLicenseServer\Exception True on success, Exception instance on failure.
+     * @return true|Exception True on success, Exception instance on failure.
      */
     public static function create_repository_directories() {
         $fs = FileSystem::instance();
@@ -487,7 +487,7 @@ abstract class Repository extends FileSystem {
             'software'   => SMLISER_SOFTWARE_REPO_DIR,
         ];
 
-        $exception = new \SmartLicenseServer\Exception();
+        $exception = new Exception();
 
         foreach ( $directories as $type => $dir ) {
             if ( ! $fs->is_dir( $dir ) ) {
@@ -538,7 +538,7 @@ abstract class Repository extends FileSystem {
                     self::safe_esc_html( $repo_dir )
                 );
 
-                return new \SmartLicenseServer\Exception( 'htaccess_protection_failed', $message );
+                return new Exception( 'htaccess_protection_failed', $message );
             }
         }
 

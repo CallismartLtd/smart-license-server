@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\Core;
 
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -411,6 +411,7 @@ class Response {
 	 * @return void
 	 */
 	public function send() {
+		
         if ( $this->has_errors() ) {
 			if ( $this->is_json_response() ) {
 				smliser_send_json_error( $this->error );

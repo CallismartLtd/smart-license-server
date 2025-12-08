@@ -12,7 +12,7 @@
  * @since 1.0.0
  */
 
-namespace SmartLicenseServer\MDParser;
+namespace SmartLicenseServer\Utils;
 
 defined( 'ABSPATH' ) || exit;
 

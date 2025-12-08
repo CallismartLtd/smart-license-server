@@ -12,8 +12,6 @@
 
 namespace SmartLicenseServer\Exceptions;
 
-use SmartLicenseServer\Exception;
-
 defined( 'ABSPATH' ) || exit;
 
 /**

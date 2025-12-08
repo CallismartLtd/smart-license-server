@@ -10,9 +10,8 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\MDParser;
-use function SmartLicenseServer\Utils\md_parser;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -37,7 +36,7 @@ class PluginRepository extends Repository {
      */
     public function __construct() {
         parent::__construct( 'plugins' );
-        $this->parser = md_parser();
+        $this->parser = \smliser_md_parser();
     }
     
     /**

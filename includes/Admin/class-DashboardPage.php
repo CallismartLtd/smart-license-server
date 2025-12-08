@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\SmliserStats;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -32,7 +34,7 @@ class DashboardPage {
      */
     private static function dashboard() {
         
-        $stats          = new \SmliserStats();
+        $stats          = new SmliserStats();
         $status_codes   = $stats->get_status_codes_distribution();
         $error_codes    = $stats->get_top_errors( wp_rand( 50, 100 ) );
         // Prepare data for Chart.js

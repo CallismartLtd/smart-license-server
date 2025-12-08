@@ -6,7 +6,6 @@
  * @package Smliser\templates.
  * @since 1.0.0
  * @var SmartLicenseServer\HostedApps\Plugin $app The plugin object.
- * @var SmliserStats $stats The stats object.
  */
 
 use SmartLicenseServer\FileSystem\FileSystemHelper;

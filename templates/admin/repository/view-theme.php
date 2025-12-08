@@ -6,7 +6,6 @@
  * @package Smliser\templates.
  * @since 1.0.0
  * @var SmartLicenseServer\HostedApps\Theme $app The theme object.
- * @var SmliserStats $stats The stats object.
  */
 
 use SmartLicenseServer\FileSystem\FileSystemHelper;

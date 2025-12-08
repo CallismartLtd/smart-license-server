@@ -5,7 +5,7 @@
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  * @package SmartLicenseServer\Exceptions
  */
-namespace SmartLicenseServer;
+namespace SmartLicenseServer\Exceptions;
 use Exception as PHPException;
 
 defined( 'ABSPATH' ) || exit;

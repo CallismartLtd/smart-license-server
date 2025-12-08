@@ -9,14 +9,11 @@
  * @since   0.0.6
  */
 
-namespace SmartLicenseServer;
+namespace SmartLicenseServer\FileSystem;
 
-use SimplePie\File;
 use \ZipArchive;
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\MDParser;
-
-use function SmartLicenseServer\Utils\md_parser;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -41,7 +38,7 @@ class ThemeRepository extends Repository {
      */
     public function __construct() {
         parent::__construct( 'themes' );
-        $this->parser = md_parser();
+        $this->parser = \smliser_md_parser();
     }
 
     /**

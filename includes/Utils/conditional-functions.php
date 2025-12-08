@@ -2,6 +2,7 @@
 /**
  * Conditional function file
  */
+use SmartLicenseServer\Exceptions\Exception;
 
 if ( ! function_exists( 'is_json' ) ) {
     /**
@@ -58,5 +59,5 @@ function is_smliser_error( $value ) {
         return true;
     }
 
-    return ( $value instanceof \SmartLicenseServer\Exception );
+    return ( $value instanceof Exception );
 }

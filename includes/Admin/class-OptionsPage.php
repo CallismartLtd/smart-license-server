@@ -7,6 +7,7 @@
  */
 namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\Monetization\ProviderCollection;
+use SmartLicenseServer\SmliserAPICred;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -53,7 +54,7 @@ class OptionsPage {
      * API Keys options page
      */
     private static function api_keys_option() {
-        $all_api_data   = \SmliserAPICred::get_all();
+        $all_api_data   = SmliserAPICred::get_all();
         include_once SMLISER_PATH . 'templates/admin/options/api-keys.php';
     }
     /**

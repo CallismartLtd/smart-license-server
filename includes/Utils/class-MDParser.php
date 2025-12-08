@@ -19,7 +19,7 @@ use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\Table\TableExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
-use SmartLicenseServer\MDParser\WPReadmeParser;
+use SmartLicenseServer\Utils\WPReadmeParser;
 
 /**
  * Class MDParser
@@ -243,17 +243,4 @@ class MDParser {
 
 		return $html;
 	}
-}
-
-/**
- * Returns the singleton instance of the parser.
- *
- * @return MDParser
- */
-function md_parser() {
-	static $instance = null;
-	if ( null === $instance ) {
-		$instance = new MDParser();
-	}
-	return $instance;
 }

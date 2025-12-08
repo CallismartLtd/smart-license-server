@@ -6,6 +6,10 @@
  * @author Callistus
  * @package Smliser\classes
  */
+namespace SmartLicenseServer;
+
+use WP_User;
+use stdClass;
 
 defined( 'ABSPATH' ) || exit;
 

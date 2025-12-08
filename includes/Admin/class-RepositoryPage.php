@@ -12,7 +12,6 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\RESTAPI\Versions\V1;
-use SmliserStats;
 
 /**
  * The Admin repository page handler

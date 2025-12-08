@@ -10,7 +10,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 
 defined( 'ABSPATH' ) || exit;
 
