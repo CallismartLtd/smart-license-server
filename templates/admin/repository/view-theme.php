@@ -5,7 +5,7 @@
  * @author Callistus.
  * @package Smliser\templates.
  * @since 1.0.0
- * @var SmartLicenseServer\HostedApps\Theme $app The plugin object.
+ * @var SmartLicenseServer\HostedApps\Theme $app The theme object.
  * @var SmliserStats $stats The stats object.
  */
 
@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  */
 $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app->get_type() );
 
-$plugin_meta    = $repo_class->get_metadata( $app->get_slug() ); 
+$theme_meta    = $repo_class->get_metadata( $app->get_slug() ); 
 $author = sprintf(
     '<ul>
         <li><a href="%1$s">%2$s</a></li>
@@ -46,14 +46,14 @@ $info   = sprintf(
     __( 'Platform', 'smliser' ),
     __( 'WordPress', 'smliser' ),
     __( 'License', 'smliser' ),
-    $plugin_meta['license'] ?? '',
+    $theme_meta['license'] ?? '',
     __( 'Status', 'smliser' ),
     $app->get_status(),
     __( 'File Size', 'smliser' ),
     FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) ),
     __( 'Last Updated', 'smliser' ),
     $last_updated_string,
-    $plugin_meta['license_uri'] ?? ''
+    $theme_meta['license_uri'] ?? ''
 );
 
 $template_sidebar   = [
@@ -77,5 +77,4 @@ $images   = [
     'Screenshots'   => array_filter( $app->get_screenshots() ),
 ];
 
-// pretty_print( $images );
 include_once SMLISER_PATH . 'templates/admin/repository/preview.php';
