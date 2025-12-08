@@ -87,76 +87,57 @@ function smliser_time_diff_string( $start_date, $end_date ) {
 }
 
 /**
- * Convert duration to a readable format, including milliseconds.
+ * Convert duration to a readable format.
+ * 
+ * Returns the two most significant time units for better readability.
+ * Examples: "2 years, 3 months" or "5 minutes, 30 seconds"
  *
  * @param int|float $duration The duration in seconds.
- * @return string|bool $readable_format A formatted string from years to milliseconds or false.
+ * @return string|bool A formatted string or false on invalid input.
  */
 function smliser_readable_duration( $duration ) {
-	if ( is_string( $duration ) ) {
-		return $duration;
-	}
-
-	if ( ! is_int( $duration ) && ! is_float( $duration ) ) {
-		return false;
-	}
-
-	if ( $duration <= 0 ) {
-		return 'Now';
-	}
-
-	$milliseconds = round( ( $duration - floor( $duration ) ) * 1000 );
-	$duration     = floor( $duration );
-
-	$years   = floor( $duration / ( 365 * 24 * 3600 ) );
-	$duration %= ( 365 * 24 * 3600 );
-
-	$months  = floor( $duration / ( 30 * 24 * 3600 ) );
-	$duration %= ( 30 * 24 * 3600 );
-
-	$weeks   = floor( $duration / ( 7 * 24 * 3600 ) );
-	$duration %= ( 7 * 24 * 3600 );
-
-	$days    = floor( $duration / ( 24 * 3600 ) );
-	$duration %= ( 24 * 3600 );
-
-	$hours   = floor( $duration / 3600 );
-	$duration %= 3600;
-
-	$minutes = floor( $duration / 60 );
-	$seconds = $duration % 60;
-
-	$readable_parts = array();
-
-	if ( $years > 0 ) {
-		$readable_parts[] = $years . ' year' . ( $years > 1 ? 's' : '' );
-	}
-	if ( $months > 0 ) {
-		$readable_parts[] = $months . ' month' . ( $months > 1 ? 's' : '' );
-	}
-	if ( $weeks > 0 ) {
-		$readable_parts[] = $weeks . ' week' . ( $weeks > 1 ? 's' : '' );
-	}
-	if ( $days > 0 ) {
-		$readable_parts[] = $days . ' day' . ( $days > 1 ? 's' : '' );
-	}
-	if ( $hours > 0 ) {
-		$readable_parts[] = $hours . ' hour' . ( $hours > 1 ? 's' : '' );
-	}
-	if ( $minutes > 0 ) {
-		$readable_parts[] = $minutes . ' minute' . ( $minutes > 1 ? 's' : '' );
-	}
-	if ( $seconds > 0 ) {
-		$readable_parts[] = $seconds . ' second' . ( $seconds > 1 ? 's' : '' );
-	}
-	if ( $milliseconds > 0 ) {
-		$readable_parts[] = $milliseconds . ' millisecond' . ( $milliseconds > 1 ? 's' : '' );
-	}
-
-	return implode( ', ', $readable_parts );
+    if ( is_string( $duration ) ) {
+        return $duration;
+    }
+    
+    if ( ! is_numeric( $duration ) ) {
+        return false;
+    }
+    
+    if ( $duration <= 0 ) {
+        return 'Now';
+    }
+    
+    $units = array(
+        'year'        => 365 * 24 * 3600,
+        'month'       => 30 * 24 * 3600,
+        'week'        => 7 * 24 * 3600,
+        'day'         => 24 * 3600,
+        'hour'        => 3600,
+        'minute'      => 60,
+        'second'      => 1,
+        'millisecond' => 0.001,
+    );
+    
+    $parts = array();
+    $remaining = $duration;
+    
+    foreach ( $units as $name => $seconds ) {
+        $value = floor( $remaining / $seconds );
+        
+        if ( $value > 0 ) {
+            $parts[] = $value . ' ' . $name . ( $value > 1 ? 's' : '' );
+            $remaining -= $value * $seconds;
+            
+            // Stop after 2 significant units
+            if ( count( $parts ) === 2 ) {
+                break;
+            }
+        }
+    }
+    
+    return empty( $parts ) ? '0 seconds' : implode( ', ', $parts );
 }
-
-
 
 /**
  * Extracts the date portion from a date and time string.

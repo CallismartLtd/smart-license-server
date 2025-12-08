@@ -247,6 +247,7 @@ class Theme extends AbstractHostedApp {
             'name'          => $this->get_name(),
             'status'        => $this->get_status(),
             'download_link' => $this->get_download_url(),
+            'last_updated'  => current_time( 'mysql' ),
         );
 
         if ( $this->get_id() ) {
@@ -262,7 +263,6 @@ class Theme extends AbstractHostedApp {
                 }
             }
 
-            $theme_data['last_updated']    = current_time( 'mysql' );            
             $result = $db->update( $table, $theme_data, array( 'id' => absint( $this->get_id() ) ) );
 
         } else {

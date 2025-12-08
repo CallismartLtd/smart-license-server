@@ -6,7 +6,10 @@
  * @package SmartLicenseServer
  * @subpackage Admin
  * @since 0.0.5 
+ * @var SmartLicenseServer\Core\URL $url
  */
+
+use SmartLicenseServer\Core\URL;
 
 use SmartLicenseServer\Monetization\Monetization,
     SmartLicenseServer\Monetization\ProviderCollection;
@@ -29,18 +32,22 @@ if ( empty( $object ) ) {
         ->set_item_type( $app_type );
 }
 
-$item_object = $object->get_item_object();
+$app = $object->get_app();
+$view_url   = clone( $url );
+$view_url->add_query_params( [ 'tab' => 'view', 'item_id' => $id, 'type' => $app_type] );
+$edit_url = clone $view_url;
+$edit_url->add_query_param( 'tab', 'edit' );
 ?>
 
 <h1>Software Monetization</h1>
 
-<?php if ( empty( $item_object ) ) : ?>
+<?php if ( empty( $app ) ) : ?>
     <?php echo wp_kses_post( smliser_not_found_container( 'Repository item does not exists <a href="' . smliser_repo_page() . '">Back</a>' ) ); ?>
 <?php else : ?>
-    <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository' ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-database"></span> Repository</a>
-    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', $item_object->get_id() ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-visibility"></span> View</a>
-    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', $item_object->get_id() ) ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-edit"></span> Edit Plugin</a>
-    <p><span class="dashicons dashicons-info"></span><?php printf( 'Use this interface to %s monetization for <strong>%s</strong>', ( $item_object->is_monetized() ) ? 'manage' :'set up', $item_object->get_name() ); ?></p>
+    <a href="<?php echo esc_url( $url->__toString() ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-database"></span> Repository</a>
+    <a href="<?php echo esc_url( $view_url->__toString() ); ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-visibility"></span> View</a>
+    <a href="<?php echo esc_url( $edit_url->__toString() ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-edit"></span> Edit Plugin</a>
+    <p><span class="dashicons dashicons-info"></span><?php printf( 'Use this interface to %s monetization for <strong>%s</strong>', ( $app->is_monetized() ) ? 'manage' :'set up', $app->get_name() ); ?></p>
 
     <div class="smliser-monetization-ui">
         <div class="smliser-monetization-ui__software-info">
@@ -50,19 +57,19 @@ $item_object = $object->get_item_object();
                 <table class="widefat striped">
                     <tr>
                         <th>Name:</th>
-                        <td><?php echo esc_html( $item_object->get_name() ); ?></td>
+                        <td><?php echo esc_html( $app->get_name() ); ?></td>
                     </tr>
                     <tr>
                         <th>Version:</th>
-                        <td><?php echo esc_html( $item_object->get_version() ); ?></td>
+                        <td><?php echo esc_html( $app->get_version() ); ?></td>
                     </tr>
                     <tr>
                         <th>Description:</th>
-                        <td><?php echo wp_kses_post( $item_object->get_short_description() ); ?></td>
+                        <td><?php echo wp_kses_post( $app->get_short_description() ); ?></td>
                     </tr>
                     <tr>
                         <th>Author:</th>
-                        <td><?php echo esc_html( $item_object->get_author() ); ?></td>
+                        <td><?php echo esc_html( $app->get_author() ); ?></td>
                     </tr>
                     <tr>
                         <th>Monetization Status:</th>
@@ -166,7 +173,7 @@ $item_object = $object->get_item_object();
                 <form id="tier-form" class="smliser-admin-modal_content-form">
                     <input type="hidden" name="action" value="">
                     <input type="hidden" name="monetization_id" value="<?php echo absint( $object->get_id() ); ?>">
-                    <input type="hidden" name="item_id" value="<?php echo absint( $item_object->get_id() ); ?>">
+                    <input type="hidden" name="item_id" value="<?php echo absint( $app->get_id() ); ?>">
                     <input type="hidden" name="item_type" value="<?php echo esc_attr( $object->get_app_type() ); ?>">
                     <input type="hidden" name="tier_id">
                     <label for="tier_name">Tier Name:

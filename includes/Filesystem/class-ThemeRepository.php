@@ -411,7 +411,7 @@ class ThemeRepository extends Repository {
      * @return string
      */
     public function get_short_description( $slug ) {
-        return \substr( $this->get_description( $slug ), 0, 50 );
+        return \substr( $this->get_description( $slug ), 0, 800 );
     }
 
     /**

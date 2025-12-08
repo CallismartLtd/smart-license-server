@@ -273,9 +273,30 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let optionForms             = document.querySelectorAll( 'form.smliser-options-form' );
     const bulkMessageForm       = document.querySelector( 'form.smliser-compose-message-container' );
     const licenseAppSelect      = document.querySelector( '.license-app-select' );
+    const repoGaleryPreview     = document.querySelector( '.smliser-screenshot-gallery' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
 
+    if ( repoGaleryPreview ) {
+        repoGaleryPreview.addEventListener( 'click', e => {
+            const clickedImage = e.target.closest( 'img.repo-image-preview' );
+
+            if ( ! clickedImage ) {
+                return;
+            }
+
+            repoGaleryPreview.querySelectorAll( 'img.repo-image-preview' ).forEach( img => img.classList.remove( 'active' ) );
+            const currentImage  = document.querySelector( '.smliser-gallery-preview_image img' );
+            const currentTitle  = document.querySelector( '.smliser-gallery-preview_title' );
+            
+            if ( ! currentImage ) return;
+
+            currentImage.src            = clickedImage.src;
+            currentTitle.textContent    = clickedImage.getAttribute( 'data-repo-image-title' );
+            clickedImage.classList.add( 'active' );
+            
+        })
+    }
     if ( optionForms ) {
         optionForms.forEach( form => {
             form.addEventListener( 'submit', ( e ) => {
@@ -460,26 +481,6 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     });
                 }
             });
-
-            // if (showLicenseKeyCheckbox) {
-            //     showLicenseKeyCheckbox.addEventListener('change', function () {
-            //         if (this.checked) {
-            //             // visibleLicenseKeyDiv.style.display          = 'block';
-            //             jQuery(visibleLicenseKeyDiv).fadeIn().css('display', 'block')
-            //             partiallyHiddenLicenseKeyDiv.style.display  = 'none';
-            //         } else {
-            //             visibleLicenseKeyDiv.style.display          = 'none';
-            //             jQuery(partiallyHiddenLicenseKeyDiv).fadeIn().css('display', 'block');
-
-            //         }
-            //     });
-
-            //     copyButton.addEventListener('click', function ( event ) {
-            //         event.preventDefault();
-                    
-
-            //     });
-            // }
         });
     }
 

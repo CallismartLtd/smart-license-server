@@ -178,7 +178,7 @@ class V1 {
                     'callback'   => array( \SmartLicenseServer\RESTAPI\Plugin::class, 'plugin_info_response' ),
                     'permission' => array( \SmartLicenseServer\RESTAPI\Plugin::class, 'info_permission_callback' ),
                     'args'       => self::get_plugin_info_args(),
-                    'category'   => 'plugin',
+                    'category'   => 'repository',
                     'name'       => 'Plugin Information',
                 ),
 
@@ -383,6 +383,28 @@ class V1 {
                 'type'        => 'string',
                 'description' => 'The search term',
             ),
+            'page' => array(
+                'required'    => false,
+                'type'        => 'integer',
+                'default'     => 1,
+                'description' => 'Page number for pagination.',
+            ),
+            'limit' => array(
+                'required'    => false,
+                'type'        => 'integer',
+                'default'     => 10,
+                'description' => 'Number of messages per page.',
+            ),
+            'app_slugs' => array(
+                'required'    => false,
+                'type'        => 'array',
+                'description' => 'An array of app slugs to filter by.',
+            ),
+            'app_types' => array(
+                'required'    => false,
+                'type'        => 'array',
+                'description' => 'An array of app types to filter by (e.g., plugin, theme).',
+            ),
         );
     }
 
@@ -401,7 +423,7 @@ class V1 {
             'slug' => array(
                 'required'    => false,
                 'type'        => 'string',
-                'description' => 'The plugin slug eg. plugin-slug/plugin-slug',
+                'description' => 'The plugin slug eg. plugin-slug',
             ),
         );
     }
@@ -594,5 +616,26 @@ class V1 {
      */
     private static function esc_js( $text ) {
         return addslashes( $text );
+    }
+
+    /**
+     * Render a html index of REST API documentation page
+     */
+    public static function html_index() {
+        ?>
+            <div>
+                <h2>REST API Documentation</h2>
+                <div class="smliser-admin-api-description-section">
+                    <div class="smliser-api-base-url">
+                        <strong>Base URL:</strong>
+                        <code><?php echo esc_url( rest_url() ); ?></code>
+                    </div>
+                    
+                    <?php foreach ( self::describe_routes() as $path => $html ) : 
+                        echo $html; // Already safely escaped in the V1 class
+                    endforeach; ?>
+                </div>
+            </div>
+        <?php
     }
 }

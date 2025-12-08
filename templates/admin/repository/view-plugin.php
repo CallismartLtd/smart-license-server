@@ -30,6 +30,8 @@ $author = sprintf(
     $app->get_author()
 );
 
+$last_updated_string = sprintf( '%s ago', smliser_readable_duration( time() - strtotime( $app->get_last_updated() ) ) );
+
 $info   = sprintf(
     '<ul class="smliser-app-meta">
         <li><span>%1$s</span> <span>#%2$s</span></li>
@@ -50,25 +52,42 @@ $info   = sprintf(
     __( 'File Size', 'smliser' ),
     FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) ),
     __( 'Last Updated', 'smliser' ),
-    $app->get_last_updated(),
+    $last_updated_string,
     $plugin_meta['license_uri'] ?? ''
-    
-
 );
+
 $template_sidebar   = [
     'Author'                => $author,
     'Performance Metrics'   => '', //TODO: Use Analytics class to build.
-    'Plugin Info'           => $info,
+    'App Info'           => $info,
     'Installation'          => $app->get_installation(),
     'Changelog'             => $app->get_changelog(),
 
 ];
 
-$template_content   = [
-    'Icons'         => $app->get_icons(),
-    'Banners'       => $app->get_banners(),
-    'Screenshots'   => $app->get_screenshots(),
-];
+$screenshots = [];
 
+foreach( $app->get_screenshots() as $screenshot ) {
+    $screenshots[] = $screenshot['src'] ?? '';
+}
+
+$banners    = [];
+
+foreach( $app->get_banners() as $banner ) {
+    $banners[] = $banner;
+}
+
+$icons  = [];
+
+foreach( $app->get_icons() as $icon ) {
+    $icons[] = $icon;
+}
+
+
+$images   = [
+    'Icons'         => array_filter( $icons ),
+    'Banners'       => array_filter( $banners ),
+    'Screenshots'   => array_filter( $screenshots ),
+];
 
 include_once SMLISER_PATH . 'templates/admin/repository/preview.php';

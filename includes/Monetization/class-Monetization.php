@@ -9,6 +9,8 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -504,23 +506,15 @@ class Monetization {
     }
 
     /**
-     * Get the Item object this monetization belongs to.
+     * Get the APP this monetization belongs to.
      * 
      * @return \SmartLicenseServer\HostedApps\AbstractHostedApp|null
      */
-    public function get_item_object() {
+    public function get_app() {
         if ( empty( $this->item_type ) || empty( $this->item_id ) ) {
             return null;
         }
 
-        $class = '\\Smliser_' . ucfirst( sanitize_text_field( unslash( $this->item_type ) ) );
-
-        if ( ! class_exists( $class ) || ! method_exists( $class, 'get_' . $this->item_type ) ) {
-            return null;
-        }
-
-        $method = 'get_' . $this->item_type;
-
-        return call_user_func( [ $class, $method ], $this->item_id );
+        return SmliserSoftwareCollection::get_app_by_id( $this->item_type, $this->item_id );
     }
 }

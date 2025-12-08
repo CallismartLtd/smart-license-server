@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmliserStats;
 
 /**
@@ -107,7 +108,7 @@ class RepositoryPage {
     }
 
     /**
-     * View items page
+     * View hosted application page
      */
     private static function view_page() {
         $id     = smliser_get_query_param( 'item_id' );
@@ -145,43 +146,41 @@ class RepositoryPage {
                 [
                     'text'  => 'Repository',
                     'url'   => $url->__toString(),
-                    'icon'  => '',
+                    'icon'  => 'ti ti-home',
                     'attr'  => []
                 ],
 
                 [
                     'text'  => 'Monetization',
                     'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'item_id' => $app->get_id(), 'type' => $app->get_type()] )->__toString(),
-                    'icon'  => '',
+                    'icon'  => 'ti ti-cash-register',
                     'attr'  => []
                 ],
 
                 [
                     'text'  => sprintf( 'Edit %s', ucfirst( $app->get_type() ) ),
                     'url'   => $url->add_query_param( 'tab', 'edit' )->__toString(),
-                    'icon'  => '',
+                    'icon'  => 'ti ti-edit',
                     'attr'  => []
                 ],
 
                 [
                     'text'  => sprintf( 'Download %s', ucfirst( $app->get_type() ) ),
                     'url'   => $download_url->__toString(),
-                    'icon'  => '',
+                    'icon'  => 'ti ti-download',
                     'attr'  => []
                 ],
 
                 [
                     'text'  => sprintf( 'Delete %s', ucfirst( $app->get_type() ) ),
                     'url'   => '',
-                    'icon'  => '',
+                    'icon'  => 'ti ti-trash',
                     'attr'  => ['data-app-info' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type()] )]
                 ],
             ]
         ];
-        $stats = new SmliserStats();
-        
 
-        
+        $route_descriptions = V1::describe_routes( 'repository' );   
         include_once $file;
     }
 
@@ -189,6 +188,7 @@ class RepositoryPage {
      * Manage plugin monetization page
      */
     private static function monetization_page() {
+        $url    = new URL( admin_url( 'admin.php?page=repository' ) );
 
         include_once SMLISER_PATH . 'templates/admin/monetization.php';
         

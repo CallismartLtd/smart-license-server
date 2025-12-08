@@ -264,7 +264,7 @@ class Config {
         }
 
         if ( \is_admin() ) {
-            wp_enqueue_style( 'mliser-tabler-icons' );
+            wp_enqueue_style( 'smliser-tabler-icons' );
         }
     
     }

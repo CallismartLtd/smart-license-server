@@ -273,7 +273,7 @@ abstract class Repository extends FileSystem {
         }
 
         if ( 'zip' !== FileSystemHelper::get_canonical_extension( $tmp_name ) ) {
-            return new Exception( 'invalid_file_type', 'IThe application archive file must be in ZIP format.', [ 'status' => 400 ] );
+            return new Exception( 'invalid_file_type', 'The application archive file must be in ZIP format.', [ 'status' => 400 ] );
         }
 
         // Normalize filename

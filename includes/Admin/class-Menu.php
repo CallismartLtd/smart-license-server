@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\RESTAPI\Versions\V1;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -42,6 +44,13 @@ class Menu {
      * @var string
      */
     public static $bulk_message_page_id;
+
+    /**
+     * REST API page ID.
+     * 
+     * @var string
+     */
+    public static $rest_api_page_id;
 
     /**
      * Options page ID.
@@ -98,6 +107,15 @@ class Menu {
             'manage_options',
             'smliser-bulk-message',
             array( BulkMessagePage::class, 'router' )
+        );
+
+        self::$rest_api_page_id = add_submenu_page(
+            'smliser-admin',
+            'API DOC',
+            'API DOC',
+            'manage_options',
+            'smliser-doc',
+            array( V1::class, 'html_index' )
         );
 
         self::$options_page_id = add_submenu_page(
