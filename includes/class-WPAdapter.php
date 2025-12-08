@@ -34,7 +34,7 @@ use WP_REST_Server;
 
 
 defined( 'ABSPATH'  ) || exit;
-require_once SMLISER_PATH . 'includes/class-Config.php';
+
 /**
  * Wordpress adapter bridges the gap beween Smart License Server and request from
  * WP environments
@@ -52,13 +52,19 @@ class WPAdapter extends Config {
      * Class constructor.
      */
     public function __construct() {
-        parent::instance();
+        $absolute_path  = \WP_CONTENT_DIR;
+        $db_prefix      = $GLOBALS['wpdb']?->prefix;
+        parent::instance( \compact( 'absolute_path', 'db_prefix' ) );
+
         add_action( 'admin_init', [__CLASS__, 'init_request'] );
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
         add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
         add_action( 'init', array( ProviderCollection::class, 'auto_load' ) );
         add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+        add_filter( 'rest_request_before_callbacks', [__CLASS__, 'rest_request_before_callbacks'], -1, 3 );
+        add_filter( 'rest_post_dispatch', [__CLASS__, 'filter_rest_response'], 10, 3 );
+        add_filter( 'rest_pre_dispatch', array( __CLASS__, 'enforce_https_for_rest_api' ), 10, 3 );
 
         add_action( 'smliser_stats', array( SmliserStats::class, 'action_handler' ), 10, 4 );
         
@@ -583,7 +589,7 @@ class WPAdapter extends Config {
      *
      * @return WP_Error|null WP_Error object if HTTPS/TLS requirement is not met, null otherwise.
      */
-    public function enforce_https_for_rest_api( $result, $server, $request ) {
+    public static function enforce_https_for_rest_api( $result, $server, $request ) {
         // Check if current request belongs to the plugin's namespace.
         if ( ! str_contains( $request->get_route(), self::namespace() ) ) {
             return;
@@ -607,7 +613,7 @@ class WPAdapter extends Config {
      * @param WP_REST_Request  $request  The REST request object.
      * @return WP_REST_Response Modified REST API response object.
      */
-    public function filter_rest_response( WP_REST_Response $response, WP_REST_Server $server, WP_REST_Request $request ) {
+    public static function filter_rest_response( WP_REST_Response $response, WP_REST_Server $server, WP_REST_Request $request ) {
 
         if ( false !== strpos( $request->get_route(), self::namespace() ) ) {
 
@@ -659,11 +665,11 @@ class WPAdapter extends Config {
     */
 
     /**
-     * Instance of Smiliser_Server
+     * Initialize the WordPress environment.
      * 
      * @return self
      */
-    public static function instance() {
+    public static function init() {
         if ( is_null( self::$instance ) ) {
             self::$instance = new self();
         }

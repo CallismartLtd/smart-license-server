@@ -9,7 +9,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\License;
 

@@ -10,7 +10,7 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 
 defined( 'SMLISER_PATH' ) || exit;
 

@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer;
 
+use RuntimeException;
 use SmartLicenseServer\FileSystem\FileSystem;
 
 defined( 'ABSPATH' ) || exit;
@@ -39,48 +40,54 @@ class Config {
 
     /**
      * Class constructor.
+     * 
+     * @param array $config Array of configuration options
      */
-    public function __construct() {
-        global $wpdb;
+    private function __construct( array $config ) {
+        $parsed_config  = self::parse_config( $config );
 
-        define( 'SMLISER_LICENSE_TABLE', $wpdb->prefix.'smliser_licenses' );
-        define( 'SMLISER_LICENSE_META_TABLE', $wpdb->prefix . 'smliser_license_meta' );
+        if ( ! $parsed_config ) {
+            throw new RuntimeException( 'Smart License Server Configuration is invalid' );
+        }
+
+        define( 'SMLISER_LICENSE_TABLE', $parsed_config['db_prefix'] . 'smliser_licenses' );
+        define( 'SMLISER_LICENSE_META_TABLE', $parsed_config['db_prefix'] . 'smliser_license_meta' );
 
         /**
          * The plugin database table name
          */
-        define( 'SMLISER_PLUGIN_ITEM_TABLE', $wpdb->prefix . 'smliser_plugins' );
+        define( 'SMLISER_PLUGIN_ITEM_TABLE', $parsed_config['db_prefix'] . 'smliser_plugins' );
         /**
          * The plugin database metadata table name.
          */
-        define( 'SMLISER_PLUGIN_META_TABLE', $wpdb->prefix . 'smliser_plugin_meta' );
+        define( 'SMLISER_PLUGIN_META_TABLE', $parsed_config['db_prefix'] . 'smliser_plugin_meta' );
 
         /**
          * The theme database table name.
          */
-        define( 'SMLISER_THEME_ITEM_TABLE', $wpdb->prefix . 'smliser_themes' );
+        define( 'SMLISER_THEME_ITEM_TABLE', $parsed_config['db_prefix'] . 'smliser_themes' );
         /**
          * The themes database metadata table name.
          */
-        define( 'SMLISER_THEME_META_TABLE', $wpdb->prefix . 'smliser_theme_meta' );
+        define( 'SMLISER_THEME_META_TABLE', $parsed_config['db_prefix'] . 'smliser_theme_meta' );
 
-        define( 'SMLISER_APPS_ITEM_TABLE', $wpdb->prefix . 'smliser_applications' );
-        define( 'SMLISER_APPS_META_TABLE', $wpdb->prefix . 'smliser_applications_meta' );
-        define( 'SMLISER_API_ACCESS_LOG_TABLE', $wpdb->prefix . 'smliser_api_access_logs' );
-        define( 'SMLISER_API_CRED_TABLE', $wpdb->prefix . 'smliser_api_creds' );
-        define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_item_download_token' );
-        define( 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE', $wpdb->prefix . 'smliser_app_download_tokens' );
-        define( 'SMLISER_MONETIZATION_TABLE', $wpdb->prefix . 'smliser_monetization' );
-        define( 'SMLISER_PRICING_TIER_TABLE', $wpdb->prefix . 'smliser_pricing_tiers' );
-        define( 'SMLISER_BULK_MESSAGES_TABLE', $wpdb->prefix . 'smliser_bulk_messages' );
-        define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $wpdb->prefix . 'smliser_bulk_messages_apps' );
+        define( 'SMLISER_APPS_ITEM_TABLE', $parsed_config['db_prefix'] . 'smliser_applications' );
+        define( 'SMLISER_APPS_META_TABLE', $parsed_config['db_prefix'] . 'smliser_applications_meta' );
+        define( 'SMLISER_API_ACCESS_LOG_TABLE', $parsed_config['db_prefix'] . 'smliser_api_access_logs' );
+        define( 'SMLISER_API_CRED_TABLE', $parsed_config['db_prefix'] . 'smliser_api_creds' );
+        define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $parsed_config['db_prefix'] . 'smliser_item_download_token' );
+        define( 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE', $parsed_config['db_prefix'] . 'smliser_app_download_tokens' );
+        define( 'SMLISER_MONETIZATION_TABLE', $parsed_config['db_prefix'] . 'smliser_monetization' );
+        define( 'SMLISER_PRICING_TIER_TABLE', $parsed_config['db_prefix'] . 'smliser_pricing_tiers' );
+        define( 'SMLISER_BULK_MESSAGES_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages' );
+        define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages_apps' );
 
         /**
          * Absolute path to the root Smart License Server repository directory.
          *
          * This is the base directory where all hosted application files are stored.
          */
-        define( 'SMLISER_NEW_REPO_DIR', WP_CONTENT_DIR . '/smliser-repo' );
+        define( 'SMLISER_NEW_REPO_DIR', $parsed_config['absolute_path'] . '/smliser-repo' );
 
         /**
          * Alias for the Smart License Server repository directory.
@@ -132,12 +139,35 @@ class Config {
      * Instanciate the current class.
      * @return self
      */
-    public static function instance() {
+    public static function instance( array $config = [] ) {
         if ( is_null( self::$instance ) ) {
-            self::$instance = new self();
+            self::$instance = new self( $config );
         }
 
         return self::$instance;
+    }
+
+    /**
+     * Parse environment configuration file to ensure that required variables are set.
+     * 
+     * @param array $env_config The configuration options from the environment adapter.
+     */
+    private static function parse_config( $env_config ) {
+        $default_config = array(
+            'db_prefix'     => '',
+            'absolute_path' => '',
+
+        );
+
+        $parsed_config  = array_intersect_key( array_merge( $default_config, $env_config ), $default_config );
+
+        foreach ( $parsed_config as $value ) {
+            if ( empty( $value ) ) {
+                return false;
+            }
+
+            return $parsed_config;
+        }
     }
 
     /**
@@ -151,18 +181,13 @@ class Config {
      * Include files
      */
     public function include() {
-        // Load Composer autoloader (for vendor dependencies)
         require_once SMLISER_PATH . 'vendor/autoload.php';
 
-        // Load utility functions (non-class files that need to be loaded first)
         require_once SMLISER_PATH . 'includes/Utils/conditional-functions.php';
         require_once SMLISER_PATH . 'includes/Utils/functions.php';
         require_once SMLISER_PATH . 'includes/Utils/sanitization-functions.php';
         require_once SMLISER_PATH . 'includes/Utils/formating-functions.php';
-
-        // Load and register PSR-4 autoloader for classes
-        require_once SMLISER_PATH . 'includes/class-Autoloader.php';
-        Autoloader::register();       
+              
     }
 
     /**

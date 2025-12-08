@@ -31,6 +31,7 @@ defined( 'SMLISER_PATH' ) || exit;
  * @method void rollback()
  * @method string|null get_last_error() Get last database error.
  * @method int|null get_insert_id() Get the last insertion ID
+ * @method mixed query( string $query, array $param = [] ) Execute a raw SQL query with optional parameters.
  */
 
 class Database {
@@ -67,10 +68,11 @@ class Database {
      */
     public static function instance() {
         if ( null === self::$instance ) {
-            $adapter = self::detect_environment();
-            self::$instance = new self( $adapter );
+            $adapter            = static::detect_environment();
+            static::$instance   = new static( $adapter );
         }
-        return self::$instance;
+
+        return static::$instance;
     }
 
     /**
@@ -82,13 +84,11 @@ class Database {
     protected static function detect_environment() {
         // --- 1. WordPress Environment (Highest Priority) ---
         if ( defined( 'ABSPATH' ) && class_exists( '\wpdb' ) && isset( $GLOBALS['wpdb'] ) ) {
-            require_once SMLISER_PATH . 'includes/Database/class-WPAdapter.php';
             return new WPAdapter( $GLOBALS['wpdb'] );
         }
 
         // --- 2. Laravel Environment ---
         if ( class_exists( 'Illuminate\Support\Facades\DB' ) ) {
-            require_once SMLISER_PATH . 'includes/Database/class-LaravelAdapter.php';
             return new LaravelAdapter();
         }
 
@@ -103,13 +103,11 @@ class Database {
 
         // --- 3. PDO Adapter (Preferred Standard PHP Fallback) ---
         if ( class_exists( 'PDO' ) && in_array( 'mysql', PDO::getAvailableDrivers() ) ) {
-            include_once \SMLISER_PATH . 'includes/Database/class-PdoAdapter.php';
             return new PdoAdapter( $config );
         }
 
         // --- 4. MySQLi Adapter (Basic Standard PHP Fallback) ---
         if ( class_exists( 'mysqli' ) ) {
-            include_once \SMLISER_PATH . 'includes/Database/class-MysqliAdapter.php';
             return new MysqliAdapter( $config );
         }
         
@@ -155,4 +153,27 @@ class Database {
 
 		return absint( max( 0, ( $page - 1 ) * $limit ) );
 	}
+    
+    /**
+     * Get the charset and collation string for table creation.
+     *
+     * This is intended for use in installation scripts, migrations,
+     * or any CREATE TABLE statements. It ensures a consistent character
+     * set and collation across your database tables.
+     *
+     * @return string SQL fragment for charset and collation, e.g. "DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+     */
+    public function get_charset_collate() {
+        $charset = 'utf8mb4';
+        $collate = 'utf8mb4_unicode_ci';
+
+        // Attempt to read charset from the adapter if available
+        if ( isset( $this->adapter->config['charset'] ) ) {
+            $charset = $this->adapter->config['charset'];
+        }
+
+        // You could make collate dynamic if needed, for now keep it standard
+        return sprintf( 'DEFAULT CHARSET=%s COLLATE=%s', $charset, $collate );
+    }
+
 }

@@ -266,7 +266,7 @@ class PricingTier {
      * @return bool True on success, false on failure.
      */
     public function save() {
-        global $wpdb;
+        $db = smliser_dbclass();
 
         $data = [
             'monetization_id' => $this->monetization_id,
@@ -279,26 +279,16 @@ class PricingTier {
         ];
 
         if ( $this->id ) {
-            // Update existing tier
-            $updated = $wpdb->update(
-                SMLISER_PRICING_TIER_TABLE,
-                $data,
-                [ 'id' => $this->id ],
-                [ '%d', '%s', '%s', '%s', '%s', '%d', '%s' ],
-                [ '%d' ]
-            );
+            // Update existing tier.
+            $updated = $db->update( SMLISER_PRICING_TIER_TABLE, $data, [ 'id' => $this->id ] );
 
             return false !== $updated;
         } else {
             // Insert new tier
-            $inserted = $wpdb->insert(
-                SMLISER_PRICING_TIER_TABLE,
-                $data,
-                [ '%d', '%s', '%s', '%s', '%s', '%d', '%s' ]
-            );
+            $inserted = $db->insert( SMLISER_PRICING_TIER_TABLE, $data );
 
             if ( $inserted ) {
-                $this->set_id( $wpdb->insert_id );
+                $this->set_id( $db->get_insert_id() );
                 return true;
             }
 
@@ -312,19 +302,15 @@ class PricingTier {
      * @return bool True on success, false on failure.
      */
     public function delete() {
-        global $wpdb;
+        $db = smliser_dbclass();
 
         if ( ! $this->id ) {
             return false;
         }
 
-        $deleted = $wpdb->delete(
-            SMLISER_PRICING_TIER_TABLE,
-            [ 'id' => $this->id ],
-            [ '%d' ]
-        );
+        $deleted = $db->delete( SMLISER_PRICING_TIER_TABLE, [ 'id' => $this->id ] );
 
-        return false === $deleted ? false : true;
+        return false !== $deleted;
     }
 
     /**
@@ -334,23 +320,25 @@ class PricingTier {
      * @return self|null The Pricing Tier object if found, null otherwise.
      */
     public static function get_by_id( $id ) {
-        global $wpdb;
+        $db = smliser_dbclass();
+        $table  = SMLISER_MONETIZATION_TABLE;
 
-        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . SMLISER_PRICING_TIER_TABLE . " WHERE id = %d", absint( $id ) ) );
+        $sql    = "SELECT * FROM {$table} WHERE id = ?";
+        $row    = $db->get_row( $sql, [$id] );
 
         if ( null === $row ) {
             return null;
         }
 
         $tier = new self();
-        $tier->set_monetization_id( $row->monetization_id )
-            ->set_id( $row->id )
-            ->set_name( $row->name )
-            ->set_product_id( $row->product_id )
-            ->set_provider_id( $row->provider_id )
-            ->set_billing_cycle( $row->billing_cycle )
-            ->set_max_sites( $row->max_sites )
-            ->set_features( maybe_unserialize( $row->features ) );
+        $tier->set_monetization_id( $row['monetization_id'] ?? 0 )
+            ->set_id( $row['id'] ?? 0 )
+            ->set_name( $row['name'] ?? '' )
+            ->set_product_id( $row['product_id'] ?? 0 )
+            ->set_provider_id( $row['provider_id'] ?? '' )
+            ->set_billing_cycle( $row['billing_cycle'] ?? '' )
+            ->set_max_sites( $row['max_sites'] ?? 0 )
+            ->set_features( maybe_unserialize( $row['features'] ?? '' ) );
 
         return $tier;
     }
@@ -362,14 +350,11 @@ class PricingTier {
      * @return self[] Array of Pricing Tier objects.
      */
     public static function get_by_monetization_id( $monetization_id ) {
-        global $wpdb;
+        $db     = smliser_dbclass();
+        $table  = SMLISER_MONETIZATION_TABLE;
 
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT * FROM " . SMLISER_PRICING_TIER_TABLE . " WHERE monetization_id = %d",
-                absint( $monetization_id )
-            )
-        );
+        $sql    = "SELECT * FROM {$table} WHERE monetization_id = ?";
+        $rows   = $db->get_results( $sql, [$monetization_id] );
 
         if ( empty( $rows ) ) {
             return [];
@@ -378,14 +363,14 @@ class PricingTier {
         $tiers = [];
         foreach ( $rows as $row ) {
             $tier = new self();
-            $tier->set_id( $row->id )
-                ->set_monetization_id( $row->monetization_id )
-                ->set_name( $row->name )
-                ->set_product_id( $row->product_id )
-                ->set_provider_id( $row->provider_id )
-                ->set_billing_cycle( $row->billing_cycle )
-                ->set_max_sites( $row->max_sites )
-                ->set_features( maybe_unserialize( $row->features ) );
+            $tier->set_id( $row['id'] ?? 0 )
+                ->set_monetization_id( $row['monetization_id'] ?? 0 )
+                ->set_name( $row['name'] ?? '' )
+                ->set_product_id( $row['product_id'] ?? 0 )
+                ->set_provider_id( $row['provider_id'] ?? '' )
+                ->set_billing_cycle( $row['billing_cycle'] ?? '' )
+                ->set_max_sites( $row['max_sites'] ?? 0 )
+                ->set_features( maybe_unserialize( $row['features'] ?? '' ) );
 
             $tiers[] = $tier;
         }

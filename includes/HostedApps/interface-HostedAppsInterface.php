@@ -10,7 +10,7 @@
 
 namespace SmartLicenseServer\HostedApps;
 
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 
 defined( 'ABSPATH' ) || exit;
 

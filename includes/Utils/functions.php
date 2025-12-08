@@ -966,7 +966,7 @@ function parse_args( $args, $defaults ) {
  * @param string|SmartLicenseServer\Exception  $message Optional. Error message. If this is an error object,
  *                                  and not an Ajax or XML-RPC request, the error's messages are used.
  *                                  Default empty string.
- * @param string|int       $title   Optional. Error title. If `$message` is a `SmartLicenseServer\Exception;` object,
+ * @param string|int       $title   Optional. Error title. If `$message` is a `SmartLicenseServer\Exceptions\Exception;` object,
  *                                  error data with the key 'title' may be used to specify the title.
  *                                  If `$title` is an integer, then it is treated as the response code.
  *                                  Default empty string.

@@ -5,7 +5,7 @@
  * Description: Private plugin, themes and software repository with licensing and monetization feature.
  * Author: Callistus Nwachukwu
  * Author URI: https://callismart.com.ng/callistus
- * Version: 0.1.1
+ * Version: 0.2.0
  */
 
 namespace SmartLicenseServer;
@@ -18,10 +18,11 @@ if ( defined( 'SMLISER_PATH' ) ) {
 
 define( 'SMLISER_PATH', __DIR__ . '/' );
 define( 'SMLISER_FILE', __FILE__ );
-define( 'SMLISER_VER', '0.1.1' );
-define( 'SMLISER_DB_VER', '0.1.1' );
+define( 'SMLISER_VER', '0.2.0' );
+define( 'SMLISER_DB_VER', '0.2.0' );
 define( 'SMLISER_URL', plugin_dir_url( __FILE__ ) );
 define( 'SMLISER_APP_NAME', 'Smart License Server' );
 
-require_once SMLISER_PATH . 'includes/class-WPAdapter.php';
-WPAdapter::instance();
+require_once SMLISER_PATH . 'includes/class-Autoloader.php';
+
+WPAdapter::init();

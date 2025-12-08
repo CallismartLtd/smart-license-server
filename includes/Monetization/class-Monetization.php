@@ -266,7 +266,7 @@ class Monetization {
      * @return bool True on success, false on failure.
      */
     public function save() {
-        global $wpdb;
+        $db = smliser_dbclass();
 
         $data = [
             'item_type'  => $this->item_type,
@@ -277,30 +277,20 @@ class Monetization {
 
         if ( $this->id ) {
             // Update existing record
-            $updated = $wpdb->update(
-                SMLISER_MONETIZATION_TABLE,
-                $data,
-                [ 'id' => $this->id ],
-                [ '%s', '%s', '%d', '%s', '%s' ],
-                [ '%d' ]
-            );
+            $updated = $db->update( SMLISER_MONETIZATION_TABLE, $data, [ 'id' => $this->id ] );
 
             if ( false === $updated ) {
                 return false;
             }
         } else {
             $data['created_at'] = current_time( 'mysql' );
-            $inserted           = $wpdb->insert(
-                SMLISER_MONETIZATION_TABLE,
-                $data,
-                [ '%s', '%s', '%d', '%s', '%s' ]
-            );
+            $inserted           = $db->insert( SMLISER_MONETIZATION_TABLE, $data );
 
             if ( ! $inserted ) {
                 return false;
             }
 
-            $this->set_id( $wpdb->insert_id );
+            $this->set_id( $db->get_insert_id() );
         }
 
         // Save tiers
@@ -319,25 +309,14 @@ class Monetization {
      * @return bool True on success, false on failure.
      */
     public function delete() {
-        global $wpdb;
+        $db = smliser_dbclass();
 
         if ( ! $this->id ) {
             return false;
         }
 
-        // First delete associated pricing tiers
-        $wpdb->delete(
-            SMLISER_PRICING_TIER_TABLE,
-            [ 'monetization_id' => $this->id ],
-            [ '%d' ]
-        );
-
-        // Then delete monetization record itself
-        $deleted = $wpdb->delete(
-            SMLISER_MONETIZATION_TABLE,
-            [ 'id' => $this->id ],
-            [ '%d' ]
-        );
+        $db->delete( SMLISER_PRICING_TIER_TABLE, [ 'monetization_id' => $this->id ] );
+        $deleted = $db->delete( SMLISER_MONETIZATION_TABLE, [ 'id' => $this->id ] );
 
         return false !== $deleted;
     }
@@ -376,29 +355,26 @@ class Monetization {
      * @return Monetization|null
      */
     public static function get_by_id( $id ) {
-        global $wpdb;
-
-        $row = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM " . SMLISER_MONETIZATION_TABLE . " WHERE id = %d",
-                absint( $id )
-            )
-        );
+        $db     = smliser_dbclass();
+        $table  = SMLISER_MONETIZATION_TABLE;
+        $sql    = "SELECT * FROM {$table} WHERE id = ?";
+        $row    = $db->get_row( $sql, [absint( $id )] );
+        
 
         if ( ! $row ) {
             return null;
         }
 
         $mon = new self();
-        $mon->set_id( $row->id )
-            ->set_item_id( $row->item_id )
-            ->set_item_type( $row->item_type )
-            ->set_enabled( (bool) $row->enabled )
-            ->set_created_at( $row->created_at )
-            ->set_updated_at( $row->updated_at );
+        $mon->set_id( $row['id'] ?? 0 )
+            ->set_item_id( $row['item_id'] ?? '' )
+            ->set_item_type( $row['item_type'] ?? '' )
+            ->set_enabled( (bool) $row['enabled'] ?? false )
+            ->set_created_at( $row['created_at'] ?? '' )
+            ->set_updated_at( $row['updated_at'] ?? '' );
 
         // hydrate tiers
-        $mon->set_tiers( PricingTier::get_by_monetization_id( $row->id ) );
+        $mon->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
 
         return $mon;
     }
@@ -411,29 +387,25 @@ class Monetization {
      * @return Monetization|null
      */
     public static function get_by_app( $app_type, $app_id ) {
-        global $wpdb;
+        $db     = smliser_dbclass();
+        $table  = SMLISER_MONETIZATION_TABLE;
 
-        $row = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM " . SMLISER_MONETIZATION_TABLE . " WHERE item_type = %s AND item_id = %s",
-                sanitize_text_field( $app_type ),
-                sanitize_text_field( $app_id )
-            )
-        );
+        $sql    = "SELECT * FROM {$table} WHERE item_type = ? AND item_id = ?";
+        $row    = $db->get_row( $sql, [$app_type, $app_id]);
 
         if ( ! $row ) {
             return null;
         }
 
         $mon = new self();
-        $mon->set_id( $row->id )
-            ->set_item_id( $row->item_id )
-            ->set_item_type( $row->item_type )
-            ->set_enabled( (bool) $row->enabled )
-            ->set_created_at( $row->created_at )
-            ->set_updated_at( $row->updated_at );
+        $mon->set_id( $row['id'] ?? 0 )
+            ->set_item_id( $row['item_id'] ?? 0 )
+            ->set_item_type( $row['item_type'] ?? '' )
+            ->set_enabled( (bool) $row['enabled'] ?? false )
+            ->set_created_at( $row['created_at'] ?? '' )
+            ->set_updated_at( $row['updated_at'] ?? '' );
 
-        $mon->set_tiers( PricingTier::get_by_monetization_id( $row->id ) );
+        $mon->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
 
         return $mon;
     }

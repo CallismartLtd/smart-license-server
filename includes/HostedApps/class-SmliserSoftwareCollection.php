@@ -10,7 +10,7 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;

@@ -8,7 +8,7 @@
 namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 
 defined( 'ABSPATH' ) || exit;
 

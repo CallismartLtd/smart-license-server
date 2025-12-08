@@ -9,7 +9,7 @@
  */
 namespace SmartLicenseServer;
 
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
@@ -37,8 +37,8 @@ class Installer {
      * Handle plugin activation
      */
     public static function install() {
-        
         $result = self::init_repo_dir();
+
         if ( is_smliser_error( $result ) ) {
             update_option( 'smliser_directory_error', $result->get_error_message() );
         } else {
@@ -54,7 +54,7 @@ class Installer {
      * Create Database table
      */
     private static function create_tables(){
-        global $wpdb;
+        $db = \smliser_dbclass();
         $tables = array(
             SMLISER_LICENSE_TABLE,
             SMLISER_PLUGIN_ITEM_TABLE,
@@ -75,13 +75,12 @@ class Installer {
         );
 
         foreach( $tables as $table ) {
-            // phpcs:disable
-            $query			= $wpdb->prepare( "SHOW TABLES LIKE %s", $table );
-            $table_exists 	= $wpdb->get_var( $query );
-            // phpcs:enable
+            $sql    = "SHOW TABLES LIKE ?";
+            $table_exists 	= $db->get_var( $sql, [$table] );
 
             if ( $table !== $table_exists ) {
                 self::table_schema();
+                return;
             }
          }
     }
@@ -105,7 +104,6 @@ class Installer {
             'start_date DATE DEFAULT NULL',
             'end_date DATE DEFAULT NULL',
             'INDEX service_id_index (service_id)',
-            'INDEX item_id_index (item_id)',
             'INDEX status_index (status)',
             'INDEX user_id_index (user_id)',
         );
@@ -380,13 +378,11 @@ class Installer {
      * @param string $table_name    The table name
      * @param array $columns        The table columns.
      */
-    private static function run_db_delta( $table_name, $columns ) {
-        global $wpdb;
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-    
+    private static function run_db_delta( string $table_name, array $columns ) {
+        $db = \smliser_dbclass();    
         
-        $query			= $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name );
-        $table_exists 	= $wpdb->get_var( $query );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $exists_sql     = "SHOW TABLES LIKE ?";
+        $table_exists   = $db->get_var( $exists_sql, [$table_name] );
     
         if ( $table_exists !== $table_name ) {
             $charset_collate = self::charset_collate();
@@ -399,8 +395,7 @@ class Installer {
             $sql  = rtrim( $sql, ', ' );
             $sql .= ") $charset_collate;";
     
-            // Execute the SQL query.
-            dbDelta( $sql );
+            $db->query( $sql );
         }
     }
 
@@ -408,21 +403,11 @@ class Installer {
      * Retrieve the database charset and collate settings.
      *
      * This function generates a string that includes the default character set and collate
-     * settings for the WordPress database, based on the global $wpdb object.
      *
-     * @global wpdb $wpdb The WordPress database object.
      * @return string The generated charset and collate settings string.
      */
     private static function charset_collate() {
-        global $wpdb;
-        $charset_collate = '';
-        if ( ! empty( $wpdb->charset ) ) {
-            $charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
-        }
-        if ( ! empty( $wpdb->collate ) ) {
-            $charset_collate .= " COLLATE $wpdb->collate";
-        }
-        return $charset_collate;
+        return \smliser_dbclass()->get_charset_collate();
     }
 
     /**
@@ -441,21 +426,15 @@ class Installer {
      * @version 0.0.6
      */
     public static function migration_006() {
-        global $wpdb;
-
+        $db             = smliser_dbclass();
         $plugin_table = SMLISER_PLUGIN_ITEM_TABLE;
 
         // Check if 'status' column already exists
-        $column = $wpdb->get_results(
-            $wpdb->prepare(
-                "SHOW COLUMNS FROM {$plugin_table} LIKE %s",
-                'status'
-            )
-        );
-
+        $column = $db->get_results("SHOW COLUMNS FROM {$plugin_table} LIKE ?", 'status' );
+ 
         if ( empty( $column ) ) {
             // Add 'status' column
-            $wpdb->query(
+            $db->query(
                 "ALTER TABLE {$plugin_table} 
                 ADD COLUMN status VARCHAR(55) NOT NULL DEFAULT 'active' 
                 AFTER download_link"
@@ -542,5 +521,4 @@ class Installer {
 
         smliser_send_json_success( array( 'message' => 'The repository has been migrated from version "' . $repo_version . '" to version "' . SMLISER_VER ) );
     }
-
 }

@@ -8,10 +8,10 @@
 
 namespace SmartLicenseServer\HostedApps;
 
-use SmartLicenseServer\Exception;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
-use SmartLicenseServer\ThemeRepository;
+use SmartLicenseServer\FileSystem\ThemeRepository;
 
 defined( 'ABSPATH' ) || exit;
 
