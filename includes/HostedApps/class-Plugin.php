@@ -12,7 +12,7 @@ use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Represents a typical plugin hosted in this repository.
@@ -249,7 +249,7 @@ class Plugin extends AbstractHostedApp {
      */
     public function get_icon() : string {
         $icons              = $this->get_icons();
-        return $icons['1x'] ?? $icons['2x'] ?? smliser_get_app_placeholder_icon();
+        return $icons['1x'] ?? $icons['2x'] ?? smliser_get_app_placeholder_icon( $this->get_type() );
     }
 
     /*
@@ -409,7 +409,7 @@ class Plugin extends AbstractHostedApp {
         /** 
          * Set file information
          * 
-         * @var SmartLicenseServer\FileSystem\PluginRepository $repo_class
+         * @var \SmartLicenseServer\FileSystem\PluginRepository $repo_class
          */
         $repo_class = SmliserSoftwareCollection::get_app_repository_class( $self->get_type() );
 
@@ -501,6 +501,7 @@ class Plugin extends AbstractHostedApp {
             'banners'           => $this->get_banners(),
             'screenshots'       => $this->get_screenshots(),
             'icons'             => $this->get_icons(),
+            'icon'              => $this->get_icon(),
             'requires'          => $this->get_required(),
             'tested'            => $this->get_tested_up_to(),
             'requires_php'      => $this->get_required_php(),

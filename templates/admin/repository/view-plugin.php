@@ -11,7 +11,7 @@
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 /** 
  * Set file information
  * 

@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Exception;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Adapter for Laravel database access.

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="pluginGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Rounded Square Background -->
+  <rect width="128" height="128" rx="24" fill="url(#pluginGradient)"/>
+  
+  <!-- Plugin Puzzle Piece Icon -->
+  <g transform="translate(64, 64)" filter="url(#shadow)">
+    <!-- Main puzzle piece shape -->
+    <path d="M-25,-25 L-25,-10 Q-25,-5 -20,-5 Q-15,-5 -15,-10 L-15,-25 L0,-25 L0,-10 Q0,-5 5,-5 Q10,-5 10,-10 L10,-25 L25,-25 L25,-10 Q25,-5 25,0 L10,0 Q5,0 5,5 Q5,10 10,10 L25,10 L25,25 L10,25 Q5,25 5,20 Q5,15 0,15 Q-5,15 -5,20 L-5,25 L-25,25 L-25,10 Q-25,5 -20,5 Q-15,5 -15,10 L-15,25 L-25,25 Z" 
+          fill="white" 
+          opacity="0.95"/>
+    
+    <!-- Inner accent circles -->
+    <circle cx="-8" cy="-8" r="3" fill="#667eea" opacity="0.5"/>
+    <circle cx="8" cy="8" r="3" fill="#667eea" opacity="0.5"/>
+  </g>
+  
+  <!-- "P" Badge (Bottom Right) -->
+  <g transform="translate(100, 100)">
+    <circle r="14" fill="white" opacity="0.95"/>
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="central" 
+          font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#667eea">
+      P
+    </text>
+  </g>
+</svg>

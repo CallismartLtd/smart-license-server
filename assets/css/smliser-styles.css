@@ -968,6 +968,7 @@ input.smliser_toggle-switch-input {
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
+    text-decoration: none;
 }
 
 .smliser-icon-btn:hover {
@@ -1239,7 +1240,7 @@ input.smliser_toggle-switch-input {
 
 .smliser-gallery-preview_image img {
     margin: 0 auto;
-    max-width: 350px;
+    max-width: 470px;
     
 }
 

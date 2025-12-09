@@ -8,7 +8,7 @@
  * @package Smliser\functions
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Format Timestamp to date according to WordPress time settings

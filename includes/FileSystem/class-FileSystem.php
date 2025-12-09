@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-defined( 'SMLISER_PATH' ) || exit; // phpcs-ignore
+defined( 'SMLISER_ABSPATH' ) || exit; // phpcs-ignore
 
 /**
  * Provides a safe filesystem operations handler.
@@ -37,11 +37,11 @@ class FileSystem {
      */
     private static function _init_fs() {
         // If we are in WordPress context, use its filesystem API
-        if ( defined( 'ABSPATH' ) ) {
+        if ( defined( 'SMLISER_ABSPATH' ) ) {
             // This is WordPress context
             global $wp_filesystem;
             if ( ! $wp_filesystem ) {
-                require_once ABSPATH . 'wp-admin/includes/file.php';
+                require_once SMLISER_ABSPATH . 'wp-admin/includes/file.php';
                 
                 WP_Filesystem();
             }

@@ -6,7 +6,7 @@
  * @package Smliser\templates
  * @since 1.0.0
  */
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 <h1>API KEYS</h1>
 <?php if ( isset( $_GET['action'] ) && 'add-new-key' === sanitize_key( $_GET['action'] ) ):?>

@@ -13,7 +13,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\ThemeRepository;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Represents a typical theme hosted in the repository.
@@ -155,7 +155,7 @@ class Theme extends AbstractHostedApp {
      * Get the theme main icon
      */
     public function get_icon() : string {
-        return smliser_get_app_placeholder_icon();
+        return smliser_get_app_placeholder_icon( $this->get_type() );
     }
 
     /*
@@ -195,7 +195,7 @@ class Theme extends AbstractHostedApp {
      * 
      * @param string $url
      */
-    public function set_screenshot_url( $url ) {
+    public function set_screenshot_url( string $url ) {
         $this->screenshot_url = $url;
     }
     
@@ -369,7 +369,7 @@ class Theme extends AbstractHostedApp {
         /** 
          * Set file information
          * 
-         * @var \SmartLicenseServer\ThemeRepository $repo_class
+         * @var \SmartLicenseServer\FileSystem\ThemeRepository $repo_class
          */
         $repo_class = SmliserSoftwareCollection::get_app_repository_class( $self->get_type() );
 
@@ -455,6 +455,7 @@ class Theme extends AbstractHostedApp {
             'version'               => $this->get_version(),
             'preview_url'           => $this->get_meta( 'preview_url' ),
             'author'                => $this->get_author( '' ),
+            'icon'                  => $this->get_icon(),
             'screenshot_url'        => $this->get_screenshot_url(),
             'rating'                => $this->get_ratings(),
             'num_ratings'           => $this->get_num_ratings(),

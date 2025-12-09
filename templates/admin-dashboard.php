@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
 ?>
 <h1>Dashboard</h1>

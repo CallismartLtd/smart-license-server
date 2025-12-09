@@ -11,7 +11,7 @@ namespace SmartLicenseServer;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\Monetization\License;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 class SmliserStats {
     /**

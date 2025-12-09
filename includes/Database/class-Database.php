@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Database;
 
 use PDO;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Provides a unified database access layer across different environments.
@@ -83,7 +83,7 @@ class Database {
      */
     protected static function detect_environment() {
         // --- 1. WordPress Environment (Highest Priority) ---
-        if ( defined( 'ABSPATH' ) && class_exists( '\wpdb' ) && isset( $GLOBALS['wpdb'] ) ) {
+        if ( defined( 'SMLISER_ABSPATH' ) && class_exists( '\wpdb' ) && isset( $GLOBALS['wpdb'] ) ) {
             return new WPAdapter( $GLOBALS['wpdb'] );
         }
 

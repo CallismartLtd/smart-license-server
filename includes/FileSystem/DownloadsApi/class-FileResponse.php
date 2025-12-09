@@ -14,7 +14,7 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * The download response class
@@ -232,12 +232,10 @@ class FileResponse extends Response {
         ];
 
         $can_render_inline = false;
-        foreach ( $renderable_prefixes as $prefix ) {
-            if ( str_starts_with( $mimeType, $prefix ) ) {
-                $can_render_inline = true;
-                break;
-            }
+        if ( FileSystemHelper::is_image( $this->file ) ) {
+            $can_render_inline = true;
         }
+        
 
         $disposition        = ( $isInlineRequested && $can_render_inline ) ? 'inline' : 'attachment';
         $encodedFilename    = rawurlencode( $fileName );

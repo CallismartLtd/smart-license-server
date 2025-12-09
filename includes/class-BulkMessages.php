@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * The bulk messages class provides the API to broadcast messages for the entire site

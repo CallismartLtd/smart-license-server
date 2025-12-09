@@ -6,7 +6,7 @@
  * @package Smliser\templates
  * @since 1.0.0
  */
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 <h1>General</h1>
 <?php if ( get_transient( 'smliser_form_validation_message' ) ) :?>

@@ -16,7 +16,7 @@ use SmartLicenseServer\Monetization\Monetization,
 
 ;
 
-defined( 'ABSPATH' ) || exit; 
+defined( 'SMLISER_ABSPATH' ) || exit; 
 
 $id         = smliser_get_query_param( 'item_id' );
 $app_type   = smliser_get_query_param( 'type' );
@@ -56,9 +56,15 @@ $edit_url->add_query_param( 'tab', 'edit' );
                 <h2>Application Details</h2>
                 <table class="widefat striped">
                     <tr>
-                        <th>Name:</th>
+                        <th>App Name:</th>
                         <td><?php echo esc_html( $app->get_name() ); ?></td>
                     </tr>
+                    
+                    <tr>
+                        <th>App Type:</th>
+                        <td><?php echo esc_html( $app->get_type() ); ?></td>
+                    </tr>
+
                     <tr>
                         <th>Version:</th>
                         <td><?php echo esc_html( $app->get_version() ); ?></td>

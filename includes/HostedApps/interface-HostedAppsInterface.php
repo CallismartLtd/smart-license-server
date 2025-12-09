@@ -12,7 +12,7 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Hosted Applications interface.

@@ -15,7 +15,7 @@ use \ZipArchive;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\MDParser;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 class ThemeRepository extends Repository {
 
@@ -314,13 +314,13 @@ class ThemeRepository extends Repository {
         try {
             $base_dir = $this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
-            return [];
+            return ( 'screenshot' === $type ) ? '' : [];
         }
 
         $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
         if ( ! $this->is_dir( $assets_dir ) ) {
-            return [];
+            return ( 'screenshot' === $type ) ? '' : [];
         }
 
         switch ( $type ) {

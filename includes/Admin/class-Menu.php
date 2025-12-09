@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\RESTAPI\Versions\V1;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * The admin menu class handles all admin menu registry and routing.

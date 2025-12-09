@@ -7,7 +7,7 @@
 
 namespace SmartLicenseServer\Core;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * The classical representation a request object that is undrstood by all core models.

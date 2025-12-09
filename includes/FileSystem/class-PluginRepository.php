@@ -13,7 +13,7 @@ namespace SmartLicenseServer\FileSystem;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\MDParser;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Plugin repository class provides filesystem APIs to interact with hosted plugins in the repository.

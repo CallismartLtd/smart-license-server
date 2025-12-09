@@ -13,7 +13,7 @@ namespace SmartLicenseServer\Database;
 use PDO;
 use PDOException;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Adapter for PDO database access.

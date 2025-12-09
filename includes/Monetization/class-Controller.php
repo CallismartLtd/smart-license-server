@@ -14,7 +14,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Handles all requests related to software monetization
@@ -230,7 +230,7 @@ class Controller {
 
         if ( ! $monetization_id ) {
             smliser_send_json_error( array(
-                'message'  => __( 'Invalid monetization ID.', 'smliser' ),
+                'message'  => __( 'This monetization does not exist yet, please add a pricing tier first.', 'smliser' ),
                 'field_id' => 'monetization_id',
             ) );
         }

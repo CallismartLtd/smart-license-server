@@ -7,7 +7,7 @@
  * @var SmartLicenseServer\Monetization\License[] $licenses
  */
 
-defined( 'ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <div class="smliser-table-wrapper">
     <h1>Licenses</h1>

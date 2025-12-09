@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Database;
 use mysqli;
 use mysqli_stmt;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Adapter for MySQLi database access.

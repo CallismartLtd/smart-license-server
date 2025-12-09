@@ -11,7 +11,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * WooCommerce Monetization Provider Class

@@ -39,7 +39,7 @@ defined( 'ABSPATH'  ) || exit;
  * Wordpress adapter bridges the gap beween Smart License Server and request from
  * WP environments
  */
-class WPAdapter extends Config {
+class WPAdapter extends Config implements EnvironmentProviderInterface {
 
     /**
      * Single instance of this class.
@@ -52,15 +52,16 @@ class WPAdapter extends Config {
      * Class constructor.
      */
     public function __construct() {
-        $absolute_path  = \WP_CONTENT_DIR;
+        $repo_path      = \WP_CONTENT_DIR;
+        $absolute_path  = \ABSPATH;
         $db_prefix      = $GLOBALS['wpdb']?->prefix;
-        parent::instance( \compact( 'absolute_path', 'db_prefix' ) );
+        parent::instance( \compact( 'absolute_path', 'db_prefix', 'repo_path' ) );
 
         add_action( 'admin_init', [__CLASS__, 'init_request'] );
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
         add_filter( 'template_include', array( $this, 'load_auth_template' ) );
         add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
-        add_action( 'init', array( ProviderCollection::class, 'auto_load' ) );
+        add_action( 'init', [__CLASS__, 'auto_register_monetization_providers'] );
         add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
         add_filter( 'rest_request_before_callbacks', [__CLASS__, 'rest_request_before_callbacks'], -1, 3 );
         add_filter( 'rest_post_dispatch', [__CLASS__, 'filter_rest_response'], 10, 3 );
@@ -841,6 +842,19 @@ class WPAdapter extends Config {
             return new WP_Error( 'rest_invalid_param', __( 'The value must be an integer.', 'smliser' ), array( 'status' => 400 ) );
         }
         return true;
+    }
+
+    /**
+    |---------------------------------------
+    | Concrete implementation of contracts
+    |---------------------------------------
+    */
+
+    /**
+     * Auto register monetization providers
+     */
+    public static function auto_register_monetization_providers() {
+        ProviderCollection::auto_load();
     }
 
 }

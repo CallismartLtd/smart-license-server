@@ -5,7 +5,7 @@
  * and query parameter validation
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 // Define the default values for the required parameters.
 $default_params = array(

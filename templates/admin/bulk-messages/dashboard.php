@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\templates
  */
 
-defined( 'ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <div class="smliser-table-wrapper">
     <h1><?php esc_html_e( 'Bulk Messages', 'smliser' ); ?></h1>

@@ -10,7 +10,7 @@
 
 namespace SmartLicenseServer\Database;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Adapter for WordPress database access.

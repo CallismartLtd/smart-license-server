@@ -9,7 +9,7 @@
  * @var array $template_content Array containing: Icons, Banners, Screenshots
  */
 
-defined( 'SMLISER_PATH' ) || exit; 
+defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 
 <div class="smliser-admin-repository-template">
@@ -21,15 +21,15 @@ defined( 'SMLISER_PATH' ) || exit;
             </a>
             <span>/</span>
             <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository&type=' . $app->get_type() ) ); ?>">
-                <i class="dashicons dashicons-open-folder"></i> <?php echo esc_html( ucfirst( $app->get_type() ) ); ?>
+                <i class="dashicons dashicons-open-folder"></i> <?php echo esc_html( rtrim( ucfirst( $app->get_type() ), 's' ) . 's' ); ?>
             </a>
             <span>/</span>
             <span><?php echo esc_html( $template_header['name'] ); ?></span>
         </div>
         <div class="smliser-quick-actions">
-            <button class="smliser-icon-btn" title="<?php esc_attr_e( 'Notifications', 'smliser' ); ?>">
-                <i class="dashicons dashicons-bell"></i>
-            </button>
+            <a class="smliser-icon-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>" title="<?php esc_attr_e( 'Edit', 'smliser' ); ?>">
+                <i class="dashicons dashicons-edit"></i>
+            </a>
             <button class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
                 <i class="dashicons dashicons-admin-generic"></i>
             </button>

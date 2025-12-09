@@ -6,7 +6,7 @@
  * @package Smliser\templates
  */
 
-defined( 'ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-table-wrapper">
     <h1><?php printf( '%s Repository', $type ? ucfirst( $type ) : '' );?></h1>    
     <a href="<?php echo esc_url( $add_url ); ?>" class="button action smliser-nav-btn">Upload New</a>

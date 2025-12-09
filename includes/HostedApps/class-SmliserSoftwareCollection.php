@@ -10,13 +10,14 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\HostedApps\Theme;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Software collection class is used to perform CRUD opertions on softwares hosted in this repository.
@@ -557,9 +558,12 @@ class SmliserSoftwareCollection {
                 throw new RequestException( $result->get_error_code() ?: 'save_failed', $result->get_error_message(), array( 'status' => 500 )  );
             }
 
-            $data = array( 'data' => array(
-                'message' => sprintf( '%s Saved', ucfirst( $app_type ) ),
-                'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'item_id' => $class->get_id() ) )
+            $data = array(
+                'success'   => true,
+                'data'      => array(
+                    'message' => sprintf( '%s Saved', ucfirst( $app_type ) ),
+                    'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'item_id' => $class->get_id() )
+                )
             ));
 
             return ( new Response( 200, array(), smliser_safe_json_encode( $data ) ) )
@@ -657,6 +661,10 @@ class SmliserSoftwareCollection {
                 throw new RequestException( $url->get_error_code() ?: 'remote_download_failed', $url->get_error_message() );
             }
             
+            $url = ( new URL( $url ) )
+                ->add_query_param( 'ver', time() )
+            ->__toString();
+
             $config = array(
                 'asset_type'    => $asset_type,
                 'app_slug'      => $app_slug,

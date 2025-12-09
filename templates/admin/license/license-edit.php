@@ -5,7 +5,7 @@
  * @var SmartLicenseServer\Monetization\License $license
  */
 
-defined( 'ABSPATH' ) ||  exit;
+defined( 'SMLISER_ABSPATH' ) ||  exit;
 ?>
 
 

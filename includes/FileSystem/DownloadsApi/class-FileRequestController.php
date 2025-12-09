@@ -12,7 +12,7 @@ use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use SmartLicenseServer\Monetization\License;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Resource download handler for Smart License Server.

@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Admin;
 use \SmartLicenseServer\BulkMessages;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * The admin bulk message page class

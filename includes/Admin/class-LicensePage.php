@@ -13,7 +13,7 @@ use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\SmliserStats;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * The admin license page class

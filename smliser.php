@@ -12,10 +12,11 @@ namespace SmartLicenseServer;
 
 defined( 'ABSPATH' ) || exit;
 
-if ( defined( 'SMLISER_PATH' ) ) {
+if ( defined( 'SMLISER_ABSPATH' ) ) {
     return;
 } 
 
+define( 'SMLISER_ABSPATH', \ABSPATH );
 define( 'SMLISER_PATH', __DIR__ . '/' );
 define( 'SMLISER_FILE', __FILE__ );
 define( 'SMLISER_VER', '0.2.0' );

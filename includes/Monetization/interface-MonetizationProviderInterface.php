@@ -9,7 +9,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Monetization Provider Interface

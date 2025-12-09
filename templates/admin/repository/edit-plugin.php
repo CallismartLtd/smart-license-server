@@ -5,7 +5,7 @@
  * @author Callistus Nwachukwu
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 $title          = sprintf( 'Edit Plugin: %s', $app->get_name() );
 $other_fields   = array(

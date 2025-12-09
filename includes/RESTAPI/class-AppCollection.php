@@ -13,7 +13,7 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Dedicated WordPress REST API endpoint for perform CRUD operations on hosted apps. 

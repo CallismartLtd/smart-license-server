@@ -14,7 +14,7 @@
  * @version 1.0.0
  */
 
- defined( 'ABSPATH' ) || exit;
+ defined( 'SMLISER_ABSPATH' ) || exit;
 
  ?><!DOCTYPE html>
  <html <?php language_attributes(); ?>>

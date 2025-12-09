@@ -3,18 +3,35 @@
  * Application upload page
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 $max_upload_size_bytes = wp_max_upload_size();
 $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 ?>
 
 <div class="application-uploader-page">
-    <h1><?php echo esc_html( $title ); ?>
-        <?php if ( ! empty( $app ) ) : ?>
-            <a class="button action smliser-nav-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">view</a>
-        <?php endif; ?>
-    </h1>
+    <!-- Top Navigation Breadcrumb -->
+    <nav class="smliser-top-nav">
+        <div class="smliser-breadcrumb">
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository' ) ); ?>">
+                <i class="dashicons dashicons-admin-home"></i> Repository
+            </a>
+            <span>/</span>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository&type=' . $app->get_type() ) ); ?>">
+                <i class="dashicons dashicons-open-folder"></i> <?php echo esc_html( rtrim( ucfirst( $app->get_type() ), 's' ) . 's' ); ?>
+            </a>
+            <span>/</span>
+            <span><?php echo esc_html( $title ); ?></span>
+        </div>
+        <div class="smliser-quick-actions">
+            <a class="smliser-icon-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>" title="<?php esc_attr_e( 'View', 'smliser' ); ?>">
+                <i class="dashicons dashicons-visibility"></i>
+            </a>
+            <button class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
+                <i class="dashicons dashicons-admin-generic"></i>
+            </button>
+        </div>
+    </nav>
 
     <form action="" class="app-uploader-form" id="newAppUploaderForm">
         <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', esc_html( $type ) ) ?>">

@@ -497,15 +497,17 @@ display: inline-block;
 
 
 .application-uploader-page {
-  margin: 0;
-  padding: 0;
-  max-width: 98%;
+    background: #f1f1f1;
+    min-height: 100vh;
+    margin-left: -20px;
+    margin-top: -10px;
 }
 
 .app-uploader-form {
   display: block; 
   background-color: #FFFFFF;
   padding: 10px;
+  margin: 20px;
 
 }
 

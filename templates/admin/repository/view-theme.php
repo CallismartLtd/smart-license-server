@@ -11,7 +11,7 @@
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 /** 
  * Set file information
  * 
@@ -64,15 +64,10 @@ $template_sidebar   = [
 
 ];
 
-$icons  = [];
-
-foreach( $app->get_icons() as $icon ) {
-    $icons[] = $icon;
-}
 
 
 $images   = [
-    'Icons'         => array_filter( $icons ),
+    'Screenshot'    => array_filter( [$app->get_screenshot_url()] ),
     'Screenshots'   => array_filter( $app->get_screenshots() ),
 ];
 

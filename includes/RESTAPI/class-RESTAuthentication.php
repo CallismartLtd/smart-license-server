@@ -13,7 +13,7 @@ use SmartLicenseServer\SmliserAPICred;
 use WP_REST_Request;
 use WP_REST_Response;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Rest API Authentication class

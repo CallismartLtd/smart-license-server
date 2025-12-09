@@ -13,7 +13,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 class Installer {
 

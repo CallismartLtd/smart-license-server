@@ -14,7 +14,7 @@ namespace SmartLicenseServer\FileSystem;
 use Normalizer;
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'SMLISER_PATH' ) || exit; // phpcs:ignore
+defined( 'SMLISER_ABSPATH' ) || exit; // phpcs:ignore
 
 /**
  * Provides static helpers for file inspection and validation.

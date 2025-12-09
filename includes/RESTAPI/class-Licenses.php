@@ -18,7 +18,7 @@ use WP_Error;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use SmartLicenseServer\SmliserStats;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Handles all the REST API for the license endpoints.

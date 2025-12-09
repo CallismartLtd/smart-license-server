@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\templates
  */
 
-defined( 'ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <h2>Monetization Providers</h2>
 <table class="widefat striped">
     <thead>

@@ -6,7 +6,7 @@
  * @var SmartLicenseServer\HostedApps\Theme $app
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 $title          = sprintf( 'Edit Theme: %s', $app->get_name() );
 $other_fields   = array(

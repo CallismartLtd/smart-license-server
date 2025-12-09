@@ -12,7 +12,7 @@
 
 namespace SmartLicenseServer\Exceptions;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Class FileRequestException

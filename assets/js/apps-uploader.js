@@ -1,10 +1,10 @@
-let newAppUploaderForm      = document.getElementById( 'newAppUploaderForm' );
+let newAppUploaderForm      = document.querySelector( '#newAppUploaderForm' );
 const queryParam            = new URLSearchParams( window.location.search );
 let appAssetUploadModal     = document.querySelector( '.smliser-admin-modal.app-asset-uploader' );
 let assetsContainer         = newAppUploaderForm.querySelector( '.app-uploader-below-section_assets' );
 let uploadToRepoButton      = appAssetUploadModal?.querySelector( '#upload-image' );
 
-if ( newAppUploaderForm  ) {
+if ( newAppUploaderForm ) {
     let uploadBtn       = document.querySelector('.smliser-upload-btn');
     let fileInfo        = document.querySelector('.smliser-file-info');
     let submitBtn       = newAppUploaderForm.querySelector( 'button[type="submit"]' );
@@ -63,7 +63,7 @@ if ( newAppUploaderForm  ) {
         if ( 'add-new' === queryParam.get( 'tab' ) && fileInput.files.length === 0 ) {
             e.preventDefault();
             const appType = StringUtils.ucfirst( queryParam.get( 'type' ) );
-            smliserNotify( `A ${appType} file is required.` );
+            smliserNotify( `A ${appType} file is required.`, 5000 );
         }
     });
 
@@ -102,10 +102,10 @@ if ( newAppUploaderForm  ) {
                 throw new Error( responseJson.data.message );
             }
 
-            smliserNotify( responseJson?.data?.message || 'Saved', 6000 );
+            smliserNotify( responseJson?.data?.message ?? 'Saved', 6000 );            
             setTimeout( () => {
                 window.location.href = responseJson.data.redirect_url;
-            });
+            }, 6000);
         } catch ( error ) {
             smliserNotify( error.message, 10000 );
         } finally {
@@ -165,7 +165,7 @@ const modalActions = {
             if ( totalImages >= json.limit ) {
                 addButton.classList.add( 'smliser-hide' );
                 modalActions.closeModal();
-                smliserNotify( `limit for ${StringUtils.ucfirst( json.asset_type )} has been reached.` );
+                smliserNotify( `limit for ${StringUtils.ucfirst( json.asset_type )} has been reached.`, 5000 );
             } else {
                 addButton.classList.remove( 'smliser-hide' );
             }            
@@ -357,7 +357,7 @@ const modalActions = {
                     if ( totalImages >= limit ) {
                         addButtonMore.classList.add( 'smliser-hide' );
                         modalActions.closeModal();
-                        smliserNotify( `limit for ${StringUtils.ucfirst( title )} has been reached.` );
+                        smliserNotify( `limit for ${StringUtils.ucfirst( title )} has been reached.`, 5000 );
                     } else {
                         addButtonMore.classList.remove( 'smliser-hide' );
                     }                    
@@ -542,7 +542,7 @@ const modalActions = {
                 throw Error( responseJson.data?.message ?? `unable to delete ${json.asset_name}` );
             }
 
-            smliserNotify( responseJson.data?.message, 300 );
+            smliserNotify( responseJson.data?.message, 3000 );
 
             const target = clickedBtn.closest( '.app-uploader-image-preview' );
 
@@ -562,7 +562,7 @@ const modalActions = {
         if ( totalImages >= json.limit ) {
             addButton.classList.add( 'smliser-hide' );
             modalActions.closeModal();
-            smliserNotify( `limit for ${StringUtils.ucfirst( json.asset_type )} has been reached.` );
+            smliserNotify( `limit for ${StringUtils.ucfirst( json.asset_type )} has been reached.`, 3000 );
         } else {
             addButton.classList.remove( 'smliser-hide' );
         }

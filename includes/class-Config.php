@@ -12,7 +12,7 @@ namespace SmartLicenseServer;
 use RuntimeException;
 use SmartLicenseServer\FileSystem\FileSystem;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 class Config {
 
@@ -87,7 +87,7 @@ class Config {
          *
          * This is the base directory where all hosted application files are stored.
          */
-        define( 'SMLISER_NEW_REPO_DIR', $parsed_config['absolute_path'] . '/smliser-repo' );
+        define( 'SMLISER_NEW_REPO_DIR', $parsed_config['repo_path'] . '/smliser-repo' );
 
         /**
          * Alias for the Smart License Server repository directory.
@@ -156,6 +156,7 @@ class Config {
         $default_config = array(
             'db_prefix'     => '',
             'absolute_path' => '',
+            'repo_path'     => ''
 
         );
 

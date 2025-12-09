@@ -10,7 +10,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * A pricing tier represents a specific license option for an item in the repository.

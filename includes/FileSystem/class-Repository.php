@@ -11,7 +11,7 @@ namespace SmartLicenseServer\FileSystem;
 use SmartLicenseServer\Exceptions\Exception;
 use ZipArchive;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * The repository class handles filesystem operations within the repository.
@@ -481,7 +481,7 @@ abstract class Repository extends FileSystem {
         $fs = FileSystem::instance();
 
         $directories = [
-            'repository' => SMLISER_NEW_REPO_DIR,
+            'repository' => SMLISER_REPO_DIR,
             'plugin'     => SMLISER_PLUGINS_REPO_DIR,
             'theme'      => SMLISER_THEMES_REPO_DIR,
             'software'   => SMLISER_SOFTWARE_REPO_DIR,

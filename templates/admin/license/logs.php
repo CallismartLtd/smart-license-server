@@ -8,7 +8,7 @@
  * @package Smliser\templates
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 
 <div class="smliser-admin-page">

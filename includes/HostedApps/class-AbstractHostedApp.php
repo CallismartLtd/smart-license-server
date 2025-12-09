@@ -10,7 +10,7 @@ namespace SmartLicenseServer\HostedApps;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Abstract Hosted Application Base Class

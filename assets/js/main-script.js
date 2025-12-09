@@ -628,7 +628,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 try {
                     appInfo = JSON.parse( appDeleteBtn.getAttribute( 'data-app-info' ) );
                 } catch (error) {
-                    smliserNotify( 'App data not found' );
+                    smliserNotify( 'App data not found',5000 );
                     return;
                 }
                 let url = new URL( smliser_var.smliser_ajax_url );
@@ -640,7 +640,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 fetch(url)
                     .then( response=>{
                         if ( ! response.ok ) {
-                            smliserNotify(`Error: [${response.status}] ${response.statusText}`);
+                            smliserNotify(`Error: [${response.status}] ${response.statusText}`, 5000);
                         }
                         return response.json();
                     })

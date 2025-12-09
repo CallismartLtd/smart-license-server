@@ -7,7 +7,7 @@
  * @since 1.0.0
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 <h2>Pages Setup</h2>
 

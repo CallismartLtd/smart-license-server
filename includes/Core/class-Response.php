@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Class HttpResponse

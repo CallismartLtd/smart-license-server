@@ -3,7 +3,7 @@
  * License edit form
  */
 
-defined( 'ABSPATH' ) ||  exit;
+defined( 'SMLISER_ABSPATH' ) ||  exit;
 ?>
 <h1>Add License <span class="dashicons dashicons-edit"></span></h1>
 <div class="smliser-form-container">

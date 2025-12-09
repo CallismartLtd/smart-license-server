@@ -11,7 +11,7 @@ namespace SmartLicenseServer\RESTAPI\Versions;
 
 use SmartLicenseServer\RESTAPI\RESTAuthentication;
 
-\defined( 'SMLISER_PATH' ) || exit;
+\defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Smart License Server API version 1

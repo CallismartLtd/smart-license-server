@@ -6,7 +6,7 @@
  * @package SmartLicensseServer\templates
  */
 
-defined( 'ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <h2><?php echo esc_html( $name ); ?> Settings</h2>
 

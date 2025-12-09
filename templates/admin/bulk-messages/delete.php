@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\templates
  */
 
-defined( 'ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <?php if ( ! $message ) : ?>
     <?php echo wp_kses_post( smliser_not_found_container( 'The specified bulk message could not be found.' ) ); ?>

@@ -14,7 +14,7 @@
 
 namespace SmartLicenseServer\Utils;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Class WPReadmeParser

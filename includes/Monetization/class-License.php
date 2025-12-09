@@ -14,7 +14,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use \SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * The license class represents a licensing model for hosted applications in the repository.
  * 

@@ -9,7 +9,7 @@ namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\SmliserAPICred;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 class OptionsPage {
     /**

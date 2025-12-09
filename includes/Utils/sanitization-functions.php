@@ -5,7 +5,7 @@
  * @author Callistus Nwachukwu
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Recursively unslash the give data

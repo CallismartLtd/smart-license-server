@@ -8,7 +8,7 @@
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 use SmartLicenseServer\Core\Request;
 
-defined( 'SMLISER_PATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Holds the incoming request for downloading a resource from this server.

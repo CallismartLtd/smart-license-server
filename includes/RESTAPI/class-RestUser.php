@@ -9,7 +9,7 @@ namespace SmartLicenseServer\RESTAPI;
 
 use WP_REST_Request;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Models a REST API user.

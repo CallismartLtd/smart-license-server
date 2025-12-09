@@ -9,7 +9,7 @@
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp $licensed_app
  */
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 ?>
 <h1>License Details</h1>

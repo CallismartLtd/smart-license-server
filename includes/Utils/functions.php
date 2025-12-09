@@ -16,7 +16,7 @@ use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Utils\MDParser;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Check whether debug mode is enabled.
@@ -1185,10 +1185,21 @@ function smliser_dbclass() : \SmartLicenseServer\Database\Database {
 /**
  * Get application placeholder image
  * 
+ * @param string $app_type
  * @return string
  */
-function smliser_get_app_placeholder_icon() : string {
-    return SMLISER_URL . 'assets/images/software-placeholder.svg';
+function smliser_get_app_placeholder_icon( string $app_type = '' ) : string {
+    $base_url   = trim( SMLISER_URL, '/' );
+    $base_path  = SMLISER_PATH;
+
+    $rel_path   = sprintf( '/assets/images/%s-placeholder.svg', $app_type );
+
+    $asset_path = FileSystemHelper::join_path( $base_path, $rel_path );
+
+    $icon       = sprintf( '%s/assets/images/%s-placeholder.svg', $base_url, $app_type );
+    $default    = sprintf( '%s/assets/images/software-placeholder.svg', $base_url );
+    
+    return file_exists( $asset_path ) ? $icon : $default;
 }
 
 /**

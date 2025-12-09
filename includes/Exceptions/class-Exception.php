@@ -8,7 +8,7 @@
 namespace SmartLicenseServer\Exceptions;
 use Exception as PHPException;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * A model of WP_Error that extends the exception handling capabilities.

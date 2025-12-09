@@ -11,7 +11,7 @@ namespace SmartLicenseServer;
 use WP_User;
 use stdClass;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 class SmliserAPICred {
     /**

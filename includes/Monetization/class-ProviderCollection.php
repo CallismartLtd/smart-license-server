@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Collection of available monetization providers.
@@ -288,5 +288,7 @@ class ProviderCollection {
                 self::instance()->register_provider( new $class );
             }
         }
+
+        self::instance()->register_provider( new WooCommerceProvider );
     }
 }

@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Monetization defines how an item in the repository is sold.

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <defs>
+        <linearGradient id="themeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#f093fb;stop-opacity:1"></stop>
+            <stop offset="100%" style="stop-color:#f5576c;stop-opacity:1"></stop>
+        </linearGradient>
+        <filter id="shadow2">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"></feDropShadow>
+        </filter>
+        <linearGradient id="brushGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"></stop>
+            <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.8"></stop>
+        </linearGradient>
+    </defs>
+    <rect width="128" height="128" rx="24" fill="url(#themeGradient)"></rect>
+    <g transform="translate(64, 64)" filter="url(#shadow2)">
+        <path d="M-20,-15 Q-25,-15 -25,-10 Q-25,10 -15,18 Q-5,25 10,25 Q25,25 30,15 Q35,5 30,-5 Q28,-8 25,-8 Q22,-8 22,-5 Q22,0 18,0 Q15,0 15,-3 L15,-8 Q15,-12 10,-12 Q5,-12 5,-8 L5,-5 Q5,0 0,0 Q-3,0 -3,-3 L-3,-8 Q-3,-12 -8,-12 Q-13,-12 -13,-8 L-13,-3 Q-13,2 -18,2 Q-20,2 -20,-1 Q-20,-10 -20,-15 Z" fill="white" opacity="0.95" stroke="white" stroke-width="2"></path>
+        <circle cx="-10" cy="-2" r="4" fill="#f093fb"></circle>
+        <circle cx="2" cy="-5" r="4" fill="#4facfe"></circle>
+        <circle cx="12" cy="5" r="4" fill="#43e97b"></circle>
+        <circle cx="-5" cy="10" r="4" fill="#fa709a"></circle>
+    </g>
+    <g transform="translate(85, 45) rotate(-30)" opacity="0.95">
+        <rect x="-2" y="-15" width="4" height="20" rx="1" fill="url(#brushGradient)"></rect>
+        <path d="M-3,-15 L-3,-20 Q-3,-22 0,-22 Q3,-22 3,-20 L3,-15 Z" fill="url(#brushGradient)"></path>
+    </g>
+    <g transform="translate(100, 100)">
+        <circle r="14" fill="white" opacity="0.95"></circle>
+        <text x="0" y="0" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#f5576c">T</text>
+    </g>
+</svg>

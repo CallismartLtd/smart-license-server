@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\SmliserStats;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * The admin dashboard page handler.

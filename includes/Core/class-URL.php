@@ -12,7 +12,7 @@
 
 namespace SmartLicenseServer\Core;
 
-defined( 'ABSPATH' ) || exit;
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 class URL {
 
