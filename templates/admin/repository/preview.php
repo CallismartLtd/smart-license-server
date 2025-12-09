@@ -111,7 +111,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                             ?>
                             <h3 class="smliser-gallery-preview_title"><?php echo esc_html( $first_title ); ?></h3>
                             <div class="smliser-gallery-preview_image">
-                                <img src="<?php echo esc_url( current( $first_image )?: SMLISER_URL . 'assets/images/no-image.svg' ); ?>" alt="image">
+                                <img class="smliser-request-fullscreen" src="<?php echo esc_url( current( $first_image )?: SMLISER_URL . 'assets/images/no-image.svg' ); ?>" alt="image" title="Double click for fullscreen">
                             </div>
                         </div>
                         
