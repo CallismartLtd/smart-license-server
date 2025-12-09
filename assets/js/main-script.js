@@ -295,6 +295,15 @@ document.addEventListener( 'DOMContentLoaded', function() {
             currentTitle.textContent    = clickedImage.getAttribute( 'data-repo-image-title' );
             clickedImage.classList.add( 'active' );
             
+        });
+
+        repoGaleryPreview.addEventListener('dblclick', ( e ) =>{
+            const mainImage = e.target.closest( '.smliser-request-fullscreen' );
+
+            if ( mainImage ) {
+                mainImage.requestFullscreen();
+            }
+
         })
     }
     if ( optionForms ) {
