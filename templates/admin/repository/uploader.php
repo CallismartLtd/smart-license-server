@@ -17,16 +17,18 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                 <i class="dashicons dashicons-admin-home"></i> Repository
             </a>
             <span>/</span>
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository&type=' . $app->get_type() ) ); ?>">
-                <i class="dashicons dashicons-open-folder"></i> <?php echo esc_html( rtrim( ucfirst( $app->get_type() ), 's' ) . 's' ); ?>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository&type=' . $type ) ); ?>">
+                <i class="dashicons dashicons-open-folder"></i> <?php echo esc_html( rtrim( ucfirst( $type ), 's' ) . 's' ); ?>
             </a>
             <span>/</span>
             <span><?php echo esc_html( $title ); ?></span>
         </div>
         <div class="smliser-quick-actions">
-            <a class="smliser-icon-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>" title="<?php esc_attr_e( 'View', 'smliser' ); ?>">
-                <i class="dashicons dashicons-visibility"></i>
-            </a>
+            <?php if ( ! empty( $app ) ) : ?>
+                <a class="smliser-icon-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>" title="<?php esc_attr_e( 'View', 'smliser' ); ?>">
+                    <i class="dashicons dashicons-visibility"></i>
+                </a>
+            <?php endif; ?>
             <button class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
                 <i class="dashicons dashicons-admin-generic"></i>
             </button>
