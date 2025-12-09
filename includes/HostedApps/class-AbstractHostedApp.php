@@ -927,7 +927,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * Get a sample of download URL for licensed app
      */
     public function monetized_url_sample() {
-        return sprintf( '%s?download_token={token}', $this->get_download_url() );
+        return sprintf( '%s?download_token=[TOKEN]', $this->get_download_url() );
     }
 
     /*

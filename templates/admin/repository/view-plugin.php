@@ -35,10 +35,12 @@ $info   = sprintf(
     '<ul class="smliser-app-meta">
         <li><span>%1$s</span> <span>#%2$s</span></li>
         <li><span>%3$s</span> <span>%4$s</span></li>
-        <li><span>%5$s</span> <a href="%13$s">%6$s</a></li>
+        <li><span>%5$s</span> <a href="%17$s">%6$s</a></li>
         <li><span>%7$s</span> <span>%8$s</span></li>
-        <li><span>%9$s</span> <span>%10$s</span></li>
-        <li><span>%11$s</span> <span>%12$s</span></li>
+        <li><span>%9$s</span> <i class="ti ti-circle-%10$s-filled"></i></li>
+        <li><span>%11$s</span> <i class="ti ti-copy smliser-click-to-copy" data-copy-value="%12$s" title="%12$s"></i></li>
+        <li><span>%13$s</span> <span>%14$s</span></li>
+        <li><span>%15$s</span> <span>%16$s</span></li>
     </ul>',
     __( 'APP ID', 'smliser' ),
     $app->get_id(),
@@ -48,6 +50,10 @@ $info   = sprintf(
     $plugin_meta['license'] ?? '',
     __( 'Status', 'smliser' ),
     $app->get_status(),
+    __( 'Monetization', 'smliser' ),
+    $app->is_monetized() ? 'check' : 'x',
+    __( 'Public Download URL', 'smliser' ),
+    $app->is_monetized() ? $app->monetized_url_sample() : $app->get_download_url(),
     __( 'File Size', 'smliser' ),
     FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) ),
     __( 'Last Updated', 'smliser' ),

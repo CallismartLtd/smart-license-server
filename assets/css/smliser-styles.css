@@ -1327,6 +1327,7 @@ input.smliser_toggle-switch-input {
 .smliser-app-meta li {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 12px 0;
     border-bottom: 1px dashed #e2e8f0;
     font-size: 14px;
@@ -1350,6 +1351,29 @@ input.smliser_toggle-switch-input {
 .smliser-app-meta li a {
     color: #0ea5e9;
     text-decoration: none;
+}
+
+.smliser-app-meta li i {
+    font-size: 24px;
+}
+.smliser-app-meta li i.ti-circle-x-filled {
+    color: red;
+}
+.smliser-app-meta li i.ti-circle-check-filled {
+    color: blue;
+}
+.smliser-app-meta li i.ti-copy {
+    font-size: 24px;
+    cursor: pointer;
+    color: #333333;
+}
+
+#smliser-download-url-preview {
+    min-height: 10px;
+    height: 20px;
+    min-width: 10px;
+    width: 150px;
+    font-size: 12px;
 }
 
 .smliser-app-meta li a:hover {

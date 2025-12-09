@@ -198,7 +198,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                         <?php esc_html_e( 'Application Info', 'smliser' ); ?>
                     </h3>
                     <div class="smliser-sidebar-content">
-                        <?php echo wp_kses_post( $template_sidebar['App Info'] ); ?>
+                        <?php echo ( $template_sidebar['App Info'] ); ?>
                     </div>
                 </div>
             <?php endif; ?>

@@ -321,7 +321,7 @@ class PricingTier {
      */
     public static function get_by_id( $id ) {
         $db = smliser_dbclass();
-        $table  = SMLISER_MONETIZATION_TABLE;
+        $table  = \SMLISER_PRICING_TIER_TABLE;
 
         $sql    = "SELECT * FROM {$table} WHERE id = ?";
         $row    = $db->get_row( $sql, [$id] );
@@ -351,7 +351,7 @@ class PricingTier {
      */
     public static function get_by_monetization_id( $monetization_id ) {
         $db     = smliser_dbclass();
-        $table  = SMLISER_MONETIZATION_TABLE;
+        $table  = \SMLISER_PRICING_TIER_TABLE;
 
         $sql    = "SELECT * FROM {$table} WHERE monetization_id = ?";
         $rows   = $db->get_results( $sql, [$monetization_id] );

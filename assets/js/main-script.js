@@ -274,6 +274,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const bulkMessageForm       = document.querySelector( 'form.smliser-compose-message-container' );
     const licenseAppSelect      = document.querySelector( '.license-app-select' );
     const repoGaleryPreview     = document.querySelector( '.smliser-screenshot-gallery' );
+    const allCopyEl             = document.querySelectorAll( '.smliser-click-to-copy' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
 
@@ -1285,6 +1286,14 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
         })
 
+    }
+
+    if ( allCopyEl.length ) {
+        allCopyEl.forEach( el => {
+            el.addEventListener( 'click', e => {
+                smliserCopyToClipboard( e.target.getAttribute( 'data-copy-value' ) );
+            });
+        })
     }
 
 });
