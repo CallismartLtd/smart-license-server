@@ -560,9 +560,38 @@ class PluginRepository extends Repository {
             return '';
         }
 
-        // Look for the "== Changelog ==" section in the readme.txt
+        // Look for the "== Installation ==" section in the readme.txt
         if ( preg_match( '/==\s*Installation\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
             return $this->parser->parse(  trim( $matches[1] ) );
+        }
+
+        return '';
+    }
+
+    /**
+     * Get plugin FAQ (Frequently Asked Questions) section
+     * 
+     * @param string $slug The plugin slug
+     * @return string The FAQ text in HTML format
+     */
+    public function get_faq( $slug ) {
+        $readme_contents = $this->get_readme_txt( $slug );
+
+        if ( ! $readme_contents ) {
+            return '';
+        }
+
+        // Look for FAQ section with various possible headings.
+        $patterns = [
+            '/==\s*Frequently Asked Questions\s*==\s*(.+?)(==|$)/si',
+            '/==\s*FAQ\s*==\s*(.+?)(==|$)/si',
+            '/==\s*F\.A\.Q\.\s*==\s*(.+?)(==|$)/si',
+        ];
+
+        foreach ( $patterns as $pattern ) {
+            if ( preg_match( $pattern, $readme_contents, $matches ) ) {
+                return $this->parser->parse( trim( $matches[1] ) );
+            }
         }
 
         return '';

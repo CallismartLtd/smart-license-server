@@ -290,10 +290,10 @@ class RepositoryPage {
                 <li><span>%5$s</span> <a href="%17$s">%6$s</a></li>
                 <li><span>%7$s</span> <span>%8$s</span></li>
                 <li><span>%9$s</span> <i class="ti ti-circle-%10$s-filled"></i></li>
-                <li><span>%11$s</span> 
+                <li title="%12$s"><span>%11$s</span> 
                     <i class="ti ti-copy smliser-click-to-copy" 
                         data-copy-value="%12$s" 
-                        title="%12$s"></i>
+                        title="copy"></i>
                 </li>
                 <li><span>%13$s</span> <span>%14$s</span></li>
                 <li><span>%15$s</span> <span>%16$s</span></li>

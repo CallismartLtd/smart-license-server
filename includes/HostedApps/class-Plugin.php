@@ -440,6 +440,8 @@ class Plugin extends AbstractHostedApp {
             'changelog'     => $repo_class->get_changelog( $self->get_slug() ),
             'installation'  => $repo_class->get_installation( $self->get_slug() ),
             'screenshots'   => $repo_class->get_screenshot_html( $self->get_slug() ),
+            'faq'           => $repo_class->get_faq( $self->get_slug() ),
+
         );
         $self->set_section( $sections );
 

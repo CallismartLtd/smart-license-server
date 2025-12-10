@@ -91,8 +91,11 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     protected $sections = array(
         'description'   => '',
         'installation'  => '',
-        'changelog'     => '',
+        'faq'           => '',
         'screenshots'   => '',
+        'changelog'     => '',
+        'reviews'       => '',
+
     );
 
     /**
@@ -353,6 +356,14 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
 
         if ( isset( $section_data['screenshots'] ) ) {
             $this->sections['screenshots'] = $section_data['screenshots'];
+        }
+        
+        if ( isset( $section_data['faq'] ) ) {
+            $this->sections['faq'] = $section_data['faq'];
+        }
+
+        if ( isset( $section_data['reviews'] ) ) {
+            $this->sections['reviews'] = $section_data['reviews'];
         }
     }
 
