@@ -115,7 +115,7 @@ class Config {
          *
          * Stores all software packages and related assets hosted in the repository.
          */
-        define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/software' );
+        define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/softwares' );
         
         register_activation_hook( SMLISER_FILE, array( Installer::class, 'install' ) );
 

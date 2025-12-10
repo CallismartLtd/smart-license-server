@@ -61,7 +61,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                 </div>
             </div>
             
-            <?php if ( ! empty( $template_header['short_description'] ) ) : ?>
+            <?php if ( array_key_exists( 'short_description', $template_header ) ) : ?>
                 <p class="smliser-app-description">
                     <?php echo wp_kses_post( $template_header['short_description'] ); ?>
                 </p>
@@ -131,7 +131,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             <?php endif; ?>
 
             <!-- Installation Instructions -->
-            <?php if ( ! empty( $template_sidebar['Installation'] ) ) : ?>
+            <?php if ( array_key_exists( 'Installation', $template_content ) ) : ?>
                 <div class="smliser-card">
                     <div class="smliser-card-header">
                         <div class="smliser-card-icon">
@@ -140,13 +140,13 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                         <h2 class="smliser-card-title"><?php esc_html_e( 'Installation', 'smliser' ); ?></h2>
                     </div>
                     <div class="smliser-card-content">
-                        <?php echo wp_kses_post( $template_sidebar['Installation'] ); ?>
+                        <?php echo wp_kses_post( $template_content['Installation'] ); ?>
                     </div>
                 </div>
             <?php endif; ?>
 
             <!-- Changelog -->
-            <?php if ( ! empty( $template_sidebar['Changelog'] ) ) : ?>
+            <?php if ( array_key_exists( 'Changelog', $template_content ) ) : ?>
                 <div class="smliser-card">
                     <div class="smliser-card-header">
                         <div class="smliser-card-icon">
@@ -155,7 +155,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                         <h2 class="smliser-card-title"><?php esc_html_e( 'Changelog', 'smliser' ); ?></h2>
                     </div>
                     <div class="smliser-card-content smliser-changelog">
-                        <?php echo wp_kses_post( $template_sidebar['Changelog'] ); ?>
+                        <?php echo wp_kses_post( $template_content['Changelog'] ); ?>
                     </div>
                 </div>
             <?php endif; ?>

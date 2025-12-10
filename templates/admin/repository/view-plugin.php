@@ -6,20 +6,14 @@
  * @package Smliser\templates.
  * @since 1.0.0
  * @var SmartLicenseServer\HostedApps\Plugin $app The plugin object.
- */
-
-use SmartLicenseServer\FileSystem\FileSystemHelper;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
-
-defined( 'SMLISER_ABSPATH' ) || exit;
-/** 
- * Set file information
- * 
  * @var SmartLicenseServer\PluginRepository $repo_class
  */
-$repo_class = SmliserSoftwareCollection::get_app_repository_class( $app->get_type() );
 
-$plugin_meta    = $repo_class->get_metadata( $app->get_slug() ); 
+defined( 'SMLISER_ABSPATH' ) || exit;
+
+$plugin_meta    = $repo_class->get_metadata( $app->get_slug() );
+
+// Authors listing will differ in the future.
 $author = sprintf(
     '<ul>
         <li><a href="%1$s">%2$s</a></li>
@@ -29,46 +23,7 @@ $author = sprintf(
     $app->get_author()
 );
 
-$last_updated_string = sprintf( '%s ago', smliser_readable_duration( time() - strtotime( $app->get_last_updated() ) ) );
-
-$info   = sprintf(
-    '<ul class="smliser-app-meta">
-        <li><span>%1$s</span> <span>#%2$s</span></li>
-        <li><span>%3$s</span> <span>%4$s</span></li>
-        <li><span>%5$s</span> <a href="%17$s">%6$s</a></li>
-        <li><span>%7$s</span> <span>%8$s</span></li>
-        <li><span>%9$s</span> <i class="ti ti-circle-%10$s-filled"></i></li>
-        <li><span>%11$s</span> <i class="ti ti-copy smliser-click-to-copy" data-copy-value="%12$s" title="%12$s"></i></li>
-        <li><span>%13$s</span> <span>%14$s</span></li>
-        <li><span>%15$s</span> <span>%16$s</span></li>
-    </ul>',
-    __( 'APP ID', 'smliser' ),
-    $app->get_id(),
-    __( 'Platform', 'smliser' ),
-    __( 'WordPress', 'smliser' ),
-    __( 'License', 'smliser' ),
-    $plugin_meta['license'] ?? '',
-    __( 'Status', 'smliser' ),
-    $app->get_status(),
-    __( 'Monetization', 'smliser' ),
-    $app->is_monetized() ? 'check' : 'x',
-    __( 'Public Download URL', 'smliser' ),
-    $app->is_monetized() ? $app->monetized_url_sample() : $app->get_download_url(),
-    __( 'File Size', 'smliser' ),
-    FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) ),
-    __( 'Last Updated', 'smliser' ),
-    $last_updated_string,
-    $plugin_meta['license_uri'] ?? ''
-);
-
-$template_sidebar   = [
-    'Author'                => $author,
-    'Performance Metrics'   => '', //TODO: Use Analytics class to build.
-    'App Info'              => $info,
-    'Installation'          => $app->get_installation(),
-    'Changelog'             => $app->get_changelog(),
-
-];
+$template_sidebar['Author']     = $author;
 
 $screenshots = [];
 
@@ -76,18 +31,8 @@ foreach( $app->get_screenshots() as $screenshot ) {
     $screenshots[] = $screenshot['src'] ?? '';
 }
 
-$banners    = [];
-
-foreach( $app->get_banners() as $banner ) {
-    $banners[] = $banner;
-}
-
-$icons  = [];
-
-foreach( $app->get_icons() as $icon ) {
-    $icons[] = $icon;
-}
-
+$banners    = $app->get_banners();
+$icons      = $app->get_icons();
 
 $images   = [
     'Icons'         => array_filter( $icons ),

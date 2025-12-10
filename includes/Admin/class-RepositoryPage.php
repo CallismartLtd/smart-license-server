@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 
 /**
@@ -126,8 +127,8 @@ class RepositoryPage {
         }
 
         /** @var AbstractHostedApp|null */
-        $app = $class::$method( $id );
-
+        $app        = $class::$method( $id );
+        $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app->get_type() );
         if ( ! $app ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
@@ -135,6 +136,9 @@ class RepositoryPage {
         $url            = new URL( admin_url( 'admin.php?page=repository' ) );
         $download_url   = new URL( admin_url( 'admin-post.php' ) );
         $download_url->add_query_params([ 'action' => 'smliser_admin_download', 'type' => $app->get_type(), 'id' => $app->get_id(), 'download_token' => wp_create_nonce( 'smliser_download_token' )] );
+        $meta                   = $repo_class->get_metadata( $app->get_slug() );
+        $last_updated_string    = sprintf( '%s ago', smliser_readable_duration( time() - strtotime( $app->get_last_updated() ) ) );
+        $file_size              = FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) );
 
         $template_header    = [
             'icon'              => $app->get_icon(),
@@ -178,8 +182,20 @@ class RepositoryPage {
                 ],
             ]
         ];
+        $template_content = [
+            'Installation'          => $app->get_installation(),
+            'Changelog'             => $app->get_changelog(),
+        ];
 
-        $route_descriptions = V1::describe_routes( 'repository' );   
+        $template_sidebar   = [
+            'Author'                => '',
+            'Performance Metrics'   => '', //TODO: Use Analytics class to build.
+            'App Info'              => self::build_info_html( $app, $meta, $file_size, $last_updated_string ),
+        ];
+
+        
+        $route_descriptions     = V1::describe_routes( 'repository' );   
+
         include_once $file;
     }
 
@@ -250,6 +266,55 @@ class RepositoryPage {
                     )
                 )
             ),
+        );
+    }
+
+
+    /**
+     * Build the INFO list (common to all hosted apps)
+     *
+     * @param AbstractHostedApp $app Hosted app instance.
+     * @param array             $meta Metadata array.
+     * @param string            $file_size Human-readable size.
+     * @param string            $last_updated_string Time string.
+     * @return string
+     */
+    public static function build_info_html( $app, $meta, $file_size, $last_updated_string ) {
+
+        $license_uri = $meta['license_uri'] ?? '';
+
+        return sprintf(
+            '<ul class="smliser-app-meta">
+                <li><span>%1$s</span> <span>#%2$s</span></li>
+                <li><span>%3$s</span> <span>%4$s</span></li>
+                <li><span>%5$s</span> <a href="%17$s">%6$s</a></li>
+                <li><span>%7$s</span> <span>%8$s</span></li>
+                <li><span>%9$s</span> <i class="ti ti-circle-%10$s-filled"></i></li>
+                <li><span>%11$s</span> 
+                    <i class="ti ti-copy smliser-click-to-copy" 
+                        data-copy-value="%12$s" 
+                        title="%12$s"></i>
+                </li>
+                <li><span>%13$s</span> <span>%14$s</span></li>
+                <li><span>%15$s</span> <span>%16$s</span></li>
+            </ul>',
+            __( 'APP ID', 'smliser' ),             //1
+            $app->get_id(),                         //2
+            __( 'Platform', 'smliser' ),           //3
+            __( 'WordPress', 'smliser' ),          //4
+            __( 'License', 'smliser' ),            //5
+            $meta['license'] ?? '',                //6
+            __( 'Status', 'smliser' ),             //7
+            $app->get_status(),                    //8
+            __( 'Monetization', 'smliser' ),       //9
+            $app->is_monetized() ? 'check' : 'x',  //10
+            __( 'Public Download URL', 'smliser' ),//11
+            $app->is_monetized() ? $app->monetized_url_sample() : $app->get_download_url(), //12
+            __( 'File Size', 'smliser' ),          //13
+            $file_size,                             //14
+            __( 'Last Updated', 'smliser' ),        //15
+            $last_updated_string,                   //16
+            $license_uri                             //17
         );
     }
 }

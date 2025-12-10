@@ -1101,7 +1101,7 @@ input.smliser_toggle-switch-input {
 }
 
 .smliser-btn {
-    padding: 14px 28px;
+    padding: 10px 15px;
     border: none;
     border-radius: 12px;
     font-size: 15px;
@@ -1143,6 +1143,10 @@ input.smliser_toggle-switch-input {
 
 .smliser-btn-danger:hover {
     background: rgba(239, 68, 68, 0.3);
+}
+
+.smliser-btn i {
+    font-size: 20px;
 }
 
 /* ============================================
