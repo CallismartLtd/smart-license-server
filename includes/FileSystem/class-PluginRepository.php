@@ -452,7 +452,7 @@ class PluginRepository extends Repository {
             $official_sections = ['Installation', 'Changelog', 'Frequently Asked Questions', 'Screenshots', 'Upgrade Notice'];
             foreach ( $official_sections as $section ) {
                 $pattern = '/==\s*' . preg_quote( $section, '/' ) . '\s*==.*?(?=^==\s*\w.*==|\z)/msi';
-                $description = preg_replace( $pattern, '', $description );;
+                $description = preg_replace( $pattern, '', $description );
             }
 
             // Step 3: Optional cleanup of stray metadata lines

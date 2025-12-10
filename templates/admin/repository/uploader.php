@@ -54,8 +54,8 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                     <div class="smliser-file-info" wp-max-upload-size= "<?php echo absint( $max_upload_size_mb ) ?>">
                         <span>No file selected.</span>
                     </div>
-                    <button type="button" class="smliser-upload-btn button"><span class="dashicons dashicons-media-archive"></span> Upload File</button>
-                    <button type="button" class="smliser-file-remove button smliser-hide"><span class="dashicons dashicons-remove" title="remove file"></span> Clear</button>
+                    <button type="button" class="smliser-upload-btn button">Drag over or click to upload file</button>
+                    <button type="button" class="smliser-file-remove button smliser-hide"><span class="dashicons dashicons-no-alt" title="remove file"></span> Clear</button>
                 </div>
             </div>
         </div>

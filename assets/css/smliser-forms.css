@@ -77,12 +77,15 @@ button.smliser-upload-btn,
 button.smliser-file-remove {
 display: inline-block;
   width: 80%;
-  border: solid blue .5px;
+  border: solid #dcdcde .5px !important;
   border-radius: 5px;
   cursor: pointer;
   margin-bottom: 10px !important;
-  line-height: 2 !important;
+  line-height: 1.5 !important;
   border-radius: 8px !important;
+}
+button.smliser-upload-btn {
+  border: dashed #dcdcde 3px !important;
 }
 .smliser-form-label {
   flex: 1; /* Label takes up some space */

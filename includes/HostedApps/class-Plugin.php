@@ -208,7 +208,7 @@ class Plugin extends AbstractHostedApp {
     /**
      * Get WordPress required version for plugin.
      */
-    public function get_required() {
+    public function get_requires_at_least() {
         return $this->requires_at_least;
     }
 
@@ -248,8 +248,16 @@ class Plugin extends AbstractHostedApp {
      * @return string
      */
     public function get_icon() : string {
-        $icons              = $this->get_icons();
-        return $icons['1x'] ?? $icons['2x'] ?? smliser_get_app_placeholder_icon( $this->get_type() );
+        $icons = $this->get_icons();
+                if ( ! empty($icons['1x'] ) ) {
+            return $icons['1x'];
+        }
+        
+        if ( ! empty($icons['2x'] ) ) {
+            return $icons['2x'];
+        }
+
+        return smliser_get_app_placeholder_icon( $this->get_type() );
     }
 
     /*
@@ -302,7 +310,7 @@ class Plugin extends AbstractHostedApp {
             'author'        => $this->get_author(),
             'status'        => $this->get_status(),
             'author_profile'=> $this->get_author_profile(),
-            'requires'      => $this->get_required(),
+            'requires'      => $this->get_requires_at_least(),
             'tested'        => $this->get_tested_up_to(),
             'requires_php'  => $this->get_required_php(),
             'download_link' => $this->get_download_link(),
@@ -504,7 +512,7 @@ class Plugin extends AbstractHostedApp {
             'screenshots'       => $this->get_screenshots(),
             'icons'             => $this->get_icons(),
             'icon'              => $this->get_icon(),
-            'requires'          => $this->get_required(),
+            'requires'          => $this->get_requires_at_least(),
             'tested'            => $this->get_tested_up_to(),
             'requires_php'      => $this->get_required_php(),
             'requires_plugins'  => [],

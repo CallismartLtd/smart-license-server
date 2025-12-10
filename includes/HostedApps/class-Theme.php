@@ -124,7 +124,7 @@ class Theme extends AbstractHostedApp {
     /**
      * Get WordPress required version for theme.
      */
-    public function get_required() {
+    public function requires_at_least() {
         return $this->requires_at_least;
     }
 
@@ -468,7 +468,7 @@ class Theme extends AbstractHostedApp {
             'sections'              => $this->get_sections(),
             'download_link'         => $this->get_download_url(),
             'tags'                  => $this->get_tags(),
-            'requires'                  => $this->get_required(),
+            'requires'                  => $this->requires_at_least(),
             'requires_php'              => $this->get_required_php(),
             'is_monetized'              => $this->is_monetized(),
             'external_support_url'      => $this->get_support_url(),

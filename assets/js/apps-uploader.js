@@ -121,14 +121,18 @@ if ( appUploaderForm ) {
         if ( e.dataTransfer.types.includes( 'Files' ) ) {
             e.dataTransfer.dropEffect = 'copy';
             appFileDropZone.classList.add( 'active' );
+
+            fileInfo.innerHTML = 'Drop file here';
         } else {
             e.dataTransfer.dropEffect = 'none';
+            fileInfo.innerHTML = originalText;
         }
         
     });
 
     appFileDropZone.addEventListener('dragleave', (e) => {
         appFileDropZone.classList.remove( 'active' );
+        fileInfo.innerHTML = originalText;
     });
 
     appFileDropZone.addEventListener( 'drop', (e) => {

@@ -3,6 +3,7 @@
  * Plugin edit file prepare the variables that will be used by the uploader.php
  * 
  * @author Callistus Nwachukwu
+ * @var \SmartLicenseServer\HostedApps\Plugin $app
  */
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -29,7 +30,7 @@ $other_fields   = array(
         'input' => array(
             'type'  => 'text',
             'name'  => 'app_required_wp_version',
-            'value' => $app->get_required(),
+            'value' => $app->get_requires_at_least(),
             'attr'  => array(
                 'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
