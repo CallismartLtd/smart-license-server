@@ -453,6 +453,9 @@ class Plugin extends AbstractHostedApp {
         );
         $self->set_section( $sections );
 
+        $manifest = $repo_class->get_app_dot_json( $self );
+        $self->set_manifest( $manifest );
+
         /**
          * Icons
          */

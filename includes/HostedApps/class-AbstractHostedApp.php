@@ -182,11 +182,22 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     protected $tags = [];
 
     /**
-     * App meta data
+     * App meta data stored in the database.
      * 
      * @var array $meta_data
      */
     protected $meta_data = [];
+
+    /**
+     * The applications manifest data used to build the app.json.
+     * 
+     * @var array $manifest
+     */
+    protected array $manifest = [
+        'platforms'     => [],
+        'tech_stack'    => [],
+        'dependencies'  => [],
+    ];
 
     /**
      * App trash status
@@ -420,6 +431,15 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     public function set_tags( $tags ) {
         $this->tags = array_map( 'sanitize_text_field', $tags );
     }
+
+    /**
+     * Set the manifest property.
+     * 
+     * @param array $data
+     */
+    public function set_manifest( array $data ) {
+        $this->manifest = \array_merge( $this->manifest, $data );
+    }
     
     /**
     |------------
@@ -647,6 +667,15 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     public function get_tags() {
         return $this->tags;
+    }
+
+    /**
+     * Get the manifest property
+     * 
+     * @return array
+     */
+    public function get_manifest() : array {
+        return $this->manifest;
     }
 
     /**

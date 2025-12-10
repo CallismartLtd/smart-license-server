@@ -409,6 +409,8 @@ class Theme extends AbstractHostedApp {
             'screenshots'   =>  [],
         );
         $self->set_section( $sections );
+        $manifest = $repo_class->get_app_dot_json( $self );
+        $self->set_manifest( $manifest );
 
         /**
          * The theme screenshot

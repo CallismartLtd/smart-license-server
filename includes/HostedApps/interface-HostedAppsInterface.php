@@ -216,6 +216,15 @@ interface HostedAppsInterface {
     public function get_rest_response() : array;
 
     /**
+     * Get the application app manifest.
+     * 
+     * The app manifest is used to build the app.json file store in the repository.
+     * 
+     * @return array
+     */
+    public function get_manifest() : array;
+
+    /**
      * Check whether the app is monetized
      * 
      * @return bool True when it is monetized, false otherwise.

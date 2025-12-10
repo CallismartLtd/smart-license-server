@@ -279,7 +279,7 @@ class RepositoryPage {
      * @param string            $last_updated_string Time string.
      * @return string
      */
-    public static function build_info_html( $app, $meta, $file_size, $last_updated_string ) {
+    private static function build_info_html( $app, $meta, $file_size, $last_updated_string ) {
 
         $license_uri = $meta['license_uri'] ?? '';
 

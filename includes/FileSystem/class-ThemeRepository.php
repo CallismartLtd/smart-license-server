@@ -18,6 +18,7 @@ use SmartLicenseServer\Utils\MDParser;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 class ThemeRepository extends Repository {
+    use WPRepoUtils;
 
     /**
      * The markdown parser
@@ -250,55 +251,6 @@ class ThemeRepository extends Repository {
     }
 
     /**
-     * Delete a theme from the repository.
-     * 
-     * @param string $slug The theme slug.
-     * @return true|Exception True on success, Exception on failure.
-     */
-    public function trash( string $slug ) {
-        if ( empty( $slug ) ) {
-            return new Exception( 'invalid_slug', 'The theme slug cannot be empty', ['status' => 400] );
-        }
-
-        $slug = $this->real_slug( $slug );
-        
-        if ( ! $this->queue_app_for_deletion( $slug ) ) {
-            return new Exception(
-                'deletion_failed',
-                sprintf( 'Failed to queue theme "%s" for deletion.', esc_html( $slug ) ),
-                [ 'status' => 500 ]
-            );
-        }
-
-        return true;
-    }
-
-    /**
-     * Restore a theme from the trash.
-     * 
-     * @param string $slug The theme slug.
-     * @return true|Exception True on success, Exception on failure.
-     */
-    public function restore_from_trash( string $slug ) {
-        if ( empty( $slug ) ) {
-            return new Exception( 'invalid_slug', 'The theme slug cannot be empty', ['status' => 400] );
-        }
-
-        $slug = $this->real_slug( $slug );
-
-        if ( ! $this->restore_queued_deletion( $slug ) ) {
-            return new Exception(
-                'restore_failed',
-                sprintf( 'Failed to restore theme "%s" from trash.', esc_html( $slug ) ),
-                [ 'status' => 500 ]
-            );
-        }
-
-        return true;
-    }
-   
-
-    /**
      * Abstract Implementation: Get theme assets as URLs.
      *
      * Theme assets includes screenshots (screenshot.png, etc.).
@@ -363,28 +315,6 @@ class ThemeRepository extends Repository {
             default:
                 return [];
         }
-    }
-
-    /**
-     * Delete a theme asset from the repository
-     * 
-     * @param string $slug     Theme slug (e.g., "my-theme").
-     * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
-     * @param string $filename The filename to delete.
-     *
-     * @return true|Exception True on success, Exception on failure.
-     */
-    public function delete_asset( $slug, $filename ) {
-        $path = $this->get_asset_path( $slug, $filename );
-
-        if ( is_smliser_error( $path ) ) {
-            return $path;
-        }
-
-        if ( ! $this->delete( $path ) ) {
-            return new Exception( 'unable_to_delete', sprintf( 'Unable to delete the file %s', $filename ), [ 'status', 500 ] );
-        }
-        return true;
     }
 
     /**

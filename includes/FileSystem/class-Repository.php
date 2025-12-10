@@ -255,7 +255,7 @@ abstract class Repository extends FileSystem {
      *
      * @param array  $file      The uploaded file ($_FILES format).
      * @param string $new_name  The preferred filename (without path).
-     * @param bool   $update    Whether this is an update to an existing plugin.
+     * @param bool   $update    Whether this is an update to an existing app.
      * @return string|\SmartLicenseServer\Exception Relative path to stored ZIP on success, Exception on failure.
      */
     protected function safe_zip_upload( array $file, string $new_name, bool $update = false ) {
@@ -301,22 +301,22 @@ abstract class Repository extends FileSystem {
             // New upload: prevent overwriting existing slug.
             if ( $this->is_dir( $base_folder ) ) {
                 return new Exception(
-                    'plugin_slug_exists',
-                    sprintf( 'The slug "%s" is not available, you can change the plugin name and try again.', $slug ),
+                    'app_slug_exists',
+                    sprintf( 'The slug "%s" is not available, you can change the %s name and try again.', $slug, $this->current_slug ),
                     [ 'status' => 400 ]
                 );
             }
 
             if ( ! $this->mkdir( $base_folder, FS_CHMOD_DIR ) ) {
-                return new Exception( 'repo_error', 'Unable to create plugin directory.', [ 'status' => 500 ] );
+                return new Exception( 'repo_error', \sprintf( 'Unable to create %s directory.', $this->current_slug ), [ 'status' => 500 ] );
             }
             
         } else {
-            // Update: ensure slug folder and plugin already exists.
+            // Update: ensure slug folder and app already exists.
             if ( ! $this->is_dir( $base_folder ) && ! $this->mkdir( $base_folder, FS_CHMOD_DIR )) {
                 return new Exception(
-                    'plugin_not_found',
-                    sprintf( 'The plugin slug "%s" does not exist in the repository, and attempt to create one failed.', $slug ),
+                    'app_not_found',
+                    sprintf( 'The %s slug "%s" does not exist in the repository, and attempt to create one failed.', $this->current_slug, $slug ),
                     [ 'status' => 404 ]
                 );
             }
@@ -326,9 +326,9 @@ abstract class Repository extends FileSystem {
     }
 
     /**
-     * Normalize a plugin slug to get the first folder.
+     * Normalize an app slug to get the first folder.
      *
-     * @param string $slug Input like "plugin/plugin.zip"
+     * @param string $slug Input like "plugin/plugin.zip or theme.zip"
      * @return string First folder name (slug)
      * @throws \InvalidArgumentException If slug is empty or contains invalid references
      */
@@ -366,6 +366,30 @@ abstract class Repository extends FileSystem {
     }
 
     /**
+     * Move an app to trash.
+     * 
+     * @param string $slug The app slug.
+     * @return true|Exception True on success, Exception on failure.
+     */
+    public function trash( string $slug ) {
+        if ( empty( $slug ) ) {
+            return new Exception( 'invalid_slug', \sprintf( 'The %s slug cannot be empty', $this->current_slug ), ['status' => 400] );
+        }
+
+        $slug = $this->real_slug( $slug );
+        
+        if ( ! $this->queue_app_for_deletion( $slug ) ) {
+            return new Exception(
+                'deletion_failed',
+                sprintf( 'Failed to queue %s "%s" for deletion.', $this->current_slug, $slug ),
+                [ 'status' => 500 ]
+            );
+        }
+
+        return true;
+    }
+
+    /**
      * Queue the given app slug for deletion from the repository.
      * Adds a timestamp for reliable later cleanup.
      *
@@ -399,6 +423,34 @@ abstract class Repository extends FileSystem {
 
         if ( ! $this->put_contents( $timestamp_file, (string) time() ) ) {
             return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Restore an app (plugin/theme) from the trash.
+     * 
+     * @param string $slug The app slug.
+     * @return true|Exception True on success, Exception on failure.
+     */
+    public function restore_from_trash( string $slug ) {
+        if ( empty( $slug ) ) {
+            return new Exception( 
+                'invalid_slug', 
+                'The application slug cannot be empty',
+                [ 'status' => 400 ] 
+            );
+        }
+
+        $slug = $this->real_slug( $slug );
+
+        if ( ! $this->restore_queued_deletion( $slug ) ) {
+            return new Exception(
+                'restore_failed',
+                sprintf( 'Failed to restore "%s" from trash.', esc_html( $slug ) ),
+                [ 'status' => 500 ]
+            );
         }
 
         return true;
@@ -462,6 +514,13 @@ abstract class Repository extends FileSystem {
      * @return string|Exception The asset path or Exception on failure.
      */
     abstract public function upload_asset( string $app_slug, array $asset_file, string $asset_type, string $asset_name );
+
+    /**
+     * Get the content of an app.json json file
+     * 
+     * @param \SmartLicenseServer\HostedApps\AbstractHostedApp $app
+     */
+    abstract public function get_app_dot_json( \SmartLicenseServer\HostedApps\AbstractHostedApp $app );
 
     /**
     |---------------------------
@@ -597,5 +656,27 @@ abstract class Repository extends FileSystem {
         }
 
         return $asset_dir;
+    }
+
+    /**
+     * Delete an app asset from the repository
+     * 
+     * @param string $slug     App slug (e.g., "my-plugin").
+     * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
+     * @param string $filename The filename to delete.
+     *
+     * @return true|Exception True on success, Exception on failure.
+     */
+    public function delete_asset( $slug, $filename ) {
+        $path = $this->get_asset_path( $slug, $filename );
+
+        if ( is_smliser_error( $path ) ) {
+            return $path;
+        }
+
+        if ( ! $this->delete( $path ) ) {
+            return new Exception( 'unable_to_delete', sprintf( 'Unable to delete the file %s', $filename ), [ 'status', 500 ] );
+        }
+        return true;
     }
 }

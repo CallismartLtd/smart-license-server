@@ -10,8 +10,12 @@
 
 namespace SmartLicenseServer\FileSystem;
 
+use InvalidArgumentException;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\Utils\MDParser;
+use TypeError;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -21,6 +25,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Note: it does not represent a single hosted plugin @see \SmartLicenseServer\HostedApps\Plugin
  */
 class PluginRepository extends Repository {
+    use WPRepoUtils;
 
     /**
      * Our readme parser class.
@@ -169,7 +174,7 @@ class PluginRepository extends Repository {
             );
         }
 
-        $asset_dir = trailingslashit( $path ) . 'assets/';
+        $asset_dir = FileSystemHelper::join_path( $path, 'assets/' );
 
         if ( ! $this->is_dir( $asset_dir ) && ! $this->mkdir( $asset_dir, FS_CHMOD_DIR ) ) {
             return new Exception( 'repo_error', 'Unable to create asset directory.', [ 'status' => 500 ] );
@@ -252,7 +257,7 @@ class PluginRepository extends Repository {
         }
 
         // Final destination
-        $dest_path = trailingslashit( $asset_dir ) . $target_name;
+        $dest_path = FileSystemHelper::join_path( $asset_dir, $target_name );
 
         // Move uploaded file
         if ( ! $this->rename( $file['tmp_name'], $dest_path ) ) {
@@ -262,28 +267,6 @@ class PluginRepository extends Repository {
 
     
         return smliser_get_app_asset_url( 'plugin', $slug, $target_name );
-    }
-
-    /**
-     * Delete a plugin asset from the repository
-     * 
-     * @param string $slug     Plugin slug (e.g., "my-plugin").
-     * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
-     * @param string $filename The filename to delete.
-     *
-     * @return true|Exception True on success, Exception on failure.
-     */
-    public function delete_asset( $slug, $filename ) {
-        $path = $this->get_asset_path( $slug, $filename );
-
-        if ( is_smliser_error( $path ) ) {
-            return $path;
-        }
-
-        if ( ! $this->delete( $path ) ) {
-            return new Exception( 'unable_to_delete', sprintf( 'Unable to delete the file %s', $filename ), [ 'status', 500 ] );
-        }
-        return true;
     }
 
     /**
@@ -305,7 +288,7 @@ class PluginRepository extends Repository {
             return [];
         }
 
-        $assets_dir = trailingslashit( $base_dir ) . 'assets/';
+        $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
         if ( ! $this->is_dir( $assets_dir ) ) {
             return [];
@@ -380,52 +363,6 @@ class PluginRepository extends Repository {
         }
 
         return [];
-    }
-
-    /**
-     * Delete a plugin by it's given slug.
-     * 
-     * @param string $slug The plugin slug.
-     * @return true|Exception True on success, Exception on failure.
-     */
-    public function trash( string $plugin_slug ) {
-        if ( empty( $plugin_slug ) ) {
-            return new Exception( 'invalid_slug', 'The application slug cannot be empty' );
-        }
-
-        $slug = $this->real_slug( $plugin_slug );
-        
-        if ( ! $this->queue_app_for_deletion( $slug ) ) {
-            return new Exception(
-                'deletion_failed',
-                \sprintf('Failed to queue plugin "%s" for deletion.', $slug )
-            );
-        }
-
-        return true;
-    }
-
-    /**
-     * Restore a plugin from the trash.
-     * 
-     * @param string $plugin_slug The plugin slug.
-     * @return true|Exception True on success, Exception on failure.
-     */
-    public function restore_from_trash( string $slug ) {
-        if ( empty( $slug ) ) {
-            return new Exception( 'invalid_slug', 'The application slug cannot be empty' );
-        }
-
-        $slug = $this->real_slug( $slug );
-
-        if ( ! $this->restore_queued_deletion( $slug ) ) {
-            return new Exception(
-                'restore_failed',
-                \sprintf('Failed to restore plugin "%s" from trash.', $slug )
-            );
-        }
-
-        return true;
     }
 
     /**
@@ -719,7 +656,7 @@ class PluginRepository extends Repository {
             return '';
         }
 
-        $file_path = trailingslashit( $base_dir ) . 'readme.txt';
+        $file_path = FileSystemHelper::join_path( $base_dir, 'readme.txt' );
 
         if ( ! $this->exists( $file_path ) ) {
             // Attempt to get it from the zipped plugin file.
@@ -846,5 +783,4 @@ class PluginRepository extends Repository {
 
         return $metadata;
     }
-
 }
