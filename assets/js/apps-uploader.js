@@ -1,19 +1,21 @@
-let newAppUploaderForm      = document.querySelector( '#newAppUploaderForm' );
+let appUploaderForm         = document.querySelector( '#appUploaderForm' );
 const queryParam            = new URLSearchParams( window.location.search );
 let appAssetUploadModal     = document.querySelector( '.smliser-admin-modal.app-asset-uploader' );
-let assetsContainer         = newAppUploaderForm.querySelector( '.app-uploader-below-section_assets' );
+let assetsContainer         = appUploaderForm.querySelector( '.app-uploader-below-section_assets' );
 let uploadToRepoButton      = appAssetUploadModal?.querySelector( '#upload-image' );
 
-if ( newAppUploaderForm ) {
-    let uploadBtn       = document.querySelector('.smliser-upload-btn');
-    let fileInfo        = document.querySelector('.smliser-file-info');
-    let submitBtn       = newAppUploaderForm.querySelector( 'button[type="submit"]' );
-    let fileInput       = document.querySelector( '#smliser-file-input' );
-    let originalText    = fileInfo.textContent;
+if ( appUploaderForm ) {
+    let uploadBtn           = document.querySelector('.smliser-upload-btn');
+    let fileInfo            = document.querySelector('.smliser-file-info');
+    let submitBtn           = appUploaderForm.querySelector( 'button[type   ="submit"]' );
+    let fileInput           = document.querySelector( '#smliser-file-input' );
+    let originalText        = fileInfo.textContent;
+    const appFileDropZone   = document.querySelector( '.smliser-form-file-row' );
 
     let clearFileInputBtn   = document.querySelector( '.smliser-file-remove' );
     
-    uploadBtn.addEventListener( 'click', ()=> fileInput.click() );
+    uploadBtn.addEventListener( 'click', () => fileInput.click() );
+
     clearFileInputBtn.addEventListener( 'click', ()=>{
         fileInput.value = '';
         fileInfo.innerHTML = '<span>No file selected.</span>';
@@ -25,7 +27,7 @@ if ( newAppUploaderForm ) {
 
     fileInput.addEventListener('change', function(event) {
         const file = event.target.files[0];
-        if (file) {
+        if (file) {            
             let maxUploadSize   = parseFloat( fileInfo.getAttribute('wp-max-upload-size') );
             const fileSizeMB = (file.size / 1024 / 1024).toFixed(2); // Convert size to MB and round to 2 decimal places
             fileInfo.innerHTML = `
@@ -59,7 +61,7 @@ if ( newAppUploaderForm ) {
         }
     });
 
-    submitBtn.addEventListener( 'click', (e)=>{
+    submitBtn.addEventListener( 'click', e => {
         if ( 'add-new' === queryParam.get( 'tab' ) && fileInput.files.length === 0 ) {
             e.preventDefault();
             const appType = StringUtils.ucfirst( queryParam.get( 'type' ) );
@@ -67,7 +69,7 @@ if ( newAppUploaderForm ) {
         }
     });
 
-    newAppUploaderForm.addEventListener( 'submit', async (e) => {
+    appUploaderForm.addEventListener( 'submit', async (e) => {
         e.preventDefault();
 
         const payLoad = new FormData( e.currentTarget );
@@ -112,10 +114,39 @@ if ( newAppUploaderForm ) {
             removeSpinner( spinner );
         }
     });
-    
+
+    appFileDropZone.addEventListener( 'dragover', e => {
+        e.preventDefault();
+
+        if ( e.dataTransfer.types.includes( 'Files' ) ) {
+            e.dataTransfer.dropEffect = 'copy';
+            appFileDropZone.classList.add( 'active' );
+        } else {
+            e.dataTransfer.dropEffect = 'none';
+        }
+        
+    });
+
+    appFileDropZone.addEventListener('dragleave', (e) => {
+        appFileDropZone.classList.remove( 'active' );
+    });
+
+    appFileDropZone.addEventListener( 'drop', (e) => {
+        e.preventDefault();
+        appFileDropZone.classList.remove('active');
+        
+        if ( e.dataTransfer.types.includes('Files') ) {
+            const files = e.dataTransfer.files;
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(files[0]);
+            fileInput.files = dataTransfer.files;
+            
+            fileInput.dispatchEvent( new Event( 'change' ) );
+        }
+    });
 }
 
-
+// Asset upload click handler.
 const handleClickAction = ( e ) => {
     if ( e.target === appAssetUploadModal ) {
         modalActions.closeModal();
@@ -137,6 +168,8 @@ let imagePreview                = document.querySelector( '#currentImage' );
 
 let smliserCurrentImage;
 let smliserCurrentConfig = new Map;
+
+// Asset uploader modal object.
 const modalActions = {
     'openModal': ( json ) => {
         appAssetUploadModal.classList.remove( 'hidden' );

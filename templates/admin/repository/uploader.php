@@ -35,7 +35,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
         </div>
     </nav>
 
-    <form action="" class="app-uploader-form" id="newAppUploaderForm">
+    <form action="" class="app-uploader-form" id="appUploaderForm">
         <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', esc_html( $type ) ) ?>">
         <input type="hidden" name="app_type" value="<?php printf( '%s', esc_html( $type ) ) ?>">
         <input type="hidden" name="app_id" value="<?php printf( '%s', esc_html( smliser_get_query_param( 'item_id' ) ) ) ?>">
