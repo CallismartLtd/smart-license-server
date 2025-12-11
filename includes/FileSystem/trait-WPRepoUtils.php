@@ -11,11 +11,12 @@ use SmartLicenseServer\HostedApps\Theme;
 use TypeError;
 
 trait WPRepoUtils {
+
     /**
-     * Get the content of a plugins app.json file.
+     * Get the content of a plugin's or theme's app.json file.
      * 
      * @param Plugin|Theme $app
-     * @throws TypeError When the app instance is not of hosted plugin type.
+     * @throws TypeError When the app instance is not a Plugin or Theme.
      * @return array
      */
     public function get_app_dot_json( $app ) {
@@ -29,9 +30,10 @@ trait WPRepoUtils {
             ) );
         }
 
-        $slug = $this->real_slug( $app->get_slug() );
-        $metadata   = $this->get_metadata( $slug );
-        $default    = \smliser_build_wp_manifest( $app, $metadata );
+        $slug      = $this->real_slug( $app->get_slug() );
+        $metadata  = $this->get_metadata( $slug );
+        $default   = \smliser_build_wp_manifest( $app, $metadata );
+
         try {
             $base_dir = $this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
@@ -39,31 +41,37 @@ trait WPRepoUtils {
         }
 
         $file_path  = FileSystemHelper::join_path( $base_dir, 'app.json' );
-        $file_flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
 
         if ( ! $this->exists( $file_path ) ) {
-            // Get it from the readme.txt metadata
-            $json_content = \smliser_safe_json_encode( $default, $file_flags );
-
-            if ( ! $this->put_contents( $file_path, $json_content ) ) {
-                // TODO: Log unable to insert app.json file.
-            }
-
-            return $default;
+            return $this->create_app_json_file( $file_path, $default );
         }
 
-        $json_content   = $this->get_contents( $file_path );
-
-        $data = \json_decode( $json_content, true );
+        $json_content = $this->get_contents( $file_path );
+        $data         = \json_decode( $json_content, true );
 
         if ( json_last_error() === JSON_ERROR_NONE && is_array( $data ) ) {
             return $data;
         }
-        // Repair bad file:
-        $this->put_contents(
-            $file_path,
-            \smliser_safe_json_encode( $default, $file_flags )
-        );
+
+        // Repair corrupted file
+        return $this->create_app_json_file( $file_path, $default );
+    }
+
+    /**
+     * Create or repair an app.json file from defaults.
+     * 
+     * @param string $file_path Full path to the app.json file.
+     * @param array  $default   Default app.json content.
+     * @return array The content written to the file.
+     */
+    public function create_app_json_file( string $file_path, array $default ) : array {
+        $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
+        $json_content = \smliser_safe_json_encode( $default, $flags );
+
+        if ( ! $this->put_contents( $file_path, $json_content ) ) {
+            // TODO: log failure to write file
+        }
+
         return $default;
     }
 }
