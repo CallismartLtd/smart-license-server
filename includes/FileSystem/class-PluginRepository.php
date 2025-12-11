@@ -378,14 +378,14 @@ class PluginRepository extends Repository {
             return '';
         }
 
-        // Normalize line endings
+        // Normalize line endings.
         $readme_contents = str_replace( ["\r\n", "\r"], "\n", $readme_contents );
         
         // Step 1: Start from Description block
         if ( preg_match('/==\s*Description\s*==\s*(.+)/si', $readme_contents, $matches) ) {
             $description = trim($matches[1]);
 
-            // Step 2: Remove official sections that might appear afterwards
+            // Step 2: Remove official sections that might appear afterwards.
             $official_sections = ['Installation', 'Changelog', 'Frequently Asked Questions', 'Screenshots', 'Upgrade Notice'];
             foreach ( $official_sections as $section ) {
                 $pattern = '/==\s*' . preg_quote( $section, '/' ) . '\s*==.*?(?=^==\s*\w.*==|\z)/msi';
@@ -393,25 +393,29 @@ class PluginRepository extends Repository {
             }
 
             // Step 3: Optional cleanup of stray metadata lines
-            $lines   = explode("\n", $description);
+            $lines   = explode( "\n", $description );
             $exclude = ['Contributors:', 'Tags:', 'Stable tag:', 'Requires PHP:', 'License:', 'License URI:', 'Requires at least:', 'Tested up to:', 'WooCommerce tested up to:'];
             $cleaned = [];
-            foreach ($lines as $line) {
-                $line = trim($line);
-                if ($line === '') continue;
+            foreach ( $lines as $line ) {
+                $line = trim( $line );
+
+                if ( $line === '' ) continue;
+
                 $skip = false;
-                foreach ($exclude as $meta) {
-                    if ( stripos($line, $meta) !== false ) {
+
+                foreach ( $exclude as $meta ) {
+                    if ( stripos( $line, $meta ) !== false ) {
                         $skip = true;
                         break;
                     }
                 }
-                if (!$skip) {
+                
+                if ( ! $skip ) {
                     $cleaned[] = $line;
                 }
             }
 
-            $final_text = implode("\n", $cleaned);
+            $final_text = implode( "\n", $cleaned) ;
             return $this->parser->parse( $final_text );
         }
 
@@ -622,8 +626,8 @@ class PluginRepository extends Repository {
         $html = '<ol>';
 
         foreach ( $screenshots as $i => $screenshot ) {
-            $src     = esc_url( $screenshot['src'] );
-            $caption = esc_html( $screenshot['caption'] );
+            $src     = $screenshot['src'];
+            $caption = $screenshot['caption'];
 
             // This is the structure you see in the API response's sections property.
             // It includes a link to the full-size image and a caption.

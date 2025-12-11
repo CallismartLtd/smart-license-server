@@ -191,6 +191,7 @@ class RepositoryPage {
             'Author'                => '',
             'Performance Metrics'   => '', //TODO: Use Analytics class to build.
             'App Info'              => self::build_info_html( $app, $meta, $file_size, $last_updated_string ),
+            'Technical Details'     => self::build_info_html( $app, $meta, $file_size, $last_updated_string ),
         ];
 
         

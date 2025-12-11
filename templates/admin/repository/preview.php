@@ -165,17 +165,16 @@ defined( 'SMLISER_ABSPATH' ) || exit;
         <aside class="smliser-sidebar">
             
             <!-- Performance Metrics -->
-            <?php if ( ! empty( $template_sidebar['Performance Metrics'] ) ) : ?>
-                <div class="smliser-sidebar-card">
-                    <h3>
-                        <i class="dashicons dashicons-chart-bar"></i>
-                        <?php esc_html_e( 'Analytics (30 Days)', 'smliser' ); ?>
-                    </h3>
-                    <div class="smliser-sidebar-content">
-                        <?php echo wp_kses_post( $template_sidebar['Performance Metrics'] ); ?>
-                    </div>
+            <div class="smliser-sidebar-card">
+                <h3>
+                    <i class="dashicons dashicons-chart-bar"></i>
+                    <?php esc_html_e( 'Analytics (30 Days)', 'smliser' ); ?>
+                </h3>
+                <div class="smliser-sidebar-content">
+                    <?php echo wp_kses_post( $template_sidebar['Performance Metrics'] ); ?>
                 </div>
-            <?php endif; ?>
+            </div>
+            
 
             <!-- Author Info -->
             <?php if ( ! empty( $template_sidebar['Author'] ) ) : ?>

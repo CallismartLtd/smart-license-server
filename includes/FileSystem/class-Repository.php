@@ -448,7 +448,7 @@ abstract class Repository extends FileSystem {
         if ( ! $this->restore_queued_deletion( $slug ) ) {
             return new Exception(
                 'restore_failed',
-                sprintf( 'Failed to restore "%s" from trash.', esc_html( $slug ) ),
+                sprintf( 'Failed to restore "%s" from trash.', self::safe_esc_html( $slug ) ),
                 [ 'status' => 500 ]
             );
         }
@@ -650,7 +650,7 @@ abstract class Repository extends FileSystem {
         if ( ! $this->exists( $asset_dir ) ) {
             return new Exception(
                 'asset_not_found',
-                sprintf( 'Asset "%s" not found.', esc_html( $filename ) ),
+                sprintf( 'Asset "%s" not found.', self::safe_esc_html( $filename ) ),
                 [ 'status' => 404 ]
             );
         }
