@@ -24,7 +24,7 @@ $author = sprintf(
 
 
 
-$template_sidebar['Author']     = $author;
+$template_sidebar['Author']['content']  = $author;
 
 $images   = [
     'Screenshot'    => array_filter( [$app->get_screenshot_url()] ),

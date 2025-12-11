@@ -188,10 +188,22 @@ class RepositoryPage {
         ];
 
         $template_sidebar   = [
-            'Author'                => '',
-            'Performance Metrics'   => '', //TODO: Use Analytics class to build.
-            'App Info'              => self::build_info_html( $app, $meta, $file_size, $last_updated_string ),
-            'Technical Details'     => self::build_info_html( $app, $meta, $file_size, $last_updated_string ),
+            'Author'    => [
+                'icon'      => 'ti ti-user',
+                'content'   => ''
+            ],
+            'Performance Metrics'   => [
+                'icon'      => 'ti ti-chart-histogram',
+                'content'   => '' //TODO: Use Analytics class to build.
+            ], 
+            'Application Details'   => [
+                'icon'      => 'ti ti-info-circle',
+                'content'   => self::build_info_html( $app, $meta, $file_size, $last_updated_string )
+            ],
+            'Technical Details'     => [
+                'icon'      => 'ti ti-cpu',
+                'content'   => self::build_tech_details( $app->get_manifest() )
+            ],
         ];
 
         
@@ -318,4 +330,48 @@ class RepositoryPage {
             $license_uri                             //17
         );
     }
+
+    /**
+     * Build the Technical Details section
+     * 
+     * @param array $data
+     */
+    private static function build_tech_details( array $data ) : string {
+
+        unset( $data['name'], $data['slug'], $data['version'] );
+        $details = '<ul class="smliser-app-meta">';
+
+        foreach( $data as $key => $value ) {
+
+            if ( is_array( $value ) ) {
+                // Detect if associative array
+                $is_assoc = array_keys($value) !== range(0, count($value) - 1);
+
+                if ( $is_assoc ) {
+                    $parts = [];
+                    foreach( $value as $k => $v ) {
+                        if ( is_array( $v ) ) {
+                            $v = implode(', ', $v);
+                        }
+                        $parts[] = "$k: $v";
+                    }
+                    $value = implode(', ', $parts);
+                } else {
+                    // Sequential array: just implode values
+                    $value = implode(', ', $value);
+                }
+            }
+
+            $details .= sprintf(
+                '<li><span>%1$s</span> <span>%2$s</span></li>',
+                ucwords(str_replace('_', ' ', $key)),
+                $value
+            );
+        }
+
+        $details .= '</ul>';
+
+        return $details;
+    }
+
 }

@@ -1237,8 +1237,8 @@ function smliser_build_wp_manifest( AbstractHostedApp $app, array $metadata ) {
         'tech_stack'    => ['PHP', 'JavaScript'],
         'tested'        => $max_ver,
         'requires'  => array(
-            'wordpress' => \sprintf( '%s +', $min_ver ),
-            'php'       => \sprintf( ' %s +', $metadata['requires_php'] ?? '7.4' ),
+            'Wordpress' => \sprintf( '%s +', $min_ver ),
+            'PHP'       => \sprintf( ' %s +', $metadata['requires_php'] ?? '7.4' ),
         ),
         
     );

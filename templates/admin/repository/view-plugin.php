@@ -23,7 +23,7 @@ $author = sprintf(
     $app->get_author()
 );
 
-$template_sidebar['Author']     = $author;
+$template_sidebar['Author']['content']  = $author;
 
 $screenshots = [];
 

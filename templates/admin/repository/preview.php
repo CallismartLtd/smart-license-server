@@ -164,43 +164,18 @@ defined( 'SMLISER_ABSPATH' ) || exit;
         <!-- Sidebar -->
         <aside class="smliser-sidebar">
             
-            <!-- Performance Metrics -->
-            <div class="smliser-sidebar-card">
-                <h3>
-                    <i class="dashicons dashicons-chart-bar"></i>
-                    <?php esc_html_e( 'Analytics (30 Days)', 'smliser' ); ?>
-                </h3>
-                <div class="smliser-sidebar-content">
-                    <?php echo wp_kses_post( $template_sidebar['Performance Metrics'] ); ?>
-                </div>
-            </div>
-            
-
-            <!-- Author Info -->
-            <?php if ( ! empty( $template_sidebar['Author'] ) ) : ?>
+            <?php foreach( $template_sidebar as $heading => $data ) : ?>
                 <div class="smliser-sidebar-card">
                     <h3>
-                        <i class="dashicons dashicons-admin-users"></i>
-                        <?php esc_html_e( 'Author', 'smliser' ); ?>
+                        <i class="<?php echo esc_attr( $data['icon'] ?? 'dashicons dashicons-chart-bar' ) ?>"></i>
+                        <?php echo esc_html( $heading ); ?>
+                        <!-- <?php esc_html_e( 'Analytics (30 Days)', 'smliser' ); ?> -->
                     </h3>
                     <div class="smliser-sidebar-content">
-                        <?php echo wp_kses_post( $template_sidebar['Author'] ); ?>
+                        <?php echo wp_kses_post( $data['content'] ?? '' ); ?>
                     </div>
                 </div>
-            <?php endif; ?>
-
-            <!-- App Info -->
-            <?php if ( ! empty( $template_sidebar['App Info'] ) ) : ?>
-                <div class="smliser-sidebar-card">
-                    <h3>
-                        <i class="dashicons dashicons-info"></i>
-                        <?php esc_html_e( 'Application Info', 'smliser' ); ?>
-                    </h3>
-                    <div class="smliser-sidebar-content">
-                        <?php echo ( $template_sidebar['App Info'] ); ?>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <?php endforeach; ?>
         </aside>
     </div>
     <div style="padding: 10px;">
