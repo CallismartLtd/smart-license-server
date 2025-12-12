@@ -806,7 +806,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param mixed $value New value.
      * @return bool True on success, false on failure.
      */
-    public function update_meta( $key, $value ) {
+    public function update_meta( $key, $value ) : bool {
         $app_id = absint( $this->get_id() );
 
         if ( ! $app_id ) {
