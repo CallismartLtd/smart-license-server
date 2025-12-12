@@ -20,7 +20,7 @@ use SmartLicenseServer\HostedApps\Theme;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Software collection class is used to perform CRUD opertions on softwares hosted in this repository.
+ * Software collection class is used to perform CRUD opertions on apps hosted in this repository.
  * 
  * Provides methods to perform CRUD operations across multiple hosted application types (plugins, themes, software) and their assets.
  */
@@ -802,7 +802,7 @@ class SmliserSoftwareCollection {
      * @return string $class_name The app's class name.
      */
     public static function get_app_class( $type ) {
-        $class = '\\SmartLicenseServer\\HostedApps\\' . ucfirst( $type );
+        $class = '\\SmartLicenseServer\\HostedApps\\' . ucfirst( (string) $type );
 
         return $class;
     }

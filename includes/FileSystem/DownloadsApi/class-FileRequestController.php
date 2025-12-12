@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
+use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use SmartLicenseServer\Monetization\License;
@@ -22,7 +23,7 @@ class FileRequestController {
      * Process and serve download request for a hosted application zip file.
      *
      * @param FileRequest $request The file request object.
-     * @return \SmartLicenseServer\FileSystemDownloadsApi\FileResponse
+     * @return FileResponse
      */
     public static function get_application_zip_file( FileRequest $request ): FileResponse {
         try {
@@ -69,9 +70,9 @@ class FileRequestController {
             $request->set( 'file_path', $file_path );
             
             $response = new FileResponse( $file_path, ['type' => $app->get_type()] );
-            
-            do_action( 'smliser_stats', sprintf( '%s_download', $app->get_type() ), $app );
 
+            $response->register_after_serve_callback( [AppsAnalytics::class,'log_download'], [$app] );
+            
             return $response;
 
         } catch ( FileRequestException $e ) {
@@ -110,10 +111,7 @@ class FileRequestController {
             $file_path  = $app->get_zip_file();
             $response   = new FileResponse( $file_path, ['type' => $app->get_type()] );
             
-            // Use a conditional check for stats logic
-            if ( \function_exists( 'do_action' ) ) {
-                do_action( 'smliser_stats', \sprintf( '%s_download', $app->get_type() ), $app );
-            }
+            $response->register_after_serve_callback( [AppsAnalytics::class,'log_download'], [$app] );
             
             return $response;
             

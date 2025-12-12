@@ -1441,6 +1441,10 @@ input.smliser_toggle-switch-input {
 
 }
 
+.smliser-click-to-copy {
+    cursor: pointer;
+}
+
 /* ============================================
    WORDPRESS ADMIN BAR COMPATIBILITY
    ============================================ */

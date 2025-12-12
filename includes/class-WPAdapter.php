@@ -690,7 +690,6 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             case 'theme':
             case 'themes':
             case 'software':
-            case 'softwares':
                 return [__CLASS__, 'parse_public_package_download'];
             case 'document':
             case 'documents':

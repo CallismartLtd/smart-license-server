@@ -299,7 +299,11 @@ class RepositoryPage {
         return sprintf(
             '<ul class="smliser-app-meta">
                 <li><span>%1$s</span> <span>#%2$s</span></li>
-                <li><span>%3$s</span> <span>%4$s</span></li>
+                <li><span>%3$s</span>
+                    <span class="smliser-click-to-copy"
+                    data-copy-value="%4$s" 
+                        title="copy">%4$s</span>
+                </li>
                 <li><span>%5$s</span> <a href="%17$s">%6$s</a></li>
                 <li><span>%7$s</span> <span>%8$s</span></li>
                 <li><span>%9$s</span> <i class="ti ti-circle-%10$s-filled"></i></li>
@@ -313,8 +317,8 @@ class RepositoryPage {
             </ul>',
             __( 'APP ID', 'smliser' ),             //1
             $app->get_id(),                         //2
-            __( 'Platform', 'smliser' ),           //3
-            __( 'WordPress', 'smliser' ),          //4
+            __( 'Slug', 'smliser' ),           //3
+            $app->get_slug(),          //4
             __( 'License', 'smliser' ),            //5
             $meta['license'] ?? '',                //6
             __( 'Status', 'smliser' ),             //7

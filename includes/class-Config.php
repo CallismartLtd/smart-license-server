@@ -115,7 +115,7 @@ class Config {
          *
          * Stores all software packages and related assets hosted in the repository.
          */
-        define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/softwares' );
+        define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/software' );
         
         register_activation_hook( SMLISER_FILE, array( Installer::class, 'install' ) );
 
@@ -258,7 +258,7 @@ class Config {
         );
     
         /**
-         * Repository app type page matches siteurl/repository/{app_type}/ where app type can be (themes, plugins, softwares)
+         * Repository app type page matches siteurl/repository/{app_type}/ where app type can be (themes, plugins, software)
          */
         add_rewrite_rule(
             '^' . $repo_base_url . '/([^/]+)$',

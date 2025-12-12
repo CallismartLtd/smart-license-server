@@ -2,7 +2,7 @@
 /**
  * 
  * @author Callistus
- * @package Smliser\classes
+ * @package SmartLicenseServer
  * @since 1.0.0
  */
 
@@ -13,6 +13,11 @@ use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
+/**
+ * Old Analytics class
+ * 
+ * @deprecated 0.2.0
+ */
 class SmliserStats {
     /**
      * Plugin

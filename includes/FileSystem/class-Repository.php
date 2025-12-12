@@ -16,7 +16,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * The repository class handles filesystem operations within the repository.
  *
- * Works only within allowed subdirectories (plugins, themes, softwares).
+ * Works only within allowed subdirectories (plugins, themes, software).
  * Provides safe IO, streaming, and ZIP file utilities.
  */
 abstract class Repository extends FileSystem {
@@ -33,7 +33,7 @@ abstract class Repository extends FileSystem {
      *
      * @var string[]
      */
-    protected $allowed_dirs = [ 'plugins', 'themes', 'softwares' ];
+    protected $allowed_dirs = [ 'plugins', 'themes', 'software' ];
 
     /**
      * The trash directory for queued deletions.

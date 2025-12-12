@@ -98,7 +98,7 @@ function smliserNotify(message, duration) {
 // Function to copy text to clipboard using Clipboard API
 function smliserCopyToClipboard(text) {
     navigator.clipboard.writeText(text).then( () => {
-        smliserNotify('Copied to clipboard: ', 3000);
+        smliserNotify( `Copied to clipboard: ${text}`, 3000);
     }).catch( (err) => {
         console.error('Could not copy text: ', err);
     });

@@ -820,7 +820,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $key   = sanitize_key( $key );
         $store = maybe_serialize( $value );
 
-        // Look for existing meta row
+        // Look for existing meta row.
         $meta_id = $db->get_var(
             "SELECT `id` FROM {$table} WHERE `{$fk_column}` = ? AND `meta_key` = ?",
             [ $app_id, $key ]
