@@ -379,258 +379,258 @@ class RepositoryPage {
         return $details;
     }
 
-/**
- * Build analytics HTML payload for an app.
- *
- * @param AbstractHostedApp $app
- * @return string
- */
-private static function build_analytics_html( AbstractHostedApp $app ) {
+    /**
+     * Build analytics HTML payload for an app.
+     *
+     * @param AbstractHostedApp $app
+     * @return string
+     */
+    private static function build_analytics_html( AbstractHostedApp $app ) {
 
-    // -----------------------------
-    // Downloads
-    // -----------------------------
-    $downloads_daily   = AppsAnalytics::get_downloads_per_day( $app, 30 );
-    ksort( $downloads_daily );
+        // -----------------------------
+        // Downloads
+        // -----------------------------
+        $downloads_daily   = AppsAnalytics::get_downloads_per_day( $app, 30 );
+        ksort( $downloads_daily );
 
-    $download_days     = array_keys( $downloads_daily );
-    $download_values   = array_values( $downloads_daily );
+        $download_days     = array_keys( $downloads_daily );
+        $download_values   = array_values( $downloads_daily );
 
-    // -----------------------------
-    // Client access
-    // -----------------------------
-    $access_daily      = AppsAnalytics::get_client_access_per_day( $app, 30 );
-    ksort( $access_daily );
+        // -----------------------------
+        // Client access
+        // -----------------------------
+        $access_daily      = AppsAnalytics::get_client_access_per_day( $app, 30 );
+        ksort( $access_daily );
 
-    $access_days       = array_keys( $access_daily );
-    $access_values     = array_values( $access_daily );
+        $access_days       = array_keys( $access_daily );
+        $access_values     = array_values( $access_daily );
 
-    // -----------------------------
-    // Aggregate KPIs
-    // -----------------------------
-    $analytics = array(
-        'downloads' => array(
-            'total'        => AppsAnalytics::get_total_downloads( $app ),
-            'today'        => AppsAnalytics::get_todays_downloads( $app ),
-            'average'      => AppsAnalytics::get_average_daily_downloads( $app, 30 ),
-            'growth'       => AppsAnalytics::get_download_growth_percentage( $app, 30 ),
-            'peak_day'     => AppsAnalytics::get_peak_download_day( $app, 365 ),
-            'timeline'     => array(
-                'days'   => $download_days,
-                'values' => $download_values,
+        // -----------------------------
+        // Aggregate KPIs
+        // -----------------------------
+        $analytics = array(
+            'downloads' => array(
+                'total'        => AppsAnalytics::get_total_downloads( $app ),
+                'today'        => AppsAnalytics::get_todays_downloads( $app ),
+                'average'      => AppsAnalytics::get_average_daily_downloads( $app, 30 ),
+                'growth'       => AppsAnalytics::get_download_growth_percentage( $app, 30 ),
+                'peak_day'     => AppsAnalytics::get_peak_download_day( $app, 365 ),
+                'timeline'     => array(
+                    'days'   => $download_days,
+                    'values' => $download_values,
+                ),
             ),
-        ),
-        'client_access' => array(
-            'total'        => AppsAnalytics::get_total_client_accesses( $app ),
-            'average'      => AppsAnalytics::get_average_daily_client_accesses( $app, 30 ),
-            'growth'       => AppsAnalytics::get_client_access_growth_percentage( $app, 30 ),
-            'peak_day'     => AppsAnalytics::get_peak_client_access_day( $app, 365 ),
-            'active_installs' => AppsAnalytics::get_estimated_active_installations( $app, 30 ),
-            'timeline'     => array(
-                'days'   => $access_days,
-                'values' => $access_values,
+            'client_access' => array(
+                'total'        => AppsAnalytics::get_total_client_accesses( $app ),
+                'average'      => AppsAnalytics::get_average_daily_client_accesses( $app, 30 ),
+                'growth'       => AppsAnalytics::get_client_access_growth_percentage( $app, 30 ),
+                'peak_day'     => AppsAnalytics::get_peak_client_access_day( $app, 365 ),
+                'active_installs' => AppsAnalytics::get_estimated_active_installations( $app, 30 ),
+                'timeline'     => array(
+                    'days'   => $access_days,
+                    'values' => $access_values,
+                ),
             ),
-        ),
-    );
-
-    $json = smliser_json_encode_attr( $analytics );
-
-    // Start HTML
-    $html = '<div class="smliser-app-analytics">';
-    
-    // Chart Container
-    $html .= '<div class="smliser-chart-container" style="position: relative; height: 400px; width: 100%; margin-bottom: 20px;">';
-    $html .= sprintf(
-        '<canvas class="smliser-app-mini-analytics" data-analytics="%s"></canvas>',
-        esc_attr( $json )
-    );
-    $html .= '</div>';
-
-    // Stats Footer
-    $html .= self::build_stats_footer( $analytics );
-    
-    $html .= '</div>';
-
-    return $html;
-}
-
-/**
- * Build stats footer HTML.
- *
- * @param array $analytics Analytics data array.
- * @return string HTML for stats footer.
- */
-private static function build_stats_footer( array $analytics ) {
-    $stats = array();
-
-    // Downloads stats
-    if ( ! empty( $analytics['downloads'] ) ) {
-        $downloads = $analytics['downloads'];
-
-        if ( isset( $downloads['total'] ) ) {
-            $stats[] = array(
-                'icon'  => '📥',
-                'label' => 'Total Downloads',
-                'value' => number_format( $downloads['total'] ),
-                'color' => '#3b82f6',
-            );
-        }
-
-        if ( isset( $downloads['today'] ) ) {
-            $stats[] = array(
-                'icon'  => '📊',
-                'label' => 'Today\'s Downloads',
-                'value' => number_format( $downloads['today'] ),
-                'color' => '#3b82f6',
-            );
-        }
-
-        if ( isset( $downloads['average'] ) ) {
-            $stats[] = array(
-                'icon'  => '📈',
-                'label' => 'Avg Downloads/Day',
-                'value' => number_format( $downloads['average'], 1 ),
-                'color' => '#3b82f6',
-            );
-        }
-
-        if ( isset( $downloads['growth'] ) ) {
-            $growth = (float) $downloads['growth'];
-            $stats[] = array(
-                'icon'      => $growth >= 0 ? '🚀' : '📉',
-                'label'     => 'Download Growth',
-                'value'     => ( $growth >= 0 ? '+' : '' ) . number_format( $growth, 1 ) . '%',
-                'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
-                'highlight' => true,
-            );
-        }
-
-        if ( ! empty( $downloads['peak_day'] ) && isset( $downloads['peak_day']['count'] ) ) {
-            $stats[] = array(
-                'icon'     => '🏆',
-                'label'    => 'Peak Day',
-                'value'    => number_format( $downloads['peak_day']['count'] ),
-                'subtitle' => date( 'M j, Y', strtotime( $downloads['peak_day']['date'] ) ),
-                'color'    => '#8b5cf6',
-            );
-        }
-    }
-
-    // Client Access stats
-    if ( ! empty( $analytics['client_access'] ) ) {
-        $access = $analytics['client_access'];
-
-        if ( isset( $access['total'] ) ) {
-            $stats[] = array(
-                'icon'  => '🌐',
-                'label' => 'Total Client Access',
-                'value' => number_format( $access['total'] ),
-                'color' => '#10b981',
-            );
-        }
-
-        if ( isset( $access['average'] ) ) {
-            $stats[] = array(
-                'icon'  => '📊',
-                'label' => 'Avg Access/Day',
-                'value' => number_format( $access['average'], 1 ),
-                'color' => '#10b981',
-            );
-        }
-
-        if ( isset( $access['growth'] ) ) {
-            $growth = (float) $access['growth'];
-            $stats[] = array(
-                'icon'      => $growth >= 0 ? '🚀' : '📉',
-                'label'     => 'Access Growth',
-                'value'     => ( $growth >= 0 ? '+' : '' ) . number_format( $growth, 1 ) . '%',
-                'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
-                'highlight' => true,
-            );
-        }
-
-        if ( isset( $access['active_installs'] ) ) {
-            $stats[] = array(
-                'icon'      => '⚡',
-                'label'     => 'Active Installs',
-                'value'     => '~' . number_format( $access['active_installs'] ),
-                'color'     => '#f59e0b',
-                'highlight' => true,
-            );
-        }
-
-        if ( ! empty( $access['peak_day'] ) && isset( $access['peak_day']['count'] ) ) {
-            $stats[] = array(
-                'icon'     => '🏆',
-                'label'    => 'Peak Access Day',
-                'value'    => number_format( $access['peak_day']['count'] ),
-                'subtitle' => date( 'M j, Y', strtotime( $access['peak_day']['date'] ) ),
-                'color'    => '#8b5cf6',
-            );
-        }
-    }
-
-    // No stats to display
-    if ( empty( $stats ) ) {
-        return '';
-    }
-
-    // Build HTML
-    $html = '<div class="analytics-stats-footer" style="
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        padding: 20px;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-    ">';
-
-    foreach ( $stats as $stat ) {
-        $highlight = ! empty( $stat['highlight'] ) ? 'border-left-width: 6px;' : '';
-        
-        $html .= sprintf(
-            '<div class="stat-card" style="
-                background: white;
-                padding: 16px;
-                border-radius: 8px;
-                border-left: 4px solid %s;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                transition: all 0.2s ease;
-                cursor: default;
-                %s
-            " onmouseenter="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 12px rgba(0, 0, 0, 0.15)\';" onmouseleave="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 1px 3px rgba(0, 0, 0, 0.1)\';">',
-            esc_attr( $stat['color'] ),
-            $highlight
         );
 
-        $html .= '<div style="display: flex; align-items: flex-start; gap: 12px;">';
-        $html .= sprintf( '<span style="font-size: 24px; line-height: 1;">%s</span>', $stat['icon'] );
+        $json = smliser_json_encode_attr( $analytics );
+
+        // Start HTML
+        $html = '<div class="smliser-app-analytics">';
         
-        $html .= '<div style="flex: 1; min-width: 0;">';
+        // Chart Container
+        $html .= '<div class="smliser-chart-container" style="position: relative; height: 300px; width: 100%; margin-bottom: 10px;">';
         $html .= sprintf(
-            '<div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">%s</div>',
-            esc_html( $stat['label'] )
+            '<canvas class="smliser-app-mini-analytics" data-analytics="%s"></canvas>',
+            esc_attr( $json )
         );
-        $html .= sprintf(
-            '<div style="font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1;">%s</div>',
-            esc_html( $stat['value'] )
-        );
+        $html .= '</div>';
+
+        // Stats Footer
+        $html .= self::build_stats_footer( $analytics );
         
-        if ( ! empty( $stat['subtitle'] ) ) {
+        $html .= '</div>';
+
+        return $html;
+    }
+
+    /**
+     * Build stats footer HTML.
+     *
+     * @param array $analytics Analytics data array.
+     * @return string HTML for stats footer.
+     */
+    private static function build_stats_footer( array $analytics ) {
+        $stats = array();
+
+        // Downloads stats
+        if ( ! empty( $analytics['downloads'] ) ) {
+            $downloads = $analytics['downloads'];
+
+            if ( isset( $downloads['total'] ) ) {
+                $stats[] = array(
+                    'icon'  => '📥',
+                    'label' => 'Total Downloads',
+                    'value' => number_format( $downloads['total'] ),
+                    'color' => '#3b82f6',
+                );
+            }
+
+            if ( isset( $downloads['today'] ) ) {
+                $stats[] = array(
+                    'icon'  => '📊',
+                    'label' => 'Today\'s Downloads',
+                    'value' => number_format( $downloads['today'] ),
+                    'color' => '#3b82f6',
+                );
+            }
+
+            if ( isset( $downloads['average'] ) ) {
+                $stats[] = array(
+                    'icon'  => '📈',
+                    'label' => 'Avg Downloads/Day',
+                    'value' => number_format( $downloads['average'], 1 ),
+                    'color' => '#3b82f6',
+                );
+            }
+
+            if ( isset( $downloads['growth'] ) ) {
+                $growth = (float) $downloads['growth'];
+                $stats[] = array(
+                    'icon'      => $growth >= 0 ? '🚀' : '📉',
+                    'label'     => 'Download Growth',
+                    'value'     => ( $growth >= 0 ? '+' : '' ) . number_format( $growth, 1 ) . '%',
+                    'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
+                    'highlight' => true,
+                );
+            }
+
+            if ( ! empty( $downloads['peak_day'] ) && isset( $downloads['peak_day']['count'] ) ) {
+                $stats[] = array(
+                    'icon'     => '🏆',
+                    'label'    => 'Peak Day',
+                    'value'    => number_format( $downloads['peak_day']['count'] ),
+                    'subtitle' => date( 'M j, Y', strtotime( $downloads['peak_day']['date'] ) ),
+                    'color'    => '#8b5cf6',
+                );
+            }
+        }
+
+        // Client Access stats
+        if ( ! empty( $analytics['client_access'] ) ) {
+            $access = $analytics['client_access'];
+
+            if ( isset( $access['total'] ) ) {
+                $stats[] = array(
+                    'icon'  => '🌐',
+                    'label' => 'Total Client Access',
+                    'value' => number_format( $access['total'] ),
+                    'color' => '#10b981',
+                );
+            }
+
+            if ( isset( $access['average'] ) ) {
+                $stats[] = array(
+                    'icon'  => '📊',
+                    'label' => 'Avg Access/Day',
+                    'value' => number_format( $access['average'], 1 ),
+                    'color' => '#10b981',
+                );
+            }
+
+            if ( isset( $access['growth'] ) ) {
+                $growth = (float) $access['growth'];
+                $stats[] = array(
+                    'icon'      => $growth >= 0 ? '🚀' : '📉',
+                    'label'     => 'Access Growth',
+                    'value'     => ( $growth >= 0 ? '+' : '' ) . number_format( $growth, 1 ) . '%',
+                    'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
+                    'highlight' => true,
+                );
+            }
+
+            if ( isset( $access['active_installs'] ) ) {
+                $stats[] = array(
+                    'icon'      => '⚡',
+                    'label'     => 'Active Installs',
+                    'value'     => '~' . number_format( $access['active_installs'] ),
+                    'color'     => '#f59e0b',
+                    'highlight' => true,
+                );
+            }
+
+            if ( ! empty( $access['peak_day'] ) && isset( $access['peak_day']['count'] ) ) {
+                $stats[] = array(
+                    'icon'     => '🏆',
+                    'label'    => 'Peak Access Day',
+                    'value'    => number_format( $access['peak_day']['count'] ),
+                    'subtitle' => date( 'M j, Y', strtotime( $access['peak_day']['date'] ) ),
+                    'color'    => '#8b5cf6',
+                );
+            }
+        }
+
+        // No stats to display
+        if ( empty( $stats ) ) {
+            return '';
+        }
+
+        // Build HTML
+        $html = '<div class="analytics-stats-footer" style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        ">';
+
+        foreach ( $stats as $stat ) {
+            $highlight = ! empty( $stat['highlight'] ) ? 'border-left-width: 6px;' : '';
+            
             $html .= sprintf(
-                '<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">%s</div>',
-                esc_html( $stat['subtitle'] )
+                '<div class="stat-card" style="
+                    background: white;
+                    padding: 16px;
+                    border-radius: 8px;
+                    border-left: 4px solid %s;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    transition: all 0.2s ease;
+                    cursor: default;
+                    %s
+                " onmouseenter="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 12px rgba(0, 0, 0, 0.15)\';" onmouseleave="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 1px 3px rgba(0, 0, 0, 0.1)\';">',
+                esc_attr( $stat['color'] ),
+                $highlight
             );
+
+            $html .= '<div style="display: flex; align-items: flex-start; gap: 12px;">';
+            $html .= sprintf( '<span style="font-size: 24px; line-height: 1;">%s</span>', $stat['icon'] );
+            
+            $html .= '<div style="flex: 1; min-width: 0;">';
+            $html .= sprintf(
+                '<div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">%s</div>',
+                esc_html( $stat['label'] )
+            );
+            $html .= sprintf(
+                '<div style="font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1;">%s</div>',
+                esc_html( $stat['value'] )
+            );
+            
+            if ( ! empty( $stat['subtitle'] ) ) {
+                $html .= sprintf(
+                    '<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">%s</div>',
+                    esc_html( $stat['subtitle'] )
+                );
+            }
+            
+            $html .= '</div>'; // Close inner div
+            $html .= '</div>'; // Close flex container
+            $html .= '</div>'; // Close stat-card
         }
-        
-        $html .= '</div>'; // Close inner div
-        $html .= '</div>'; // Close flex container
-        $html .= '</div>'; // Close stat-card
+
+        $html .= '</div>'; // Close footer
+
+        return $html;
     }
-
-    $html .= '</div>'; // Close footer
-
-    return $html;
-}
 }
