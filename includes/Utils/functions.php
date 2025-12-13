@@ -8,6 +8,7 @@
  * @package Smliser\functions
  */
 
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
@@ -1091,84 +1092,233 @@ function smliser_abort_request( $message = '', $title = '', $args = [] ) {
 /**
  * Unified download function.
  *
- * Attempts WordPress download_url, Laravel HTTP client, PHP fopen/file_get_contents, or cURL.
+ * Attempts WordPress download_url, Laravel HTTP client, cURL, or PHP fopen/file_get_contents.
  *
- * @param string $url URL to download.
- * @param int    $timeout Timeout in seconds.
- * @return string|WP_Error|Exception Local temporary file path on success.
+ * @param string $url     URL to download.
+ * @param int    $timeout Timeout in seconds (default: 30).
+ * @return string|FileRequestException Local temporary file path on success, FileRequestException on failure.
  */
 function smliser_download_url( $url, $timeout = 30 ) {
 
+    $url  = new URL( $url );
     // Validate URL
-    if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+    if ( ! $url->is_valid( true ) ) {
         return new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
     }
 
+    $url    = $url->__toString();
+    // Validate timeout
+    $timeout = max( 1, (int) $timeout );
+
+    // Try WordPress native function first (most reliable in WP context)
     if ( function_exists( 'download_url' ) ) {
         $tmp_file = download_url( $url, $timeout );
-        if ( is_smliser_error( $tmp_file ) ) {
-            return new FileRequestException( $tmp_file->get_error_code() );
-        }
         
+        if ( is_smliser_error( $tmp_file ) ) {
+            return new FileRequestException( $tmp_file->get_error_code(), $tmp_file->get_error_message() );
+        }
+
         return $tmp_file;
     }
 
+    // Try cURL (most common and reliable)
+    if ( function_exists( 'curl_init' ) ) {
+        return smliser_download_with_curl( $url, $timeout );
+    }
+
+    // Try Laravel HTTP client (if available)
     if ( class_exists( 'Illuminate\Support\Facades\Http' ) ) {
-        try {
-            $tmp_file = tempnam( sys_get_temp_dir(), 'smliser_' );
-            $response = \Illuminate\Support\Facades\Http::timeout( $timeout )
-                ->sink( $tmp_file )
-                ->get( $url );
-            if ( $response->successful() ) {
+        return smliser_download_with_laravel( $url, $timeout );
+    }
+
+    // Try PHP native file_get_contents (last resort).
+    if ( ini_get( 'allow_url_fopen' ) ) {
+        return smliser_download_with_fopen( $url, $timeout );
+    }
+
+    return new FileRequestException(
+        'no_download_method',
+        'No suitable download method available (WordPress, cURL, Laravel HTTP, or fopen).'
+    );
+}
+
+/**
+ * Download file using cURL.
+ *
+ * @param string $url     URL to download.
+ * @param int    $timeout Timeout in seconds.
+ * @return string|FileRequestException Temporary file path or error.
+ */
+function smliser_download_with_curl( $url, $timeout ) {
+    $tmp_file = tempnam( sys_get_temp_dir(), 'smliser_' );
+    
+    if ( false === $tmp_file ) {
+        return new FileRequestException( 'temp_file_failed', 'Failed to create temporary file.' );
+    }
+
+    $fp = @fopen( $tmp_file, 'w+' );
+    
+    if ( false === $fp ) {
+        @unlink( $tmp_file );
+        return new FileRequestException( 'temp_file_open_failed', 'Failed to open temporary file for writing.' );
+    }
+
+    $ch = curl_init( $url );
+    
+    if ( false === $ch ) {
+        fclose( $fp );
+        @unlink( $tmp_file );
+        return new FileRequestException( 'curl_init_failed', 'Failed to initialize cURL.' );
+    }
+
+    curl_setopt_array( $ch, [
+        CURLOPT_FILE           => $fp,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT        => $timeout,
+        CURLOPT_CONNECTTIMEOUT => min( 10, $timeout ),
+        CURLOPT_USERAGENT      => 'SmliserDownload/1.0',
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_MAXREDIRS      => 5,
+    ] );
+
+    $success   = curl_exec( $ch );
+    $error     = curl_error( $ch );
+    $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+    
+    // curl_close( $ch ); deprecated php 8.0 +
+    fclose( $fp );
+
+    // Check for success
+    if ( $success && $http_code >= 200 && $http_code < 300 ) {
+        // Verify file was actually downloaded.
+        if ( filesize( $tmp_file ) > 0 ) {
+            return $tmp_file;
+        }
+        @unlink( $tmp_file );
+        return new FileRequestException( 'file_integrity_failure' ); // Error message is known.
+    }
+
+    // Clean up and return error
+    @unlink( $tmp_file );
+    
+    $error_message = sprintf(
+        'cURL failed with HTTP code %d. Error: %s',
+        $http_code,
+        $error ?: 'Unknown error'
+    );
+
+    return new FileRequestException( 'curl_download_failed', $error_message );
+}
+
+/**
+ * Download file using Laravel HTTP client.
+ *
+ * @param string $url     URL to download.
+ * @param int    $timeout Timeout in seconds.
+ * @return string|FileRequestException Temporary file path or error.
+ */
+function smliser_download_with_laravel( $url, $timeout ) {
+    try {
+        $tmp_file = tempnam( sys_get_temp_dir(), 'smliser_' );
+        
+        if ( false === $tmp_file ) {
+            return new FileRequestException( 'temp_file_failed', 'Failed to create temporary file.' );
+        }
+    
+        // @phpstan-ignore-next-line
+        $response = \Illuminate\Support\Facades\Http::timeout( $timeout )
+            ->connectTimeout( min( 10, $timeout ) )
+            ->withOptions( [
+                'verify' => true,
+                'sink'   => $tmp_file, 
+            ] )
+            ->get( $url );
+
+        if ( $response->successful() ) {
+            // Verify file was downloaded
+            if ( file_exists( $tmp_file ) && filesize( $tmp_file ) > 0 ) {
                 return $tmp_file;
             }
             @unlink( $tmp_file );
-            return new FileRequestException( 'remote_download_failed', 'Laravel HTTP client failed to download file.' );
-        } catch ( \Throwable $e ) {
-            // Use the remote_download_failed slug and pass the underlying message
-            return new FileRequestException( 'remote_download_failed', 'Laravel client exception: ' . $e->getMessage() );
+            return new FileRequestException( 'file_integrity_failure' ); // Error message is known.
         }
-    }
 
-    if ( ini_get( 'allow_url_fopen' ) ) {
-        $tmp_file = tempnam( sys_get_temp_dir(), 'smliser_' );
-        $context = stream_context_create([
-            'http' => [
-                'timeout' => $timeout,
-                'header'  => "User-Agent: SmliserDownload/1.0\r\n"
-            ]
-        ]);
-        $data = @file_get_contents( $url, false, $context );
-        if ( $data !== false ) {
-            file_put_contents( $tmp_file, $data );
-            return $tmp_file;
-        }
         @unlink( $tmp_file );
-        return new FileRequestException( 'remote_download_failed', 'PHP file_get_contents failed.' );
-    }
-
-    if ( function_exists( 'curl_init' ) ) {
-        $tmp_file = tempnam( sys_get_temp_dir(), 'smliser_' );
-        $fp = fopen( $tmp_file, 'w+' );
-        $ch = curl_init( $url );
-        curl_setopt( $ch, CURLOPT_FILE, $fp );
-        curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
-        curl_setopt( $ch, CURLOPT_TIMEOUT, $timeout );
-        curl_setopt( $ch, CURLOPT_USERAGENT, 'SmliserDownload/1.0' );
-        $success = curl_exec( $ch );
-        $err     = curl_error( $ch );
-        $http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE ); 
-        fclose( $fp );
-
-        if ( $success && $http_code === 200 ) {
-            return $tmp_file;
+        
+        return new FileRequestException(
+            'laravel_download_failed',
+            sprintf( 'Laravel HTTP client failed with status %d.', $response->status() )
+        );
+    } catch ( \Illuminate\Http\Client\ConnectionException $e ) {
+        if ( isset( $tmp_file ) ) {
+            @unlink( $tmp_file );
         }
-        @unlink( $tmp_file );
+        return new FileRequestException( 'connection_failed', 'Connection failed: ' . $e->getMessage() );
+    } catch ( \Throwable $e ) {
+        if ( isset( $tmp_file ) ) {
+            @unlink( $tmp_file );
+        }
+        return new FileRequestException( 'laravel_exception', 'Laravel client exception: ' . $e->getMessage() );
+    }
+}
 
-        return new FileRequestException( 'remote_download_failed', 'cURL failed. HTTP code: ' . $http_code . ', Error: ' . $err );
+/**
+ * Download file using PHP file_get_contents.
+ *
+ * @param string $url     URL to download.
+ * @param int    $timeout Timeout in seconds.
+ * @return string|FileRequestException Temporary file path or error.
+ */
+function smliser_download_with_fopen( $url, $timeout ) {
+    $tmp_file = tempnam( sys_get_temp_dir(), 'smliser_' );
+    
+    if ( false === $tmp_file ) {
+        return new FileRequestException( 'temp_file_failed', 'Failed to create temporary file.' );
     }
 
-    return new FileRequestException( 'no_download_method', 'No suitable download method available (WP, Laravel, fopen, cURL).' );
+    $context = stream_context_create( [
+        'http' => [
+            'timeout'        => $timeout,
+            'follow_location' => 1,
+            'max_redirects'   => 5,
+            'header'         => "User-Agent: SmliserDownload/1.0\r\n",
+            'ignore_errors'  => true,
+        ],
+        'ssl' => [
+            'verify_peer'      => true,
+            'verify_peer_name' => true,
+        ],
+    ] );
+
+    // Suppress warnings and capture errors
+    $error_reporting = error_reporting( 0 );
+    $data = @file_get_contents( $url, false, $context );
+    error_reporting( $error_reporting );
+
+    if ( false === $data ) {
+        @unlink( $tmp_file );
+        $error = error_get_last();
+        return new FileRequestException(
+            'fopen_download_failed',
+            'PHP file_get_contents failed: ' . ( $error['message'] ?? 'Unknown error' )
+        );
+    }
+
+    if ( empty( $data ) ) {
+        @unlink( $tmp_file );
+        return new FileRequestException( 'file_integrity_failure' ); // Error message is known.
+    }
+
+    // Write data to temp file
+    $written = @file_put_contents( $tmp_file, $data );
+    
+    if ( false === $written || $written === 0 ) {
+        @unlink( $tmp_file );
+        return new FileRequestException( 'file_write_failed', 'Failed to write downloaded data to temporary file.' );
+    }
+
+    return $tmp_file;
 }
 
 /**

@@ -273,40 +273,10 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let optionForms             = document.querySelectorAll( 'form.smliser-options-form' );
     const bulkMessageForm       = document.querySelector( 'form.smliser-compose-message-container' );
     const licenseAppSelect      = document.querySelector( '.license-app-select' );
-    const repoGaleryPreview     = document.querySelector( '.smliser-screenshot-gallery' );
     const allCopyEl             = document.querySelectorAll( '.smliser-click-to-copy' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
 
-    if ( repoGaleryPreview ) {
-        repoGaleryPreview.addEventListener( 'click', e => {
-            const clickedImage = e.target.closest( 'img.repo-image-preview' );
-
-            if ( ! clickedImage ) {
-                return;
-            }
-
-            repoGaleryPreview.querySelectorAll( 'img.repo-image-preview' ).forEach( img => img.classList.remove( 'active' ) );
-            const currentImage  = document.querySelector( '.smliser-gallery-preview_image img' );
-            const currentTitle  = document.querySelector( '.smliser-gallery-preview_title' );
-            
-            if ( ! currentImage ) return;
-
-            currentImage.src            = clickedImage.src;
-            currentTitle.textContent    = clickedImage.getAttribute( 'data-repo-image-title' );
-            clickedImage.classList.add( 'active' );
-            
-        });
-
-        repoGaleryPreview.addEventListener('dblclick', ( e ) =>{
-            const mainImage = e.target.closest( '.smliser-request-fullscreen' );
-
-            if ( mainImage ) {
-                mainImage.requestFullscreen();
-            }
-
-        })
-    }
     if ( optionForms ) {
         optionForms.forEach( form => {
             form.addEventListener( 'submit', ( e ) => {

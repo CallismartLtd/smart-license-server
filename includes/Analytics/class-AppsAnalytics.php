@@ -41,7 +41,7 @@ class AppsAnalytics {
         $success_total = $app->update_meta( self::DOWNLOAD_COUNT_META_KEY, $total );
 
         // Track per-day downloads
-        $today        = gmdate( 'Y-m-d' ); // Use UTC
+        $today        = gmdate( 'Y-m-d' );
         $daily_counts = (array) $app->get_meta( self::DOWNLOAD_TIMESTAMP_META_KEY, [] );
 
         if ( isset( $daily_counts[ $today ] ) ) {
@@ -83,8 +83,43 @@ class AppsAnalytics {
     public static function get_downloads_per_day( AbstractHostedApp $app, int $days = 30 ) : array {
         $daily = (array) $app->get_meta( self::DOWNLOAD_TIMESTAMP_META_KEY, [] );
 
-        // Slice the last $days days
+        // Slice the last $days days.
         return array_slice( $daily, -$days, $days, true );
+    }
+
+    /**
+     * Get today's downloads
+     * 
+     * @param AbstractHostedApp $app
+     * @return int
+     */
+    public static function get_todays_downloads( AbstractHostedApp $app ) : int {
+        $today  = gmdate( 'Y-m-d' );
+        return self::get_downloads_on( $app, $today );
+    }
+
+    /**
+     * Get yesterday's downloads
+     * 
+     * @param AbstractHostedApp $app
+     * @return int
+     */
+    public static function get_yesterdays_downloads( AbstractHostedApp $app ) : int {
+        $yesterday  = gmdate( 'Y-m-d', strtotime( 'yesterday' ) );
+        return self::get_downloads_on( $app, $yesterday );
+    }
+
+    /**
+     * Get the number of downloads for a given day.
+     * 
+     * @param AbstractHostedApp $app
+     * @param string $date The date(Y-m-d) to search.
+     * @return int
+     */
+    public static function get_downloads_on( AbstractHostedApp $app, string $date ) : int {
+        $daily  = $app->get_meta( self::DOWNLOAD_TIMESTAMP_META_KEY, [] );
+
+        return \intval( $daily[$date] ?? 0 );
     }
 
     /**

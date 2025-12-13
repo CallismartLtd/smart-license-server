@@ -192,9 +192,9 @@ class RepositoryPage {
                 'icon'      => 'ti ti-user',
                 'content'   => ''
             ],
-            'Performance Metrics'   => [
+            'Performance Metrics (30 days)'   => [
                 'icon'      => 'ti ti-chart-histogram',
-                'content'   => '' //TODO: Use Analytics class to build.
+                'content'   => self::build_analytics_html( $app )
             ], 
             'Application Details'   => [
                 'icon'      => 'ti ti-info-circle',
@@ -378,4 +378,12 @@ class RepositoryPage {
         return $details;
     }
 
+    /**
+     * Build analytics html
+     * 
+     * @param AbstractHostedApp $app
+     */
+    private static function build_analytics_html( AbstractHostedApp $app ) {
+
+    }
 }

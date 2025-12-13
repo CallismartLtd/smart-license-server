@@ -199,6 +199,7 @@ class Config {
         wp_register_script( 'smliser-apps-uploader', SMLISER_URL . 'assets/js/apps-uploader.js', array( 'jquery' ), SMLISER_VER, true );
         wp_register_script( 'select2', SMLISER_URL . 'assets/js/select2.min.js', array( 'jquery' ), SMLISER_VER, true );
         wp_register_script( 'smliser-tinymce', SMLISER_URL . 'assets/js/tinymce/tinymce.min.js', array( 'jquery' ), SMLISER_VER, true );
+        wp_register_script( 'smliser-admin-repository', SMLISER_URL . 'assets/js/admin-repository.js', array( 'jquery' ), SMLISER_VER, true );
 
         if ( is_admin() ) {
             wp_enqueue_script( 'smliser-chart', SMLISER_URL . 'assets/js/chart.js', array(), SMLISER_VER, true );
@@ -206,6 +207,10 @@ class Config {
 
         if ( 'smart-license-server_page_smliser-bulk-message' === $s || 'smart-license-server_page_licenses' === $s ) {
             wp_enqueue_script( 'select2' );
+        }
+
+        if ( 'smart-license-server_page_repository' === $s ) {
+            wp_enqueue_script( 'smliser-admin-repository' );
         }
 
         // Script localizer.

@@ -208,7 +208,7 @@ class PluginRepository extends Repository {
                     || ! in_array( $ext, [ 'png', 'gif', 'svg' ], true ) ) {
                     return new Exception(
                         'invalid_icon_name',
-                        'Icon must be named icon-128x128 or icon-256x256 and be a PNG, GIF, or SVG.',
+                        'Icon must follow these naming convention: icon, icon-128x128 or icon-256x256 and be a PNG, GIF, or SVG file.',
                         [ 'status' => 400 ]
                     );
                 }

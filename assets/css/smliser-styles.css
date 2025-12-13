@@ -1255,6 +1255,8 @@ input.smliser_toggle-switch-input {
     width: 150px;
     padding: 10px 10px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    scrollbar-width: thin;
+    scrollbar-color: #b4b4bb #f1f1f1;
 }
 
 .smliser-gallery-list-container_ul {

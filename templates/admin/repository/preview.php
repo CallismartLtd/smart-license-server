@@ -12,7 +12,7 @@
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 
-<div class="smliser-admin-repository-template">
+<div class="smliser-admin-repository-template repo-page">
     <!-- Top Navigation Breadcrumb -->
     <nav class="smliser-top-nav">
         <div class="smliser-breadcrumb">
