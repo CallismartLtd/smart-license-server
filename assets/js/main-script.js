@@ -261,7 +261,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let tokenBtn                = document.getElementById( 'smliserDownloadTokenBtn' );
     let licenseKeyContainers    = document.querySelectorAll( '.smliser-license-obfuscation' );
     let searchInput             = document.getElementById('smliser-search');
-    let tooltips                = document.querySelectorAll('.smliser-form-description, .smliser-tooltip');
+    let tooltips                = document.querySelectorAll( '.smliser-form-description, .smliser-tooltip' );
     let deleteBtn               = document.getElementById( 'smliser-license-delete-button' );
     let updateBtn               = document.querySelector('#smliser-update-btn');
     let appDeleteBtns           = document.querySelectorAll( '.smliser-app-delete-button' );

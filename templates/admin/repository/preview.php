@@ -172,7 +172,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                         <!-- <?php esc_html_e( 'Analytics (30 Days)', 'smliser' ); ?> -->
                     </h3>
                     <div class="smliser-sidebar-content">
-                        <?php echo wp_kses_post( $data['content'] ?? '' ); ?>
+                        <?php echo ( $data['content'] ?? '' ); ?>
                     </div>
                 </div>
             <?php endforeach; ?>
