@@ -222,7 +222,7 @@ class ProviderCollection {
 
         // Load this provider's options into cache if not already loaded
         if ( ! isset( $provider_options[ $provider_id ] ) ) {
-            $all_options = get_option( 'smliser_monetization_providers_options', array() );
+            $all_options = \get_settings_class()->get( 'smliser_monetization_providers_options', array() );
             $provider_options[ $provider_id ] = $all_options[ $provider_id ] ?? array();
         }
 
@@ -237,7 +237,7 @@ class ProviderCollection {
      * @return bool True if option value has changed, false if not or if update failed.
      */
     public static function update_option( $provider_id, $option_name, $value ) {
-        $all_options = get_option( 'smliser_monetization_providers_options', array() );
+        $all_options = \get_settings_class()->get( 'smliser_monetization_providers_options', array() );
 
         if ( ! isset( $all_options[ $provider_id ] ) || ! is_array( $all_options[ $provider_id ] ) ) {
             $all_options[ $provider_id ] = array();

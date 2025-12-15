@@ -219,6 +219,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
      *              http authorization bearer header.
     */
     private static function parse_license_document_download() {
+        $settings   = \get_settings_class();
         // Construct the FileRequest object.
         $request = new FileRequest([
             'license_id'        => absint( get_query_var( 'license_id' ) ),
@@ -228,8 +229,8 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'request_time'      => time(),
             'client_ip'         => smliser_get_client_ip(),
             'is_authorized'     => current_user_can( 'manage_options' ),
-            'issuer'            => get_option( 'smliser_company_name', get_bloginfo( 'name' ) ),
-            'terms_url'         => get_option( 'smliser_license_term_url', 'https://callismart.com.ng/terms/' )
+            'issuer'            => $settings->get( 'smliser_company_name', get_bloginfo( 'name' ) ),
+            'terms_url'         => $settings->get( 'smliser_license_term_url', 'https://callismart.com.ng/terms/' )
         ]);
 
         $response = FileRequestController::get_license_document( $request );

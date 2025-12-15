@@ -16,6 +16,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\MDParser;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -63,7 +64,7 @@ function smliser_repo_page() {
         return $url;
     }
 
-    return site_url( get_option( 'smliser_repo_base_perma', 'plugins' ) );
+    return site_url( \get_settings_class()->get( 'smliser_repo_base_perma', 'plugins' ) );
 }
 
 /**
@@ -533,7 +534,7 @@ function smliser_send_json( $data, $status_code = 200, $flags = 0 ) {
 
     if ( ! headers_sent() ) {
         status_header( $status_code );
-        header( 'Content-Type: application/json; charset=' . get_option( 'blog_charset' ) );
+        header( 'Content-Type: application/json; charset=' . get_settings_class()->get( 'charset', 'UTF-8', false ) );
     }
 
     echo smliser_safe_json_encode( $data, $flags ); // phpcs:ignore
@@ -931,7 +932,7 @@ function smliser_get_app_asset_url( $type, $slug, $filename ) {
  * @return string
  */
 function smliser_get_repo_url( $path = '' ) {
-    $repo_base = get_option( 'smliser_repo_base_perma', 'repository' );
+    $repo_base = \get_settings_class()->get( 'smliser_repo_base_perma', 'repository' );
     $base_url  = site_url( $repo_base );
 
     if ( $path !== '' ) {
@@ -1329,13 +1330,17 @@ function smliser_download_with_fopen( $url, $timeout ) {
 /**
  * Get the database class singleton instance.
  *
- * Provides access to the environment-agnostic database class
- * for the Smart License Server plugin.
- *
  * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
  */
 function smliser_dbclass() : \SmartLicenseServer\Database\Database {
     return \SmartLicenseServer\Database\Database::instance();
+}
+
+/**
+ * Get the settings API singleton class.
+ */
+function get_settings_class() : Settings {
+    return Settings::instance();
 }
 
 /**

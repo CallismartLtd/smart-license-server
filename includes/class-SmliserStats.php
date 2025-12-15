@@ -777,7 +777,7 @@ class SmliserStats {
      * @return array $schedules An array of task logs
      */
     public static function get_license_activity_logs() {
-        $schedules  = get_option( 'smliser_task_log', false );
+        $schedules  = \get_settings_class()->get( 'smliser_task_log', false );
         
         if ( false === $schedules ) {
             return array(); // Returns empty array.

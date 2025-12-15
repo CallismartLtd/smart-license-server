@@ -498,7 +498,7 @@ class Installer {
             smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
-        $repo_version = get_option( 'smliser_repo_version', 0 );
+        $repo_version = \get_settings_class()->get( 'smliser_repo_version', 0 );
         if ( SMLISER_VER === $repo_version ) {
             smliser_send_json_error( array( 'message' => 'No upgrade needed' ) );
         }

@@ -81,6 +81,7 @@ class Config {
         define( 'SMLISER_PRICING_TIER_TABLE', $parsed_config['db_prefix'] . 'smliser_pricing_tiers' );
         define( 'SMLISER_BULK_MESSAGES_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages' );
         define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages_apps' );
+        define( 'SMLISER_OPTIONS_TABLE', $parsed_config['db_prefix'] . 'smliser_options' );
 
         /**
          * Absolute path to the root Smart License Server repository directory.
@@ -254,7 +255,7 @@ class Config {
      */
     public function init_hooks() {
         $this->run_automation();
-        $repo_base_url = get_option( 'smliser_repo_base_perma', 'repository' );
+        $repo_base_url = \get_settings_class()->get( 'smliser_repo_base_perma', 'repository' );
     
         add_rewrite_rule(
             '^' . $repo_base_url . '$',
@@ -416,7 +417,7 @@ class Config {
      * Print admin notices
      */
     public static function print_notice() {
-        $repo_version = get_option( 'smliser_repo_version', 0 );
+        $repo_version = \get_settings_class()->get( 'smliser_repo_version', 0 );
         if ( SMLISER_VER === $repo_version ) {
             return;
         }

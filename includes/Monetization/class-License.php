@@ -931,7 +931,7 @@ class License {
      */
     public function generate_license_key( $prefix = '' ) {
         if ( empty( $prefix ) ) {
-            $prefix = get_option( 'smliser_license_prefix', 'SMLISER' );
+            $prefix = \get_settings_class()->get( 'smliser_license_prefix', 'SMLISER' );
         }
 
         $uid            = sha1( uniqid( '', true ) );

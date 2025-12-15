@@ -98,7 +98,7 @@ class Database {
             'username' => defined('DB_USER') ? DB_USER : 'root',
             'password' => defined('DB_PASSWORD') ? DB_PASSWORD : '',
             'database' => defined('DB_NAME') ? DB_NAME : '',
-            'charset'  => 'utf8mb4',
+            'charset'  => \get_settings_class()->get( 'db_charset', 'utf8mb4' ),
         ];
 
         // --- 3. PDO Adapter (Preferred Standard PHP Fallback) ---
