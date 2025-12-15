@@ -80,14 +80,6 @@ _buildChart(canvas) {
         return;
     }
 
-    // Ensure parent container has proper height
-    const chartContainer = canvas.closest('.smliser-chart-container');
-    if (chartContainer && !chartContainer.style.height) {
-        chartContainer.style.position = 'relative';
-        chartContainer.style.height = '400px';
-        chartContainer.style.width = '100%';
-    }
-
     let analytics;
     try {
         analytics = JSON.parse(rawData);

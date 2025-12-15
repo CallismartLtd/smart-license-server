@@ -435,11 +435,9 @@ class RepositoryPage {
 
         $json = smliser_json_encode_attr( $analytics );
 
-        // Start HTML
         $html = '<div class="smliser-app-analytics">';
         
-        // Chart Container
-        $html .= '<div class="smliser-chart-container" style="position: relative; height: 300px; width: 100%; margin-bottom: 10px;">';
+        $html .= '<div class="smliser-chart-container">';
         $html .= sprintf(
             '<canvas class="smliser-app-mini-analytics" data-analytics="%s"></canvas>',
             esc_attr( $json )
@@ -576,57 +574,25 @@ class RepositoryPage {
         }
 
         // Build HTML
-        $html = '<div class="analytics-stats-footer" style="
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            padding: 20px;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-        ">';
+        $html = '<div class="analytics-stats-footer">';
 
         foreach ( $stats as $stat ) {
-            $highlight = ! empty( $stat['highlight'] ) ? 'border-left-width: 6px;' : '';
+            $highlight = ! empty( $stat['highlight'] ) ? ' highlight' : '';
             
-            $html .= sprintf(
-                '<div class="stat-card" style="
-                    background: white;
-                    padding: 16px;
-                    border-radius: 8px;
-                    border-left: 4px solid %s;
-                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                    transition: all 0.2s ease;
-                    cursor: default;
-                    %s
-                " onmouseenter="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 12px rgba(0, 0, 0, 0.15)\';" onmouseleave="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 1px 3px rgba(0, 0, 0, 0.1)\';">',
-                esc_attr( $stat['color'] ),
-                $highlight
-            );
-
-            $html .= '<div style="display: flex; align-items: flex-start; gap: 12px;">';
-            $html .= sprintf( '<span style="font-size: 24px; line-height: 1;">%s</span>', $stat['icon'] );
-            
-            $html .= '<div style="flex: 1; min-width: 0;">';
-            $html .= sprintf(
-                '<div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">%s</div>',
-                esc_html( $stat['label'] )
-            );
-            $html .= sprintf(
-                '<div style="font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1;">%s</div>',
-                esc_html( $stat['value'] )
-            );
+            $html .= sprintf( '<div class="stat-card%s">', $highlight );
+            $html .= '<div class="stat-card_header">';
+            $html .= sprintf( '<span class="icon">%s</span>', $stat['icon'] );
+            $html .= sprintf( '<span class="stat-card_header-title">%s</span>', esc_html( $stat['label'] ) );
+            $html .= '</div>';
+            $html .= '<div class="stat-card_content">';
+            $html .= sprintf( '<span class="stat-card_content-value">%s</span>', esc_html( $stat['value'] ) );
             
             if ( ! empty( $stat['subtitle'] ) ) {
-                $html .= sprintf(
-                    '<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">%s</div>',
-                    esc_html( $stat['subtitle'] )
-                );
+                $html .= sprintf( '<span class="stat-card_content-subtitle">%s</span>', esc_html( $stat['subtitle'] ) );
             }
+            $html .= '</div>';
             
-            $html .= '</div>'; // Close inner div
-            $html .= '</div>'; // Close flex container
-            $html .= '</div>'; // Close stat-card
+            $html .= '</div>'; // Stat card.
         }
 
         $html .= '</div>'; // Close footer

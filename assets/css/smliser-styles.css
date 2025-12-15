@@ -1155,7 +1155,7 @@ input.smliser_toggle-switch-input {
 .smliser-content-grid {
     display: flex;
     gap: 30px;
-    padding: 0 30px 30px;
+    padding: 0 15px 15px;
 }
 
 .smliser-main-content {
@@ -1373,6 +1373,79 @@ input.smliser_toggle-switch-input {
     font-size: 24px;
     cursor: pointer;
     color: #333333;
+}
+
+.smliser-chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.analytics-stats-footer {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+}
+
+.stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease-in-out;
+    cursor: default;
+    flex: 1;
+}
+
+.stat-card_header {
+    display: flex; 
+    align-items: flex-start; 
+    gap: 12px;
+}
+
+.stat-card_header span.icon {
+    font-size: 24px; 
+    line-height: 1;
+}
+
+.stat-card_header-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.stat-card_content {
+    align-self: center;
+}
+.stat-card_content-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+}
+.stat-card_content-subtitle {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.stat-card.highlight {
+    border-left-width: 6px;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 #smliser-download-url-preview {
