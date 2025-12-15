@@ -423,7 +423,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'start_date'            => smliser_get_post_param( 'start_date' ),
             'end_date'              => smliser_get_post_param( 'end_date' ),
             'app_prop'              => smliser_get_post_param( 'app_prop' ),
-            'max_allowed_domains'   => smliser_get_post_param( 'allowed_sites' ),
+            'max_allowed_domains'   => smliser_get_post_param( 'allowed_sites', -1 ),
         ]);
 
         $response   = Controller::save_license( $request );

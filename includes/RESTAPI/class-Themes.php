@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\RESTAPI;
 
+use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\HostedApps\Theme;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -29,8 +30,8 @@ class Themes {
         /**
          * We handle the required parameters here.
          */
-        $theme_id = $request->get_param( 'theme_id' );
-        $slug    = $request->get_param( 'slug' );
+        $theme_id   = $request->get_param( 'theme_id' );
+        $slug       = $request->get_param( 'slug' );
 
         if ( empty( $theme_id ) && empty( $slug ) ) {
             return new WP_Error(
@@ -64,7 +65,8 @@ class Themes {
         /** @var Theme $theme */
         $theme = $request->get_param( 'smliser_resource' );
 
-        $response = new WP_REST_Response( $theme->get_rest_response(), 200 );        
+        $response = new WP_REST_Response( $theme->get_rest_response(), 200 );
+        AppsAnalytics::log_client_access( $theme, 'theme_info' );    
         return $response;
     }
 

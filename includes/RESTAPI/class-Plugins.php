@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\RESTAPI;
 
+use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\HostedApps\Plugin as HostedPlugin;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -64,7 +65,8 @@ class Plugins {
         /** @var HostedPlugin $plugin */
         $plugin = $request->get_param( 'smliser_resource' );
 
-        $response = new WP_REST_Response( $plugin->formalize_response(), 200 );        
+        $response = new WP_REST_Response( $plugin->formalize_response(), 200 );
+        AppsAnalytics::log_client_access( $plugin, 'plugin_info' );
         return $response;
 
     }

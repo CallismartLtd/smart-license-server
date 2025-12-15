@@ -421,9 +421,26 @@ class License {
     /**
      * Get the maximum allowed domains that can request license activation.
      * 
-     * @return int $number_of_domains
+     * @param string $context
+     * @return string|int $number_of_domains
      */
-    public function get_max_allowed_domains() {
+    public function get_max_allowed_domains( string $context = 'view' ) : string|int {
+
+        if ( 'view' === $context ) {
+            if ( $this->max_allowed_domains < 0 ) {
+                return 'Unlimited';
+            }
+            if ( empty( $this->max_allowed_domains ) ) {
+                return 'None';
+            }
+        }
+
+        if ( 'edit' === $context ) {
+            if ( $this->max_allowed_domains < 0 ) {
+                return '';
+            }
+        }
+
         return $this->max_allowed_domains;
     }
 
@@ -788,7 +805,7 @@ class License {
      * Whether license has reached max allowed domains.
      */
     public function has_reached_max_allowed_domains() {
-       return $this->get_total_active_domains() >= $this->get_max_allowed_domains();
+       return $this->get_total_active_domains() >= $this->max_allowed_domains;
     }
 
     /**

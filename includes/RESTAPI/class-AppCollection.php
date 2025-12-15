@@ -8,6 +8,7 @@
  */
 namespace SmartLicenseServer\RESTAPI;
 
+use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -67,7 +68,7 @@ class AppCollection {
         $apps_data = array();
         if ( ! empty( $results['items'] ) ) {
             foreach ( $results['items'] as $app ) {
-                
+                AppsAnalytics::log_client_access( $app, 'app_listing' );
                 $apps_data[] = $app->get_rest_response();
                 
             }
@@ -96,6 +97,7 @@ class AppCollection {
             return new WP_Error( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );
         }
 
+        AppsAnalytics::log_client_access( $app, \sprintf( '%s_info', $app->get_type() ) );
         return new WP_REST_Response( $app->get_rest_response(), 200 );
     }
 }

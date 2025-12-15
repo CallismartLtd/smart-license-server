@@ -72,6 +72,7 @@ class FileRequestController {
             $response = new FileResponse( $file_path, ['type' => $app->get_type()] );
 
             $response->register_after_serve_callback( [AppsAnalytics::class,'log_download'], [$app] );
+            $response->register_after_serve_callback( [AppsAnalytics::class,'log_client_access'], [$app, 'download'] );
             
             return $response;
 
@@ -251,64 +252,66 @@ class FileRequestController {
     /**
      * Generates a textual license certificate for a given license and request context.
      *
-     * @param object $license   License object.
+     * @param License $license   License object.
      * @param FileRequest $request Request context (used for issuer, terms URL, etc.).
      * @return string The formatted license document.
      */
     protected static function generate_license_document( $license, FileRequest $request ): string {
-        $license_key = $license->get_license_key();
-        $service_id  = $license->get_service_id();
-        $issued      = $license->get_start_date();
-        $expiry      = $license->get_end_date();
-        $site_limit  = $license->get_allowed_sites();
-        $today       = date_i18n( 'Y-m-d H:i:s' );
-        $issuer      = $request->get( 'issuer', SMLISER_APP_NAME );
-        $terms_url   = $request->get( 'terms_url', '#' );
-        $item_id     = $license->get_item_id() ?? 0;
+        $license_key    = $license->get_license_key();
+        $service_id     = $license->get_service_id();
+        $issued         = $license->get_start_date();
+        $expiry         = $license->get_end_date();
+        $status         = $license->get_status();
+        $max_domains    = $license->get_max_allowed_domains();
+        $today          = date( 'F j, Y g:i:s a' );
+        $issuer         = $request->get( 'issuer', SMLISER_APP_NAME );
+        $terms_url      = $request->get( 'terms_url', '#' );
+        $app_id         = $license->get_app_id();
 
         $document = <<<EOT
-    ========================================
-    SOFTWARE LICENSE CERTIFICATE
-    Issued by {$issuer}
-    ========================================
-    ----------------------------------------
-    License Details
-    ----------------------------------------
-    Service ID:     {$service_id}
-    License Key:    {$license_key}
-    (Ref: Item ID {$item_id})
+        ========================================
+        SOFTWARE LICENSE CERTIFICATE
+        Issued by:  {$issuer}
+        ========================================
+        ----------------------------------------
+        License Details
+        ----------------------------------------
+        Status:         {$status}
+        Service ID:     {$service_id}
+        License Key:    {$license_key}
+        App ID:         {$app_id}
 
-    ----------------------------------------
-    License Validity
-    ----------------------------------------
-    Start Date:     {$issued}
-    End Date:       {$expiry}
-    Allowed Sites:  {$site_limit}
+        ----------------------------------------
+        License Validity
+        ----------------------------------------
+        Start Date:     {$issued}
+        End Date:       {$expiry}
+        Allowed Sites:  {$max_domains}
 
-    ----------------------------------------
-    Activation Guide
-    ----------------------------------------
-    Use the Service ID and License Key above to activate this software.
+        ----------------------------------------
+        Activation Guide
+        ----------------------------------------
+        Use the Service ID and License Key above to activate this software.
 
-    Note:
-    - The software already includes its internal ID.
-    - Activation may vary by product. Refer to product documentation.
+        Note:
+        - The software already includes its internal ID.
+        - Activation may vary by product. Refer to product documentation.
 
-    ----------------------------------------
-    License Terms (Summary)
-    ----------------------------------------
-    ✔ Use on up to {$site_limit} site(s)
-    ✔ Allowed for personal or client projects
-    ✘ Not allowed to resell, redistribute, or modify for resale
+        ----------------------------------------
+        License Terms (Summary)
+        ----------------------------------------
+        ✔ Use on "{$max_domains}" domain(s)
+        ✔ Allowed for personal or client projects
+        ✘ Not allowed to resell, redistribute, or modify for resale
 
-    Full License Agreement:
-    {$terms_url}
+        Full License Agreement:
+        {$terms_url}
 
-    ----------------------------------------
-    Issued By:      {$issuer}
-    Generated On:   {$today}
-    ========================================
-    EOT;
+        ----------------------------------------
+        Issued By:          {$issuer}
+        Auto Generated On:  {$today}
+        ========================================
+        EOT;
 
         return $document;
     }

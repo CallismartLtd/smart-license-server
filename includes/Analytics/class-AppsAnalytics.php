@@ -197,7 +197,7 @@ class AppsAnalytics {
      * - per-day unique client fingerprints (used to estimate active installations)
      *
      * @param AbstractHostedApp $app        The hosted app instance.
-     * @param string            $event_type The type of event (e.g. 'update_check', 'plugin_info', 'download').
+     * @param string            $event_type The type of event (e.g. 'update_check', 'app_info', 'download').
      *
      * @return bool True if all updates succeeded, false otherwise.
      */
@@ -258,8 +258,8 @@ class AppsAnalytics {
         // ---------------------------------------------------------
         // 4. Track unique client fingerprints per day
         // ---------------------------------------------------------
-        $ip         = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-        $user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+        $ip         = \smliser_get_client_ip();
+        $user_agent = \smliser_get_user_agent( true );
 
         $fingerprint_raw = $ip . '|' . $user_agent;
         $fingerprint     = hash( 'sha256', $fingerprint_raw );

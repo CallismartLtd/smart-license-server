@@ -67,7 +67,7 @@ defined( 'SMLISER_ABSPATH' ) ||  exit;
             <div class="smliser-form-row">
                 <label for="allowed_sites" class="smliser-form-label">Max Allowed Domains</label>
                 <span class="smliser-form-description" title="Set the maximum number of domains allowed to activate license.">?</span>
-                <input type="number" class="smliser-form-input" name="allowed_sites" id="allowed_sites" value="<?php echo esc_attr( $license->get_max_allowed_domains() ); ?>">
+                <input type="number" class="smliser-form-input" name="allowed_sites" id="allowed_sites" value="<?php echo esc_attr( $license->get_max_allowed_domains( 'edit' ) ); ?>">
             </div>
 
             <!-- Status -->

@@ -375,12 +375,17 @@ function smliser_parse_user_agent( $user_agent_string ) {
 
 
 /**
- * Get user agent
+ * Get user agent agent.
  * 
+ * @param bool $raw Whether to get the raw user agent string.
  * @return string
  */
-function smliser_get_user_agent() {
+function smliser_get_user_agent( bool $raw = false ) {
     $user_agent_string = smliser_get_param( 'HTTP_USER_AGENT', '', $_SERVER );
+    if ( $raw ) {
+        return $user_agent_string;
+    }
+
     return smliser_parse_user_agent( $user_agent_string );
 }
 
@@ -757,7 +762,7 @@ function smliser_get_post_param( $param, $default = '' ) {
  * @return mixed The sanitized value if found, or the default value if the key is not present.
  */
 function smliser_get_param( $key, $default = '', $source = array() ) {
-    if ( ! isset( $source[ $key ] ) ) {
+    if ( ! array_key_exists( $key, $source ) ) {
         return $default;
     }
 

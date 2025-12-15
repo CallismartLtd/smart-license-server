@@ -99,7 +99,7 @@ class Installer {
             'license_key VARCHAR(300) NOT NULL UNIQUE',
             'service_id VARCHAR(300) NOT NULL',
             'app_prop VARCHAR(600) DEFAULT NULL',
-            'allowed_sites MEDIUMINT(9) DEFAULT NULL',
+            'max_allowed_domains MEDIUMINT(9) DEFAULT NULL',
             'status VARCHAR(30) DEFAULT NULL',
             'start_date DATE DEFAULT NULL',
             'end_date DATE DEFAULT NULL',
