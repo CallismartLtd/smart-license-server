@@ -567,11 +567,11 @@ class SmliserSoftwareCollection {
             ));
 
             return ( new Response( 200, array(), smliser_safe_json_encode( $data ) ) )
-            ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \get_settings_class()->get( 'charset', 'UTF-8' ) ) );
+            ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \get_settings_class()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -681,12 +681,12 @@ class SmliserSoftwareCollection {
             ];
 
             return ( new Response( 200, array(), smliser_safe_json_encode( $response ) ) )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \get_settings_class()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
 
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \get_settings_class()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -736,12 +736,12 @@ class SmliserSoftwareCollection {
             ];
 
             return ( new Response( 200, array(), smliser_safe_json_encode( $response ) ) )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \get_settings_class()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
 
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \get_settings_class()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -780,12 +780,12 @@ class SmliserSoftwareCollection {
             ];
 
             return ( new Response( 200, array(), smliser_safe_json_encode( $response ) ) )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \get_settings_class()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
 
         }  catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \get_settings_class()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 

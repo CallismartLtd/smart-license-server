@@ -8,10 +8,14 @@
  * @since 1.0.0
  */
 
+use SmartLicenseServer\Exceptions\Exception;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 add_filter( 'wp_kses_allowed_html', 'smliser_allowed_html', 10 , 2 );
 ?>
 <h1>Dashboard</h1>
+
+<?php smliser_abort_request( new Exception( 'internal_error', 'Admin Dashboard Requires Refactor!' ) ); ?>
 <div class="smliser-admin-dasboard-wrapper" id="smliser-admin-dasboard-wrapper">
     <div class="smliser-admin-dashboard-header"> 
         <div class="smliser-admin-dashboard-header-child">

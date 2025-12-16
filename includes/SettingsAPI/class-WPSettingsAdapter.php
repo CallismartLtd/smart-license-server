@@ -52,7 +52,6 @@ class WPSettingsAdapter extends AbstractSettings {
 	protected function do_set( string $key, $value ): bool {
 		$result = \update_option( $key, $value );
 
-		// We treat null (no change) as success, as the desired state is persisted.
 		return false !== $result;
 	}
 

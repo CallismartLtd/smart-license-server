@@ -675,73 +675,6 @@ class SmliserStats {
 
         return $requests_per_user;
     }
-    /*
-    |-------------------------
-    | ACTION HANDLER METHODS
-    |-------------------------
-    */
-
-    /**
-     * Handles stats sycronization.
-     * 
-     */
-    public static function action_handler() {
-
-        // Retrieve the expected parameters.
-        $params     = func_get_args();
-        $context    = isset( $params[0] ) ? sanitize_text_field( $params[0] ) : '';
-        
-        if ( empty( $context ) || ! is_string( $context ) ) {
-            return false;
-        }
-
-        $plugin     = isset( $params[1] ) ? $params[1] : '';
-        $license    = isset( $params[2] ) ? $params[2] : '';
-        $additional = isset( $params[3] ) ? $params[3] : array();
-        $user_func  = isset ( $additional[0] ) ? $additional[0] : null;
-        $args       = isset( $additional[1]) ? $additional[1] : null;
-        
-        if ( 'plugin_download' === $context ) {
-            self::instance()->log_download( $plugin->get_item_id() );
-
-        } elseif ( 'license_deactivation' === $context ) {
-            $website = $license->get_action();
-            self::log_access( self::$license_deactivation, array( 
-                'request_data' => array( 
-                    'license_id' => $license->get_id(), 
-                    'item_id' => $license->get_item_id(), 
-                ),
-                'response_data' => array(
-                    $args
-                ),
-                'website' => isset( $args['callback_url'] ) ? isset( $args['callback_url'] ) : '',
-                 
-            ) );
-        } elseif( 'license_activation' === $context ) {
-            self::log_access( self::$license_activation, array( 
-                    'request_data' => array( 
-                        'license_id' => $license->get_id(), 
-                        'item_id' => $license->get_item_id(), 
-                    ),
-                    'response_data' => array(
-                        $args
-                    ),
-                    'website' => $args['callback_url'],
-                     
-                ) );
-        } elseif( 'plugin_update' === $context ) {
-            self::log_access( self::$plugin_update, array( 'request_data' => array( 'plugin_id' => $plugin->get_item_id() ) ) );
-        } elseif( 'denied_access' === $context ) {
-            $reasons = $args;
-            self::log_access( $reasons['route'], array( 
-                    'status_code'   => $reasons['status_code'],
-                    'request_data'  => $reasons['request_data'],
-                    'response_data' => $reasons['response_data'],
-                )
-            );
-
-        }
-    }
 
     /*
     |------------------------------------------
@@ -777,7 +710,7 @@ class SmliserStats {
      * @return array $schedules An array of task logs
      */
     public static function get_license_activity_logs() {
-        $schedules  = \get_settings_class()->get( 'smliser_task_log', false );
+        $schedules  = \smliser_settings_adapter()->get( 'smliser_task_log', false );
         
         if ( false === $schedules ) {
             return array(); // Returns empty array.

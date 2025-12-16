@@ -255,7 +255,7 @@ class Config {
      */
     public function init_hooks() {
         $this->run_automation();
-        $repo_base_url = \get_settings_class()->get( 'smliser_repo_base_perma', 'repository' );
+        $repo_base_url = \smliser_settings_adapter()->get( 'smliser_repo_base_perma', 'repository' );
     
         add_rewrite_rule(
             '^' . $repo_base_url . '$',
@@ -417,7 +417,7 @@ class Config {
      * Print admin notices
      */
     public static function print_notice() {
-        $repo_version = \get_settings_class()->get( 'smliser_repo_version', 0 );
+        $repo_version = \smliser_settings_adapter()->get( 'smliser_repo_version', 0 );
         if ( SMLISER_VER === $repo_version ) {
             return;
         }

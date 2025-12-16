@@ -40,9 +40,9 @@ class Installer {
         $result = self::init_repo_dir();
 
         if ( is_smliser_error( $result ) ) {
-            update_option( 'smliser_directory_error', $result->get_error_message() );
+            \smliser_settings_adapter()->set( 'smliser_directory_error', $result->get_error_message() );
         } else {
-            delete_option( 'smliser_directory_error' );
+            \smliser_settings_adapter()->delete( 'smliser_directory_error' );
         }
 
         self::create_tables();
@@ -498,7 +498,7 @@ class Installer {
             smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
-        $repo_version = \get_settings_class()->get( 'smliser_repo_version', 0 );
+        $repo_version = \smliser_settings_adapter()->get( 'smliser_repo_version', 0 );
         if ( SMLISER_VER === $repo_version ) {
             smliser_send_json_error( array( 'message' => 'No upgrade needed' ) );
         }
@@ -513,7 +513,7 @@ class Installer {
             }
            
         }
-        update_option( 'smliser_repo_version', SMLISER_VER );
+        \smliser_settings_adapter()->set( 'smliser_repo_version', SMLISER_VER );
 
         smliser_send_json_success( array( 'message' => 'The repository has been migrated from version "' . $repo_version . '" to version "' . SMLISER_VER ) );
     }

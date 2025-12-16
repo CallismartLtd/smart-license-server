@@ -8,10 +8,10 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\RESTAPI\Versions\V1;
-use SmartLicenseServer\SmliserStats;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -98,7 +98,7 @@ class LicensePage {
      * License activation log page.
      */
     private static function logs_page() {
-        $all_tasks  = SmliserStats::get_license_activity_logs();
+        $all_tasks  = RepositoryAnalytics::get_license_activity_logs();
 
         include_once SMLISER_PATH . 'templates/admin/license/logs.php';
         return;

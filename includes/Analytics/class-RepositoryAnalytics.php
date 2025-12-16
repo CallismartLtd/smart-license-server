@@ -1,8 +1,7 @@
 <?php
 /**
- * Collection-wide Apps Analytics class
+ * Collection-wide Apps/Repo Analytics class
  * 
- * Aggregates analytics across all hosted apps (plugins, themes, software)
  * using the app’s internal DB abstraction.
  * 
  * @author Callistus
@@ -14,7 +13,7 @@ namespace SmartLicenseServer\Analytics;
 
 \defined( 'SMLISER_ABSPATH' ) || exit;
 
-class AppsAnalyticsCollection {
+class RepositoryAnalytics {
 
     /**
      * Mapping of app types to their meta tables
@@ -26,6 +25,13 @@ class AppsAnalyticsCollection {
         'theme'    => SMLISER_THEME_META_TABLE,
         'software' => SMLISER_APPS_META_TABLE,
     ];
+
+    /**
+     * The storage key for licence activity log.
+     * 
+     * @var string
+     */
+    const LICENSE_ACTIVITY_KEY = 'smliser_task_log';
 
     /**
      * Get total downloads across all apps (optionally filtered by type)
@@ -204,4 +210,65 @@ class AppsAnalyticsCollection {
 
         return count( $unique_clients );
     }
+
+    /*
+    |------------------------------------------
+    | LICENSE STATS METHODS
+    |------------------------------------------
+    */
+
+
+    /**
+     * Record a license activity.
+     * 
+     * @param array $data Associative contanining the executed task.
+     * @return void
+     */
+    public static function log_license_activity( $data ) {
+        $logs = self::get_license_activity_logs();
+        
+        $logs[ current_time( 'mysql' ) ] = array(
+            'license_id'    => $data['license_id'] ?? 'N/A',
+            'ip_address'    => $data['ip_address'] ?? smliser_get_client_ip(),
+            'user_agent'    => $data['user_agent'] ?? smliser_get_user_agent(),
+            'website'       => $data['website'] ?? 'N/A',
+            'comment'       => $data['comment'] ?? 'N/A',
+            'duration'      => $data['duration'] ?? 'N/A',
+        );
+        
+        \smliser_settings_adapter()->set( self::LICENSE_ACTIVITY_KEY, $logs );
+    }
+
+    /**
+     * Get license verification log for the last three month.
+     * 
+     * @return array $schedules An array of task logs
+     */
+    public static function get_license_activity_logs() {
+        $schedules  = \smliser_settings_adapter()->get( self::LICENSE_ACTIVITY_KEY, false );
+        
+        if ( false === $schedules ) {
+            return array(); // Returns empty array.
+        }
+
+        if ( ! is_array( $schedules ) ) {
+            $schedules = (array) $schedules;
+        }
+
+        ksort( $schedules );
+
+        foreach ( $schedules as $time => $schedule ) {
+            $timestamp  = strtotime( $time );
+            $expiration = time() - ( 3 * MONTH_IN_SECONDS );
+
+            if ( $timestamp < $expiration ) {
+                unset( $schedules[$time] );
+                \smliser_settings_adapter()->set( self::LICENSE_ACTIVITY_KEY, $schedules );
+            }
+
+        }
+
+        return $schedules;
+    }
+
 }

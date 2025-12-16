@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\RESTAPI;
 
+use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
@@ -16,7 +17,6 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
-use SmartLicenseServer\SmliserStats;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -130,7 +130,7 @@ class Licenses {
             'duration'      => microtime( true ) - self::$start_time
         );
 
-        SmliserStats::log_license_activity( $license_data );
+        RepositoryAnalytics::log_license_activity( $license_data );
         return $response;
     }
     
@@ -208,7 +208,7 @@ class Licenses {
         }
 
         $log_data['comment']    = $response_data['message'];
-        SmliserStats::log_license_activity( $log_data );
+        RepositoryAnalytics::log_license_activity( $log_data );
         $response = new WP_REST_Response( $response_data, $status_code );
         
         return $response;
@@ -258,7 +258,7 @@ class Licenses {
 
         $log_data['comment']    = $response_data['message'];
         $response = new WP_REST_Response( $response_data, $status_code );
-        SmliserStats::log_license_activity( $log_data );
+        RepositoryAnalytics::log_license_activity( $log_data );
 
         return $response;
     }

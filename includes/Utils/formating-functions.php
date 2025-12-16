@@ -162,8 +162,8 @@ function smliser_extract_only_date( $datetimestring ) {
  * @return object|null stdClass or null
  */
 function smliser_locale_date_format() {
-	$date_format = get_settings_class()->get( 'date_format', 'Y-m-d', false );
-	$time_format = get_settings_class()->get( 'time_format', 'g:i a', false );
+	$date_format = smliser_settings_adapter()->get( 'date_format', 'Y-m-d', false );
+	$time_format = smliser_settings_adapter()->get( 'time_format', 'g:i a', false );
 
 	$format = new stdClass();
 	$format->date_format = $date_format;

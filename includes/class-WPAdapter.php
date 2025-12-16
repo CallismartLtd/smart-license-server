@@ -65,10 +65,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
         add_filter( 'rest_request_before_callbacks', [__CLASS__, 'rest_request_before_callbacks'], -1, 3 );
         add_filter( 'rest_post_dispatch', [__CLASS__, 'filter_rest_response'], 10, 3 );
-        add_filter( 'rest_pre_dispatch', array( __CLASS__, 'enforce_https_for_rest_api' ), 10, 3 );
-
-        add_action( 'smliser_stats', array( SmliserStats::class, 'action_handler' ), 10, 4 );
-        
+        add_filter( 'rest_pre_dispatch', array( __CLASS__, 'enforce_https_for_rest_api' ), 10, 3 );        
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
         add_action( 'admin_menu', [Menu::class, 'register_menus'] );
@@ -219,7 +216,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
      *              http authorization bearer header.
     */
     private static function parse_license_document_download() {
-        $settings   = \get_settings_class();
+        $settings   = \smliser_settings_adapter();
         // Construct the FileRequest object.
         $request = new FileRequest([
             'license_id'        => absint( get_query_var( 'license_id' ) ),
