@@ -71,8 +71,8 @@ class Config {
          */
         define( 'SMLISER_THEME_META_TABLE', $parsed_config['db_prefix'] . 'smliser_theme_meta' );
 
-        define( 'SMLISER_APPS_ITEM_TABLE', $parsed_config['db_prefix'] . 'smliser_applications' );
-        define( 'SMLISER_APPS_META_TABLE', $parsed_config['db_prefix'] . 'smliser_applications_meta' );
+        define( 'SMLISER_SOFTWARE_TABLE', $parsed_config['db_prefix'] . 'smliser_software' );
+        define( 'SMLISER_SOFTWARE_META_TABLE', $parsed_config['db_prefix'] . 'smliser_software_meta' );
         define( 'SMLISER_API_ACCESS_LOG_TABLE', $parsed_config['db_prefix'] . 'smliser_api_access_logs' );
         define( 'SMLISER_API_CRED_TABLE', $parsed_config['db_prefix'] . 'smliser_api_creds' );
         define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $parsed_config['db_prefix'] . 'smliser_item_download_token' );

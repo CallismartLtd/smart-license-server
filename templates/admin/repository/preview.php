@@ -187,7 +187,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             </div>
             
             <?php foreach ( $route_descriptions as $path => $html ) : 
-                echo $html; // Already safely escaped in the V1 class
+                echo $html; // Already safely escaped in the V1 class.
             endforeach; ?>
         </div>
     </div>

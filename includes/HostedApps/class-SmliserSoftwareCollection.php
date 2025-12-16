@@ -86,7 +86,7 @@ class SmliserSoftwareCollection {
         }
 
         if ( in_array( 'software', $types, true ) ) {
-            $table_name     = SMLISER_APPS_ITEM_TABLE;
+            $table_name     = SMLISER_SOFTWARE_TABLE;
             $sql_parts[]    = "SELECT id, 'software' AS type, last_updated FROM {$table_name} WHERE status = ?";
             $params[]       = $status;
             
@@ -178,7 +178,7 @@ class SmliserSoftwareCollection {
         $type_tables = [
             'plugin'   => SMLISER_PLUGIN_ITEM_TABLE,
             'theme'    => SMLISER_THEME_ITEM_TABLE,
-            'software' => SMLISER_APPS_ITEM_TABLE,
+            'software' => SMLISER_SOFTWARE_TABLE,
         ];
 
         $objects = [];
@@ -346,7 +346,7 @@ class SmliserSoftwareCollection {
                     $table = SMLISER_THEME_ITEM_TABLE;
                     break;
                 case 'software':
-                    $table = SMLISER_APPS_ITEM_TABLE;
+                    $table = SMLISER_SOFTWARE_TABLE;
                     break;
                 default:
                     continue 2;

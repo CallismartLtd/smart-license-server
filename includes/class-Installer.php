@@ -67,8 +67,8 @@ class Installer {
             SMLISER_PRICING_TIER_TABLE,
             SMLISER_THEME_ITEM_TABLE,
             SMLISER_THEME_META_TABLE,
-            SMLISER_APPS_ITEM_TABLE,
-            SMLISER_APPS_META_TABLE,
+            SMLISER_SOFTWARE_TABLE,
+            SMLISER_SOFTWARE_META_TABLE,
             SMLISER_BULK_MESSAGES_TABLE,
             SMLISER_BULK_MESSAGES_APPS_TABLE
 
@@ -184,31 +184,20 @@ class Installer {
         self::run_db_delta( $theme_meta_table, $theme_meta_columns );
 
         /**
-         * Other applications table
+         * Other software/app_type table
          */
-        $other_app_table_name    = SMLISER_APPS_ITEM_TABLE;
+        $other_app_table_name    = SMLISER_SOFTWARE_TABLE;
         $other_app_table_columns = array(
             'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'type VARCHAR(50) NOT NULL',                 // e.g. library, saas, desktop, webapp
             'name VARCHAR(255) NOT NULL',
             'slug VARCHAR(300) UNIQUE NOT NULL',
             'status VARCHAR(55) DEFAULT \'active\'',
-            'version VARCHAR(50) DEFAULT NULL',
-            'short_description VARCHAR(500) DEFAULT NULL',
-            'description LONGTEXT DEFAULT NULL',
-            'changelog LONGTEXT DEFAULT NULL',
             'author VARCHAR(255) DEFAULT NULL',
-            'author_profile VARCHAR(400) DEFAULT NULL',
-            'homepage VARCHAR(400) DEFAULT NULL',
-            'support_url VARCHAR(400) DEFAULT NULL',
             'download_link VARCHAR(400) DEFAULT NULL',
-            'platform VARCHAR(100) DEFAULT NULL',        // e.g. "Windows", "Linux", "Web", "Cross-platform"
-            'license VARCHAR(100) DEFAULT NULL',         // e.g. GPL, MIT, Proprietary
             'created_at DATETIME DEFAULT NULL',
             'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'INDEX slug_index (slug)',
-            'INDEX type_index (type)',
-            'INDEX author_index (author)',
+            'INDEX software_slug_index (slug)',
+            'INDEX software_author_index (author)',
         );
 
         self::run_db_delta( $other_app_table_name, $other_app_table_columns );
@@ -216,13 +205,13 @@ class Installer {
         /**
          * Other applications metadata table
          */
-        $other_app_meta_table    = SMLISER_APPS_META_TABLE;
+        $other_app_meta_table    = SMLISER_SOFTWARE_META_TABLE;
         $other_app_meta_columns  = array(
             'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'app_id BIGINT(20) UNSIGNED NOT NULL',
+            'software_id BIGINT(20) UNSIGNED NOT NULL',
             'meta_key VARCHAR(255) NOT NULL',
             'meta_value LONGTEXT DEFAULT NULL',
-            'INDEX app_id_index (app_id)',
+            'INDEX app_id_index (software_id)',
             'INDEX meta_key_index (meta_key)',
         );
 
@@ -245,6 +234,8 @@ class Installer {
 
         /**
          * API endpoint Access logs table.
+         * 
+         * @deprecated 0.2.0
          */
         $api_access_table   = SMLISER_API_ACCESS_LOG_TABLE;
         $api_access_columns = array(
