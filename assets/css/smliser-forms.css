@@ -402,14 +402,10 @@ button.smliser-upload-btn {
 
 /* Wrapper */
 .smliser-admin-page.smliser-upload-page {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
-    font-family: Arial, sans-serif;
-}
-
-.smliser-admin-page {
-  padding: 10px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  font-family: Arial, sans-serif;
 }
 
 /* Page header */

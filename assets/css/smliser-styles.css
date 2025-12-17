@@ -795,12 +795,17 @@ input.smliser_toggle-switch-input {
 /* ============================================
    SMLISER REPOSITORY PREVIEW TEMPLATE STYLES
    ============================================ */
-
+.smliser-admin-dashboard-template,
+.smliser-admin-page,
 .smliser-admin-repository-template {
     background: #f1f1f1;
     min-height: 100vh;
     margin-left: -20px;
     margin-top: -10px;
+}
+
+.smliser-admin-body {
+  margin: 10px;
 }
 
 /* ============================================

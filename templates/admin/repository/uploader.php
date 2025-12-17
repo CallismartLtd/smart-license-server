@@ -29,9 +29,9 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                     <i class="dashicons dashicons-visibility"></i>
                 </a>
             <?php endif; ?>
-            <button class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=smliser-options')) ?>" class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
                 <i class="dashicons dashicons-admin-generic"></i>
-            </button>
+            </a>
         </div>
     </nav>
 

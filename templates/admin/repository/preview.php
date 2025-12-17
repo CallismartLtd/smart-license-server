@@ -30,9 +30,9 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             <a class="smliser-icon-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>" title="<?php esc_attr_e( 'Edit', 'smliser' ); ?>">
                 <i class="dashicons dashicons-edit"></i>
             </a>
-            <button class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=smliser-options')) ?>" class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
                 <i class="dashicons dashicons-admin-generic"></i>
-            </button>
+            </a>
         </div>
     </nav>
 
