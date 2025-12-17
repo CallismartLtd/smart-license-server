@@ -1,6 +1,6 @@
 <?php
 /**
- * Smart License Server Options API.
+ * Options API.
  *
  * Concrete adapter class that uses our custom settings table in the database
  * to manage user options across all supported host environments.

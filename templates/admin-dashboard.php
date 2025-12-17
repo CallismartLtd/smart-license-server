@@ -88,11 +88,3 @@ use SmartLicenseServer\Analytics\RepositoryAnalytics;
     </section>
 
 </div>
-
-<style>
-.smliser-dashboard-wrap { font-family: sans-serif; padding: 20px; }
-.smliser-dashboard-section { margin-bottom: 30px; }
-.smliser-dashboard-section h2 { margin-bottom: 10px; }
-.smliser-dashboard-section ul { list-style: none; padding-left: 0; }
-.smliser-dashboard-section ul li { margin-bottom: 5px; }
-</style>

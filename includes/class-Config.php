@@ -47,7 +47,7 @@ class Config {
         $parsed_config  = self::parse_config( $config );
 
         if ( ! $parsed_config ) {
-            throw new RuntimeException( 'Smart License Server Configuration is invalid' );
+            throw new RuntimeException( \sprintf( '%s Configuration is invalid', SMLISER_APP_NAME ) );
         }
 
         define( 'SMLISER_LICENSE_TABLE', $parsed_config['db_prefix'] . 'smliser_licenses' );
@@ -423,7 +423,7 @@ class Config {
         }
         ?>
         <div class="notice notice-info">
-            <p>Smart License Server requires an update, click <a id="smliser-update-btn" style="cursor: pointer;">HERE</a> to update now.</p>
+            <p><?php \printf( '%s requires an update, click <a id="smliser-update-btn" style="cursor: pointer;">HERE</a> to update now.', SMLISER_APP_NAME ) ?> </p>
             <p id="smliser-click-notice" style="display: none">Update started in the backgroud <span class="dashicons dashicons-yes-alt" style="color: blue"></span></p>
         </div>
         <?php
@@ -447,7 +447,8 @@ class Config {
 
             wp_admin_notice( 
                 sprintf(
-                    __( 'Smart License Server Filesystem Error: <br/> %s Please ensure the WordPress filesystem is properly configured and writable.', 'smliser' ),
+                    __( '%s Filesystem Error: <br/> %s Please ensure the WordPress filesystem is properly configured and writable.', 'smliser' ),
+                    SMLISER_APP_NAME,
                     $messages_html
                 ),
                 'error'

@@ -593,7 +593,7 @@ class SmliserAPICred {
 
                 ) );
                 $url = trailingslashit( $return_url ) . '?' . $params;
-                wp_redirect( $url, 302, 'Smart License Server' );
+                wp_redirect( $url, 302, SMLISER_APP_NAME );
                 exit;
             }
 
@@ -618,7 +618,7 @@ class SmliserAPICred {
                 $request_body = array(
                     'headers'   => array( 
                         'content-type'  => 'application/json',
-                        'x-api'         => 'Smart License Server API',
+                        'x-api'         => SMLISER_APP_NAME,
                         'x-smliser-ver' => SMLISER_VER,
                         
                     ),
@@ -639,7 +639,7 @@ class SmliserAPICred {
 
                 ) );
                 $url = trailingslashit( $return_url ) . '?' . $params;
-                wp_redirect( $url, 302, 'Smart License Server' );
+                wp_redirect( $url, 302, SMLISER_APP_NAME );
                 exit;
             }
             

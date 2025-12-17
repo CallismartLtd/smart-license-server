@@ -1,6 +1,6 @@
 <?php
 /**
- * Smart License Server REST API version 1 class file
+ * REST API version 1 class file
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\RESTAPI
@@ -14,7 +14,7 @@ use SmartLicenseServer\RESTAPI\RESTAuthentication;
 \defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Smart License Server API version 1
+ * API version 1
  * 
  * Environment-agnostic REST API route definitions.
  * Call get_routes() to retrieve all route configurations for registration.

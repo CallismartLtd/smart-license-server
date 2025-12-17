@@ -616,9 +616,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
 
         if ( false !== strpos( $request->get_route(), self::namespace() ) ) {
 
-            $response->header( 'X-Plugin-Name', 'Smart License Server' );
-            $response->header( 'X-API', 'Smart License Server API' );
-            $response->header( 'X-Plugin-Version', SMLISER_VER );
+            $response->header( 'X-App-Name', SMLISER_APP_NAME );
             $response->header( 'X-API-Version', 'v1' );
 
             $data = $response->get_data();

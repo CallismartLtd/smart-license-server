@@ -64,8 +64,8 @@ class Menu {
      */
     public static function register_menus() {
         self::$dasboard_page_id = add_menu_page(
-            'Smart License Server',
-            'Smart License Server',
+            SMLISER_APP_NAME,
+            SMLISER_APP_NAME,
             'manage_options',
             'smliser-admin',
             array( DashboardPage::class, 'router' ),
