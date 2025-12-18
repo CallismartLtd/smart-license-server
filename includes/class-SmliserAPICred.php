@@ -402,7 +402,7 @@ class SmliserAPICred {
             'permission'        => $permission,
             'consumer_secret'   => password_hash( $credentials->consumer_secret, PASSWORD_BCRYPT ),
             'consumer_public'   => $credentials->consumer_public,
-            'created_at'        => current_time( 'mysql' ),
+            'created_at'        => \gmdate( 'Y-m-d H:i:s' ),
         );
 
         $data_format    = array(
@@ -460,7 +460,7 @@ class SmliserAPICred {
         $data = array(
             'app_name'      => $this->tokens['app_name'],
             'token'         => $this->tokens['token'],
-            'last_accessed' => current_time( 'mysql' ),
+            'last_accessed' => \gmdate( 'Y-m-d H:i:s' ),
             'token_expiry'  => $this->tokens['token_expiry'],
         );
 
@@ -487,7 +487,7 @@ class SmliserAPICred {
 
         $updated = $wpdb->update( 
             SMLISER_API_CRED_TABLE, 
-            array( 'last_accessed' => current_time( 'mysql' ) ), 
+            array( 'last_accessed' => \gmdate( 'Y-m-d H:i:s' ) ), 
             array( 'id' => $this->id ), 
             array( '%s' ), 
             array( '%d' )
@@ -548,7 +548,7 @@ class SmliserAPICred {
         $data = array(
             'token'         => $this->tokens['token'],
             'token_expiry'  => $this->tokens['token_expiry'],
-            'last_accessed' => current_time( 'mysql' ),
+            'last_accessed' => \gmdate( 'Y-m-d H:i:s' ),
         );
 
         $data_format = array( '%s', '%s', '%s' );

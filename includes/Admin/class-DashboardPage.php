@@ -43,7 +43,8 @@ class DashboardPage {
 
         $metrics    = [
             'repository'    => [
-                'downloads'
+                'downloads'     => RepositoryAnalytics::get_total_downloads(),
+                'access'
             ]
         ];
 

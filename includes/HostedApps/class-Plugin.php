@@ -314,7 +314,7 @@ class Plugin extends AbstractHostedApp {
             'tested'        => $this->get_tested_up_to(),
             'requires_php'  => $this->get_required_php(),
             'download_link' => $this->get_download_link(),
-            'last_updated'  => current_time( 'mysql' ),
+            'last_updated'  => \gmdate( 'Y-m-d H:i:s' ),
         );
 
         if ( $this->get_id() ) {
@@ -346,7 +346,7 @@ class Plugin extends AbstractHostedApp {
             $this->set_slug( $slug );
 
             $plugin_data['slug']        = $this->get_slug();
-            $plugin_data['created_at']  = current_time( 'mysql' );
+            $plugin_data['created_at']  = \gmdate( 'Y-m-d H:i:s' );
 
             $result = $db->insert( $table, $plugin_data );
 

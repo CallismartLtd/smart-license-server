@@ -380,8 +380,7 @@ class License {
             return self::STATUS_LIFETIME;
         }
 
-        // Convert to timestamps (use WP timezone via current_time()).
-        $now      = (int) current_time( 'timestamp' );
+        $now      = \time();
         $start_ts = ! empty( $start ) ? strtotime( $start ) : 0;
         $end_ts   = strtotime( $end );
 

@@ -272,7 +272,7 @@ class Monetization {
             'item_type'  => $this->item_type,
             'item_id'    => $this->item_id,
             'enabled'    => $this->enabled ? 1 : 0,
-            'updated_at' => current_time( 'mysql' ),
+            'updated_at' => \gmdate( 'Y-m-d H:i:s' ),
         ];
 
         if ( $this->id ) {
@@ -283,7 +283,7 @@ class Monetization {
                 return false;
             }
         } else {
-            $data['created_at'] = current_time( 'mysql' );
+            $data['created_at'] = \gmdate( 'Y-m-d H:i:s' );
             $inserted           = $db->insert( SMLISER_MONETIZATION_TABLE, $data );
 
             if ( ! $inserted ) {

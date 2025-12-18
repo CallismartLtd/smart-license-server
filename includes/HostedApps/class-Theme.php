@@ -247,7 +247,7 @@ class Theme extends AbstractHostedApp {
             'name'          => $this->get_name(),
             'status'        => $this->get_status(),
             'download_link' => $this->get_download_url(),
-            'last_updated'  => current_time( 'mysql' ),
+            'last_updated'  => \gmdate( 'Y-m-d H:i:s' ),
         );
 
         if ( $this->get_id() ) {
@@ -279,7 +279,7 @@ class Theme extends AbstractHostedApp {
             $this->set_slug( $slug );
 
             $theme_data['slug']        = $this->get_slug();
-            $theme_data['created_at']  = current_time( 'mysql' );
+            $theme_data['created_at']  = \gmdate( 'Y-m-d H:i:s' );
 
             $result = $db->insert( $table, $theme_data );
 

@@ -305,13 +305,13 @@ class BulkMessages {
             'message_id' => $this->message_id,
             'subject'    => $this->subject,
             'body'       => $this->body,
-            'updated_at' => current_time( 'mysql' ),
+            'updated_at' => \gmdate( 'Y-m-d H:i:s' ),
         );
 
         if ( $this->id > 0 ) {
             $result  = $db->update( $table, $data, array( 'id' => $this->id ) );
         } else {
-            $data['created_at'] = current_time( 'mysql' );
+            $data['created_at'] = \gmdate( 'Y-m-d H:i:s' );
             $result  = $db->insert( $table, $data );
             
             $this->set_id( $db->get_insert_id() );

@@ -258,7 +258,7 @@ class RepositoryAnalytics {
     public static function log_license_activity( array $data ) {
         $logs = self::get_license_activity_logs();
 
-        $logs[ current_time( 'mysql' ) ] = [
+        $logs[ \gmdate( 'Y-m-d H:i:s' ) ] = [
             'license_id' => $data['license_id'] ?? 'N/A',
             'event_type' => $data['event_type'] ?? 'activation', // structured event type
             'ip_address' => $data['ip_address'] ?? smliser_get_client_ip(),
