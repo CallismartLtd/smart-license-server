@@ -125,6 +125,7 @@ class Licenses {
         $license_data   = array(
             'license_id'    => $license->get_id(),
             'ip_address'    => smliser_get_client_ip(),
+            'event_type'    => 'activation',
             'website'       => $domain,
             'comment'       => 'License activated',
             'duration'      => microtime( true ) - self::$start_time
@@ -178,6 +179,7 @@ class Licenses {
         $log_data   = array(
             'license_id'    => $license->get_id(),
             'ip_address'    => smliser_get_client_ip(),
+            'event_type'    => 'deactivation',
             'website'       => $domain,
             'comment'       => '',
             'duration'      => microtime( true ) - self::$start_time
@@ -242,6 +244,7 @@ class Licenses {
 
         $log_data   = array(
             'license_id'    => $license->get_id(),
+            'event_type'    => 'uninstallation',
             'ip_address'    => smliser_get_client_ip(),
             'website'       => $domain,
             'comment'       => '',
@@ -333,7 +336,17 @@ class Licenses {
             )
         );
 
+        $log_data   = array(
+            'license_id'    => $license->get_id(),
+            'event_type'    => 'verification',
+            'ip_address'    => smliser_get_client_ip(),
+            'website'       => $request->get_param( 'domain' ),
+            'comment'       => \sprintf( 'Message: %s | Token validity: %s', $response_data['message'], $response_data['data']['token_validity'] ),
+            'duration'      => microtime( true ) - self::$start_time
+        );
+
         $response = new WP_REST_Response( $response_data, 200 );
+        RepositoryAnalytics::log_license_activity( $log_data );
 
         return $response;
 
