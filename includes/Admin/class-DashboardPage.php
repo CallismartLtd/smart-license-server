@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Analytics\RepositoryAnalytics;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -31,7 +33,19 @@ class DashboardPage {
      * Dashboard Callback method
      */
     private static function dashboard() {
+        $totals = [
+            'apps'      => RepositoryAnalytics::get_total_apps(),
+            'plugins'   => RepositoryAnalytics::get_total_apps( 'plugin' ),
+            'themes'    => RepositoryAnalytics::get_total_apps( 'theme' ),
+            'software'  => RepositoryAnalytics::get_total_apps( 'software' )
+        ];
         
+
+        $metrics    = [
+            'repository'    => [
+                'downloads'
+            ]
+        ];
 
 
         include_once SMLISER_PATH . 'templates/admin-dashboard.php';

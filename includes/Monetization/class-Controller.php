@@ -268,9 +268,11 @@ class Controller {
             $start_date             = $request->get( 'start_date' );
             $end_date               = $request->get( 'end_date' );
             $app_prop               = $request->get( 'app_prop', '' );
-            $max_allowed_domains    = (int) $request->get( 'max_allowed_domains', -1 );
+            $max_allowed_domains    = $request->get( 'max_allowed_domains', -1 );
 
-            if ( $max_allowed_domains < 0 ) {
+            if ( '' === $max_allowed_domains ) {
+                $max_allowed_domains = -1;
+            } elseif ( (int) $max_allowed_domains < 0 ) {
                 $max_allowed_domains = -1;
             }
 

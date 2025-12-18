@@ -50,7 +50,7 @@ class RepositoryAnalytics {
 
             $results = $db->get_col(
                 "SELECT meta_value FROM {$table} WHERE meta_key = ?",
-                [ \SmartLicenseServer\Analytics\AppsAnalytics::DOWNLOAD_COUNT_META_KEY ]
+                [ AppsAnalytics::DOWNLOAD_COUNT_META_KEY ]
             );
 
             foreach ( $results as $value ) {
@@ -84,7 +84,7 @@ class RepositoryAnalytics {
             );
 
             foreach ( $results as $value ) {
-                $daily_counts = (array) json_decode( $value, true ); // assuming JSON storage
+                $daily_counts = (array)\maybe_unserialize( $value ); // assuming JSON storage
 
                 foreach ( $daily_counts as $date => $count ) {
                     if ( $date >= $cutoff ) {
@@ -121,7 +121,7 @@ class RepositoryAnalytics {
             );
 
             foreach ( $results as $value ) {
-                $daily_counts = (array) json_decode( $value, true );
+                $daily_counts = (array) \maybe_unserialize( $value, true );
 
                 foreach ( $daily_counts as $date => $count ) {
                     if ( $date >= $cutoff ) {
@@ -157,7 +157,7 @@ class RepositoryAnalytics {
             );
 
             foreach ( $results as $value ) {
-                $daily_counts = (array) json_decode( $value, true );
+                $daily_counts = (array) \maybe_unserialize( $value, true );
 
                 foreach ( $daily_counts as $date => $count ) {
                     if ( $date >= $cutoff ) {
@@ -196,7 +196,7 @@ class RepositoryAnalytics {
             );
 
             foreach ( $results as $value ) {
-                $daily_clients = (array) json_decode( $value, true );
+                $daily_clients = (array) \maybe_unserialize( $value, true );
 
                 foreach ( $daily_clients as $date => $hashes ) {
                     if ( $date >= $cutoff ) {

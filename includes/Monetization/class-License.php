@@ -691,7 +691,7 @@ class License {
         $self->set_status( $data['status'] ?? '' );
         $self->set_start_date( $data['start_date'] ?? '' );
         $self->set_end_date( $data['end_date'] ?? '' );
-        $self->set_max_allowed_domains( $data['max_allowed_domains'] ?? '' );
+        $self->set_max_allowed_domains( $data['max_allowed_domains'] ?? 0 );
 
         if ( ! empty( $data['app_prop'] ) && preg_match( '#^[^/]+/[^/]+$#', (string) $data['app_prop'] ) ) {
             list( $app_type, $app_slug ) = explode( '/', $data['app_prop'], 2 );
@@ -805,6 +805,11 @@ class License {
      * Whether license has reached max allowed domains.
      */
     public function has_reached_max_allowed_domains() {
+
+        if ( -1 === $this->max_allowed_domains ) {
+            return false;
+        }
+        
        return $this->get_total_active_domains() >= $this->max_allowed_domains;
     }
 

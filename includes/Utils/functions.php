@@ -1344,23 +1344,38 @@ function smliser_settings_adapter() : Settings {
 }
 
 /**
- * Get application placeholder image
- * 
- * @param string $app_type
+ * Get placeholder icon.
+ *
+ * @param string $type
  * @return string
  */
-function smliser_get_app_placeholder_icon( string $app_type = '' ) : string {
-    $base_url   = trim( SMLISER_URL, '/' );
-    $base_path  = SMLISER_PATH;
+function smliser_get_placeholder_icon( string $type = '' ) : string {
 
-    $rel_path   = sprintf( '/assets/images/%s-placeholder.svg', $app_type );
+    static $cache = array();
 
-    $asset_path = FileSystemHelper::join_path( $base_path, $rel_path );
+    $base_url = rtrim( SMLISER_URL, '/' );
 
-    $icon       = sprintf( '%s/assets/images/%s-placeholder.svg', $base_url, $app_type );
-    $default    = sprintf( '%s/assets/images/software-placeholder.svg', $base_url );
-    
-    return file_exists( $asset_path ) ? $icon : $default;
+    $type = strtolower( trim( $type ) );
+
+    if ( isset( $cache[ $type ] ) ) {
+        return $cache[ $type ];
+    }
+
+    $relative_path = match ( $type ) {
+        'plugin', 'plugins'     => 'assets/images/plugins-placeholder.svg',
+        'license', 'licenses'   => 'assets/images/license-placeholder.svg',
+        'theme', 'themes'       => 'assets/images/themes-placeholder.svg',
+        'app', 'apps' , 'all'   => 'assets/images/apps-placeholder.svg',
+        'software', 'softwares' => 'assets/images/software-placeholder.svg',
+        'download', 'downloads' => 'assets/images/downloads-icon.svg',
+        default                 => 'assets/images/software-placeholder.svg',
+    };
+
+    return $cache[ $type ] = sprintf(
+        '%s/%s',
+        $base_url,
+        $relative_path
+    );
 }
 
 /**

@@ -168,7 +168,7 @@ class ProviderCollection {
 
         // Normalize images
         $images         = $product['images'] ?? [];
-        $placeholder    = smliser_get_app_placeholder_icon();
+        $placeholder    = smliser_get_placeholder_icon();
         if ( ! is_array( $images ) || empty( $images ) ) {
             // Fallback placeholder
             $images = [

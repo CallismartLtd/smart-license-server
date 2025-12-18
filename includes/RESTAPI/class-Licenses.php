@@ -107,8 +107,8 @@ class Licenses {
                 'license_key'       => $license_key,
                 'service_id'        => $service_id,
                 'download_token'    => smliser_generate_item_token( $license, 2 * DAY_IN_SECONDS ),
-                'token_expiry'      => wp_date( 'Y-m-d', time() + ( 2 * DAY_IN_SECONDS ) ),
-                'license_expiry'    => $license->get_end_date()
+                'token_expiry'      => gmdate( 'Y-m-d', time() + ( 2 * DAY_IN_SECONDS ) ),
+                'license_expiry'    => $license->get_end_date()?: \gmdate( 'Y-m-d', \strtotime( '+15 years' ) )
             )
         );
 
@@ -409,7 +409,7 @@ class Licenses {
             'message'   => 'Download token has been refreshed.',
             'data'      => array(
                 'download_token'    => smliser_generate_item_token( $license, $two_weeks ),
-                'token_expiry'      => wp_date( 'Y-m-d', time() + $two_weeks ),                
+                'token_expiry'      => gmdate( 'Y-m-d', time() + $two_weeks ),                
             )
 
         );

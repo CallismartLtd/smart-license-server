@@ -18,7 +18,30 @@
     </nav>
 
    <div class="smliser-admin-body">
-    dsdd
+        <div class="smliser-dashboard-hero">
+            <div class="smliser-dashboard-hero_up">
+                <h2>Overview</h2>
+            </div>
+            <div class="smliser-dashboard-hero_down">
+                <?php foreach( $totals as $app_type => $value ) : ?>
+                    <div class="smliser-dashboard-hero_down-item">
+                        <div class="smliser-dashboard-hero_down-item-icon">
+                            <img src="<?php echo esc_url( smliser_get_placeholder_icon( $app_type ) ); ?>" alt="">
+                        </div>
+                        <div class="smliser-dashboard-hero_down-item-content">
+                            <span><?php echo esc_html( $value ); ?></span>
+                            <span><?php echo esc_html( sprintf( 'Total %s', ucfirst( $app_type ) ) ); ?></span>
+                        </div>
+
+                    </div>
+
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <div class="smliser-dashboard-content">
+            <div class="smliser-dashboard-content_item"></div>
+            
+        </div>
    </div>
 
 </div>

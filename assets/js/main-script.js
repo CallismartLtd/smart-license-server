@@ -274,8 +274,20 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const bulkMessageForm       = document.querySelector( 'form.smliser-compose-message-container' );
     const licenseAppSelect      = document.querySelector( '.license-app-select' );
     const allCopyEl             = document.querySelectorAll( '.smliser-click-to-copy' );
+    const adminNav              = document.querySelector( '.smliser-top-nav' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
+
+    if ( adminNav ) {
+        document.addEventListener( 'scroll', (e) => {
+            if ( window.scrollY > 0 ) {
+                adminNav.classList.add( 'is-scrolled' );
+            } else {
+                adminNav.classList.remove( 'is-scrolled' );
+            }
+            
+        })
+    }
 
     if ( optionForms ) {
         optionForms.forEach( form => {
