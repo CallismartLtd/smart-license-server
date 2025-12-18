@@ -6,7 +6,7 @@ namespace SmartLicenseServer\Admin;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
-<div class="smliser-admin-dashboard-template ">
+<div class="smliser-admin-dashboard-template overview">
     <nav class="smliser-top-nav">
         <div class="smliser-breadcrumb">
             <h1><?php echo esc_html( \SMLISER_APP_NAME ); ?></h1>
@@ -199,49 +199,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
         </div>
     </div>
 </div>
-
-<script>
-/**
- * Initialize all Chart.js charts from canvas elements with data-chart-json attribute
- */
-document.addEventListener('DOMContentLoaded', function() {
-    // 1. Define a consistent, professional color palette
-    const colors = {
-        blue:   { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
-        purple: { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
-        emerald:{ border: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
-        rose:   { border: '#f43f5e', bg: 'rgba(244, 63, 94, 0.1)' },
-        amber:  { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' }
-    };
-
-    // 2. Set Global Defaults for Chart.js
-    Chart.defaults.font.family = "'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', Roboto, sans-serif";
-    Chart.defaults.font.size = 12;
-    Chart.defaults.color = '#64748b'; // Slate 500
-    Chart.defaults.plugins.tooltip.padding = 12;
-    Chart.defaults.plugins.tooltip.borderRadius = 8;
-    Chart.defaults.elements.bar.borderRadius = 4; // Rounded bars
-    Chart.defaults.elements.line.borderWidth = 3;
-    Chart.defaults.elements.point.radius = 0; // Hide points until hover
-    Chart.defaults.elements.point.hoverRadius = 5;
-
-    const canvases = document.querySelectorAll('canvas[data-chart-json]');
-    
-    canvases.forEach(function(canvas) {
-        const chartConfig = JSON.parse(canvas.getAttribute('data-chart-json'));
-        
-        // Inject smooth line tension if not defined
-        if (chartConfig.type === 'line') {
-            chartConfig.data.datasets.forEach(ds => {
-                ds.tension = 0.4; // Smooth curves
-                ds.fill = true;  // Modern Area chart look
-            });
-        }
-
-        new Chart(canvas.getContext('2d'), chartConfig);
-    });
-});
-</script>
 
 <?php
 /**

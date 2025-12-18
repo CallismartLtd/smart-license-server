@@ -266,7 +266,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let updateBtn               = document.querySelector('#smliser-update-btn');
     let appDeleteBtns           = document.querySelectorAll( '.smliser-app-delete-button' );
     let selectAllCheckbox       = document.querySelector('#smliser-select-all');
-    let dashboardPage           = document.getElementById( 'smliser-admin-dasboard-wrapper' );
+    let dashboardPage           = document.querySelector( '.smliser-admin-dashboard-template.overview' );
     let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
     let revokeBtns              = document.querySelectorAll( '.smliser-revoke-btn' );
     let monetizationUI          = document.querySelector( '.smliser-monetization-ui' );
@@ -671,68 +671,38 @@ document.addEventListener( 'DOMContentLoaded', function() {
     }
 
     if ( dashboardPage ) {
-        var ctx1 = document.getElementById('pluginUpdateChart').getContext('2d');
-        var ctx2 = document.getElementById('licenseActivationChart').getContext('2d');
-        var ctx3 = document.getElementById('licenseDeactivationChart').getContext('2d');
+        const colors = {
+            blue:   { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
+            purple: { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
+            emerald:{ border: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+            rose:   { border: '#f43f5e', bg: 'rgba(244, 63, 94, 0.1)' },
+            amber:  { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' }
+        };
 
-        new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: ['Hits', 'Visits Today', 'Unique Visitors', 'Plugin Downloads Served'],
-                datasets: [{
-                    label: 'Plugin Update Route',
-                    data: [smliserStats.pluginUpdateHits, smliserStats.pluginUpdateVisits, smliserStats.pluginUniqueVisitors, smliserStats.pluginDownloads],
-                    backgroundColor: ['#36a2eb', '#ff6384', '#ff0000', '#16f2b0']
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
+        Chart.defaults.font.family = "'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', Roboto, sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#64748b'; // Slate 500
+        Chart.defaults.plugins.tooltip.padding = 12;
+        Chart.defaults.plugins.tooltip.borderRadius = 8;
+        Chart.defaults.elements.bar.borderRadius = 4; // Rounded bars
+        Chart.defaults.elements.line.borderWidth = 3;
+        Chart.defaults.elements.point.radius = 0; // Hide points until hover
+        Chart.defaults.elements.point.hoverRadius = 5;
+
+        const canvases = document.querySelectorAll('canvas[data-chart-json]');
+        
+        canvases.forEach(function(canvas) {
+            const chartConfig = JSON.parse(canvas.getAttribute('data-chart-json'));
+            
+            // Inject smooth line tension if not defined
+            if (chartConfig.type === 'line') {
+                chartConfig.data.datasets.forEach(ds => {
+                    ds.tension = 0.4; // Smooth curves
+                    ds.fill = true;  // Modern Area chart look
+                });
             }
-        });
-    
-        new Chart(ctx2, {
-            type: 'bar',
-            data: {
-                labels: ['Hits', 'Visits Today', 'Unique Visitors'],
-                datasets: [{
-                    label: 'License Activation Route',
-                    data: [smliserStats.licenseActivationHits, smliserStats.licenseActivationVisits, smliserStats.licenseActivationUniqueVisitors],
-                    backgroundColor: ['#36a2eb', '#ff6384', '#ff0000']
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    
-        new Chart(ctx3, {
-            type: 'bar',
-            data: {
-                labels: ['Hits', 'Visits Today', 'Unique Visitors'],
-                datasets: [{
-                    label: 'License Deactivation Route',
-                    data: [smliserStats.licenseDeactivationHits, smliserStats.licenseDeactivationVisits, smliserStats.licenseDeactivationUniqueVisitors],
-                    backgroundColor: ['#36a2eb', '#ff6384', '#ff0000']
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
+
+            new Chart(canvas.getContext('2d'), chartConfig);
         });
     }
     
