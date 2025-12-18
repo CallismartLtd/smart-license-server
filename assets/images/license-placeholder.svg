@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="licenseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="keyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fef3c7;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <radialGradient id="shine">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Rounded Square Background -->
+  <rect width="128" height="128" rx="24" fill="url(#licenseGradient)"/>
+  
+  <!-- Decorative shine/light rays -->
+  <g opacity="0.3">
+    <circle cx="30" cy="30" r="40" fill="url(#shine)"/>
+    <circle cx="98" cy="98" r="35" fill="url(#shine)"/>
+  </g>
+  
+  <!-- Key Shape -->
+  <g transform="translate(64, 64)" filter="url(#shadow)">
+    <!-- Key Head (circular with hole) -->
+    <circle cx="-20" cy="0" r="14" fill="url(#keyGradient)" stroke="#f59e0b" stroke-width="2"/>
+    <circle cx="-20" cy="0" r="6" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+    
+    <!-- Key Shaft -->
+    <rect x="-6" y="-4" width="32" height="8" rx="2" fill="url(#keyGradient)" stroke="#f59e0b" stroke-width="2"/>
+    
+    <!-- Key Teeth/Notches -->
+    <g fill="url(#keyGradient)" stroke="#f59e0b" stroke-width="2">
+      <rect x="18" y="4" width="4" height="8" rx="1"/>
+      <rect x="23" y="4" width="3" height="11" rx="1"/>
+      <rect x="27" y="4" width="4" height="6" rx="1"/>
+    </g>
+    
+    <!-- Inner glow on key -->
+    <ellipse cx="-20" cy="0" rx="12" ry="10" fill="url(#shine)" opacity="0.5"/>
+    
+    <!-- Shine effect on shaft -->
+    <rect x="-4" y="-3" width="28" height="2" rx="1" fill="white" opacity="0.4"/>
+  </g>
+  
+  <!-- License Code Display (Digital Display Style) -->
+  <g transform="translate(64, 95)" filter="url(#glow)">
+    <rect x="-35" y="-8" width="70" height="16" rx="4" fill="rgba(0, 0, 0, 0.3)"/>
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="central" 
+          font-family="'Courier New', monospace" font-size="10" font-weight="bold" 
+          fill="#fbbf24" letter-spacing="1">
+      XXXX-XXXX-XXXX
+    </text>
+  </g>
+  
+  <!-- Security Shield Badge -->
+  <g transform="translate(95, 35)">
+    <path d="M0,-8 L6,-5 L6,3 Q6,7 0,10 Q-6,7 -6,3 L-6,-5 Z" 
+          fill="rgba(255, 255, 255, 0.9)" 
+          stroke="#f59e0b" 
+          stroke-width="1.5"/>
+    <path d="M-2,0 L0,3 L4,-2" 
+          fill="none" 
+          stroke="#fbbf24" 
+          stroke-width="2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Sparkle/Star accents (animated) -->
+  <g fill="white" opacity="0.6">
+    <path d="M25,50 L26,52 L28,53 L26,54 L25,56 L24,54 L22,53 L24,52 Z">
+      <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite"/>
+    </path>
+    <path d="M100,70 L101.5,72.5 L104,74 L101.5,75.5 L100,78 L98.5,75.5 L96,74 L98.5,72.5 Z">
+      <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2.5s" repeatCount="indefinite"/>
+    </path>
+    <path d="M20,100 L21,102 L23,103 L21,104 L20,106 L19,104 L17,103 L19,102 Z">
+      <animate attributeName="opacity" values="0.5;1;0.5" dur="3s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  
+  <!-- "K" Badge (Bottom Right) for Key -->
+  <g transform="translate(100, 100)">
+    <circle r="14" fill="white" opacity="0.95"/>
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="central" 
+          font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#f59e0b">
+      🔑
+    </text>
+  </g>
+</svg>

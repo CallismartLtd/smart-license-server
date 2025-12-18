@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="downloadGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d1fae5;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <radialGradient id="shine">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </radialGradient>
+    
+    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#34d399;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded Square Background -->
+  <rect width="128" height="128" rx="24" fill="url(#downloadGradient)"/>
+  
+  <!-- Decorative shine circles -->
+  <g opacity="0.2">
+    <circle cx="35" cy="35" r="40" fill="url(#shine)"/>
+    <circle cx="95" cy="95" r="35" fill="url(#shine)"/>
+  </g>
+  
+  <!-- Main Download Arrow -->
+  <g transform="translate(64, 55)" filter="url(#shadow)">
+    <!-- Arrow shaft -->
+    <rect x="-6" y="-25" width="12" height="35" rx="3" fill="url(#arrowGradient)"/>
+    
+    <!-- Arrow head (triangle) -->
+    <path d="M0,15 L-18,-5 L-8,-5 L-8,-10 L8,-10 L8,-5 L18,-5 Z" 
+          fill="url(#arrowGradient)" 
+          stroke="white" 
+          stroke-width="1" 
+          opacity="0.95"/>
+    
+    <!-- Inner highlight on arrow shaft -->
+    <rect x="-3" y="-23" width="6" height="30" rx="2" fill="white" opacity="0.3"/>
+    
+    <!-- Animated glow effect -->
+    <circle cx="0" cy="12" r="20" fill="#10b981" opacity="0.0">
+      <animate attributeName="r" values="15;25;15" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0;0.3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Download Platform/Base -->
+  <g transform="translate(64, 80)">
+    <rect x="-30" y="0" width="60" height="8" rx="4" fill="white" opacity="0.9" filter="url(#shadow)"/>
+    <!-- Platform edge highlight -->
+    <rect x="-30" y="0" width="60" height="2" rx="4" fill="white" opacity="0.5"/>
+  </g>
+  
+  <!-- Download Progress Bar (animated) -->
+  <g transform="translate(64, 95)">
+    <rect x="-25" y="-3" width="50" height="6" rx="3" fill="rgba(0, 0, 0, 0.3)"/>
+    <rect x="-25" y="-3" width="50" height="6" rx="3" fill="url(#progressGradient)" opacity="0.8">
+      <animate attributeName="width" values="0;50;0" dur="3s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  
+  <!-- File/Document Icon (being downloaded) -->
+  <g transform="translate(35, 30)" opacity="0.4">
+    <rect x="-6" y="-8" width="12" height="16" rx="1" fill="white"/>
+    <path d="M6,-8 L6,-2 L0,-2 Z" fill="rgba(0, 0, 0, 0.2)"/>
+    <line x1="-4" y1="0" x2="4" y2="0" stroke="rgba(0, 0, 0, 0.3)" stroke-width="1"/>
+    <line x1="-4" y1="3" x2="4" y2="3" stroke="rgba(0, 0, 0, 0.3)" stroke-width="1"/>
+  </g>
+  
+  <!-- Speed Lines (motion effect) -->
+  <g stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.3">
+    <line x1="30" y1="45" x2="35" y2="45">
+      <animate attributeName="x2" values="35;45;35" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0;0.3" dur="1.5s" repeatCount="indefinite"/>
+    </line>
+    <line x1="25" y1="55" x2="30" y2="55">
+      <animate attributeName="x2" values="30;40;30" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.4;0;0.4" dur="1.8s" repeatCount="indefinite"/>
+    </line>
+    <line x1="28" y1="65" x2="33" y2="65">
+      <animate attributeName="x2" values="33;43;33" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0;0.3" dur="2s" repeatCount="indefinite"/>
+    </line>
+  </g>
+  
+  <!-- Floating Download Indicators (animated) -->
+  <g fill="white" opacity="0.5">
+    <circle cx="95" cy="40" r="2">
+      <animate attributeName="cy" values="40;50;40" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="90" cy="55" r="2.5">
+      <animate attributeName="cy" values="55;65;55" dur="2.3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0;0.6" dur="2.3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="98" cy="48" r="2">
+      <animate attributeName="cy" values="48;58;48" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Download Count Badge (Top Right) -->
+  <g transform="translate(95, 30)" filter="url(#shadow)">
+    <circle r="12" fill="white" opacity="0.95"/>
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="central" 
+          font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#10b981">
+      #
+    </text>
+  </g>
+  
+  <!-- "DL" Badge (Bottom Right) for Download -->
+  <g transform="translate(100, 100)">
+    <circle r="14" fill="white" opacity="0.95"/>
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="central" 
+          font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#10b981">
+      ⬇
+    </text>
+  </g>
+</svg>
