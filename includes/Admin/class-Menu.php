@@ -126,7 +126,7 @@ class Menu {
         global $submenu;
 
         if ( isset( $submenu['smliser-admin'] ) ) {
-            $submenu['smliser-admin'][0][0] = 'Dashboard';
+            $submenu['smliser-admin'][0][0] = 'Overview';
         }
     }
 }
