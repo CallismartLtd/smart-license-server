@@ -28,39 +28,10 @@ class AppsAnalytics {
     const CLIENT_ACCESS_UNIQUE_DAILY_META_KEY   = 'client_access_unique_daily';
 
     /**
-     * Increment download count for the given app
-     * 
-     * @param AbstractHostedApp $app
-     * @return bool
+     * Increment download count (Simplified & Unified)
      */
     public static function log_download( AbstractHostedApp $app ) : bool {
-
-        // Increment total downloads
-        $total = (int) $app->get_meta( self::DOWNLOAD_COUNT_META_KEY, 0 );
-        $total++;
-        $success_total = $app->update_meta( self::DOWNLOAD_COUNT_META_KEY, $total );
-
-        // Track per-day downloads
-        $today        = gmdate( 'Y-m-d' );
-        $daily_counts = (array) $app->get_meta( self::DOWNLOAD_TIMESTAMP_META_KEY, [] );
-
-        if ( isset( $daily_counts[ $today ] ) ) {
-            $daily_counts[ $today ]++;
-        } else {
-            $daily_counts[ $today ] = 1;
-        }
-
-        // Keep only the last 365 days
-        $one_year_ago = gmdate( 'Y-m-d', strtotime( '-365 days' ) );
-        foreach ( $daily_counts as $date => $count ) {
-            if ( $date < $one_year_ago ) {
-                unset( $daily_counts[ $date ] );
-            }
-        }
-
-        $success_daily = $app->update_meta( self::DOWNLOAD_TIMESTAMP_META_KEY, $daily_counts );
-
-        return $success_total && $success_daily;
+        return self::log_client_access( $app, 'download' );
     }
 
     /**
@@ -74,17 +45,18 @@ class AppsAnalytics {
     }
 
     /**
-     * Get per-day download counts for the last $days days
-     * 
-     * @param AbstractHostedApp $app
-     * @param int $days Number of days to fetch. Default 30.
-     * @return array<string,int> Array keyed by 'Y-m-d' date
+     * Get per-day download counts (Optimized SQL)
      */
     public static function get_downloads_per_day( AbstractHostedApp $app, int $days = 30 ) : array {
-        $daily = (array) $app->get_meta( self::DOWNLOAD_TIMESTAMP_META_KEY, [] );
-
-        // Slice the last $days days.
-        return array_slice( $daily, -$days, $days, true );
+        $db = smliser_dbclass();
+        $query = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
+                  FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                  WHERE app_slug = ? AND event_type = 'download' 
+                  AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                  GROUP BY log_date ORDER BY log_date ASC";
+        
+        $results = $db->get_results( $query, [ $app->get_slug(), $days ] );
+        return array_column( $results, 'count', 'log_date' );
     }
 
     /**
@@ -111,15 +83,17 @@ class AppsAnalytics {
 
     /**
      * Get the number of downloads for a given day.
-     * 
-     * @param AbstractHostedApp $app
+     * * @param AbstractHostedApp $app
      * @param string $date The date(Y-m-d) to search.
      * @return int
      */
     public static function get_downloads_on( AbstractHostedApp $app, string $date ) : int {
-        $daily  = $app->get_meta( self::DOWNLOAD_TIMESTAMP_META_KEY, [] );
-
-        return \intval( $daily[$date] ?? 0 );
+        $db = smliser_dbclass();
+        $query = "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                  WHERE app_slug = ? AND event_type = 'download' 
+                  AND DATE(created_at) = ?";
+        
+        return (int) $db->get_var( $query, [ $app->get_slug(), $date ] );
     }
 
     /**
@@ -158,27 +132,29 @@ class AppsAnalytics {
 
     /**
      * Get download growth percentage comparing last $days days to previous $days days
-     * 
-     * @param AbstractHostedApp $app
-     * @param int $days Number of days for comparison. Default 30.
-     * @return float Growth percentage (positive = growth, negative = decline)
+     * * @param AbstractHostedApp $app
+     * @param int $days Number of days for comparison.
+     * @return float
      */
     public static function get_download_growth_percentage( AbstractHostedApp $app, int $days = 30 ) : float {
-        $daily_counts = (array) $app->get_meta( self::DOWNLOAD_TIMESTAMP_META_KEY, [] );
+        $db = smliser_dbclass();
+        
+        // 1. Current Period Total
+        $current_total = (int) $db->get_var(
+            "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+             WHERE app_slug = ? AND event_type = 'download' 
+             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)",
+            [ $app->get_slug(), $days ]
+        );
 
-        if ( empty( $daily_counts ) ) {
-            return 0.0;
-        }
-
-        $all_dates = array_keys( $daily_counts );
-        sort( $all_dates );
-
-        // Split into current and previous periods
-        $current_period = array_slice( $daily_counts, -$days, $days, true );
-        $previous_period = array_slice( $daily_counts, -2 * $days, $days, true );
-
-        $current_total  = array_sum( $current_period );
-        $previous_total = array_sum( $previous_period );
+        // 2. Previous Period Total
+        $previous_total = (int) $db->get_var(
+            "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+             WHERE app_slug = ? AND event_type = 'download' 
+             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) 
+             AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY)",
+            [ $app->get_slug(), $days * 2, $days ]
+        );
 
         if ( $previous_total === 0 ) {
             return $current_total === 0 ? 0.0 : 100.0;
@@ -188,102 +164,28 @@ class AppsAnalytics {
     }
 
     /**
-     * Log a client access event for the given app.
-     *
-     * Tracks:
-     * - total access count
-     * - per-day access count
-     * - per-day event type distribution
-     * - per-day unique client fingerprints (used to estimate active installations)
-     *
-     * @param AbstractHostedApp $app        The hosted app instance.
-     * @param string            $event_type The type of event (e.g. 'update_check', 'app_info', 'download').
-     *
-     * @return bool True if all updates succeeded, false otherwise.
+     * Unified Entry Point for all Analytics Writing
      */
     public static function log_client_access( AbstractHostedApp $app, string $event_type ) : bool {
+        $db = smliser_dbclass();
 
-        // ---------------------------------------------------------
-        // 1. Increment total client access count
-        // ---------------------------------------------------------
-        $total = (int) $app->get_meta( self::CLIENT_ACCESS_META_KEY, 0 );
-        $total++;
-        $success_total = $app->update_meta( self::CLIENT_ACCESS_META_KEY, $total );
+        $data = [
+            'app_type'    => $app->get_type(),
+            'app_slug'    => $app->get_slug(),
+            'event_type'  => $event_type,
+            'fingerprint' => hash( 'sha256', \smliser_get_client_ip() . '|' . \smliser_get_user_agent( true ) ),
+            'created_at'  => gmdate( 'Y-m-d H:i:s' ),
+        ];
 
-        $today        = gmdate( 'Y-m-d' );
-        $one_year_ago = gmdate( 'Y-m-d', strtotime( '-365 days' ) );
+        $success = $db->insert( \SMLISER_ANALYTICS_LOGS_TABLE, $data );
 
-        // ---------------------------------------------------------
-        // 2. Track per-day access count
-        // ---------------------------------------------------------
-        $daily_access = (array) $app->get_meta( self::CLIENT_ACCESS_DAILY_META_KEY, [] );
-
-        if ( isset( $daily_access[ $today ] ) ) {
-            $daily_access[ $today ]++;
-        } else {
-            $daily_access[ $today ] = 1;
+        if ( $success ) {
+            $key = ( 'download' === $event_type ) ? self::DOWNLOAD_COUNT_META_KEY : self::CLIENT_ACCESS_META_KEY;
+            $current_total = (int) $app->get_meta( $key, 0 );
+            $app->update_meta( $key, $current_total + 1 );
         }
 
-        foreach ( $daily_access as $date => $count ) {
-            if ( $date < $one_year_ago ) {
-                unset( $daily_access[ $date ] );
-            }
-        }
-
-        $success_daily = $app->update_meta( self::CLIENT_ACCESS_DAILY_META_KEY, $daily_access );
-
-        // ---------------------------------------------------------
-        // 3. Track per-day event-type distribution
-        // ---------------------------------------------------------
-        $event_daily = (array) $app->get_meta( self::CLIENT_ACCESS_EVENTS_DAILY_META_KEY, [] );
-
-        if ( ! isset( $event_daily[ $today ] ) ) {
-            $event_daily[ $today ] = [];
-        }
-
-        if ( isset( $event_daily[ $today ][ $event_type ] ) ) {
-            $event_daily[ $today ][ $event_type ]++;
-        } else {
-            $event_daily[ $today ][ $event_type ] = 1;
-        }
-
-        foreach ( $event_daily as $date => $events ) {
-            if ( $date < $one_year_ago ) {
-                unset( $event_daily[ $date ] );
-            }
-        }
-
-        $success_event = $app->update_meta( self::CLIENT_ACCESS_EVENTS_DAILY_META_KEY, $event_daily );
-
-        // ---------------------------------------------------------
-        // 4. Track unique client fingerprints per day
-        // ---------------------------------------------------------
-        $ip         = \smliser_get_client_ip();
-        $user_agent = \smliser_get_user_agent( true );
-
-        $fingerprint_raw = $ip . '|' . $user_agent;
-        $fingerprint     = hash( 'sha256', $fingerprint_raw );
-
-        $unique_daily = (array) $app->get_meta( self::CLIENT_ACCESS_UNIQUE_DAILY_META_KEY, [] );
-
-        if ( ! isset( $unique_daily[ $today ] ) ) {
-            $unique_daily[ $today ] = [];
-        }
-
-        $unique_daily[ $today ][ $fingerprint ] = true;
-
-        foreach ( $unique_daily as $date => $clients ) {
-            if ( $date < $one_year_ago ) {
-                unset( $unique_daily[ $date ] );
-            }
-        }
-
-        $success_unique = $app->update_meta( self::CLIENT_ACCESS_UNIQUE_DAILY_META_KEY, $unique_daily );
-
-        // ---------------------------------------------------------
-        // Final Result
-        // ---------------------------------------------------------
-        return $success_total && $success_daily && $success_event && $success_unique;
+        return (bool) $success;
     }
 
     /**
@@ -304,9 +206,15 @@ class AppsAnalytics {
      * @return array<string,int> Array keyed by 'Y-m-d'.
      */
     public static function get_client_access_per_day( AbstractHostedApp $app, int $days = 30 ) : array {
-        $daily = (array) $app->get_meta( self::CLIENT_ACCESS_DAILY_META_KEY, [] );
-
-        return array_slice( $daily, -$days, $days, true );
+        $db = smliser_dbclass();
+        $query = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
+                  FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                  WHERE app_slug = ? AND event_type != 'download' 
+                  AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                  GROUP BY log_date ORDER BY log_date ASC";
+        
+        $results = $db->get_results( $query, [ $app->get_slug(), $days ] );
+        return array_column( $results, 'count', 'log_date' );
     }
 
     /**
@@ -334,34 +242,30 @@ class AppsAnalytics {
      * @return array<string,array<string,int>> Format: [ 'Y-m-d' => [ 'event_type' => count ] ]
      */
     public static function get_client_access_event_breakdown( AbstractHostedApp $app, int $days = 30 ) : array {
-        $events = (array) $app->get_meta( self::CLIENT_ACCESS_EVENTS_DAILY_META_KEY, [] );
-
-        return array_slice( $events, -$days, $days, true );
+        $db = smliser_dbclass();
+        $query = "SELECT DATE(created_at) as log_date, event_type, COUNT(*) as count 
+                  FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                  WHERE app_slug = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                  GROUP BY log_date, event_type ORDER BY log_date ASC";
+        
+        $results = $db->get_results( $query, [ $app->get_slug(), $days ] );
+        
+        $formatted = [];
+        foreach ( $results as $row ) {
+            $formatted[ $row['log_date'] ][ $row['event_type'] ] = (int) $row['count'];
+        }
+        return $formatted;
     }
 
     /**
-     * Get estimated active installations.
-     *
-     * Uses unique fingerprint counts over the last $days days.
-     *
-     * @param AbstractHostedApp $app Hosted app instance.
-     * @param int               $days Number of days to consider. Default 30.
-     * @return int Estimated number of active installations.
+     * Get estimated active installations (Optimized SQL)
      */
     public static function get_estimated_active_installations( AbstractHostedApp $app, int $days = 30 ) : int {
-        $unique = (array) $app->get_meta( self::CLIENT_ACCESS_UNIQUE_DAILY_META_KEY, [] );
-
-        $period = array_slice( $unique, -$days, $days, true );
-
-        $fingerprints = [];
-
-        foreach ( $period as $date => $clients ) {
-            foreach ( $clients as $hash => $true_val ) {
-                $fingerprints[ $hash ] = true;
-            }
-        }
-
-        return count( $fingerprints );
+        $db = smliser_dbclass();
+        $query = "SELECT COUNT(DISTINCT fingerprint) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                  WHERE app_slug = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+        
+        return (int) $db->get_var( $query, [ $app->get_slug(), $days ] );
     }
 
     /**
@@ -390,23 +294,24 @@ class AppsAnalytics {
      * @return float Growth percentage (positive = growth, negative = decline).
      */
     public static function get_client_access_growth_percentage( AbstractHostedApp $app, int $days = 30 ) : float {
-        $daily = (array) $app->get_meta( self::CLIENT_ACCESS_DAILY_META_KEY, [] );
+        $db = smliser_dbclass();
+        
+        $current_total = (int) $db->get_var(
+            "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+             WHERE app_slug = ? AND event_type != 'download' 
+             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)",
+            [ $app->get_slug(), $days ]
+        );
 
-        if ( empty( $daily ) ) {
-            return 0.0;
-        }
+        $previous_total = (int) $db->get_var(
+            "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+             WHERE app_slug = ? AND event_type != 'download' 
+             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) 
+             AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY)",
+            [ $app->get_slug(), $days * 2, $days ]
+        );
 
-        // Split data
-        $current_period  = array_slice( $daily, -$days, $days, true );
-        $previous_period = array_slice( $daily, -2 * $days, $days, true );
-
-        $current_total  = array_sum( $current_period );
-        $previous_total = array_sum( $previous_period );
-
-        if ( $previous_total === 0 ) {
-            return $current_total === 0 ? 0.0 : 100.0;
-        }
-
+        if ( $previous_total === 0 ) return $current_total === 0 ? 0.0 : 100.0;
         return ( ( $current_total - $previous_total ) / $previous_total ) * 100;
     }
 

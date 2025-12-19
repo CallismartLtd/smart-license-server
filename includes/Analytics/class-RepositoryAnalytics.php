@@ -41,24 +41,16 @@ class RepositoryAnalytics {
      */
     public static function get_total_downloads( ?string $type = null ) : int {
         $db = smliser_dbclass();
-        $total = 0;
+        
+        $sql = "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " WHERE event_type = 'download'";
+        $params = [];
 
-        $types = $type ? [$type] : array_keys(self::$meta_tables);
-
-        foreach ( $types as $t ) {
-            $table = self::$meta_tables[ $t ];
-
-            $results = $db->get_col(
-                "SELECT meta_value FROM {$table} WHERE meta_key = ?",
-                [ AppsAnalytics::DOWNLOAD_COUNT_META_KEY ]
-            );
-
-            foreach ( $results as $value ) {
-                $total += (int) $value;
-            }
+        if ( $type ) {
+            $sql .= " AND app_type = ?";
+            $params[] = $type;
         }
 
-        return $total;
+        return (int) $db->get_var( $sql, $params );
     }
 
     /**
@@ -70,32 +62,22 @@ class RepositoryAnalytics {
      */
     public static function get_downloads_per_day( int $days = 30, ?string $type = null ) : array {
         $db = smliser_dbclass();
-        $aggregated = [];
+        
+        $sql = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
+                FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                WHERE event_type = 'download' 
+                AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+        $params = [ $days ];
 
-        $types = $type ? [$type] : array_keys(self::$meta_tables);
-        $cutoff = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
-
-        foreach ( $types as $t ) {
-            $table = self::$meta_tables[ $t ];
-
-            $results = $db->get_col(
-                "SELECT meta_value FROM {$table} WHERE meta_key = ?",
-                [ \SmartLicenseServer\Analytics\AppsAnalytics::DOWNLOAD_TIMESTAMP_META_KEY ]
-            );
-
-            foreach ( $results as $value ) {
-                $daily_counts = (array)\maybe_unserialize( $value ); // assuming JSON storage
-
-                foreach ( $daily_counts as $date => $count ) {
-                    if ( $date >= $cutoff ) {
-                        $aggregated[ $date ] = ($aggregated[ $date ] ?? 0) + (int) $count;
-                    }
-                }
-            }
+        if ( $type ) {
+            $sql .= " AND app_type = ?";
+            $params[] = $type;
         }
 
-        ksort( $aggregated );
-        return $aggregated;
+        $sql .= " GROUP BY log_date ORDER BY log_date ASC";
+        
+        $results = $db->get_results( $sql, $params );
+        return array_column( $results, 'count', 'log_date' );
     }
 
     /**
@@ -107,31 +89,18 @@ class RepositoryAnalytics {
      */
     public static function get_total_client_accesses( int $days = 30, ?string $type = null ) : int {
         $db = smliser_dbclass();
-        $total = 0;
+        
+        $sql = "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                WHERE event_type != 'download' 
+                AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+        $params = [ $days ];
 
-        $types = $type ? [$type] : array_keys(self::$meta_tables);
-        $cutoff = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
-
-        foreach ( $types as $t ) {
-            $table = self::$meta_tables[ $t ];
-
-            $results = $db->get_col(
-                "SELECT meta_value FROM {$table} WHERE meta_key = ?",
-                [ \SmartLicenseServer\Analytics\AppsAnalytics::CLIENT_ACCESS_DAILY_META_KEY ]
-            );
-
-            foreach ( $results as $value ) {
-                $daily_counts = (array) \maybe_unserialize( $value, true );
-
-                foreach ( $daily_counts as $date => $count ) {
-                    if ( $date >= $cutoff ) {
-                        $total += (int) $count;
-                    }
-                }
-            }
+        if ( $type ) {
+            $sql .= " AND app_type = ?";
+            $params[] = $type;
         }
 
-        return $total;
+        return (int) $db->get_var( $sql, $params );
     }
 
     /**
@@ -143,32 +112,22 @@ class RepositoryAnalytics {
      */
     public static function get_client_accesses_per_day( int $days = 30, ?string $type = null ) : array {
         $db = smliser_dbclass();
-        $aggregated = [];
+        
+        $sql = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
+                FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                WHERE event_type != 'download' 
+                AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+        $params = [ $days ];
 
-        $types = $type ? [$type] : array_keys(self::$meta_tables);
-        $cutoff = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
-
-        foreach ( $types as $t ) {
-            $table = self::$meta_tables[ $t ];
-
-            $results = $db->get_col(
-                "SELECT meta_value FROM {$table} WHERE meta_key = ?",
-                [ \SmartLicenseServer\Analytics\AppsAnalytics::CLIENT_ACCESS_DAILY_META_KEY ]
-            );
-
-            foreach ( $results as $value ) {
-                $daily_counts = (array) \maybe_unserialize( $value, true );
-
-                foreach ( $daily_counts as $date => $count ) {
-                    if ( $date >= $cutoff ) {
-                        $aggregated[ $date ] = ($aggregated[ $date ] ?? 0) + (int) $count;
-                    }
-                }
-            }
+        if ( $type ) {
+            $sql .= " AND app_type = ?";
+            $params[] = $type;
         }
 
-        ksort( $aggregated );
-        return $aggregated;
+        $sql .= " GROUP BY log_date ORDER BY log_date ASC";
+        
+        $results = $db->get_results( $sql, $params );
+        return array_column( $results, 'count', 'log_date' );
     }
 
     /**
@@ -182,33 +141,17 @@ class RepositoryAnalytics {
      */
     public static function get_active_installations( int $days = 30, ?string $type = null ) : int {
         $db = smliser_dbclass();
-        $unique_clients = [];
+        
+        $sql = "SELECT COUNT(DISTINCT fingerprint) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+        $params = [ $days ];
 
-        $types = $type ? [$type] : array_keys(self::$meta_tables);
-        $cutoff = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
-
-        foreach ( $types as $t ) {
-            $table = self::$meta_tables[ $t ];
-
-            $results = $db->get_col(
-                "SELECT meta_value FROM {$table} WHERE meta_key = ?",
-                [ \SmartLicenseServer\Analytics\AppsAnalytics::CLIENT_ACCESS_UNIQUE_DAILY_META_KEY ]
-            );
-
-            foreach ( $results as $value ) {
-                $daily_clients = (array) \maybe_unserialize( $value, true );
-
-                foreach ( $daily_clients as $date => $hashes ) {
-                    if ( $date >= $cutoff ) {
-                        foreach ( $hashes as $hash ) {
-                            $unique_clients[ $hash ] = true;
-                        }
-                    }
-                }
-            }
+        if ( $type ) {
+            $sql .= " AND app_type = ?";
+            $params[] = $type;
         }
 
-        return count( $unique_clients );
+        return (int) $db->get_var( $sql, $params );
     }
 
     /*
@@ -415,32 +358,28 @@ class RepositoryAnalytics {
      */
     public static function get_top_apps( int $limit = 10, string $metric = 'downloads', ?string $type = null ) : array {
         $db = smliser_dbclass();
-        $types = $type ? [$type] : array_keys(self::$meta_tables);
+        
+        $event_filter = ( $metric === 'downloads' ) ? "= 'download'" : "!= 'download'";
+        
+        $sql = "SELECT app_slug, app_type, COUNT(*) AS metric_total 
+                FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
+                WHERE event_type $event_filter";
+        $params = [];
+
+        if ( $type ) {
+            $sql .= " AND app_type = ?";
+            $params[] = $type;
+        }
+
+        $sql .= " GROUP BY app_slug, app_type ORDER BY metric_total DESC LIMIT ?";
+        $params[] = $limit;
+
+        $results = $db->get_results( $sql, $params );
+        
+        // Group by type to match your original return format
         $top_apps = [];
-
-        foreach ( $types as $t ) {
-            $item_table = match( $t ) {
-                'plugin'   => SMLISER_PLUGIN_ITEM_TABLE,
-                'theme'    => SMLISER_THEME_ITEM_TABLE,
-                'software' => SMLISER_SOFTWARE_TABLE,
-            };
-            $meta_table = self::$meta_tables[ $t ];
-            $meta_key   = $metric === 'downloads'
-                ? \SmartLicenseServer\Analytics\AppsAnalytics::DOWNLOAD_COUNT_META_KEY
-                : \SmartLicenseServer\Analytics\AppsAnalytics::CLIENT_ACCESS_DAILY_META_KEY;
-
-            $sql = "
-                SELECT i.name, i.slug, SUM(CAST(m.meta_value AS UNSIGNED)) AS metric_total
-                FROM {$item_table} i
-                INNER JOIN {$meta_table} m ON m.{$t}_id = i.id
-                WHERE m.meta_key = ?
-                GROUP BY i.id
-                ORDER BY metric_total DESC
-                LIMIT {$limit}
-            ";
-
-            $results = $db->get_results( $sql, [$meta_key] );
-            $top_apps[ $t ] = $results;
+        foreach ( $results as $row ) {
+            $top_apps[ $row['app_type'] ][] = $row;
         }
 
         return $top_apps;
@@ -487,7 +426,4 @@ class RepositoryAnalytics {
 
         return $maintained;
     }
-
-
-
 }
