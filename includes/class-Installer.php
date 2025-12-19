@@ -9,6 +9,7 @@
  */
 namespace SmartLicenseServer;
 
+use SmartLicenseServer\Database\Schema\DBTables;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
@@ -28,10 +29,11 @@ class Installer {
 
         ),
         '0.1.1' => array(
-            [__Class__, 'migration_011']
+            [__CLASS__, 'migration_011']
         ),
         '0.2.0' => array(
-            [__CLASS__, 'monetization_table_upgrade_020']
+            [__CLASS__, 'monetization_table_upgrade_020'],
+            [__CLASS__, 'migrate_bulk_message_table_020']
         )
 
     );
@@ -57,36 +59,17 @@ class Installer {
      * Create Database table
      */
     private static function create_tables(){
-        $db = \smliser_dbclass();
-        $tables = array(
-            SMLISER_LICENSE_TABLE,
-            SMLISER_PLUGIN_ITEM_TABLE,
-            SMLISER_LICENSE_META_TABLE,
-            SMLISER_PLUGIN_META_TABLE,
-            SMLISER_API_ACCESS_LOG_TABLE,
-            SMLISER_API_CRED_TABLE,
-            SMLISER_APP_DOWNLOAD_TOKEN_TABLE,
-            SMLISER_MONETIZATION_TABLE,
-            SMLISER_PRICING_TIER_TABLE,
-            SMLISER_THEME_ITEM_TABLE,
-            SMLISER_THEME_META_TABLE,
-            SMLISER_SOFTWARE_TABLE,
-            SMLISER_SOFTWARE_META_TABLE,
-            SMLISER_BULK_MESSAGES_TABLE,
-            SMLISER_BULK_MESSAGES_APPS_TABLE,
-            SMLISER_OPTIONS_TABLE
-
-        );
+        $db     = \smliser_dbclass();
+        $tables = DBTables::table_names();
 
         foreach( $tables as $table ) {
-            $sql    = "SHOW TABLES LIKE ?";
-            $table_exists 	= $db->get_var( $sql, [$table] );
+            $sql        = "SHOW TABLES LIKE ?";
+            $db_table   = $db->get_var( $sql, [$table] );
 
-            if ( $table !== $table_exists ) {
-                self::table_schema();
-                return;
+            if ( $table !== $db_table ) {
+                self::run_db_delta( $table, DBTables::get( $table ) );
             }
-         }
+        }
     }
 
     /**
@@ -507,16 +490,28 @@ class Installer {
         $item_id_exists = $db->get_results( "SHOW COLUMNS FROM {$table} LIKE ?", ['item_id'] );
 
         if ( $item_id_exists ) {
-            $sql    = "ALTER TABLE {$table} CHANGE COLUMN `item_id` `app_id` BIGINT NOT NULL";
+            $sql    = "ALTER TABLE `{$table}` CHANGE COLUMN `item_id` `app_id` BIGINT NOT NULL";
             $db->query( $sql );
         }
 
         $item_type_exists   = $db->get_results( "SHOW COLUMNS FROM {$table} LIKE ?", ['item_type'] );
 
         if ( $item_type_exists ) {
-            $sql    = "ALTER TABLE {$table} CHANGE COLUMN `item_type` `app_type` VARCHAR(50) NOT NULL";
+            $sql    = "ALTER TABLE `{$table}` CHANGE COLUMN `item_type` `app_type` VARCHAR(50) NOT NULL";
             $db->query( $sql );
         }
+    }
+
+    /**
+     * Change the body column of the bulk messages table to longtext
+     */
+    public static function migrate_bulk_message_table_020() {
+        $db     = \smliser_dbclass();
+        $table  = \SMLISER_BULK_MESSAGES_TABLE;
+
+        $sql    = "ALTER TABLE `{$table}` CHANGE `body` `body` LONGTEXT DEFAULT NULL";
+
+        $db->query( $sql );
     }
 
     /**

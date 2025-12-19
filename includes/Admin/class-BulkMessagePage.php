@@ -79,30 +79,6 @@ class BulkMessagePage {
     }
 
     /**
-     * WP Editor Options
-     *
-     * @return array
-     */
-    private static function editor_options() {
-        return array(
-            'textarea_name' => 'message_body',
-            'textarea_rows' => 15,
-            'teeny'         => false, // must be false for full HTML control
-            'media_buttons' => true,
-            'quicktags'     => true,
-            'tinymce'       => array(
-                'wp_autoresize_on'   => true,
-                'browser_spellcheck' => true,
-                'resize'             => true,
-                'plugins'            => 'lists,link,paste,code,wordpress',
-                'toolbar1'           => 'formatselect,bold,italic,underline,link,bullist,numlist,blockquote,code,undo,redo',
-                'forced_root_block'  => 'p',
-                'force_p_newlines'   => true,
-            ),
-        );
-    }
-
-    /**
      * Handle ajax bulk message publish
      */
     public static function publish_bulk_message() {
@@ -110,10 +86,10 @@ class BulkMessagePage {
             smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
-        $subject    = smliser_get_post_param( 'subject', null ) ?? smliser_send_json_error( [ 'message' => __( 'Message subject cannot be empty', 'smliser' ) ] );
-        $body       = isset( $_POST['message_body'] ) ? wp_kses_post( unslash( $_POST['message_body'] ) ) : smliser_send_json_error( [ 'message' => __( 'Message body cannot be empty', 'smliser' ) ] );
-        $message_id = smliser_get_post_param( 'message_id' );
-        $assocs_apps    = smliser_get_post_param( 'associated_apps' );
+        $subject        = smliser_get_post_param( 'subject', null ) ?? smliser_send_json_error( [ 'message' => __( 'Message subject cannot be empty', 'smliser' ) ] );
+        $body           = isset( $_POST['message_body'] ) ? wp_kses_post( unslash( $_POST['message_body'] ) ) : smliser_send_json_error( [ 'message' => __( 'Message body cannot be empty', 'smliser' ) ] );
+        $message_id     = smliser_get_post_param( 'message_id' );
+        $assocs_apps    = smliser_get_post_param( 'associated_apps', [] );
 
         $apps       = [];
         foreach( $assocs_apps as $app_data ) {

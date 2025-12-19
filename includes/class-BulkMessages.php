@@ -292,7 +292,7 @@ class BulkMessages {
      * 
      * @return boolean
      */
-    public function save() {
+    public function save() : bool {
         $db = \smliser_dbclass();
 
         $table = SMLISER_BULK_MESSAGES_TABLE;

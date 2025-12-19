@@ -14,7 +14,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * The database table blueprint
  */
-final class Tables {
+final class DBTables {
 
     /**
      * Retrieve all database tables
@@ -174,6 +174,9 @@ final class Tables {
                 'INDEX date_lookup (stats_date)',
             ),
             
+            /**
+             * Download token table
+             */
             \SMLISER_APP_DOWNLOAD_TOKEN_TABLE   => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'app_prop VARCHAR(255) DEFAULT NULL',
@@ -184,6 +187,9 @@ final class Tables {
                 'INDEX dtoken_index(token)',
             ),
 
+            /**
+             * Monetization table
+             */
             \SMLISER_MONETIZATION_TABLE     => array(
                 'id BIGINT AUTO_INCREMENT PRIMARY KEY',
                 'app_type VARCHAR(50) NOT NULL',
@@ -192,7 +198,59 @@ final class Tables {
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'UNIQUE KEY unique_app_monetization (app_type, app_id)'
+            ),
+
+            /**
+             * Pricing tier table
+             */
+            \SMLISER_PRICING_TIER_TABLE     => array(
+                'id BIGINT AUTO_INCREMENT PRIMARY KEY',
+                'monetization_id BIGINT NOT NULL',
+                'name VARCHAR(255) NOT NULL',
+                'product_id VARCHAR(191) NOT NULL',
+                'provider_id VARCHAR(50) NOT NULL',
+                'billing_cycle VARCHAR(50) DEFAULT NULL',
+                'max_sites INT DEFAULT 1',
+                'features TEXT DEFAULT NULL',
+                'created_at DATETIME DEFAULT NULL',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'INDEX monetization_id_index (monetization_id)',
+            ),
+
+            /**
+             * Bulk messages table
+             */
+            \SMLISER_BULK_MESSAGES_TABLE    => array(
+                'id BIGINT AUTO_INCREMENT PRIMARY KEY',
+                'message_id VARCHAR(64) UNIQUE',
+                'subject VARCHAR(255) NOT NULL',
+                'body LONGTEXT DEFAULT NULL',
+                'created_at DATETIME DEFAULT NULL',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'is_read TINYINT(1) DEFAULT 0',
+                'INDEX smliser_bulk_msg_created_at (created_at)',
+                'INDEX smliser_bulk_msg_updated_at (updated_at)',
+            ),
+
+            /**
+             * Bulk messages to app map table.
+             */
+            \SMLISER_BULK_MESSAGES_APPS_TABLE   => array(
+                'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',
+                'message_id VARCHAR(64) DEFAULT NULL',
+                'app_type VARCHAR(64) NOT NULL',
+                'app_slug VARCHAR(191) NOT NULL',
+                'UNIQUE KEY smliser_unique_message_app (message_id, app_type, app_slug)',
+                'INDEX smliser_msg_app_lookup (app_type, app_slug)'
+            ),
+
+            \SMLISER_OPTIONS_TABLE      => array(
+                'option_id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'option_name VARCHAR(255) NOT NULL',
+                'option_value TEXT DEFAULT NULL',
+                'INDEX smliser_option_key (option_name)'
             )
+
 
         );
     }
@@ -213,7 +271,7 @@ final class Tables {
      *
      * @return string[]
      */
-    public static function table_names() {
+    public static function table_names() : array {
         return array_keys( self::tables() );
     }
 }

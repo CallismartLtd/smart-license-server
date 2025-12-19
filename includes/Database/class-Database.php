@@ -83,8 +83,8 @@ class Database {
      */
     protected static function detect_environment() {
         // --- 1. WordPress Environment (Highest Priority) ---
-        if ( defined( 'SMLISER_ABSPATH' ) && class_exists( '\wpdb' ) && isset( $GLOBALS['wpdb'] ) ) {
-            return new WPAdapter( $GLOBALS['wpdb'] );
+        if ( defined( 'ABSPATH' ) && class_exists( \wpdb::class ) && isset( $GLOBALS['wpdb'] ) ) {
+            return new WPAdapter();
         }
 
         // --- 2. Laravel Environment ---

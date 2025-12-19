@@ -1205,7 +1205,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     const errorMessage = isJson ? ( responseData.data?.message || 'An error occurred' ) : responseData;
                     const error = new Error( errorMessage );
                     error.type  = 'SMLISER_NOT_OK';
-                    throw err;
+                    throw error;
                 }
 
                 if ( responseData.success ) {
@@ -1230,6 +1230,9 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 } else {
                     smliserNotify( 'An unexpected error occurred.', 10000 );
                 }
+
+                console.log(error);
+                
 
             } finally {
                 submitBtn && ( submitBtn.disabled = false );
