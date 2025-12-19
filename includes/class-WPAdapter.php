@@ -123,6 +123,11 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         }        
     }
 
+    /**
+     * Register REST API routes
+     *
+     * @return void
+     */
     public function register_rest_routes() {
         $api_config = V1::get_routes();
         $namespace = $api_config['namespace'];
@@ -259,7 +264,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
     /**
      * Proxy image download
      */
-    public static function parse_proxy_image_request() {
+    private static function parse_proxy_image_request() {
         if ( ! wp_verify_nonce( smliser_get_query_param( 'security' ), 'smliser_nonce' ) ) {
             smliser_abort_request( 'Expired link please refresh current page' );
         }
@@ -491,6 +496,27 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $response = Controller::save_monetization( $request );
 
         $response->send();
+    }
+
+    /**
+     * Options form handler
+     */
+    public static function options_form_handler() {
+        if ( ! current_user_can( 'install_plugins' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to do this.') );
+        }
+
+        if ( isset( $_POST['smliser_page_setup'] ) && wp_verify_nonce( \smliser_get_post_param( 'smliser_options_form' ), 'smliser_options_form' ) ) {
+            
+            if ( isset( $_POST['smliser_permalink'] ) ) {
+                $permalink = preg_replace( '~(^\/|\/$)~', '', \smliser_get_post_param( 'smliser_permalink' ) );
+                \smliser_settings_adapter()->set( 'smliser_repo_base_perma', ! empty( $permalink ) ? strtolower( $permalink ) : 'plugins'  );
+                
+            }
+        }
+
+        wp_safe_redirect( admin_url( 'admin.php?page=smliser-options&path=pages&success=true' ) );
+        exit;
     }
 
     /**

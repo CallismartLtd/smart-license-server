@@ -317,7 +317,6 @@ class Controller {
         return $response;
     }
 
-
     /**
      * Save Monetization Provider options.
      * 

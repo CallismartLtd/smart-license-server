@@ -93,22 +93,4 @@ class OptionsPage {
 
         include_once SMLISER_PATH . 'templates/admin/options/monetizations.php';
     }
-
-    /**
-     * Options form handler
-     */
-    public static function options_form_handler() {
-
-        if ( isset( $_POST['smliser_page_setup'] ) && wp_verify_nonce( sanitize_text_field( unslash( $_POST['smliser_options_form'] ) ), 'smliser_options_form' ) ) {
-            
-            if ( isset( $_POST['smliser_permalink'] ) ) {
-                $permalink = preg_replace( '~(^\/|\/$)~', '', sanitize_text_field( unslash( $_POST['smliser_permalink'] ) ) );
-                \smliser_settings_adapter()->set( 'smliser_repo_base_perma', ! empty( $permalink ) ? strtolower( $permalink ) : 'plugins'  );
-                
-            }
-        }
-
-        wp_safe_redirect( admin_url( 'admin.php?page=smliser-options&path=pages&success=true' ) );
-        exit;
-    }
 }
