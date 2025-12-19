@@ -88,7 +88,7 @@ class RepositoryPage {
      * The edit page
      */
     private static function edit_page() {
-        $id     = smliser_get_query_param( 'item_id' );
+        $id     = smliser_get_query_param( 'app_id' );
         $type   = smliser_get_query_param( 'type' );
         $class  = SmliserSoftwareCollection::get_app_class( $type );
         $method = "get_{$type}";
@@ -112,7 +112,7 @@ class RepositoryPage {
      * View hosted application page
      */
     private static function view_page() {
-        $id     = smliser_get_query_param( 'item_id' );
+        $id     = smliser_get_query_param( 'app_id' );
         $type   = smliser_get_query_param( 'type' );
         $class  = SmliserSoftwareCollection::get_app_class( $type );
         $method = "get_{$type}";
@@ -156,7 +156,7 @@ class RepositoryPage {
 
                 [
                     'text'  => 'Monetization',
-                    'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'item_id' => $app->get_id(), 'type' => $app->get_type()] )->__toString(),
+                    'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->__toString(),
                     'icon'  => 'ti ti-cash-register',
                     'attr'  => []
                 ],

@@ -18,7 +18,7 @@ use SmartLicenseServer\Monetization\Monetization,
 
 defined( 'SMLISER_ABSPATH' ) || exit; 
 
-$id         = smliser_get_query_param( 'item_id' );
+$id         = smliser_get_query_param( 'app_id' );
 $app_type   = smliser_get_query_param( 'type' );
 $is_new     = false;
 
@@ -28,13 +28,13 @@ $providers  = ProviderCollection::instance()->get_providers();
 if ( empty( $object ) ) {
     $is_new = true;
     $object = new Monetization();
-    $object->set_item_id( $id )
-        ->set_item_type( $app_type );
+    $object->set_app_id( $id )
+        ->set_app_type( $app_type );
 }
 
 $app = $object->get_app();
 $view_url   = clone( $url );
-$view_url->add_query_params( [ 'tab' => 'view', 'item_id' => $id, 'type' => $app_type] );
+$view_url->add_query_params( [ 'tab' => 'view', 'app_id' => $id, 'type' => $app_type] );
 $edit_url = clone $view_url;
 $edit_url->add_query_param( 'tab', 'edit' );
 ?>
@@ -42,7 +42,7 @@ $edit_url->add_query_param( 'tab', 'edit' );
 <h1>Software Monetization</h1>
 
 <?php if ( empty( $app ) ) : ?>
-    <?php echo wp_kses_post( smliser_not_found_container( 'Repository item does not exists <a href="' . smliser_repo_page() . '">Back</a>' ) ); ?>
+    <?php echo wp_kses_post( smliser_not_found_container( 'This app does not exist in the repository <a href="' . smliser_repo_page() . '">Back</a>' ) ); ?>
 <?php else : ?>
     <a href="<?php echo esc_url( $url->__toString() ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-database"></span> Repository</a>
     <a href="<?php echo esc_url( $view_url->__toString() ); ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-visibility"></span> View</a>
@@ -179,8 +179,8 @@ $edit_url->add_query_param( 'tab', 'edit' );
                 <form id="tier-form" class="smliser-admin-modal_content-form">
                     <input type="hidden" name="action" value="">
                     <input type="hidden" name="monetization_id" value="<?php echo absint( $object->get_id() ); ?>">
-                    <input type="hidden" name="item_id" value="<?php echo absint( $app->get_id() ); ?>">
-                    <input type="hidden" name="item_type" value="<?php echo esc_attr( $object->get_app_type() ); ?>">
+                    <input type="hidden" name="app_id" value="<?php echo absint( $app->get_id() ); ?>">
+                    <input type="hidden" name="app_type" value="<?php echo esc_attr( $object->get_app_type() ); ?>">
                     <input type="hidden" name="tier_id">
                     <label for="tier_name">Tier Name:
                         <input type="text" name="tier_name" id="tier_name" field-name="Tier Name">

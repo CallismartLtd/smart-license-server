@@ -205,7 +205,7 @@ class PluginRepository extends Repository {
             case 'icon':
                 $allowed_names = [ 'icon-128x128', 'icon-256x256', 'icon' ];
                 if ( ! in_array( pathinfo( $file['name'], PATHINFO_FILENAME ), $allowed_names, true ) 
-                    || ! in_array( $ext, [ 'png', 'gif', 'svg' ], true ) ) {
+                    || ! in_array( $ext, [ 'png', 'gif', 'svg', 'webp' ], true ) ) {
                     return new Exception(
                         'invalid_icon_name',
                         'Icon must follow these naming convention: icon, icon-128x128 or icon-256x256 and be a PNG, GIF, or SVG file.',
@@ -216,12 +216,12 @@ class PluginRepository extends Repository {
                 break;
 
             case 'screenshot':
-                $allowed_exts = [ 'png', 'jpg', 'jpeg', 'gif', 'svg' ];
+                $allowed_exts = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp' ];
 
                 if ( ! in_array( $ext, $allowed_exts, true ) ) {
                     return new Exception(
                         'invalid_screenshot_type',
-                        'Screenshots must be PNG, JPG, JPEG, GIF, or SVG.',
+                        'Screenshots must be PNG, JPG, JPEG, GIF, WEBP or SVG.',
                         [ 'status' => 400 ]
                     );
                 }
@@ -238,7 +238,7 @@ class PluginRepository extends Repository {
                     }
                 } else {
                     // Auto-generate next index
-                    $existing = glob( $asset_dir . 'screenshot-*.{png,jpg,jpeg,gif,svg}', GLOB_BRACE );
+                    $existing = glob( $asset_dir . 'screenshot-*.{png,jpg,jpeg,webp,gif,svg}', GLOB_BRACE );
                     $indexes  = [];
 
                     foreach ( $existing as $shot ) {
@@ -317,23 +317,24 @@ class PluginRepository extends Repository {
                     '1x' => 'icon-128x128',
                     '2x' => 'icon-256x256',
                 ] as $key => $basename ) {
-                    $pattern = $assets_dir . $basename . '.{png,gif,svg}';
+                    $pattern = $assets_dir . $basename . '.{png,gif,webp,svg}';
                     $matches = glob( $pattern, GLOB_BRACE );
                     $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
                         ? smliser_get_app_asset_url( 'plugin', $slug, basename( $matches[0] ) )
                         : '';
                 }
 
-                // Check for universal icon.svg and use it as fallback for 1x if no 128x128 exists
-                $universal = $assets_dir . 'icon.svg';
-                if ( $this->is_file( $universal ) && empty( $urls['1x'] ) ) {
-                    $urls['1x'] = smliser_get_app_asset_url( 'plugin', $slug, 'icon.svg' );
+                // Check for universal icon.* and use it as fallback for 1x if no 128x128 exists
+                $universal  = $assets_dir . 'icon.{png,gif,webp,svg}';
+                $matches    = glob( $universal, GLOB_BRACE );
+                if ( $matches && $this->is_file( $matches[0] ) && empty( $urls['1x'] ) ) {
+                    $urls['1x'] = smliser_get_app_asset_url( 'plugin', $slug, \basename( $matches[0] ) );
                 }
 
                 return $urls;
 
             case 'screenshots':
-                $pattern = $assets_dir . 'screenshot-*.{png,jpg,jpeg,gif,svg}';
+                $pattern = $assets_dir . 'screenshot-*.{png,jpg,jpeg,gif,webp,svg}';
                 $files   = glob( $pattern, GLOB_BRACE );
                 break;
 

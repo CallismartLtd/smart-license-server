@@ -958,7 +958,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     public function is_monetized() : bool {
         $db         = smliser_dbclass();
         $table_name = SMLISER_MONETIZATION_TABLE;
-        $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `item_type` = ? AND `item_id` = ? AND `enabled` = ?";
+        $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `app_type` = ? AND `app_id` = ? AND `enabled` = ?";
         $params     = [$this->get_type(), absint( $this->id ), '1'];
         return $db->get_var( $query, $params ) > 0;
     }

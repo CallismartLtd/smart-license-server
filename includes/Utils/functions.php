@@ -155,7 +155,7 @@ function smliser_admin_repo_tab( $tab = 'add-new', $args = array() ) {
 
     if ( ! is_array( $args ) ) {
         if ( is_int( $args ) ) {
-            $args = array( 'item_id' => $args );
+            $args = array( 'app_id' => $args );
         } else if ( is_string( $args ) ) {
             $args = array( 'type' => $args );
         }

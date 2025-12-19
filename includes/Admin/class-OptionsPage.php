@@ -106,11 +106,9 @@ class OptionsPage {
                 \smliser_settings_adapter()->set( 'smliser_repo_base_perma', ! empty( $permalink ) ? strtolower( $permalink ) : 'plugins'  );
                 
             }
-
-            set_transient( 'smliser_form_success', true, 30 );
         }
 
-        wp_safe_redirect( admin_url( 'admin.php?page=smliser-options&path=pages' ) );
+        wp_safe_redirect( admin_url( 'admin.php?page=smliser-options&path=pages&success=true' ) );
         exit;
     }
 }

@@ -562,7 +562,7 @@ class SmliserSoftwareCollection {
                 'success'   => true,
                 'data'      => array(
                     'message' => sprintf( '%s Saved', ucfirst( $app_type ) ),
-                    'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'item_id' => $class->get_id() )
+                    'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'app_id' => $class->get_id() )
                 )
             ));
 

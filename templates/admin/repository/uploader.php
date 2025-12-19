@@ -25,7 +25,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
         </div>
         <div class="smliser-quick-actions">
             <?php if ( ! empty( $app ) ) : ?>
-                <a class="smliser-icon-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>" title="<?php esc_attr_e( 'View', 'smliser' ); ?>">
+                <a class="smliser-icon-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>" title="<?php esc_attr_e( 'View', 'smliser' ); ?>">
                     <i class="dashicons dashicons-visibility"></i>
                 </a>
             <?php endif; ?>
@@ -38,7 +38,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
     <form action="" class="app-uploader-form" id="appUploaderForm">
         <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', esc_html( $type ) ) ?>">
         <input type="hidden" name="app_type" value="<?php printf( '%s', esc_html( $type ) ) ?>">
-        <input type="hidden" name="app_id" value="<?php printf( '%s', esc_html( smliser_get_query_param( 'item_id' ) ) ) ?>">
+        <input type="hidden" name="app_id" value="<?php printf( '%s', esc_html( smliser_get_query_param( 'app_id' ) ) ) ?>">
         <div class="app-uploader-top-section">
             <div class="app-uploader-left">
                 <h3><?php echo esc_html( $type_title ) ?> Details</h3>

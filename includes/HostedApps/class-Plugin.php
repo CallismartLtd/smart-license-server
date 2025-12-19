@@ -192,13 +192,6 @@ class Plugin extends AbstractHostedApp {
     */
 
     /**
-     * Get Item ID
-     */
-    public function get_item_id() {
-        return $this->get_id();
-    }
-
-    /**
      * Get the author profile.
      */
     public function get_author_profile() {

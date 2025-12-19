@@ -56,9 +56,9 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                             <td class="smliser-edit-row">
                                 <?php echo absint( $app->get_id() ); ?>
                                 <div class="smliser-edit-link">
-                                    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">edit</a> 
+                                    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">edit</a> 
                                     |
-                                    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'item_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">view</a>
+                                    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">view</a>
                                 </div>
                             </td>
                             <td><?php echo esc_html( $app->get_name() ); ?></td>

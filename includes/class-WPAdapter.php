@@ -481,9 +481,9 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $request = new Request([
             'is_authorized'     => current_user_can( 'manage_options' ),
             'monetization_id'   => smliser_get_post_param( 'monetization_id', 0 ),
-            'item_id'           => smliser_get_post_param( 'item_id', 0 ),
+            'app_id'           => smliser_get_post_param( 'app_id', 0 ),
             'tier_id'           => smliser_get_post_param( 'tier_id', 0 ),
-            'item_type'         => smliser_get_post_param( 'item_type' ),
+            'app_type'         => smliser_get_post_param( 'app_type' ),
             'tier_name'         => smliser_get_post_param( 'tier_name' ),
             'product_id'        => smliser_get_post_param( 'product_id' ),
             'billing_cycle'     => smliser_get_post_param( 'billing_cycle' ),

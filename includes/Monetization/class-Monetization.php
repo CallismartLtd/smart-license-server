@@ -14,9 +14,9 @@ use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Monetization defines how an item in the repository is sold.
+ * Monetization defines how an app in the repository is sold.
  *
- * An item can be monetized with one or more pricing tiers.
+ * An app can be monetized with one or more pricing tiers.
  * Each tier specifies its own provider, billing rules, and feature set.
  */
 class Monetization {
@@ -28,18 +28,18 @@ class Monetization {
     protected $id;
 
     /**
-     * Item type (e.g. plugin, theme).
+     * App type (e.g. plugin, theme).
      * 
-     * @var string $item_type
+     * @var string $app_type
      */
-    protected $item_type;
+    protected $app_type;
 
     /**
-     * The unique ID of the repository item this monetization belongs to.
+     * The unique ID of the app this monetization belongs to.
      *
      * @var int
      */
-    protected $item_id;
+    protected $app_id;
 
     /**
      * Whether this monetization is enabled.
@@ -49,7 +49,7 @@ class Monetization {
     protected $enabled = false;
 
     /**
-     * Collection of pricing tiers available for this item.
+     * Collection of pricing tiers available for this monetization.
      *
      * @var PricingTier[]
      */
@@ -94,16 +94,16 @@ class Monetization {
      * @return string
      */
     public function get_app_type() {
-        return $this->item_type;
+        return $this->app_type;
     }
 
     /**
-     * Get the item ID this monetization belongs to.
+     * Get the app ID this monetization belongs to.
      *
      * @return int
      */
-    public function get_item_id() {
-        return $this->item_id;
+    public function get_app_id() {
+        return $this->app_id;
     }    
 
     /**
@@ -173,24 +173,24 @@ class Monetization {
     }
 
     /**
-     * Set the item ID this monetization belongs to.
+     * Set the ID of the app associated with this monetization.
      * 
-     * @param int $item_id
+     * @param int $app_id
      * @return self
      */
-    public function set_item_id( $item_id ) {
-        $this->item_id = absint( $item_id );
+    public function set_app_id( $app_id ) {
+        $this->app_id = absint( $app_id );
         return $this;
     }
 
     /**
-     * Set the item type (e.g. plugin, theme).
+     * Set the app type (e.g. plugin, theme).
      * 
-     * @param string $item_type
+     * @param string $app_type
      * @return self
      */
-    public function set_item_type( $item_type ) {
-        $this->item_type = sanitize_text_field( unslash( $item_type ) );
+    public function set_app_type( $app_type ) {
+        $this->app_type = sanitize_text_field( unslash( $app_type ) );
         return $this;
     }
 
@@ -269,8 +269,8 @@ class Monetization {
         $db = smliser_dbclass();
 
         $data = [
-            'item_type'  => $this->item_type,
-            'item_id'    => $this->item_id,
+            'app_type'  => $this->app_type,
+            'app_id'    => $this->app_id,
             'enabled'    => $this->enabled ? 1 : 0,
             'updated_at' => \gmdate( 'Y-m-d H:i:s' ),
         ];
@@ -367,8 +367,8 @@ class Monetization {
 
         $mon = new self();
         $mon->set_id( $row['id'] ?? 0 )
-            ->set_item_id( $row['item_id'] ?? '' )
-            ->set_item_type( $row['item_type'] ?? '' )
+            ->set_app_id( $row['app_id'] ?? '' )
+            ->set_app_type( $row['app_type'] ?? '' )
             ->set_enabled( (bool) $row['enabled'] ?? false )
             ->set_created_at( $row['created_at'] ?? '' )
             ->set_updated_at( $row['updated_at'] ?? '' );
@@ -380,7 +380,7 @@ class Monetization {
     }
 
     /**
-     * Get monetization record by App type + item ID.
+     * Get monetization record by App type + app ID.
      *
      * @param string $app_type
      * @param int|string $app_id
@@ -390,7 +390,7 @@ class Monetization {
         $db     = smliser_dbclass();
         $table  = SMLISER_MONETIZATION_TABLE;
 
-        $sql    = "SELECT * FROM {$table} WHERE item_type = ? AND item_id = ?";
+        $sql    = "SELECT * FROM {$table} WHERE app_type = ? AND app_id = ?";
         $row    = $db->get_row( $sql, [$app_type, $app_id]);
 
         if ( ! $row ) {
@@ -399,8 +399,8 @@ class Monetization {
 
         $mon = new self();
         $mon->set_id( $row['id'] ?? 0 )
-            ->set_item_id( $row['item_id'] ?? 0 )
-            ->set_item_type( $row['item_type'] ?? '' )
+            ->set_app_id( $row['app_id'] ?? 0 )
+            ->set_app_type( $row['app_type'] ?? '' )
             ->set_enabled( (bool) $row['enabled'] ?? false )
             ->set_created_at( $row['created_at'] ?? '' )
             ->set_updated_at( $row['updated_at'] ?? '' );
@@ -466,8 +466,8 @@ class Monetization {
     public function to_array() {
         return [
             'id'         => $this->id,
-            'item_type'  => $this->item_type,
-            'item_id'    => $this->item_id,
+            'app_type'  => $this->app_type,
+            'app_id'    => $this->app_id,
             'enabled'    => $this->enabled,
             'tiers'      => array_map( function( $tier ) {
                 return $tier->to_array();
@@ -483,10 +483,10 @@ class Monetization {
      * @return \SmartLicenseServer\HostedApps\AbstractHostedApp|null
      */
     public function get_app() {
-        if ( empty( $this->item_type ) || empty( $this->item_id ) ) {
+        if ( empty( $this->app_type ) || empty( $this->app_id ) ) {
             return null;
         }
 
-        return SmliserSoftwareCollection::get_app_by_id( $this->item_type, $this->item_id );
+        return SmliserSoftwareCollection::get_app_by_id( $this->app_type, $this->app_id );
     }
 }

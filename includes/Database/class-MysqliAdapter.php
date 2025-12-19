@@ -137,7 +137,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @param array  $params Values to bind in the query.
      * @return mysqli_stmt|false Prepared statement on success, false on failure.
      */
-    public function query( $query, $params = [] ) {
+    public function query( $query, array $params = [] ) {
         if ( ! $this->mysqli ) {
             $this->last_error = 'No active MySQLi connection.';
             return false;

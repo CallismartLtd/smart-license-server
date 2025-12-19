@@ -29,6 +29,9 @@ class Installer {
         ),
         '0.1.1' => array(
             [__Class__, 'migration_011']
+        ),
+        '0.2.0' => array(
+            [__CLASS__, 'monetization_table_upgrade_020']
         )
 
     );
@@ -70,7 +73,8 @@ class Installer {
             SMLISER_SOFTWARE_TABLE,
             SMLISER_SOFTWARE_META_TABLE,
             SMLISER_BULK_MESSAGES_TABLE,
-            SMLISER_BULK_MESSAGES_APPS_TABLE
+            SMLISER_BULK_MESSAGES_APPS_TABLE,
+            SMLISER_OPTIONS_TABLE
 
         );
 
@@ -356,6 +360,18 @@ class Installer {
 
         self::run_db_delta( $bulk_messages_apps_table, $bulk_messages_apps_columns );
 
+        /**
+         * The settings table
+         */
+        $settings_table = SMLISER_OPTIONS_TABLE;
+        $settings_columns   = array(
+            'option_id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+            'option_name VARCHAR(255) NOT NULL',
+            'option_value TEXT DEFAULT NULL',
+            'INDEX smliser_option_key (option_name)'
+        );
+
+        self::run_db_delta( $settings_table, $settings_columns );
     }
 
 
@@ -414,7 +430,7 @@ class Installer {
      */
     public static function migration_006() {
         $db             = smliser_dbclass();
-        $plugin_table = SMLISER_PLUGIN_ITEM_TABLE;
+        $plugin_table   = SMLISER_PLUGIN_ITEM_TABLE;
 
         // Check if 'status' column already exists
         $column = $db->get_results("SHOW COLUMNS FROM {$plugin_table} LIKE ?", 'status' );
@@ -477,6 +493,28 @@ class Installer {
 
         if ( $column_exists ) {
             $sql = "ALTER TABLE `{$table}` CHANGE COLUMN `allowed_sites` `max_allowed_domains` VARCHAR(600) DEFAULT NULL";
+            $db->query( $sql );
+        }
+    }
+
+    /**
+     * Change the item_id and item_type columns of the monetization table to app_id and app_type
+     */
+    public static function monetization_table_upgrade_020() {
+        $table  = \SMLISER_MONETIZATION_TABLE;
+        $db     = \smliser_dbclass();
+
+        $item_id_exists = $db->get_results( "SHOW COLUMNS FROM {$table} LIKE ?", ['item_id'] );
+
+        if ( $item_id_exists ) {
+            $sql    = "ALTER TABLE {$table} CHANGE COLUMN `item_id` `app_id` BIGINT NOT NULL";
+            $db->query( $sql );
+        }
+
+        $item_type_exists   = $db->get_results( "SHOW COLUMNS FROM {$table} LIKE ?", ['item_type'] );
+
+        if ( $item_type_exists ) {
+            $sql    = "ALTER TABLE {$table} CHANGE COLUMN `item_type` `app_type` VARCHAR(50) NOT NULL";
             $db->query( $sql );
         }
     }

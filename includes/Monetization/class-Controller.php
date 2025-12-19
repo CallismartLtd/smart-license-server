@@ -34,12 +34,12 @@ class Controller {
             }
 
             $monetization_id = $request->get( 'monetization_id', 0 );
-            $item_id         = $request->get( 'item_id', 0 );
+            $app_id         = $request->get( 'app_id', 0 );
             $tier_id         = $request->get( 'tier_id', 0 );
             $max_sites       = $request->get( 'max_sites', -1 );
 
-            $item_type   = $request->get( 'item_type' )
-                ?: throw new RequestException( 'missing_item_type', 'Item type is required', array( 'field_id' => 'item_type', 'status' => 400 ) );
+            $app_type   = $request->get( 'app_type' )
+                ?: throw new RequestException( 'missing_app_type', 'Item type is required', array( 'field_id' => 'app_type', 'status' => 400 ) );
 
             $tier_name   = $request->get( 'tier_name' )
                 ?: throw new RequestException( 'missing_tier_name', 'Tier name is required', array( 'field_id' => 'tier_name', 'status' => 400 ) );
@@ -62,9 +62,9 @@ class Controller {
                 throw new RequestException( 'invalid_provider', 'The selected monetization provider does not exist.', array( 'field_id' => 'provider_id', 'status' => 400 ) );
             }
 
-            $monetization = Monetization::get_by_app( $item_type, $item_id ) ?: new Monetization();
-            $monetization->set_item_id( $item_id )
-                        ->set_item_type( $item_type );
+            $monetization = Monetization::get_by_app( $app_type, $app_id ) ?: new Monetization();
+            $monetization->set_app_id( $app_id )
+                        ->set_app_type( $app_type );
 
             $pricing_tier = PricingTier::get_by_id( $tier_id ) ?: new PricingTier();
             $pricing_tier->set_monetization_id( $monetization_id )
