@@ -97,24 +97,23 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'smliser_save_license'                          => [__CLASS__, 'parse_license_save_request'],
             'smliser_app_asset_upload'                      => [__CLASS__, 'parse_app_asset_upload_request'],
             'smliser_app_asset_delete'                      => [__CLASS__, 'parse_app_asset_delete_request'],
-            'smliser_save_monetization_tier'                => [__CLASS__, 'parse_monetization_tier_form'], // This is the parser that needs to be written
+            'smliser_save_monetization_tier'                => [__CLASS__, 'parse_monetization_tier_form'],
             'smliser_authorize_app'                         => [SmliserAPICred::class, 'oauth_client_consent_handler'],
             'smliser_bulk_action'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_all_actions'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_generate_download_token'               => [__CLASS__, 'parse_download_token_generation_request'],
             'smliser_delete_app'                            => [__CLASS__, 'parse_app_delete_request'],
-            'smliser_save_monetization_provider_options'    => [ProviderCollection::class, 'save_provider_options'],
-            'smliser_upgrade'                               => [Installer::class, 'ajax_update'],
+            'smliser_save_monetization_provider_options'    => [__CLASS__, 'parse_save_provider_options'],
+            'smliser_upgrade'                               => [__CLASS__, 'parse_database_migration_request'],
             'smliser_key_generate'                          => [SmliserAPICred::class, 'admin_create_cred_form'],
             'smliser_revoke_key'                            => [SmliserAPICred::class, 'revoke'],
             'smliser_oauth_login'                           => [SmliserAPICred::class, 'oauth_login_form_handler'],
-            'smliser_upgrade'                               => [Installer::class, 'ajax_update'],
             'smliser_publish_bulk_message'                  => [BulkMessagePage::class, 'publish_bulk_message'],
             'smliser_bulk_message_bulk_action'              => [BulkMessagePage::class, 'bulk_action'],
             'smliser_options'                               => [OptionsPage::class, 'options_form_handler'],
-            'smliser_get_product_data'                      => [Controller::class, 'get_provider_product'],
-            'smliser_delete_monetization_tier'              => [Controller::class, 'delete_monetization_tier'],
-            'smliser_toggle_monetization'                   => [Controller::class, 'toggle_monetization'],
+            'smliser_get_product_data'                      => [__CLASS__, 'parse_monetization_provider_product_request'],
+            'smliser_delete_monetization_tier'              => [__CLASS__, 'parse_monetization_tier_deletion'],
+            'smliser_toggle_monetization'                   => [__CLASS__, 'parse_toggle_monetization'],
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {
@@ -129,7 +128,6 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $namespace = $api_config['namespace'];
         $routes = $api_config['routes'];
 
-        // Loop through and register each route with WordPress
         foreach ( $routes as $route_config ) {
             register_rest_route(
                 $namespace,
@@ -326,7 +324,6 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         ]);
 
         $response   = AppCollection::save_app( $request );
-        $response->register_after_serve_callback( function() { die; } );
         
         $response->send();
     }
@@ -365,9 +362,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'client_ip'     => smliser_get_client_ip(),
         ]);
 
-        $response = AppCollection::app_asset_upload( $request );
-        $response->register_after_serve_callback( function() { die; } );
-        
+        $response = AppCollection::app_asset_upload( $request );        
         $response->send();
     }
 
@@ -398,8 +393,6 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         ]);
 
         $response = AppCollection::app_asset_delete( $request );
-        $response->register_after_serve_callback( function() { die; } );
-
         $response->send();
     }
 
@@ -459,7 +452,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         /** @var Response $response */
         $response   = \call_user_func( $handler, $request );
 
-        if ( 200 === $response->get_status_code() ) {
+        if ( $response->ok() ) {
             $url    = new URL( smliser_license_page() );
             $url->add_query_param( 'message', $response->get_response_data()->get( 'message' ) );
             wp_safe_redirect( $url->get_href() );
@@ -496,7 +489,6 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         ]);
 
         $response = Controller::save_monetization( $request );
-        $response->register_after_serve_callback( function() { die; } ); // Ensure the process exits
 
         $response->send();
     }
@@ -569,10 +561,137 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         ]);
 
         $response   = AppCollection::trash_app( $request );
-
-        $response->register_after_serve_callback( function() { die; } );
         $response->send();
     
+    }
+
+    /**
+     * Parse database migration request
+     */
+    public static function parse_database_migration_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            \smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+        }
+
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $repo_version = \smliser_settings_adapter()->get( 'smliser_repo_version', 0 );
+        if ( SMLISER_VER === $repo_version ) {
+            \smliser_send_json_error( array( 'message' => 'No upgrade needed' ) );
+        }
+
+        if ( Installer::install() )  {
+            Installer::db_migrate();   
+        }
+
+        \smliser_settings_adapter()->set( 'smliser_repo_version', SMLISER_VER );
+
+        \smliser_send_json_success( array( 'message' => 'The repository has been migrated from version "' . $repo_version . '" to version "' . SMLISER_VER ) );
+    }
+
+    /**
+     * Parse the monetization provider settings form submision.
+     */
+    private static function parse_save_provider_options() {
+        if ( ! \check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            \smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
+        }
+
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $request    = new Request([
+            'provider_id'   => \smliser_get_post_param( 'provider_id' ),
+            'is_authorized' => true
+
+        ]);
+
+        $response = Controller::save_provider_options( $request );
+
+        $response->send();
+        
+    }
+    
+    /**
+     * Parse monetization toggle request
+     */
+    private static function parse_toggle_monetization() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+                'field_id' => 'security',
+            ), 401 );
+        }
+
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $request    = new Request([
+            'monetization_id'   => \smliser_get_post_param( 'monetization_id' ),
+            'enabled'           => \smliser_get_post_param( 'enabled' ),
+            'is_authorized'     => true
+
+        ]);
+
+        $response   = Controller::toggle_monetization( $request );
+
+        $response->send();
+    }
+
+    /**
+     * Parse monetization tier provider product request.
+     */
+    private static function parse_monetization_provider_product_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => 'This action failed basic security check.',
+            ), 401 );
+        }
+
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $request    = new Request([
+            'provider_id'   => smliser_get_query_param( 'provider_id' ),
+            'product_id'    => smliser_get_query_param( 'product_id' ),
+            'is_authorized' => true
+        ]);
+
+        $response   = Controller::get_provider_product( $request );
+
+        $response->send();
+    }
+
+    /**
+     * Parser monetization tier deletion
+     */
+    private static function parse_monetization_tier_deletion() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+                'field_id' => 'security',
+            ), 401 );
+        }
+
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $request    = new Request([
+            'monetization_id'   => \smliser_get_post_param( 'monetization_id', 0 ),
+            'tier_id'           => \smliser_get_post_param( 'tier_id', 0 ),
+            'is_authorized'     => true
+
+        ]);
+
+        $response   = Controller::delete_monetization_tier( $request );
+
+        $response->send();
     }
     
     /**

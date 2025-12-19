@@ -424,6 +424,10 @@ class Response {
 		$this->send_body();
 
 		$this->trigger_after_serve_callbacks();
+
+		if ( $this->is_json_response() ) {
+			exit;
+		}
 	}
 
 	/*--------------------------------------------------------------

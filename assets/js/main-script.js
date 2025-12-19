@@ -309,10 +309,12 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 }).then( async response => {
                     const contentType = response.headers.get( 'content-type' );
                     if ( ! response.ok ) {
-                        let errorMessage = await response.text();
+                        let errorMessage = 'Something went wrong!';
                         if ( contentType.includes( 'application/json' ) ) {
                             const body      = await response.json();
                             errorMessage    = body?.data?.message ?? errorMessage;
+                        } else {
+                            errorMessage = await response.text();
                         }
 
                         throw new Error( errorMessage );

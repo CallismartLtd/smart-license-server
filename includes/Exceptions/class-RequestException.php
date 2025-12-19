@@ -44,6 +44,11 @@ class RequestException extends Exception {
             'title'   => 'Missing Data',
             'message' => 'Required request data (body, header, or query parameter) is missing.'
         ],
+        'required_param' => [
+            'status'  => 400,
+            'title'   => 'Invalid Parameter',
+            'message' => 'The please provide the missing request parameter.'
+        ],
         'invalid_parameter_type' => [
             'status'  => 400,
             'title'   => 'Type Mismatch',

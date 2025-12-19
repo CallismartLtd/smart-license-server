@@ -96,161 +96,144 @@ class Controller {
 
     /**
      * Handle delete monetization tier request.
+     * 
+     * @param Request $request
+     * @return Response
      */
-    public static function delete_monetization_tier() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array(
-                'message'  => 'This action failed basic security check.',
-                'field_id' => 'security',
-            ), 401 );
+    public static function delete_monetization_tier( Request $request ) : Response {
+        try {
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'permission_denied' );
+            }
+            
+            $monetization_id = $request->get( 'monetization_id', 0 );
+            $tier_id         = $request->get( 'tier_id', 0 );
+
+            if ( ! $monetization_id ) {
+                throw new RequestException( 'invalid_input', __( 'Monetization ID is required.', 'smliser' ), ['status' => 400] );
+            }
+
+            if ( ! $tier_id ) {
+                throw new RequestException( 'invalid_input', __( 'Tier ID is required.', 'smliser' ), ['status' => 400] );
+            }
+
+            $monetization = Monetization::get_by_id( $monetization_id );
+
+            if ( ! $monetization ) {
+                throw new RequestException( 'resource_not_found', __( 'Monetization not found.', 'smliser' ), ['status' => 404] );
+            }
+
+            $deleted = $monetization->delete_tier( $tier_id );
+            if ( ! $deleted ) {
+                throw new RequestException( 'resource_not_found', __( 'Failed to delete the pricing tier, please try again.', 'smliser' ), ['status' => 500] );
+            }
+            $response_data = [ 'success' => true, 'data' => [ 'message' => 'Pricing tier deleted successfully.'] ];
+            return ( new Response( 200, [], smliser_safe_json_encode( $response_data ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
-
-        if ( ! current_user_can( 'manage_options' ) ) {
-            smliser_send_json_error( array(
-                'message'  => 'You do not have permission to perform this action.',
-            ), 403 );
-        }
-
-        $monetization_id = smliser_get_post_param( 'monetization_id', 0 );
-        $tier_id         = smliser_get_post_param( 'tier_id', 0 );
-
-        if ( ! $monetization_id ) {
-            smliser_send_json_error( array(
-                'message'  => 'Monetization ID is required.',
-                'field_id' => 'monetization_id',
-            ), 400 );
-        }
-
-        if ( ! $tier_id ) {
-            smliser_send_json_error( array(
-                'message'  => 'Tier ID is required.',
-                'field_id' => 'tier_id',
-            ), 400 );
-        }
-
-        $monetization = Monetization::get_by_id( $monetization_id );
-        if ( ! $monetization ) {
-            smliser_send_json_error( array(
-                'message'  => 'The specified monetization record does not exist.',
-            ), 404 );
-        }
-
-        $deleted = $monetization->delete_tier( $tier_id );
-
-        if ( ! $deleted ) {
-            smliser_send_json_error( array(
-                'message'  => 'Failed to delete the pricing tier. Please try again.',
-            ), 500 );
-        }
-
-        smliser_send_json_success( array(
-            'message' => 'Pricing tier deleted successfully.',
-        ) );
     }
 
     /**
-     * Handle Ajax request to fetch provider product data.
+     * Handle request to fetch provider product data.
      *
-     * @return void
+     * @param Request $request
+     * @return Response
      */
-    public static function get_provider_product() {
+    public static function get_provider_product( Request $request ) : Response {
 
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array(
-                'message'  => 'This action failed basic security check.',
-                'field_id' => 'security',
-            ), 401 );
+        try {
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'unauthorized_access', 'You do not have permission to perform this action', array( 'status' => 403 ) );
+            }
+            
+            $provider_id = $request->get( 'provider_id' );
+            $product_id  = $request->get( 'product_id' );
+
+            if ( ! $provider_id ) {
+                throw new RequestException( 'required_param', __( 'Provider ID is required.', 'smliser' ), ['status' => 400] );
+            }
+
+            if ( ! $product_id ) {
+                throw new RequestException( 'required_param', __( 'Product ID is required.', 'smliser' ), ['status' => 400] );
+            }
+
+            $provider   = ProviderCollection::instance()->get_provider( $provider_id );
+            
+            if ( ! $provider ) {
+                throw new RequestException( 'resource_not_found', __( 'Invalid provider specified.', 'smliser' ), ['status' => 404] );
+            }
+            $product = $provider->get_product( $product_id );
+
+            if ( ! $product ) {
+                throw new RequestException( 'resource_not_found', __( 'Product not found from provider.', 'smliser' ), ['status' => 404] );
+            }
+
+            $valid_product = ProviderCollection::validate_product_data( $product );
+
+            if ( is_smliser_error( $valid_product ) ) {
+                throw new RequestException( $valid_product->get_error_code(), $valid_product->get_error_message(), ['status' => 500] );
+            }
+
+            $response_data = [
+                'success' => true, 
+                'data' => [
+                    'message' => 'Saved',
+                    'product' => $valid_product,
+                ]
+            ];
+            return ( new Response( 200, [], smliser_safe_json_encode( $response_data ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+
+        } catch ( RequestException $e) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
-
-        $provider_id = smliser_get_query_param( 'provider_id' );
-        $product_id  = smliser_get_query_param( 'product_id' );
-
-        if ( empty( $provider_id ) ) {
-            smliser_send_json_error( array(
-                'message'  => __( 'Provider ID is required.', 'smliser' ),
-                'field_id' => 'provider_id',
-            ) );
-        }
-
-        if ( empty( $product_id ) ) {
-            smliser_send_json_error( array(
-                'message'  => __( 'Product ID is required.', 'smliser' ),
-                'field_id' => 'product_id',
-            ) );
-        }
-
-        // Resolve provider
-        $provider = ProviderCollection::instance()->get_provider( $provider_id );
-        
-        if ( ! $provider ) {
-            smliser_send_json_error( array(
-                'message' => __( 'Invalid provider specified.', 'smliser' ),
-                'field_id' => 'provider_id',
-            ) );
-        }
-
-        // Fetch product data
-        $product = $provider->get_product( $product_id );
-        
-        if ( empty( $product ) ) {
-            smliser_send_json_error( array(
-                'message' => __( 'Product not found from provider.', 'smliser' ),
-                'field_id' => 'product_id',
-            ) );
-        }
-
-        $valid_product = ProviderCollection::validate_product_data( $product );
-
-        if ( is_smliser_error( $valid_product ) ) {
-            smliser_send_json_error( array(
-                'message' => $valid_product->get_error_message(),
-            ) );
-        }
-
-        smliser_send_json_success( array(
-            'message' => __( 'Product data retrieved successfully.', 'smliser' ),
-            'product' => $valid_product,
-        ) );
     }
 
     /**
      * Handle monetization status toggling
+     * 
+     * @param Resquest $request
      */
-    public static function toggle_monetization() {
+    public static function toggle_monetization( Request $request ) : Response {
 
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array(
-                'message'  => __( 'Security check failed.', 'smliser' ),
-                'field_id' => 'security',
-            ), 401 );
+        try {
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'permission_denied' );
+            }
+            $monetization_id = $request->get( 'monetization_id' );
+            $enabled         = $request->get( 'enabled' );
+
+            if ( ! $monetization_id ) {
+                throw new RequestException( 'invalid_input', __( 'This monetization does not exist yet, please add a pricing tier first.', 'smliser' ), ['status' => 400] );
+            }
+
+            $monetization = Monetization::get_by_id( $monetization_id );
+
+            if ( ! $monetization ) {
+                throw new RequestException( 'resource_not_found', __( 'Monetization not found.', 'smliser' ), ['status' => 404] );
+            }
+
+            $monetization->set_enabled( $enabled );
+            $monetization->save();
+
+            $message        =  $enabled ? __( 'Monetization enabled successfully.', 'smliser' ) : __( 'Monetization disabled successfully.', 'smliser' );
+            $response_data = [ 'success' => true, 'data' => [ 'message' => $message ] ];
+            return ( new Response( 200, [], smliser_safe_json_encode( $response_data ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
 
-        $monetization_id = absint( smliser_get_post_param( 'monetization_id' ) );
-        $enabled         = absint( smliser_get_post_param( 'enabled' ) );
-
-        if ( ! $monetization_id ) {
-            smliser_send_json_error( array(
-                'message'  => __( 'This monetization does not exist yet, please add a pricing tier first.', 'smliser' ),
-                'field_id' => 'monetization_id',
-            ) );
-        }
-
-        $monetization = Monetization::get_by_id( $monetization_id );
-        if ( ! $monetization ) {
-            smliser_send_json_error( array(
-                'message'  => __( 'Monetization not found.', 'smliser' ),
-                'field_id' => 'monetization_id',
-            ) );
-        }
-
-        $monetization->set_enabled( $enabled );
-        $monetization->save();
-
-        smliser_send_json_success( array(
-            'message' => $enabled
-                ? __( 'Monetization enabled successfully.', 'smliser' )
-                : __( 'Monetization disabled successfully.', 'smliser' ),
-        ) );
     }
 
     /**
@@ -334,4 +317,46 @@ class Controller {
         return $response;
     }
 
+
+    /**
+     * Save Monetization Provider options.
+     * 
+     * @param Request $request
+     */
+    public static function save_provider_options( Request $request ) : Response {
+
+        try {
+
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'permission_denied' );
+            }
+            
+            $provider_id = $request->get( 'provider_id', null );
+
+            if ( ! $provider_id || ! ProviderCollection::instance()->has_provider( $provider_id ) ) {
+                throw new RequestException( 'access_restricted', sprintf( 'The provider "%s" is not supported.', $provider_id ?? 'Unknown' ), [ 'status' => 403] );
+            }
+
+            $provider           = ProviderCollection::instance()->get_provider( $provider_id );
+            $allowed_options    = array_keys( (array) $provider->get_allowed_options() );
+
+            foreach( $allowed_options as $name ) {
+                if ( $value = smliser_get_post_param( $name, null ) ) {
+                    ProviderCollection::update_option( $provider->get_id(), $name, $value );
+                } else {
+                    ProviderCollection::update_option( $provider->get_id(), $name, '' );
+                }
+            }
+
+            $response_data = [ 'success' => true, 'data' => [ 'message' => 'Saved' ] ];
+            return ( new Response( 200, [], smliser_safe_json_encode( $response_data ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
+
+    }
 }

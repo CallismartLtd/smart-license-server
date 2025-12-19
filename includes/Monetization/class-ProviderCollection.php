@@ -250,34 +250,6 @@ class ProviderCollection {
     }
 
     /**
-     * Save Monetization Provider options via ajax
-     */
-    public static function save_provider_options() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
-        }
-
-        $provider_id = smliser_get_post_param( 'provider_id', null );
-
-        if ( ! $provider_id || ! self::instance()->has_provider( $provider_id ) ) {
-            smliser_send_json_error( array( 'message' => sprintf( 'The provider "%s" is not supported.', $provider_id ?? 'Unknown' ) ) );
-        }
-
-        $provider           = self::instance()->get_provider( $provider_id );
-        $allowed_options    = array_keys( (array) $provider->get_allowed_options() );
-
-        foreach( $allowed_options as $name ) {
-            if ( $value = smliser_get_post_param( $name, null ) ) {
-                self::update_option( $provider->get_id(), $name, $value );
-            } else {
-                self::update_option( $provider->get_id(), $name, '' );
-            }
-        }
-
-        smliser_send_json_success( array( 'message' => 'Saved' ) );
-    }
-
-    /**
      * Autoload providers
      */
     public static function auto_load() {

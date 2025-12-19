@@ -9,10 +9,12 @@
  */
 namespace SmartLicenseServer;
 
+use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Database\Schema\DBTables;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -33,7 +35,7 @@ class Installer {
         ),
         '0.2.0' => array(
             [__CLASS__, 'monetization_table_upgrade_020'],
-            [__CLASS__, 'migrate_bulk_message_table_020']
+            [__CLASS__, 'migrate_bulk_message_table_020'],
         )
 
     );
@@ -74,6 +76,8 @@ class Installer {
 
     /**
      * Database table schema.
+     * 
+     * @deprecated 0.2.0 In favour of \SmartLicenseServer\Database\Schema\DBTables
      */
     private static function table_schema() {
         /**
@@ -515,30 +519,16 @@ class Installer {
     }
 
     /**
-     * Handle ajax update
+     * Perform database migrations.
      */
-    public static function ajax_update() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
-        }
+    public static function db_migrate() {
 
-        $repo_version = \smliser_settings_adapter()->get( 'smliser_repo_version', 0 );
-        if ( SMLISER_VER === $repo_version ) {
-            smliser_send_json_error( array( 'message' => 'No upgrade needed' ) );
-        }
+        $all_func = self::$db_versions[SMLISER_DB_VER] ?? [];
 
-        if ( self::install() )  {
-            $all_func = self::$db_versions[SMLISER_DB_VER] ?? [];
-
-            foreach ( $all_func as $func ) {
-                if ( is_callable( $func ) ) {
-                    call_user_func( $func );
-                }
+        foreach ( $all_func as $func ) {
+            if ( is_callable( $func ) ) {
+                call_user_func( $func );
             }
-           
         }
-        \smliser_settings_adapter()->set( 'smliser_repo_version', SMLISER_VER );
-
-        smliser_send_json_success( array( 'message' => 'The repository has been migrated from version "' . $repo_version . '" to version "' . SMLISER_VER ) );
     }
 }
