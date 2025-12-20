@@ -319,14 +319,12 @@ class FileSystemHelper {
         $extension  = '';
         $max_length = 255;
 
-        // 1. Decode and trim.
         $filename = rawurldecode( $filename );
         $filename = trim( $filename );
 
         // Remove traversal sequences.
         $filename = preg_replace( '#(\.\./|\.\.\\\\|\.\/|\\\\\.)+#u', '', $filename );
 
-        // 2. Unicode normalization.
         if ( class_exists( 'Normalizer' ) ) {
             $filename = Normalizer::normalize( $filename, Normalizer::FORM_C );
         }
@@ -339,7 +337,6 @@ class FileSystemHelper {
             }
         }
 
-        // 3. Extract extension safely.
         $base_filename = $filename;
 
         if ( $preserve_extension ) {
@@ -357,7 +354,6 @@ class FileSystemHelper {
 
         $filename = $base_filename;
 
-        // 4. Strip control characters.
         $filename = preg_replace( '/[\x00-\x1F\x7F]/u', '', $filename );
 
         // Replace invalid OS characters.
@@ -367,7 +363,6 @@ class FileSystemHelper {
         // Remove emojis and invalid unicode symbols.
         $filename = preg_replace( '/[^\p{L}\p{N}\.\-\_ ]/u', '', $filename );
 
-        // 5. Normalize separators.
         $filename = str_replace(
             array( '–', '—', '−' ),
             '-',
@@ -380,7 +375,6 @@ class FileSystemHelper {
         // Collapse repeated hyphens.
         $filename = preg_replace( '/-+/u', '-', $filename );
 
-        // 6. Final cleanup.
         $filename = trim( $filename, ".-_" );
 
         // Windows reserved device names.
@@ -394,7 +388,6 @@ class FileSystemHelper {
             $filename .= '_';
         }
 
-        // 7. Enforce max length.
         $name_len = mb_strlen( $filename, 'UTF-8' );
         $ext_len  = mb_strlen( $extension, 'UTF-8' );
 
@@ -402,7 +395,6 @@ class FileSystemHelper {
             $filename = mb_substr( $filename, 0, $max_length - $ext_len, 'UTF-8' );
         }
 
-        // 8. Fallback → prevents hidden/system files.
         if ( empty( $filename ) ) {
             return 'untitled' . $extension;
         }

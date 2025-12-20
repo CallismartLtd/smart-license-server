@@ -139,7 +139,6 @@ class AppsAnalytics {
     public static function get_download_growth_percentage( AbstractHostedApp $app, int $days = 30 ) : float {
         $db = smliser_dbclass();
         
-        // 1. Current Period Total
         $current_total = (int) $db->get_var(
             "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
              WHERE app_slug = ? AND event_type = 'download' 
@@ -147,7 +146,6 @@ class AppsAnalytics {
             [ $app->get_slug(), $days ]
         );
 
-        // 2. Previous Period Total
         $previous_total = (int) $db->get_var(
             "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
              WHERE app_slug = ? AND event_type = 'download' 
