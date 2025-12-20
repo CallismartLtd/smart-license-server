@@ -4,6 +4,8 @@
  */
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 <div class="smliser-admin-dashboard-template overview">
@@ -120,10 +122,23 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                                             <?php echo esc_html( ucfirst( $type ) ); ?>
                                                         </h5>
                                                         <ol class="smliser-ranking-list">
-                                                            <?php foreach ( array_slice( $apps, 0, 5 ) as $index => $app ) : ?>
+                                                            <?php foreach ( array_slice( $apps, 0, 5 ) as $index => $app ) : 
+                                                                $app_sl     = $app['app_slug'] ?? '';
+                                                                $app_ty     = $app['app_type'] ?? '';
+                                                                $app_obj    = SmliserSoftwareCollection::get_app_by_slug( $app_ty, $app_sl );
+                                                                
+                                                                ?>
                                                                 <li class="smliser-ranking-item">
                                                                     <span class="rank">#<?php echo esc_html( $index + 1 ); ?></span>
-                                                                    <span class="name"><?php echo esc_html( $app['name'] ?? $app['slug'] ?? 'Unknown' ); ?></span>
+                                                                    <?php if ( $app_obj ) : ?>
+                                                                        <span class="name">
+                                                                            <a href="<?php echo \esc_url( \smliser_admin_repo_tab( 'view', array( 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ) ) ); ?>" target="_blank" >
+                                                                                <?php echo esc_html( $app_obj->get_name() ); ?>
+                                                                            </a>
+                                                                        </span>
+                                                                    <?php else : ?>
+                                                                        <span class="name"><?php echo __( 'Unknown', 'smliser' ); ?></span>
+                                                                    <?php endif; ?>
                                                                     <span class="score"><?php echo esc_html( number_format( $app['metric_total'] ?? 0 ) ); ?></span>
                                                                 </li>
                                                             <?php endforeach; ?>

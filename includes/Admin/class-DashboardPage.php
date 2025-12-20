@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -501,15 +502,19 @@ class DashboardPage {
      * Prepare Performance & Ranking Chart Data
      */
     private static function prepare_performance_chart( int $months ) : array {
-        $top_downloads = RepositoryAnalytics::get_top_apps( 10, 'downloads' );
-        $maintained = RepositoryAnalytics::get_apps_maintained_by_month( $months );
+        $top_downloads  = RepositoryAnalytics::get_top_apps( 10, 'downloads' );
+        $maintained     = RepositoryAnalytics::get_apps_maintained_by_month( $months );
 
         // Top Apps Bar Chart
         $top_apps_labels = [];
         $top_apps_data = [];
         foreach ( $top_downloads as $type => $apps ) {
             foreach ( $apps as $app ) {
-                $top_apps_labels[] = $app['name'] ?? $app['slug'];
+                $app_t      = $app['app_type'] ?? '';
+                $app_s      = $app['app_slug'] ?? '';
+                $app_obj    = SmliserSoftwareCollection::get_app_by_slug( $app_t, $app_s );
+                $label      = $app_obj ? $app_obj->get_name() : 'Unknown';
+                $top_apps_labels[] = $label;
                 $top_apps_data[] = (int) ( $app['metric_total'] ?? 0 );
             }
         }

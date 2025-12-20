@@ -25,11 +25,11 @@ class WPCacheAdapter implements CacheAdapterInterface {
      * Retrieve a value from WordPress cache.
      *
      * @param string $key Cache key.
-     * @return mixed|null Cached value or null if not found.
+     * @return mixed|false Cached value or false if not found.
      */
-    public function get( string $key ) {
-        $value = wp_cache_get( $key, $this->group );
-        return $value !== false ? $value : null;
+    public function get( string $key ): mixed {
+        $value = wp_cache_get( $key, $this->group, false, $found );
+        return $found ? $value : false;
     }
 
     /**
@@ -65,11 +65,10 @@ class WPCacheAdapter implements CacheAdapterInterface {
 
     /**
      * Check if a cache entry exists.
-     *
-     * @param string $key Unique cache key.
-     * @return bool True if the key exists, false otherwise.
      */
     public function has( string $key ): bool {
-        return false !== wp_cache_get( $key, $this->group );
+        $found = false;
+        wp_cache_get( $key, $this->group, false, $found );
+        return $found;
     }
 }

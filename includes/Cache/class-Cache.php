@@ -67,12 +67,12 @@ class Cache {
      */
     protected static function detect_adapter(): CacheAdapterInterface {
         // APCu (fast native PHP cache) if available and enabled.
-        if ( function_exists( 'apcu_enabled' ) && \apcu_enabled() ) {
+        if ( extension_loaded( 'apcu' ) && ini_get( 'apc.enabled' ) ) {
             return new ApcuCacheAdapter();
         }
 
         // WordPress.
-        if ( defined( 'ABSPATH' ) ) {
+        if ( defined( 'ABSPATH' ) && function_exists( 'wp_cache_init' ) ) {
             return new WPCacheAdapter();
         }
 

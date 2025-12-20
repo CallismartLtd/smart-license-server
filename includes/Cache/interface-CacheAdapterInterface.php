@@ -18,9 +18,9 @@ interface CacheAdapterInterface {
      * Retrieve a cached value by key.
      *
      * @param string $key Unique cache key.
-     * @return mixed|null Returns the cached value or null if not found.
+     * @return mixed|false Returns the cached value or false if not found.
      */
-    public function get( string $key );
+    public function get( string $key ): mixed;
 
     /**
      * Store a value in the cache.

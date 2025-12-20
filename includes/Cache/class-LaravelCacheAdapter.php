@@ -23,10 +23,10 @@ class LaravelCacheAdapter implements CacheAdapterInterface {
      * Retrieve a value from Laravel cache.
      *
      * @param string $key Cache key.
-     * @return mixed|null Cached value or null if not found.
+     * @return mixed|false Cached value or false if not found.
      */
-    public function get( string $key ) {
-        return LaravelCache::get( $key );
+    public function get( string $key ): mixed {
+        return LaravelCache::get( $key, false );
     }
 
     /**

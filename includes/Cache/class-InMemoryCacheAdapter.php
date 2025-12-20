@@ -45,18 +45,18 @@ class InMemoryCacheAdapter implements CacheAdapterInterface {
      * Retrieve a value from the cache.
      *
      * @param string $key
-     * @return mixed|null
+     * @return mixed|false
      */
-    public function get( string $key ) {
+    public function get( string $key ): mixed {
         if ( ! isset( $this->cache[ $key ] ) ) {
-            return null;
+            return false;
         }
 
         $entry = $this->cache[ $key ];
 
         if ( $entry['expires'] !== 0 && $entry['expires'] < time() ) {
             unset( $this->cache[ $key ] );
-            return null;
+            return false;
         }
 
         return $entry['value'];
@@ -82,7 +82,17 @@ class InMemoryCacheAdapter implements CacheAdapterInterface {
      * @return bool True if the key exists, false otherwise.
      */
     public function has( string $key ): bool {
-        return array_key_exists( $key, $this->cache );
+        if ( ! array_key_exists( $key, $this->cache ) ) {
+            return false;
+        }
+
+        $entry = $this->cache[ $key ];
+        if ( $entry['expires'] !== 0 && $entry['expires'] < time() ) {
+            unset( $this->cache[ $key ] ); // Clean up while we're at it
+            return false;
+        }
+
+        return true;
     }
 
     /**

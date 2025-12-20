@@ -54,19 +54,17 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
      * Retrieve a value from cache.
      *
      * @param string $key Cache key.
-     * @param mixed  $default Default value if key is not found.
-     *
      * @return mixed
      */
-    public function get( string $key, mixed $default = null ): mixed {
+    public function get( string $key ): mixed {
         if ( ! $this->enabled ) {
-            return $default;
+            return false;
         }
 
         $success = false;
         $value   = \apcu_fetch( $key, $success );
 
-        return $success ? $value : $default;
+        return $success ? $value : false;
     }
 
     /**
