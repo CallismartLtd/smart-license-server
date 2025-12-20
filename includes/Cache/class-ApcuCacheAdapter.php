@@ -30,7 +30,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
      * Checks if APCu is available in this environment.
      */
     public function __construct() {
-        $this->enabled = extension_loaded( 'apcu' ) && ini_get( 'apc.enabled' );
+        $this->enabled = \extension_loaded( 'apcu' ) && \ini_get( 'apc.enabled' );
     }
 
     /**
@@ -64,7 +64,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
         }
 
         $success = false;
-        $value   = apcu_fetch( $key, $success );
+        $value   = \apcu_fetch( $key, $success );
 
         return $success ? $value : $default;
     }
@@ -81,7 +81,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
             return false;
         }
 
-        return apcu_delete( $key );
+        return \apcu_delete( $key );
     }
 
     /**
@@ -96,7 +96,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
             return false;
         }
 
-        return apcu_exists( $key );
+        return \apcu_exists( $key );
     }
 
     /**
@@ -109,7 +109,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
             return false;
         }
 
-        return apcu_clear_cache();
+        return \apcu_clear_cache();
     }
 
     /**

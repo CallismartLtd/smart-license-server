@@ -13,9 +13,9 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 <?php flush_rewrite_rules(); ?>
 
-<?php if ( get_transient( 'smliser_form_success' ) ):?>
-    <div class="notice notice-success is-dismissible"><p>Saved!</p></div>
-<?php delete_transient( 'smliser_form_success' ); endif;?>
+<?php if ( $message = smliser_get_query_param( 'message' ) ):?>
+    <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ) ?></p></div>
+<?php endif;?>
 
 <form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" >
     <?php wp_nonce_field( 'smliser_options_form', 'smliser_options_form' );?>

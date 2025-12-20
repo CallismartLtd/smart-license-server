@@ -9,8 +9,8 @@
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 <h1>General</h1>
-<?php if ( get_transient( 'smliser_form_validation_message' ) ) :?>
-    <?php echo wp_kses_post( smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ) ;?>
+<?php if ( $message = smliser_get_query_param( 'message' ) ) :?>
+    <?php echo wp_kses_post( smliser_form_message( $message ) ) ;?>
 <?php endif;?>
 <form action="" class="smliser-form">
     <div class="smliser-form-container">

@@ -670,7 +670,7 @@ class SmliserAPICred {
             $user = wp_signon( $credentials, false );
 
             if ( is_smliser_error( $user ) ) {
-                set_transient( 'smliser_form_validation_message', $user->get_error_message(), 5 );
+                \smliser_cache()->set( 'smliser_form_validation_message', $user->get_error_message(), 5 );
                 wp_redirect( $url );
                 exit;
 

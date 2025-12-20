@@ -10,9 +10,9 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <h2><?php echo esc_html( $name ); ?> Settings</h2>
 
-<?php if ( get_transient( 'smliser_form_success' ) ):?>
-    <div class="notice notice-success is-dismissible"><p>Saved!</p></div>
-<?php delete_transient( 'smliser_form_success' ); endif;?>
+<?php if ( $saved = smliser_get_query_param( 'message' ) ):?>
+    <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $saved ); ?></p></div>
+<?php endif;?>
 
 <form action="" class="smliser-options-form">
     <div class="smliser-spinner"></div>

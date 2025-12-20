@@ -66,22 +66,22 @@ class Cache {
      * @return CacheAdapterInterface
      */
     protected static function detect_adapter(): CacheAdapterInterface {
-        // 1. APCu (fast native PHP cache) if available and enabled
+        // APCu (fast native PHP cache) if available and enabled.
         if ( function_exists( 'apcu_enabled' ) && \apcu_enabled() ) {
             return new ApcuCacheAdapter();
         }
 
-        // 2. WordPress
+        // WordPress.
         if ( defined( 'ABSPATH' ) ) {
             return new WPCacheAdapter();
         }
 
-        // 3. Laravel
+        // Laravel.
         if ( class_exists( 'Illuminate\Support\Facades\Cache' ) ) {
             return new LaravelCacheAdapter();
         }
 
-        // 4. Default to in-memory cache
+        // Default to in-memory cache.
         return new InMemoryCacheAdapter();
     }
 

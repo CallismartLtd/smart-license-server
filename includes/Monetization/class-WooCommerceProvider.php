@@ -96,7 +96,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
 
         // Return cached result unless bypassing
         if ( ! $force_refresh ) {
-            $cached = get_transient( $cache_key );
+            $cached = \smliser_cache()->get( $cache_key );
             if ( false !== $cached ) {
                 return $cached;
             }
@@ -140,7 +140,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
         $normalized = $this->normalize_product( $product );
 
         // Cache normalized product for future requests
-        set_transient( $cache_key, $normalized, $cache_expiry );
+        \smliser_cache()->set( $cache_key, $normalized, $cache_expiry );
 
         return $normalized;
     }

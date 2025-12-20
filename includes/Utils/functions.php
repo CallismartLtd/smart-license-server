@@ -16,7 +16,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
-use SmartLicenseServer\SettingsAPI\Settings;
+
 use SmartLicenseServer\Utils\MDParser;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -1338,9 +1338,20 @@ function smliser_dbclass() : \SmartLicenseServer\Database\Database {
 
 /**
  * Get the settings API singleton class.
+ * 
+ * @return SmartLicenseServer\SettingsAPI\Settings
  */
-function smliser_settings_adapter() : Settings {
-    return Settings::instance();
+function smliser_settings_adapter() : SmartLicenseServer\SettingsAPI\Settings {
+    return SmartLicenseServer\SettingsAPI\Settings::instance();
+}
+
+/**
+ * Get the cache singleton instance.
+ *
+ * @return \SmartLicenseServer\Cache\Cache Singleton instance of the Cache class.
+ */
+function smliser_cache() : \SmartLicenseServer\Cache\Cache {
+    return \SmartLicenseServer\Cache\Cache::instance();
 }
 
 /**

@@ -9,8 +9,8 @@ defined( 'SMLISER_ABSPATH' ) ||  exit;
 ?>
 
 
-<?php if ( get_transient( 'smliser_form_success' ) ):?>
-    <div class="notice notice-success is-dismissible"><p>Saved!</p></div>
+<?php if ( $saved = smliser_get_query_param( 'message' ) ):?>
+    <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $saved ); ?></p></div>
 <?php endif;?>
 <h1>Edit License <span class="dashicons dashicons-edit"></span></h1>
 <?php if ( empty( $license ) ) : ?>
@@ -18,9 +18,6 @@ defined( 'SMLISER_ABSPATH' ) ||  exit;
 <?php else: ?>
     <a href="<?php echo esc_url( smliser_license_admin_action_page( 'view', $license->get_id() ) ) ?>" class="button action smliser-nav-btn">View License</a>
     <div class="smliser-form-container">
-        <?php if ( get_transient( 'smliser_form_validation_message' ) ) : ?>
-            <?php echo wp_kses_post( smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ) ;?>
-        <?php endif;?>
         <form id="smliserForm" class="smliser-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
         <input type="hidden" name="action" value="smliser_save_license">
             <input type="hidden" name="license_id" value="<?php echo esc_attr( $license->get_id() ) ?>">

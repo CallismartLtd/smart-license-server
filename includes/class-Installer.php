@@ -449,7 +449,7 @@ class Installer {
             $plugin_ids[ $row['id'] ] = $row['item_id'];
         }
 
-        set_transient( 'smliser_db_migrate_011', $plugin_ids, WEEK_IN_SECONDS );
+        \smliser_cache()->set( 'smliser_db_migrate_011', $plugin_ids, WEEK_IN_SECONDS );
 
         // --- Alter item_id to app_prop if column exists ---
         $column_exists = $db->get_var(

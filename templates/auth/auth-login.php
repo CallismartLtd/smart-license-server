@@ -30,9 +30,9 @@ defined( 'SMLISER_ABSPATH' ) || exit;
     </p>
 
     <form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" class="smliser-oauth-login-form">
-    <?php if ( $message = get_transient( 'smliser_form_validation_message' ) ) :?>
+    <?php if ( $message = smliser_get_query_param( 'message' ) ) :?>
         <?php echo wp_kses_post( smliser_form_message( $message ) ) ;?>
-    <?php delete_transient( 'smliser_form_validation_message' ); endif;?>
+    <?php endif;?>
 
     <input type="hidden" name="action" value="smliser_oauth_login"/>
     <input type="hidden" name="redirect_args" value="<?php echo esc_html( http_build_query( $_GET ) ); ?>"/>

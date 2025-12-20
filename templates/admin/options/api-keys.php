@@ -12,8 +12,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 <?php if ( isset( $_GET['action'] ) && 'add-new-key' === sanitize_key( $_GET['action'] ) ):?>
 <a href="<?php echo esc_url( admin_url( 'admin.php?page=smliser-options&path=api-keys' ) ); ?>"><span class="dashicons dashicons-editor-break"></span></a>
 <form method="post" action="" class="smliser-form" id="smliser-api-key-generation-form">
-    <?php if ( get_transient( 'smliser_form_validation_message' ) ) :?>
-        <?php echo wp_kses_post( smliser_form_message( get_transient( 'smliser_form_validation_message' ) ) ) ;?>
+    <?php if ( $message = smliser_get_query_param( 'message' ) ) :?>
+        <?php echo wp_kses_post( smliser_form_message( $message ) ) ;?>
     <?php endif;?>
     <div class="smliser-form-container">
         <div class="spinner-overlay">

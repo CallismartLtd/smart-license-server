@@ -426,7 +426,10 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
 
         if ( $response->ok() ) {
             $license_id = $response->get_response_data()->get( 'license' )->get_id();
-            wp_safe_redirect( smliser_license_admin_action_page( 'edit', $license_id ) );
+
+            $url    = new URL( smliser_license_admin_action_page( 'edit', $license_id ) );
+            $url->add_query_param( 'message', 'Saved' );
+            wp_safe_redirect( $url->__toString() );
             exit;
         }
 
