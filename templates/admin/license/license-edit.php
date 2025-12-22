@@ -50,9 +50,9 @@ defined( 'SMLISER_ABSPATH' ) ||  exit;
 
             <!-- Hosted App linking -->
             <div class="smliser-form-row">
-                <label for="item_id" class="smliser-form-label">Target Application</label>
+                <label for="app_prop" class="smliser-form-label">Target Application</label>
                 <span class="smliser-form-description" title="Choose the application to which this license will be issued.">?</span>
-                <select class="smliser-select-input license-app-select" name="app_prop" title="<?php esc_html_e( 'Select a hosted application to associate this message with.', 'smliser' ); ?>">
+                <select class="smliser-select-input license-app-select" id="app_prop" name="app_prop" title="<?php esc_html_e( 'Select a hosted application to associate this message with.', 'smliser' ); ?>">
                     <?php if ( $license->is_issued() ) : ?>
                         <option value="<?php printf( '%s', str_replace( '/', ':', $license->get_app_prop() ) ); ?>" selected><?php echo esc_html( $license->get_app()->get_name() ); ?></option>
                     <?php endif; ?>

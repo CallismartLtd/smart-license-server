@@ -244,6 +244,11 @@ class Controller {
      */
     public static function save_license( Request $request ) : Response {
         try {
+
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'permission_denied' );
+            }
+
             $id                     = $request->get( 'license_id' );
             $user_id                = $request->get( 'user_id' );
             $service_id             = $request->get( 'service_id' );
@@ -357,5 +362,52 @@ class Controller {
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
 
+    }
+
+    /**
+     * Remove/Uninstall a domain from a license
+     * 
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function uninstall_domain_from_license( Request $request ) : Response {
+        try {
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'permission_denied' );
+            }
+
+            $license_id = $request->get( 'license_id' );
+            $domain     = $request->get( 'domain' );
+
+            if ( ! $license_id ) {
+                throw new RequestException( 'invalid_input', __( 'License ID is required.', 'smliser' ), ['status' => 400] );
+            }
+
+            if ( ! $domain ) {
+                throw new RequestException( 'invalid_input', __( 'Provide the domain to uninstall.', 'smliser' ), ['status' => 400] );
+            }
+
+            $license    = License::get_by_id( $license_id );
+
+            if ( ! $license ) {
+                throw new RequestException( 'resource_not_found', __( 'This license does not exist.', 'smliser' ), ['status' => 404] );
+            }
+
+            if ( $license->is_new_domain( $domain ) ) {
+                throw new RequestException( 'is_new_domain', __( 'The domain provided does not exist in this license.', 'smliser' ), ['status' => 404] );
+            }
+
+            $removed    = $license->remove_activated_domain( $domain );
+            $message    = $removed ? \sprintf( 'The domain "%s" has been uninstalled', $domain ) : \sprintf( 'Unable to uninstall "%s"', $domain );
+            
+
+            $response_data = [ 'success' => true, 'data' => [ 'message' => $message ] ];
+            return ( new Response( 200, [], smliser_safe_json_encode( $response_data ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }  catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
     }
 }

@@ -8,6 +8,10 @@
  * @var \SmartLicenseServer\Monetization\License $license
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp $licensed_app
  */
+namespace SmartLicenseServer\Admin;
+
+use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -73,7 +77,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                         <th>App Info</th>
                         <td>
                             <?php if ( $license->is_issued() ) : ?>
-                                <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', $licensed_app->get_id() ) ); ?>">
+                                <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', ['app_id' => $licensed_app->get_id(), 'type' => $licensed_app->get_type()] ) ); ?>">
                                     <?php echo esc_html( $licensed_app->get_name() ); ?> » <?php printf( '%s/%s', esc_html( $licensed_app->get_type() ), esc_html( $licensed_app->get_slug() ) ) ?>
                                 </a>
                             <?php else : ?>
@@ -84,24 +88,9 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
                     <tr>
                         <th>Service ID</th>
-                        <td><?php echo esc_html( $license->get_service_id() ); ?></td>
+                        <td><span class="smliser-click-to-copy" title="Copy" data-copy-value="<?php echo esc_attr( $license->get_service_id() ); ?>"><?php echo esc_html( $license->get_service_id() ); ?></span></td>
                     </tr>
-
-                    <tr>
-                        <th>Start Date</th>
-                        <td><?php echo esc_html( smliser_check_and_format( $license->get_start_date() ) ); ?></td>
-                    </tr>
-
-                    <tr>
-                        <th>End Date</th>
-                        <td><?php echo esc_html( smliser_check_and_format( $license->get_end_date() ) ); ?></td>
-                    </tr>
-
-                    <tr>
-                        <th>Activated on</th>
-                        <td><?php echo esc_html( $license->get_active_domains() ); ?></td>
-                    </tr>
-
+                    
                     <tr>
                         <th>License Key</th>
                         <td>
@@ -130,6 +119,26 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                             </div>
                         </td>
                     </tr>
+
+                    <tr>
+                        <th>Start Date</th>
+                        <td><?php echo esc_html( smliser_check_and_format( $license->get_start_date() ) ); ?></td>
+                    </tr>
+
+                    <tr>
+                        <th>End Date</th>
+                        <td><?php echo esc_html( smliser_check_and_format( $license->get_end_date() ) ); ?></td>
+                    </tr>
+
+                    <tr>
+                        <th>Activated on</th>
+                        <td><?php format_active_domains( $license ); ?></td>
+                    </tr>
+
+                    <tr>
+                        <th>Alert</th>
+                        <td><?php print_license_alert( $license ) ?></td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -146,4 +155,106 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             endforeach; ?>
         </div>
     </div>
-<?php endif; ?>
+<?php endif;
+
+function format_active_domains( License $license ) {
+    $all_domains    = $license->get_active_domains( 'edit' );
+    $all_origins    = [];
+
+    foreach( $all_domains as $domain ) {
+        $all_origins[]  = $domain['origin'] ?? '';
+    }
+
+    $all_origins    = array_filter( $all_origins );
+
+
+    $html   = '<div class="smliser-all-license-domains">';
+
+    if ( empty( $all_origins ) ) {
+        $html .= '<span class="not-found">No active domain found.</span>';
+    } else {
+        foreach ( $all_origins as $origin ) {
+
+            $url    = new URL( $origin );
+           
+            $html .= sprintf(
+                '<div class="smliser-all-license-domains_domain" data-domain-value="%1$s">
+                    <a href="%2$s" target="_blank">%1$s
+                        <i class="ti ti-external-link"></i>
+                    </a>
+                    <span class="domain-actions">
+                        <i class="ti ti-trash remove"></i>
+                    </span>
+                </div>',
+                $url->get_host(),
+                $url->get_href()
+            );
+        }
+    }
+
+    $html .= '</div>';
+    
+    echo $html;
+}
+
+/**
+ * Print possible issues with a license.
+ *
+ * @param License $license License instance.
+ * @return void
+ */
+function print_license_alert( License $license ) : void {
+
+    $messages = [];
+
+    // Activation / serving error.
+    $activation_error = $license->can_serve_license( $license->get_app_id() );
+
+    if ( \is_smliser_error( $activation_error ) ) {
+        $messages[] = [
+            'type'    => 'error',
+            'message' => $activation_error->get_error_message(),
+        ];
+    }
+
+    // Max allowed domains reached.
+    if ( $license->has_reached_max_allowed_domains() ) {
+        $messages[] = [
+            'type'    => 'warning',
+            'message' => __( 'Maximum allowed domains has been reached', 'smart-license-server' ),
+        ];
+    }
+
+    // Max allowed domains exceeded.
+    $max_allowed_domains = $license->get_max_allowed_domains( 'total' );
+    $total_active        = $license->get_total_active_domains();
+
+    if ( $max_allowed_domains !== -1 && $total_active > $max_allowed_domains ) {
+        $messages[] = [
+            'type'    => 'error',
+            'message' => __( 'Maximum allowed domains has been exceeded', 'smart-license-server' ),
+        ];
+    }
+
+    if ( empty( $messages ) ) {
+        return;
+    }
+
+    printf(
+        '<div class="smliser-license-alerts">%s</div>',
+        implode(
+            '',
+            array_map(
+                static function ( array $item ) {
+                    return sprintf(
+                        '<div class="smliser-alert smliser-alert-%1$s"><span class="smliser-alert-message">%2$s</span></div>',
+                        esc_attr( $item['type'] ),
+                        esc_html( $item['message'] )
+                    );
+                },
+                $messages
+            )
+        )
+    );
+
+}

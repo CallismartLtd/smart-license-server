@@ -95,6 +95,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'smliser_save_theme'                            => [__CLASS__, 'parse_save_app_request'],
             'smliser_save_software'                         => [__CLASS__, 'parse_save_app_request'],
             'smliser_save_license'                          => [__CLASS__, 'parse_license_save_request'],
+            'smliser_remove_licensed_domain'                => [__CLASS__, 'parse_licensed_domain_removal'],
             'smliser_app_asset_upload'                      => [__CLASS__, 'parse_app_asset_upload_request'],
             'smliser_app_asset_delete'                      => [__CLASS__, 'parse_app_asset_delete_request'],
             'smliser_save_monetization_tier'                => [__CLASS__, 'parse_monetization_tier_form'],
@@ -719,6 +720,33 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         ]);
 
         $response   = Controller::delete_monetization_tier( $request );
+
+        $response->send();
+    }
+
+    /**
+     * Parse licensed domain removal
+     */
+    private static function parse_licensed_domain_removal() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+                'field_id' => 'security',
+            ), 401 );
+        }
+
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $request    = new Request([
+            'license_id'    => \smliser_get_query_param( 'license_id', 0 ),
+            'domain'        => \smliser_get_query_param( 'domain' ),
+            'is_authorized' => true
+
+        ]);
+
+        $response   = Controller::uninstall_domain_from_license( $request );
 
         $response->send();
     }

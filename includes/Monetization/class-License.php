@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use \SmartLicenseServer\HostedApps\AbstractHostedApp;
@@ -21,6 +22,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  */
 class License {
+    use CacheAwareTrait;
     /**
      * The license ID
      * 
@@ -477,14 +479,28 @@ class License {
      * @return self|null
      */
     public static function get_license( $service_id, $license_key ) : ?self {
-        $db     = \smliser_dbclass();
-        $table  = \SMLISER_LICENSE_TABLE;
-        $sql    = "SELECT * FROM {$table} WHERE `service_id` = ? AND `license_key` = ?";
-        $params = [$service_id, $license_key];
+        $key    = self::make_cache_key( __METHOD__, [$service_id, $license_key] );
 
-        $result = $db->get_row( $sql, $params );
+        $result = self::cache_get( $key );
 
-        return $result ? self::from_array( $result ) : null;
+        if ( false === $result || ! ( $result instanceof self ) ) {
+            $db     = \smliser_dbclass();
+            $table  = \SMLISER_LICENSE_TABLE;
+            $sql    = "SELECT * FROM {$table} WHERE `service_id` = ? AND `license_key` = ?";
+            $params = [$service_id, $license_key];
+
+            $data = $db->get_row( $sql, $params );
+            
+            if ( $data ) {
+                $result =  self::from_array( $data );
+            } else {
+                $result = null;
+            }
+
+            self::cache_set( $key, $result, 30 * \MINUTE_IN_SECONDS );
+        }
+
+        return $result;
 
     }
 
@@ -495,14 +511,28 @@ class License {
      * @return self|null
      */
     public static function get_by_id( $id ) : ?self {
-        $db = smliser_dbclass();
+        $key    = self::make_cache_key( __METHOD__, [$id] );
 
-        $table  = SMLISER_LICENSE_TABLE;
-        $sql    = "SELECT * FROM {$table} WHERE `id` = ?";
+        $license = self::cache_get( $key );
 
-        $result = $db->get_row( $sql, [$id] );
+        if ( false === $license || ! ( $license instanceof self ) ) {
+            $db = smliser_dbclass();
 
-        return $result ? self::from_array( $result ) : null;
+            $table  = SMLISER_LICENSE_TABLE;
+            $sql    = "SELECT * FROM {$table} WHERE `id` = ?";
+
+            $result = $db->get_row( $sql, [$id] );     
+            
+            if ( $result ) {
+                $license = self::from_array( $result );
+            } else {
+                $license = null;
+            }
+
+            self::cache_set( $key, $license, 30 * \MINUTE_IN_SECONDS );
+        }
+
+        return $license;
     }
 
     /**
@@ -513,19 +543,26 @@ class License {
      * @return self[]
      */
     public static function get_all( int $page = 1, int $limit = 30 ) : array {
-        $db         = smliser_dbclass();
-        $table      = \SMLISER_LICENSE_TABLE;
-        $licenses   = [];
+        $key        = self::make_cache_key( __METHOD__, [$page, $limit] );
+        $licenses   = self::cache_get( $key );
 
-        $offset     = $db->calculate_query_offset( $page, $limit );
-        $sql        = "SELECT * FROM {$table} LIMIT {$limit} OFFSET {$offset}";
+        if ( false === $licenses ) {
+            $db         = smliser_dbclass();
+            $table      = \SMLISER_LICENSE_TABLE;
+            $licenses   = [];
 
-        $results    = $db->get_results( $sql );
-        
-        if ( ! empty( $results ) ) {
-            foreach ( $results as $result ) {
-                $licenses[] = self::from_array( $result );
+            $offset     = $db->calculate_query_offset( $page, $limit );
+            $sql        = "SELECT * FROM {$table} LIMIT {$limit} OFFSET {$offset}";
+
+            $results    = $db->get_results( $sql );
+            
+            if ( ! empty( $results ) ) {
+                foreach ( $results as $result ) {
+                    $licenses[] = self::from_array( $result );
+                }
             }
+            
+            self::cache_set( $key, $licenses, 30 * \MINUTE_IN_SECONDS );
         }
 
         return $licenses;
@@ -603,6 +640,8 @@ class License {
             $result = ( false !== $inserted ) || ( $inserted_meta > 0 );
         }
 
+        self::cache_clear();
+
         return false !== $result;
 
     }
@@ -651,6 +690,8 @@ class License {
         if ( $deleted ) {
             $db->delete( $meta_table, ['license_id' => $this->id] );
         }
+
+        self::cache_clear();
 
         return false !== $deleted;
     }
@@ -782,16 +823,22 @@ class License {
     /**
      * Remove a domain from activated list.
      * 
-     * @param $url The name of the website.
+     * @param $domain The domain
      */
-    public function remove_activated_domain( $url ) : bool {
+    public function remove_activated_domain( $domain ) : bool {
         $sites  = $this->get_meta( 'activated_on' );
 
         if ( empty( $sites ) || ! is_array( $sites ) ) {
             return false;
         }
         
-        $url    = new URL( $url );
+        $url    = new URL( $domain );
+
+        if ( ! $url->has_scheme() ) {
+            $url->set_scheme( 'https' );
+            $url = new URL( $url->__toString() );
+        }
+
         $host = $url->get_host();
 
         unset( $sites[$host] );
@@ -818,8 +865,15 @@ class License {
      * @param string $domain The name of the website.
      */
     public function is_new_domain( $domain ) {
-        $domain         = sanitize_url( $domain, array( 'http', 'https' ) );
-        $domain         = wp_parse_url( $domain, PHP_URL_HOST );
+        $url    = new URL( $domain );
+
+        if ( ! $url->has_scheme() ) {
+            $url->set_scheme( 'https' );
+            $url = new URL( $url->__toString() );
+        }
+
+        $domain = $url->get_host();
+
         $all_sites      = $this->get_active_domains( 'edit' );
         return ! isset( $all_sites[$domain] );
     }
@@ -902,29 +956,13 @@ class License {
         }
     }
 
-
-
-    /**
-     * Encode data to json.
-     */
-    public function encode() {
-        $data = array(
-            'license_key'   => $this->get_license_key(),
-            'service_id'    => $this->get_service_id(),
-            'app_id'        => $this->get_app_id(),
-            'start_date'    => $this->get_start_date(),
-            'expiry_date'   => $this->get_end_date(),
-        );
-        return smliser_safe_json_encode( $data );
-    }
-
     /**
      * Get the ID of the item associated with this license.
      * 
      * @return int
      */
     public function get_app_id() {
-        return isset( $this->app ) ? $this->app->get_id() : 0;
+        return $this->is_issued() ? $this->app->get_id() : 0;
     }
 
     /**

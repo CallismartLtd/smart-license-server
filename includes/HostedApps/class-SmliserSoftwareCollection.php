@@ -66,7 +66,7 @@ class SmliserSoftwareCollection {
 
         $page   = max( 1, (int) $args['page'] );
         $limit  = max( 1, (int) $args['limit'] );
-        $offset = ( $page - 1 ) * $limit;
+        $offset = $db->calculate_query_offset( $page, $limit );
         $status = $args['status'];
         $types  = (array) $args['types'];
 
@@ -144,7 +144,7 @@ class SmliserSoftwareCollection {
                 );                
             }
 
-            self::cache_set( $key, $results, 10 * \MINUTE_IN_SECONDS );
+            self::cache_set( $key, $results, 30 * \MINUTE_IN_SECONDS );
         }
 
         return $results;
@@ -349,7 +349,7 @@ class SmliserSoftwareCollection {
         $term       = sanitize_text_field( $args['term'] );
         $page       = max( 1, (int) $args['page'] );
         $limit      = max( 1, (int) $args['limit'] );
-        $offset     = ( $page - 1 ) * $limit;
+        $offset     = $db->calculate_query_offset( $page, $limit );
         $status     = $args['status'];
         $types      = array_filter( (array) $args['types'] );
         $key        = self::make_cache_key( __METHOD__, \compact( 'term', 'page', 'limit', 'status', 'types' ) );
@@ -433,7 +433,7 @@ class SmliserSoftwareCollection {
             }
 
 
-            self::cache_set( $key, $results, 10 * \MINUTE_IN_SECONDS );
+            self::cache_set( $key, $results, 30 * \MINUTE_IN_SECONDS );
         }
 
         return $results;
@@ -460,7 +460,7 @@ class SmliserSoftwareCollection {
                 $app    = $app_class::$method( $app_slug );
             }
 
-            self::cache_set( $key, $app, 10 * \MINUTE_IN_SECONDS );
+            self::cache_set( $key, $app, 30 * \MINUTE_IN_SECONDS );
         }
         /** @var AbstractHostedApp|null $app */
         return $app;
@@ -487,7 +487,7 @@ class SmliserSoftwareCollection {
                 $app    = $app_class::$method( $id );
             }
 
-            self::cache_set( $key, $app, 10 * \MINUTE_IN_SECONDS );
+            self::cache_set( $key, $app, 30 * \MINUTE_IN_SECONDS );
         }
 
         /** @var AbstractHostedApp|null */

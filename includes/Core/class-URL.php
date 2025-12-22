@@ -157,14 +157,30 @@ class URL {
     }
 
     /**
-     * Check if a query parameter exists.
+     * Get the port number.
      *
-     * @param string $key Query parameter name.
-     * @return bool True if exists, false otherwise.
+     * @return int|null
      */
-    public function has_query_param( string $key ): bool {
-        $params = $this->get_query_params();
-        return array_key_exists( $key, $params );
+    public function get_port(): ?int {
+        return $this->components['port'] ?? null;
+    }
+
+    /**
+     * Get the URL username.
+     *
+     * @return string|null
+     */
+    public function get_user(): ?string {
+        return $this->components['user'] ?? null;
+    }
+
+    /**
+     * Get the URL password.
+     *
+     * @return string|null
+     */
+    public function get_pass(): ?string {
+        return $this->components['pass'] ?? null;
     }
 
     /*----------------------------------------------------------
@@ -243,6 +259,64 @@ class URL {
     }
 
     /**
+     * Set or replace the URL port.
+     *
+     * @param int $port Port number (1–65535).
+     * @return self
+     */
+    public function set_port( int $port ): self {
+        if ( $port < 1 || $port > 65535 ) {
+            throw new \InvalidArgumentException( 'Invalid port number.' );
+        }
+
+        $this->components['port'] = $port;
+        return $this;
+    }
+
+    /**
+     * Set the URL username.
+     *
+     * @param string $user Username.
+     * @return self
+     */
+    public function set_user( string $user ): self {
+        $this->components['user'] = rawurlencode( $user );
+        return $this;
+    }
+
+    /**
+     * Set the URL password.
+     *
+     * @param string $pass Password.
+     * @return self
+     */
+    public function set_pass( string $pass ): self {
+        $this->components['pass'] = rawurlencode( $pass );
+        return $this;
+    }
+
+    /**
+     * Set URL credentials (user + password).
+     *
+     * @param string $user Username.
+     * @param string $pass Password.
+     * @return self
+     */
+    public function set_credentials( string $user, string $pass ): self {
+        return $this->set_user( $user )->set_pass( $pass );
+    }
+
+    /**
+     * Remove URL credentials.
+     *
+     * @return self
+     */
+    public function remove_credentials(): self {
+        unset( $this->components['user'], $this->components['pass'] );
+        return $this;
+    }    
+
+    /**
      * Remove one or more query parameters.
      *
      * @param string|array $keys Parameter key(s) to remove.
@@ -254,6 +328,36 @@ class URL {
             unset( $params[ $key ] );
         }
         $this->components['query'] = http_build_query( $params );
+        return $this;
+    }
+
+    /**
+     * Remove the port from the URL.
+     *
+     * @return self
+     */
+    public function remove_port(): self {
+        unset( $this->components['port'] );
+        return $this;
+    }
+
+    /**
+     * Remove the URL username.
+     *
+     * @return self
+     */
+    public function remove_user(): self {
+        unset( $this->components['user'] );
+        return $this;
+    }
+
+    /**
+     * Remove the URL password.
+     *
+     * @return self
+     */
+    public function remove_pass(): self {
+        unset( $this->components['pass'] );
         return $this;
     }
 
@@ -373,6 +477,26 @@ class URL {
         return ! empty( $this->components['fragment'] );
     }
 
+    /**
+     * Check if a query parameter exists.
+     *
+     * @param string $key Query parameter name.
+     * @return bool True if exists, false otherwise.
+     */
+    public function has_query_param( string $key ): bool {
+        $params = $this->get_query_params();
+        return array_key_exists( $key, $params );
+    }
+
+    /**
+     * Check if credentials are present.
+     *
+     * @return bool
+     */
+    public function has_credentials(): bool {
+        return isset( $this->components['user'] );
+    }
+
     /*----------------------------------------------------------
      * UTILITY
      *---------------------------------------------------------*/
@@ -429,4 +553,82 @@ class URL {
 
         return $url;
     }
+
+    /**
+     * Sanitize and normalize the URL components.
+     *
+     * This method cleans unsafe characters, normalizes casing,
+     * encodes query parameters safely, and ensures the URL is
+     * structurally consistent without altering its intent.
+     *
+     * @return self
+     */
+    public function sanitize(): self {
+
+        // Normalize scheme
+        if ( isset( $this->components['scheme'] ) ) {
+            $this->components['scheme'] = strtolower(
+                preg_replace( '/[^a-z0-9+\-.]/i', '', $this->components['scheme'] )
+            );
+        }
+
+        // Normalize host
+        if ( isset( $this->components['host'] ) ) {
+            $this->components['host'] = strtolower(
+                trim( $this->components['host'] )
+            );
+        }
+
+        // Normalize path
+        if ( isset( $this->components['path'] ) ) {
+            $path = preg_replace( '#/+#', '/', $this->components['path'] );
+            $path = preg_replace( '/[\x00-\x1F\x7F]/u', '', $path );
+            $this->components['path'] = $path === '' ? '/' : $path;
+        }
+
+        // Sanitize query parameters
+        if ( isset( $this->components['query'] ) && $this->components['query'] !== '' ) {
+            parse_str( $this->components['query'], $params );
+
+            $clean = [];
+            foreach ( $params as $key => $value ) {
+                if ( $key === '' ) {
+                    continue;
+                }
+
+                $clean_key = preg_replace( '/[^\w\-\.]/', '', (string) $key );
+
+                if ( is_array( $value ) ) {
+                    $clean[ $clean_key ] = array_map( 'rawurlencode', $value );
+                } else {
+                    $clean[ $clean_key ] = rawurlencode( (string) $value );
+                }
+            }
+
+            $this->components['query'] = http_build_query(
+                $clean,
+                '',
+                '&',
+                PHP_QUERY_RFC3986
+            );
+        }
+
+        // Normalize fragment
+        if ( isset( $this->components['fragment'] ) ) {
+            $this->components['fragment'] = rawurlencode(
+                preg_replace( '/[\x00-\x1F\x7F]/u', '', $this->components['fragment'] )
+            );
+        }
+
+        // Remove invalid port
+        if ( isset( $this->components['port'] ) ) {
+            $port = (int) $this->components['port'];
+            if ( $port < 1 || $port > 65535 ) {
+                unset( $this->components['port'] );
+            }
+        }
+
+        return $this;
+    }
+
 }

@@ -275,6 +275,8 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const licenseAppSelect      = document.querySelector( '.license-app-select' );
     const allCopyEl             = document.querySelectorAll( '.smliser-click-to-copy' );
     const adminNav              = document.querySelector( '.smliser-top-nav' );
+    const allLicenseDomain      = document.querySelector( '.smliser-all-license-domains' );
+    const queryParam            = new URLSearchParams( window.location.search )
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
 
@@ -1251,6 +1253,65 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 smliserCopyToClipboard( e.target.getAttribute( 'data-copy-value' ) );
             });
         })
+    }
+
+    if ( allLicenseDomain ) {
+        allLicenseDomain.addEventListener( 'click', async e => {
+            const deleteBtn = e.target.closest( '.remove' );
+
+            if ( ! deleteBtn || ! confirm( 'Are you sure you want to remove this domain?' )) return;
+
+            const domain    = e.target.closest( '[data-domain-value]' )?.getAttribute( 'data-domain-value' );
+
+            if ( ! domain ) {
+                smliserNotify( 'Domain value was not found', 5000 );
+                return;
+            }
+
+            const url   = new URL( smliser_var.smliser_ajax_url );
+
+            url.searchParams.set( 'action', 'smliser_remove_licensed_domain' );
+            url.searchParams.set( 'security', smliser_var.nonce );
+            url.searchParams.set( 'license_id', queryParam.get( 'license_id' ) );
+            url.searchParams.set( 'domain', domain );
+            
+            try {
+                const response = await fetch( url, {credentials: 'same-origin'} );
+
+                const contentType = response.headers.get( 'content-type' );
+                if ( ! response.ok ) {
+                    let errorMessage = 'Something went wrong!';
+                    if ( contentType.includes( 'application/json' ) ) {
+                        const body      = await response.json();
+                        errorMessage    = body?.data?.message ?? errorMessage;
+                    } else {
+                        errorMessage = await response.text();
+                    }
+
+                    throw new Error( errorMessage );
+                }
+
+                const responseJson = await response.json();
+
+                if ( ! responseJson.success ) {
+                    let errorMessage = responseJson?.data?.message ?? 'An error occurred';
+
+                    throw new Error( errorMessage );
+                }
+
+                const message = responseJson?.data?.message ?? 'Success';
+                smliserNotify( message, 5000 );
+                const el    = e.target.closest( '[data-domain-value]' );
+
+                jQuery( el ).fadeOut( 'slow', () => {
+                    el?.remove();
+                });
+                
+            } catch (error) {
+                smliserNotify( error.message, 5000 );
+            }
+
+        });
     }
 
 });
