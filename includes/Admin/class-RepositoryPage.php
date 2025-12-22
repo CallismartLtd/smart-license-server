@@ -90,14 +90,12 @@ class RepositoryPage {
     private static function edit_page() {
         $id     = smliser_get_query_param( 'app_id' );
         $type   = smliser_get_query_param( 'type' );
-        $class  = SmliserSoftwareCollection::get_app_class( $type );
-        $method = "get_{$type}";
-
-        if ( ! class_exists( $class ) || ! method_exists( $class, $method ) ) {
+    
+        if ( ! SmliserSoftwareCollection::app_type_is_allowed( $type ) ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
 
-        $app = $class::$method( $id );
+        $app = SmliserSoftwareCollection::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );

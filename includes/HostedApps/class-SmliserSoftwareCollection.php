@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
@@ -25,6 +26,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Provides methods to perform CRUD operations across multiple hosted application types (plugins, themes, software) and their assets.
  */
 class SmliserSoftwareCollection {
+    use CacheAwareTrait;
     /**
      * Allowed app types
      * 
@@ -58,7 +60,7 @@ class SmliserSoftwareCollection {
             'page'   => 1,
             'limit'  => 20,
             'status' => 'active',
-            'types'  => array( 'plugin', 'theme', 'software' ),
+            'types'  => self::$allowed_app_types,
         );
         $args = parse_args( $args, $defaults );
 
@@ -68,74 +70,84 @@ class SmliserSoftwareCollection {
         $status = $args['status'];
         $types  = (array) $args['types'];
 
-        $sql_parts = [];
-        $params    = [];
+        $key        = self::make_cache_key( __METHOD__, \compact( 'page', 'limit', 'status', 'types' ) );
 
-        if ( in_array( 'plugin', $types, true ) ) {
-            $table_name     = SMLISER_PLUGIN_ITEM_TABLE;
-            $sql_parts[]    = "SELECT id, 'plugin' AS type, last_updated FROM {$table_name} WHERE status = ?";
-            $params[]       = $status;
-            
-        }
+        $results    = self::cache_get( $key );
 
-        if ( in_array( 'theme', $types, true ) ) {
-            $table_name = SMLISER_THEME_ITEM_TABLE;
-            $sql_parts[] = "SELECT id, 'theme' AS type, last_updated FROM {$table_name} WHERE status = ?";
-            $params[] = $status;
-            
-        }
+        if ( false === $results ) {
+            $sql_parts = [];
+            $params    = [];
 
-        if ( in_array( 'software', $types, true ) ) {
-            $table_name     = SMLISER_SOFTWARE_TABLE;
-            $sql_parts[]    = "SELECT id, 'software' AS type, last_updated FROM {$table_name} WHERE status = ?";
-            $params[]       = $status;
-            
-        }
-
-        if ( empty( $sql_parts ) ) {
-            return array(
-                'items'      => array(),
-                'pagination' => array(
-                    'total'       => 0,
-                    'page'        => $page,
-                    'limit'       => $limit,
-                    'total_pages' => 0,
-                ),
-            );
-        }
-
-        // Build union
-        $union_sql = implode( " UNION ALL ", $sql_parts );
-
-        // Total count
-        $count_sql = "SELECT COUNT(*) FROM ( {$union_sql} ) AS apps_count ";
-        $total     = (int) $db->get_var( $count_sql, $params );
-
-        // Fetch paginated rows
-        $sql            = "SELECT * FROM ( {$union_sql} ) AS apps ORDER BY last_updated DESC LIMIT ? OFFSET ?";
-        $query_params   = array_merge( $params, [ $limit, $offset ] );
-
-        $rows    = $db->get_results( $sql, $query_params );
-        $objects = array();
-
-        foreach ( $rows as $row ) {
-            $class  = self::get_app_class( $row['type'] );
-            $method = "get_" . $row['type'];
-
-            if ( method_exists( $class, $method ) ) {
-                $objects[] = $class::$method( (int) $row['id'] );
+            if ( in_array( 'plugin', $types, true ) ) {
+                $table_name     = SMLISER_PLUGIN_ITEM_TABLE;
+                $sql_parts[]    = "SELECT id, 'plugin' AS type, last_updated FROM {$table_name} WHERE status = ?";
+                $params[]       = $status;
+                
             }
+
+            if ( in_array( 'theme', $types, true ) ) {
+                $table_name = SMLISER_THEME_ITEM_TABLE;
+                $sql_parts[] = "SELECT id, 'theme' AS type, last_updated FROM {$table_name} WHERE status = ?";
+                $params[] = $status;
+                
+            }
+
+            if ( in_array( 'software', $types, true ) ) {
+                $table_name     = SMLISER_SOFTWARE_TABLE;
+                $sql_parts[]    = "SELECT id, 'software' AS type, last_updated FROM {$table_name} WHERE status = ?";
+                $params[]       = $status;
+                
+            }
+
+            if ( empty( $sql_parts ) ) {
+                $results    = array(
+                    'items'      => array(),
+                    'pagination' => array(
+                        'total'       => 0,
+                        'page'        => $page,
+                        'limit'       => $limit,
+                        'total_pages' => 0,
+                    ),
+                );
+            } else {
+                // Build union
+                $union_sql = implode( " UNION ALL ", $sql_parts );
+
+                // Total count
+                $count_sql = "SELECT COUNT(*) FROM ( {$union_sql} ) AS apps_count ";
+                $total     = (int) $db->get_var( $count_sql, $params );
+
+                // Fetch paginated rows
+                $sql            = "SELECT * FROM ( {$union_sql} ) AS apps ORDER BY last_updated DESC LIMIT ? OFFSET ?";
+                $query_params   = array_merge( $params, [ $limit, $offset ] );
+
+                $rows    = $db->get_results( $sql, $query_params );
+                $objects = array();
+
+                foreach ( $rows as $row ) {
+                    $class  = self::get_app_class( $row['type'] );
+                    $method = "get_" . $row['type'];
+
+                    if ( method_exists( $class, $method ) ) {
+                        $objects[] = $class::$method( (int) $row['id'] );
+                    }
+                }
+
+                $results    = array(
+                    'items'      => $objects,
+                    'pagination' => array(
+                        'total'       => $total,
+                        'page'        => $page,
+                        'limit'       => $limit,
+                        'total_pages' => ( $limit > 0 ) ? ceil( $total / $limit ) : 1,
+                    ),
+                );                
+            }
+
+            self::cache_set( $key, $results, 10 * \MINUTE_IN_SECONDS );
         }
 
-        return array(
-            'items'      => $objects,
-            'pagination' => array(
-                'total'       => $total,
-                'page'        => $page,
-                'limit'       => $limit,
-                'total_pages' => ( $limit > 0 ) ? ceil( $total / $limit ) : 1,
-            ),
-        );
+        return $results;
     }
         
     /**
@@ -245,7 +257,7 @@ class SmliserSoftwareCollection {
      * @return array Array containing 'items' (plugin objects) and 'pagination' info.
      */
     public static function get_plugins( array $args = array() ) {
-        $args['types'] = array( 'plugin' );
+        $args['types']  = array( 'plugin' );
         return self::get_apps( $args );
     }
 
@@ -262,7 +274,30 @@ class SmliserSoftwareCollection {
      * @return array Array containing 'items' (theme objects) and 'pagination' info.
      */
     public static function get_themes( array $args = array() ) {
-        $args['types'] = array( 'theme' );
+        $args['types']  = array( 'theme' );
+        return self::get_apps( $args );
+    }
+
+    /**
+     * Get trashed applications across multiple types with pagination.
+     *
+     * @param array $args {
+     *     @type int    $page   Current page number. Default 1.
+     *     @type int    $limit  Number of items per page. Default 20.
+     *     @type array  $types  List of types to query. Default all ['plugin','theme','software'].
+     * }
+     * @return array {
+     *     @type SmartLicenseServer\HostedApps\AbstractHostedApp[] $items        Instantiated application objects.
+     *     @type array $pagination {
+     *         @type int $total       Total number of matching items.
+     *         @type int $page        Current page number.
+     *         @type int $limit       Number of items per page.
+     *         @type int $total_pages Total number of pages.
+     *     }
+     * }
+     */
+    public static function get_trashed_apps( array $args = array() ) {
+        $args['status'] = AbstractHostedApp::STATUS_TRASH;
         return self::get_apps( $args );
     }
 
@@ -279,7 +314,7 @@ class SmliserSoftwareCollection {
      * @return array Array containing 'items' (software objects) and 'pagination' info.
      */
     public static function get_softwares( array $args = array() ) {
-        $args['types'] = array( 'software' );
+        $args['types']  = array( 'software' );
         return self::get_apps( $args );
     }
 
@@ -308,91 +343,100 @@ class SmliserSoftwareCollection {
             'page'   => 1,
             'limit'  => 20,
             'status' => 'active',
-            'types'  => array( 'plugin', 'theme', 'software' ),
+            'types'  => self::$allowed_app_types,
         );
-        $args = parse_args( $args, $defaults );
+        $args       = parse_args( $args, $defaults );
+        $term       = sanitize_text_field( $args['term'] );
+        $page       = max( 1, (int) $args['page'] );
+        $limit      = max( 1, (int) $args['limit'] );
+        $offset     = ( $page - 1 ) * $limit;
+        $status     = $args['status'];
+        $types      = array_filter( (array) $args['types'] );
+        $key        = self::make_cache_key( __METHOD__, \compact( 'term', 'page', 'limit', 'status', 'types' ) );
 
-        $term   = sanitize_text_field( $args['term'] );
-        $page   = max( 1, (int) $args['page'] );
-        $limit  = max( 1, (int) $args['limit'] );
-        $offset = ( $page - 1 ) * $limit;
-        $status = $args['status'];
-        $types  = array_filter( (array) $args['types'] );
+        $results    = self::cache_get( $key );
 
-        if ( empty( $term ) || empty( $types ) ) {
-            return array(
-                'items'      => array(),
-                'pagination' => array(
-                    'page'        => $page,
-                    'limit'       => $limit,
-                    'total'       => 0,
-                    'total_pages' => 0,
-                ),
-            );
-        }
+        if ( false === $results ) {
+            if ( empty( $term ) || empty( $types ) ) {
+                $results    = array(
+                    'items'      => array(),
+                    'pagination' => array(
+                        'page'        => $page,
+                        'limit'       => $limit,
+                        'total'       => 0,
+                        'total_pages' => 0,
+                    ),
+                );
+            } else {
+                $like        = '%' . $term . '%';
+                $sql_parts   = [];
+                $count_parts = [];
+                $params_sql  = [];
+                $params_count = [];
 
-        $like        = '%' . $term . '%';
-        $sql_parts   = [];
-        $count_parts = [];
-        $params_sql  = [];
-        $params_count = [];
+                foreach ( $types as $type ) {
+                    switch ( $type ) {
+                        case 'plugin':
+                            $table = SMLISER_PLUGIN_ITEM_TABLE;
+                            break;
+                        case 'theme':
+                            $table = SMLISER_THEME_ITEM_TABLE;
+                            break;
+                        case 'software':
+                            $table = SMLISER_SOFTWARE_TABLE;
+                            break;
+                        default:
+                            continue 2;
+                    }
 
-        foreach ( $types as $type ) {
-            switch ( $type ) {
-                case 'plugin':
-                    $table = SMLISER_PLUGIN_ITEM_TABLE;
-                    break;
-                case 'theme':
-                    $table = SMLISER_THEME_ITEM_TABLE;
-                    break;
-                case 'software':
-                    $table = SMLISER_SOFTWARE_TABLE;
-                    break;
-                default:
-                    continue 2;
+                    // Query for fetching IDs
+                    $sql_parts[]    = "SELECT id, '{$type}' AS type, last_updated FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
+                    $params_sql     = array_merge( $params_sql, [ $status, $like, $like, $like ] );
+
+                    // Query for counting matches
+                    $count_parts[]  = "SELECT COUNT(*) AS total FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
+                    $params_count   = array_merge( $params_count, [ $status, $like, $like, $like ] );
+                }
+
+                // Build union query
+                $union_sql = implode( " UNION ALL ", $sql_parts );
+                $query_sql = "{$union_sql} ORDER BY last_updated DESC LIMIT ? OFFSET ?";
+                $params_sql = array_merge( $params_sql, [ $limit, $offset ] );
+
+                // Fetch rows via adapter
+                $rows = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS apps", $params_sql, ARRAY_A );
+
+                // Aggregate count
+                $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
+                $total = (int) $db->get_var( $count_sql, $params_count );
+
+                // Instantiate app objects
+                $objects = [];
+                foreach ( $rows as $row ) {
+                    $class  = self::get_app_class( $row['type'] );
+                    $method = "get_" . $row['type'];
+
+                    if ( method_exists( $class, $method ) ) {
+                        $objects[] = $class::$method( (int) $row['id'] );
+                    }
+                }
+
+                $results    = array(
+                    'items'      => $objects,
+                    'pagination' => array(
+                        'page'        => $page,
+                        'limit'       => $limit,
+                        'total'       => $total,
+                        'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
+                    ),
+                );                
             }
 
-            // Query for fetching IDs
-            $sql_parts[]    = "SELECT id, '{$type}' AS type, last_updated FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
-            $params_sql     = array_merge( $params_sql, [ $status, $like, $like, $like ] );
 
-            // Query for counting matches
-            $count_parts[]  = "SELECT COUNT(*) AS total FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
-            $params_count   = array_merge( $params_count, [ $status, $like, $like, $like ] );
+            self::cache_set( $key, $results, 10 * \MINUTE_IN_SECONDS );
         }
 
-        // Build union query
-        $union_sql = implode( " UNION ALL ", $sql_parts );
-        $query_sql = "{$union_sql} ORDER BY last_updated DESC LIMIT ? OFFSET ?";
-        $params_sql = array_merge( $params_sql, [ $limit, $offset ] );
-
-        // Fetch rows via adapter
-        $rows = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS apps", $params_sql, ARRAY_A );
-
-        // Aggregate count
-        $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
-        $total = (int) $db->get_var( $count_sql, $params_count );
-
-        // Instantiate app objects
-        $objects = [];
-        foreach ( $rows as $row ) {
-            $class  = self::get_app_class( $row['type'] );
-            $method = "get_" . $row['type'];
-
-            if ( method_exists( $class, $method ) ) {
-                $objects[] = $class::$method( (int) $row['id'] );
-            }
-        }
-
-        return array(
-            'items'      => $objects,
-            'pagination' => array(
-                'page'        => $page,
-                'limit'       => $limit,
-                'total'       => $total,
-                'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
-            ),
-        );
+        return $results;
     }
 
     /**
@@ -403,16 +447,22 @@ class SmliserSoftwareCollection {
      * @return AbstractHostedApp|null The instance of a hosted application or null on failure.
      */
     public static function get_app_by_slug( $app_type, $app_slug ) : AbstractHostedApp|null {
-        $app_class  = self::get_app_class( $app_type );
-        $method     = "get_by_slug";
+        $key    = self::make_cache_key( __METHOD__, [$app_type, $app_slug] );
+        $app    = self::cache_get( $key );
 
-        if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $method ) ) {
-            return null;
+        if ( false === $app || ! ( $app instanceof AbstractHostedApp ) ) {
+            $app_class  = self::get_app_class( $app_type );
+            $method     = "get_by_slug";
+
+            if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $method ) ) {
+                $app    = null;
+            } else {
+                $app    = $app_class::$method( $app_slug );
+            }
+
+            self::cache_set( $key, $app, 10 * \MINUTE_IN_SECONDS );
         }
-
-        /** @var AbstractHostedApp|null */
-        $app    = $app_class::$method( $app_slug );
-
+        /** @var AbstractHostedApp|null $app */
         return $app;
     }
     
@@ -424,47 +474,24 @@ class SmliserSoftwareCollection {
      * @return AbstractHostedApp|null The instance of a hosted application or null on failure.
      */
     public static function get_app_by_id( $app_type, $id ) : AbstractHostedApp|null {
-        $app_class  = self::get_app_class( $app_type );
-        $method     = "get_{$app_type}";
+        $key    = self::make_cache_key( __METHOD__, [$app_type, $id] );
+        $app    = self::cache_get( $key );
 
-        if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $method ) ) {
-            return null;
+        if ( false === $app || ! ( $app instanceof AbstractHostedApp ) ) {
+            $app_class  = self::get_app_class( $app_type );
+            $method     = "get_{$app_type}";
+
+            if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $method ) ) {
+                $app    = null;
+            } else {
+                $app    = $app_class::$method( $id );
+            }
+
+            self::cache_set( $key, $app, 10 * \MINUTE_IN_SECONDS );
         }
 
         /** @var AbstractHostedApp|null */
-        $app    = $app_class::$method( $id );
-
         return $app;
-    }
-
-    /**
-     * Get trashed applications across multiple types with pagination.
-     *
-     * @param array $args {
-     *     @type int    $page   Current page number. Default 1.
-     *     @type int    $limit  Number of items per page. Default 20.
-     *     @type array  $types  List of types to query. Default all ['plugin','theme','software'].
-     * }
-     * @return array {
-     *     @type SmartLicenseServer\HostedApps\AbstractHostedApp[] $items        Instantiated application objects.
-     *     @type array $pagination {
-     *         @type int $total       Total number of matching items.
-     *         @type int $page        Current page number.
-     *         @type int $limit       Number of items per page.
-     *         @type int $total_pages Total number of pages.
-     *     }
-     * }
-     */
-    public static function get_trashed_apps( array $args = array() ) {
-        $defaults = array(
-            'page'   => 1,
-            'limit'  => 20,
-            'types'  => array( 'plugin', 'theme', 'software' ),
-        );
-        $args = parse_args( $args, $defaults );
-        $args['status'] = AbstractHostedApp::STATUS_TRASH;
-
-        return self::get_apps( $args );
     }
 
     /*
@@ -557,6 +584,8 @@ class SmliserSoftwareCollection {
             if ( is_smliser_error( $result ) ) {
                 throw new RequestException( $result->get_error_code() ?: 'save_failed', $result->get_error_message(), array( 'status' => 500 )  );
             }
+
+            self::cache_clear();
 
             $data = array(
                 'success'   => true,
@@ -660,6 +689,8 @@ class SmliserSoftwareCollection {
             if ( is_smliser_error( $url ) ) {
                 throw new RequestException( $url->get_error_code() ?: 'remote_download_failed', $url->get_error_message() );
             }
+
+            self::cache_clear();
             
             $url = ( new URL( $url ) )
                 ->add_query_param( 'ver', time() )
@@ -728,7 +759,7 @@ class SmliserSoftwareCollection {
             if ( is_smliser_error( $result ) ) {
                 throw new RequestException( $result->get_error_code() ?: 'asset_deletion_failed', $result->get_error_message() );
             }
-
+            self::cache_clear();
             $data       = array( 'message' => 'Asset deleted successfully.' );
             $response   = [
                 'success'   => true,
@@ -769,6 +800,7 @@ class SmliserSoftwareCollection {
             if ( ! $app->trash() ) {
                 throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was could not be deleted', $app_type, $app_slug ), array( 'status' => 500 ) );
             }
+            self::cache_clear();
 
             $data = array(
                 'message'       => 'App moved to trash successfully.',
@@ -870,4 +902,5 @@ class SmliserSoftwareCollection {
     public static function app_type_is_allowed( $app_type ) {
         return in_array( $app_type, self::$allowed_app_types, true );
     }
+
 }

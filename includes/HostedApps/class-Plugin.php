@@ -299,13 +299,9 @@ class Plugin extends AbstractHostedApp {
 
         $plugin_data = array(
             'name'          => $this->get_name(),
-            'version'       => $this->get_version(),
             'author'        => $this->get_author(),
             'status'        => $this->get_status(),
             'author_profile'=> $this->get_author_profile(),
-            'requires'      => $this->get_requires_at_least(),
-            'tested'        => $this->get_tested_up_to(),
-            'requires_php'  => $this->get_required_php(),
             'download_link' => $this->get_download_link(),
             'last_updated'  => \gmdate( 'Y-m-d H:i:s' ),
         );
