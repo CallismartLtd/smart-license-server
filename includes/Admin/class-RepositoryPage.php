@@ -48,8 +48,8 @@ class RepositoryPage {
      */
     private static function dashboard() {
         $args = array(
-            'page'  => smliser_get_query_param( 'paged', 1 ),
-            'limit' => smliser_get_query_param( 'limit', 25 )
+            'page'      => smliser_get_query_param( 'paged', 1 ),
+            'limit'     => smliser_get_query_param( 'limit', 25 ),
         );
 
         $type   = smliser_get_query_param( 'type', null );
@@ -57,7 +57,14 @@ class RepositoryPage {
             $args['types']   = $type;
         }
 
-        $result     = SmliserSoftwareCollection::get_apps( $args );
+        $status = \smliser_get_query_param( 'status' );
+
+        if ( $status ) {
+            $args['status'] = $status;
+        }
+
+        $result     = AbstractHostedApp::STATUS_TRASH === $status ? SmliserSoftwareCollection::get_trashed_apps( $args ) : SmliserSoftwareCollection::get_apps( $args );
+        $trashed    = SmliserSoftwareCollection::count_apps( ['status' => AbstractHostedApp::STATUS_TRASH] );
         $apps       = $result['items'];
         $pagination = $result['pagination'];
         
@@ -112,25 +119,24 @@ class RepositoryPage {
     private static function view_page() {
         $id     = smliser_get_query_param( 'app_id' );
         $type   = smliser_get_query_param( 'type' );
-        $class  = SmliserSoftwareCollection::get_app_class( $type );
-        $method = "get_{$type}";
-
-        if ( ! class_exists( $class ) || ! method_exists( $class, $method ) ) {
+        
+        if ( ! SmliserSoftwareCollection::app_type_is_allowed( $type ) ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
 
         $file   = \sprintf( '%s/templates/admin/repository/view-%s.php', SMLISER_PATH, $type );
 
         if ( ! file_exists( $file ) ) {
-            smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+            smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" edit file does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
 
-        /** @var AbstractHostedApp|null */
-        $app        = $class::$method( $id );
-        $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app->get_type() );
+        $app = SmliserSoftwareCollection::get_app_by_id( $type, $id );
+
         if ( ! $app ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
+
+        $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app->get_type() );
 
         $url            = new URL( admin_url( 'admin.php?page=repository' ) );
         $download_url   = new URL( admin_url( 'admin-post.php' ) );
