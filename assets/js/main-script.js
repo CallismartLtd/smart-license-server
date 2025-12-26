@@ -264,7 +264,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let tooltips                = document.querySelectorAll( '.smliser-form-description, .smliser-tooltip' );
     let deleteBtn               = document.getElementById( 'smliser-license-delete-button' );
     let updateBtn               = document.querySelector('#smliser-update-btn');
-    let trashAppBtns           = document.querySelectorAll( '.smliser-app-delete-button' );
+    let appActionsBtn           = document.querySelectorAll( '.smliser-app-delete-button, .smliser-app-restore-button' );
     let selectAllCheckbox       = document.querySelector('#smliser-select-all');
     let dashboardPage           = document.querySelector( '.smliser-admin-dashboard-template.overview' );
     let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
@@ -611,30 +611,33 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-    if ( trashAppBtns.length ) {
-        trashAppBtns.forEach( trashAppBtn => {
-            trashAppBtn.addEventListener('click', (e)=>{
+    if ( appActionsBtn.length ) {
+        appActionsBtn.forEach( actionBtn => {
+            actionBtn.addEventListener('click', (e)=>{
                 e.preventDefault();
-                let appInfo    = '';
+                let requestArgs    = '';
                 try {
-                    appInfo = JSON.parse( trashAppBtn.getAttribute( 'data-app-info' ) );
+                    requestArgs = JSON.parse( actionBtn.getAttribute( 'data-action-args' ) );
                 } catch (error) {
-                    smliserNotify( 'App data not found',5000 );
+                    smliserNotify( 'App data not found', 5000 );
                     return;
                 }
 
-                let message     = `You are about to trash this ${appInfo.type}, it will be automatically deleted after 60 days. Are you sure you want to proceed?`;
-                let confirmed   = confirm( message );
-                
-                if ( ! confirmed ) {
-                    return;
+                if ( 'trash' === requestArgs.status ) {
+                    let message     = `You are about to trash this ${requestArgs.type}, it will be automatically deleted after 60 days. Are you sure you want to proceed?`;
+                    let confirmed   = confirm( message );
+                    
+                    if ( ! confirmed ) {
+                        return;
+                    }                    
                 }
 
                 let url = new URL( smliser_var.smliser_ajax_url );
-                url.searchParams.set( 'action', 'smliser_delete_app' );
-                url.searchParams.set( 'slug', appInfo.slug );
-                url.searchParams.set( 'type', appInfo.type );
+                url.searchParams.set( 'action', 'smliser_app_status_action' );
+                url.searchParams.set( 'slug', requestArgs.slug );
+                url.searchParams.set( 'type', requestArgs.type );
                 url.searchParams.set( 'security', smliser_var.nonce );
+                url.searchParams.set( 'status', requestArgs.status );
                 
                 fetch(url)
                     .then( response=>{

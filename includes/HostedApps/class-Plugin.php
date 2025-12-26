@@ -357,18 +357,8 @@ class Plugin extends AbstractHostedApp {
             return false;
         }
 
-        $db          = smliser_dbclass();
-        $repo_class  = new PluginRepository();
-        $slug        = $this->get_slug();
-
-        $file_delete = $repo_class->trash( $slug );
-
-        if ( is_smliser_error( $file_delete ) ) {
-            error_log( 'Plugin delete failed: ' . $file_delete->get_error_message() );
-            return false;
-        }
-
-        $meta_deleted = $db->delete(
+        $db             = smliser_dbclass();
+        $meta_deleted   = $db->delete(
             self::META_TABLE,
             [ 'plugin_id' => $plugin_id ]
         );

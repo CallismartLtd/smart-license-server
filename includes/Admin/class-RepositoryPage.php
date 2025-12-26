@@ -181,17 +181,27 @@ class RepositoryPage {
                     'icon'  => 'ti ti-download',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
-                ],
-
-                [
-                    'text'  => sprintf( 'Trash %s', ucfirst( $app->get_type() ) ),
-                    'url'   => '',
-                    'icon'  => 'ti ti-trash',
-                    'class' => ['smliser-btn', 'smliser-btn-danger', 'smliser-app-delete-button'],
-                    'attr'  => ['data-app-info' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type()] )]
-                ],
+                ]
             ]
         ];
+
+        if ( $app->can_be_restored() ) {
+            $template_header['buttons'][] = [
+                'text'  => sprintf( 'Restore %s', ucfirst( $app->get_type() ) ),
+                'url'   => '',
+                'icon'  => 'ti ti-arrow-back-up',
+                'class' => ['smliser-btn', 'smliser-btn-glass', 'smliser-app-restore-button'],
+                'attr'  => ['data-action-args' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type(), 'status' => AbstractHostedApp::STATUS_ACTIVE] )]
+            ];
+        } else if ( $app->can_be_trashed() ) {
+            $template_header['buttons'][] = [
+                'text'  => sprintf( 'Trash %s', ucfirst( $app->get_type() ) ),
+                'url'   => '',
+                'icon'  => 'ti ti-trash',
+                'class' => ['smliser-btn', 'smliser-btn-danger', 'smliser-app-delete-button'],
+                'attr'  => ['data-action-args' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type(), 'status' => AbstractHostedApp::STATUS_TRASH] )]
+            ];
+        }
 
         $template_content = [
             'Installation'  => $app->get_installation(),

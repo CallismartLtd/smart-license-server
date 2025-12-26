@@ -18,7 +18,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection as AppCollection;
+use SmartLicenseServer\HostedApps\SoftwareHostingController as HostingController;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
@@ -104,7 +104,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'smliser_bulk_action'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_all_actions'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_generate_download_token'               => [__CLASS__, 'parse_download_token_generation_request'],
-            'smliser_delete_app'                            => [__CLASS__, 'parse_app_delete_request'],
+            'smliser_app_status_action'                     => [__CLASS__, 'parse_app_status_action_request'],
             'smliser_save_monetization_provider_options'    => [__CLASS__, 'parse_save_provider_options'],
             'smliser_upgrade'                               => [__CLASS__, 'parse_database_migration_request'],
             'smliser_key_generate'                          => [SmliserAPICred::class, 'admin_create_cred_form'],
@@ -330,7 +330,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'client_ip'                 => smliser_get_client_ip(),
         ]);
 
-        $response   = AppCollection::save_app( $request );
+        $response   = HostingController::save_app( $request );
         
         $response->send();
     }
@@ -369,7 +369,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'client_ip'     => smliser_get_client_ip(),
         ]);
 
-        $response = AppCollection::app_asset_upload( $request );        
+        $response = HostingController::app_asset_upload( $request );        
         $response->send();
     }
 
@@ -399,7 +399,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'client_ip'     => smliser_get_client_ip(),
         ]);
 
-        $response = AppCollection::app_asset_delete( $request );
+        $response = HostingController::app_asset_delete( $request );
         $response->send();
     }
 
@@ -582,7 +582,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
      *
      * @return void
      */
-    private static function parse_app_delete_request() {
+    private static function parse_app_status_action_request() {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
             \smliser_send_json_error( array( 'message' => 'Invalid CSRF token, please refresh current page.' ) );
         }
@@ -594,10 +594,11 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $request    = new Request([
             'slug'          => \smliser_get_query_param( 'slug' ),
             'type'          => \smliser_get_query_param( 'type' ),
+            'status'        => \smliser_get_query_param( 'status' ),
             'is_authorized' => true,
         ]);
 
-        $response   = AppCollection::trash_app( $request );
+        $response   = HostingController::change_app_status( $request );
         $response->send();
     
     }
@@ -917,7 +918,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
                 $handler = [Controller::class, 'license_bulk_action'];
                 break;
             case 'repository':
-                $handler    = [SmliserSoftwareCollection::class, 'app_bulk_action'];
+                $handler    = [HostingController::class, 'app_bulk_action'];
                 break;
             default:
             $handler = function() use( $context ) {
