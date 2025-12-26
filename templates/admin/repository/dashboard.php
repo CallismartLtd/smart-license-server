@@ -4,11 +4,14 @@
  * 
  * @author Callistus Nwachukwu
  * @package Smliser\templates
+ * @var SmartLicenseServer\HostedApps\AbstractHostedApp[] $apps
  */
+
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-table-wrapper">
-    <h1><?php printf( '%s Repository', $type ? ucfirst( $type ) : '' );?></h1>    
+    <h1><?php printf( '%s Repository %s', $type ? ucfirst( $type ) : '', $status );?></h1>    
     <a href="<?php echo esc_url( $add_url ); ?>" class="button action smliser-nav-btn">Upload New</a>
     <?php if ( isset( $type ) ) : ?>
         <a href="<?php echo esc_url( smliser_repo_page() ); ?>" class="button action smliser-nav-btn">Repository Listing</a>
@@ -16,14 +19,24 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
     <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'plugin' ), smliser_repo_page() ) ); ?>" class="button action smliser-nav-btn">Plugin Repository</a>
     <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'theme' ), smliser_repo_page() )); ?>" class="button action smliser-nav-btn">Theme Repository</a>
     <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'software' ), smliser_repo_page() ) ); ?>" class="button action smliser-nav-btn">Software Repository</a>
+
+    <?php if ( $trashed > 0 ) : ?>
+        <a href="<?php echo esc_url( add_query_arg( array( 'status' => AbstractHostedApp::STATUS_TRASH ), smliser_repo_page() ) ); ?>" class="button action smliser-nav-btn">Trash</a>
+    <?php endif; ?>
+
+    <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
+        <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+    <?php endif; ?>
+
     <?php if ( empty( $apps ) ) : ?>
         <?php 
-            $type_name  = $type ? ucfirst( $type ) : 'Software';
+            $type_name  = $type ? $type : 'app';
             $upload_url = smliser_admin_repo_tab( 'add-new', array( 'type' => $type ) );
             echo wp_kses_post( 
                     smliser_not_found_container(
-                    sprintf( 'Your %1$s repository is empty, upload your first %1$s <a href="%2$s">here</a>.',
+                    sprintf( 'Your %1$s %2$s repository is empty, upload your first %1$s <a href="%3$s">here</a>.',
                         esc_html( $type_name ), 
+                        esc_html( $status ?? '' ),
                         esc_url( $upload_url )
                     )
                 )
@@ -32,27 +45,45 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
     <?php else: ?>
         <form id="smliser-bulk-action-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
             <div class="smliser-actions-wrapper">
+                <div class="smliser-bulk-actions">
+                    <select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>
+                        <option value=""><?php echo esc_html__( 'Bulk Actions', 'smliser' ); ?></option>
+                        <option value="active"><?php echo esc_html__( 'Activate', 'smliser' ); ?></option>
+                        <option value="deactivated"><?php echo esc_html__( 'Deactivate', 'smliser' ); ?></option>
+                        <option value="suspended"><?php echo esc_html__( 'Suspend', 'smliser' ); ?></option>
+                        <?php if ( AbstractHostedApp::STATUS_TRASH !== $status ) : ?>
+                            <option value="<?php echo esc_attr( AbstractHostedApp::STATUS_TRASH ); ?>"><?php echo esc_html__( 'Trash', 'smliser' ); ?></option>
+                        <?php endif; ?>
+                    </select>
+                    <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
+                </div>
                 <div class="smliser-search-box">
                     <input type="search" id="smliser-search" class="smliser-search-input" placeholder="<?php echo esc_attr__( 'Search Applications', 'smliser' ); ?>">
                 </div>
             </div>
+        
+            <input type="hidden" name="action" value="smliser_bulk_action">
+            <input type="hidden" name="context" value="repository">
+            <?php wp_nonce_field( 'smliser_table_nonce', 'smliser_table_nonce'); ?>
 
             <table class="widefat striped">
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="smliser-select-all"></th>
                         <th><?php echo esc_html__( 'APP ID', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'App Name', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'App Author', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'App Type', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'Version', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'Slug', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Created at', 'smliser' ); ?></th>
+                        <th><?php echo esc_html__( 'Status', 'smliser' ); ?></th>
                         <th><?php echo esc_html__( 'Last Updated', 'smliser' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ( $apps as $app ) : ?>
                         <tr>
+                            <td><input type="checkbox" class="smliser-license-checkbox" name="ids[]" value="<?php printf( '%s:%s', esc_attr( $app->get_type() ), esc_attr( $app->get_slug() ) ); ?>"> </td>
                             <td class="smliser-edit-row">
                                 <?php echo absint( $app->get_id() ); ?>
                                 <div class="smliser-edit-link">
@@ -66,7 +97,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                             <td><code><?php echo esc_html( $app->get_type() ); ?></code></td>
                             <td><?php echo esc_html( $app->get_version() ); ?></td>
                             <td><?php echo esc_html( $app->get_slug() ); ?></td>
-                            <td><?php echo esc_html( smliser_check_and_format( $app->get_date_created(), true ) ); ?></td>
+                            <td><?php echo esc_html( $app->get_status() ); ?></td>
                             <td><?php echo esc_html( smliser_check_and_format( $app->get_last_updated(), true ) ); ?></td>
                         </tr>
                     <?php endforeach; ?>

@@ -62,7 +62,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         $client_full_name   = ( -1 === $license->get_user_id() ) ? 'N/A' : ( is_object( $user ) ? $user->first_name . ' ' . $user->last_name : 'Guest' );
                         ?>        
                         <tr>
-                            <td><input type="checkbox" class="smliser-license-checkbox" name="license_ids[]" value="<?php echo esc_attr( $license->get_id() ); ?>"> </td>
+                            <td><input type="checkbox" class="smliser-license-checkbox" name="ids[]" value="<?php echo esc_attr( $license->get_id() ); ?>"> </td>
                             <td class="smliser-edit-row">
                                 <?php echo esc_html( $license->get_id() ); ?>
                                 <p class="smliser-edit-link">
