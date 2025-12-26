@@ -657,19 +657,35 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-    if ( selectAllCheckbox ) {
-        let  checkboxes = document.querySelectorAll( '.smliser-license-checkbox, .smliser-checkbox' );
+    if (selectAllCheckbox) {
+        let checkboxes = document.querySelectorAll('.smliser-license-checkbox, .smliser-checkbox');
+        let lastChecked = null; // Track the last checkbox clicked
 
         selectAllCheckbox.addEventListener('change', function () {
             checkboxes.forEach(checkbox => {
                 checkbox.checked = selectAllCheckbox.checked;
             });
         });
-    
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function () {
+
+        // Individual and Shift-Select Logic.
+        checkboxes.forEach((checkbox, index) => {
+            checkbox.addEventListener('click', function (e) {
+                // Check if Shift key is held and there's a previous click
+                if (e.shiftKey && lastChecked !== null) {
+                    let start = Math.min(index, lastChecked);
+                    let end = Math.max(index, lastChecked);
+
+                    // Apply the state of the clicked checkbox to the whole range
+                    for (let i = start; i <= end; i++) {
+                        checkboxes[i].checked = checkbox.checked;
+                    }
+                }
+
+                // Update the lastChecked reference
+                lastChecked = index;
+
+                // Update the "Select All" master checkbox state
                 selectAllCheckbox.checked = Array.from(checkboxes).every(cb => cb.checked);
-                
             });
         });
     }
