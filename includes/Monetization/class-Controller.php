@@ -295,7 +295,7 @@ class Controller {
      * @return Response
      */
     public static function license_bulk_action( Request $request ) : Response {
-        $license_ids    = $request->get( 'license_ids', [] );
+        $license_ids    = $request->get( 'ids', [] );
         $action         = $request->get( 'bulk_action' );
         $affected       = 0;
 
@@ -316,6 +316,7 @@ class Controller {
         }
 
         $request->set( 'message', \sprintf( '%s affected!', $affected ) );
+        $request->set( 'redirect_url', smliser_license_page() );
         $response = ( new Response( 200, [], '' ) )
             ->set_response_data( $request );
 
