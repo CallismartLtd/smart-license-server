@@ -401,6 +401,7 @@ class Plugin extends AbstractHostedApp {
         $self->set_slug( $result['slug'] ?? '' );
         $self->set_author( $result['author'] ?? '' );
         $self->set_author_profile( $result['author_profile'] ?? '' );
+        $self->set_status( $result['status'] ?? 'active' );
 
         $self->load_meta();
         /** 
