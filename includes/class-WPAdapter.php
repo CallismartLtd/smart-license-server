@@ -21,6 +21,7 @@ use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection as AppCollection;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
@@ -453,20 +454,26 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $handler    = self::resolve_bulk_action_handler( $context );
 
         $request    = new Request([
-            'license_ids'   => smliser_get_param( 'license_ids', [], $_REQUEST ),
+            'ids'   => smliser_get_param( 'ids', [], $_REQUEST ),
             'bulk_action'   => \smliser_get_param( 'bulk_action', '', $_REQUEST ),
-            'bulk_action'   => \smliser_get_param( 'real_action', '', $_REQUEST ),
         ]);
+
+        if ( 'repository' === $context ) {
+            $ids    = $request->get( 'ids', [] );
+            $request->set( 'ids', self::normalize_app_ids_form_input( (array) $ids ) );
+        }
 
         /** @var Response $response */
         $response   = \call_user_func( $handler, $request );
 
         if ( $response->ok() ) {
-            $url    = new URL( smliser_license_page() );
+            $target = $request->get( 'redirect_url' );
+            $url    = new URL( $target );
             $url->add_query_param( 'message', $response->get_response_data()->get( 'message' ) );
             wp_safe_redirect( $url->get_href() );
             exit;
         }
+
         wp_safe_redirect( \wp_get_referer() );
         exit;
     }
@@ -838,6 +845,27 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
     */
 
     /**
+     * Normalize the app_type:app-slug form input to associative array
+     * 
+     * @param array $app_ids
+     */
+    private static function normalize_app_ids_form_input( array $app_ids ) : array {
+        $normalized = [];
+
+        foreach ( $app_ids as $item ) {
+            [ $type, $slug ] = explode( ':', $item, 2 );
+
+            if ( empty( $type ) || empty( $slug ) ) {
+                continue;
+            }
+
+            $normalized[] = array( 'app_type' => $type, 'app_slug' => $slug );
+        }
+
+        return $normalized;
+    }
+
+    /**
      * Initialize the WordPress environment.
      * 
      * @return self
@@ -888,8 +916,13 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             case 'license':
                 $handler = [Controller::class, 'license_bulk_action'];
                 break;
+            case 'repository':
+                $handler    = [SmliserSoftwareCollection::class, 'app_bulk_action'];
+                break;
             default:
-            $handler = 'smliser_abort_request';
+            $handler = function() use( $context ) {
+                smliser_abort_request( \sprintf( 'Bulk action cannot be handled for "%s"', $context ) );
+            };
         }
 
         return $handler;
