@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use Mpdf\Tag\A;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
@@ -59,7 +60,7 @@ class SmliserSoftwareCollection {
         $defaults = array(
             'page'   => 1,
             'limit'  => 20,
-            'status' => 'active',
+            'status' => AbstractHostedApp::STATUS_ACTIVE,
             'types'  => self::$allowed_app_types,
         );
         $args = parse_args( $args, $defaults );
@@ -177,7 +178,7 @@ class SmliserSoftwareCollection {
         $defaults = [
             'page'   => 1,
             'limit'  => 20,
-            'status' => 'active',
+            'status' => AbstractHostedApp::STATUS_ACTIVE,
             'types'  => ['plugin', 'theme', 'software'],
         ];
         $args = parse_args( $args, $defaults );
@@ -342,7 +343,7 @@ class SmliserSoftwareCollection {
             'term'   => '',
             'page'   => 1,
             'limit'  => 20,
-            'status' => 'active',
+            'status' => AbstractHostedApp::STATUS_ACTIVE,
             'types'  => self::$allowed_app_types,
         );
         $args       = parse_args( $args, $defaults );
@@ -507,7 +508,7 @@ class SmliserSoftwareCollection {
         $db = smliser_dbclass();
 
         $defaults = array(
-            'status' => 'active',
+            'status' => AbstractHostedApp::STATUS_ACTIVE,
             'types'  => self::$allowed_app_types,
         );
         $args = parse_args( $args, $defaults );
@@ -866,7 +867,7 @@ class SmliserSoftwareCollection {
 
             $data = array(
                 'message'       => 'App moved to trash successfully.',
-                'redirect_url'  => smliser_repo_page()
+                'redirect_url'  => \smliser_admin_repo_tab( 'view', array( 'type' => $app->get_type(), 'app_id' => $app->get_id()) )
             );
             $response   = [
                 'success'   => true,

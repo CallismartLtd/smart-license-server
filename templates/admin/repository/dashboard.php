@@ -8,25 +8,37 @@
  */
 
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-table-wrapper">
-    <h1><?php printf( '%s Repository %s', $type ? ucfirst( $type ) : '', $status );?></h1>    
-    <a href="<?php echo esc_url( $add_url ); ?>" class="button action smliser-nav-btn">Upload New</a>
-    <?php if ( isset( $type ) ) : ?>
-        <a href="<?php echo esc_url( smliser_repo_page() ); ?>" class="button action smliser-nav-btn">Repository Listing</a>
-    <?php endif?>
-    <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'plugin' ), smliser_repo_page() ) ); ?>" class="button action smliser-nav-btn">Plugin Repository</a>
-    <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'theme' ), smliser_repo_page() )); ?>" class="button action smliser-nav-btn">Theme Repository</a>
-    <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'software' ), smliser_repo_page() ) ); ?>" class="button action smliser-nav-btn">Software Repository</a>
+    <h1><?php printf( '%s Repository %s', $type ? ucfirst( $type ) : '', $status ); ?></h1>    
 
-    <?php if ( $trashed > 0 ) : ?>
-        <a href="<?php echo esc_url( add_query_arg( array( 'status' => AbstractHostedApp::STATUS_TRASH ), smliser_repo_page() ) ); ?>" class="button action smliser-nav-btn">Trash</a>
-    <?php endif; ?>
+    <div>
+        <a href="<?php echo esc_url( $add_url ); ?>" class="button action smliser-nav-btn">Upload New</a>
+        <?php if ( isset( $type ) ) : ?>
+            <a href="<?php echo esc_url( smliser_repo_page() ); ?>" class="button action smliser-nav-btn">Repository Listing</a>
+        <?php endif; ?>
+        <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'plugin' ), smliser_repo_page() ) ); ?>" class="button action smliser-nav-btn">Plugin Repository</a>
+        <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'theme' ), smliser_repo_page() )); ?>" class="button action smliser-nav-btn">Theme Repository</a>
+        <a href="<?php echo esc_url( add_query_arg( array( 'type' => 'software' ), smliser_repo_page() ) ); ?>" class="button action smliser-nav-btn">Software Repository</a>
 
-    <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
-        <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
-    <?php endif; ?>
+        <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
+            <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+        <?php endif; ?>
+    </div>
+
+    <ul class="subsubsub">
+        <?php foreach ( AbstractHostedApp::get_statuses() as $k => $v ) : ?>
+            <?php if ( SmliserSoftwareCollection::count_apps( ['status' => $k] ) > 0  && $k !== $status ) : ?>
+                <a href="<?php echo esc_url( add_query_arg( array( 'status' => $k ), smliser_repo_page() ) ); ?>" class="smliser-status-link">
+                    <?php echo esc_html( $v ); ?> (<?php echo absint( SmliserSoftwareCollection::count_apps( ['status' => $k, 'type' => $type ] ) ); ?>)
+                </a>
+            <?php endif; ?>
+        <?php endforeach; ?>
+    </ul>
+
+    <br class="clear" />
 
     <?php if ( empty( $apps ) ) : ?>
         <?php 
@@ -43,17 +55,16 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
             );
         ?>           
     <?php else: ?>
+
         <form id="smliser-bulk-action-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
             <div class="smliser-actions-wrapper">
                 <div class="smliser-bulk-actions">
                     <select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>
                         <option value=""><?php echo esc_html__( 'Bulk Actions', 'smliser' ); ?></option>
-                        <option value="active"><?php echo esc_html__( 'Activate', 'smliser' ); ?></option>
-                        <option value="deactivated"><?php echo esc_html__( 'Deactivate', 'smliser' ); ?></option>
-                        <option value="suspended"><?php echo esc_html__( 'Suspend', 'smliser' ); ?></option>
-                        <?php if ( AbstractHostedApp::STATUS_TRASH !== $status ) : ?>
-                            <option value="<?php echo esc_attr( AbstractHostedApp::STATUS_TRASH ); ?>"><?php echo esc_html__( 'Trash', 'smliser' ); ?></option>
-                        <?php endif; ?>
+                        <?php foreach ( AbstractHostedApp::get_statuses() as $status_key => $status_label ) : ?>
+                            <?php if ( $status === $status_key) : continue; endif; ?>
+                            <option value="<?php echo esc_attr( $status_key ); ?>"><?php echo esc_html( $status_label ); ?></option>
+                        <?php endforeach; ?>
                     </select>
                     <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
                 </div>

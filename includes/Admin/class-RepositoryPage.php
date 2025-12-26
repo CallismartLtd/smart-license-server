@@ -57,18 +57,18 @@ class RepositoryPage {
             $args['types']   = $type;
         }
 
-        $status = \smliser_get_query_param( 'status' );
+        $status = \smliser_get_query_param( 'status', AbstractHostedApp::STATUS_ACTIVE );
 
         if ( $status ) {
             $args['status'] = $status;
         }
 
-        $result     = AbstractHostedApp::STATUS_TRASH === $status ? SmliserSoftwareCollection::get_trashed_apps( $args ) : SmliserSoftwareCollection::get_apps( $args );
-        $trashed    = SmliserSoftwareCollection::count_apps( ['status' => AbstractHostedApp::STATUS_TRASH] );
+        $result     = SmliserSoftwareCollection::get_apps( $args );
+
         $apps       = $result['items'];
         $pagination = $result['pagination'];
-        
         $add_url    = smliser_admin_repo_tab( 'add-new' );
+
         include SMLISER_PATH . 'templates/admin/repository/dashboard.php';
 
     }
@@ -155,6 +155,7 @@ class RepositoryPage {
                     'text'  => 'Repository',
                     'url'   => $url->__toString(),
                     'icon'  => 'ti ti-home',
+                    'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
                 ],
 
@@ -162,6 +163,7 @@ class RepositoryPage {
                     'text'  => 'Monetization',
                     'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->__toString(),
                     'icon'  => 'ti ti-cash-register',
+                    'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
                 ],
 
@@ -169,6 +171,7 @@ class RepositoryPage {
                     'text'  => sprintf( 'Edit %s', ucfirst( $app->get_type() ) ),
                     'url'   => $url->add_query_param( 'tab', 'edit' )->__toString(),
                     'icon'  => 'ti ti-edit',
+                    'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
                 ],
 
@@ -176,20 +179,23 @@ class RepositoryPage {
                     'text'  => sprintf( 'Download %s', ucfirst( $app->get_type() ) ),
                     'url'   => $download_url->__toString(),
                     'icon'  => 'ti ti-download',
+                    'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
                 ],
 
                 [
-                    'text'  => sprintf( 'Delete %s', ucfirst( $app->get_type() ) ),
+                    'text'  => sprintf( 'Trash %s', ucfirst( $app->get_type() ) ),
                     'url'   => '',
                     'icon'  => 'ti ti-trash',
+                    'class' => ['smliser-btn', 'smliser-btn-danger', 'smliser-app-delete-button'],
                     'attr'  => ['data-app-info' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type()] )]
                 ],
             ]
         ];
+
         $template_content = [
-            'Installation'          => $app->get_installation(),
-            'Changelog'             => $app->get_changelog(),
+            'Installation'  => $app->get_installation(),
+            'Changelog'     => $app->get_changelog(),
         ];
 
         $template_sidebar   = [

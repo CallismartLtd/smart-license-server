@@ -363,7 +363,7 @@ class Theme extends AbstractHostedApp {
         $self->set_download_url( $result['download_link'] ?? '' );
         $self->set_created_at( $result['created_at'] ?? '' );
         $self->set_last_updated( $result['last_updated'] ?? '' );
-        $self->set_status( $result['status'] ?? 'active' );
+        $self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
 
         $self->load_meta();
 

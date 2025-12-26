@@ -271,7 +271,7 @@ tr:hover:has( .smliser-edit-link ) .smliser-edit-link {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin: 10px 5px;
 }
 
 .smliser-bulk-actions {
@@ -282,7 +282,6 @@ tr:hover:has( .smliser-edit-link ) .smliser-edit-link {
 .smliser-search-box {
     display: flex;
     align-items: center;
-    margin-top: 20px;
 }
 
 .smliser-search-input {
@@ -1521,6 +1520,12 @@ input.smliser_toggle-switch-input {
     height: -webkit-fill-available;
     border-radius: 8px;
     padding: 5px;
+}
+
+.smliser-gallery-preview:focus-within {
+    border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
+    outline: none;
 }
 
 .smliser-gallery-preview_image {

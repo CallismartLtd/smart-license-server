@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\RESTAPI;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -45,7 +46,7 @@ class AppCollection {
         $search = $request->get_param( 'search' );
         $page   = $request->get_param( 'page' ) ?? 1;
         $limit  = $request->get_param( 'limit' ) ?? 25;
-        $status = $request->get_param( 'status' ) ?: 'active';
+        $status = $request->get_param( 'status' ) ?: AbstractHostedApp::STATUS_ACTIVE;
         $types  = $request->get_param( 'types' ) ?: array( 'plugin','theme','software' );
 
         // Query repository

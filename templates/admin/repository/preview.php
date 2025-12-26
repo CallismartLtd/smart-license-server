@@ -70,7 +70,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             <div class="smliser-action-bar">
                 <?php foreach ( $template_header['buttons'] as $button ) : ?>
                     <a href="<?php echo esc_url( $button['url'] ); ?>" 
-                       class="smliser-btn <?php echo strpos( strtolower( $button['text'] ), 'delete' ) !== false ? 'smliser-btn-danger smliser-app-delete-button' : 'smliser-btn-glass'; ?>"
+                       class="<?php echo implode( ' ', $button['class'] ); ?>"
                        <?php 
                        if ( ! empty( $button['attr'] ) ) {
                            foreach ( $button['attr'] as $attr_key => $attr_value ) {
@@ -104,7 +104,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                     </div>
                     
                     <div class="smliser-screenshot-gallery">
-                        <div class="smliser-gallery-preview">
+                        <div tabindex="0" class="smliser-gallery-preview">
                             <?php 
                                 $first_title = array_key_first( $images );
                                 $first_image = current( $images );                            

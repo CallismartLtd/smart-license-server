@@ -264,7 +264,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let tooltips                = document.querySelectorAll( '.smliser-form-description, .smliser-tooltip' );
     let deleteBtn               = document.getElementById( 'smliser-license-delete-button' );
     let updateBtn               = document.querySelector('#smliser-update-btn');
-    let appDeleteBtns           = document.querySelectorAll( '.smliser-app-delete-button' );
+    let trashAppBtns           = document.querySelectorAll( '.smliser-app-delete-button' );
     let selectAllCheckbox       = document.querySelector('#smliser-select-all');
     let dashboardPage           = document.querySelector( '.smliser-admin-dashboard-template.overview' );
     let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
@@ -611,22 +611,25 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-    if ( appDeleteBtns.length ) {
-        appDeleteBtns.forEach( appDeleteBtn => {
-            appDeleteBtn.addEventListener('click', (e)=>{
-                let confirmed = confirm('You are about to delete this plugin from the repository, this action cannot be reversed!');
-                if ( ! confirmed ) {
-                    e.preventDefault();
-                    return;
-                }
+    if ( trashAppBtns.length ) {
+        trashAppBtns.forEach( trashAppBtn => {
+            trashAppBtn.addEventListener('click', (e)=>{
+                e.preventDefault();
                 let appInfo    = '';
-
                 try {
-                    appInfo = JSON.parse( appDeleteBtn.getAttribute( 'data-app-info' ) );
+                    appInfo = JSON.parse( trashAppBtn.getAttribute( 'data-app-info' ) );
                 } catch (error) {
                     smliserNotify( 'App data not found',5000 );
                     return;
                 }
+
+                let message     = `You are about to trash this ${appInfo.type}, it will be automatically deleted after 60 days. Are you sure you want to proceed?`;
+                let confirmed   = confirm( message );
+                
+                if ( ! confirmed ) {
+                    return;
+                }
+
                 let url = new URL( smliser_var.smliser_ajax_url );
                 url.searchParams.set( 'action', 'smliser_delete_app' );
                 url.searchParams.set( 'slug', appInfo.slug );

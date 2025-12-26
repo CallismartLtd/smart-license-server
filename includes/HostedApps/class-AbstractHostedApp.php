@@ -39,7 +39,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @var string $status
      */
-    protected $status = 'active';
+    protected $status = self::STATUS_ACTIVE;
 
     /**
      * App slug.
@@ -205,6 +205,39 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @var string
      */
     const STATUS_TRASH = 'trash';
+
+    /**
+     * App active status.
+     * 
+     * @var string
+     */
+    const STATUS_ACTIVE = 'active';
+
+    /**
+     * App inactive status.
+     * 
+     * @var string
+     */
+    const STATUS_INACTIVE   = 'deactivated';
+
+    /**
+     * App suspended status
+     * 
+     * @var string
+     */
+    const STATUS_SUSPENDED  = 'suspended';
+
+    /**
+     * All status collections.
+     * 
+     * @var array
+     */
+    const STATUSES = [
+        self::STATUS_ACTIVE     => self::STATUS_ACTIVE,
+        self::STATUS_INACTIVE   => self::STATUS_INACTIVE,
+        self::STATUS_SUSPENDED  => self::STATUS_SUSPENDED,
+        self::STATUS_TRASH      => self::STATUS_TRASH,
+    ];
 
     /**
     |----------------
@@ -945,7 +978,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return bool
      */
     public function trash() {
-        $this->set_status( self::STATUS_TRASH );
+        $this->set_status( static::STATUS_TRASH );
 
         return false === \is_smliser_error( $this->save() );
     }
@@ -1008,4 +1041,87 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         return new Exception( 'file_not_found', \sprintf( '%s zip file not found', $this->get_type() ), array( 'status' => 404 ) );
     }
 
+    /**
+     * Get all available statuses with their labels.
+     * 
+     * @return array
+     */
+    public static function get_statuses() {
+        return [
+            static::STATUS_ACTIVE     => 'Active',
+            static::STATUS_INACTIVE   => 'Inactive',
+            static::STATUS_SUSPENDED  => 'Suspended',
+            static::STATUS_TRASH      => 'Trash',
+        ];
+    }
+
+    /*
+    |------------------------
+    | SHARED CONDITIONAL METHODS
+    |------------------------
+    */
+    /**
+     * Check if app is in trash
+     * 
+     * @return bool
+     */
+    public function is_trashed() : bool {
+        return static::STATUS_TRASH === $this->get_status();
+    }
+
+    /**
+     * Check if app is active
+     * 
+     * @return bool
+     */
+    public function is_active() : bool {
+        return static::STATUS_ACTIVE === $this->get_status();
+    }
+
+
+    /**
+     * Check if app is inactive
+     * 
+     * @return bool
+     */
+    public function is_inactive() : bool {
+        return static::STATUS_INACTIVE === $this->get_status();
+    }
+
+    /**
+     * Check if app is suspended
+     * 
+     * @return bool
+     */
+    public function is_suspended() : bool {
+        return static::STATUS_SUSPENDED === $this->get_status();
+    }
+
+    /**
+     * Check if app can be activated
+     * 
+     * @return bool
+     */
+    public function can_be_activated() : bool {
+        return ! $this->is_active() && ! $this->is_trashed();
+    }
+
+    /**
+     * Check if app can be restored from trash.
+     * 
+     * @return bool
+     */
+    public function can_be_restored() : bool {
+        return $this->is_trashed();
+    }
+
+    /**
+     * Check if app can be trashed.
+     * 
+     * @return bool
+     */
+    public function can_be_trashed() : bool {
+        return ! $this->is_trashed();
+    }
+    
 }
