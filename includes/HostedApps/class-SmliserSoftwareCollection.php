@@ -494,6 +494,68 @@ class SmliserSoftwareCollection {
         return $app;
     }
 
+    /**
+     * Count hosted applications across multiple types by status.
+     *
+     * @param array $args {
+     *     @type string $status Application status filter. Default 'active'.
+     *     @type array  $types  List of types to query. Default all ['plugin','theme','software'].
+     * }
+     * @return int Total count of matching applications.
+     */
+    public static function count_apps( array $args = array() ) {
+        $db = smliser_dbclass();
+
+        $defaults = array(
+            'status' => 'active',
+            'types'  => self::$allowed_app_types,
+        );
+        $args = parse_args( $args, $defaults );
+
+        $status = $args['status'];
+        $types  = (array) $args['types'];
+
+        $key = self::make_cache_key( __METHOD__, \compact( 'status', 'types' ) );
+
+        $count = self::cache_get( $key );
+
+        if ( false === $count ) {
+            $sql_parts = [];
+            $params    = [];
+
+            if ( in_array( 'plugin', $types, true ) ) {
+                $table_name  = SMLISER_PLUGIN_ITEM_TABLE;
+                $sql_parts[] = "SELECT COUNT(*) AS total FROM {$table_name} WHERE status = ?";
+                $params[]    = $status;
+            }
+
+            if ( in_array( 'theme', $types, true ) ) {
+                $table_name  = SMLISER_THEME_ITEM_TABLE;
+                $sql_parts[] = "SELECT COUNT(*) AS total FROM {$table_name} WHERE status = ?";
+                $params[]    = $status;
+            }
+
+            if ( in_array( 'software', $types, true ) ) {
+                $table_name  = SMLISER_SOFTWARE_TABLE;
+                $sql_parts[] = "SELECT COUNT(*) AS total FROM {$table_name} WHERE status = ?";
+                $params[]    = $status;
+            }
+
+            if ( empty( $sql_parts ) ) {
+                $count = 0;
+            } else {
+                // Build union and sum all counts
+                $union_sql = implode( " UNION ALL ", $sql_parts );
+                $sql       = "SELECT SUM(total) AS grand_total FROM ( {$union_sql} ) AS counts";
+
+                $count = (int) $db->get_var( $sql, $params );
+            }
+
+            self::cache_set( $key, $count, 30 * \MINUTE_IN_SECONDS );
+        }
+
+        return $count;
+    }
     /*
     |---------------------------
     | CREATE OPERATION METHODS
@@ -819,6 +881,49 @@ class SmliserSoftwareCollection {
                 ->set_exception( $e )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
         }
+    }
+
+    /**
+     * Perform bulk action on hosted apps
+     * 
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function app_bulk_action( Request $request ) : Response {
+        $app_ids    = $request->get( 'ids', [] );
+        $action     = $request->get( 'bulk_action' );
+        $affected   = 0;
+
+        foreach( (array) $app_ids as $data ) {
+            $type   = $data['app_type'] ?? '';
+            $slug   = $data['app_slug'] ?? '';
+
+            if ( empty( $type ) || empty( $slug ) ) {
+                continue;
+            }
+
+            $app    = self::get_app_by_slug( $type, $slug );
+
+            if ( ! $app ) {
+                continue;
+            }
+
+            if ( 'delete' === strtolower( $action ) ) {
+                $app->delete() && $affected++;
+                continue;
+            }
+
+            $app->set_status( $action );
+            $app->save() && $affected++;
+        }
+
+        $request->set( 'message', \sprintf( '%s affected!', $affected ) );
+        $request->set( 'redirect_url', \smliser_repo_page() );
+        $response = ( new Response( 200, [], '' ) )
+            ->set_response_data( $request );
+
+        self::cache_clear();
+        return $response;
     }
 
     /*
