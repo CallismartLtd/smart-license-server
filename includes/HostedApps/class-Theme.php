@@ -372,7 +372,7 @@ class Theme extends AbstractHostedApp {
          * 
          * @var \SmartLicenseServer\FileSystem\ThemeRepository $repo_class
          */
-        $repo_class = SmliserSoftwareCollection::get_app_repository_class( $self->get_type() );
+        $repo_class = HostedApplicationService::get_app_repository_class( $self->get_type() );
 
         $theme_metadata = $repo_class->get_metadata( $self->get_slug() );
         $self->set_version( $theme_metadata['version'] ?? '' );

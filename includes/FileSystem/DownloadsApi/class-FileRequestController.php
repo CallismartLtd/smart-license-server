@@ -10,7 +10,7 @@ namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Exceptions\FileRequestException;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -31,7 +31,7 @@ class FileRequestController {
             $app_slug = $request->get( 'app_slug' );
             $token    = $request->get( 'download_token' );
 
-            $app_class = SmliserSoftwareCollection::get_app_class( $app_type );
+            $app_class = HostedApplicationService::get_app_class( $app_type );
             $method    = 'get_by_slug';
 
             if ( ! method_exists( $app_class, $method ) ) {
@@ -89,7 +89,7 @@ class FileRequestController {
     public static function get_admin_application_zip_file( FileRequest $request ): FileResponse {
         try {
             $app_type   = $request->get( 'app_type', '' );
-            $app_class  = SmliserSoftwareCollection::get_app_class( $app_type );
+            $app_class  = HostedApplicationService::get_app_class( $app_type );
             $method     = "get_{$app_type}";
 
             if ( ! \method_exists( $app_class, $method ) ) {
@@ -159,7 +159,7 @@ class FileRequestController {
             $app_slug   = $request->get( 'app_slug' );
             $asset_name = $request->get( 'asset_name' );
 
-            $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app_type );
+            $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
             if ( ! $repo_class ) {
                 throw new FileRequestException( 'unsupported_repo_type' );
             }

@@ -4,7 +4,7 @@
  */
 namespace SmartLicenseServer\Admin;
 
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
@@ -125,7 +125,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                                             <?php foreach ( array_slice( $apps, 0, 5 ) as $index => $app ) : 
                                                                 $app_sl     = $app['app_slug'] ?? '';
                                                                 $app_ty     = $app['app_type'] ?? '';
-                                                                $app_obj    = SmliserSoftwareCollection::get_app_by_slug( $app_ty, $app_sl );
+                                                                $app_obj    = HostedApplicationService::get_app_by_slug( $app_ty, $app_sl );
                                                                 
                                                                 ?>
                                                                 <li class="smliser-ranking-item">

@@ -13,7 +13,7 @@ use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Database\Schema\DBTables;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -175,7 +175,7 @@ class Installer {
 
             // Move plugin data to new column
             foreach ( $plugin_ids as $row_id => $plugin_id ) {
-                $plugin = SmliserSoftwareCollection::get_app_by_id( 'plugin', $plugin_id );
+                $plugin = HostedApplicationService::get_app_by_id( 'plugin', $plugin_id );
                 if ( ! $plugin ) {
                     continue;
                 }

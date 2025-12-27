@@ -13,7 +13,7 @@ use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use \SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 /**
@@ -735,7 +735,7 @@ class License {
 
         if ( ! empty( $data['app_prop'] ) && preg_match( '#^[^/]+/[^/]+$#', (string) $data['app_prop'] ) ) {
             list( $app_type, $app_slug ) = explode( '/', $data['app_prop'], 2 );
-            $app_class  = SmliserSoftwareCollection::get_app_class( $app_type );
+            $app_class  = HostedApplicationService::get_app_class( $app_type );
             $method     = "get_by_slug";
 
             if ( \class_exists( $app_class ) && \method_exists( $app_class, $method ) ) {

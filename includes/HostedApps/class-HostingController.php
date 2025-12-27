@@ -46,11 +46,11 @@ class HostingController {
                 throw new RequestException( 'invalid_parameter_type', 'The app type parameter is required.' , array( 'status' => 400 ) );
             }
 
-            if ( ! SmliserSoftwareCollection::app_type_is_allowed( $app_type ) ) {
+            if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
                 throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , array( 'status' => 400 ) );
             }
             $app_id         = $request->get( 'app_id', 0 );
-            $app_class      = SmliserSoftwareCollection::get_app_class( $app_type );
+            $app_class      = HostedApplicationService::get_app_class( $app_type );
             $init_method    = "get_{$app_type}";
 
             if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $init_method ) ) {
@@ -197,7 +197,7 @@ class HostingController {
                 throw new RequestException( 'missing_data', 'Missing required application, slug, asset type, or file data.' );
             }
             
-            if ( ! SmliserSoftwareCollection::app_type_is_allowed( $app_type ) ) {
+            if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
                 throw new RequestException( 
                     'invalid_input', 
                     sprintf( 'The app type "%s" is not supported.', $app_type ) 
@@ -208,7 +208,7 @@ class HostingController {
                 throw new RequestException( 'invalid_input', 'Uploaded asset file is invalid or missing.' );
             }
 
-            $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app_type );
+            $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
             if ( ! $repo_class ) {
                 throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
             }
@@ -271,14 +271,14 @@ class HostingController {
                 throw new RequestException( 'missing_data', 'Application type, slug, and asset name are required.' );
             }
 
-            if ( ! SmliserSoftwareCollection::app_type_is_allowed( $app_type ) ) {
+            if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
                 throw new RequestException(
                     'invalid_input',
                     sprintf( 'The app type "%s" is not supported', $app_type )
                 );
             }
 
-            $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app_type );
+            $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
             if ( ! $repo_class ) {
                 throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
             }
@@ -320,7 +320,7 @@ class HostingController {
             $app_slug   = $request->get( 'slug' );
             $app_type   = $request->get( 'type' );
 
-            $app        = SmliserSoftwareCollection::get_app_by_slug( $app_type, $app_slug );
+            $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
             if ( ! $app ) {
                 throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found', $app_type, $app_slug ), array( 'status' => 404 ) );
@@ -342,7 +342,7 @@ class HostingController {
 
             // Deal with trashed apps.
             if ( in_array( AbstractHostedApp::STATUS_TRASH, array( $old_status, $status ), true ) ) {
-                $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app_type );
+                $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
                 
                 if ( ! $repo_class ) {
                     throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
@@ -398,7 +398,7 @@ class HostingController {
                 continue;
             }
 
-            $app    = SmliserSoftwareCollection::get_app_by_slug( $type, $slug );
+            $app    = HostedApplicationService::get_app_by_slug( $type, $slug );
 
             if ( ! $app ) {
                 continue;

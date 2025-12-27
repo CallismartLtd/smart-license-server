@@ -9,7 +9,7 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -512,7 +512,7 @@ class DashboardPage {
             foreach ( $apps as $app ) {
                 $app_t      = $app['app_type'] ?? '';
                 $app_s      = $app['app_slug'] ?? '';
-                $app_obj    = SmliserSoftwareCollection::get_app_by_slug( $app_t, $app_s );
+                $app_obj    = HostedApplicationService::get_app_by_slug( $app_t, $app_s );
                 $label      = $app_obj ? $app_obj->get_name() : 'Unknown';
                 $top_apps_labels[] = $label;
                 $top_apps_data[] = (int) ( $app['metric_total'] ?? 0 );

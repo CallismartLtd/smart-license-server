@@ -399,7 +399,7 @@ class Plugin extends AbstractHostedApp {
          * 
          * @var \SmartLicenseServer\FileSystem\PluginRepository $repo_class
          */
-        $repo_class = SmliserSoftwareCollection::get_app_repository_class( $self->get_type() );
+        $repo_class = HostedApplicationService::get_app_repository_class( $self->get_type() );
 
         $plugin_meta    = $repo_class->get_metadata( $self->get_slug() );        
         $self->set_version( $plugin_meta['stable_tag'] ?? '' );

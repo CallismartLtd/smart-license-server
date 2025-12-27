@@ -8,7 +8,7 @@
  */
 
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-table-wrapper">
@@ -30,9 +30,9 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
     <ul class="subsubsub">
         <?php foreach ( AbstractHostedApp::get_statuses() as $k => $v ) : ?>
-            <?php if ( SmliserSoftwareCollection::count_apps( ['status' => $k] ) > 0  && $k !== $status ) : ?>
+            <?php if ( HostedApplicationService::count_apps( ['status' => $k] ) > 0  && $k !== $status ) : ?>
                 <a href="<?php echo esc_url( add_query_arg( array( 'status' => $k ), smliser_repo_page() ) ); ?>" class="smliser-status-link">
-                    <?php echo esc_html( $v ); ?> (<?php echo absint( SmliserSoftwareCollection::count_apps( ['status' => $k, 'type' => $type ] ) ); ?>)
+                    <?php echo esc_html( $v ); ?> (<?php echo absint( HostedApplicationService::count_apps( ['status' => $k, 'type' => $type ] ) ); ?>)
                 </a>
             <?php endif; ?>
         <?php endforeach; ?>

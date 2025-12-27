@@ -16,7 +16,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -49,7 +49,7 @@ class Licenses {
         $app_type       = $request->get_param( 'app_type' );
         $app_slug       = $request->get_param( 'app_slug' );
 
-        $hosted_app     = SmliserSoftwareCollection::get_app_by_slug( $app_type, $app_slug );
+        $hosted_app     = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
         if ( ! $hosted_app ) {
             $response = new WP_Error( 'license_error', sprintf( 'The %s with this slug "%s" does not exist', $app_type, $app_slug ), array( 'status' => 404 ) );
@@ -278,7 +278,7 @@ class Licenses {
         $license_key    = $request->get_param( 'license_key' );
         $app_type       = $request->get_param( 'app_type' );
         $app_slug       = $request->get_param( 'app_slug' );
-        $hosted_app     = SmliserSoftwareCollection::get_app_by_slug( $app_type, $app_slug );
+        $hosted_app     = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
         if ( ! $hosted_app ) {
             $response = new WP_Error( 'license_error', sprintf( 'The %s with this slug "%s" does not exist', $app_type, $app_slug ), array( 'status' => 404 ) );
@@ -366,7 +366,7 @@ class Licenses {
 
         $app_type       = $request->get_param( 'app_type' );
         $app_slug       = $request->get_param( 'app_slug' );
-        $hosted_app     = SmliserSoftwareCollection::get_app_by_slug( $app_type, $app_slug );
+        $hosted_app     = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
         if ( ! $hosted_app ) {
             $response = new WP_Error( 'license_error', sprintf( 'The %s with this slug "%s" does not exist', $app_type, $app_slug ), array( 'status' => 404 ) );

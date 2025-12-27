@@ -12,7 +12,7 @@ use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -72,7 +72,7 @@ class FileResponse extends Response {
         $options = \parse_args( (array) $args, $default_args );
 
         if ( ! empty( $options['type'] ) ) {
-            $this->repo_class   = SmliserSoftwareCollection::get_app_repository_class( (string) $options['type'] );
+            $this->repo_class   = HostedApplicationService::get_app_repository_class( (string) $options['type'] );
         } else {
             $this->repo_class = FileSystem::instance();
         }

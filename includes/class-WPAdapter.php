@@ -21,7 +21,7 @@ use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;

@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\RESTAPI\Versions\V1;
@@ -63,7 +63,7 @@ class RepositoryPage {
             $args['status'] = $status;
         }
 
-        $result     = SmliserSoftwareCollection::get_apps( $args );
+        $result     = HostedApplicationService::get_apps( $args );
 
         $apps       = $result['items'];
         $pagination = $result['pagination'];
@@ -98,11 +98,11 @@ class RepositoryPage {
         $id     = smliser_get_query_param( 'app_id' );
         $type   = smliser_get_query_param( 'type' );
     
-        if ( ! SmliserSoftwareCollection::app_type_is_allowed( $type ) ) {
+        if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
 
-        $app = SmliserSoftwareCollection::get_app_by_id( $type, $id );
+        $app = HostedApplicationService::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
@@ -120,7 +120,7 @@ class RepositoryPage {
         $id     = smliser_get_query_param( 'app_id' );
         $type   = smliser_get_query_param( 'type' );
         
-        if ( ! SmliserSoftwareCollection::app_type_is_allowed( $type ) ) {
+        if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
 
@@ -130,13 +130,13 @@ class RepositoryPage {
             smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" edit file does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
 
-        $app = SmliserSoftwareCollection::get_app_by_id( $type, $id );
+        $app = HostedApplicationService::get_app_by_id( $type, $id );
 
         if ( ! $app ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
 
-        $repo_class = SmliserSoftwareCollection::get_app_repository_class( $app->get_type() );
+        $repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
 
         $url            = new URL( admin_url( 'admin.php?page=repository' ) );
         $download_url   = new URL( admin_url( 'admin-post.php' ) );

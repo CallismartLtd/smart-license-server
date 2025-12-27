@@ -9,7 +9,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
-use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -487,6 +487,6 @@ class Monetization {
             return null;
         }
 
-        return SmliserSoftwareCollection::get_app_by_id( $this->app_type, $this->app_id );
+        return HostedApplicationService::get_app_by_id( $this->app_type, $this->app_id );
     }
 }

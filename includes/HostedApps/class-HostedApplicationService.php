@@ -26,7 +26,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * This class provides all methods required to manage hosted applications and their data, 
  * it also supports caching, pagination, searching, asset management, and bulk operations via the request API.
  */
-class SmliserSoftwareCollection {
+class HostedApplicationService {
     use CacheAwareTrait;
     /**
      * Allowed app types
