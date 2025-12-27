@@ -22,7 +22,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * Software Hosting Controller handles HTTP request and response for hosted applications.
  */
-class SoftwareHostingController {
+class HostingController {
     /*
     |---------------------------
     | CREATE OPERATION METHODS

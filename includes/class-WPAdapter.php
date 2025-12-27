@@ -18,7 +18,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
-use SmartLicenseServer\HostedApps\SoftwareHostingController as HostingController;
+use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\SmliserSoftwareCollection;
