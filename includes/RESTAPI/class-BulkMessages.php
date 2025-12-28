@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\RESTAPI;
 
-use SmartLicenseServer\BulkMessages as MessageModel;
+use SmartLicenseServer\Messaging\BulkMessages as MessageModel;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;

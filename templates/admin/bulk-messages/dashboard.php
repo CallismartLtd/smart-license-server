@@ -12,8 +12,8 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
     <h1><?php esc_html_e( 'Bulk Messages', 'smliser' ); ?></h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=smliser-bulk-message&tab=compose-new') ); ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-plus"></span> <?php esc_html_e( 'Compose New', 'smliser' ); ?></a>
 
-    <?php if ( smliser_get_query_param( 'success' ) ) : ?>
-        <?php wp_admin_notice( 'Success', ['type' => 'success', 'dismissible' => true] ) ?>
+    <?php if ( $notice = smliser_get_query_param( 'message' ) ) : ?>
+        <?php wp_admin_notice( $notice, ['type' => 'success', 'dismissible' => true] ) ?>
     <?php endif; ?>
 
     <?php if ( empty( $messages ) ) : ?>
@@ -34,7 +34,8 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 </div>
             </div>
         
-            <input type="hidden" name="action" value="smliser_bulk_message_bulk_action">
+            <input type="hidden" name="action" value="smliser_bulk_action">
+            <input type="hidden" name="context" value="bulk-message">
             <?php wp_nonce_field( 'smliser_table_nonce', 'smliser_table_nonce'); ?>
             <table class="widefat striped">
                 <thead>
@@ -51,7 +52,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
         
                     <?php foreach ( $messages as $message ) : ?>        
                         <tr>
-                            <td><input type="checkbox" class="smliser-checkbox" name="message_ids[]" value="<?php echo esc_attr( $message->get_id() ); ?>"> </td>
+                            <td><input type="checkbox" class="smliser-checkbox" name="ids[]" value="<?php echo esc_attr( $message->get_id() ); ?>"> </td>
                             <td class="smliser-edit-row">
                                 <?php echo esc_html( $message->get_id() ); ?>
                                 <p class="smliser-edit-link">

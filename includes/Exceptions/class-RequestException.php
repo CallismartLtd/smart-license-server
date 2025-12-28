@@ -91,6 +91,8 @@ class RequestException extends Exception {
             'title'   => 'Invalid Credentials',
             'message' => 'The provided API key or token is incorrect or expired.'
         ],
+
+        
         'token_expired' => [
             'status'  => 401,
             'title'   => 'Session Expired',
