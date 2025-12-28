@@ -5,6 +5,8 @@
  * @author Callistus Nwachukwu
  */
 
+use SmartLicenseServer\Utils\Sanitizer;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -13,5 +15,5 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @param string|array $data
  */
 function unslash( $data ) {
-    return wp_unslash( $data );
+    return Sanitizer::unslash( $data );
 }
