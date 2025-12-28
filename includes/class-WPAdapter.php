@@ -9,9 +9,7 @@
 
 namespace SmartLicenseServer;
 
-use SmartLicenseServer\Admin\BulkMessagePage;
 use SmartLicenseServer\Admin\Menu;
-use SmartLicenseServer\Admin\OptionsPage;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
@@ -21,7 +19,7 @@ use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\Messaging\MessageController;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
@@ -100,7 +98,6 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'smliser_app_asset_upload'                      => [__CLASS__, 'parse_app_asset_upload_request'],
             'smliser_app_asset_delete'                      => [__CLASS__, 'parse_app_asset_delete_request'],
             'smliser_save_monetization_tier'                => [__CLASS__, 'parse_monetization_tier_form'],
-            'smliser_authorize_app'                         => [SmliserAPICred::class, 'oauth_client_consent_handler'],
             'smliser_bulk_action'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_all_actions'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_generate_download_token'               => [__CLASS__, 'parse_download_token_generation_request'],
@@ -110,9 +107,8 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'smliser_key_generate'                          => [SmliserAPICred::class, 'admin_create_cred_form'],
             'smliser_revoke_key'                            => [SmliserAPICred::class, 'revoke'],
             'smliser_oauth_login'                           => [SmliserAPICred::class, 'oauth_login_form_handler'],
-            'smliser_publish_bulk_message'                  => [BulkMessagePage::class, 'publish_bulk_message'],
-            'smliser_bulk_message_bulk_action'              => [BulkMessagePage::class, 'bulk_action'],
-            'smliser_options'                               => [OptionsPage::class, 'options_form_handler'],
+            'smliser_authorize_app'                         => [SmliserAPICred::class, 'oauth_client_consent_handler'],
+            'smliser_publish_bulk_message'                  => [__CLASS__, 'parse_bulk_message_publish'],
             'smliser_get_product_data'                      => [__CLASS__, 'parse_monetization_provider_product_request'],
             'smliser_delete_monetization_tier'              => [__CLASS__, 'parse_monetization_tier_deletion'],
             'smliser_toggle_monetization'                   => [__CLASS__, 'parse_toggle_monetization'],
@@ -122,30 +118,6 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             $callback   = $handler_map[$trigger];
             is_callable( $callback ) && $callback();
 
-        }        
-    }
-
-    /**
-     * Register REST API routes
-     *
-     * @return void
-     */
-    public function register_rest_routes() {
-        $api_config = V1::get_routes();
-        $namespace = $api_config['namespace'];
-        $routes = $api_config['routes'];
-
-        foreach ( $routes as $route_config ) {
-            register_rest_route(
-                $namespace,
-                $route_config['route'],
-                array(
-                    'methods'             => $route_config['methods'],
-                    'callback'            => $route_config['callback'],
-                    'permission_callback' => $route_config['permission'],
-                    'args'                => $this->validate_rest_args( $route_config['args'] ),
-                )
-            );
         }        
     }
 
@@ -454,8 +426,12 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $handler    = self::resolve_bulk_action_handler( $context );
 
         $request    = new Request([
-            'ids'   => smliser_get_param( 'ids', [], $_REQUEST ),
+            'ids'           => smliser_get_param( 'ids', [], $_REQUEST ),
             'bulk_action'   => \smliser_get_param( 'bulk_action', '', $_REQUEST ),
+            'is_authorized' => current_user_can( 'manage_options' ),
+            'user_agent'    => smliser_get_user_agent(),
+            'request_time'  => time(),
+            'client_ip'     => smliser_get_client_ip(),
         ]);
 
         if ( 'repository' === $context ) {
@@ -467,14 +443,18 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $response   = \call_user_func( $handler, $request );
 
         if ( $response->ok() ) {
-            $target = $request->get( 'redirect_url' );
+            $target = $request->get( 'redirect_url' ) ?? \wp_get_referer();
             $url    = new URL( $target );
             $url->add_query_param( 'message', $response->get_response_data()->get( 'message' ) );
             wp_safe_redirect( $url->get_href() );
             exit;
         }
 
-        wp_safe_redirect( \wp_get_referer() );
+        $target = \wp_get_referer();
+        $url    = new URL( $target );
+        $error_message   = $response->has_errors() ? $response->get_exception()->get_error_message() : 'Bulk action failed';
+        $url->add_query_param( 'message', $error_message );
+        wp_safe_redirect( $url->get_href() );
         exit;
     }
 
@@ -758,12 +738,90 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
 
         $response->send();
     }
+
+    /**
+     * Parse bulk message publish request.
+     */
+    private static function parse_bulk_message_publish() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+                'field_id' => 'security',
+            ), 401 );
+        }
+
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $request    = new Request([
+            'subject'       => \smliser_get_post_param( 'subject' ),
+            'message_body'  => \wp_kses_post( $_POST['message_body'] ?? '' ),
+            'message_id'    => \smliser_get_post_param( 'message_id', 0 ),
+            'is_authorized' => true
+
+        ]);
+
+        $assocs_apps    = smliser_get_post_param( 'associated_apps', [] );
+
+        $apps       = [];
+        foreach( $assocs_apps as $app_data ) {
+
+            try {
+                list( $type, $slug ) = explode( ':', $app_data );
+
+                if ( ! empty( $type ) && ! empty( $slug ) ) {
+                    $apps[$type][]  = $slug;
+                }
+            } catch (\Throwable $th) {}
+
+        }
+
+        $request->set( 'associated_apps', $apps );
+
+        $response   = MessageController::save_bulk_message( $request );
+
+        if ( $response->ok() && $response->is_json_response() ) {
+            $body = \json_decode( $response->get_body(), true );
+
+            $body['data']['redirect_url'] =  admin_url( 'admin.php?page=smliser-bulk-message&tab=edit&msg_id=' . $body['data']['message_id'] ?? '' );
+
+            $response->set_body( \smliser_safe_json_encode( $body ) );
+        }
+
+        $response->send();
+    }
     
     /**
     |------------------------
     | REST API Configuration
     |------------------------
      */
+
+    /**
+     * Register REST API routes
+     *
+     * @return void
+     */
+    public function register_rest_routes() {
+        $api_config = V1::get_routes();
+        $namespace = $api_config['namespace'];
+        $routes = $api_config['routes'];
+
+        foreach ( $routes as $route_config ) {
+            register_rest_route(
+                $namespace,
+                $route_config['route'],
+                array(
+                    'methods'             => $route_config['methods'],
+                    'callback'            => $route_config['callback'],
+                    'permission_callback' => $route_config['permission'],
+                    'args'                => $this->validate_rest_args( $route_config['args'] ),
+                )
+            );
+        }        
+    }
+
     /**
      * Ensures HTTPS/TLS for REST API endpoints within the plugin's namespace.
      *
@@ -919,6 +977,9 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
                 break;
             case 'repository':
                 $handler    = [HostingController::class, 'app_bulk_action'];
+                break;
+            case 'bulk-message':
+                $handler    = [MessageController::class, 'bulk_message_action'];
                 break;
             default:
             $handler = function() use( $context ) {
