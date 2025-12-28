@@ -101,6 +101,5 @@ class LicensePage {
         $all_tasks  = RepositoryAnalytics::get_license_activity_logs();
 
         include_once SMLISER_PATH . 'templates/admin/license/logs.php';
-        return;
     }
 }

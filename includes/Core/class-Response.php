@@ -500,7 +500,7 @@ class Response {
      *
      * Useful for logging or merging with another Exception instance.
      *
-     * @return SmartLicenseServer\Exception
+     * @return \SmartLicenseServer\Exceptions\Exception The internal Exception object.
      */
     public function get_exception(): Exception {
         return $this->error;
