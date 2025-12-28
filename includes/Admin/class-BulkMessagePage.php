@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\Admin;
 
-use \SmartLicenseServer\BulkMessages;
+use SmartLicenseServer\Messaging\BulkMessages;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -76,89 +76,5 @@ class BulkMessagePage {
 
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/delete.php';
        
-    }
-
-    /**
-     * Handle ajax bulk message publish
-     */
-    public static function publish_bulk_message() {
-        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
-        }
-
-        $subject        = smliser_get_post_param( 'subject', null ) ?? smliser_send_json_error( [ 'message' => __( 'Message subject cannot be empty', 'smliser' ) ] );
-        $body           = isset( $_POST['message_body'] ) ? wp_kses_post( unslash( $_POST['message_body'] ) ) : smliser_send_json_error( [ 'message' => __( 'Message body cannot be empty', 'smliser' ) ] );
-        $message_id     = smliser_get_post_param( 'message_id' );
-        $assocs_apps    = smliser_get_post_param( 'associated_apps', [] );
-
-        $apps       = [];
-        foreach( $assocs_apps as $app_data ) {
-
-            try {
-                list( $type, $slug ) = explode( ':', $app_data );
-
-                if ( ! empty( $type ) && ! empty( $slug ) ) {
-                    $apps[$type][]  = $slug;
-                }
-            } catch (\Throwable $th) {}
-
-        }
-
-        if ( $message_id ) {
-            $bulk_msg = BulkMessages::get_message( $message_id );
-
-            if ( ! $bulk_msg ) {
-                smliser_send_json_error( ['message' => __( 'Invalid or deleted message', 'smliser' )] );
-            }
-        } else {
-            $bulk_msg   = new BulkMessages();
-        }
-        
-
-        $bulk_msg->set_subject( $subject );
-        $bulk_msg->set_body( $body );
-        $bulk_msg->set_associated_apps( $apps, true );
-
-        if ( $bulk_msg->save() ) {
-            smliser_send_json_success( ['message' => __( 'Message has been published.', 'smliser' ), 'redirect_url' => admin_url( 'admin.php?page=smliser-bulk-message&tab=edit&msg_id=' . $bulk_msg->get_message_id() )], 200 );
-        }
-        
-        smliser_send_json_error( ['message' => __( 'Unable to publish message.', 'smliser' )], 503 );
-
-    }
-
-    /**
-     * Perform bulk action on bulk message IDs
-     */
-    public static function bulk_action() {
-        if ( ! wp_verify_nonce( smliser_get_post_param( 'smliser_table_nonce' ), 'smliser_table_nonce' ) ) {
-            wp_safe_redirect( admin_url( 'admin.php?page=smliser-bulk-message' ) );
-            exit;
-        }
-
-        $message_ids    = smliser_get_post_param( 'message_ids', [] );
-        $action         = smliser_get_post_param( 'bulk_action' );
-
-        $allowed_actions = [ 'delete'];
-
-        if ( ! in_array( $action, $allowed_actions, true ) ) {
-            smliser_send_json_error( array( 'message' => __( 'Action is not allowed', 'smliser' ) ), 400 );
-        }
-
-        switch( $action ) {
-
-            case 'delete': 
-                foreach( (array) $message_ids as $id ) {
-                    $message = BulkMessages::get_message( $id );
-
-                    if ( $message ) {
-                        $message->delete();
-                    }
-
-                }
-        }
-
-        wp_safe_redirect( admin_url( 'admin.php?page=smliser-bulk-message&success=1' ) );
-        exit;
     }
 }
