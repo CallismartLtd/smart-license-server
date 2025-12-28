@@ -6,7 +6,9 @@
  * @package SmartLicenseServer
  */
 
-namespace SmartLicenseServer;
+namespace SmartLicenseServer\Messaging;
+
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -15,6 +17,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * or for the given hosted application(s).
  */
 class BulkMessages {
+    use SanitizeAwareTrait;
     /**
      * The dataabase ID of this message
      * 
@@ -96,7 +99,7 @@ class BulkMessages {
      * @return self
      */
     public function set_message_id( $message_id ) {
-        $this->message_id = sanitize_text_field( unslash( $message_id ) );
+        $this->message_id = $this->sanitize_text( $message_id );
 
         return $this;
     }
@@ -108,7 +111,7 @@ class BulkMessages {
      * @return self
      */
     public function set_subject( $subject ) {
-        $this->subject = sanitize_text_field( unslash( $subject ) );
+        $this->subject = $this->sanitize_text( $subject );
 
         return $this;
     }
@@ -120,7 +123,7 @@ class BulkMessages {
      * @return self
      */
     public function set_body( $body ) {
-        $this->body = wp_kses_post( unslash( $body ) );
+        $this->body = $this->sanitize_html( $body );
 
         return $this;
     }
@@ -132,7 +135,7 @@ class BulkMessages {
      * @return self
      */
     public function set_created_at( $date ) {
-        $this->created_at = sanitize_text_field( unslash( $date ) );
+        $this->created_at = $this->sanitize_text( $date );
         return $this; 
     }
 
@@ -143,7 +146,7 @@ class BulkMessages {
      * @return self
      */
     public function set_updated_at( $date ) {
-        $this->updated_at = sanitize_text_field( unslash( $date ) );
+        $this->updated_at = $this->sanitize_text( $date );
         return $this;
     }
 
@@ -193,7 +196,7 @@ class BulkMessages {
      */
     public function set_associated_app( $app_type, $slug ) {
         $app_type = sanitize_key( $app_type );
-        $slug     = sanitize_text_field( unslash( $slug ) );
+        $slug     = $this->sanitize_text( $slug );
 
         if ( ! isset( $this->associated_apps[$app_type] ) ) {
             $this->associated_apps[$app_type] = array();
@@ -398,7 +401,7 @@ class BulkMessages {
      */
     public static function get_message( $id_or_message_id ) {
         $db = \smliser_dbclass();
-        $id_or_message_id = is_numeric( $id_or_message_id ) ? absint( $id_or_message_id ) : sanitize_text_field( unslash( $id_or_message_id ) );
+        $id_or_message_id = is_numeric( $id_or_message_id ) ? self::sanitize_int( $id_or_message_id ) : self::sanitize_text( $id_or_message_id );
 
         $table = SMLISER_BULK_MESSAGES_TABLE;
 
@@ -578,7 +581,7 @@ class BulkMessages {
             'id'                => $this->get_id(),
             'message_id'        => $this->get_message_id(),
             'subject'           => $this->get_subject(),
-            'body'              => wp_kses_post( $this->get_body() ),
+            'body'              => $this->get_body(),
             'created_at'        => $this->get_created_at(),
             'updated_at'        => $this->get_updated_at(),
             'read'              => (bool) $this->get_is_read(),
@@ -601,8 +604,8 @@ class BulkMessages {
         $apps = array();
 
         foreach ( $results as $row ) {
-            $type = sanitize_key( $row['app_type'] );
-            $slug = sanitize_text_field( $row['app_slug'] );
+            $type = self::sanitize_key( $row['app_type'] );
+            $slug = self::sanitize_text( $row['app_slug'] );
 
             if ( ! isset( $apps[$type] ) ) {
                 $apps[$type] = array();
