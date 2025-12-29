@@ -1,420 +1,128 @@
 <?php
 /**
- * Filesystem class file
+ * FileSystem Manager
  *
- * @author Callistus Nwachukwu <admin@callismart.com.ng>
- * @since 0.0.6
+ * Provides a unified API for filesystem operations across different environments
+ * (WordPress, Flysystem, native PHP). Automatically selects the correct adapter.
+ *
+ * Methods are proxied to the underlying adapter.
+ *
+ * @package SmartLicenseServer\FileSystem
  */
 
 namespace SmartLicenseServer\FileSystem;
 
-defined( 'SMLISER_ABSPATH' ) || exit; // phpcs-ignore
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Provides a safe filesystem operations handler.
+ * FileSystem manager singleton.
+ *
+ * Automatically detects the environment and uses the correct FileSystem adapter.
+ *
+ * @method bool is_dir(string $path)
+ * @method bool is_file(string $path)
+ * @method bool exists(string $path)
+ * @method bool is_readable(string $path)
+ * @method bool is_writable(string $path)
+ * @method bool is_stream(mixed $thing)
+ * @method string|false get_contents(string $file)
+ * @method bool put_contents(string $path, string $contents, int $mode = FS_CHMOD_FILE)
+ * @method bool delete(string $file, bool $recursive = false, string|false $type = false)
+ * @method bool mkdir(string $path, int|false $chmod = false, bool $recursive = true)
+ * @method bool rmdir(string $path, bool $recursive = false)
+ * @method bool copy(string $source, string $dest, bool $overwrite = false)
+ * @method bool move(string $source, string $dest, bool $overwrite = false)
+ * @method bool rename(string $source, string $dest)
+ * @method bool chmod(string $file, int|false $mode = false, bool $recursive = false)
+ * @method bool chown(string $file, string|int $owner, bool $recursive = false)
+ * @method array|false list(?string $path = null)
+ * @method int|false filesize(string $path)
+ * @method int|false filemtime(string $path)
+ * @method array|false stat(string $path)
+ * @method bool readfile(string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576)
  */
 class FileSystem {
 
     /**
-     * The core filesystem object.
+     * Singleton instance.
      *
-     * @var \WP_Filesystem_Base
+     * @var FileSystem|null
      */
-    protected $fs;
+    protected static ?FileSystem $instance = null;
 
     /**
-     * Constructor.
+     * The active filesystem adapter.
      *
+     * @var FileSystemAdapterInterface
      */
-    public function __construct() {
-        $this->fs = self::_init_fs();
+    protected FileSystemAdapterInterface $adapter;
+
+    /**
+     * Private constructor to enforce singleton.
+     *
+     * @param FileSystemAdapterInterface $adapter
+     */
+    private function __construct( FileSystemAdapterInterface $adapter ) {
+        $this->adapter = $adapter;
     }
 
     /**
-     * Initialize the core filesystem class
-     * 
-     * @return object
+     * Get the singleton instance.
+     *
+     * @return FileSystem
      */
-    private static function _init_fs() {
-        // If we are in WordPress context, use its filesystem API
-        if ( defined( 'SMLISER_ABSPATH' ) ) {
-            // This is WordPress context
-            global $wp_filesystem;
-            if ( ! $wp_filesystem ) {
-                require_once SMLISER_ABSPATH . 'wp-admin/includes/file.php';
-                
-                WP_Filesystem();
-            }
-            return $wp_filesystem;
+    public static function instance(): FileSystem {
+        if ( self::$instance === null ) {
+            self::$instance = new self( static::detect_adapter() );
+        }
+        return self::$instance;
+    }
+
+    /**
+     * Detect the environment and return the appropriate filesystem adapter.
+     *
+     * @return FileSystemAdapterInterface
+     */
+    protected static function detect_adapter(): FileSystemAdapterInterface {
+        // WordPress context
+        if ( defined( 'ABSPATH' ) && function_exists( 'apply_filters' ) ) {
+            return new WPFileSystemAdapter();
         }
 
-        //ToDO: We will use Flysystem as fallback
+        // TODO: Add Flysystem adapter detection here if Flysystem is installed
+        // Example:
+        // if ( class_exists( '\League\Flysystem\Filesystem' ) ) {
+        //     return new FlysystemAdapter();
+        // }
+
+        // Fallback: Native PHP adapter
+        // return new NativePHPFileSystemAdapter();
     }
 
     /**
-     * Get the filesystem handler
-     * 
-     * @return object|null
+     * Get the underlying adapter instance.
+     *
+     * @return FileSystemAdapterInterface
      */
-    public static function get_fs() {
-        return self::instance()->fs;
+    public function get_adapter(): FileSystemAdapterInterface {
+        return $this->adapter;
     }
 
     /**
-     * Get the the instance of this filesyste class.
-     * 
-     * @return self
+     * Proxy method calls to the underlying adapter.
+     *
+     * @param string $method Method name.
+     * @param array  $args   Method arguments.
+     * @return mixed
+     * @throws \BadMethodCallException If method does not exist on adapter.
      */
-    public static function instance() {
-        static $instance = null;
-
-        if ( is_null( $instance ) ) {
-            $instance = new static();
+    public function __call( string $method, array $args ) {
+        if ( method_exists( $this->adapter, $method ) ) {
+            return call_user_func_array( [ $this->adapter, $method ], $args );
         }
 
-        return $instance;
-    }
-
-    /**
-     * Tells wether the given path is a directory
-     */
-    public function is_dir( $path ) {
-        return $this->fs->is_dir( $path );
-    }
-
-    /**
-     * Tells whether the give path is a file
-     * 
-     * @param string $path
-     */
-    public function is_file( $path ) {
-        return $this->fs->is_file( $path );
-    }
-
-    /**
-     * Check if a file exists.
-     *
-     * @param string $path Absolute path.
-     * @return bool
-     */
-    public function exists( $file ) {
-        return $this->fs->exists( $file );
-    }
-
-    /**
-     * Check if a file is readable.
-     *
-     * @param string $path Absolute path
-     * @return bool
-     */
-    public function is_readable( $path ) {
-        return $this->fs->is_readable( $path );
-    }
-
-    /**
-     * Check if a file is writable.
-     *
-     * @param string $path Absolute path
-     * @return bool
-     */
-    public function is_writable( $path ) {
-        return $this->fs->is_writable( $path );
-    }
-
-    /**
-     * Tells whether the given $input is a stream wrapper
-     * 
-     * @param mixed $thing
-     * @return bool
-     */
-    function is_stream( $thing ) {
-        $scheme_separator = strpos( $thing, '://' );
-
-        if ( false === $scheme_separator ) {
-            return false;
-        }
-
-        $stream = substr( $thing, 0, $scheme_separator );
-
-        return in_array( $stream, stream_get_wrappers(), true );
-    }
-
-    /**
-     * Get file contents.
-     *
-     * @param string $file Absolute path to the file
-     * @return string|false
-     */
-    public function get_contents( $file ) {
-        return $this->fs->get_contents( $file );
-    }
-
-    /**
-     * Put file contents.
-     *
-     * @param string $path Absolute path 
-     * @param string $contents
-     * @param int    $mode
-     * @return bool
-     */
-    public function put_contents( $path, $contents, $mode = FS_CHMOD_FILE ) {
-        return $this->fs->put_contents( $path, $contents, $mode );
-    }
-
-    /**
-     * Delete a file.
-     *
-	 * @param string       $file      Path to the file or directory.
-	 * @param bool         $recursive Optional. If set to true, deletes files and folders recursively.
-	 *                                Default false.
-	 * @param string|false $type      Type of resource. 'f' for file, 'd' for directory.
-	 *                                Default false.
-	 * @return bool True on success, false on failure.
-     */
-    public function delete( $file, $recursive = false, $type = false ) {
-        return $this->fs->delete( $file, $recursive, $type );
-    }
-
-    /**
-     * Create a directory.
-     *
-     * @param string $path Absolute path
-     * @param int|false    $chmod
-     * @param bool   $recursive
-     * @return bool
-     */
-    public function mkdir( $path, $chmod = false, $recursive = true ) {
-
-        if ( ( $this->fs instanceof \WP_Filesystem_Base ) && $recursive ) {
-            // Does not suppport recursive creation, so we do it manually.
-            return $this->mkdir_recursive( $path, $chmod );
-            
-        }
-        return $this->fs->mkdir( $path, $chmod );
-    }
-
-    /**
-     * Create directories recursively.
-     * 
-     * @param string $path
-     * @param int|false $chmod
-     * @return bool
-     */
-    protected function mkdir_recursive( $path, $chmod = false ) {
-        $stream_wrapper = null;
-
-        // Handle stream wrappers like s3:// or ftp://
-        if ( $this->is_stream( $path ) ) {
-            $parts = explode( '://', $path, 2 );
-            $stream_wrapper = $parts[0];
-            $path = $parts[1];
-        }
-
-        $path = \smliser_sanitize_path( $path );
-        if ( \is_smliser_error( $path ) ) {
-            return false;
-        }
-
-        if ( $stream_wrapper !== null ) {
-            $path = $stream_wrapper . '://' . $path;
-        }
-
-        $path = rtrim( $path, '/' );
-        if ( empty( $path ) ) {
-            $path = '/';
-        }
-
-        // Find highest existing parent directory
-        $dest_parent = dirname( $path );
-        while ( $dest_parent !== '.' && ! is_dir( $dest_parent ) && dirname( $dest_parent ) !== $dest_parent ) {
-            $dest_parent = dirname( $dest_parent );
-        }
-
-        // Get parent permission bits
-        $stats = @stat( $dest_parent );
-        $perms = $stats ? ( $stats['mode'] & 0777 ) : 0755;
-        if ( $chmod !== false ) {
-            $perms = $chmod;
-        }
-
-        // Build and create all intermediate directories
-        $relative_parts = explode( '/', ltrim( substr( $path, strlen( $dest_parent ) ), '/' ) );
-        $current = $dest_parent;
-
-        foreach ( $relative_parts as $part ) {
-            $current .= '/' . $part;
-
-            if ( ! is_dir( $current ) ) {
-                if ( ! mkdir( $current, $perms ) ) {
-                    return false;
-                }
-                @chmod( $current, $perms );
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Remove a directory.
-     *
-     * @param string $path Absolute path
-     * @param bool   $recursive
-     * @return bool
-     */
-    public function rmdir( $path, $recursive = false ) {
-        return $this->fs->delete( $path, $recursive, 'd' );
-    }
-
-    /**
-     * Copy a file/directory.
-     *
-     * @param string $source
-     * @param string $dest
-     * @param bool   $overwrite
-     * @return bool
-     */
-    public function copy( $source, $dest, $overwrite = false ) {
-        return $this->fs->copy( $source, $dest, $overwrite, FS_CHMOD_FILE );
-    }
-
-    /**
-     * Move a file/directory.
-     * 
-     * @param string $source
-     * @param string $dest
-     * @param bool   $overwrite
-     * @return bool
-     */
-    public function move( $source, $dest, $overwrite = false ) {
-        return $this->fs->move( $source, $dest, $overwrite );
-    }
-
-    /**
-     * Rename or move a file/directory.
-     *
-     * @param string $source
-     * @param string $dest
-     * @return bool
-     */
-    public function rename( $source, $dest ) {
-        return $this->move( $source, $dest, true );
-    }
-
-	/**
-	 * Changes filesystem permissions.
-	 *
-	 * @param string    $file      Path to the file.
-	 * @param int|false $mode      Optional. The permissions as octal number, usually 0644 for files,
-	 *                             0755 for directories. Default false.
-	 * @param bool      $recursive Optional. If set to true, changes file permissions recursively.
-	 *                             Default false.
-	 * @return bool True on success, false on failure.
-	 */
-	public function chmod( $file, $mode = false, $recursive = false ) {
-        return @$this->fs->chmod( $file, $mode, $recursive );
-    }
-
-	/**
-	 * Changes the owner of a file or directory.
-	 *
-	 * @param string     $file      Path to the file or directory.
-	 * @param string|int $owner     A user name or number.
-	 * @param bool       $recursive Optional. If set to true, changes file owner recursively.
-	 *                              Default false.
-	 * @return bool True on success, false on failure.
-	 */
-	public function chown( $file, $owner, $recursive = false ) {
-        return $this->fs->chown( $file, $owner, $recursive );
-    }
-
-    /**
-     * List files/directories.
-     *
-     * @param string|null $path
-     * @return array|false
-     */
-    public function list( $path = null ) {
-        return $this->fs->dirlist( $path );
-    }
-
-    /**
-     * Get file size.
-     *
-     * @param string $path Absolute path
-     * @return int|false
-     */
-    public function filesize( $path ) {
-       return $this->fs->size( $path );
-    }
-
-    /**
-     * Get the file modification time
-     */
-    public function filemtime( $path ) {
-        return $this->fs->mtime( $path );
-    }
-
-    /**
-     * Get file info like stat().
-     *
-     * @param string $path Absolute path
-     * @return array|false
-     */
-    public function stat( $path ) {
-        if ( ! $path || ! $this->fs->exists( $path ) ) {
-            return false;
-        }
-
-        return [
-            'path'    => $path,
-            'exists'  => true,
-            'is_dir'  => $this->is_dir( $path ),
-            'is_file' => $this->is_file( $path ),
-            'size'    => $this->fs->size( $path ),
-            'mtime'   => $this->fs->mtime( $path ),
-            'perms'   => $this->fs->gethchmod( $path ),
-        ];
-    }
-
-    /**
-     * Output a file in chunks.
-     *
-     * @param string $path Absolute path
-     * @param int    $start
-     * @param int    $length
-     * @param int    $chunk_size
-     * @return bool
-     */
-    public function readfile( $path, $start = 0, $length = 0, $chunk_size = 1048576 ) {
-        if ( ! $path || ! $this->exists( $path ) || ! $this->is_readable( $path ) ) {
-            return false;
-        }
-
-        $handle = @fopen( $path, 'rb' );
-        if ( ! $handle ) {
-            return false;
-        }
-
-        $size   = $this->fs->size( $path );
-        $start  = max( 0, (int) $start );
-        $length = $length > 0 ? $length : $size - $start;
-
-        @fseek( $handle, $start );
-        $bytes_left = $length;
-
-        while ( $bytes_left > 0 && ! feof( $handle ) ) {
-            $read_length = min( $chunk_size, $bytes_left );
-            echo fread( $handle, $read_length );
-            $bytes_left -= $read_length;
-
-            if ( ob_get_length() ) {
-                ob_flush();
-                flush();
-            }
-        }
-
-        fclose( $handle );
-        return true;
+        throw new \BadMethodCallException(
+            sprintf( 'Method %s::%s does not exist.', get_class( $this->adapter ), $method )
+        );
     }
 }

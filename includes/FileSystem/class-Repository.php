@@ -19,7 +19,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Works only within allowed subdirectories (plugins, themes, software).
  * Provides safe IO, streaming, and ZIP file utilities.
  */
-abstract class Repository extends FileSystem {
+abstract class Repository {
+    use FileSystemAwareTrait;
 
     /**
      * Repository base directory.
@@ -69,7 +70,7 @@ abstract class Repository extends FileSystem {
      * @param bool $switch Whether to switch to the given dir immediately.
      */
     public function __construct( $dir, $switch = true ) {
-        parent::__construct();
+        
         $this->base_dir = FileSystemHelper::sanitize_path( SMLISER_REPO_DIR );
 
         if ( $switch ) {
@@ -200,7 +201,7 @@ abstract class Repository extends FileSystem {
     public function list_zip_contents( $filename ) {
         $real = $this->full_path( $this->path( $filename ) );
 
-        if ( ! $real || ! $this->fs->exists( $real ) ) {
+        if ( ! $real || ! $this->exists( $real ) ) {
             return new Exception( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ) );
         }
 
