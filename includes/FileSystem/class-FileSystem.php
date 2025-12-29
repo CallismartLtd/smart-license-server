@@ -1,6 +1,6 @@
 <?php
 /**
- * FileSystem Manager
+ * FileSystem
  *
  * Provides a unified API for filesystem operations across different environments
  * (WordPress, Flysystem, native PHP). Automatically selects the correct adapter.
@@ -15,7 +15,7 @@ namespace SmartLicenseServer\FileSystem;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * FileSystem manager singleton.
+ * FileSystem singleton.
  *
  * Automatically detects the environment and uses the correct FileSystem adapter.
  *
@@ -60,7 +60,7 @@ class FileSystem {
     /**
      * Private constructor to enforce singleton.
      *
-     * @param FileSystemAdapterInterface $adapter
+     * @param FileSystemAdapterInterface $adapter The adapter instance.
      */
     private function __construct( FileSystemAdapterInterface $adapter ) {
         $this->adapter = $adapter;
@@ -89,14 +89,13 @@ class FileSystem {
             return new WPFileSystemAdapter();
         }
 
-        // TODO: Add Flysystem adapter detection here if Flysystem is installed
-        // Example:
-        // if ( class_exists( '\League\Flysystem\Filesystem' ) ) {
-        //     return new FlysystemAdapter();
-        // }
+        // Flysystem context
+        if ( class_exists( \League\Flysystem\Filesystem::class ) ) {
+            return new FlysystemAdapter();
+        }
 
         // Fallback: Native PHP adapter
-        // return new NativePHPFileSystemAdapter();
+        return new NativePHPFileSystemAdapter();
     }
 
     /**
@@ -114,7 +113,8 @@ class FileSystem {
      * @param string $method Method name.
      * @param array  $args   Method arguments.
      * @return mixed
-     * @throws \BadMethodCallException If method does not exist on adapter.
+     *
+     * @throws \BadMethodCallException If method does not exist on the adapter.
      */
     public function __call( string $method, array $args ) {
         if ( method_exists( $this->adapter, $method ) ) {
