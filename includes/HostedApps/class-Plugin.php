@@ -342,6 +342,8 @@ class Plugin extends AbstractHostedApp {
             $this->set_id( $db->get_insert_id() );
         }
 
+        $repo_class->regenerate_app_dot_json( $this );
+
         return ( false !== $result ) ? true : new Exception( 'db_insert_error', $db->get_last_error() );
     }
 
