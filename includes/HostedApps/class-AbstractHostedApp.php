@@ -9,6 +9,7 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -19,6 +20,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @package SmartLicenseServer\HostedApps
  */
 abstract class AbstractHostedApp implements HostedAppsInterface {
+    use SanitizeAwareTrait;
 
     /**
      * App database ID
@@ -260,7 +262,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $name
      */
     public function set_name( $name ) {
-        $this->name = sanitize_text_field( unslash( $name ) );
+        $this->name = self::sanitize_text( $name );
     }
 
     /**
@@ -269,7 +271,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $slug
      */
     public function set_slug( $slug ) {
-        $this->slug = sanitize_text_field( unslash( $slug ) );
+        $this->slug = self::sanitize_text( $slug );
     }
 
     /**
@@ -278,7 +280,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $status
      */
     public function set_status( $status ) {
-        $this->status = \sanitize_text_field( \unslash( $status ) );
+        $this->status = self::sanitize_text( $status );
     }
 
     /**
@@ -301,7 +303,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $url
      */
     public function set_homepage( $url ) {
-        $this->homepage = sanitize_url( $url, array( 'https' ) );
+        $this->homepage = self::sanitize_url( $url, array( 'https' ) );
     }
 
     /**
@@ -328,7 +330,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $url
      */
     public function set_author_profile( $url ) {
-        $this->author_profile = sanitize_url( $url );
+        $this->author_profile = self::sanitize_url( $url );
     }
 
     /**
@@ -337,7 +339,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $version
      */
     public function set_version( $version ) {
-        $this->version = sanitize_text_field( unslash( $version ) );
+        $this->version = self::sanitize_text( $version );
     }
     /**
      * Set Download url.
@@ -358,7 +360,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             $path           = sprintf( '%s.zip', implode( '/', $parts ) );
             $download_link  = site_url( $path );
 
-            $this->download_link = sanitize_url( $download_link, array( 'http', 'https' ) );            
+            $this->download_link = self::sanitize_url( $download_link, array( 'http', 'https' ) );            
         }
     }
 
@@ -368,7 +370,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param $date
      */
     public function set_last_updated( $date ) {
-        $this->last_updated = sanitize_text_field( $date );
+        $this->last_updated = self::sanitize_text( $date );
     }
 
     /**
@@ -377,7 +379,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param $date
      */
     public function set_created_at( $date ) {
-        $this->created_at = sanitize_text_field( $date );
+        $this->created_at = self::sanitize_text( $date );
     }
 
     /**
@@ -462,7 +464,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param array $tags
      */
     public function set_tags( $tags ) {
-        $this->tags = array_map( 'sanitize_text_field', $tags );
+        $this->tags = array_map( [__CLASS__, 'sanitize_text'], $tags );
     }
 
     /**
@@ -816,7 +818,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
 
         if ( ! empty( $results ) ) {
             foreach ( $results as $row ) {
-                $key   = sanitize_key( $row['meta_key'] );
+                $key   = self::sanitize_key( $row['meta_key'] );
                 $value = $row['meta_value'];
 
                 if ( is_serialized( $value ) ) {
@@ -850,7 +852,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $table      = static::get_db_meta_table();
         $fk_column  = $this->get_meta_foreign_key();
 
-        $key   = sanitize_key( $key );
+        $key   = self::sanitize_key( $key );
         $store = maybe_serialize( $value );
 
         // Look for existing meta row.
@@ -906,7 +908,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return mixed|null
      */
     public function get_meta( $meta_key, $default_to = null ) {
-        $meta_key = sanitize_text_field( $meta_key );
+        $meta_key = self::sanitize_text( $meta_key );
 
         if ( array_key_exists( $meta_key, $this->meta_data ) ) {
             return $this->meta_data[ $meta_key ];
@@ -949,7 +951,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $db         = smliser_dbclass();
         $table      = static::get_db_meta_table();
         $fk_column  = $this->get_meta_foreign_key();
-        $meta_key   = sanitize_key( $meta_key );
+        $meta_key   = self::sanitize_key( $meta_key );
 
         // Delete from database
         $deleted = $db->delete(
