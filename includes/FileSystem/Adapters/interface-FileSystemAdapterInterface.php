@@ -9,7 +9,7 @@
  * @package SmartLicenseServer\FileSystem
  */
 
-namespace SmartLicenseServer\FileSystem;
+namespace SmartLicenseServer\Adapters\FileSystem;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 

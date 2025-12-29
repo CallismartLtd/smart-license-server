@@ -26,6 +26,9 @@ class ComposerStaticInitb8c601ee926626f92e25e2a81d91533c
         ),
         'L' => 
         array (
+            'League\\MimeTypeDetection\\' => 25,
+            'League\\Flysystem\\Local\\' => 23,
+            'League\\Flysystem\\' => 17,
             'League\\Config\\' => 14,
             'League\\CommonMark\\' => 18,
         ),
@@ -48,6 +51,18 @@ class ComposerStaticInitb8c601ee926626f92e25e2a81d91533c
         array (
             0 => __DIR__ . '/..' . '/nette/schema/src',
             1 => __DIR__ . '/..' . '/nette/utils/src',
+        ),
+        'League\\MimeTypeDetection\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/league/mime-type-detection/src',
+        ),
+        'League\\Flysystem\\Local\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/league/flysystem-local',
+        ),
+        'League\\Flysystem\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/league/flysystem/src',
         ),
         'League\\Config\\' => 
         array (

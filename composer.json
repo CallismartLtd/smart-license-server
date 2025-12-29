@@ -9,6 +9,7 @@
         }
     ],
     "require": {
-        "league/commonmark": "^2.7"
+        "league/commonmark": "^2.7",
+        "league/flysystem": "^3.17"
     }
 }

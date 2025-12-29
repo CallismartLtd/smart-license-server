@@ -1,44 +1,42 @@
 <?php
 /**
- * Flysystem Adapter
+ * Laravel FileSystem Adapter
  *
- * Provides filesystem operations via League\Flysystem\Filesystem.
- * Implements the FileSystemAdapterInterface to ensure compatibility with
- * SmartLicenseServer\FileSystem\FileSystem.
+ * Provides filesystem operations via Laravel's filesystem abstraction.
+ * Acts as a bridge between SmartLicenseServer\FileSystem and Laravel's
+ * FilesystemAdapter (local, S3, FTP, etc).
  *
  * @package SmartLicenseServer\FileSystem
  */
 
-namespace SmartLicenseServer\FileSystem;
+namespace SmartLicenseServer\Adapters\FileSystem;
 
-use League\Flysystem\Filesystem as Flysystem;
-use League\Flysystem\StorageAttributes;
+use Illuminate\Contracts\Filesystem\Filesystem as LaravelFilesystem;
+use Illuminate\Filesystem\FilesystemAdapter;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Adapter for Flysystem-based filesystem operations.
+ * Adapter for Laravel filesystem operations.
  *
- * Wraps a League\Flysystem\Filesystem instance and provides all methods
- * required by FileSystemAdapterInterface.
+ * Wraps an Illuminate filesystem instance and implements
+ * FileSystemAdapterInterface for Smart License Server.
  */
-class FlysystemAdapter implements FileSystemAdapterInterface {
+class LaravelFileSystemAdapter implements FileSystemAdapterInterface {
 
     /**
-     * The Flysystem filesystem instance.
+     * Laravel filesystem instance.
      *
-     * @var Flysystem
+     * @var LaravelFilesystem|FilesystemAdapter
      */
-    protected Flysystem $fs;
+    protected LaravelFilesystem $fs;
 
     /**
      * Constructor.
      *
-     * Initializes the adapter with a Flysystem instance.
-     *
-     * @param Flysystem $fs Flysystem instance to use for filesystem operations.
+     * @param LaravelFilesystem $fs Laravel filesystem instance.
      */
-    public function __construct( Flysystem $fs ) {
+    public function __construct( LaravelFilesystem $fs ) {
         $this->fs = $fs;
     }
 
@@ -49,7 +47,9 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if directory exists, false otherwise.
      */
     public function is_dir( string $path ): bool {
-        return $this->fs->directoryExists( $path );
+        return method_exists( $this->fs, 'directoryExists' )
+            ? $this->fs->directoryExists( $path )
+            : false;
     }
 
     /**
@@ -59,26 +59,27 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if file exists, false otherwise.
      */
     public function is_file( string $path ): bool {
-        return $this->fs->fileExists( $path );
+        return $this->fs->exists( $path ) && ! $this->is_dir( $path );
     }
 
     /**
      * Check if a file or directory exists.
      *
      * @param string $path Path to check.
-     * @return bool True if file or directory exists, false otherwise.
+     * @return bool True if exists, false otherwise.
      */
     public function exists( string $path ): bool {
-        return $this->fs->fileExists( $path ) || $this->fs->directoryExists( $path );
+        return $this->fs->exists( $path );
     }
 
     /**
      * Check if a path is readable.
      *
-     * Flysystem does not support permissions directly, so returns true if it exists.
+     * Laravel does not expose explicit read permissions,
+     * so existence is used as a heuristic.
      *
      * @param string $path Path to check.
-     * @return bool True if path exists, false otherwise.
+     * @return bool True if readable, false otherwise.
      */
     public function is_readable( string $path ): bool {
         return $this->exists( $path );
@@ -87,7 +88,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     /**
      * Check if a path is writable.
      *
-     * Attempts to write a temporary file to test writability.
+     * Writability is inferred by attempting a safe temporary write.
      *
      * @param string $path Path to check.
      * @return bool True if writable, false otherwise.
@@ -95,17 +96,17 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     public function is_writable( string $path ): bool {
         try {
             if ( $this->is_dir( $path ) ) {
-                $tmp = rtrim( $path, '/' ) . '/.sls_temp';
-                $this->fs->write( $tmp, '' );
+                $tmp = rtrim( $path, '/' ) . '/.sls_write_test';
+                $this->fs->put( $tmp, 'test' );
                 $this->fs->delete( $tmp );
                 return true;
             }
+
             if ( $this->is_file( $path ) ) {
-                $contents = $this->fs->read( $path );
-                $this->fs->write( $path, $contents );
-                return true;
+                $dir = dirname( $path );
+                return $dir !== '.' ? $this->is_writable( $dir ) : false;
             }
-        } catch ( \Exception $e ) {
+        } catch ( \Throwable $e ) {
             return false;
         }
 
@@ -113,11 +114,11 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     }
 
     /**
-     * Check if the input is a stream wrapper.
+     * Check if the input is a stream.
      *
-     * Flysystem does not use PHP stream wrappers.
+     * Laravel filesystem does not use PHP streams directly.
      *
-     * @param mixed $thing Input to check.
+     * @param mixed $thing Value to check.
      * @return bool Always false.
      */
     public function is_stream( mixed $thing ): bool {
@@ -127,13 +128,13 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     /**
      * Retrieve the contents of a file.
      *
-     * @param string $file Path to the file.
-     * @return string|false File contents, or false on failure.
+     * @param string $file Path to file.
+     * @return string|false File contents or false on failure.
      */
     public function get_contents( string $file ): string|false {
         try {
-            return $this->fs->read( $file );
-        } catch ( \Exception $e ) {
+            return $this->fs->get( $file );
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
@@ -141,19 +142,15 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     /**
      * Write contents to a file.
      *
-     * @param string $path Path to the file.
-     * @param string $contents Data to write.
-     * @param int $mode Optional permissions (ignored in Flysystem).
+     * @param string $path Path to file.
+     * @param string $contents Contents to write.
+     * @param int $mode Optional permissions (ignored).
      * @return bool True on success, false on failure.
      */
     public function put_contents( string $path, string $contents, int $mode = FS_CHMOD_FILE ): bool {
         try {
-            if ( $this->fs->fileExists( $path ) ) {
-                $this->fs->delete( $path );
-            }
-            $this->fs->write( $path, $contents );
-            return true;
-        } catch ( \Exception $e ) {
+            return (bool) $this->fs->put( $path, $contents );
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
@@ -162,19 +159,18 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * Delete a file or directory.
      *
      * @param string $file Path to delete.
-     * @param bool $recursive Optional. Delete recursively if directory.
-     * @param string|false $type Optional. 'f' for file, 'd' for directory, false for auto-detect.
+     * @param bool $recursive Whether to delete recursively.
+     * @param string|false $type Optional type hint.
      * @return bool True on success, false on failure.
      */
     public function delete( string $file, bool $recursive = false, string|false $type = false ): bool {
         try {
-            if ( $type === 'd' || ( $recursive && $this->is_dir( $file ) ) ) {
-                $this->fs->deleteDirectory( $file );
-            } else {
-                $this->fs->delete( $file );
+            if ( $recursive && method_exists( $this->fs, 'deleteDirectory' ) ) {
+                return $this->fs->deleteDirectory( $file );
             }
-            return true;
-        } catch ( \Exception $e ) {
+
+            return $this->fs->delete( $file );
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
@@ -182,16 +178,15 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     /**
      * Create a directory.
      *
-     * @param string $path Path to create.
-     * @param int|false $chmod Optional permissions (ignored in Flysystem).
-     * @param bool $recursive Optional. Ignored; Flysystem always creates directories.
+     * @param string $path Directory path.
+     * @param int|false $chmod Ignored.
+     * @param bool $recursive Ignored.
      * @return bool True on success, false on failure.
      */
     public function mkdir( string $path, int|false $chmod = false, bool $recursive = true ): bool {
         try {
-            $this->fs->createDirectory( $path );
-            return true;
-        } catch ( \Exception $e ) {
+            return $this->fs->makeDirectory( $path );
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
@@ -199,21 +194,23 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     /**
      * Create directories recursively.
      *
-     * Flysystem automatically creates directories recursively.
+     * Laravel's filesystem creates directories recursively by default,
+     * so this method is an explicit semantic alias for mkdir().
      *
-     * @param string $path Path to create.
-     * @param int|false $chmod Optional permissions.
+     * @param string $path Directory path.
+     * @param int|false $chmod Optional permissions (ignored by Laravel filesystem).
      * @return bool True on success, false on failure.
      */
     public function mkdir_recursive( string $path, int|false $chmod = false ): bool {
         return $this->mkdir( $path, $chmod, true );
     }
 
+
     /**
      * Remove a directory.
      *
-     * @param string $path Path to remove.
-     * @param bool $recursive Optional. Remove recursively.
+     * @param string $path Directory path.
+     * @param bool $recursive Remove recursively.
      * @return bool True on success, false on failure.
      */
     public function rmdir( string $path, bool $recursive = false ): bool {
@@ -221,41 +218,39 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     }
 
     /**
-     * Copy a file or directory.
+     * Copy a file.
      *
      * @param string $source Source path.
      * @param string $dest Destination path.
-     * @param bool $overwrite Optional. Overwrite if destination exists.
+     * @param bool $overwrite Whether to overwrite.
      * @return bool True on success, false on failure.
      */
     public function copy( string $source, string $dest, bool $overwrite = false ): bool {
         try {
             if ( $overwrite && $this->exists( $dest ) ) {
-                $this->delete( $dest, $this->is_dir( $dest ), $this->is_dir( $dest ) ? 'd' : 'f' );
+                $this->delete( $dest );
             }
-            $this->fs->copy( $source, $dest );
-            return true;
-        } catch ( \Exception $e ) {
+            return $this->fs->copy( $source, $dest );
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
 
     /**
-     * Move or rename a file/directory.
+     * Move a file.
      *
      * @param string $source Source path.
      * @param string $dest Destination path.
-     * @param bool $overwrite Optional. Overwrite if destination exists.
+     * @param bool $overwrite Whether to overwrite.
      * @return bool True on success, false on failure.
      */
     public function move( string $source, string $dest, bool $overwrite = false ): bool {
         try {
             if ( $overwrite && $this->exists( $dest ) ) {
-                $this->delete( $dest, $this->is_dir( $dest ), $this->is_dir( $dest ) ? 'd' : 'f' );
+                $this->delete( $dest );
             }
-            $this->fs->move( $source, $dest );
-            return true;
-        } catch ( \Exception $e ) {
+            return $this->fs->move( $source, $dest );
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
@@ -272,54 +267,58 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     }
 
     /**
-     * Change file permissions.
+     * Change permissions.
      *
-     * Flysystem does not support chmod natively.
+     * Not supported by Laravel filesystem.
      *
-     * @param string $file Path to file.
-     * @param int|false $mode Optional mode.
-     * @param bool $recursive Optional recursive flag.
-     * @return bool Always true.
+     * @return bool Always false.
      */
     public function chmod( string $file, int|false $mode = false, bool $recursive = false ): bool {
-        return true;
+        return false;
     }
 
     /**
-     * Change file owner.
+     * Change owner.
      *
-     * Flysystem does not support chown natively.
+     * Not supported by Laravel filesystem.
      *
-     * @param string $file Path to file.
-     * @param string|int $owner Owner name or UID.
-     * @param bool $recursive Optional recursive flag.
-     * @return bool Always true.
+     * @return bool Always false.
      */
     public function chown( string $file, string|int $owner, bool $recursive = false ): bool {
-        return true;
+        return false;
     }
 
     /**
-     * List files and directories at a path.
+     * List directory contents.
      *
      * @param string|null $path Path to list.
-     * @return array|false Array of file info, false on failure.
+     * @return array|false Listing or false on failure.
      */
     public function list( string|null $path = null ): array|false {
         try {
-            $listing = $this->fs->listContents( $path ?? '', false );
-            $result  = [];
-            /** @var StorageAttributes $item */
-            foreach ( $listing as $item ) {
+            $files = $this->fs->files( $path ?? '' );
+            $dirs  = $this->fs->directories( $path ?? '' );
+
+            $result = [];
+
+            foreach ( $dirs as $dir ) {
                 $result[] = [
-                    'path'  => $item->path(),
-                    'type'  => $item->isDir() ? 'd' : 'f',
-                    'size'  => $item->isFile() ? $item->fileSize() : 0,
-                    'mtime' => $item->lastModified(),
+                    'path' => $dir,
+                    'type' => 'd',
                 ];
             }
+
+            foreach ( $files as $file ) {
+                $result[] = [
+                    'path' => $file,
+                    'type' => 'f',
+                    'size' => $this->fs->size( $file ),
+                    'mtime' => $this->fs->lastModified( $file ),
+                ];
+            }
+
             return $result;
-        } catch ( \Exception $e ) {
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
@@ -327,13 +326,13 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     /**
      * Get file size.
      *
-     * @param string $path Path to file.
-     * @return int|false File size in bytes, false on failure.
+     * @param string $path File path.
+     * @return int|false Size in bytes or false on failure.
      */
     public function filesize( string $path ): int|false {
         try {
-            return $this->fs->fileSize( $path );
-        } catch ( \Exception $e ) {
+            return $this->fs->size( $path );
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
@@ -341,13 +340,13 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     /**
      * Get file modification time.
      *
-     * @param string $path Path to file.
-     * @return int|false Unix timestamp, false on failure.
+     * @param string $path File path.
+     * @return int|false Unix timestamp or false.
      */
     public function filemtime( string $path ): int|false {
         try {
             return $this->fs->lastModified( $path );
-        } catch ( \Exception $e ) {
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
@@ -356,7 +355,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * Get file stat information.
      *
      * @param string $path Path to file.
-     * @return array|false Array of file info or false if not found.
+     * @return array|false File stats or false if not found.
      */
     public function stat( string $path ): array|false {
         if ( ! $this->exists( $path ) ) {
@@ -377,18 +376,49 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
     /**
      * Output a file in chunks.
      *
-     * @param string $path Path to file.
-     * @param int $start Optional start offset.
-     * @param int $length Optional number of bytes to read.
-     * @param int $chunk_size Optional chunk size, default 1MB.
+     * @param string $path File path.
+     * @param int $start Start offset.
+     * @param int $length Length to read.
+     * @param int $chunk_size Chunk size.
      * @return bool True on success, false on failure.
      */
     public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ): bool {
         try {
-            $contents = $this->fs->read( $path );
-            echo substr( $contents, $start, $length ?: null );
+            $stream = $this->fs->readStream( $path );
+
+            if ( ! is_resource( $stream ) ) {
+                return false;
+            }
+
+            if ( $start > 0 ) {
+                fseek( $stream, $start );
+            }
+
+            $remaining = $length > 0 ? $length : null;
+
+            while ( ! feof( $stream ) ) {
+                $read = $remaining !== null
+                    ? min( $chunk_size, $remaining )
+                    : $chunk_size;
+
+                $buffer = fread( $stream, $read );
+                if ( $buffer === false ) {
+                    break;
+                }
+
+                echo $buffer;
+
+                if ( $remaining !== null ) {
+                    $remaining -= strlen( $buffer );
+                    if ( $remaining <= 0 ) {
+                        break;
+                    }
+                }
+            }
+
+            fclose( $stream );
             return true;
-        } catch ( \Exception $e ) {
+        } catch ( \Throwable $e ) {
             return false;
         }
     }
