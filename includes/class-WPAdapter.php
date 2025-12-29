@@ -25,6 +25,7 @@ use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
+use SmartLicenseServer\FileSystem\FileSystem;
 
 use WP_Error;
 use WP_REST_Request;
@@ -69,6 +70,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
         add_action( 'admin_menu', [Menu::class, 'register_menus'] );
         add_action( 'admin_menu', [Menu::class, 'modify_sw_menu'], 999 );
+        add_action( 'admin_notices', [ __CLASS__, 'check_filesystem_errors'] );
     }
 
     /**
@@ -1108,6 +1110,34 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             return new WP_Error( 'rest_invalid_param', __( 'The value must be an integer.', 'smliser' ), array( 'status' => 400 ) );
         }
         return true;
+    }
+
+    /**
+     * Check filesystem permissions and print admin notice if not writable.
+     * 
+     * @return void
+     */
+    public static function check_filesystem_errors() {
+        $fs_instance    = FileSystem::instance();
+        $wp_error       = $fs_instance->get_fs()->errors;
+
+        if ( $wp_error->has_errors() ) {
+            $error_messages = $wp_error->get_error_messages();
+            $messages_html = '';
+            foreach ( $error_messages as $message ) {
+                $messages_html .= '<code>' . esc_html( $message ) . '</code><br />';
+            }
+
+            wp_admin_notice( 
+                sprintf(
+                    __( '%s Filesystem Error: <br/> %s Please ensure the WordPress filesystem is properly configured and writable.', 'smliser' ),
+                    SMLISER_APP_NAME,
+                    $messages_html
+                ),
+                'error'
+            );
+
+        }
     }
 
     /**

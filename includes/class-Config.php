@@ -10,7 +10,6 @@
 namespace SmartLicenseServer;
 
 use RuntimeException;
-use SmartLicenseServer\FileSystem\FileSystem;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -134,8 +133,6 @@ class Config {
         add_action( 'wp_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_styles' ) );
-
-        add_action( 'admin_notices', [ __CLASS__, 'check_filesystem_errors'] );
     }
 
     /**
@@ -429,34 +426,6 @@ class Config {
             <p id="smliser-click-notice" style="display: none">Update started in the backgroud <span class="dashicons dashicons-yes-alt" style="color: blue"></span></p>
         </div>
         <?php
-    }
-
-    /**
-     * Check filesystem permissions and print admin notice if not writable.
-     * 
-     * @return void
-     */
-    public static function check_filesystem_errors() {
-        $fs_instance    = FileSystem::instance();
-        $wp_error       = $fs_instance->get_fs()->errors;
-
-        if ( $wp_error->has_errors() ) {
-            $error_messages = $wp_error->get_error_messages();
-            $messages_html = '';
-            foreach ( $error_messages as $message ) {
-                $messages_html .= '<code>' . esc_html( $message ) . '</code><br />';
-            }
-
-            wp_admin_notice( 
-                sprintf(
-                    __( '%s Filesystem Error: <br/> %s Please ensure the WordPress filesystem is properly configured and writable.', 'smliser' ),
-                    SMLISER_APP_NAME,
-                    $messages_html
-                ),
-                'error'
-            );
-
-        }
     }
 }
 

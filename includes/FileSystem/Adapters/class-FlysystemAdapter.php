@@ -9,7 +9,7 @@
  * @package SmartLicenseServer\FileSystem
  */
 
-namespace SmartLicenseServer\Adapters\FileSystem;
+namespace SmartLicenseServer\FileSystem\Adapters;
 
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\StorageAttributes;
@@ -49,6 +49,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if directory exists, false otherwise.
      */
     public function is_dir( string $path ): bool {
+        $path   = $this->normalize_path( $path );
         return $this->fs->directoryExists( $path );
     }
 
@@ -59,6 +60,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if file exists, false otherwise.
      */
     public function is_file( string $path ): bool {
+        $path   = $this->normalize_path( $path );
         return $this->fs->fileExists( $path );
     }
 
@@ -69,6 +71,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if file or directory exists, false otherwise.
      */
     public function exists( string $path ): bool {
+        $path   = $this->normalize_path( $path );
         return $this->fs->fileExists( $path ) || $this->fs->directoryExists( $path );
     }
 
@@ -81,6 +84,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if path exists, false otherwise.
      */
     public function is_readable( string $path ): bool {
+        $path   = $this->normalize_path( $path );
         return $this->exists( $path );
     }
 
@@ -94,6 +98,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if writable, false otherwise.
      */
     public function is_writable( string $path ): bool {
+        $path   = $this->normalize_path( $path );
         try {
             // If path is a directory, test writing inside it.
             if ( $this->is_dir( $path ) ) {
@@ -138,6 +143,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return string|false File contents, or false on failure.
      */
     public function get_contents( string $file ): string|false {
+        $file   = $this->normalize_path( $file );
         try {
             return $this->fs->read( $file );
         } catch ( \Throwable $e ) {
@@ -154,6 +160,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function put_contents( string $path, string $contents, int $mode = FS_CHMOD_FILE ): bool {
+        $path   = $this->normalize_path( $path );
         try {
             $this->fs->write( $path, $contents );
             return true;
@@ -171,6 +178,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function delete( string $file, bool $recursive = false, string|false $type = false ): bool {
+        $file   = $this->normalize_path( $file );
         try {
             if ( $type === 'd' || ( $recursive && $this->is_dir( $file ) ) ) {
                 $this->fs->deleteDirectory( $file );
@@ -192,6 +200,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function mkdir( string $path, int|false $chmod = false, bool $recursive = true ): bool {
+        $path   = $this->normalize_path( $path );
         try {
             $this->fs->createDirectory( $path );
             return true;
@@ -210,6 +219,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function mkdir_recursive( string $path, int|false $chmod = false ): bool {
+        $path   = $this->normalize_path( $path );
         return $this->mkdir( $path, $chmod, true );
     }
 
@@ -221,6 +231,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function rmdir( string $path, bool $recursive = false ): bool {
+        $path   = $this->normalize_path( $path );
         return $this->delete( $path, $recursive, 'd' );
     }
 
@@ -233,6 +244,8 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function copy( string $source, string $dest, bool $overwrite = false ): bool {
+        $source = $this->normalize_path( $source );
+        $dest   = $this->normalize_path( $dest );
         try {
             if ( $overwrite && $this->exists( $dest ) ) {
                 $this->delete( $dest, $this->is_dir( $dest ), $this->is_dir( $dest ) ? 'd' : 'f' );
@@ -253,6 +266,8 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function move( string $source, string $dest, bool $overwrite = false ): bool {
+        $source = $this->normalize_path( $source );
+        $dest   = $this->normalize_path( $dest );
         try {
             if ( $overwrite && $this->exists( $dest ) ) {
                 $this->delete( $dest, $this->is_dir( $dest ), $this->is_dir( $dest ) ? 'd' : 'f' );
@@ -272,6 +287,8 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function rename( string $source, string $dest ): bool {
+        $source = $this->normalize_path( $source );
+        $dest   = $this->normalize_path( $dest );
         return $this->move( $source, $dest, true );
     }
 
@@ -310,6 +327,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return array|false Array of file info, false on failure.
      */
     public function list( string|null $path = null ): array|false {
+        $path   = $this->normalize_path( $path );
         try {
             $listing = $this->fs->listContents( $path ?? '', false );
             $result  = [];
@@ -335,6 +353,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return int|false File size in bytes, false on failure.
      */
     public function filesize( string $path ): int|false {
+        $path   = $this->normalize_path( $path );
         try {
             return $this->fs->fileSize( $path );
         } catch ( \Throwable $e ) {
@@ -349,6 +368,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return int|false Unix timestamp, false on failure.
      */
     public function filemtime( string $path ): int|false {
+        $path   = $this->normalize_path( $path );
         try {
             return $this->fs->lastModified( $path );
         } catch ( \Throwable $e ) {
@@ -363,6 +383,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      * @return array|false Array of file info or false if not found.
      */
     public function stat( string $path ): array|false {
+        $path   = $this->normalize_path( $path );
         if ( ! $this->exists( $path ) ) {
             return false;
         }
@@ -389,6 +410,7 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
      */
     public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ): bool {
         try {
+            $path   = $this->normalize_path( $path );
             $stream = $this->fs->readStream( $path );
 
             if ( ! is_resource( $stream ) ) {
@@ -427,6 +449,33 @@ class FlysystemAdapter implements FileSystemAdapterInterface {
         } catch ( \Throwable $e ) {
             return false;
         }
+    }
+
+    /**
+     * Get the underlining filesystem adapter instance.
+     */
+    public function get_fs() : mixed {
+        return $this->fs;
+    }
+
+    /**
+     * Normalize a path for Flysystem.
+     *
+     * Converts an absolute path to a relative path based on the adapter root.
+     *
+     * @param string $path Absolute path.
+     * @return string Relative path.
+     */
+    protected function normalize_path( string $path ): string {
+        $root = \SMLISER_ABSPATH;
+        // If path starts with the root, strip it
+        if ( str_starts_with( $path, $root ) ) {
+            $relative = substr( $path, strlen( $root ) );
+            return ltrim( $relative, '/\\' );
+        }
+
+        // Otherwise, treat as already relative
+        return ltrim( $path, '/\\' );
     }
 
 }

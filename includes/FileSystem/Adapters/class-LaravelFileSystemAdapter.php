@@ -9,7 +9,7 @@
  * @package SmartLicenseServer\FileSystem
  */
 
-namespace SmartLicenseServer\Adapters\FileSystem;
+namespace SmartLicenseServer\FileSystem\Adapters;
 
 use Illuminate\Contracts\Filesystem\Filesystem as LaravelFilesystem;
 use Illuminate\Filesystem\FilesystemAdapter;

@@ -12,10 +12,10 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-use SmartLicenseServer\Adapters\FileSystem\FileSystemAdapterInterface;
-use SmartLicenseServer\Adapters\FileSystem\FlysystemAdapter;
-use SmartLicenseServer\Adapters\FileSystem\LaravelFileSystemAdapter;
-use SmartLicenseServer\Adapters\FileSystem\WPFileSystemAdapter;
+use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
+use SmartLicenseServer\FileSystem\Adapters\FlysystemAdapter;
+use SmartLicenseServer\FileSystem\Adapters\LaravelFileSystemAdapter;
+use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -274,16 +274,77 @@ class FileSystem {
     /**
      * Retrieve Flysystem configuration.
      *
-     * This method must return a normalized configuration array
-     * describing the Flysystem driver and its options.
+     * Returns a normalized configuration array for Flysystem.
+     * The configuration is determined based on defined constants, in priority order:
      *
-     * @return array
+     * 1. SMLISER_FLYSYSTEM_CONFIG_CUSTOM  — User-defined custom configuration.
+     * 2. SMLISER_FLYSYSTEM_CONFIG_S3      — Predefined S3 config.
+     * 3. SMLISER_FLYSYSTEM_CONFIG_SFTP    — Predefined SFTP config.
+     * 4. SMLISER_FLYSYSTEM_CONFIG_LOCAL   — Predefined Local config.
+     *
+     * If none of these constants exist, the method returns a **default local filesystem config**:
+     * ```
+     * [
+     *     'driver' => 'local',
+     *     'root'   => SMLISER_ABSPATH,
+     * ]
+     * ```
+     *
+     * **Notes on constants:**
+     *
+     * - SMLISER_FLYSYSTEM_CONFIG_CUSTOM
+     *   Full normalized Flysystem config array as described in Flysystem docs.
+     *
+     * - SMLISER_FLYSYSTEM_CONFIG_S3
+     *   Must contain at least:
+     *     - driver => 's3'
+     *     - key
+     *     - secret
+     *     - region
+     *     - bucket
+     *     - prefix (optional)
+     *
+     * - SMLISER_FLYSYSTEM_CONFIG_SFTP
+     *   Must contain at least:
+     *     - driver => 'sftp'
+     *     - host
+     *     - username
+     *     - password (or privateKey)
+     *     - root
+     *     - port (optional, default 22)
+     *
+     * - SMLISER_FLYSYSTEM_CONFIG_LOCAL
+     *   Must contain at least:
+     *     - driver => 'local'
+     *     - root
+     *
+     * @return array Normalized Flysystem configuration.
      */
     protected static function get_flysystem_config(): array {
-        return defined( 'SMLISER_FLYSYSTEM_CONFIG' )
-            ? SMLISER_FLYSYSTEM_CONFIG
-            : [];
+
+        if ( defined( 'SMLISER_FLYSYSTEM_CONFIG_CUSTOM' ) ) {
+            return \constant( 'SMLISER_FLYSYSTEM_CONFIG_CUSTOM' );
+        }
+
+        if ( defined( 'SMLISER_FLYSYSTEM_CONFIG_S3' ) ) {
+            return \constant( 'SMLISER_FLYSYSTEM_CONFIG_S3' );
+        }
+
+        if ( defined( 'SMLISER_FLYSYSTEM_CONFIG_SFTP' ) ) {
+            return \constant( 'SMLISER_FLYSYSTEM_CONFIG_SFTP' );
+        }
+
+        if ( defined( 'SMLISER_FLYSYSTEM_CONFIG_LOCAL' ) ) {
+            return \constant( 'SMLISER_FLYSYSTEM_CONFIG_LOCAL' );
+        }
+
+        // Fallback to direct local filesystem
+        return [
+            'driver' => 'local',
+            'root'   => \constant( 'SMLISER_ABSPATH' ),
+        ];
     }
+
 
 
     /**
