@@ -85,27 +85,6 @@ class Plugin extends AbstractHostedApp {
         return $this->formalize_response();
     }
 
-    /**
-     * Get short description
-     * 
-     * @return string
-     */
-    public function get_short_description() {
-        return $this->short_description;
-    }
-
-    /**
-     * Get the homepage URL
-     * 
-     * @return string
-     */
-    public function get_homepage() {
-        if ( empty( $this->homepage ) || '#' === $this->homepage ) {
-            return $this->get_url();
-        }
-        return $this->homepage;
-    }
-
     /*
     |----------
     | SETTERS
@@ -242,11 +221,11 @@ class Plugin extends AbstractHostedApp {
      */
     public function get_icon() : string {
         $icons = $this->get_icons();
-                if ( ! empty($icons['1x'] ) ) {
+        if ( ! empty( $icons['1x'] ) ) {
             return $icons['1x'];
         }
         
-        if ( ! empty($icons['2x'] ) ) {
+        if ( ! empty( $icons['2x'] ) ) {
             return $icons['2x'];
         }
 
@@ -287,7 +266,7 @@ class Plugin extends AbstractHostedApp {
     /**
      * Create new plugin or update the existing one.
      * 
-     * @return true|Exception True on success, false on failure.
+     * @return true|Exception True on success, exception on failure.
      */
     public function save() : true|Exception {
         $db         = smliser_dbclass();
@@ -307,7 +286,7 @@ class Plugin extends AbstractHostedApp {
         );
 
         if ( $this->get_id() ) {
-            if ( is_array( $this->file ) ) {
+            if ( is_array( $file ) ) {
                 $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
                 if ( is_smliser_error( $slug ) ) {
                     return $slug;
@@ -360,21 +339,14 @@ class Plugin extends AbstractHostedApp {
         }
 
         $db             = smliser_dbclass();
-        $meta_deleted   = $db->delete(
-            self::META_TABLE,
-            [ 'plugin_id' => $plugin_id ]
-        );
-
-        $plugin_deleted = $db->delete(
-            self::TABLE,
-            [ 'id' => $plugin_id ]
-        );
+        $meta_deleted   = $db->delete( self::META_TABLE, [ 'plugin_id' => $plugin_id ] );
+        $plugin_deleted = $db->delete( self::TABLE, [ 'id' => $plugin_id ] );
 
         if ( isset( $this->meta_data ) ) {
             $this->meta_data = [];
         }
 
-        return ( $plugin_deleted > 0 || $meta_deleted > 0 );
+        return ( $plugin_deleted > 0 && $meta_deleted > 0 );
     }
 
     /*
@@ -518,7 +490,7 @@ class Plugin extends AbstractHostedApp {
         if ( $this->is_monetized() ) {
             $monetization = Monetization::get_by_app( $this->get_type(), $this->get_id() );
 
-            $data['monetization'] = $monetization->to_array() ?: [];
+            $data['monetization'] = $monetization->to_array();
         }
 
         return $data;

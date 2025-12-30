@@ -547,13 +547,17 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     }
 
     /**
-     * Get the application homepage URL.
+     * Get the homepage URL
      * 
      * @return string
      */
     public function get_homepage() {
+        if ( empty( $this->homepage ) || '#' === $this->homepage ) {
+            return $this->get_url();
+        }
         return $this->homepage;
     }
+    
     /**
      * Get plugin screenshots
      * 

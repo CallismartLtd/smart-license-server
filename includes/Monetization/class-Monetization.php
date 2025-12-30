@@ -463,7 +463,7 @@ class Monetization {
      *
      * @return array
      */
-    public function to_array() {
+    public function to_array() : array{
         return [
             'id'         => $this->id,
             'app_type'  => $this->app_type,

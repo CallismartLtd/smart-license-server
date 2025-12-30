@@ -1,9 +1,9 @@
 <?php
 /**
- * The Hosted Theme class file
+ * The Hosted Theme class file.
  * 
- * @author Callistus Nwachukwu <admin@callismart.com.ng>
- * @package Smliser_Hosted_Application.
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\HostedApps.
  */
 
 namespace SmartLicenseServer\HostedApps;
@@ -74,13 +74,6 @@ class Theme extends AbstractHostedApp {
      * @var string $screenshot_url
      */
     protected $screenshot_url = '';
-
-    /**
-     * The theme file
-     * 
-     * @var string|array $file Absolute path to the theme zip file or an array of uploaded file.
-     */
-    protected $file;
 
     /**
      * Class constructor
@@ -233,7 +226,7 @@ class Theme extends AbstractHostedApp {
     /**
      * Create new theme or update the existing one.
      * 
-     * @return true|Exception True on success, false on failure.
+     * @return true|Exception True on success, exception on failure.
      */
     public function save() : true|Exception {
         $db         = smliser_dbclass();
@@ -301,20 +294,16 @@ class Theme extends AbstractHostedApp {
         if ( empty( $this->id ) ) {
             return false; // A valid theme should have an ID.
         }
-    
-        $repo_class = new ThemeRepository();
-        
+            
         $id             = $this->get_id();
-        $file_delete    = $repo_class->trash( $this->get_slug() );
-
-        if ( is_smliser_error( $file_delete ) ) {
-            return $file_delete;
-        }
-
         $theme_deletion = $db->delete( self::TABLE, array( 'id' => $id ) );
         $meta_deletion  = $db->delete( self::META_TABLE, array( 'theme_id' => $id ) );
 
-        return boolval( $theme_deletion ?: $meta_deletion );
+        if ( ! empty( $this->meta_data ) ) {
+            $this->meta_data = [];
+        }
+
+        return ( $theme_deletion > 0 && $meta_deletion > 0 );
     }
 
     /**
@@ -406,10 +395,11 @@ class Theme extends AbstractHostedApp {
          */
         $sections = array(
             'description'   => $repo_class->get_description( $self->get_slug() ),
-            'changelog'     => '',
+            'changelog'     => $repo_class->get_changelog( $self->get_slug() ),
             'installation'  => '',
             'screenshots'   =>  [],
         );
+        
         $self->set_section( $sections );
         $manifest = $repo_class->get_app_dot_json( $self );
         $self->set_manifest( $manifest );
@@ -484,7 +474,7 @@ class Theme extends AbstractHostedApp {
         if ( $this->is_monetized() ) {
             $monetization = Monetization::get_by_app( $this->get_type(), $this->get_id() );
 
-            $data['monetization'] = $monetization->to_array() ?: [];
+            $data['monetization'] = $monetization->to_array();
         }
 
         return $data;
