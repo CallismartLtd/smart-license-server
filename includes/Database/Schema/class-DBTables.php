@@ -125,7 +125,7 @@ final class DBTables {
                 'author VARCHAR(255) DEFAULT NULL',
                 'download_link VARCHAR(400) DEFAULT NULL',
                 'created_at DATETIME DEFAULT NULL',
-                'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'INDEX software_slug_index (slug)',
                 'INDEX software_author_index (author)',
             ),

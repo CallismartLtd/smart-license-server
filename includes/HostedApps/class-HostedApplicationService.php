@@ -95,7 +95,7 @@ class HostedApplicationService {
 
             if ( in_array( 'software', $types, true ) ) {
                 $table_name     = SMLISER_SOFTWARE_TABLE;
-                $sql_parts[]    = "SELECT id, 'software' AS type, last_updated FROM {$table_name} WHERE status = ?";
+                $sql_parts[]    = "SELECT id, 'software' AS type, updated_at as last_updated FROM {$table_name} WHERE status = ?";
                 $params[]       = $status;
                 
             }
