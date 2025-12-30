@@ -53,11 +53,11 @@ class ThemeRepository extends Repository {
      * @param string $theme_slug The theme slug (e.g., "my-awesome-theme").
      * @return string|Exception Absolute file path to the ZIP or Exception on failure.
      */
-    public function locate( $theme_slug ) {
+    public function locate( $theme_slug ) : string| Exception {
         if ( empty( $theme_slug ) || ! is_string( $theme_slug ) ) {
             return new Exception(
                 'invalid_slug',
-                __( 'Theme slug must be a non-empty string.', 'smart-license-server' ),
+                __( 'Theme slug must be a non-empty string.', 'smliser' ),
                 [ 'status' => 400 ]
             );
         }
@@ -79,7 +79,7 @@ class ThemeRepository extends Repository {
         if ( ! $this->exists( $theme_file ) ) {
             return new Exception(
                 'file_not_found',
-                __( 'Theme file not found.', 'smart-license-server' ),
+                __( 'Theme file not found.', 'smliser' ),
                 [ 'status'=> 404]
             );
         }

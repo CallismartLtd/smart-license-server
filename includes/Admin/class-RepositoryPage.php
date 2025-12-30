@@ -258,7 +258,8 @@ class RepositoryPage {
                     'value' => $app ? $app->get_name() : '',
                     'attr'  => array(
                         'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
+                        'spellcheck'    => 'off',
+                        'required'      => true
                     )
                 )
             ),
@@ -272,7 +273,7 @@ class RepositoryPage {
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
                         'readonly'      => true,
-                        'title'         => 'Use app manifest file to edit version'
+                        'title'         => 'Use app.json file to edit version'
                     )
                 )
             ),

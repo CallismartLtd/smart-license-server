@@ -3,6 +3,7 @@
  * Plugin Repository
  *
  * Handles plugin-specific business logic within the repository.
+ * Extends the abstract Repository to ensure secure, scoped file operations.
  *
  * @author  Callistus Nwachukwu
  * @since   0.0.6
@@ -50,11 +51,11 @@ class PluginRepository extends Repository {
      * @param string $plugin_slug The plugin slug (e.g., "my-plugin").
      * @return string|Exception Absolute file path or Exception on failure.
      */
-    public function locate( $plugin_slug ) {
+    public function locate( $plugin_slug ) : string| Exception {
         if ( empty( $plugin_slug ) || ! is_string( $plugin_slug ) ) {
             return new Exception( 
                 'invalid_slug', 
-                __( 'Plugin slug must be a non-empty string.', 'smart-license-server' ),
+                __( 'Plugin slug must be a non-empty string.', 'smliser' ),
                 [ 'status' => 400 ] 
             );
         }
@@ -76,7 +77,7 @@ class PluginRepository extends Repository {
         if ( ! $this->exists( $plugin_file ) ) {
             return new Exception(
                 'file_not_found',
-                __( 'Plugin file not found.', 'smart-license-server' ),
+                __( 'Plugin file not found.', 'smliser' ),
                 [ 'status'=> 404]
             );
         }        
@@ -94,7 +95,7 @@ class PluginRepository extends Repository {
      * @param bool   $update    Whether this is an update to an existing plugin.
      * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
      */
-    public function upload_zip( array $file, string $new_name, bool $update = false ) {
+    public function upload_zip( array $file, string $new_name = '', bool $update = false ) {
         // --- Core upload via Repository::safe_zip_upload() ---
         $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
         if ( is_smliser_error( $stored_path ) ) {

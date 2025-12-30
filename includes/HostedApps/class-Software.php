@@ -11,7 +11,6 @@ namespace SmartLicenseServer\HostedApps;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
-use SmartLicenseServer\FileSystem\ThemeRepository;
 
 /**
  * Represents a hosted software in the repository.

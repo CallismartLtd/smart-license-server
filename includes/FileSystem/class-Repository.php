@@ -493,7 +493,25 @@ abstract class Repository {
     |---------------------------
     | ABSTRACT METHODS
     |---------------------------
+    */
+
+    /**
+     * Locate the application ZIP file inside the repository.
+     * 
+     * @abstract
+     * @param string $slug The application slug.
+     * @return string|Exception Absolute path to the ZIP file or Exception if not found.
      */
+    abstract public function locate( $slug ) : string| Exception;
+
+    /**
+     * Upload an application ZIP file to the repository.
+     * 
+     * @param array $file The uploaded file ($_FILES format).
+     * @param string $new_name The preferred filename (without path).
+     * @param bool   $update    Whether this is an update to an existing app.
+     */
+    abstract public function upload_zip( array $file, string $new_name, bool $update = false );
 
     /**
      * Get the assets for a given hosted application.
