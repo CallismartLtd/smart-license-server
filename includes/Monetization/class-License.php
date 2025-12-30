@@ -12,8 +12,9 @@ namespace SmartLicenseServer\Monetization;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
-use \SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\Utils\CommonQueryTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 /**
@@ -22,7 +23,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  */
 class License {
-    use CacheAwareTrait;
+    use CacheAwareTrait, CommonQueryTrait;
     /**
      * The license ID
      * 
@@ -516,18 +517,8 @@ class License {
         $license = self::cache_get( $key );
 
         if ( false === $license || ! ( $license instanceof self ) ) {
-            $db = smliser_dbclass();
-
-            $table  = SMLISER_LICENSE_TABLE;
-            $sql    = "SELECT * FROM {$table} WHERE `id` = ?";
-
-            $result = $db->get_row( $sql, [$id] );     
-            
-            if ( $result ) {
-                $license = self::from_array( $result );
-            } else {
-                $license = null;
-            }
+            $table      = SMLISER_LICENSE_TABLE;
+            $license    = self::get_self_by_id( $id, $table );
 
             self::cache_set( $key, $license, 30 * \MINUTE_IN_SECONDS );
         }

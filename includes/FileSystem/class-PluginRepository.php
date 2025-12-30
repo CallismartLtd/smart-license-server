@@ -14,9 +14,7 @@ namespace SmartLicenseServer\FileSystem;
 use InvalidArgumentException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\Utils\MDParser;
-use TypeError;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 

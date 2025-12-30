@@ -11,6 +11,8 @@ namespace SmartLicenseServer\HostedApps;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
+use SmartLicenseServer\Utils\CommonQueryTrait;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
  * Represents a hosted software in the repository.
@@ -18,6 +20,7 @@ use SmartLicenseServer\Monetization\Monetization;
  * A hosted software is any other application type that is not a plugin or theme.
  */
 class Software extends AbstractHostedApp {
+    use SanitizeAwareTrait, CommonQueryTrait;
     /**
      * The database table for software.
      * 
@@ -33,11 +36,11 @@ class Software extends AbstractHostedApp {
     const META_TABLE    = SMLISER_SOFTWARE_META_TABLE;
 
     /**
-     * Icon url
+     * Software cover URL
      * 
-     * @var string $icon_url
+     * @var string
      */
-    protected $icon_url = '';
+    protected $cover = '';
 
     /**
      * Class constructor
@@ -86,11 +89,22 @@ class Software extends AbstractHostedApp {
      * @return string Icon URL.
      */
     public function get_icon() : string {
-        if ( ! empty( $this->icon_url ) ) {
-            return $this->icon_url;
+        foreach ( $this->get_icons() as $icon ) {
+            if ( ! empty( $icon ) ) {
+                return $icon;
+            }
         }
 
         return smliser_get_placeholder_icon( $this->get_type() );
+    }
+
+    /**
+     * Get cover image
+     * 
+     * @return string
+     */
+    public function get_cover() : string {
+        return $this->cover;
     }
 
     /**
@@ -100,6 +114,22 @@ class Software extends AbstractHostedApp {
      */
     public function get_author_profile() : string {
         return $this->author;
+    }
+
+    /*
+    |--------------------
+    | CRUD METHODS
+    |--------------------
+    */
+
+    /**
+     * Get the software by ID
+     * 
+     * @param int $id The software ID.
+     * @return self|null
+     */
+    public static function get_software( $id ) : ?self {
+        return self::get_self_by_id( $id, self::TABLE );
     }
 
     /**

@@ -43,7 +43,7 @@ class HostingController {
             $app_type = $request->get( 'app_type', null );
 
             if ( ! $app_type ) {
-                throw new RequestException( 'invalid_parameter_type', 'The app type parameter is required.' , array( 'status' => 400 ) );
+                throw new RequestException( 'invalid_parameter_type', 'The app_type parameter is required.' , array( 'status' => 400 ) );
             }
 
             if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
@@ -54,7 +54,7 @@ class HostingController {
             $init_method    = "get_{$app_type}";
 
             if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $init_method ) ) {
-                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , array( 'status' => 400 ) );
+                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" class did not define the required method "%s::%s($id)"', $app_type, $app_class, $init_method ) , array( 'status' => 500 ) );
             }
             
             if ( $app_id ) {
@@ -140,7 +140,7 @@ class HostingController {
      * @param Request $request The request object.
      * @return true|RequestException
      */
-    public static function update_plugin( &$class, Request $request ) {
+    private static function update_plugin( &$class, Request $request ) {
         if ( ! $class instanceof Plugin ) {
             return new RequestException( 'message', 'Wrong plugin object passed' );
         }
@@ -159,7 +159,7 @@ class HostingController {
      * @param Request $request
      * @return true|RequestException
      */
-    public static function update_theme( &$theme, Request $request ) {
+    private static function update_theme( &$theme, Request $request ) {
         if ( ! $theme instanceof Theme ) {
             return new RequestException( 'message', 'Wrong theme object passed' );
         }

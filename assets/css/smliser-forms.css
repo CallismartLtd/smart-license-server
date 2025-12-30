@@ -803,7 +803,9 @@ button.smliser-upload-btn {
   border: solid 1px #dcdcde;
 }
 
-
+.smliser-json-textarea {
+  min-height: 300px;
+}
 
 @media (min-width: 280px) and (max-width: 760px) {
   .smliser-admin-modal_content {

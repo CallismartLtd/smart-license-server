@@ -859,34 +859,24 @@ function smliser_render_toggle_switch( $attrs = array() ) {
 /**
  * Render form input field
  *
- * @param array $args {
- *     Arguments to render the field.
- *
- *     @type string $label Label text.
- *     @type array  $input {
- *         Input configuration.
- *
- *         @type string $type  Input type. Default 'text'.
- *         @type string $name  Input name attribute.
- *         @type string $value Input value.
- *         @type array  $attr  Extra HTML attributes (key => value).
- *     }
- * }
+ * @param array $args Arguments to render the field.
  */
 function smliser_render_input_field( $args = array() ) {
     $default_args = array(
         'label' => '',
         'input' => array(
-            'type'  => 'text',
-            'name'  => '',
-            'value' => '',
-            'attr'  => array(),
+            'type'    => 'text',
+            'name'    => '',
+            'value'   => '',
+            'options' => array(), // For select/radio
+            'attr'    => array(),
         ),
     );
 
     $parsed_args = parse_args( $args, $default_args );
     $input       = $parsed_args['input'];
-
+    $type        = $input['type'];
+    
     // Build attributes string
     $attr_str = '';
     if ( ! empty( $input['attr'] ) && is_array( $input['attr'] ) ) {
@@ -897,18 +887,60 @@ function smliser_render_input_field( $args = array() ) {
 
     $id = ! empty( $input['attr']['id'] ) ? $input['attr']['id'] : $input['name'];
 
-    printf(
-        '<label for="%1$s" class="app-uploader-form-row">
-            <span>%2$s</span>
-            <input type="%3$s" name="%4$s" id="%1$s" value="%5$s"%6$s>
-        </label>',
-        esc_attr( $id ),
-        esc_html( $parsed_args['label'] ),
-        esc_attr( $input['type'] ),
-        esc_attr( $input['name'] ),
-        esc_attr( $input['value'] ),
-        $attr_str
-    );
+    // Start the existing UI row
+    printf( '<label for="%1$s" class="app-uploader-form-row"><span>%2$s</span>', esc_attr( $id ), esc_html( $parsed_args['label'] ) );
+
+    // Handle different tag types
+    switch ( $type ) {
+        case 'textarea':
+            printf(
+                '<textarea name="%1$s" id="%2$s"%3$s>%4$s</textarea>',
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                $attr_str,
+                esc_textarea( $input['value'] )
+            );
+            break;
+
+        case 'select':
+            printf( '<select name="%1$s" id="%2$s"%3$s>', esc_attr( $input['name'] ), esc_attr( $id ), $attr_str );
+            foreach ( $input['options'] as $val => $label ) {
+                printf( 
+                    '<option value="%1$s" %2$s>%3$s</option>', 
+                    esc_attr( $val ), 
+                    selected( $input['value'], $val, false ), 
+                    esc_html( $label ) 
+                );
+            }
+            echo '</select>';
+            break;
+
+        case 'checkbox':
+        case 'radio':
+            printf(
+                '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s" %5$s %6$s>',
+                esc_attr( $type ),
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                esc_attr( $input['value'] ),
+                checked( $input['value'], true, false ), // Assumes boolean toggle for single checkbox
+                $attr_str
+            );
+            break;
+
+        default:
+            printf(
+                '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
+                esc_attr( $type ),
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                esc_attr( $input['value'] ),
+                $attr_str
+            );
+            break;
+    }
+
+    echo '</label>';
 }
 
 /**

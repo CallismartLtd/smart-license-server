@@ -11,6 +11,7 @@ namespace SmartLicenseServer\HostedApps;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Utils\CommonQueryTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -18,6 +19,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Represents a typical plugin hosted in this repository.
  */
 class Plugin extends AbstractHostedApp {
+    use CommonQueryTrait;
     /**
      * The plugin database table name.
      * 
@@ -244,23 +246,8 @@ class Plugin extends AbstractHostedApp {
      * @param int $id The plugin ID.
      * @return self|null
      */
-    public static function get_plugin( $id = 0 ) {
-        $db     = smliser_dbclass();
-        $table  = self::TABLE;
-        $id     = absint( $id );
-
-        if ( empty( $id ) ) {
-            return null;
-        }
-
-        $sql    = "SELECT * FROM {$table} WHERE `id` = ?";
-        $result = $db->get_row( $sql, [$id] );
-
-        if ( $result ) {
-            return self::from_array( $result );
-        }
-
-        return null;
+    public static function get_plugin( $id = 0 ) : ?self {
+        return self::get_self_by_id( $id, self::TABLE );
     }
 
     /**

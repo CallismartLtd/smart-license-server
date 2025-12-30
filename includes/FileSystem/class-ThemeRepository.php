@@ -30,7 +30,7 @@ class ThemeRepository extends Repository {
     /**
      * Allowed additional screenshots file extensions.
      */
-    const ALLOWED_SCREENSHOTS_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg' ];
+    const ALLOWED_SCREENSHOTS_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
 
     /**
      * Constructor.
@@ -154,7 +154,7 @@ class ThemeRepository extends Repository {
      * @param string $filename Desired filename within the asset type directory.
      * @return string|Exception Relative path to stored asset on success, Exception on failure.
      */
-    public function upload_asset(string $slug, array $file, string $type, string $filename = '' ) {
+    public function upload_asset( string $slug, array $file, string $type, string $filename = '' ) {
         // Validate upload
         if ( ! is_uploaded_file( $file['tmp_name'] ?? '' ) ) {
             return new Exception( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );

@@ -384,6 +384,37 @@ class Sanitizer {
     }
 
     /**
+     * Recursively sanitizes an array or object.
+     *
+     * @param mixed         $data     The data to sanitize.
+     * @param callable|null $callback Optional. The sanitization function to apply. 
+     * Default is [self::class, 'sanitize_text_field'].
+     * @return mixed The sanitized data.
+     */
+    public static function sanitize_deep( $data, ?callable $callback = null ) : mixed {
+        // Set default callback if none provided
+        if ( null === $callback ) {
+            $callback = [ self::class, 'sanitize_text_field' ];
+        }
+
+        if ( is_array( $data ) ) {
+            foreach ( $data as $key => $value ) {
+                $data[ $key ] = self::sanitize_deep( $value, $callback );
+            }
+        } elseif ( is_object( $data ) ) {
+            $vars = get_object_vars( $data );
+            foreach ( $vars as $key => $value ) {
+                $data->{$key} = self::sanitize_deep( $value, $callback );
+            }
+        } else {
+            // Apply callback to scalar values
+            $data = call_user_func( $callback, $data );
+        }
+
+        return $data;
+    }
+
+    /**
      * Recursively removes backslashes from strings or arrays.
      * 
      * Useful for cleaning magic_quotes_gpc data.

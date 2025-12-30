@@ -161,6 +161,8 @@ class AppUploader {
     
     /**
      * Handle form submission.
+     * 
+     * @param {Event} e The event object.
      */
     async handleFormSubmit(e) {
         e.preventDefault();

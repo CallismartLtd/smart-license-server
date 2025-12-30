@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Monetization;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Utils\CommonQueryTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -20,7 +21,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * to hosted applications in the repository.
  */
 class DownloadToken {
-
+    use CommonQueryTrait;
     /**
      * Token ID.
      * 
@@ -243,11 +244,7 @@ class DownloadToken {
      * @return self|null
      */
     public static function get_by_id( int $id ) : ?self {
-        $db = \smliser_dbclass();
-        $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
-
-        $row = $db->get_row( "SELECT * FROM {$table} WHERE id = ?", [$id] );
-        return $row ? self::from_array( $row ) : null;
+        return self::get_self_by_id( $id, \SMLISER_APP_DOWNLOAD_TOKEN_TABLE );
     }
 
     /**
