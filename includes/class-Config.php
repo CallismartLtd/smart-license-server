@@ -196,8 +196,9 @@ class Config {
      */
     public function load_scripts( $s ) {
         wp_enqueue_script( 'smliser-script', SMLISER_URL . 'assets/js/main-script.js', array( 'jquery' ), SMLISER_VER, true );
-        wp_register_script( 'smliser-apps-uploader', SMLISER_URL . 'assets/js/apps-uploader.js', array( 'jquery' ), SMLISER_VER, true );
-        wp_register_script( 'select2', SMLISER_URL . 'assets/js/select2.min.js', array( 'jquery' ), SMLISER_VER, true );
+        wp_enqueue_script( 'smliser-nanojson', SMLISER_URL . 'assets/js/nanojson.min.js', array( 'jquery' ), SMLISER_VER, true );
+        wp_register_script( 'smliser-apps-uploader', SMLISER_URL . 'assets/js/apps-uploader.js', array( 'jquery', 'smliser-nanojson' ), SMLISER_VER, true );
+        wp_register_script( 'select2', SMLISER_URL . 'assets/js/select2.min.js', array( 'jquery', ), SMLISER_VER, true );
         wp_register_script( 'smliser-tinymce', SMLISER_URL . 'assets/js/tinymce/tinymce.min.js', array( 'jquery' ), SMLISER_VER, true );
         wp_register_script( 'smliser-admin-repository', SMLISER_URL . 'assets/js/admin-repository.js', array( 'jquery' ), SMLISER_VER, true );
 
@@ -236,11 +237,16 @@ class Config {
         wp_enqueue_style( 'smliser-styles', SMLISER_URL . 'assets/css/smliser-styles.css', array(), SMLISER_VER, 'all' );
         wp_enqueue_style( 'smliser-form-styles', SMLISER_URL . 'assets/css/smliser-forms.css', array(), SMLISER_VER, 'all' );
         wp_register_style( 'select2', SMLISER_URL . 'assets/css/select2.min.css', array(), SMLISER_VER, 'all' );
+        wp_register_style( 'smliser-nanojson', SMLISER_URL . 'assets/css/nanojson.min.css', array(), SMLISER_VER, 'all' );
         wp_register_style( 'smliser-tabler-icons', SMLISER_URL . 'assets/icons/tabler-icons.min.css', array(), SMLISER_VER, 'all' );
     
         
         if ( 'smart-license-server_page_smliser-bulk-message' === $s || 'smart-license-server_page_licenses' === $s ) {
             wp_enqueue_style( 'select2' );
+        }
+
+        if ( 'smart-license-server_page_repository' === $s ) {
+            wp_enqueue_style( 'smliser-nanojson' );
         }
 
         if ( \is_admin() ) {
