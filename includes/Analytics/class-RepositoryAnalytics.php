@@ -404,11 +404,16 @@ class RepositoryAnalytics {
                 'software' => SMLISER_SOFTWARE_TABLE,
             };
 
-            $sql = "
-                SELECT name, slug, status, DATE_FORMAT(last_updated, '%Y-%m') AS month
+            $update_at_col  = match( $t ) {
+                'plugin'   => 'last_updated',
+                'theme'    => 'last_updated',
+                'software' => 'updated_at',
+            };
+
+            $sql = "SELECT name, slug, status, DATE_FORMAT($update_at_col, '%Y-%m') AS month
                 FROM {$table}
-                WHERE last_updated >= DATE_SUB(CURDATE(), INTERVAL ? MONTH)
-                ORDER BY last_updated ASC
+                WHERE $update_at_col >= DATE_SUB(CURDATE(), INTERVAL ? MONTH)
+                ORDER BY $update_at_col ASC
             ";
 
             $results = $db->get_results( $sql, [$months] );

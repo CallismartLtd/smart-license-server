@@ -353,14 +353,13 @@ class Plugin extends AbstractHostedApp {
         $self->set_author( $result['author'] ?? '' );
         $self->set_author_profile( $result['author_profile'] ?? '' );
         $self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
-
+        $self->set_download_url( $result['download_link'] ?? '' );
+        $self->set_created_at( $result['created_at'] ?? '' );
+        $self->set_last_updated( $result['last_updated'] ?? '' );
+        
         $self->load_meta();
-        /** 
-         * Set file information
-         * 
-         * @var \SmartLicenseServer\FileSystem\PluginRepository $repo_class
-         */
-        $repo_class = HostedApplicationService::get_app_repository_class( $self->get_type() );
+
+        $repo_class = new PluginRepository();
 
         $plugin_meta    = $repo_class->get_metadata( $self->get_slug() );        
         $self->set_version( $plugin_meta['stable_tag'] ?? '' );
@@ -368,10 +367,6 @@ class Plugin extends AbstractHostedApp {
         $self->set_tested_up_to( $plugin_meta['tested_up_to'] ?? '' );
         $self->set_requires_php( $plugin_meta['requires_php'] ?? '' );
         $self->set_tags( $plugin_meta['tags'] ?? array() );
-
-        $self->set_download_url( $result['download_link'] ?? '' );
-        $self->set_created_at( $result['created_at'] ?? '' );
-        $self->set_last_updated( $result['last_updated'] ?? '' );
         
         $file       = $repo_class->locate( $self->get_slug() );
 

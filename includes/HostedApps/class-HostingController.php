@@ -13,9 +13,12 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\HostedApps\Theme;
+use SmartLicenseServer\HostedApps\Software;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -23,6 +26,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Software Hosting Controller handles HTTP request and response for hosted applications.
  */
 class HostingController {
+    use SanitizeAwareTrait;
     /*
     |---------------------------
     | CREATE OPERATION METHODS
@@ -80,16 +84,15 @@ class HostingController {
                 throw new RequestException( 'invalid_input', 'Application author name is required' , array( 'status' => 400 ) );
             }
 
-            $app_file   = $request->get( 'app_file' );
-
-            $author_url = $request->get( 'app_author_url', '' );
-            $version    = $request->get( 'app_version', '' );
+            $app_zip_file   = $request->get( 'app_zip_file' );
+            $author_url     = $request->get( 'app_author_url', '' );
+            $version        = $request->get( 'app_version', '' );
 
             $class->set_name( $name );
             $class->set_author( $author );
             $class->set_author_profile( $author_url );
             $class->set_version( $version );
-            $class->set_file( $app_file );
+            $class->set_file( $app_zip_file );
         
             if ( ! empty( $app_id ) ) {
                 $class->set_id( $app_id );
@@ -136,18 +139,18 @@ class HostingController {
     /**
      * Update a plugin.
      * 
-     * @param Plugin $class The plugin ID.
+     * @param Plugin $plugin The plugin ID.
      * @param Request $request The request object.
      * @return true|RequestException
      */
-    private static function update_plugin( &$class, Request $request ) {
-        if ( ! $class instanceof Plugin ) {
+    private static function update_plugin( &$plugin, Request $request ) {
+        if ( ! $plugin instanceof Plugin ) {
             return new RequestException( 'message', 'Wrong plugin object passed' );
         }
 
-        $class->set_download_url( $request->get( 'app_download_url' ) );
-        $class->update_meta( 'support_url', $request->get( 'app_support_url' ) );
-        $class->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
+        $plugin->set_download_url( $request->get( 'app_download_url' ) );
+        $plugin->update_meta( 'support_url', $request->get( 'app_support_url' ) );
+        $plugin->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
 
         return true;
     }
@@ -170,6 +173,60 @@ class HostingController {
         $theme->update_meta( 'preview_url', $request->get( 'app_preview_url', '' ) );
         $theme->update_meta( 'external_repository_url', $request->get( 'app_external_repository_url', '' ) );
 
+        return true;
+    }
+
+     /**
+     * Update software
+     *
+     * @param Software $software
+     * @param Request  $request
+     * @return true|Exception
+     */
+    private static function update_software( &$software, $request ) {
+
+        if ( ! $software instanceof Software ) {
+            return new RequestException(
+                'invalid_software',
+                'Wrong software object passed.'
+            );
+        }
+
+        $uploaded_json = $request->get( 'app_json_file' );
+
+        if ( ! is_array( $uploaded_json ) ) {
+            return new RequestException(
+                'missing_file',
+                'Please upload app.json file using "app_json_file" file key.'
+            );
+        }
+
+        try {
+            $tmp_name = FileSystemHelper::validate_uploaded_file(
+                $uploaded_json,
+                'app.json'
+            );
+        } catch ( Exception $e ) {
+            return new RequestException( $e->get_error_code(), $e->get_error_message(), ['status' => 400] );
+        }
+
+        $contents = file_get_contents( $tmp_name );
+
+        if ( false === $contents ) {
+            return new RequestException( 'file_read_error', 'Unable to read uploaded app.json file.' );
+        }
+
+        $manifest = json_decode( $contents, true );
+
+        if ( ! is_array( $manifest ) ) {
+            return new RequestException( 'invalid_app_json', 'Invalid app.json file. JSON could not be parsed.' );
+        }
+
+        $software->set_manifest( self::sanitize_deep( $manifest ) );
+        $software->set_download_url( $request->get( 'app_download_url' ) );
+        $software->update_meta( 'support_url', $request->get( 'app_support_url' ) );
+        $software->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
+        $software->update_meta( 'documentation_url', $request->get( 'app_documentation_url', null ) );
         return true;
     }
 

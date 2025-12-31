@@ -50,7 +50,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                 <h3>File Upload</h3>
                 <em>Max Upload Size: <?php echo esc_html( $max_upload_size_mb ) . 'MB'; ?></em>
                 <div class="smliser-form-file-row">
-                    <input type="file" name="app_file" id="smliser-file-input"  style="display: none;">
+                    <input type="file" name="app_zip_file" id="smliser-file-input"  style="display: none;">
                     <div class="smliser-file-info" wp-max-upload-size= "<?php echo absint( $max_upload_size_mb ) ?>">
                         <span>No file selected.</span>
                     </div>
@@ -116,7 +116,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                 </div>
             <?php endif; ?>
         </div>        
-        <button type="submit" class="button"><?php printf( 'Save %s', esc_html( $type_title ) ); ?></button>
+        <button type="submit" class="button authoritatively"><?php printf( 'Save %s', esc_html( $type_title ) ); ?></button>
     </form>
 </div>
 <?php if( 'edit' === smliser_get_query_param( 'tab' ) ) : ?>

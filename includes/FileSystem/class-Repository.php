@@ -542,6 +542,14 @@ abstract class Repository {
     abstract public function get_app_dot_json( \SmartLicenseServer\HostedApps\AbstractHostedApp $app );
 
     /**
+     * Regenerate app.json file
+     * 
+     * @param \SmartLicenseServer\HostedApps\AbstractHostedApp
+     * @return array
+     */
+    abstract public function regenerate_app_dot_json( \SmartLicenseServer\HostedApps\AbstractHostedApp $app ) : array;
+
+    /**
     |---------------------------
     | SETTING UP THE REPOSITORY 
     |---------------------------

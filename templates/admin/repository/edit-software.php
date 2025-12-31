@@ -10,23 +10,77 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 $title  = sprintf( 'Edit Software: %s', $app->get_name() );
 
-$other_fields   = array(
+$other_fields = array(
     array(
-        'label' => __( 'Required PHP Version', 'smliser' ),
+        'label' => __( 'App.json File', 'smliser' ),
         'input' => array(
             'type'  => 'textarea',
-            'name'  => 'app_required_php_version',
-            'value' => smliser_safe_json_encode( $app->get_manifest(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ),
+            'name'  => 'app_json_content',
+            'value' => smliser_safe_json_encode(
+                $app->get_manifest(),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            ),
             'attr'  => array(
-                'autocomplete'  => 'off',
-                'spellcheck'    => 'off',
-                // 'readonly'      => true,
-                'class'         => 'smliser-json-textarea',
-                'title'         => 'Use plugin readme.txt file to edit the plugin\'s required PHP version.'
+                'class' => 'smliser-json-textarea',
+                'readonly' => true
             )
         )
-    )
+    ),
+
+    array(
+        'label' => __( 'Support URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_support_url',
+            'value' => $app->get_support_url(),
+            'attr'  => array(
+                'autocomplete' => 'off',
+                'spellcheck'   => 'off',
+                'placeholder'  => 'Optional – link to support page'
+            )
+        )
+    ),
+    array(
+        'label' => __( 'Download URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_download_url',
+            'value' => $app->get_download_url(),
+            'attr'  => array(
+                'autocomplete' => 'off',
+                'spellcheck'   => 'off',
+                'placeholder'  => 'Optional – leave empty to use server download'
+            )
+        )
+    ),
+    array(
+        'label' => __( 'Homepage URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_homepage_url',
+            'value' => $app->get_homepage(),
+            'attr'  => array(
+                'autocomplete' => 'off',
+                'spellcheck'   => 'off',
+                'placeholder'  => 'Optional – link to software homepage'
+            )
+        )
+    ),
+    array(
+        'label' => __( 'Documentation URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_documentation_url',
+            'value' => $app->get_meta( 'documentation_url' ),
+            'attr'  => array(
+                'autocomplete' => 'off',
+                'spellcheck'   => 'off',
+                'placeholder'  => 'Optional – link to software documentation'
+            )
+        )
+    ),
 );
+
 
 $screenshots = $app->get_screenshots();
 

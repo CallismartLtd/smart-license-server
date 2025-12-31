@@ -196,6 +196,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @var array $manifest
      */
     protected array $manifest = [
+        'type'          => '',
         'platforms'     => [],
         'tech_stack'    => [],
         'dependencies'  => [],
@@ -464,7 +465,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param array $tags
      */
     public function set_tags( $tags ) {
-        $this->tags = array_map( [__CLASS__, 'sanitize_text'], $tags );
+        $this->tags = array_map( [__CLASS__, 'sanitize_text'], (array) $tags );
     }
 
     /**
@@ -473,7 +474,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param array $data
      */
     public function set_manifest( array $data ) {
-        $this->manifest = \array_merge( $this->manifest, $data );
+        $this->manifest = $data + $this->manifest;
     }
     
     /**
@@ -1036,15 +1037,12 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     public function get_zip_file() {
         $file = $this->get_file();
-        if ( ! is_array( $file ) ) {
-            return $file;
+        
+        if ( is_array( $file ) && isset( $file['tmp_name'] ) ) {
+            return $file['tmp_name'];
         }
 
-        if ( is_array( $file ) && isset( $file['tempname'] ) ) {
-            return $file['tempname'];
-        }
-
-        return new Exception( 'file_not_found', \sprintf( '%s zip file not found', $this->get_type() ), array( 'status' => 404 ) );
+        return $file;
     }
 
     /**

@@ -377,22 +377,13 @@ trait SanitizeAwareTrait {
     */
 
     /**
-     * Sanitize array of values.
+     * Recursively sanitize a given value.
      * 
      * @param mixed $value The input value.
-     * @param callable|null $callback Optional callback to sanitize each item.
-     * @return array Sanitized array (empty if input is not array).
+     * @return mixed Sanitized array (empty if input is not array).
      */
-    protected static function sanitize_array( $value, ?callable $callback = null ): array {
-        if ( ! is_array( $value ) ) {
-            return [];
-        }
-        
-        if ( null !== $callback ) {
-            return array_map( $callback, $value );
-        }
-        
-        return array_map( [ __CLASS__, 'sanitize_text' ], $value );
+    protected static function sanitize_deep( $value ): mixed {
+        return Sanitizer::sanitize_deep( $value );
     }
 
     /**

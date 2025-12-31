@@ -199,6 +199,68 @@ class FileSystemHelper {
     }
 
     /**
+     * Validate an uploaded file (native PHP upload).
+     *
+     * Ensures:
+     * - Proper upload array structure
+     * - No PHP upload error
+     * - File was uploaded via HTTP POST
+     * - Temp file exists and is readable
+     *
+     * @param array  $file  One entry from $_FILES.
+     * @param string $name  Logical name for error messages (e.g. "app.json").
+     *
+     * @return string       Temporary file path.
+     * @throws \SmartLicenseServer\Exceptions\Exception
+     */
+    public static function validate_uploaded_file( array $file, string $name = 'file' ): string {
+
+        if ( empty( $file ) ) {
+            throw new Exception(
+                'no_upload',
+                sprintf( 'No %s was uploaded.', $name )
+            );
+        }
+
+        if ( ! isset( $file['error'], $file['tmp_name'] ) ) {
+            throw new Exception(
+                'invalid_upload_array',
+                sprintf( 'Malformed upload data for %s.', $name )
+            );
+        }
+
+        if ( UPLOAD_ERR_OK !== (int) $file['error'] ) {
+            throw new Exception(
+                'upload_error',
+                self::interpret_upload_error( (int) $file['error'], $name )
+            );
+        }
+
+        if ( ! is_uploaded_file( $file['tmp_name'] ) ) {
+            throw new Exception(
+                'invalid_upload_source',
+                sprintf(
+                    '%s was not uploaded via HTTP POST.',
+                    $name
+                )
+            );
+        }
+
+        if ( ! is_readable( $file['tmp_name'] ) ) {
+            throw new Exception(
+                'unreadable_upload',
+                sprintf(
+                    'Uploaded %s file is not readable.',
+                    $name
+                )
+            );
+        }
+
+        return $file['tmp_name'];
+    }
+
+
+    /**
      * Check if a file looks like an image.
      *
      * @param string $path
@@ -551,5 +613,66 @@ class FileSystemHelper {
         return sprintf( '%.' . (int) $decimals . 'f %s', $size, $units[ $factor ] );
     }
 
+    /**
+     * Interpret PHP file upload error codes.
+     *
+     * @param int    $error Upload error code (UPLOAD_ERR_*).
+     * @param string $name  Logical file name for messaging.
+     *
+     * @return string
+     */
+    public static function interpret_upload_error( int $error, string $name = 'file' ): string {
+
+        switch ( $error ) {
+
+            case UPLOAD_ERR_OK:
+                return sprintf( '%s uploaded successfully.', $name );
+
+            case UPLOAD_ERR_INI_SIZE:
+                return sprintf(
+                    '%s exceeds the upload_max_filesize directive.',
+                    $name
+                );
+
+            case UPLOAD_ERR_FORM_SIZE:
+                return sprintf(
+                    '%s exceeds the MAX_FILE_SIZE directive specified in the form.',
+                    $name
+                );
+
+            case UPLOAD_ERR_PARTIAL:
+                return sprintf(
+                    '%s was only partially uploaded.',
+                    $name
+                );
+
+            case UPLOAD_ERR_NO_FILE:
+                return sprintf(
+                    'No %s was uploaded.',
+                    $name
+                );
+
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return 'Missing a temporary folder on the server.';
+
+            case UPLOAD_ERR_CANT_WRITE:
+                return sprintf(
+                    'Failed to write %s to disk.',
+                    $name
+                );
+
+            case UPLOAD_ERR_EXTENSION:
+                return sprintf(
+                    '%s upload was stopped by a PHP extension.',
+                    $name
+                );
+
+            default:
+                return sprintf(
+                    'Unknown upload error occurred for %s.',
+                    $name
+                );
+        }
+    }
 
 }

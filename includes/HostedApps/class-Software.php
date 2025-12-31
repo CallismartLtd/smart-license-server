@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\FileSystem\SoftwareRepository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\Utils\CommonQueryTrait;
@@ -117,6 +118,21 @@ class Software extends AbstractHostedApp {
     }
 
     /*
+    |-------------
+    | SETTERS
+    |-------------
+    */
+
+    /**
+     * Set software cover image
+     * 
+     * @param string $cover
+     */
+    public function set_cover( $cover ) {
+        $this->cover = self::sanitize_web_url( $cover );
+    }
+
+    /*
     |--------------------
     | CRUD METHODS
     |--------------------
@@ -143,7 +159,7 @@ class Software extends AbstractHostedApp {
 
         $file       = $this->file;
         $filename   = strtolower( str_replace( ' ', '-', $this->get_name() ) );
-        $repo_class = null; // No repository for software for now.
+        $repo_class = new SoftwareRepository;
 
         $software_data = [
             'name'          => $this->get_name(),
@@ -156,17 +172,17 @@ class Software extends AbstractHostedApp {
         if ( $this->get_id() ) {
 
             if ( is_array( $file ) ) {
-                // $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
+                $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
                 
-                // if ( is_smliser_error( $slug ) ) {
-                //     return $slug;
-                // }
+                if ( is_smliser_error( $slug ) ) {
+                    return $slug;
+                }
 
-                // if ( $this->get_slug() !== $slug ) {
-                //     $software_data['slug'] = $slug;
+                if ( $this->get_slug() !== $slug ) {
+                    $software_data['slug'] = $slug;
 
-                //     $this->set_slug( $slug );
-                // }
+                    $this->set_slug( $slug );
+                }
             }
 
 
@@ -177,13 +193,13 @@ class Software extends AbstractHostedApp {
                 return new Exception( 'no_file_provided', 'No software file provided for new software.', ['status' => 400] );
             }
 
-            // $slug = $repo_class->upload_zip( $file, $filename, false );
+            $slug = $repo_class->upload_zip( $file, $filename, false );
 
-            // if ( is_smliser_error( $slug ) ) {
-            //     return $slug;
-            // }
+            if ( is_smliser_error( $slug ) ) {
+                return $slug;
+            }
 
-            // $software_data['slug']          = $slug;
+            $software_data['slug']          = $slug;
             $software_data['created_at']    = \gmdate( 'Y-m-d H:i:s' );
 
             $result = $db->insert( $table, $software_data );
@@ -191,7 +207,7 @@ class Software extends AbstractHostedApp {
             $this->set_id( $db->get_insert_id() );
         }
 
-        // $repo_class->regenerate_app_dot_json( $this );
+        $repo_class->regenerate_app_dot_json( $this );
 
         return ( false !== $result ) ? true : new Exception( 'db_insert_error', $db->get_last_error() );
     }
@@ -230,20 +246,35 @@ class Software extends AbstractHostedApp {
      * Converts associative array to object of this class.
      */
     public static function from_array( $result ) : static {
-        $software = new static();
+        $self = new static();
 
-        $software->set_id( $result['id'] ?? 0 );
-        $software->set_name( $result['name'] ?? '' );
-        $software->set_slug( $result['slug'] ?? '' );
-        $software->set_author( $result['author'] ?? '' );
-        $software->set_status( $result['status'] ?? 'draft' );
-        $software->set_download_url( $result['download_link'] ?? '' );
+        $self->set_id( $result['id'] ?? 0 );
+        $self->set_name( $result['name'] ?? '' );
+        $self->set_slug( $result['slug'] ?? '' );
+        $self->set_author( $result['author'] ?? '' );
+        $self->set_author_profile( $result['author_profile'] ?? '' );
+        $self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
+        $self->set_download_url( $result['download_link'] ?? '' );
+        $self->set_created_at( $result['created_at'] ?? '' );
+        $self->set_last_updated( $result['last_updated'] ?? '' );
+
+        $repo_class = new SoftwareRepository();
+
+        $app_json   = $repo_class->get_app_dot_json( $self );
+
+        $self->set_manifest( $app_json );
+        $self->set_version( $app_json['version'] ?? '' );
+        $self->set_tags( $app_json['tags'] ?? [] );
+
+        $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
+        $self->set_cover( $repo_class->get_assets( $self->get_slug(), 'cover' ) );
+        $self->set_icons( $repo_class->get_assets( $self->get_slug(), 'icons' ) );
 
         
 
 
 
-        return $software;
+        return $self;
     }
 
     /**

@@ -344,12 +344,7 @@ class Theme extends AbstractHostedApp {
 
         $self->load_meta();
 
-        /** 
-         * Set file information
-         * 
-         * @var \SmartLicenseServer\FileSystem\ThemeRepository $repo_class
-         */
-        $repo_class = HostedApplicationService::get_app_repository_class( $self->get_type() );
+        $repo_class = new ThemeRepository();
 
         $theme_metadata = $repo_class->get_metadata( $self->get_slug() );
         $self->set_version( $theme_metadata['version'] ?? '' );

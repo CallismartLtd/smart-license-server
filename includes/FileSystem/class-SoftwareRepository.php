@@ -119,7 +119,7 @@ class SoftwareRepository extends Repository {
         $zip = new ZipArchive();
         if ( true !== $zip->open( $stored_path ) ) {
             $cleanup_func();
-            return new Exception( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
+            return new Exception( 'zip_invalid', 'Uploaded ZIP file could not be opened.', [ 'status' => 400 ] );
         }
 
         $first_index    = $zip->getNameIndex( 0 );
@@ -129,7 +129,7 @@ class SoftwareRepository extends Repository {
         if ( false === $readme_index ) {
             $zip->close();
             $cleanup_func();
-            return new Exception( 'readme_missing', 'The uploaded software ZIP is missing the required readme.md file.', [ 'status' => 400 ] );
+            return new Exception( 'readme_missing', 'The uploaded software ZIP file is missing the required readme.md file.', [ 'status' => 400 ] );
         }
 
         $readme_contents    = $zip->getFromIndex( $readme_index );
@@ -257,7 +257,7 @@ class SoftwareRepository extends Repository {
         @$this->chmod( $dest_path, FS_CHMOD_FILE );
 
     
-        return smliser_get_app_asset_url( 'plugin', $slug, $target_name );
+        return smliser_get_app_asset_url( 'software', $slug, $target_name );
     }
 
     /**
@@ -265,27 +265,27 @@ class SoftwareRepository extends Repository {
      * 
      * @param string $slug Software slug.
      * @param string $type Asset type (e.g., cover, screenshots).
-     * @return array Asset URLs or Exception on failure.
+     * @return string|array Asset URLs or Exception on failure.
      */
-    public function get_assets( string $slug, string $type ) : array {
+    public function get_assets( string $slug, string $type ) : string|array {
         $slug = $this->real_slug( $slug );
 
         try {
             $base_dir = $this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
-            return [];
+            return ( 'cover' === $type ) ? '' : [];
         }
 
         $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
         if ( ! $this->is_dir( $assets_dir ) ) {
-            return [];
+             return ( 'cover' === $type ) ? '' : [];
         }
 
         $possible_exts  = $this->allowed_image_exts;
 
         switch ( $type ) {
-            case 'icon':
+            case 'icons':
                 $icons = [];
                 $possible_icons = [ 'icon-128x128', 'icon-256x256', 'icon' ];
 
@@ -301,17 +301,15 @@ class SoftwareRepository extends Repository {
                 return $icons;
 
             case 'cover':
-                $cover_files = glob( $assets_dir . 'cover.{' . implode( ',', $possible_exts ) . '}', GLOB_BRACE );
-                $covers = [];
-
-                foreach ( $cover_files as $cover ) {
-                    $covers[] = smliser_get_app_asset_url( 'software', $slug, basename( $cover ) );
+                $cover_files    = glob( $assets_dir . 'cover.{' . implode( ',', $possible_exts ) . '}', GLOB_BRACE );
+                if ( empty( $cover_files ) ) {
+                    return '';
                 }
+                $cover          = \reset( $cover_files );
+                return smliser_get_app_asset_url( 'software', $slug, basename( $cover ) );
 
-                return $covers;
-
-            case 'screenshot':
-                $screenshot_files = glob( $assets_dir . 'screenshot-*.' . implode( ',', $possible_exts ), GLOB_BRACE );
+            case 'screenshots':
+                $screenshot_files = glob( $assets_dir . 'screenshot-*.{' . implode( ',', $possible_exts ) . '}', GLOB_BRACE );
                 $screenshots = [];
 
                 foreach ( $screenshot_files as $screenshot ) {
@@ -337,13 +335,13 @@ class SoftwareRepository extends Repository {
         try {
             $base_dir =$this->enter_slug( $slug );
         } catch ( \InvalidArgumentException $e ) {
-            return $this->build_manifest( $software );
+            return $this->regenerate_app_dot_json( $software );
         }
 
         $app_json_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
 
         if ( ! $this->exists( $app_json_path ) ) {
-            return $this->build_manifest( $software );
+            return $this->regenerate_app_dot_json( $software );
         }
 
         $contents   = $this->get_contents( $app_json_path );
@@ -354,7 +352,7 @@ class SoftwareRepository extends Repository {
         }
 
         // Repair json file.
-        return $this->build_manifest( $software );
+        return $this->regenerate_app_dot_json( $software );
     }
 
     /**
@@ -363,8 +361,15 @@ class SoftwareRepository extends Repository {
      * @param Software $software
      * @return array
      */
-    public function build_manifest( Software $software ) : array {
+    public function regenerate_app_dot_json( $software ) : array {
+        $defaults   = [
+            'name'      => $software->get_name(),
+            'slug'      => $software->get_slug(),
+            'version'   => $software->get_version(),
+        ];
         $manifest   = $software->get_manifest();
+
+        $manifest   = $defaults + $manifest;
 
         $slug       = $this->real_slug( $software->get_slug() );
         $base_dir   = $this->enter_slug( $slug );
