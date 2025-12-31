@@ -24,6 +24,7 @@ class AppUploader {
         this.imageUrlInput                  = document.querySelector( '#app-uploader-asset-url-input' );
         this.assetImageUploaderContainer    = document.querySelector( '.app-asset-uploader-body_uploaded-asset' );
         this.imagePreview                   = document.querySelector( '#currentImage' );
+        this.appJosnTextarea                = this.appUploaderForm.querySelector( '.smliser-json-textarea' );
         
         // State management
         this.currentImage   = null;
@@ -42,6 +43,11 @@ class AppUploader {
         }
         
         this.initAssetUploader();
+
+        if ( this.appJosnTextarea ) {
+            this.mountNanoEditor();
+        }
+        
     }
     
     /**
@@ -166,9 +172,23 @@ class AppUploader {
      */
     async handleFormSubmit(e) {
         e.preventDefault();
+
+        const submitter = e.submitter;
+
+        if ( ! submitter?.classList.contains( 'authoritatively' ) ) {
+            return;
+        }
         
         const payLoad = new FormData( e.currentTarget );
-        payLoad.set( 'security', smliser_var.nonce );
+        payLoad.set( 'security', smliser_var.nonce );        
+        
+        if ( this.editor ) {
+            const jsonBlob = new Blob( [this.editor.json], { type: 'application/json' } );
+            const jsonFile = new File( [jsonBlob], 'app.json', { type: 'application/json' } );    
+            
+            payLoad.set( 'app_json_file', jsonFile );         
+        }
+
         const spinner = showSpinner( '.smliser-spinner', true );
         
         try {
@@ -752,6 +772,46 @@ class AppUploader {
         });
         
         return observer;
+    }
+
+    /**
+     * Mount nanoeditor
+     */
+    mountNanoEditor() {
+        const textarea          = this.appJosnTextarea;
+        const textareaParent    = textarea.parentElement;
+        const editorFrame       = document.createElement( 'div' );
+
+        editorFrame.id          = 'smliser-appjson-editor';
+
+        let jsonData            = {};
+
+        try {
+            jsonData = JSON.parse( textarea.value );
+        } catch (error) {
+            jsonData = {};
+        }
+
+        textareaParent.parentElement.appendChild( editorFrame );
+
+        const preventButtonFormSubmission = () => {
+            editorFrame.querySelectorAll( 'button' ).forEach( btn => btn.setAttribute( 'type', 'button' ) );
+        }
+
+        this.editor = new JSONEditor({
+            id: editorFrame.id,
+            title: "APP JSON Editor",
+            description: "Edit your application's JSON file (app.json). Values in this file will be served in the REST API response.",
+            json: jsonData,
+            when: {
+                rendered: preventButtonFormSubmission,
+                updated: preventButtonFormSubmission
+            }
+        });
+        
+        preventButtonFormSubmission();
+        textarea.setAttribute( 'disabled', true );
+        textareaParent.classList.add( 'json-mounted' );
     }
 }
 
