@@ -803,12 +803,37 @@ button.smliser-upload-btn {
   border: solid 1px #dcdcde;
 }
 
+.app-uploader-form-row:has( .smliser-json-textarea ).json-mounted {
+  display: none;
+}
+
 .smliser-json-textarea {
-  min-height: 300px;
+  min-height: 250px;
+  max-width: 100%;
 }
 
 @media (min-width: 280px) and (max-width: 760px) {
   .smliser-admin-modal_content {
     width: 90%;
   }
+}
+
+/* Scope NanoJSON editor styles */
+#smliser-appjson-editor,
+#smliser-appjson-editor * {
+	box-sizing: border-box;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+		Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+}
+
+#smliser-appjson-editor {
+	position: relative;
+	width: 100%;
+	max-width: 100%;
+	min-height: 320px;
+	padding: 12px;
+	background: #f1f1f1;
+	border: 1px solid #ccd0d4;
+	border-radius: 4px;
+	overflow: auto;
 }
