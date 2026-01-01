@@ -1633,6 +1633,7 @@ input.smliser_toggle-switch-input {
     font-size: 14px;
 }
 
+
 .smliser-app-meta li:last-child {
     border-bottom: none;
 }
@@ -1640,12 +1641,16 @@ input.smliser_toggle-switch-input {
 .smliser-app-meta li span:first-child {
     color: #64748b;
     font-weight: 500;
+    width: 100px;
 }
 
 .smliser-app-meta li span:last-child,
 .smliser-app-meta li a {
     color: #1e293b;
     font-weight: 600;
+    width: 200px;
+    text-align: right;
+    overflow-wrap: anywhere;
 }
 
 .smliser-app-meta li a {
