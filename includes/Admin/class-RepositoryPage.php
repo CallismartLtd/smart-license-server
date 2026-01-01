@@ -141,7 +141,6 @@ class RepositoryPage {
         $url            = new URL( admin_url( 'admin.php?page=repository' ) );
         $download_url   = new URL( admin_url( 'admin-post.php' ) );
         $download_url->add_query_params([ 'action' => 'smliser_admin_download', 'type' => $app->get_type(), 'id' => $app->get_id(), 'download_token' => wp_create_nonce( 'smliser_download_token' )] );
-        $meta                   = $repo_class->get_metadata( $app->get_slug() );
         $last_updated_string    = sprintf( '%s ago', smliser_readable_duration( time() - strtotime( $app->get_last_updated() ) ) );
         $file_size              = FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) );
 
@@ -219,7 +218,7 @@ class RepositoryPage {
             ], 
             'Application Details'   => [
                 'icon'      => 'ti ti-info-circle',
-                'content'   => self::build_info_html( $app, $meta, $file_size, $last_updated_string )
+                'content'   => self::build_info_html( $app, $file_size, $last_updated_string )
             ],
             'Technical Details'     => [
                 'icon'      => 'ti ti-cpu',
@@ -309,14 +308,14 @@ class RepositoryPage {
      * Build the INFO list (common to all hosted apps)
      *
      * @param AbstractHostedApp $app Hosted app instance.
-     * @param array             $meta Metadata array.
      * @param string            $file_size Human-readable size.
      * @param string            $last_updated_string Time string.
      * @return string
      */
-    private static function build_info_html( $app, $meta, $file_size, $last_updated_string ) {
+    private static function build_info_html( $app, $file_size, $last_updated_string ) {
 
-        $license_uri = $meta['license_uri'] ?? '';
+        $license_uri    = $app->get_license()['license_uri'] ?? '';
+        $license        = $app->get_license()['license'] ?? '';
 
         return sprintf(
             '<ul class="smliser-app-meta">
@@ -337,23 +336,23 @@ class RepositoryPage {
                 <li><span>%13$s</span> <span>%14$s</span></li>
                 <li><span>%15$s</span> <span>%16$s</span></li>
             </ul>',
-            __( 'APP ID', 'smliser' ),             //1
-            $app->get_id(),                         //2
-            __( 'Slug', 'smliser' ),           //3
-            $app->get_slug(),          //4
-            __( 'License', 'smliser' ),            //5
-            $meta['license'] ?? '',                //6
-            __( 'Status', 'smliser' ),             //7
-            $app->get_status(),                    //8
-            __( 'Monetization', 'smliser' ),       //9
-            $app->is_monetized() ? 'check' : 'x',  //10
+            __( 'APP ID', 'smliser' ),
+            $app->get_id(),
+            __( 'Slug', 'smliser' ),
+            $app->get_slug(),
+            __( 'License', 'smliser' ),
+            $license,
+            __( 'Status', 'smliser' ),
+            $app->get_status(),
+            __( 'Monetization', 'smliser' ),
+            $app->is_monetized() ? 'check' : 'x',
             __( 'Public Download URL', 'smliser' ),//11
-            $app->is_monetized() ? $app->monetized_url_sample() : $app->get_download_url(), //12
-            __( 'File Size', 'smliser' ),          //13
-            $file_size,                             //14
-            __( 'Last Updated', 'smliser' ),        //15
-            $last_updated_string,                   //16
-            $license_uri                             //17
+            $app->is_monetized() ? $app->monetized_url_sample() : $app->get_download_url(),
+            __( 'File Size', 'smliser' ),
+            $file_size,
+            __( 'Last Updated', 'smliser' ),
+            $last_updated_string,
+            $license_uri
         );
     }
 
@@ -389,7 +388,7 @@ class RepositoryPage {
             }
 
             $details .= sprintf(
-                '<li><span>%1$s</span> <span>%2$s</span></li>',
+                '<li><span class="list-title">%1$s</span> <span class="list-value">%2$s</span></li>',
                 ucwords(str_replace('_', ' ', $key)),
                 $value
             );
