@@ -168,7 +168,7 @@ abstract class Repository {
             return false;
         }
 
-        return $this->list( $path );
+        return $this->fs()->list( $path );
     }
 
     /* -------------------------------------------------------------------------
@@ -652,7 +652,7 @@ abstract class Repository {
      * @param string $text Text to escape.
      * @return string Escaped or raw text.
      */
-    private static function safe_esc_html( string $text ): string {
+    protected static function safe_esc_html( string $text ): string {
         return function_exists( 'esc_html' ) ? esc_html( $text ) : htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
     }
 
