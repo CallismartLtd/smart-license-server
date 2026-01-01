@@ -31,7 +31,7 @@ class PluginRepository extends Repository {
      * 
      * @var MDParser $parser
      */
-    protected $parser;
+    protected MDParser $parser;
 
     /**
      * Constructor.
