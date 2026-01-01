@@ -83,6 +83,19 @@ interface HostedAppsInterface {
     public function set_file( $path );
 
     /**
+     * The the value of the software license.
+     * 
+     * - `Software License` in this context is the license under which the hosted application
+     * is distributed
+     * 
+     * @param array $license The required values can be {
+     *      license     => GPLv3,
+     *      license_uri => https://www.gnu.org/licenses/gpl-3.0.en.html
+     * }
+     */
+    public function set_license( array $license );
+
+    /**
     |----------------
     | GETTERS
     |----------------
@@ -174,6 +187,13 @@ interface HostedAppsInterface {
      * Get application support URL.
      */
     public function get_support_url();
+
+    /**
+     * Get the license under which this hosted application is distributed.
+     * 
+     * @return array
+     */
+    public function get_license() : array;
 
     /*
     |--------------
