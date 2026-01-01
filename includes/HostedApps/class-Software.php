@@ -311,12 +311,40 @@ class Software extends AbstractHostedApp {
     }
 
     /**
-     * Concrete implementation of rest response.
+     * Concrete implementation of rest response for software.
      * 
      * @return array
      */
     public function get_rest_response(): array {
-        $data = array();
+        $data = array(
+            'name'              => $this->get_name(),
+            'type'              => $this->get_type(),
+            'slug'              => $this->get_slug() ,
+            'status'            => $this->get_status(),
+            'version'           => $this->get_version(),
+            'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile(), $this->get_author() ),
+            'author_profile'    => $this->get_author_profile(),
+            'manifest'          => $this->get_manifest(),
+            'homepage'          => $this->get_homepage(),
+            'package'           => $this->get_download_url(),
+            'download_link'     => $this->get_download_url(),
+            'cover'             => $this->get_cover(),
+            'screenshots'       => $this->get_screenshots(),
+            'icons'             => $this->get_icons(),
+            'icon'              => $this->get_icon(),
+            'tags'              => $this->get_tags(),
+            'short_description' => $this->get_short_description(),
+            'sections'          => $this->get_sections(),
+            'num_ratings'       => $this->get_num_ratings(),
+            'rating'            => $this->get_average_rating(),
+            'ratings'           => $this->get_ratings(),
+            'support_url'       => $this->get_support_url(),
+            'active_installs'   => $this->get_active_installs(),
+            'is_monetized'       => $this->is_monetized(),
+            'monetization'      => [],
+            'created_at'        => $this->get_date_created(),
+            'updated_at'        => $this->get_last_updated(),
+        );
 
         if ( $this->is_monetized() ) {
             $monetization = Monetization::get_by_app( $this->get_type(), $this->get_id() );
