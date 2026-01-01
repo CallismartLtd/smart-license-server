@@ -1120,8 +1120,14 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
      * @return void
      */
     public static function check_filesystem_errors() {
-        $fs_instance    = FileSystem::instance();
-        $wp_error       = $fs_instance->get_fs()->errors;
+        $fs             = FileSystem::instance()->get_fs();
+
+        if ( ! \property_exists( $fs, 'error' ) ) {
+            return;
+        }
+
+        /** @var \WP_Error $wp_error */
+        $wp_error       = $fs->errors;
 
         if ( $wp_error->has_errors() ) {
             $error_messages = $wp_error->get_error_messages();
