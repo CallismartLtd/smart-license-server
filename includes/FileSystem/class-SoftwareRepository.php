@@ -398,14 +398,37 @@ class SoftwareRepository extends Repository {
 
     /**
      * Get the value of faq key in the app.json file
-     * 
+     *
      * @param Software $software
+     * @return string HTML markup of frequently asked questions.
      */
-    public function get_faq( Software $software ) {
-        $app_json   = $this->get_app_dot_json( $software );
+    public function get_faq( Software $software ) : string {
+        $app_json = $this->get_app_dot_json( $software );
+        $faq      = $app_json['faq'] ?? array();
 
-        return '';
+        if ( empty( $faq ) || ! is_array( $faq ) ) {
+            return '';
+        }
 
+        $html  = '<dl>';
+
+        foreach ( $faq as $question => $answer ) {
+            if ( ! is_string( $question ) || ! is_string( $answer ) ) {
+                continue;
+            }
+
+            $html .= '<dt>';
+            $html .= self::safe_esc_html( $question );
+            $html .= '</dt>';
+
+            $html .= '<dd>';
+            $html .= self::safe_esc_html( $answer );
+            $html .= '</dd>';
+        }
+
+        $html .= '</dl>';
+
+        return $html;
     }
 
     /**
