@@ -9,14 +9,7 @@
 namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Cache\CacheAwareTrait;
-use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Core\Response;
-use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\Plugin;
-use SmartLicenseServer\HostedApps\Theme;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -589,7 +582,7 @@ class HostedApplicationService {
 
         $class = 'SmartLicenseServer\\FileSystem\\' . ucfirst( $type ) . 'Repository';
 
-        if ( class_exists( $class ) ) {
+        if ( class_exists( $class, true ) ) {
             return new $class();
         }
 
