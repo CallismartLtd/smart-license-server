@@ -203,6 +203,16 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     ];
 
     /**
+     * The license underwhich this application is distributed
+     * 
+     * @var array $license
+     */
+    protected $license = [
+        'license'       => '',
+        'license_uri'   => ''
+    ];
+
+    /**
      * App trash status
      * 
      * @var string
@@ -474,7 +484,23 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param array $data
      */
     public function set_manifest( array $data ) {
-        $this->manifest = $data + $this->manifest;
+        $defaults   = [
+            'type'          => '',
+            'platforms'     => [],
+            'tech_stack'    => [],
+            'dependencies'  => [],
+        ];
+        
+        $this->manifest = $data + $defaults;
+    }
+
+    /**
+     * Set the software license underwhich this app is distributed
+     * 
+     * @param array $license
+     */
+    public function set_license( array $license ) {
+        $this->license = $license + $this->license;
     }
     
     /**
@@ -716,6 +742,15 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     public function get_manifest() : array {
         return $this->manifest;
+    }
+
+    /**
+     * Get app destribution license
+     * 
+     * @return array
+     */
+    public function get_license() : array {
+        return $this->license;
     }
 
     /**
