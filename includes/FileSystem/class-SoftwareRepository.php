@@ -25,19 +25,20 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Note: it does not represent a single hosted software @see \SmartLicenseServer\HostedApps\Software
  */
 class SoftwareRepository extends Repository {
+    use RepoFilesAwareTrait;
     /**
      * Markdown parser instance.
      * 
-     * @var MDParser $md_parser
+     * @var MDParser $parser
      */
-    protected MDParser $md_parser;
+    protected MDParser $parser;
 
     /**
      * Class constructor
      */
     public function __construct() {
         parent::__construct( 'software' );
-        $this->md_parser = \smliser_md_parser();
+        $this->parser = \smliser_md_parser();
     }
 
     /**
@@ -363,12 +364,13 @@ class SoftwareRepository extends Repository {
      */
     public function regenerate_app_dot_json( $software ) : array {
         $defaults   = [
-            'name'      => $software->get_name(),
-            'slug'      => $software->get_slug(),
-            'version'   => $software->get_version(),
+            'name'                  => $software->get_name(),
+            'slug'                  => $software->get_slug(),
+            'version'               => $software->get_version(),
+            'short_description'     => $software->get_short_description(),
         ];
-        $manifest   = $software->get_manifest();
 
+        $manifest   = $software->get_manifest();
         $manifest   = $defaults + $manifest;
 
         $slug       = $this->real_slug( $software->get_slug() );
@@ -382,5 +384,39 @@ class SoftwareRepository extends Repository {
 
         return $manifest;
 
+    }
+
+    /**
+     * Get description from readm.md file.
+     * 
+     * @param string $slug
+     * @return string
+     */
+    public function get_description( $slug ) {
+        return $this->get_readme( $slug );
+    }
+
+    /**
+     * Get the value of faq key in the app.json file
+     * 
+     * @param Software $software
+     */
+    public function get_faq( Software $software ) {
+        $app_json   = $this->get_app_dot_json( $software );
+
+        return '';
+
+    }
+
+    /**
+     * Get short description.
+     * 
+     * @param Software $software
+     * @return string
+     */
+    public function get_short_description( Software $software ) : string {
+        $app_json   = $this->get_app_dot_json( $software );
+
+        return $app_json['short_description'] ?? '';
     }
 }
