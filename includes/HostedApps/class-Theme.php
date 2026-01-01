@@ -362,6 +362,12 @@ class Theme extends AbstractHostedApp {
         $self->set_requires_at_least( $theme_metadata['requires_at_least'] ?? '' );
         $self->set_tested_up_to( $theme_metadata['tested_up_to'] ?? '' );
         $self->set_requires_php( $theme_metadata['requires_php'] ?? '' );
+        $license    = array(
+            'license'       => $theme_metadata['license'] ?? '',
+            'license_uri'   => $theme_metadata['license_uri'] ?? ''
+        );
+
+        $self->set_license( $license );
         
         $self->set_homepage( $self->get_meta( 'homepage_url' ) ?: $theme_metadata['theme_uri'] ?? '' );
         

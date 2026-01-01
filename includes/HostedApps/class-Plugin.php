@@ -367,6 +367,13 @@ class Plugin extends AbstractHostedApp {
         $self->set_tested_up_to( $plugin_meta['tested_up_to'] ?? '' );
         $self->set_requires_php( $plugin_meta['requires_php'] ?? '' );
         $self->set_tags( $plugin_meta['tags'] ?? array() );
+
+        $license    = array(
+            'license'       => $plugin_meta['license'] ?? '',
+            'license_uri'   => $plugin_meta['license_uri'] ?? ''
+        );
+
+        $self->set_license( $license );
         
         $file       = $repo_class->locate( $self->get_slug() );
 
@@ -385,7 +392,6 @@ class Plugin extends AbstractHostedApp {
             'installation'  => $repo_class->get_installation( $self->get_slug() ),
             'screenshots'   => $repo_class->get_screenshot_html( $self->get_slug() ),
             'faq'           => $repo_class->get_faq( $self->get_slug() ),
-
         );
         $self->set_section( $sections );
 
