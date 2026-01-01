@@ -132,6 +132,26 @@ class Software extends AbstractHostedApp {
         $this->cover = self::sanitize_web_url( $cover );
     }
 
+    /**
+     * Set the software manifest file.
+     * 
+     * This method allows us to populate important properties from the app.json file.
+     * 
+     * @param array $manifest
+     */
+    public function set_manifest( array $manifest ) {
+        if ( isset( $manifest['version'] ) ) {
+            $this->set_version( $manifest['version'] );
+        }
+
+        if ( isset( $manifest['short_description'] ) ) {
+            $this->short_description = self::sanitize_text( $manifest['short_description'] );
+        }
+
+        parent::set_manifest( $manifest );
+
+    }
+
     /*
     |--------------------
     | CRUD METHODS
@@ -269,7 +289,20 @@ class Software extends AbstractHostedApp {
         $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
         $self->set_cover( $repo_class->get_assets( $self->get_slug(), 'cover' ) );
         $self->set_icons( $repo_class->get_assets( $self->get_slug(), 'icons' ) );
-
+        $self->set_file( $repo_class->locate( $self->get_slug() ) );
+        
+        /** 
+         * Section informations 
+         */
+        $sections = array(
+            'description'   => $repo_class->get_description( $self->get_slug() ),
+            'changelog'     => $repo_class->get_changelog( $self->get_slug() ),
+            'installation'  => $repo_class->get_installation( $self->get_slug() ),
+            // 'screenshots'   => $repo_class->get_screenshot_html( $self->get_slug() ),
+            'faq'           => $repo_class->get_faq( $self ),
+        );
+        $self->set_section( $sections );
+        $self->short_description = $repo_class->get_short_description( $self );
         
 
 
