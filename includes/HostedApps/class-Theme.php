@@ -425,7 +425,7 @@ class Theme extends AbstractHostedApp {
     }
 
     /**
-     * Get the REST API response object for themes
+     * Concrete implementation of rest response for themes.
      * 
      * @return array
      */
@@ -433,10 +433,12 @@ class Theme extends AbstractHostedApp {
         $data = array(
             'name'                  => $this->get_name(),
             'slug'                  => $this->get_slug(),
+            'status'                => $this->get_status(),
             'type'                  => $this->get_type(),
             'version'               => $this->get_version(),
             'preview_url'           => $this->get_meta( 'preview_url' ),
             'author'                => $this->get_author( '' ),
+            'manifest'              => $this->get_manifest(),
             'icon'                  => $this->get_icon(),
             'screenshot_url'        => $this->get_screenshot_url(),
             'rating'                => $this->get_ratings(),
@@ -456,7 +458,9 @@ class Theme extends AbstractHostedApp {
             'external_support_url'      => $this->get_support_url(),
             'support_url'               => $this->get_support_url(),
             'external_repository_url'   => '',
-            'monetization'              => []
+            'monetization'              => [],
+            'created_at'                => $this->get_date_created(),
+            'updated_at'                => $this->get_last_updated()
         );
         
         if ( $this->is_monetized() ) {
