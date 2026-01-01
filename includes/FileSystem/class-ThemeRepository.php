@@ -18,7 +18,7 @@ use SmartLicenseServer\Utils\MDParser;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 class ThemeRepository extends Repository {
-    use WPRepoUtils;
+    use WPRepoUtils, RepoFilesAwareTrait;
 
     /**
      * The markdown parser
@@ -342,107 +342,15 @@ class ThemeRepository extends Repository {
     }
 
     /**
-     * Get theme changelog.
-     * 
-     * @return string The changelog in HTML format.
-     */
-    public function get_changelog( $slug ) : string {
-        // We are looking for changelog.md in the theme directory.
-        $slug = $this->real_slug( $slug );
-        try {
-            $base_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
-            return '';
-        }
-        $changelog_path = FileSystemHelper::join_path( $base_dir, 'changelog.md' );
-
-        if ( ! $this->exists( $changelog_path ) ) {
-            // Let's try to read from the zip file as a fallback.
-            $zip_path   = $this->locate( $slug );
-            if ( is_smliser_error( $zip_path ) ) {
-                return '';
-            }
-
-            $zip = new \ZipArchive();
-            if ( $zip->open( $zip_path ) !== true ) {
-                return '';
-            }
-
-            $firstEntry = $zip->getNameIndex(0);
-            $rootDir = explode('/', $firstEntry)[0];
-            $changelog_index = $zip->locateName( $rootDir . '/changelog.md', \ZipArchive::FL_NOCASE );
-            if ( false === $changelog_index ) {
-                $zip->close();
-                return '';
-            }
-
-            $changelog_contents = $zip->getFromIndex( $changelog_index );
-            $zip->close();
-
-            // cache the changelog for future use.
-            if ( ! $this->put_contents( $changelog_path, $changelog_contents ) ) {
-                // TODO: Log error?
-            }
-
-            return $this->parser->parse( $changelog_contents ?: '' );
-        }
-
-        $changelog_md = $this->get_contents( $changelog_path );
-        
-        return $this->parser->parse( $changelog_md ?: '' );
-    }
-
-    /**
      * Get the content of the theme style.css file.
      * 
      * @param string $slug The theme slug.
      * @return string Style.css contents or empty string if not found.
      */
     public function get_style_css( $slug ): string {
-        $slug = $this->real_slug( $slug );
-
-        try {
-            $base_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
-            return '';
-        }
-
-        $style_path = FileSystemHelper::join_path( $base_dir, 'style.css' );
-
-        if ( ! $this->exists( $style_path ) ) {
-            // We attempt to read fom the zip file as a fallback.
-            $zip_path   = $this->locate( $slug );
-
-            if ( is_smliser_error( $zip_path ) ) {
-                return '';
-            }
-
-            $zip = new \ZipArchive();
-            if ( $zip->open( $zip_path ) !== true ) {
-                return '';
-            }
-
-            $firstEntry = $zip->getNameIndex(0);
-            $rootDir = explode('/', $firstEntry)[0];
-            $style_css_index = $zip->locateName( $rootDir . '/style.css', \ZipArchive::FL_NOCASE );
-            if ( false === $style_css_index ) {
-                $zip->close();
-                return '';
-            }
-            $style_contents = $zip->getFromIndex( $style_css_index );
-            $zip->close();
-
-            // cache the style.css for future use.
-            if ( ! $this->put_contents( $style_path, $style_contents ) ) {
-                // TODO: Log error?
-            }
-
-            return $style_contents;
-        }
-
-        return $this->get_contents( $style_path ) ?: '';
+        return $this->file_get_contents( $slug, 'style.css' );
     }
-
+    
     /**
      * Get theme metadata from the style.css header.
      *
