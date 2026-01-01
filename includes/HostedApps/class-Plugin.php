@@ -99,7 +99,7 @@ class Plugin extends AbstractHostedApp {
      * @param string $wp_version.
      */
     public function set_requires_at_least( $wp_version ) {
-        $this->requires_at_least = sanitize_text_field( $wp_version );
+        $this->requires_at_least = self::sanitize_text( $wp_version );
     }
 
     /**
@@ -108,7 +108,7 @@ class Plugin extends AbstractHostedApp {
      * @param string $version
      */
     public function set_tested_up_to( $version ) {
-        $this->tested_up_to = sanitize_text_field( $version );
+        $this->tested_up_to = self::sanitize_text( $version );
     }
 
     /**
@@ -117,7 +117,7 @@ class Plugin extends AbstractHostedApp {
      * @param string $version
      */
     public function set_requires_php( $version ) {
-        $this->requires_php = sanitize_text_field( $version );
+        $this->requires_php = self::sanitize_text( $version );
     }
     
     /**
@@ -149,7 +149,7 @@ class Plugin extends AbstractHostedApp {
             }
 
             if ( isset( $screenshot['caption'] ) ) {
-                $screenshot['caption'] = sanitize_text_field( $screenshot['caption'] );
+                $screenshot['caption'] = self::sanitize_text( $screenshot['caption'] );
             }
         }
 
@@ -162,7 +162,7 @@ class Plugin extends AbstractHostedApp {
      * @param array $icons
      */
     public function set_icons( array $icons ) {
-        $this->icons    = array_map( 'sanitize_url', unslash( $icons ) );
+        $this->icons    = array_map( [__CLASS__, 'sanitize_url'], unslash( $icons ) );
 
     }   
 
@@ -437,19 +437,20 @@ class Plugin extends AbstractHostedApp {
     }
 
     /**
-     * Format response for plugin REST API response.
+     * Concrete implementation of rest response for plugins.
      * 
      * @return array
      */
     public function formalize_response() {
-        $pseudo_slug    = explode( '/', $this->get_slug() )[0];
         $data = array(
             'name'              => $this->get_name(),
             'type'              => $this->get_type(),
-            'slug'              => $pseudo_slug ,
+            'slug'              => $this->get_slug(),
+            'status'            => $this->get_status(),
             'version'           => $this->get_version(),
             'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile(), $this->get_author() ),
             'author_profile'    => $this->get_author_profile(),
+            'manifest'          => $this->get_manifest(),
             'homepage'          => $this->get_homepage(),
             'package'           => $this->get_download_link(),
             'download_link'     => $this->get_download_link(),
@@ -471,8 +472,10 @@ class Plugin extends AbstractHostedApp {
             'ratings'           => $this->get_ratings(),
             'support_url'       => $this->get_support_url(),
             'active_installs'   => $this->get_active_installs(),
-            'is_monetized'       => $this->is_monetized(),
+            'is_monetized'      => $this->is_monetized(),
             'monetization'      => [],
+            'created_at'        => $this->get_date_created(),
+            'updated_at'        => $this->get_last_updated()
         );
 
         if ( $this->is_monetized() ) {
