@@ -45,6 +45,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @method int|false filemtime(string $path)
  * @method array|false stat(string $path)
  * @method bool readfile(string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576)
+ * @method object get_fs() Get the underlying filesytem object
  */
 class FileSystem {
 
