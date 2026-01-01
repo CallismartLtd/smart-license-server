@@ -11,8 +11,6 @@
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-$plugin_meta    = $repo_class->get_metadata( $app->get_slug() );
-
 // Authors listing will differ in the future.
 $author = sprintf(
     '<ul>
