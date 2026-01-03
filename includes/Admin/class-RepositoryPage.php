@@ -248,6 +248,12 @@ class RepositoryPage {
      * @param AbstractHostedApp|null $app
      */
     private static function prepare_essential_app_fields( ?AbstractHostedApp $app = null ) {
+        $type               = \smliser_get_query_param( 'type' );
+        $manifest_filename  = match( $type ) {
+            'plugin'    => 'readme.txt',
+            'theme'     => 'style.css',
+            default     => 'app.json'
+        };
         return array(
             array(
                 'label' => __( 'Name', 'smliser' ),
@@ -272,7 +278,7 @@ class RepositoryPage {
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
                         'readonly'      => true,
-                        'title'         => 'Use app.json file to edit version'
+                        'title'         => \sprintf( 'Use %s file to edit %s version', $manifest_filename, $type )
                     )
                 )
             ),
