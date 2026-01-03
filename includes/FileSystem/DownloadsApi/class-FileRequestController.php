@@ -12,6 +12,7 @@ use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -19,6 +20,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Resource download handler for Smart License Server.
  */
 class FileRequestController {
+    use SanitizeAwareTrait;
     /**
      * Process and serve download request for a hosted application zip file.
      *
@@ -27,6 +29,9 @@ class FileRequestController {
      */
     public static function get_application_zip_file( FileRequest $request ): FileResponse {
         try {
+            if ( ! $request->is_authorized() ) {
+                throw new FileRequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
+            }
             $app_type = $request->get( 'app_type' );
             $app_slug = $request->get( 'app_slug' );
             $token    = $request->get( 'download_token' );
@@ -52,7 +57,7 @@ class FileRequestController {
                     $auth_header = $request->get( 'authorization' );
                     if ( $auth_header && str_starts_with( strtolower($auth_header), 'bearer ' ) ) {
                         $parts = explode( ' ', $auth_header );
-                        $token = sanitize_text_field( unslash( $parts[1] ?? '' ) ); 
+                        $token = self::sanitize_text( $parts[1] ?? '' ); 
                         $request->set( 'download_token', $token );
                     }
                 }
@@ -88,6 +93,10 @@ class FileRequestController {
      */
     public static function get_admin_application_zip_file( FileRequest $request ): FileResponse {
         try {
+            if ( ! $request->is_authorized() ) {
+                throw new FileRequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
+            }
+
             $app_type   = $request->get( 'app_type', '' );
             $app_class  = HostedApplicationService::get_app_class( $app_type );
             $method     = "get_{$app_type}";
@@ -129,6 +138,10 @@ class FileRequestController {
      */
     public static function get_proxy_asset( FileRequest $request ) {
         try {
+            if ( ! $request->is_authorized() ) {
+                throw new FileRequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
+            }
+
             $asset_url  = $request->get( 'asset_url' );
 
             if ( ! $asset_url ) {
@@ -155,6 +168,10 @@ class FileRequestController {
      */
     public static function get_app_static_asset( FileRequest $request ){
         try {
+            if ( ! $request->is_authorized() ) {
+                throw new FileRequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
+            }
+
             $app_type   = $request->get( 'app_type' );
             $app_slug   = $request->get( 'app_slug' );
             $asset_name = $request->get( 'asset_name' );
@@ -206,13 +223,13 @@ class FileRequestController {
                 throw new FileRequestException( 'file_not_found' );
             }
 
-            if ( ! (bool) $request->get( 'is_authorized', false ) ) {
+            if ( ! $request->is_authorized() ) {
                 // Token extraction and verification
                 if ( empty( $token ) ) {
                     $auth_header = $request->get( 'authorization' );
                     if ( $auth_header && str_starts_with( strtolower( $auth_header ), 'bearer ' ) ) {
                         $parts = explode( ' ', $auth_header, 2 );
-                        $token = sanitize_text_field( unslash( $parts[1] ?? '' ) ); 
+                        $token = self::sanitize_text(  $parts[1] ?? '' ); 
                         $request->set( 'download_token', $token );
                     }
                 }
