@@ -498,6 +498,15 @@ class HostedApplicationService {
     }
 
     /**
+     * Get app by owner ID
+     * @param int $owner_id
+     * @return AbstractHostedApp[]
+     */
+    public static function get_all_by_owner( $owner_id ) : array {
+        return []; //TODO: find and hydrate.
+    }
+
+    /**
      * Count hosted applications across multiple types by status.
      *
      * @param array $args {

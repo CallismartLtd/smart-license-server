@@ -43,15 +43,6 @@ use SmartLicenseServer\Utils\Sanitizer;
  */
 trait SanitizeAwareTrait {
 
-    /**
-     * Sanitization rules for batch sanitization.
-     * 
-     * Override this in your model to define field-specific rules.
-     * 
-     * @var array<string, string> Field name => sanitization method
-     */
-    protected array $sanitization_rules = [];
-
     /*
     |--------------------------------------------------------------------------
     | TEXT SANITIZATION

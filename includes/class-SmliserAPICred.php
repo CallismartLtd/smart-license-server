@@ -1,6 +1,5 @@
 <?php
 /**
- * File name class-smliser-api-key.php
  * Class file for API key management class.
  * 
  * @author Callistus

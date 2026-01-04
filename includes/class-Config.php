@@ -83,6 +83,8 @@ class Config {
         define( 'SMLISER_OPTIONS_TABLE', $parsed_config['db_prefix'] . 'smliser_options' );
         define( 'SMLISER_ANALYTICS_LOGS_TABLE', $parsed_config['db_prefix'] . 'smliser_analytics_log' );
         define( 'SMLISER_ANALYTICS_DAILY_TABLE', $parsed_config['db_prefix'] . 'smliser_analytics_daily' );
+        define( 'SMLISER_OWNERS_TABLE', $parsed_config['db_prefix'] . 'smliser_resource_owners' );
+        define( 'SMLISER_USERS_TABLE', $parsed_config['db_prefix'] . 'smliser_users' );
 
         /**
          * Absolute path to the root Smart License Server repository directory.

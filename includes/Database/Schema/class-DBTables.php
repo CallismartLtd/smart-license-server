@@ -9,6 +9,12 @@
 
 namespace SmartLicenseServer\Database\Schema;
 
+use const SMLISER_LICENSE_TABLE, SMLISER_LICENSE_META_TABLE, SMLISER_PLUGIN_ITEM_TABLE,
+SMLISER_PLUGIN_META_TABLE, SMLISER_THEME_ITEM_TABLE, SMLISER_THEME_META_TABLE, SMLISER_SOFTWARE_TABLE,
+SMLISER_SOFTWARE_META_TABLE, SMLISER_ANALYTICS_LOGS_TABLE, SMLISER_ANALYTICS_DAILY_TABLE, SMLISER_APP_DOWNLOAD_TOKEN_TABLE,
+SMLISER_MONETIZATION_TABLE, SMLISER_PRICING_TIER_TABLE, SMLISER_BULK_MESSAGES_TABLE, SMLISER_BULK_MESSAGES_APPS_TABLE,
+SMLISER_OPTIONS_TABLE, SMLISER_OWNERS_TABLE, SMLISER_USERS_TABLE;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -26,7 +32,7 @@ final class DBTables {
             /**
              * The licenses table
              */
-            \SMLISER_LICENSE_TABLE   => array(
+            SMLISER_LICENSE_TABLE   => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'user_id MEDIUMINT(9) DEFAULT NULL',
                 'license_key VARCHAR(300) NOT NULL UNIQUE',
@@ -44,7 +50,7 @@ final class DBTables {
             /**
              * License meta table
              */
-            \SMLISER_LICENSE_META_TABLE     => array(
+            SMLISER_LICENSE_META_TABLE     => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'license_id BIGINT(20) UNSIGNED NOT NULL',
                 'meta_key VARCHAR(255) NOT NULL',
@@ -56,7 +62,7 @@ final class DBTables {
             /**
              * The plugins table
              */
-            \SMLISER_PLUGIN_ITEM_TABLE   => array(
+            SMLISER_PLUGIN_ITEM_TABLE   => array(
                 'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(300) DEFAULT NULL',
@@ -75,7 +81,7 @@ final class DBTables {
             /**
              * The plugins meta table
              */
-            \SMLISER_PLUGIN_META_TABLE   => array(
+            SMLISER_PLUGIN_META_TABLE   => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'plugin_id BIGINT(20) UNSIGNED NOT NULL',
                 'meta_key VARCHAR(255) NOT NULL',
@@ -87,7 +93,7 @@ final class DBTables {
             /**
              * The themes table
              */
-            \SMLISER_THEME_ITEM_TABLE    => array(
+            SMLISER_THEME_ITEM_TABLE    => array(
                 'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(300) DEFAULT NULL',
@@ -105,7 +111,7 @@ final class DBTables {
             /**
              * Theme meta table
              */
-            \SMLISER_THEME_META_TABLE   => array(
+            SMLISER_THEME_META_TABLE   => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'theme_id BIGINT(20) UNSIGNED NOT NULL',
                 'meta_key VARCHAR(255) NOT NULL',
@@ -117,7 +123,7 @@ final class DBTables {
             /**
              * Other hosted application(software) table.
              */
-            \SMLISER_SOFTWARE_TABLE     => array(
+            SMLISER_SOFTWARE_TABLE     => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(300) UNIQUE NOT NULL',
@@ -133,7 +139,7 @@ final class DBTables {
             /**
              * Meta table for other hosted application types.
              */
-            \SMLISER_SOFTWARE_META_TABLE    => array(
+            SMLISER_SOFTWARE_META_TABLE    => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'software_id BIGINT(20) UNSIGNED NOT NULL',
                 'meta_key VARCHAR(255) NOT NULL',
@@ -146,7 +152,7 @@ final class DBTables {
              * Unified Analytics Logs Table (The "Source of Truth")
              * Optimized for high-speed writes and indexed for on-the-fly filtering.
              */
-            \SMLISER_ANALYTICS_LOGS_TABLE => array(
+            SMLISER_ANALYTICS_LOGS_TABLE => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'app_type VARCHAR(20) NOT NULL',
                 'app_slug VARCHAR(100) NOT NULL',
@@ -163,7 +169,7 @@ final class DBTables {
              * Daily Summary Table (The "Calculator")
              * Stores pre-aggregated totals to ensure the dashboard never slows down.
              */
-            \SMLISER_ANALYTICS_DAILY_TABLE => array(
+            SMLISER_ANALYTICS_DAILY_TABLE => array(
                 'app_type VARCHAR(20) NOT NULL',
                 'app_slug VARCHAR(100) NOT NULL',
                 'stats_date DATE NOT NULL',
@@ -177,7 +183,7 @@ final class DBTables {
             /**
              * Download token table
              */
-            \SMLISER_APP_DOWNLOAD_TOKEN_TABLE   => array(
+            SMLISER_APP_DOWNLOAD_TOKEN_TABLE   => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'app_prop VARCHAR(255) DEFAULT NULL',
                 'license_key VARCHAR(255) DEFAULT NULL',
@@ -190,7 +196,7 @@ final class DBTables {
             /**
              * Monetization table
              */
-            \SMLISER_MONETIZATION_TABLE     => array(
+            SMLISER_MONETIZATION_TABLE     => array(
                 'id BIGINT AUTO_INCREMENT PRIMARY KEY',
                 'app_type VARCHAR(50) NOT NULL',
                 'app_id BIGINT NOT NULL',
@@ -203,7 +209,7 @@ final class DBTables {
             /**
              * Pricing tier table
              */
-            \SMLISER_PRICING_TIER_TABLE     => array(
+            SMLISER_PRICING_TIER_TABLE     => array(
                 'id BIGINT AUTO_INCREMENT PRIMARY KEY',
                 'monetization_id BIGINT NOT NULL',
                 'name VARCHAR(255) NOT NULL',
@@ -220,7 +226,7 @@ final class DBTables {
             /**
              * Bulk messages table
              */
-            \SMLISER_BULK_MESSAGES_TABLE    => array(
+            SMLISER_BULK_MESSAGES_TABLE    => array(
                 'id BIGINT AUTO_INCREMENT PRIMARY KEY',
                 'message_id VARCHAR(64) UNIQUE',
                 'subject VARCHAR(255) NOT NULL',
@@ -235,7 +241,7 @@ final class DBTables {
             /**
              * Bulk messages to app map table.
              */
-            \SMLISER_BULK_MESSAGES_APPS_TABLE   => array(
+            SMLISER_BULK_MESSAGES_APPS_TABLE   => array(
                 'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',
                 'message_id VARCHAR(64) DEFAULT NULL',
                 'app_type VARCHAR(64) NOT NULL',
@@ -244,11 +250,29 @@ final class DBTables {
                 'INDEX smliser_msg_app_lookup (app_type, app_slug)'
             ),
 
-            \SMLISER_OPTIONS_TABLE      => array(
+            SMLISER_OPTIONS_TABLE      => array(
                 'option_id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'option_name VARCHAR(255) NOT NULL',
                 'option_value TEXT DEFAULT NULL',
                 'INDEX smliser_option_key (option_name)'
+            ),
+
+            SMLISER_OWNERS_TABLE       => array(
+                'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'type enum(\'user\', \'organization\', \'platform\') DEFAULT \'platform\'',
+                'name VARCHAR(255) NOT NULL',
+                'status VARCHAR(20) DEFAULT \'active\'',
+                'created_at DATETIME DEFAULT NULL',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            ),
+
+            SMLISER_USERS_TABLE     => array(
+                'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'identifier VARCHAR(255) NOT NULL',
+                'password_hash VARCHAR(300) NOT NULL',
+                'status VARCHAR(20) DEFAULT \'active\'',
+                'created_at DATETIME DEFAULT NULL',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
             )
 
 
