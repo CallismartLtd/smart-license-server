@@ -269,11 +269,24 @@ final class DBTables {
 
             SMLISER_USERS_TABLE     => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'display_name VARCHAR(255) NOT NULL',
                 'identifier VARCHAR(255) NOT NULL',
                 'password_hash VARCHAR(300) NOT NULL',
                 'status VARCHAR(20) DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            ),
+
+            SMLISER_SERVICE_ACCOUNTS_TABLE  => array(
+                'id INT AUTO_INCREMENT PRIMARY KEY',
+                'owner_id INT NOT NULL',
+                'display_name VARCHAR(255) NOT NULL',
+                'api_key_hash VARCHAR(255) NOT NULL',
+                'status ENUM(\'active\',\'suspended\',\'disabled\') DEFAULT \'active\'',
+                'created_at DATETIME DEFAULT NULL',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'last_used_at DATETIME NULL',
+                'permissions TEXT NULL',
             )
 
 
