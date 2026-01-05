@@ -260,7 +260,7 @@ final class DBTables {
             SMLISER_OWNERS_TABLE       => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'principal_id BIGINT(20) NOT NULL',
-                'type enum(\'user\', \'organization\', \'platform\') DEFAULT \'platform\'',
+                'type enum(\'individual\', \'organization\', \'platform\') DEFAULT \'platform\'',
                 'name VARCHAR(255) NOT NULL',
                 'status VARCHAR(20) DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',

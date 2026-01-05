@@ -9,6 +9,7 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -1117,6 +1118,15 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             static::STATUS_SUSPENDED  => 'Suspended',
             static::STATUS_TRASH      => 'Trash',
         ];
+    }
+
+    /**
+     * The app owner instance
+     * 
+     * @return ?Owner
+     */
+    public function get_owner() : ?Owner {
+        return Owner::get_by_id( $this->get_owner_id() );
     }
 
     /*

@@ -13,7 +13,7 @@ use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_USERS_TABLE;
-use function is_string, smliser_dbclass, gmdate;
+use function is_string, smliser_dbclass, gmdate, boolval, defined;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -27,7 +27,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Users do not own resources directly.
  * Ownership is always mediated through an Owner.
  */
-class User {
+class User implements PrincipalInterface{
 
     use SanitizeAwareTrait, CommonQueryTrait;
 
@@ -359,5 +359,30 @@ class User {
      */
     public function can_authenticate() : bool {
         return self::STATUS_ACTIVE === $this->status;
+    }
+
+    /**
+     * Tells whether this user exists.
+     * 
+     * @return bool True when the user exists, false otherwise.
+     */
+    public function exists() : bool {
+        if ( ! $this->get_id() ) {
+            return false;
+        }
+
+        static $db_check;
+
+        if ( ! isset( $db_check ) ) {
+            $db     = smliser_dbclass();
+            $table  = SMLISER_USERS_TABLE;
+            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
+
+            $result = $db->get_var( $sql, [$this->get_id()] );
+
+            $db_check = boolval( $result );
+        }
+
+        return $db_check;
     }
 }

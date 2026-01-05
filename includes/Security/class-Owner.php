@@ -52,7 +52,7 @@ class Owner {
     protected int $id = 0;
 
     /**
-     * The Primcipal ID.
+     * The principal ID.
      * 
      * @var int $principal_id The ID of the principal entity.
      */
@@ -125,7 +125,7 @@ class Owner {
      * @return static
      */
     public function set_id( $id ) : static {
-        $this->id = self::sanitize_int( $id );
+        $this->id = static::sanitize_int( $id );
 
         return $this;
     }
@@ -137,7 +137,7 @@ class Owner {
      * @return static
      */
     public function set_principal_id( $id ) : static {
-        $this->principal_id = self::sanitize_int( $id );
+        $this->principal_id = static::sanitize_int( $id );
 
         return $this;
     }
@@ -149,8 +149,8 @@ class Owner {
      * @return static
      */
     public function set_type( $type ) : static {
-        $type = self::sanitize_text( $type );
-        if ( ! in_array( $type, self::get_allowed_owner_types(), true ) ) {
+        $type = static::sanitize_text( $type );
+        if ( ! in_array( $type, static::get_allowed_owner_types(), true ) ) {
             return $this;
         }
 
@@ -166,9 +166,9 @@ class Owner {
      * @return static
      */
     public function set_status( $status ) : static {
-        $status = self::sanitize_text( $status );
+        $status = static::sanitize_text( $status );
 
-        if ( ! in_array( $status, self::get_allowed_statuses(), true ) ) {
+        if ( ! in_array( $status, static::get_allowed_statuses(), true ) ) {
             return $this;
         }
 
@@ -183,7 +183,7 @@ class Owner {
      * @return static
      */
     public function set_name( $name ) : static {
-        $this->name = self::sanitize_text( $name );
+        $this->name = static::sanitize_text( $name );
         
         return $this;
     }
@@ -350,13 +350,13 @@ class Owner {
             'name'          => $this->get_name(),
             'type'          => $this->get_type(),
             'status'        => $this->get_status(),
-            'updated_at'    => \gmdate( 'Y-m-d H:i:s' )
+            'updated_at'    => gmdate( 'Y-m-d H:i:s' )
         ];
 
         if ( $this->get_id() ) {
             $result = $db->update( $table, $data, ['id' => $this->get_id()] );
         } else {
-            $data['created_at'] = \gmdate( 'Y-m-d H:i:s' );
+            $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
 
             $result = $db->insert( $table, $data );
 
@@ -373,7 +373,13 @@ class Owner {
      * @return static
      */
     public static function get_by_id( int $id ) : ?static {
-        return self::get_self_by_id( $id, \SMLISER_OWNERS_TABLE );
+        static $owners = [];
+
+        if ( ! array_key_exists( $id, $owners ) ) {
+            $owners[ $id ] = static::get_self_by_id( $id, SMLISER_OWNERS_TABLE );
+        }
+
+        return $owners[ $id ];
     }
 
     /*
