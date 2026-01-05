@@ -11,6 +11,7 @@
 namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Security\Owner;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -32,6 +33,13 @@ interface HostedAppsInterface {
      * @param int $id
      */
     public function set_id( $id );
+
+    /**
+     * Set app ID
+     * 
+     * @param int $id
+     */
+    public function set_owner_id( $id );
 
     /**
      * Set app name
@@ -114,6 +122,13 @@ interface HostedAppsInterface {
      * @return int
      */
     public function get_id();
+
+    /**
+     * Get the application unique identifier.
+     * 
+     * @return int
+     */
+    public function get_owner_id();
 
     /**
      * Get the application name.

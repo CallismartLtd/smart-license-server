@@ -30,6 +30,13 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     protected $id = 0;
 
     /**
+     * App owner ID
+     * 
+     * @var int $owner_id
+     */
+    protected $owner_id = 0;
+
+    /**
      * The name of the app..
      * 
      * @var string $name The app's name.
@@ -265,6 +272,15 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     public function set_id( $id ) {
         $this->id = absint( $id );
+    }
+
+    /**
+     * Set the owner ID
+     * 
+     * @param int $owner_id
+     */
+    public function set_owner_id( $owner_id ) {
+        $this->owner_id = self::sanitize_int( $owner_id );
     }
 
     /**
@@ -516,6 +532,15 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     public function get_id() {
         return $this->id;
+    }
+
+    /**
+     * Get the app owner ID
+     * 
+     * @return int
+     */
+    public function get_owner_id() {
+        return $this->owner_id;
     }
 
 

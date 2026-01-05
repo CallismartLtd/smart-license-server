@@ -183,6 +183,7 @@ class Software extends AbstractHostedApp {
 
         $software_data = [
             'name'          => $this->get_name(),
+            'owner_id'      => $this->get_owner_id(),
             'author'        => $this->get_author(),
             'status'        => $this->get_status(),
             'download_link' => $this->get_download_url(),
@@ -269,6 +270,7 @@ class Software extends AbstractHostedApp {
         $self = new static();
 
         $self->set_id( $result['id'] ?? 0 );
+        $self->set_owner_id( $result['owner_id'] ?? 0 );
         $self->set_name( $result['name'] ?? '' );
         $self->set_slug( $result['slug'] ?? '' );
         $self->set_author( $result['author'] ?? '' );

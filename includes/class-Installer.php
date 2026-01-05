@@ -36,6 +36,7 @@ class Installer {
         '0.2.0' => array(
             [__CLASS__, 'monetization_table_upgrade_020'],
             [__CLASS__, 'migrate_bulk_message_table_020'],
+            [__CLASS__, 'add_apps_owner_id_020']
         )
 
     );
@@ -228,6 +229,27 @@ class Installer {
         $sql    = "ALTER TABLE `{$table}` CHANGE `body` `body` LONGTEXT DEFAULT NULL";
 
         $db->query( $sql );
+    }
+
+    /**
+     * Add owner_id column to the apps tables
+     */
+    public static function add_apps_owner_id_020() {
+        $db         = \smliser_dbclass();
+        $tables     = [\SMLISER_PLUGIN_ITEM_TABLE, \SMLISER_THEME_ITEM_TABLE, \SMLISER_SOFTWARE_TABLE];
+        $new_column = 'owner_id';
+
+        foreach ( $tables as $table ) {
+            $column_exists  = $db->get_results( "SHOW COLUMNS FROM {$table} LIKE ?", [$new_column] );
+
+            if ( $column_exists ) {
+                continue;
+            }
+
+            $sql    = "ALTER TABLE `{$table}` ADD COLUMN {$new_column} BIGINT(20) NOT NULL AFTER `id`";
+
+            $db->get_var( $sql );
+        }
     }
 
     /**

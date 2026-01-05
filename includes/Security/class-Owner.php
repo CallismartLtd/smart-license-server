@@ -45,11 +45,18 @@ class Owner {
     public const STATUS_SUSPENDED   = 'suspended';
     public const STATUS_DISABLED    = 'disabled';
     /**
-     * The owner ID
+     * The unique ID
      * 
      * @var int $id
      */
     protected int $id = 0;
+
+    /**
+     * The Primcipal ID.
+     * 
+     * @var int $principal_id The ID of the principal entity.
+     */
+    protected int $principal_id = 0;
 
     /**
      * The owner type.
@@ -124,6 +131,18 @@ class Owner {
     }
 
     /**
+     * Set the id of the of the principal
+     * 
+     * @param int $id
+     * @return static
+     */
+    public function set_principal_id( $id ) : static {
+        $this->principal_id = self::sanitize_int( $id );
+
+        return $this;
+    }
+
+    /**
      * Set type
      * 
      * @param string $type
@@ -185,7 +204,11 @@ class Owner {
             return $this;
         }
 
-        $date   = new DateTimeImmutable( $date );
+        try {
+            $date   = new DateTimeImmutable( $date );
+        } catch ( \DateMalformedStringException $e ) {
+            return $this;
+        }
 
         $this->created_at = $date;
 
@@ -208,17 +231,21 @@ class Owner {
             return $this;
         }
 
-        $date   = new DateTimeImmutable( $date );
+        try {
+            $date   = new DateTimeImmutable( $date );
+        } catch ( \DateMalformedStringException $e ) {
+            return $this;
+        }
 
         $this->updated_at = $date;
 
         return $this;
     }
 
-    /**
+    /*
     |-----------
     | GETTERS
-    | 
+    |-----------
     */
 
     /**
@@ -228,6 +255,15 @@ class Owner {
      */
     public function get_id() : int {
         return $this->id;
+    }
+
+    /**
+     * Get the principal ID
+     * 
+     * @return int
+     */
+    public function get_principal_id() : int {
+        return $this->principal_id;
     }
 
     /**
@@ -291,7 +327,7 @@ class Owner {
             return [];
         }
         // Lazy loaded.
-        if ( isset( $this->apps ) ) {
+        if ( ! \is_null( $this->apps ) ) {
             return $this->apps;
         }
 
@@ -310,6 +346,7 @@ class Owner {
         $table  = SMLISER_OWNERS_TABLE;
 
         $data   = [
+            'principal_id'  => $this->get_principal_id(),
             'name'          => $this->get_name(),
             'type'          => $this->get_type(),
             'status'        => $this->get_status(),
@@ -381,5 +418,48 @@ class Owner {
      */
     public static function get_allowed_statuses() : array {
         return [ self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_DISABLED ];
+    }
+
+    /*
+    |--------------------
+    |CONDITIONAL METHODS
+    |--------------------
+    */
+
+    /**
+     * Tells whether owner is individual.
+     * 
+     * @return bool
+     */
+    public function is_individual() : bool {
+        return $this->get_type() === static::TYPE_INDIVIDUAL;
+    }
+
+    /**
+     * Tells whether owner is organization.
+     * 
+     * @return bool
+     */
+    public function is_organization() : bool {
+        return $this->get_type() === static::TYPE_ORGANIZATION;
+    }
+
+    /**
+     * Tells whether owner is platform.
+     * 
+     * @return bool
+     */
+    public function is_platform() : bool {
+        return $this->get_type() === static::TYPE_PLATFORM;
+    }
+
+    /**
+     * Tells whether this app is owned by this owner.
+     * 
+     * @param AbstractHostedApp
+     * @return bool
+     */
+    public function owns_app( AbstractHostedApp $app ) : bool {
+        return $app->get_owner_id() === $this->get_id();
     }
 }
