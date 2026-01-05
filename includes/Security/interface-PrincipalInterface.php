@@ -24,7 +24,7 @@ interface PrincipalInterface {
      * 
      * @param int $id
      */
-    public function set_id( $id );
+    public function set_id( $id ) : static;
 
     /**
      * Set principal display name
@@ -50,7 +50,7 @@ interface PrincipalInterface {
     /**
      * Set last updated
      * 
-     * @param string|\DatetimeImmutable $date
+     * @param string|\DateTimeImmutable $date
      */
     public function set_updated_at( $date ) : static;
 
@@ -65,33 +65,33 @@ interface PrincipalInterface {
      * 
      * @return int
      */
-    public function get_id();
+    public function get_id() : int;
 
     /**
      * Get principal display name
      * 
-     * @return string $name
+     * @return string
      */
-    public function get_display_name();
+    public function get_display_name() : string;
 
     /**
      * Get status
      * 
-     * @return string $status
+     * @return string
      */
-    public function get_status();
+    public function get_status() : string;
 
     /**
      * Get date created
      * 
-     * @return null|\DateTimeImmutable $date
+     * @return null|\DateTimeImmutable
      */
-    public function get_created_at();
+    public function get_created_at() : ?\DateTimeImmutable;
 
     /**
      * Get last updated
      * 
-     * @return null|\DatetimeImmutable $date
+     * @return null|\DateTimeImmutable
      */
-    public function get_updated_at();
+    public function get_updated_at() : ?\DateTimeImmutable;
 }

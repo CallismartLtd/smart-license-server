@@ -102,6 +102,13 @@ class User implements PrincipalInterface{
     protected ?DateTimeImmutable $updated_at = null;
 
     /**
+     * Holds the value of `exists` check
+     *
+     * @var boolean|null 
+     */
+    protected ?bool $exists_cache = null;
+
+    /**
      * User constructor.
      *
      * Intentionally lightweight. Hydration is expected
@@ -258,7 +265,12 @@ class User implements PrincipalInterface{
         if ( ! is_string( $date ) ) {
             return $this;
         }
-        $date   = new DateTimeImmutable( $date );
+
+        try {
+            $date   = new DateTimeImmutable( $date );
+        } catch( \Exception $e ) {
+            return $this;
+        }
 
         $this->created_at = $date;
         return $this;
@@ -279,7 +291,12 @@ class User implements PrincipalInterface{
         if ( ! is_string( $date ) ) {
             return $this;
         }
-        $date   = new DateTimeImmutable( $date );
+        
+        try {
+            $date   = new DateTimeImmutable( $date );
+        } catch( \Exception $e ) {
+            return $this;
+        }
 
         $this->updated_at = $date;
         return $this;
@@ -296,7 +313,13 @@ class User implements PrincipalInterface{
      * @return static
      */
     public static function get_by_id( int $id ) : ?static {
-        return self::get_self_by_id( $id, SMLISER_USERS_TABLE );
+        static $users = [];
+
+        if ( ! array_key_exists( $id, $users ) ) {
+            $users[ $id ] = self::get_self_by_id( $id, SMLISER_USERS_TABLE );
+        }
+
+        return $users[ $id ];
     }
 
     /**
@@ -371,18 +394,16 @@ class User implements PrincipalInterface{
             return false;
         }
 
-        static $db_check;
-
-        if ( ! isset( $db_check ) ) {
+        if ( is_null( $this->exists_cache ) ) {
             $db     = smliser_dbclass();
             $table  = SMLISER_USERS_TABLE;
             $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
 
             $result = $db->get_var( $sql, [$this->get_id()] );
 
-            $db_check = boolval( $result );
+            $this->exists_cache = boolval( $result );
         }
 
-        return $db_check;
+        return $this->exists_cache;
     }
 }

@@ -206,7 +206,7 @@ class Owner {
 
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch ( \DateMalformedStringException $e ) {
+        } catch ( \Exception $e ) {
             return $this;
         }
 
@@ -233,7 +233,7 @@ class Owner {
 
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch ( \DateMalformedStringException $e ) {
+        } catch ( \Exception $e ) {
             return $this;
         }
 
