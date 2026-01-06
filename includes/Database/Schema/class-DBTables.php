@@ -265,6 +265,9 @@ final class DBTables {
                 'status VARCHAR(20) DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'INDEX smliser_owners_principal_id (principal_id)',
+                'INDEX smliser_owners_created_at (created_at)',
+                'INDEX smliser_owners_updated_at (updated_at)',
             ),
 
             SMLISER_USERS_TABLE     => array(
@@ -275,6 +278,9 @@ final class DBTables {
                 'status VARCHAR(20) DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'INDEX smliser_users_identifier (identifier)',
+                'INDEX smliser_users_created_at (created_at)',
+                'INDEX smliser_users_updated_at (updated_at)',
             ),
 
             SMLISER_SERVICE_ACCOUNTS_TABLE  => array(
@@ -287,7 +293,26 @@ final class DBTables {
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'last_used_at DATETIME NULL',
                 'permissions TEXT NULL',
-            )
+                'INDEX smliser_service_acct_owner_id (owner_id)',
+                'INDEX smliser_service_acct_api_key_hash (api_key_hash)',
+                'INDEX smliser_service_acct_status (status)',
+                'INDEX smliser_service_acct_created_at (created_at)',
+                'INDEX smliser_service_acct_updated_at (updated_at)',
+            ),
+
+            SMLISER_ROLES_TABLE     => array(
+                'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'owner_id BIGINT(20) UNSIGNED NOT NULL',
+                'name VARCHAR(64) NOT NULL',
+                'label VARCHAR(190) NOT NULL',
+                'capabilities LONGTEXT NOT NULL',
+                'created_at DATETIME DEFAULT NULL',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'UNIQUE KEY smliser_owner_role_unique (owner_id, name)',
+                'INDEX smliser_roles_owner_id (owner_id)',
+                'INDEX smliser_roles_name (name)',
+            ),
+
 
 
         );

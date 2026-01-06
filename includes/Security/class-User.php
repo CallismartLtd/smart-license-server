@@ -265,10 +265,10 @@ class User implements PrincipalInterface{
         if ( ! is_string( $date ) ) {
             return $this;
         }
-
+        
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch( \Exception $e ) {
+        } catch( \DateMalformedStringException $e ) {
             return $this;
         }
 
@@ -294,7 +294,7 @@ class User implements PrincipalInterface{
         
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch( \Exception $e ) {
+        } catch( \DateMalformedStringException $e ) {
             return $this;
         }
 

@@ -108,6 +108,12 @@ class Owner {
      */
     protected ?array $apps = null;
 
+    /** 
+     * The roles avaliable to this owner.
+     * @var Role[] 
+     */
+    protected ?array $roles = null;
+
     /**
      * Class constructor
      */
@@ -206,7 +212,7 @@ class Owner {
 
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch ( \Exception $e ) {
+        } catch ( \DateMalformedStringException $e ) {
             return $this;
         }
 
@@ -233,7 +239,7 @@ class Owner {
 
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch ( \Exception $e ) {
+        } catch ( \DateMalformedStringException $e ) {
             return $this;
         }
 
@@ -380,6 +386,18 @@ class Owner {
         }
 
         return $owners[ $id ];
+    }
+
+    /**
+     * Lazy load the roles
+     *
+     * @return array
+     */
+    public function get_roles(): array {
+        if ( \is_null( $this->roles ) ) {
+            $this->roles = Role::get_all_by_owner( $this->get_id() );
+        }
+        return $this->roles;
     }
 
     /*
