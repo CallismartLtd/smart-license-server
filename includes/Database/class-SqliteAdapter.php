@@ -69,7 +69,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
 
         try {
             $path       = $this->config['database'] ?? ':memory:';
-            $flags      = $this->config['flags'] ?? (SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE);
+            $flags      = $this->config['flags'] ?? ( SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE );
             $encryption = $this->config['encryption_key'] ?? '';
             
             $this->sqlite = new SQLite3( $path, $flags, $encryption );

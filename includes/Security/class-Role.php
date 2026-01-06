@@ -421,10 +421,7 @@ class Role {
      * @param string $name
      * @return static|null
      */
-    public static function get_by_name(
-        int $owner_id,
-        string $name
-    ) : ?static {
+    public static function get_by_name( int $owner_id, string $name ) : ?static {
         $db     = smliser_dbclass();
         $table  = SMLISER_ROLES_TABLE;
 

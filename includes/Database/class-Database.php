@@ -10,6 +10,8 @@ namespace SmartLicenseServer\Database;
 
 use PDO;
 
+use const SMLISER_APP_NAME;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -206,4 +208,28 @@ class Database {
         ];
     }
 
+    /**
+     * Get a formatted string representation of the database system report.
+     *
+     * Useful for CLI output, error logs, or "Copy to Clipboard" support features.
+     *
+     * @return string The formatted report string.
+     */
+    public function print_system_report() {
+        $report = $this->get_system_report();
+        
+        $output = "### Database System Report" . PHP_EOL . PHP_EOL;
+        $output .= "| Metric | Value |" . PHP_EOL;
+        $output .= "| :--- | :--- |" . PHP_EOL; // Alignment row
+
+        foreach ( $report as $key => $value ) {
+            $label = ucwords( str_replace( '_', ' ', $key ) );
+            if ( is_bool( $value ) ) { $value = $value ? 'Yes' : 'No'; }
+            $value = $value ?? 'N/A';
+
+            $output .= "| **$label** | $value |" . PHP_EOL;
+        }
+
+        return $output;
+    }
 }
