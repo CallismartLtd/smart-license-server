@@ -147,6 +147,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'user_agent'      => smliser_get_user_agent(),
             'request_time'    => time(),
             'client_ip'       => \smliser_get_client_ip(),
+            'is_authorized'     => true // For public download, monetized app download permission checked by controller.
         ]);
 
         $response = FileRequestController::get_application_zip_file( $request );
@@ -178,8 +179,9 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         }
 
         $request = new FileRequest([
-            'app_type'  => $type,
-            'app_id'    => $id
+            'app_type'      => $type,
+            'app_id'        => $id,
+            'is_authorized' => current_user_can( 'install_plugins' )
         ]);
 
         $response = FileRequestController::get_admin_application_zip_file( $request );

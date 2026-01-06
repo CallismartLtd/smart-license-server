@@ -29,8 +29,8 @@ class FileRequestController {
      */
     public static function get_application_zip_file( FileRequest $request ): FileResponse {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new FileRequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
+            if (  $request->is_authorized() ) {
+                throw new FileRequestException( 'user_not_authorized', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
             }
             $app_type = $request->get( 'app_type' );
             $app_slug = $request->get( 'app_slug' );
@@ -162,7 +162,7 @@ class FileRequestController {
     }
 
     /**
-     * Process and server static asset for all hosted applications.
+     * Process and serve static asset for all hosted applications.
      * 
      * @param FileRequest $request The file request object.
      */
