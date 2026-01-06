@@ -365,4 +365,49 @@ class LaravelAdapter implements DatabaseAdapterInterface {
     public function get_last_error() {
         return $this->last_error;
     }
+
+    /**
+     * Get the database server version.
+     *
+     * @return string
+     */
+    public function get_server_version() {
+        try {
+            return $this->get_connection()->getPdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
+        } catch (Exception $e) {
+            return '0.0.0';
+        }
+    }
+
+    /**
+     * Get the database engine/driver name.
+     *
+     * @return string
+     */
+    public function get_engine_type() {
+        // Laravel returns names like 'mysql', 'pgsql', 'sqlite', 'sqlsrv'
+        return $this->get_connection()->getDriverName();
+    }
+
+    /**
+     * Get information about the connection host.
+     *
+     * @return string
+     */
+    public function get_host_info() {
+        try {
+            return $this->get_connection()->getPdo()->getAttribute(\PDO::ATTR_CONNECTION_STATUS);
+        } catch (Exception $e) {
+            return 'disconnected';
+        }
+    }
+
+    public function get_protocol_version() {
+        try {
+            $info = $this->get_connection()->getPdo()->getAttribute(\PDO::ATTR_SERVER_INFO);
+            return preg_match('/Proto: (\d+)/', $info, $matches) ? $matches[1] : 'N/A';
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 }

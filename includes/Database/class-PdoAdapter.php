@@ -69,8 +69,10 @@ class PdoAdapter implements DatabaseAdapterInterface {
         }
 
         try {
+            $driver = $this->config['driver'] ?? 'mysql';
             $dsn = sprintf(
-                'mysql:host=%s;dbname=%s;charset=%s',
+                '%s:host=%s;dbname=%s;charset=%s',
+                $driver,
                 $this->config['host'] ?? 'localhost',
                 $this->config['database'] ?? '',
                 $this->config['charset'] ?? 'utf8mb4'
@@ -397,5 +399,43 @@ class PdoAdapter implements DatabaseAdapterInterface {
      */
     public function get_last_error() {
         return $this->last_error;
+    }
+
+    /**
+     * Get the database server version.
+     *
+     * @return string The server version (e.g., "8.0.32", "15.1").
+     */
+    public function get_server_version() {
+        return $this->pdo ? $this->pdo->getAttribute(PDO::ATTR_SERVER_VERSION) : '0.0.0';
+    }
+
+    /**
+     * Get the database engine/driver name.
+     *
+     * @return string Lowercase name of the engine (e.g., "mysql", "pgsql", "sqlite").
+     */
+    public function get_engine_type() {
+        return $this->pdo ? $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) : 'unknown';
+    }
+
+    /**
+     * Get information about the connection host.
+     *
+     * @return string Information like host IP or connection method (TCP/IP, Socket).
+     */
+    public function get_host_info() {
+        return $this->pdo ? $this->pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS) : 'disconnected';
+    }
+    
+    public function get_protocol_version() {
+        if (!$this->pdo) return null;
+        
+        // For MySQL/MariaDB via PDO
+        $info = $this->pdo->getAttribute(\PDO::ATTR_SERVER_INFO);
+        if (preg_match('/Proto: (\d+)/', $info, $matches)) {
+            return $matches[1];
+        }
+        return 'N/A';
     }
 }

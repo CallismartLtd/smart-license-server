@@ -349,31 +349,22 @@ class Role {
         $db     = smliser_dbclass();
         $table  = SMLISER_ROLES_TABLE;
 
-        $capabilities = array_values(
-            array_unique( $this->get_capabilities() )
-        );
+        $capabilities = array_values( array_unique( $this->get_capabilities() ) );
 
         $data = [
-            'owner_id'     => $this->get_owner_id(),
-            'name'         => $this->get_name(),
-            'label'        => $this->get_label(),
-            'capabilities' => smliser_safe_json_encode( $capabilities ),
-            'updated_at'   => gmdate( 'Y-m-d H:i:s' ),
+            'owner_id'      => $this->get_owner_id(),
+            'name'          => $this->get_name(),
+            'label'         => $this->get_label(),
+            'capabilities'  => smliser_safe_json_encode( $capabilities ),
+            'updated_at'    => gmdate( 'Y-m-d H:i:s' ),
         ];
 
         if ( $this->get_id() ) {
             unset( $data['owner_id'], $data['name'] );
 
-            $result = $db->update(
-                $table,
-                $data,
-                [ 'id' => $this->get_id() ]
-            );
+            $result = $db->update( $table, $data, [ 'id' => $this->get_id() ] );
         } else {
-            $existing = static::get_by_name(
-                $this->get_owner_id(),
-                $this->get_name()
-            );
+            $existing = static::get_by_name( $this->get_owner_id(), $this->get_name() );
 
             if ( $existing ) {
                 return false;
@@ -382,10 +373,8 @@ class Role {
             $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
 
             $result = $db->insert( $table, $data );
-
-            if ( false !== $result ) {
-                $this->set_id( $db->get_insert_id() );
-            }
+            $this->set_id( $db->get_insert_id() );
+            
         }
 
         return false !== $result;
@@ -404,10 +393,7 @@ class Role {
         $db     = smliser_dbclass();
         $table  = SMLISER_ROLES_TABLE;
 
-        $result = $db->delete(
-            $table,
-            [ 'id' => $this->get_id() ]
-        );
+        $result = $db->delete( $table, [ 'id' => $this->get_id() ] );
 
         return false !== $result;
     }
@@ -422,10 +408,7 @@ class Role {
         static $roles = [];
 
         if ( ! array_key_exists( $id, $roles ) ) {
-            $roles[ $id ] = static::get_self_by_id(
-                $id,
-                SMLISER_ROLES_TABLE
-            );
+            $roles[ $id ] = static::get_self_by_id( $id, SMLISER_ROLES_TABLE );
         }
 
         return $roles[ $id ];
@@ -447,10 +430,7 @@ class Role {
 
         $row = $db->get_row(
             "SELECT * FROM {$table} WHERE owner_id = ? AND name = ?",
-            [
-                $owner_id,
-                sanitize_text_field( $name ),
-            ]
+            [ $owner_id, self::sanitize_text( $name ) ]
         );
 
         return $row ? static::from_array( $row ) : null;

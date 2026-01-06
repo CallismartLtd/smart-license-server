@@ -151,4 +151,32 @@ interface DatabaseAdapterInterface {
      */
     public function get_last_error();
 
+
+    /**
+     * Get the database server version.
+     *
+     * @return string The server version (e.g., "8.0.32", "15.1").
+     */
+    public function get_server_version();
+
+    /**
+     * Get the database engine/driver name.
+     *
+     * @return string Lowercase name of the engine (e.g., "mysql", "pgsql", "sqlite").
+     */
+    public function get_engine_type();
+
+    /**
+     * Get information about the connection host.
+     *
+     * @return string Information like host IP or connection method (TCP/IP, Socket).
+     */
+    public function get_host_info();
+
+    /**
+     * Retrieve the database protocol version.
+     *
+     * @return string|int|null The protocol version, or null if not applicable/available.
+     */
+    public function get_protocol_version();
 }

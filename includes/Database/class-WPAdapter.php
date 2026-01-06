@@ -295,4 +295,36 @@ class WPAdapter implements DatabaseAdapterInterface {
         return $this->wpdb->prepare( $formatted, ...$params );
     }
 
+    /**
+     * Get the database server version.
+     *
+     * @return string
+     */
+    public function get_server_version() {
+        return $this->wpdb->db_version();
+    }
+
+    /**
+     * Get the database engine/driver name.
+     *
+     * @return string
+     */
+    public function get_engine_type() {
+        // WordPress is historically MySQL-based.
+        return 'mysql';
+    }
+
+    /**
+     * Get information about the connection host.
+     *
+     * @return string
+     */
+    public function get_host_info() {
+        // Returns the value of DB_HOST defined in wp-config.php
+        return defined('DB_HOST') ? DB_HOST : 'unknown';
+    }
+
+    public function get_protocol_version() {
+        return $this->get_var( "SELECT @@protocol_version" );
+    }
 }

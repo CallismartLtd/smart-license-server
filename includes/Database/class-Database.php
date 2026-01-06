@@ -19,9 +19,9 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  * Acts as a proxy to the environment-specific database adapter.
  *
- * @method array get_row(string $query, array $params = [])
+ * @method array|null get_row(string $query, array $params = [])
  * @method array get_results(string $query, array $params = [])
- * @method mixed get_var(string $query, array $params = [])
+ * @method mixed|null get_var(string $query, array $params = [])
  * @method array get_col(string $query, array $params = [])
  * @method int|false insert(string $table, array $data)
  * @method int|false update(string $table, array $data, array $where)
@@ -30,10 +30,13 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @method void commit()
  * @method void rollback()
  * @method string|null get_last_error() Get last database error.
- * @method int|null get_insert_id() Get the last insertion ID
- * @method mixed query( string $query, array $param = [] ) Execute a raw SQL query with optional parameters.
+ * @method int|null get_insert_id() Get the last insertion ID.
+ * @method mixed query(string $query, array $params = []) Execute a raw SQL query.
+ * @method string get_server_version() Get the database server version.
+ * @method string get_engine_type() Get the engine type (mysql, sqlite, etc).
+ * @method string|null get_host_info() Get connection host information.
+ * @method string|int|null get_protocol_version() Get the database protocol version.
  */
-
 class Database {
 
     /**
@@ -82,31 +85,33 @@ class Database {
      * @throws \Exception If no supported adapter can be initialized.
      */
     protected static function detect_environment() {
-        // --- 1. WordPress Environment (Highest Priority) ---
         if ( defined( 'ABSPATH' ) && class_exists( \wpdb::class ) && isset( $GLOBALS['wpdb'] ) ) {
             return new WPAdapter();
         }
 
-        // --- 2. Laravel Environment ---
         if ( class_exists( 'Illuminate\Support\Facades\DB' ) ) {
             return new LaravelAdapter();
         }
 
-        // Configuration setup for standard PHP environments (requires constants to be defined)
+        // Common configuration for standard PHP environments
         $config = [
-            'host'     => defined('DB_HOST') ? DB_HOST : 'localhost',
-            'username' => defined('DB_USER') ? DB_USER : 'root',
-            'password' => defined('DB_PASSWORD') ? DB_PASSWORD : '',
-            'database' => defined('DB_NAME') ? DB_NAME : '',
-            'charset'  => \smliser_settings_adapter()->get( 'db_charset', 'utf8mb4' ),
+            'host'      => defined('DB_HOST') ? DB_HOST : 'localhost',
+            'username'  => defined('DB_USER') ? DB_USER : 'root',
+            'password'  => defined('DB_PASSWORD') ? DB_PASSWORD : '',
+            'database'  => defined('DB_NAME') ? DB_NAME : '',
+            'charset'   => function_exists('smliser_settings_adapter') ? \smliser_settings_adapter()->get( 'db_charset', 'utf8mb4' ) : 'utf8mb4',
         ];
 
-        // --- 3. PDO Adapter (Preferred Standard PHP Fallback) ---
+        if ( defined( 'DB_TYPE' ) && 'sqlite' === constant( 'DB_TYPE' ) && class_exists( 'SQLite3' ) ) {
+            return new SqliteAdapter( [
+                'database' => defined( 'DB_FILE' ) ? constant( 'DB_TYPE' )  : $config['database']
+            ] );
+        }
+
         if ( class_exists( 'PDO' ) && in_array( 'mysql', PDO::getAvailableDrivers() ) ) {
             return new PdoAdapter( $config );
         }
 
-        // --- 4. MySQLi Adapter (Basic Standard PHP Fallback) ---
         if ( class_exists( 'mysqli' ) ) {
             return new MysqliAdapter( $config );
         }
@@ -130,6 +135,7 @@ class Database {
      * @param array  $args   Method arguments.
      *
      * @return mixed
+     * @throws \BadMethodCallException
      */
     public function __call( $method, $args ) {
         if ( method_exists( $this->adapter, $method ) ) {
@@ -141,39 +147,63 @@ class Database {
         );
     }
 
-	/**
-	 * Calcualte query offset from page and limit.
-	 * 
-	 * @param int $page The current pagination number.
-	 * @param int $limit The result limit for the current request.
-	 * @return int $offset Calculated offset
-	 */
-	public static function calculate_query_offset( $page, $limit ) {
-		$page	= max( 1, $page );
-
-		return absint( max( 0, ( $page - 1 ) * $limit ) );
-	}
+    /**
+     * Calculate query offset from page and limit.
+     * * @param int $page The current pagination number.
+     * @param int $limit The result limit for the current request.
+     * @return int Calculated offset.
+     */
+    public static function calculate_query_offset( $page, $limit ) {
+        $page = max( 1, (int) $page );
+        $limit = (int) $limit;
+        return max( 0, ( $page - 1 ) * $limit );
+    }
     
     /**
      * Get the charset and collation string for table creation.
      *
-     * This is intended for use in installation scripts, migrations,
-     * or any CREATE TABLE statements. It ensures a consistent character
-     * set and collation across your database tables.
-     *
-     * @return string SQL fragment for charset and collation, e.g. "DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+     * @return string SQL fragment for charset and collation.
      */
     public function get_charset_collate() {
+        // SQLite doesn't use Charset/Collation in the same way as MySQL
+        if ( $this->get_engine_type() === 'sqlite' ) {
+            return '';
+        }
+
         $charset = 'utf8mb4';
         $collate = 'utf8mb4_unicode_ci';
 
-        // Attempt to read charset from the adapter if available
         if ( isset( $this->adapter->config['charset'] ) ) {
             $charset = $this->adapter->config['charset'];
         }
 
-        // You could make collate dynamic if needed, for now keep it standard
         return sprintf( 'DEFAULT CHARSET=%s COLLATE=%s', $charset, $collate );
+    }
+
+    /**
+     * Generate a comprehensive report of the current database environment.
+     *
+     * Useful for system health checks, debug logs, or support dashboards.
+     *
+     * @return array {
+     * @type string $engine           The driver name (mysql, sqlite, etc).
+     * @type string $server_version   The database version.
+     * @type string $protocol         The connection protocol version.
+     * @type string $host             Host or file path information.
+     * @type string|null $last_error  The most recent error message.
+     * @type bool   $connection_alive Whether the connection is currently active.
+     * }
+     */
+    public function get_system_report() {
+        return [
+            'engine'           => $this->get_engine_type(),
+            'server_version'   => $this->get_server_version(),
+            'protocol_version' => $this->get_protocol_version(),
+            'host_info'        => $this->get_host_info(),
+            'last_error'       => $this->get_last_error(),
+            'connection_alive' => $this->adapter !== null,
+            'php_extension'    => get_class( $this->adapter ),
+        ];
     }
 
 }

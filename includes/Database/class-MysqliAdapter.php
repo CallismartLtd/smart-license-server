@@ -447,4 +447,39 @@ class MysqliAdapter implements DatabaseAdapterInterface {
     public function get_last_error() {
         return $this->last_error;
     }
+
+/**
+     * Get the database server version.
+     *
+     * @return string|null The server version (e.g., "8.0.32", "15.1").
+     */
+    public function get_server_version() {
+        return $this->mysqli ? $this->mysqli->server_info : null;
+    }
+
+    /**
+     * Get the database engine/driver name.
+     *
+     * @return string Lowercase name of the engine.
+     */
+    public function get_engine_type() {
+        return 'mysql';
+    }
+
+    /**
+     * Get information about the connection host.
+     *
+     * @return string|null Information like host IP or connection method.
+     */
+    public function get_host_info() {
+        return $this->mysqli ? $this->mysqli->host_info : null;
+    }
+
+    /**
+     * Get the protocol version.
+     * * @return int|null
+     */
+    public function get_protocol_version() {
+        return $this->mysqli ? $this->mysqli->protocol_version : null;
+    }
 }
