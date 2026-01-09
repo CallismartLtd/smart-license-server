@@ -130,7 +130,7 @@ class Installer {
      */
     public static function migration_006() {
         $db             = smliser_dbclass();
-        $plugin_table   = SMLISER_PLUGIN_ITEM_TABLE;
+        $plugin_table   = SMLISER_PLUGINS_TABLE;
 
         // Check if 'status' column already exists
         $column = $db->get_results("SHOW COLUMNS FROM {$plugin_table} LIKE ?", 'status' );
@@ -236,7 +236,7 @@ class Installer {
      */
     public static function add_apps_owner_id_020() {
         $db         = \smliser_dbclass();
-        $tables     = [\SMLISER_PLUGIN_ITEM_TABLE, \SMLISER_THEME_ITEM_TABLE, \SMLISER_SOFTWARE_TABLE];
+        $tables     = [\SMLISER_PLUGINS_TABLE, \SMLISER_THEMES_TABLE, \SMLISER_SOFTWARE_TABLE];
         $new_column = 'owner_id';
 
         foreach ( $tables as $table ) {
