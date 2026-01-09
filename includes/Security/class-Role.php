@@ -20,6 +20,9 @@ use function is_json, json_decode, defined, smliser_dbclass, smliser_safe_json_e
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
+/**
+ * Classical representation of a roles.
+ */
 class Role {
 
     use SanitizeAwareTrait, CommonQueryTrait;
