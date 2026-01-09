@@ -12,6 +12,11 @@ use stdClass;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
+/**
+ * Old API credentials manager
+ * 
+ * @deprecated 0.2.0
+ */
 class SmliserAPICred {
     /**
      * Database id
