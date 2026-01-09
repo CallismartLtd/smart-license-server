@@ -21,8 +21,8 @@ class RepositoryAnalytics {
      * @var array<string,string>
      */
     private static array $meta_tables = [
-        'plugin'   => SMLISER_PLUGIN_META_TABLE,
-        'theme'    => SMLISER_THEME_META_TABLE,
+        'plugin'   => SMLISER_PLUGINS_META_TABLE,
+        'theme'    => SMLISER_THEMES_META_TABLE,
         'software' => SMLISER_SOFTWARE_META_TABLE,
     ];
 
@@ -305,8 +305,8 @@ class RepositoryAnalytics {
 
         foreach ( $types as $t ) {
             $table = match( $t ) {
-                'plugin'   => SMLISER_PLUGIN_ITEM_TABLE,
-                'theme'    => SMLISER_THEME_ITEM_TABLE,
+                'plugin'   => SMLISER_PLUGINS_TABLE,
+                'theme'    => SMLISER_THEMES_TABLE,
                 'software' => SMLISER_SOFTWARE_TABLE,
             };
 
@@ -330,8 +330,8 @@ class RepositoryAnalytics {
 
         foreach ( $types as $t ) {
             $table = match( $t ) {
-                'plugin'   => SMLISER_PLUGIN_ITEM_TABLE,
-                'theme'    => SMLISER_THEME_ITEM_TABLE,
+                'plugin'   => SMLISER_PLUGINS_TABLE,
+                'theme'    => SMLISER_THEMES_TABLE,
                 'software' => SMLISER_SOFTWARE_TABLE,
             };
 
@@ -399,8 +399,8 @@ class RepositoryAnalytics {
 
         foreach ( $types as $t ) {
             $table = match( $t ) {
-                'plugin'   => SMLISER_PLUGIN_ITEM_TABLE,
-                'theme'    => SMLISER_THEME_ITEM_TABLE,
+                'plugin'   => SMLISER_PLUGINS_TABLE,
+                'theme'    => SMLISER_THEMES_TABLE,
                 'software' => SMLISER_SOFTWARE_TABLE,
             };
 
