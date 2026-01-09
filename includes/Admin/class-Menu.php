@@ -53,6 +53,13 @@ class Menu {
     public static $rest_api_page_id;
 
     /**
+     * Access control page ID.
+     * 
+     * @var string
+     */
+    public static $access_control_page_id;
+
+    /**
      * Options page ID.
      * 
      * @var string
@@ -109,6 +116,15 @@ class Menu {
             array( V1::class, 'html_index' )
         );
 
+        self::$access_control_page_id = add_submenu_page(
+            'smliser-admin',
+            'Access Control',
+            'Access Control',
+            'manage_options',
+            'smliser-access-control',
+            array( AccessControlPage::class, 'router' )
+        );
+
         self::$options_page_id = add_submenu_page(
             'smliser-admin',
             'Settings',
@@ -129,4 +145,89 @@ class Menu {
             $submenu['smliser-admin'][0][0] = 'Overview';
         }
     }
+
+    /**
+     * Render the Smart License Server admin top navigation header.
+     *
+     * @param array $args {
+     *     Optional. Arguments to customize the header output.
+     *
+     *     @type array $breadcrumbs Array of breadcrumb items.
+     *     @type array $actions     Array of action button definitions.
+     * }
+     * @param bool  $echo Whether to echo the output or return it.
+     *
+     * @return string|null Rendered HTML markup or null when echoed.
+     */
+    public static function print_admin_top_menu( array $args = array(), bool $echo = true ) {
+
+        $defaults = array(
+            'breadcrumbs' => array(),
+            'actions'     => array(),
+        );
+
+        $args = wp_parse_args( $args, $defaults );
+
+        ob_start();
+        ?>
+        <nav class="smliser-top-nav">
+
+            <?php if ( ! empty( $args['breadcrumbs'] ) ) : ?>
+                <div class="smliser-breadcrumb">
+                    <?php
+                    $breadcrumb_count = count( $args['breadcrumbs'] );
+                    $current_index    = 0;
+
+                    foreach ( $args['breadcrumbs'] as $breadcrumb ) :
+                        $current_index++;
+
+                        if ( ! empty( $breadcrumb['url'] ) ) :
+                            ?>
+                            <a href="<?php echo esc_url( $breadcrumb['url'] ); ?>">
+                                <?php if ( ! empty( $breadcrumb['icon'] ) ) : ?>
+                                    <i class="<?php echo esc_attr( $breadcrumb['icon'] ); ?>"></i>
+                                <?php endif; ?>
+                                <?php echo esc_html( $breadcrumb['label'] ); ?>
+                            </a>
+                        <?php else : ?>
+                            <span><?php echo esc_html( $breadcrumb['label'] ); ?></span>
+                        <?php endif; ?>
+
+                        <?php if ( $current_index < $breadcrumb_count ) : ?>
+                            <span>/</span>
+                        <?php endif; ?>
+
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ( ! empty( $args['actions'] ) ) : ?>
+                <div class="smliser-quick-actions">
+                    <?php foreach ( $args['actions'] as $action ) : ?>
+                        <a
+                            class="smliser-icon-btn"
+                            href="<?php echo esc_url( $action['url'] ); ?>"
+                            title="<?php echo esc_attr( $action['title'] ); ?>"
+                        >
+                            <?php if ( ! empty( $action['icon'] ) ) : ?>
+                                <i class="<?php echo esc_attr( $action['icon'] ); ?>"></i>
+                            <?php endif; ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+        </nav>
+        <?php
+
+        $output = ob_get_clean();
+
+        if ( true === $echo ) {
+            echo $output; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            return null;
+        }
+
+        return $output;
+    }
+
 }
