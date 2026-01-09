@@ -1209,7 +1209,7 @@ input.smliser_toggle-switch-input {
     justify-content: space-between;
     align-items: center;
     position: sticky;
-    top: 32px; /* WordPress admin bar height */
+    top: 32px;
     z-index: 100;
 }
 
@@ -1264,6 +1264,9 @@ input.smliser_toggle-switch-input {
     color: #000000;
 }
 
+.smliser-icon-btn i {
+    font-size: 25px;
+}
 /* ============================================
    HERO SECTION
    ============================================ */
@@ -1829,4 +1832,8 @@ input.smliser_toggle-switch-input {
     .admin-bar .smliser-top-nav {
         top: 46px;
     }
+}
+
+.smliser-admin-table-body {
+    margin: 20px;
 }
