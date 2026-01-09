@@ -28,7 +28,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Ownership is always mediated through an Owner.
  */
 class User implements PrincipalInterface{
-
     use SanitizeAwareTrait, CommonQueryTrait;
 
     /**
@@ -116,9 +115,10 @@ class User implements PrincipalInterface{
      */
     public function __construct() {}
 
-    /*---------
+    /*
+    |----------
     | GETTERS
-    |-----------
+    |----------
     */
 
     /**
@@ -187,7 +187,8 @@ class User implements PrincipalInterface{
         return $this->updated_at;
     }
 
-    /*---------
+    /*
+    |---------
     | SETTERS
     |-----------
     */
@@ -302,7 +303,8 @@ class User implements PrincipalInterface{
         return $this;
     }
 
-    /*----------------
+    /*
+    |----------------
     | CRUD METHODS
     |-----------------
     */
