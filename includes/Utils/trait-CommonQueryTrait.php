@@ -68,7 +68,7 @@ trait CommonQueryTrait {
      * @param string $table  Database table name.
      * @return static[]
      */
-    protected static function get_all_by( string $column, $value, string $table ) : array {
+    protected static function get_all_self_by( string $column, $value, string $table ) : array {
         $db     = smliser_dbclass();
         $column = self::sanitize_key( $column );
 
@@ -103,7 +103,7 @@ trait CommonQueryTrait {
      * @param int    $limit Optional limit.
      * @return static[]
      */
-    protected static function get_all( string $table, int $page = 1, int $limit = 25 ) : array {
+    protected static function get_all_self( string $table, int $page = 1, int $limit = 25 ) : array {
         $db = smliser_dbclass();
 
         $sql    = "SELECT * FROM {$table} LIMIT ? OFFSET ?";
@@ -134,11 +134,7 @@ trait CommonQueryTrait {
      * @param string $table  Database table name.
      * @return bool
      */
-    protected static function exists_by(
-        string $column,
-        $value,
-        string $table
-    ) : bool {
+    protected static function exists_by( string $column, $value, string $table ) : bool {
         $db     = smliser_dbclass();
         $column = self::sanitize_key( $column );
 
