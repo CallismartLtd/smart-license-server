@@ -13,6 +13,11 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
+use DateMalformedStringException;
+use SmartLicenseServer\Cache\CacheAwareTrait;
+
+use const SMLISER_OWNERS_TABLE;
+use function defined, smliser_dbclass, array_key_exists, is_string, is_null, is_callable;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -36,7 +41,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 
 class Owner {
-    use SanitizeAwareTrait, CommonQueryTrait;
+    use SanitizeAwareTrait, CommonQueryTrait, CacheAwareTrait;
     public const TYPE_INDIVIDUAL    = 'individual';
     public const TYPE_ORGANIZATION  = 'organization';
     public const TYPE_PLATFORM      = 'platform';
@@ -206,13 +211,13 @@ class Owner {
             return $this;
         }
 
-        if ( ! \is_string( $date ) ){
+        if ( ! is_string( $date ) ){
             return $this;
         }
 
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch ( \DateMalformedStringException $e ) {
+        } catch ( DateMalformedStringException $e ) {
             return $this;
         }
 
@@ -233,13 +238,13 @@ class Owner {
             return $this;
         }
 
-        if ( ! \is_string( $date ) ){
+        if ( ! is_string( $date ) ){
             return $this;
         }
 
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch ( \DateMalformedStringException $e ) {
+        } catch ( DateMalformedStringException $e ) {
             return $this;
         }
 
@@ -333,7 +338,7 @@ class Owner {
             return [];
         }
         // Lazy loaded.
-        if ( ! \is_null( $this->apps ) ) {
+        if ( ! is_null( $this->apps ) ) {
             return $this->apps;
         }
 
@@ -348,7 +353,7 @@ class Owner {
      * @return bool
      */
     public function save() : bool {
-        $db     = \smliser_dbclass();
+        $db     = smliser_dbclass();
         $table  = SMLISER_OWNERS_TABLE;
 
         $data   = [
@@ -389,15 +394,51 @@ class Owner {
     }
 
     /**
+     * Get all owners
+     * 
+     * @param int $page The current pagination number.
+     * @param int $limit The number of results per page.
+     * @return self[]
+     */
+    public static function get_all( int $page = 1, $limit = 25 ) : array {
+        return self::get_all_self( SMLISER_OWNERS_TABLE, $page, $limit );
+
+    }
+
+    /**
      * Lazy load the roles
      *
      * @return array
      */
     public function get_roles(): array {
-        if ( \is_null( $this->roles ) ) {
+        if ( is_null( $this->roles ) ) {
             $this->roles = Role::get_all_by_owner( $this->get_id() );
         }
         return $this->roles;
+    }
+
+    /**
+     * Count total records of owners by status
+     * 
+     * @param string $status
+     * @return int
+     */
+    public static function count_status( $status ) : int {
+        $status             = self::sanitize_text( $status );
+        static $statuses    = [];
+
+        if ( ! array_key_exists( $status, $statuses ) ) {
+            $db     = smliser_dbclass();
+            $table  = SMLISER_OWNERS_TABLE;
+
+            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
+
+            $total  = $db->get_var( $sql, [$status] );
+
+            $statuses[$status]  = (int) $total;
+        }
+
+        return $statuses[$status];
     }
 
     /*
@@ -417,7 +458,7 @@ class Owner {
         foreach ( $data as $key => $value ) {
             $method = "set_{$key}";
 
-            if ( \is_callable( [$self, $method] ) ) {
+            if ( is_callable( [$self, $method] ) ) {
                 $self->$method( $value );
             }
         }
@@ -446,7 +487,7 @@ class Owner {
 
     /*
     |--------------------
-    |CONDITIONAL METHODS
+    | CONDITIONAL METHODS
     |--------------------
     */
 
