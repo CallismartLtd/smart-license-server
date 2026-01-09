@@ -232,6 +232,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'user_agent'    => smliser_get_user_agent(),
             'request_time'  => time(),
             'client_ip'     => smliser_get_client_ip(),
+            'is_authorized' => true
         ]);
 
         $response = FileRequestController::get_app_static_asset( $request );
@@ -260,6 +261,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'user_agent'    => smliser_get_user_agent(),
             'request_time'  => time(),
             'client_ip'     => smliser_get_client_ip(),
+            'is_authorized' => current_user_can( 'manage_options' )
         ]);
 
         $response = FileRequestController::get_proxy_asset( $request );
