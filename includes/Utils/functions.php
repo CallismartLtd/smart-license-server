@@ -1461,3 +1461,16 @@ function smliser_build_wp_manifest( AbstractHostedApp $app, array $metadata ) {
         
     );
 }
+
+/**
+ * Get current page URL.
+ *
+ * Returns an empty string if it cannot generate a URL.
+ * @return \SmartLicenseServer\Core\URL
+ */
+function smliser_get_current_url() : URL {
+	$uri = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+
+    $site_url   = site_url( $uri );
+	return ( new URL( $site_url ) )->sanitize();
+}
