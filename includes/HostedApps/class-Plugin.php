@@ -25,14 +25,14 @@ class Plugin extends AbstractHostedApp {
      * 
      * @var string
      */
-    const TABLE = SMLISER_PLUGIN_ITEM_TABLE;
+    const TABLE = SMLISER_PLUGINS_TABLE;
 
     /**
      * Plugin metadata table
      * 
      * @var string
      */
-    const META_TABLE = SMLISER_PLUGIN_META_TABLE;
+    const META_TABLE = SMLISER_PLUGINS_META_TABLE;
 
     /**
      * WordPress version requirement.

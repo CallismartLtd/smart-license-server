@@ -26,14 +26,14 @@ class Theme extends AbstractHostedApp {
      * 
      * @var string
      */
-    const TABLE = SMLISER_THEME_ITEM_TABLE;
+    const TABLE = SMLISER_THEMES_TABLE;
 
     /**
      * The theme metadata table
      * 
      * @var string
      */
-    const META_TABLE    = SMLISER_THEME_META_TABLE;
+    const META_TABLE    = SMLISER_THEMES_META_TABLE;
 
     /**
      * WordPress version requirement.

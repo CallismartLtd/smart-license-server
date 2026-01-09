@@ -9,23 +9,35 @@
 
 namespace SmartLicenseServer\Database\Schema;
 
-use const SMLISER_LICENSE_TABLE, SMLISER_LICENSE_META_TABLE, SMLISER_PLUGIN_ITEM_TABLE,
-SMLISER_PLUGIN_META_TABLE, SMLISER_THEME_ITEM_TABLE, SMLISER_THEME_META_TABLE, SMLISER_SOFTWARE_TABLE,
+use const SMLISER_LICENSE_TABLE, SMLISER_LICENSE_META_TABLE, SMLISER_PLUGINS_TABLE,
+SMLISER_PLUGINS_META_TABLE, SMLISER_THEMES_TABLE, SMLISER_THEMES_META_TABLE, SMLISER_SOFTWARE_TABLE,
 SMLISER_SOFTWARE_META_TABLE, SMLISER_ANALYTICS_LOGS_TABLE, SMLISER_ANALYTICS_DAILY_TABLE, SMLISER_APP_DOWNLOAD_TOKEN_TABLE,
 SMLISER_MONETIZATION_TABLE, SMLISER_PRICING_TIER_TABLE, SMLISER_BULK_MESSAGES_TABLE, SMLISER_BULK_MESSAGES_APPS_TABLE,
-SMLISER_OPTIONS_TABLE, SMLISER_OWNERS_TABLE, SMLISER_USERS_TABLE;
+SMLISER_OPTIONS_TABLE, SMLISER_OWNERS_TABLE, SMLISER_USERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE,
+SMLISER_SERVICE_ACCOUNTS_TABLE, SMLISER_ROLES_TABLE;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * The database table blueprint
+ * Database table schema registry.
+ *
+ * Provides column definitions for all Smart License Server
+ * database tables used during installation and upgrades.
+ *
+ * This class is intentionally static and immutable.
+ *
+ * @since 0.2.0
  */
-final class DBTables {
 
+final class DBTables {
     /**
-     * Retrieve all database tables
-     * 
-     * @return array
+     * Retrieve all database table schemas.
+     *
+     * Each array key represents a fully-qualified table name,
+     * while the value is an ordered list of SQL column and index
+     * definitions suitable for use with dbDelta().
+     *
+     * @return array<string, string[]>
      */
     public static function tables() : array {
         return array(
@@ -62,7 +74,7 @@ final class DBTables {
             /**
              * The plugins table
              */
-            SMLISER_PLUGIN_ITEM_TABLE   => array(
+            SMLISER_PLUGINS_TABLE   => array(
                 'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(300) DEFAULT NULL',
@@ -81,7 +93,7 @@ final class DBTables {
             /**
              * The plugins meta table
              */
-            SMLISER_PLUGIN_META_TABLE   => array(
+            SMLISER_PLUGINS_META_TABLE   => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'plugin_id BIGINT(20) UNSIGNED NOT NULL',
                 'meta_key VARCHAR(255) NOT NULL',
@@ -93,7 +105,7 @@ final class DBTables {
             /**
              * The themes table
              */
-            SMLISER_THEME_ITEM_TABLE    => array(
+            SMLISER_THEMES_TABLE    => array(
                 'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(300) DEFAULT NULL',
@@ -111,7 +123,7 @@ final class DBTables {
             /**
              * Theme meta table
              */
-            SMLISER_THEME_META_TABLE   => array(
+            SMLISER_THEMES_META_TABLE   => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'theme_id BIGINT(20) UNSIGNED NOT NULL',
                 'meta_key VARCHAR(255) NOT NULL',
@@ -250,6 +262,9 @@ final class DBTables {
                 'INDEX smliser_msg_app_lookup (app_type, app_slug)'
             ),
 
+            /**
+             * The default settings table.
+             */
             SMLISER_OPTIONS_TABLE      => array(
                 'option_id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'option_name VARCHAR(255) NOT NULL',
@@ -257,10 +272,13 @@ final class DBTables {
                 'INDEX smliser_option_key (option_name)'
             ),
 
+            /**
+             * Resource owners table.
+             */
             SMLISER_OWNERS_TABLE       => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'principal_id BIGINT(20) NOT NULL',
-                'type enum(\'individual\', \'organization\', \'platform\') DEFAULT \'platform\'',
+                'type ENUM(\'individual\', \'organization\', \'platform\') DEFAULT \'platform\'',
                 'name VARCHAR(255) NOT NULL',
                 'status VARCHAR(20) DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
@@ -270,6 +288,9 @@ final class DBTables {
                 'INDEX smliser_owners_updated_at (updated_at)',
             ),
 
+            /**
+             * Human users table.
+             */
             SMLISER_USERS_TABLE     => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'display_name VARCHAR(255) NOT NULL',
@@ -283,6 +304,9 @@ final class DBTables {
                 'INDEX smliser_users_updated_at (updated_at)',
             ),
 
+            /**
+             * Non-human users table.
+             */
             SMLISER_SERVICE_ACCOUNTS_TABLE  => array(
                 'id INT AUTO_INCREMENT PRIMARY KEY',
                 'owner_id INT NOT NULL',
@@ -300,6 +324,9 @@ final class DBTables {
                 'INDEX smliser_service_acct_updated_at (updated_at)',
             ),
 
+            /**
+             * Roles table where resource owners roles are stored.
+             */
             SMLISER_ROLES_TABLE     => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'owner_id BIGINT(20) UNSIGNED NOT NULL',
@@ -313,16 +340,40 @@ final class DBTables {
                 'INDEX smliser_roles_name (name)',
             ),
 
+            /**
+             * Organizations table.
+             */
+            SMLISER_ORGANIZATIONS_TABLE => array(
+                'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'name VARCHAR(255) UNSIGNED NOT NULL',
+                'slug VARCHAR(255) UNSIGNED NOT NULL',
+                'status ENUM(\'active\',\'suspended\',\'disabled\') DEFAULT \'active\'',
+                'role_id BIGINT(20) UNSIGNED NOT NULL',
+                'created_at DATETIME DEFAULT NULL',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'INDEX organization_slug (slug)',
+                'INDEX role_index (role_id)'
+            ),
 
+            /**
+             * Organization members, roles mapping table.
+             */
+            SMLISER_ORGANIZATION_MEMBERS_TABLE      => array(
+                'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'organization_id BIGINT(20) UNSIGNED NOT NULL',
+                'role_id BIGINT(20) UNSIGNED NOT NULL',
+                'member_id BIGINT(20) UNSIGNED NOT NULL',
+                'member_type ENUM(\'user\', \'service_account\') NOT NULL DEFAULT \'user\''
+            )
 
         );
     }
 
     /**
-     * Get a single table schema.
+     * Retrieve the schema definition for a single database table.
      *
-     * @param string $table_name
-     * @return array|null
+     * @param string $table_name Fully-qualified table name constant.
+     * @return string[]|null     Array of column definitions or null if not found.
      */
     public static function get( string $table_name ) {
         $tables = self::tables();

@@ -73,14 +73,14 @@ class HostedApplicationService {
             $params    = [];
 
             if ( in_array( 'plugin', $types, true ) ) {
-                $table_name     = SMLISER_PLUGIN_ITEM_TABLE;
+                $table_name     = SMLISER_PLUGINS_TABLE;
                 $sql_parts[]    = "SELECT id, 'plugin' AS type, last_updated FROM {$table_name} WHERE status = ?";
                 $params[]       = $status;
                 
             }
 
             if ( in_array( 'theme', $types, true ) ) {
-                $table_name = SMLISER_THEME_ITEM_TABLE;
+                $table_name = SMLISER_THEMES_TABLE;
                 $sql_parts[] = "SELECT id, 'theme' AS type, last_updated FROM {$table_name} WHERE status = ?";
                 $params[] = $status;
                 
@@ -182,8 +182,8 @@ class HostedApplicationService {
         $types  = array_values( (array) $args['types'] );
 
         $type_tables = [
-            'plugin'   => SMLISER_PLUGIN_ITEM_TABLE,
-            'theme'    => SMLISER_THEME_ITEM_TABLE,
+            'plugin'   => SMLISER_PLUGINS_TABLE,
+            'theme'    => SMLISER_THEMES_TABLE,
             'software' => SMLISER_SOFTWARE_TABLE,
         ];
 
@@ -376,10 +376,10 @@ class HostedApplicationService {
                 foreach ( $types as $type ) {
                     switch ( $type ) {
                         case 'plugin':
-                            $table = SMLISER_PLUGIN_ITEM_TABLE;
+                            $table = SMLISER_PLUGINS_TABLE;
                             break;
                         case 'theme':
-                            $table = SMLISER_THEME_ITEM_TABLE;
+                            $table = SMLISER_THEMES_TABLE;
                             break;
                         case 'software':
                             $table = SMLISER_SOFTWARE_TABLE;
@@ -536,13 +536,13 @@ class HostedApplicationService {
             $params    = [];
 
             if ( in_array( 'plugin', $types, true ) ) {
-                $table_name  = SMLISER_PLUGIN_ITEM_TABLE;
+                $table_name  = SMLISER_PLUGINS_TABLE;
                 $sql_parts[] = "SELECT COUNT(*) AS total FROM {$table_name} WHERE status = ?";
                 $params[]    = $status;
             }
 
             if ( in_array( 'theme', $types, true ) ) {
-                $table_name  = SMLISER_THEME_ITEM_TABLE;
+                $table_name  = SMLISER_THEMES_TABLE;
                 $sql_parts[] = "SELECT COUNT(*) AS total FROM {$table_name} WHERE status = ?";
                 $params[]    = $status;
             }
