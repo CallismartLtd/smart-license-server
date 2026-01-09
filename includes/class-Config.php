@@ -49,77 +49,211 @@ class Config {
             throw new RuntimeException( \sprintf( '%s Configuration is invalid', SMLISER_APP_NAME ) );
         }
 
+        /**
+         * Licenses database table name.
+         *
+         * Dynamically generated using the configured database prefix.
+         *
+         * @var string
+         */
         define( 'SMLISER_LICENSE_TABLE', $parsed_config['db_prefix'] . 'smliser_licenses' );
+
+        /**
+         * License metadata database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_LICENSE_META_TABLE', $parsed_config['db_prefix'] . 'smliser_license_meta' );
 
         /**
-         * The plugin database table name
+         * Plugins database table name.
+         *
+         * @var string
          */
-        define( 'SMLISER_PLUGIN_ITEM_TABLE', $parsed_config['db_prefix'] . 'smliser_plugins' );
-        /**
-         * The plugin database metadata table name.
-         */
-        define( 'SMLISER_PLUGIN_META_TABLE', $parsed_config['db_prefix'] . 'smliser_plugin_meta' );
+        define( 'SMLISER_PLUGINS_TABLE', $parsed_config['db_prefix'] . 'smliser_plugins' );
 
         /**
-         * The theme database table name.
+         * Plugin metadata database table name.
+         *
+         * @var string
          */
-        define( 'SMLISER_THEME_ITEM_TABLE', $parsed_config['db_prefix'] . 'smliser_themes' );
-        /**
-         * The themes database metadata table name.
-         */
-        define( 'SMLISER_THEME_META_TABLE', $parsed_config['db_prefix'] . 'smliser_theme_meta' );
+        define( 'SMLISER_PLUGINS_META_TABLE', $parsed_config['db_prefix'] . 'smliser_plugin_meta' );
 
+        /**
+         * Themes database table name.
+         *
+         * @var string
+         */
+        define( 'SMLISER_THEMES_TABLE', $parsed_config['db_prefix'] . 'smliser_themes' );
+
+        /**
+         * Theme metadata database table name.
+         *
+         * @var string
+         */
+        define( 'SMLISER_THEMES_META_TABLE', $parsed_config['db_prefix'] . 'smliser_theme_meta' );
+
+        /**
+         * Software database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_SOFTWARE_TABLE', $parsed_config['db_prefix'] . 'smliser_software' );
+
+        /**
+         * Software metadata database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_SOFTWARE_META_TABLE', $parsed_config['db_prefix'] . 'smliser_software_meta' );
-        define( 'SMLISER_API_ACCESS_LOG_TABLE', $parsed_config['db_prefix'] . 'smliser_api_access_logs' );
+
+        /**
+         * API credentials database table name.
+         * 
+         * @deprecated 0.2.0
+         * @var string
+         */
         define( 'SMLISER_API_CRED_TABLE', $parsed_config['db_prefix'] . 'smliser_api_creds' );
+
+        /**
+         * Item download token database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $parsed_config['db_prefix'] . 'smliser_item_download_token' );
+
+        /**
+         * Application download token database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE', $parsed_config['db_prefix'] . 'smliser_app_download_tokens' );
+
+        /**
+         * Monetization records database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_MONETIZATION_TABLE', $parsed_config['db_prefix'] . 'smliser_monetization' );
+
+        /**
+         * Pricing tiers database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_PRICING_TIER_TABLE', $parsed_config['db_prefix'] . 'smliser_pricing_tiers' );
+
+        /**
+         * Bulk messages database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_BULK_MESSAGES_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages' );
+
+        /**
+         * Bulk message to application mapping database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages_apps' );
+
+        /**
+         * Plugin options database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_OPTIONS_TABLE', $parsed_config['db_prefix'] . 'smliser_options' );
+
+        /**
+         * Analytics event logs database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_ANALYTICS_LOGS_TABLE', $parsed_config['db_prefix'] . 'smliser_analytics_log' );
+
+        /**
+         * Daily analytics aggregation database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_ANALYTICS_DAILY_TABLE', $parsed_config['db_prefix'] . 'smliser_analytics_daily' );
+
+        /**
+         * Resource owners database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_OWNERS_TABLE', $parsed_config['db_prefix'] . 'smliser_resource_owners' );
+
+        /**
+         * Internal users database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_USERS_TABLE', $parsed_config['db_prefix'] . 'smliser_users' );
+
+        /**
+         * Service accounts database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_SERVICE_ACCOUNTS_TABLE', $parsed_config['db_prefix'] . 'smliser_service_accounts' );
+
+        /**
+         * Roles database table name.
+         *
+         * @var string
+         */
         define( 'SMLISER_ROLES_TABLE', $parsed_config['db_prefix'] . 'smliser_roles' );
 
         /**
-         * Absolute path to the root Smart License Server repository directory.
+         * Organizations database table name.
+         *
+         * @var string
+         */
+        define( 'SMLISER_ORGANIZATIONS_TABLE', $parsed_config['db_prefix'] . 'smliser_organizations' );
+
+        /**
+         * Organization members database table name.
+         *
+         * @var string
+         */
+        define( 'SMLISER_ORGANIZATION_MEMBERS_TABLE', $parsed_config['db_prefix'] . 'smliser_organization_members' );
+
+        /**
+         * Absolute path to the Smart License Server repository root directory.
          *
          * This is the base directory where all hosted application files are stored.
+         *
+         * @var string
          */
         define( 'SMLISER_NEW_REPO_DIR', $parsed_config['repo_path'] . '/smliser-repo' );
 
         /**
-         * Alias for the Smart License Server repository directory.
+         * Alias for the Smart License Server repository root directory.
          *
-         * Used as the root path for all application repositories.
+         * @var string
          */
         define( 'SMLISER_REPO_DIR', SMLISER_NEW_REPO_DIR );
 
         /**
          * Absolute path to the plugin repository directory.
          *
-         * Stores all plugin packages and related assets hosted in the repository.
+         * @var string
          */
         define( 'SMLISER_PLUGINS_REPO_DIR', SMLISER_REPO_DIR . '/plugins' );
 
         /**
          * Absolute path to the theme repository directory.
          *
-         * Stores all theme packages and related assets hosted in the repository.
+         * @var string
          */
         define( 'SMLISER_THEMES_REPO_DIR', SMLISER_REPO_DIR . '/themes' );
 
         /**
          * Absolute path to the software repository directory.
          *
-         * Stores all software packages and related assets hosted in the repository.
+         * @var string
          */
         define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/software' );
         
