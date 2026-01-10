@@ -12,6 +12,14 @@
     transform: translate(-50%, -50%);
 }
 
+.align-center {
+    text-align: center;
+}
+
+.bg-white {
+    background-color: #ffffff;
+}
+
 /* Show spinner overlay */
 .spinner-overlay.show {
     display: flex;
