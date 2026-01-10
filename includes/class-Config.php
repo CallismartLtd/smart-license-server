@@ -256,6 +256,13 @@ class Config {
          * @var string
          */
         define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/software' );
+
+        /**
+         * Absolute path to the uploads directory.
+         * 
+         * @var string
+         */
+        define( 'SMLISER_UPLOADS_DIR', $parsed_config['uploads_dir'] . '/smliser-uploads' );
         
         register_activation_hook( SMLISER_FILE, array( Installer::class, 'install' ) );
 
@@ -294,7 +301,8 @@ class Config {
         $default_config = array(
             'db_prefix'     => '',
             'absolute_path' => '',
-            'repo_path'     => ''
+            'repo_path'     => '',
+            'uploads_dir'   => ''
 
         );
 

@@ -32,6 +32,8 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 
+use const WP_CONTENT_DIR, ABSPATH;
+use function wp_upload_dir, compact;
 
 defined( 'ABSPATH'  ) || exit;
 
@@ -52,10 +54,11 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
      * Class constructor.
      */
     public function __construct() {
-        $repo_path      = \WP_CONTENT_DIR;
-        $absolute_path  = \ABSPATH;
+        $repo_path      = WP_CONTENT_DIR;
+        $absolute_path  = ABSPATH;
+        $uploads_dir    = wp_upload_dir()['basedir'];
         $db_prefix      = $GLOBALS['wpdb']?->prefix;
-        parent::instance( \compact( 'absolute_path', 'db_prefix', 'repo_path' ) );
+        parent::instance( compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir' ) );
 
         add_action( 'admin_init', [__CLASS__, 'init_request'] );
         add_action( 'template_redirect', array( __CLASS__, 'init_request' ) );
