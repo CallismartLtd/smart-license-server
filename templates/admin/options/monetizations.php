@@ -4,6 +4,7 @@
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicensseServer\templates
+ * @see \SmartLicenseServer\Admin\OptionsPage::provider_settings()
  */
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>

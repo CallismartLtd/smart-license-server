@@ -1,6 +1,10 @@
 <?php
 /**
- * Application upload page
+ * Application upload page.
+ * 
+ * @author Callistus Nwachukwu
+ * @see \SmartLicenseServer\Admin\RepositoryPage::upload_page()
+ * @see \SmartLicenseServer\Admin\RepositoryPage::edit_page()
  */
 
 defined( 'SMLISER_ABSPATH' ) || exit;

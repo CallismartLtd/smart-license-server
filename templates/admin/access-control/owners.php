@@ -4,6 +4,7 @@
  *
  * @author Callistus Nwachukwu
  * @see \SmartLicenseServer\Admin\AccessControlPage
+ * @var \SmartLicenseServer\Security\Owner[] $owners
  */
 
 use SmartLicenseServer\Security\Owner;
@@ -34,7 +35,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
         <br class="clear" />
         <table class="widefat striped">
-            <thead>
+            <thead class="<?php echo ( empty( $owners ) ) ? 'hidden': '' ?>">
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
@@ -42,6 +43,22 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                     <th>Status</th>
                 </tr>
             </thead>
+            <tbody>
+                <?php if ( empty( $owners ) ) : ?>
+                    <tr>
+                        <td colspan="4" class="align-center bg-white">All resource owners will be listed here</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ( $owners as $owner ) : ?>
+                        <tr>
+                            <td><?php echo esc_html( $owner->get_id() ); ?></td>
+                            <td><?php echo esc_html( $owner->get_name() ); ?></td>
+                            <td><?php echo esc_html( $owner->get_type() ); ?></td>
+                            <td><?php echo esc_html( $owner->get_status() ); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
         </table>
 
     </div>
