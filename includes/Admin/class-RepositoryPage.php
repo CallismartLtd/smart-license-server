@@ -261,6 +261,7 @@ class RepositoryPage {
                     'type'  => 'text',
                     'name'  => 'app_name',
                     'value' => $app ? $app->get_name() : '',
+                    'class' => 'app-uploader-form-row',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
@@ -274,6 +275,7 @@ class RepositoryPage {
                     'type'  => 'text',
                     'name'  => 'app_version',
                     'value' => $app ? $app->get_version() : '',
+                    'class' => 'app-uploader-form-row',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
@@ -288,6 +290,7 @@ class RepositoryPage {
                     'type'  => 'text',
                     'name'  => 'app_author',
                     'value' => $app ? $app->get_author() : '',
+                    'class' => 'app-uploader-form-row',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off'
@@ -300,6 +303,7 @@ class RepositoryPage {
                     'type'  => 'text',
                     'name'  => 'app_author_url',
                     'value' => $app ? $app->get_author_profile() : '',
+                    'class' => 'app-uploader-form-row',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off'
