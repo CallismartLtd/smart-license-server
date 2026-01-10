@@ -240,6 +240,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
                     'type'  => 'text',
                     'name'  => 'store_url',
                     'value' => $this->get_url(),
+                    'class' => 'smliser-form-label-row',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off'
@@ -252,6 +253,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
                     'type'  => 'text',
                     'name'  => 'checkout_url',
                     'value' => $this->get_checkout_url( '', 'edit' ),
+                    'class' => 'smliser-form-label-row',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off'
