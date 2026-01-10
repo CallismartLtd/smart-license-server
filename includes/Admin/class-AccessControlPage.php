@@ -37,7 +37,7 @@ class AccessControlPage {
             ],
             'owners' => [
                 'default' => [__CLASS__, 'owners_page'],
-                'add-new' => [__CLASS__, 'add_new_owners_page'],
+                'add-new' => [__CLASS__, 'owners_form_page'],
             ],
             'rest-api' => [
                 'default' => [__CLASS__, 'rest_api_page'],
@@ -89,7 +89,77 @@ class AccessControlPage {
         $owners = Owner::get_all( $page, $limit );
 
         include_once SMLISER_PATH . 'templates/admin/access-control/owners.php';
-       
+    }
+
+    /**
+     * The owners creation and edit page
+     */
+    private static function owners_form_page() {
+        $owner_id   = smliser_get_query_param( 'owner_id' );
+        $owner      = Owner::get_by_id( (int) $owner_id );
+
+        if ( $owner ) {
+
+        }
+
+        $title  = 'Add New Resource Owner';
+
+        $form_fields    = array(
+            array(
+                'label' => __( 'Owner Name', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'name',
+                    'value' => $owner ? $owner->get_name() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'placeholder'   => 'Enter owner name'
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Principal', 'smliser' ),
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'principal_id',
+                    'value' => $owner ? $owner->get_principal_id() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Owner Name', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'name',
+                    'value' => $owner ? $owner->get_name() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true
+                    )
+                )
+            ),
+            array(
+                'label' => __( 'Owner Name', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'name',
+                    'value' => $owner ? $owner->get_name() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true
+                    )
+                )
+            ),
+        );
+        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }
 
     /**
