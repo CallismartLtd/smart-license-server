@@ -865,15 +865,16 @@ function smliser_render_input_field( $args = array() ) {
     $default_args = array(
         'label' => '',
         'input' => array(
-            'type'    => 'text',
-            'name'    => '',
-            'value'   => '',
-            'options' => array(), // For select/radio
-            'attr'    => array(),
+            'type'      => 'text',
+            'name'      => '',
+            'value'     => '',
+            'class'     => 'smliser-form-label-row',
+            'options'   => array(), // For select/radio
+            'attr'      => array(),
         ),
     );
 
-    $parsed_args = parse_args( $args, $default_args );
+    $parsed_args = parse_args_recursive( $args, $default_args );
     $input       = $parsed_args['input'];
     $type        = $input['type'];
     
@@ -884,11 +885,12 @@ function smliser_render_input_field( $args = array() ) {
             $attr_str .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $val ) );
         }
     }
+    
 
     $id = ! empty( $input['attr']['id'] ) ? $input['attr']['id'] : $input['name'];
 
     // Start the existing UI row
-    printf( '<label for="%1$s" class="app-uploader-form-row"><span>%2$s</span>', esc_attr( $id ), esc_html( $parsed_args['label'] ) );
+    printf( '<label for="%1$s" class="%2$s"><span>%3$s</span>', esc_attr( $id ), esc_html( $input['class'] ), esc_html( $parsed_args['label'] ) );
 
     // Handle different tag types
     switch ( $type ) {
@@ -988,6 +990,42 @@ function parse_args( $args, $defaults ) {
     $defaults = (array) $defaults;
 
     return array_intersect_key( array_merge( $defaults, $args ), $defaults );
+}
+
+/**
+ * Parse arguments recursively, respecting default keys only.
+ *
+ * @param array|object|null $args
+ * @param array             $defaults
+ * @return array
+ */
+function parse_args_recursive( $args, $defaults ) {
+    $args     = is_array( $args ) || is_object( $args ) ? (array) $args : array();
+    $defaults = is_array( $defaults ) || is_object( $defaults ) ? (array) $defaults : array();
+
+    foreach ( $defaults as $key => $default ) {
+
+        if ( array_key_exists( $key, $args ) ) {
+            $value = $args[ $key ];
+
+            if ( is_array( $default ) ) {
+
+                // Empty default array means "accept anything".
+                if ( empty( $default ) ) {
+                    $value = (array) $value;
+                } elseif ( is_array( $value ) ) {
+                    $value = parse_args_recursive( $value, $default );
+                }
+            }
+
+        } else {
+            $value = $default;
+        }
+
+        $defaults[ $key ] = $value;
+    }
+
+    return $defaults;
 }
 
 /**
