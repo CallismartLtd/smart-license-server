@@ -227,11 +227,11 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
 
         foreach ( $relative_parts as $part ) {
             $current .= '/' . $part;
-            if ( ! is_dir( $current ) ) {
-                if ( ! mkdir( $current, $perms ) ) {
+            if ( ! $this->is_dir( $current ) ) {
+                if ( ! $this->fs->mkdir( $current, $perms ) ) {
                     return false;
                 }
-                @chmod( $current, $perms );
+                @$this->fs->chmod( $current, $perms );
             }
         }
 
