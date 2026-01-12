@@ -94,4 +94,19 @@ interface PrincipalInterface {
      * @return null|\DateTimeImmutable
      */
     public function get_updated_at() : ?\DateTimeImmutable;
+
+    /**
+     * Get allowed statuses.
+     * 
+     * @return array
+     */
+    public static function get_allowed_statuses() : array;
+
+    /**
+     * Count total records by status
+     * 
+     * @param string $status
+     * @return int
+     */
+    public static function count_status( $status ) : int;
 }
