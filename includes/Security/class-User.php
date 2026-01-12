@@ -59,11 +59,11 @@ class User implements PrincipalInterface{
     protected int $id = 0;
 
     /**
-     * Primary login identifier (email or username).
+     * User email.
      *
      * @var string
      */
-    protected string $identifier = '';
+    protected string $email = '';
 
     /**
      * Hashed password string.
@@ -131,15 +131,12 @@ class User implements PrincipalInterface{
     }
 
     /**
-     * Get the primary authentication identifier.
+     * Get the user email.
      *
-     * This may be an email address or username,
-     * depending on the authentication strategy.
-     *
-     * @return string Identifier string.
+     * @return string Email address.
      */
-    public function get_identifier() : string {
-        return $this->identifier;
+    public function get_email() : string {
+        return $this->email;
     }
 
     /**
@@ -205,13 +202,13 @@ class User implements PrincipalInterface{
     }
 
     /**
-     * Set the authentication identifier.
+     * Set the user email
      *
-     * @param string $identifier Email or username.
+     * @param string $email Email or username.
      * @return static
      */
-    public function set_identifier( $identifier ) : static {
-        $this->identifier = self::sanitize_text( $identifier );
+    public function set_email( $email ) : static {
+        $this->email = self::sanitize_text( $email );
         return $this;
     }
 
@@ -325,6 +322,42 @@ class User implements PrincipalInterface{
     }
 
     /**
+     * Get all users
+     * 
+     * @param int $page The current pagination number.
+     * @param int $limit The maximum number of users to return.
+     * 
+     * @return self[]
+     */
+    public static function get_all(int $page, int $limit ) : array {
+        return self::get_all_self( SMLISER_USERS_TABLE, $page, $limit );
+    }
+
+    /**
+     * Count total records of users by status
+     * 
+     * @param string $status
+     * @return int
+     */
+    public static function count_status( $status ) : int {
+        $status             = self::sanitize_text( $status );
+        static $statuses    = [];
+
+        if ( ! array_key_exists( $status, $statuses ) ) {
+            $db     = smliser_dbclass();
+            $table  = SMLISER_USERS_TABLE;
+
+            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
+
+            $total  = $db->get_var( $sql, [$status] );
+
+            $statuses[$status]  = (int) $total;
+        }
+
+        return $statuses[$status];
+    }
+
+    /**
      * Save user.
      * 
      * @return bool True on success, false otherwise.
@@ -334,7 +367,8 @@ class User implements PrincipalInterface{
         $table  = SMLISER_USERS_TABLE;
 
         $fields = array(
-            'identifier'    => $this->get_identifier(),
+            'display_name'  => $this->get_display_name(),
+            'email'         => $this->get_email(),
             'password_hash' => $this->get_password_hash(),
             'status'        => $this->get_status(),
             'updated_at'    => gmdate( 'Y-m-d H:i:s' )
@@ -407,5 +441,14 @@ class User implements PrincipalInterface{
         }
 
         return $this->exists_cache;
+    }
+
+    /**
+     * Get allowed owner statuses
+     *
+     * @return array
+     */
+    public static function get_allowed_statuses() : array {
+        return [ self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_DISABLED ];
     }
 }
