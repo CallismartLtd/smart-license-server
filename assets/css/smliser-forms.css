@@ -842,6 +842,7 @@ button.smliser-upload-btn {
 
 .smliser-two-rows {
   display: flex;
+  align-items: flex-start;
   flex-direction: row;
   gap: 15px;
 }
@@ -854,10 +855,126 @@ button.smliser-upload-btn {
   gap: 10px;
   
 }
-/* .smliser-two-rows .smliser-two-rows_right {
+.smliser-two-rows .smliser-two-rows_right {
   flex: 1 1 45%;
   justify-self: flex-end;
   border: 1px solid #dcdcde;
   border-radius: 8px;
   padding: 10px;
-} */
+}
+
+.smliser-avatar-upload {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px;
+  max-height: 200px;
+  min-height: 150px;
+  overflow: hidden;
+}
+
+.smliser-avatar-upload img {
+  border: dotted 0.5px #dcdcde;
+  width: 150px;
+}
+
+.smliser-avatar-upload_image-holder:fullscreen img {
+  border: none;
+  width: 40%;
+  max-height: 100%;
+}
+
+.smliser-avatar-upload_image-holder:fullscreen {
+  background-color: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.smliser-avatar-upload input[type="file"] {
+  display: none;
+  pointer-events: none;
+}
+
+.smliser-avatar-upload .smliser-avatar-upload_data {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  height: 150px;
+  padding: 10px;
+}
+.smliser-avatar-upload .smliser-avatar-upload_data-filename {
+  position: absolute;
+  bottom: 5px;
+  left: 10px;
+  color: #333333;
+  font-weight: 700;
+  cursor: pointer;
+}
+.smliser-avatar-upload .smliser-avatar-upload_data-filename:hover {
+  text-decoration: underline;
+}
+
+.smliser-avatar-upload .smliser-avatar-upload_buttons-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.smliser-save-button {
+  min-width: 100px;
+}
+
+@media (max-width: 475px) {
+  .smliser-two-rows {
+    flex-direction: column;
+  }
+}
+
+.smliser-password-field-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.smliser-password-input {
+  padding-right: 45px !important;
+  width: 100%;
+}
+
+.smliser-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: color 0.2s ease;
+  outline: none;
+  max-height: 20px;
+}
+
+.smliser-password-toggle:hover {
+  color: #374151;
+}
+
+.smliser-password-toggle:focus {
+  color: #1f2937;
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+.smliser-eye-icon {
+  pointer-events: none;
+}
