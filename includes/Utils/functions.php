@@ -639,32 +639,9 @@ function smliser_sanitize_path( $path ) {
  * @param string $url The URL to parse.
  * @return string The base website address.
  */
-function smliser_get_base_url( $url ) {
-    $parts = parse_url( $url );
-
-    if ( ! isset( $parts['scheme'], $parts['host'] ) ) {
-        return $parts['path'];
-    }
-
-    $scheme = $parts['scheme'];
-    $host   = $parts['host'];
-    $path   = isset( $parts['path'] ) ? $parts['path'] : '';
-
-    // Check for localhost or local IP addresses.
-    if ( $host === 'localhost' || preg_match( '/^127\.0\.0\.1|::1$/', $host ) ) {
-        // Split the path by slashes and take the first part after the host.
-        $path_parts = explode( '/', trim( $path, '/' ) );
-        $base_path  = isset( $path_parts[0] ) ? '/' . $path_parts[0] : '';
-        return $scheme . '://' . $host . $base_path;
-    }
-
-    // Handle custom local domains (e.g., mysite.local).
-    if ( preg_match( '/^(.*)\.local$/', $host ) ) {
-        return $scheme . '://' . $host;
-    }
-
-
-    return $scheme . '://' . $host;
+function smliser_get_base_url( string $url ) {
+    $url    = new URL( $url );
+    return $url->get_origin();
 }
 
 /**
@@ -878,7 +855,7 @@ function smliser_render_input_field( $args = array() ) {
     $input       = $parsed_args['input'];
     $type        = $input['type'];
     
-    // Build attributes string
+    // Build attributes string.
     $attr_str = '';
     if ( ! empty( $input['attr'] ) && is_array( $input['attr'] ) ) {
         foreach ( $input['attr'] as $key => $val ) {
@@ -886,10 +863,20 @@ function smliser_render_input_field( $args = array() ) {
         }
     }
     
-
     $id = ! empty( $input['attr']['id'] ) ? $input['attr']['id'] : $input['name'];
 
-    // Start the existing UI row
+    // Hidden fields don't need labels
+    if ( 'hidden' === $type ) {
+        printf( '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
+            esc_attr( $type ),
+            esc_attr( $input['name'] ),
+            esc_attr( $id ),
+            esc_attr( $input['value'] ),
+            $attr_str
+        );
+        return;
+    }
+
     printf( '<label for="%1$s" class="%2$s"><span>%3$s</span>', esc_attr( $id ), esc_html( $input['class'] ), esc_html( $parsed_args['label'] ) );
 
     // Handle different tag types
@@ -925,9 +912,35 @@ function smliser_render_input_field( $args = array() ) {
                 esc_attr( $input['name'] ),
                 esc_attr( $id ),
                 esc_attr( $input['value'] ),
-                checked( $input['value'], true, false ), // Assumes boolean toggle for single checkbox
+                checked( $input['value'], true, false ),
                 $attr_str
             );
+            break;
+
+        case 'password':
+            // Password field with toggle visibility
+            echo '<div class="smliser-password-field-wrapper">';
+            printf(
+                '<input type="password" name="%1$s" id="%2$s" value="%3$s" class="smliser-password-input"%4$s>',
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                esc_attr( $input['value'] ),
+                $attr_str
+            );
+            printf(
+                '<button type="button" class="smliser-password-toggle" data-target="%1$s" aria-label="Toggle password visibility">
+                    <svg class="smliser-eye-icon smliser-eye-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg class="smliser-eye-icon smliser-eye-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </button>',
+                esc_attr( $id )
+            );
+            echo '</div>';
             break;
 
         default:
@@ -1177,7 +1190,7 @@ function smliser_abort_request( $message = '', $title = '', $args = [] ) {
 function smliser_download_url( $url, $timeout = 30 ) {
 
     $url  = new URL( $url );
-    // Validate URL
+    // Validate URL.
     if ( ! $url->is_valid( true ) ) {
         return new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
     }
@@ -1443,13 +1456,14 @@ function smliser_get_placeholder_icon( string $type = '' ) : string {
     }
 
     $relative_path = match ( $type ) {
-        'plugin', 'plugins'     => 'assets/images/plugins-placeholder.svg',
-        'license', 'licenses'   => 'assets/images/license-placeholder.svg',
-        'theme', 'themes'       => 'assets/images/themes-placeholder.svg',
-        'app', 'apps' , 'all'   => 'assets/images/apps-placeholder.svg',
-        'software', 'softwares' => 'assets/images/software-placeholder.svg',
-        'download', 'downloads' => 'assets/images/downloads-icon.svg',
-        default                 => 'assets/images/software-placeholder.svg',
+        'plugin', 'plugins'         => 'assets/images/plugins-placeholder.svg',
+        'license', 'licenses'       => 'assets/images/license-placeholder.svg',
+        'theme', 'themes'           => 'assets/images/themes-placeholder.svg',
+        'app', 'apps' , 'all'       => 'assets/images/apps-placeholder.svg',
+        'software', 'softwares'     => 'assets/images/software-placeholder.svg',
+        'download', 'downloads'     => 'assets/images/downloads-icon.svg',
+        'avatar', 'default-avatar'  => 'assets/images/default-avatar.svg',
+        default                     => 'assets/images/software-placeholder.svg',
     };
 
     return $cache[ $type ] = sprintf(
@@ -1507,8 +1521,283 @@ function smliser_build_wp_manifest( AbstractHostedApp $app, array $metadata ) {
  * @return \SmartLicenseServer\Core\URL
  */
 function smliser_get_current_url() : URL {
-	$uri = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+	$uri = $_SERVER['REQUEST_URI'] ?? '';
 
     $site_url   = site_url( $uri );
 	return ( new URL( $site_url ) )->sanitize();
+}
+
+/**
+ * Simple English Pluralizer
+ * 
+ * Converts singular English words to their plural forms.
+ * Handles regular patterns, irregular plurals, and uncountable nouns.
+ * 
+ * @param string $string The singular word (e.g., "license", "category").
+ * @return string The pluralized word.
+ */
+function smliser_pluralize( string $string ) : string {
+    $string = trim( $string );
+    
+    if ( empty( $string ) ) {
+        return '';
+    }
+
+    $lower = strtolower( $string );
+
+    // Irregular plurals (common cases)
+    $irregulars = [
+        'child'     => 'children',
+        'person'    => 'people',
+        'man'       => 'men',
+        'woman'     => 'women',
+        'tooth'     => 'teeth',
+        'foot'      => 'feet',
+        'mouse'     => 'mice',
+        'goose'     => 'geese',
+        'ox'        => 'oxen',
+        'quiz'      => 'quizzes',
+        'axis'      => 'axes',
+        'analysis'  => 'analyses',
+        'basis'     => 'bases',
+        'crisis'    => 'crises',
+        'thesis'    => 'theses',
+        'phenomenon' => 'phenomena',
+        'criterion' => 'criteria',
+        'datum'     => 'data',
+    ];
+
+    if ( isset( $irregulars[ $lower ] ) ) {
+        return smliser_preserve_case( $string, $irregulars[ $lower ] );
+    }
+
+    // Uncountable nouns (return as-is)
+    $uncountable = [
+        'information', 'equipment', 'rice', 'money', 'species', 'series',
+        'fish', 'sheep', 'deer', 'moose', 'aircraft', 'software', 'hardware',
+        'data', 'news', 'advice', 'furniture', 'luggage', 'evidence'
+    ];
+
+    if ( in_array( $lower, $uncountable, true ) ) {
+        return $string;
+    }
+
+    // Regular pluralization rules (order matters!)
+    $rules = [
+        // Words ending in s, x, z, ch, sh -> add 'es'
+        '/(s|ss|x|z|ch|sh)$/i' => '$1es',
+        
+        // Words ending in consonant + y -> ies
+        '/([^aeiouy])y$/i' => '$1ies',
+        
+        // Words ending in fe -> ves
+        '/([^f])fe$/i' => '$1ves',
+        
+        // Words ending in f -> ves (leaf, half, etc.)
+        '/([lr])f$/i' => '$1ves',
+        
+        // Words ending in consonant + o -> oes (hero, potato, tomato)
+        // BUT: Exclude common exceptions (photo, piano, halo)
+        '/(?<!photo)(?<!piano)(?<!halo)([^aeiou])o$/i' => '$1oes',
+        
+        // Words ending in is -> es (analysis -> analyses)
+        '/is$/i' => 'es',
+        
+        // Words ending in us -> i (cactus -> cacti)
+        '/us$/i' => 'i',
+        
+        // Words ending in on -> a (criterion -> criteria)
+        '/on$/i' => 'a',
+    ];
+
+    foreach ( $rules as $pattern => $replacement ) {
+        if ( preg_match( $pattern, $string ) ) {
+            return preg_replace( $pattern, $replacement, $string );
+        }
+    }
+
+    // Default: just add 's'
+    return $string . 's';
+}
+
+/**
+ * Preserve the original case pattern when replacing a word.
+ * 
+ * @param string $original The original word (with case).
+ * @param string $replacement The replacement word (lowercase).
+ * @return string The replacement with original case pattern applied.
+ */
+function smliser_preserve_case( string $original, string $replacement ) : string {
+    // All uppercase
+    if ( $original === strtoupper( $original ) ) {
+        return strtoupper( $replacement );
+    }
+    
+    // First letter uppercase (Title Case)
+    if ( $original[0] === strtoupper( $original[0] ) ) {
+        return ucfirst( $replacement );
+    }
+    
+    // All lowercase
+    return $replacement;
+}
+
+/**
+ * Attemps to convert plural word back to singular.
+ * 
+ * @param string $string The plural word.
+ * @return string The singularized word.
+ */
+function smliser_singularize( string $string ) : string {
+    $string = trim( $string );
+    
+    if ( empty( $string ) ) {
+        return '';
+    }
+
+    $lower = strtolower( $string );
+
+    // Irregular reverse mapping
+    $irregulars = [
+        'children'   => 'child',
+        'people'     => 'person',
+        'men'        => 'man',
+        'women'      => 'woman',
+        'teeth'      => 'tooth',
+        'feet'       => 'foot',
+        'mice'       => 'mouse',
+        'geese'      => 'goose',
+        'oxen'       => 'ox',
+        'quizzes'    => 'quiz',
+        'axes'       => 'axis',
+        'analyses'   => 'analysis',
+        'bases'      => 'basis',
+        'crises'     => 'crisis',
+        'theses'     => 'thesis',
+        'phenomena'  => 'phenomenon',
+        'criteria'   => 'criterion',
+    ];
+
+    if ( isset( $irregulars[ $lower ] ) ) {
+        return smliser_preserve_case( $string, $irregulars[ $lower ] );
+    }
+
+    // Uncountable
+    $uncountable = [
+        'information', 'equipment', 'rice', 'money', 'species', 'series',
+        'fish', 'sheep', 'deer', 'moose', 'aircraft', 'software', 'hardware',
+        'data', 'news', 'advice', 'furniture', 'luggage', 'evidence'
+    ];
+
+    if ( in_array( $lower, $uncountable, true ) ) {
+        return $string;
+    }
+
+    // Singularization rules
+    $rules = [
+        '/ies$/i' => 'y',       // categories -> category
+        '/ves$/i' => 'f',       // leaves -> leaf
+        '/oes$/i' => 'o',       // heroes -> hero
+        '/(ss|x|ch|sh)es$/i' => '$1', // boxes -> box
+        '/ses$/i' => 's',       // buses -> bus
+        '/s$/i' => '',          // cats -> cat
+    ];
+
+    foreach ( $rules as $pattern => $replacement ) {
+        if ( preg_match( $pattern, $string ) ) {
+            return preg_replace( $pattern, $replacement, $string );
+        }
+    }
+
+    return $string;
+}
+
+/**
+ * Prints an indepth analysis of the given URL.
+ * 
+ * @param string $url
+ */
+function smliser_dump_url( $url ) : void {
+    $dump   = ( new URL( $url ) )->dump();
+    // Pretty print for debugging
+    echo '<pre style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; font-family: \'Courier New\', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto;">';
+    echo '<strong style="color: #4ec9b0; font-size: 16px;">🔍 URL DEBUG DUMP</strong>' . "\n";
+    echo str_repeat('─', 80) . "\n\n";
+    
+    // Full URL
+    echo '<span style="color: #569cd6;">📌 FULL URL:</span> ' . "\n";
+    echo '   <span style="color: #ce9178;">' . htmlspecialchars( $dump['url']['full_url'] ) . '</span>' . "\n\n";
+    
+    // Origin
+    echo '<span style="color: #569cd6;">🌐 ORIGIN:</span> ' . "\n";
+    echo '   <span style="color: #ce9178;">' . htmlspecialchars( $dump['url']['origin'] ?? 'N/A' ) . '</span>' . "\n\n";
+    
+    // Components
+    echo '<span style="color: #569cd6;">🧩 COMPONENTS:</span>' . "\n";
+    foreach ( $dump['components'] as $key => $value ) {
+        $color = $value !== null ? '#b5cea8' : '#808080';
+        $display = $value ?? '<span style="color: #808080; font-style: italic;">not set</span>';
+        echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: %s;">%s</span>' . "\n", 
+            str_pad( $key, 10 ), 
+            $color, 
+            $display 
+        );
+    }
+    echo "\n";
+    
+    // Query Parameters
+    echo '<span style="color: #569cd6;">🔗 QUERY PARAMETERS:</span>' . "\n";
+    if ( empty( $dump['query_params'] ) ) {
+        echo '   <span style="color: #808080; font-style: italic;">No query parameters</span>' . "\n";
+    } else {
+        foreach ( $dump['query_params'] as $key => $value ) {
+            if ( is_array( $value ) ) {
+                echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">[%s]</span>' . "\n",
+                    htmlspecialchars( $key ),
+                    htmlspecialchars( implode( ', ', $value ) )
+                );
+            } else {
+                echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">%s</span>' . "\n",
+                    htmlspecialchars( $key ),
+                    htmlspecialchars( (string) $value )
+                );
+            }
+        }
+    }
+    echo "\n";
+    
+    // Validation States
+    echo '<span style="color: #569cd6;">✅ VALIDATION:</span>' . "\n";
+    foreach ( $dump['validation'] as $key => $value ) {
+        $icon = $value ? '✓' : '✗';
+        $color = $value ? '#4ec9b0' : '#f48771';
+        echo sprintf( '   <span style="color: %s;">%s</span> <span style="color: #9cdcfe;">%s</span>' . "\n",
+            $color,
+            $icon,
+            str_replace( '_', ' ', $key )
+        );
+    }
+    echo "\n";
+    
+    // Presence Checks
+    echo '<span style="color: #569cd6;">🔎 PRESENCE CHECKS:</span>' . "\n";
+    foreach ( $dump['has'] as $key => $value ) {
+        $icon = $value ? '●' : '○';
+        $color = $value ? '#4ec9b0' : '#808080';
+        echo sprintf( '   <span style="color: %s;">%s</span> <span style="color: #9cdcfe;">has_%s</span>' . "\n",
+            $color,
+            $icon,
+            $key
+        );
+    }
+    echo "\n";
+    
+    // Raw Components
+    echo '<span style="color: #569cd6;">⚙️  RAW COMPONENTS ARRAY:</span>' . "\n";
+    echo '<span style="color: #808080;">';
+    print_r( $dump['raw_components'] );
+    echo '</span>';
+    
+    echo str_repeat('─', 80) . "\n";
+    echo '</pre>';
 }
