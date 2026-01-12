@@ -123,7 +123,5 @@ return [
     'application/x-rpm'             => 'rpm',
     'application/x-deb'             => 'deb',
     'application/wasm'              => 'wasm', // WebAssembly
-    'application/manifest+json'     => 'webmanifest', 
-
-
+    'application/manifest+json'     => 'webmanifest',
 ];
