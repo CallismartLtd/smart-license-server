@@ -406,7 +406,7 @@ class Owner {
     }
 
     /**
-     * Lazy load the roles
+     * Lazy load the roles.
      *
      * @return array
      */
