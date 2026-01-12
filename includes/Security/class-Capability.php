@@ -40,54 +40,54 @@ final class Capability {
          * Monetization & Licensing
          */
         'monetization' => [
-            'monetization.pricing.create'   => 'Create pricing tiers',
-            'monetization.pricing.update'   => 'Update pricing tiers',
-            'monetization.pricing.delete'   => 'Delete pricing tiers',
+            'monetization.pricing.create'       => 'Create pricing tiers',
+            'monetization.pricing.update'       => 'Update pricing tiers',
+            'monetization.pricing.delete'       => 'Delete pricing tiers',
 
-            'monetization.license.create'   => 'Create licenses',
-            'monetization.license.update'   => 'Update licenses',
-            'monetization.license.revoke'   => 'Revoke licenses',
-            'monetization.license.deactivate' => 'Deactivate licenses',
-            'monetization.license.delete'   => 'Delete licenses',
-            'monetization.license.issue'    => 'Issue licenses',
+            'monetization.license.create'       => 'Create licenses',
+            'monetization.license.update'       => 'Update licenses',
+            'monetization.license.revoke'       => 'Revoke licenses',
+            'monetization.license.deactivate'   => 'Deactivate licenses',
+            'monetization.license.delete'       => 'Delete licenses',
+            'monetization.license.issue'        => 'Issue licenses',
         ],
 
         /**
          * Repository & Downloads
          */
         'repository' => [
-            'repository.view'            => 'View repository contents',
-            'repository.download'        => 'Download application packages',
+            'repository.view'       => 'View repository contents',
+            'repository.download'   => 'Download application packages',
         ],
 
         /**
          * Analytics & Reporting
          */
         'analytics' => [
-            'analytics.view'             => 'View analytics data',
+            'analytics.view'    => 'View analytics data',
         ],
 
         /**
          * Messaging
          */
         'messaging' => [
-            'messaging.send_bulk'        => 'Send bulk messages',
+            'messaging.send_bulk'   => 'Send bulk messages',
         ],
 
         /**
          * Security & Identity Management
          */
         'security' => [
-            'security.owner.create'      => 'Create owners',
-            'security.organization.create' => 'Create organizations',
-            'security.user.create'       => 'Create users',
-            'security.service_account.create' => 'Create service accounts',
+            'security.owner.create'             => 'Create owners',
+            'security.organization.create'      => 'Create organizations',
+            'security.user.create'              => 'Create users',
+            'security.service_account.create'   => 'Create service accounts',
 
-            'security.role.create'       => 'Create roles',
-            'security.role.update'       => 'Update roles',
-            'security.role.delete'       => 'Delete roles',
+            'security.role.create'              => 'Create roles',
+            'security.role.update'              => 'Update roles',
+            'security.role.delete'              => 'Delete roles',
 
-            'security.capability.assign' => 'Assign capabilities to roles',
+            'security.capability.assign'        => 'Assign capabilities to roles',
         ],
     ];
 
@@ -148,6 +148,15 @@ final class Capability {
     }
 
     /**
+     * Get all capabilities grouped by domain.
+     *
+     * @return array<string, array<string, string>>
+     */
+    public static function get_caps() : array {
+        return self::$capabilities;
+    }
+
+    /**
      * Get all capability domains.
      *
      * @return string[]
@@ -155,4 +164,5 @@ final class Capability {
     public static function domains() : array {
         return array_keys( self::$capabilities );
     }
+
 }
