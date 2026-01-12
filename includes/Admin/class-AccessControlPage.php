@@ -8,10 +8,12 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Security\DefaultRoles;
 use SmartLicenseServer\Security\Organization;
 use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Security\User;
 
-use function defined, smliser_get_query_param, array_unshift;
+use function defined, smliser_get_query_param, array_unshift, sprintf, smliser_json_encode_attr;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -29,7 +31,7 @@ class AccessControlPage {
         $routes = [
             'users' => [
                 'default' => [__CLASS__, 'users_page'],
-                'add-new' => [__CLASS__, 'add_new_users_page'],
+                'add-new' => [__CLASS__, 'users_form_page'],
             ],
             'organizations' => [
                 'default' => [__CLASS__, 'organizations_page'],
@@ -68,7 +70,129 @@ class AccessControlPage {
      * Users page.
      */
     private static function users_page() {
-        include_once SMLISER_PATH . 'templates/admin/access-control/users.php';
+        $page           = (int) smliser_get_query_param( 'paged', 1 );
+        $limit          =  (int) smliser_get_query_param( 'limit', 25 );
+        $all            = User::get_all( $page, $limit );
+        $entity_class   = User::class;
+        $type           = 'user';
+
+        include_once SMLISER_PATH . 'templates/admin/access-control/actors-principals-list.php';
+    }
+
+    /**
+     * The users creation and edit page
+     */
+    private static function users_form_page() {
+        $user_id    = smliser_get_query_param( 'user_id' );
+        $user       = User::get_by_id( (int) $user_id );
+
+        $title              = 'Add New User';
+        $roles_title   = 'Ownership Roles';
+
+        $form_fields    = array(
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'id',
+                    'value' => $user ? $user->get_id() : 0,
+                )
+            ),
+            array(
+                'label' => __( 'Full Name', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'display_name',
+                    'value' => $user ? $user->get_display_name() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'placeholder'   => 'Enter full name',
+                        'style'         => 'width: unset'
+                    )
+                )
+            ),
+
+            array(
+                'label' => __( 'Email', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'email',
+                    'value' => $user ? $user->get_email() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'placeholder'   => 'Enter email address'
+                    )
+                )
+            ),
+     
+            array(
+                'label' => __( 'Password', 'smliser' ),
+                'input' => array(
+                    'type'  => 'password',
+                    'name'  => 'password_1',
+                    'value' => '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'placeholder'   => 'Enter password'
+                    )
+                )
+            ),
+     
+            array(
+                'label' => __( 'Confirm Password', 'smliser' ),
+                'input' => array(
+                    'type'  => 'password',
+                    'name'  => 'password_2',
+                    'value' => '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'placeholder'   => 'Confirm passowrd'
+                    )
+                )
+            ),
+     
+            array(
+                'label' => __( 'Generate Password', 'smliser' ),
+                'input' => array(
+                    'type'  => 'button',
+                    'name'  => 'smliser-generate-password',
+                    'value' => 'Generate Password',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'class'         => 'button',
+                        'data-fields'   => smliser_json_encode_attr( [ 'password_1', 'password_2'] )
+                    )
+                )
+            ),
+     
+            array(
+                'label' => __( 'Status', 'smliser' ),
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'status',
+                    'value' => $user ? $user->get_status() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true
+                    ),
+                    'options'   => Owner::get_allowed_statuses()
+                )
+            ),
+     
+        );
+
+        $avatar_url         = '' ?: smliser_get_placeholder_icon( 'avatar' );
+        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }
 
     /**
@@ -98,11 +222,8 @@ class AccessControlPage {
         $owner_id   = smliser_get_query_param( 'owner_id' );
         $owner      = Owner::get_by_id( (int) $owner_id );
 
-        if ( $owner ) {
-
-        }
-
-        $title  = 'Add New Resource Owner';
+        $title              = 'Add New Resource Owner';
+        $roles_title   = 'Ownership Roles';
 
         $form_fields    = array(
             array(
@@ -133,32 +254,39 @@ class AccessControlPage {
                 )
             ),
             array(
-                'label' => __( 'Owner Name', 'smliser' ),
+                'label' => __( 'Type', 'smliser' ),
                 'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'name',
-                    'value' => $owner ? $owner->get_name() : '',
+                    'type'  => 'select',
+                    'name'  => 'type',
+                    'value' => $owner ? $owner->get_type() : '',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
                         'required'      => true
-                    )
+                    ),
+                    'options'   => Owner::get_allowed_owner_types()
                 )
             ),
+     
             array(
-                'label' => __( 'Owner Name', 'smliser' ),
+                'label' => __( 'Status', 'smliser' ),
                 'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'name',
-                    'value' => $owner ? $owner->get_name() : '',
+                    'type'  => 'select',
+                    'name'  => 'status',
+                    'value' => $owner ? $owner->get_status() : '',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
                         'required'      => true
-                    )
+                    ),
+                    'options'   => Owner::get_allowed_statuses()
                 )
             ),
+     
         );
+
+        $roles              = $owner ? $owner->get_roles() : DefaultRoles::all();
+        $avatar_url         = '' ?: smliser_get_placeholder_icon( 'avatar' );
         include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }
 
