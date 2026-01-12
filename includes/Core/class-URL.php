@@ -631,4 +631,68 @@ class URL {
         return $this;
     }
 
+
+    /*
+    |------------------------
+    | DEBUG UTILITY METHODS
+    |------------------------
+    |
+    */
+
+    /**
+     * Dump all URL properties and their current state.
+     * 
+     * Provides a comprehensive view of all URL components, validation states,
+     * and computed properties for debugging and inspection purposes.
+     *
+     * @param bool $return Whether to return the dump as array instead of printing. Default false.
+     * @return array
+     */
+    public function dump() {
+        $dump = [
+            // Core URL
+            'url' => [
+                'full_url' => $this->get_href(),
+                'origin'   => $this->get_origin(),
+            ],
+            
+            // Components
+            'components' => [
+                'scheme'   => $this->get_scheme(),
+                'host'     => $this->get_host(),
+                'port'     => $this->get_port(),
+                'user'     => $this->get_user(),
+                'pass'     => $this->get_pass() ? '***REDACTED***' : null,
+                'path'     => $this->get_path(),
+                'query'    => $this->components['query'] ?? null,
+                'fragment' => $this->get_hash(),
+            ],
+            
+            // Query Parameters
+            'query_params' => $this->get_query_params(),
+            
+            // Validation & State
+            'validation' => [
+                'is_valid'       => $this->is_valid(),
+                'is_valid_dns'   => $this->is_valid( true ),
+                'is_ssl'         => $this->is_ssl(),
+                'is_localhost'   => $this->is_localhost(),
+                'is_private_ip'  => $this->is_private_ip(),
+            ],
+            
+            // Presence Checks
+            'has' => [
+                'scheme'      => $this->has_scheme(),
+                'port'        => $this->has_port(),
+                'credentials' => $this->has_credentials(),
+                'query'       => $this->has_query(),
+                'fragment'    => $this->has_fragment(),
+            ],
+            
+            // Raw Components
+            'raw_components' => $this->components,
+        ];
+    
+        return $dump;
+    }
 }
