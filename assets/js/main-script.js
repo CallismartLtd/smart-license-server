@@ -196,8 +196,44 @@ const StringUtils = {
         }
     
         return isNegative ? '-' + formatted : formatted;
-    }
+    },
 
+    /**
+     * Generates a cryptographically strong random password.
+     * * @param {number} length - Length of the password (default 16).
+     * @param {object} options - Which character sets to include.
+     * @return {string} The generated password.
+     */
+    generatePassword: (length = 16, options = {} ) => {
+        const {
+            includeUpper = true,
+            includeNumbers = true,
+            includeSymbols = true
+        } = options;
+
+        const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const numbers = '0123456789';
+        const symbols = '!@#$%^&*()_+~`|}{[]:;?><,./-';
+
+        let charset = lowercase;
+        if (includeUpper) charset += uppercase;
+        if (includeNumbers) charset += numbers;
+        if (includeSymbols) charset += symbols;
+
+        let password = '';
+        const array = new Uint32Array(length);
+        
+        // Fill array with cryptographically strong random numbers
+        window.crypto.getRandomValues(array);
+
+        for (let i = 0; i < length; i++) {
+            // Use modulo to pick a character from the charset
+            password += charset.charAt(array[i] % charset.length);
+        }
+
+        return password;
+    }
 };
 
 /**
@@ -207,7 +243,8 @@ const StringUtils = {
  */
 function smliserSelect2AppSelect( selectEl ) {
     if ( ! selectEl instanceof HTMLElement ) {
-        console.warn( 'Could not instantiate app selection, invalid html element' );        
+        console.warn( 'Could not instantiate app selection, invalid html element' );
+        return;     
     }
 
     const prepareArgs = ( params ) => {
@@ -277,8 +314,73 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const adminNav              = document.querySelector( '.smliser-top-nav' );
     const allLicenseDomain      = document.querySelector( '.smliser-all-license-domains' );
     const queryParam            = new URLSearchParams( window.location.search )
+    const roleBuilderEl         = document.querySelector( '#smliser-role-builder' );
+    const avatarUploadFields    = document.querySelectorAll( '.smliser-avatar-upload' );
+    const generatePasswordBtn   = document.querySelector( '#smliser-generate-password' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
+
+
+    if ( generatePasswordBtn ) {
+
+        const jsonField = generatePasswordBtn.getAttribute( 'data-fields' );
+        let pwdvalues = null;
+
+        try {
+            pwdvalues = JSON.parse( jsonField );
+        } catch (error) {
+            smliserNotify( `Cannot generate passoword: ${error.message}` );
+        }
+
+        if ( ! pwdvalues ) return;
+
+        const [pwd1Selector, pwd2Selector] = pwdvalues;
+        const pwd1Field = document.querySelector( `#${pwd1Selector}` );
+        const pwd2Field = document.querySelector( `#${pwd2Selector}` );
+
+        generatePasswordBtn.addEventListener( 'click', e => {
+            const btn   = e.target.closest( '.button' );
+
+            if ( ! btn ) return;
+            const password  = StringUtils.generatePassword();
+
+            if ( pwd1Field ) {
+                pwd1Field.value = password;
+            }
+
+            if ( pwd2Field ) {
+                pwd2Field.value = password;
+            }
+            
+        });
+
+        [pwd1Field, pwd2Field].forEach( pwdBtn => {
+            pwdBtn.parentElement.addEventListener( 'click', e => {
+                const btn = e.target.closest( '.smliser-password-toggle' );
+                
+                if ( ! btn ) return;
+                
+                const targetId      = btn.getAttribute( 'data-target' );
+                const passwordField = document.querySelector( `#${targetId}` );
+                const showIcon      = btn.querySelector('.smliser-eye-show');
+                const hideIcon      = btn.querySelector('.smliser-eye-hide');
+                
+                if ( ! passwordField ) return;
+                
+                if ( passwordField.type === 'password' ) {
+                    passwordField.type = 'text';
+                    showIcon.style.display = 'none';
+                    hideIcon.style.display = 'block';
+                    btn.setAttribute( 'aria-label', 'Hide password' );
+                } else {
+                    passwordField.type = 'password';
+                    showIcon.style.display = 'block';
+                    hideIcon.style.display = 'none';
+                    btn.setAttribute( 'aria-label', 'Show password' );
+                }
+            });
+        })
+    }
 
     if ( adminNav ) {
         document.addEventListener( 'scroll', (e) => {
@@ -1333,6 +1435,106 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 smliserNotify( error.message, 5000 );
             }
 
+        });
+    }
+
+    if ( roleBuilderEl ) {
+        const defaultRoles   = smliser_var.default_roles;
+        const builder       = new RoleBuilder( roleBuilderEl, defaultRoles );
+    }
+
+    if ( avatarUploadFields.length ) {
+        avatarUploadFields.forEach( avatarUpload => {
+            /**
+             * @type {HTMLInputElement}
+             */
+            const fileInput = avatarUpload.querySelector( 'input[type="file"]' );
+
+            /**
+             * @type {HTMLImageElement}
+             */
+            const imagePreview          = avatarUpload.querySelector( '.smliser-avatar-upload_image-preview' );
+            const imageHolder           = avatarUpload.querySelector( '.smliser-avatar-upload_image-holder' );
+            const originalSrc           = imagePreview.src;
+            const originalImageTitle    = imagePreview.title;
+            const imageNamePreview      = avatarUpload.querySelector( '.smliser-avatar-upload_data-filename' );
+            const defaultFilename       = imageNamePreview.textContent;
+
+            const buttonsRow            = avatarUpload.querySelector( '.smliser-avatar-upload_buttons-row' );
+
+            const imageFullScreenMode = () => {
+                if ( ! imageHolder.requestFullscreen ) {
+                    smliserNotify( 'Fullscreen not supported by your browser.', 3000 );
+                    return;
+                }
+
+                imageHolder.requestFullscreen().catch( err => {
+                    smliserNotify( `Error attempting to enable fullscreen: ${err.message}`, 3000 );
+                });
+            }
+
+            const clearImagePreview = () => {
+                fileInput.value                 = '';
+                imagePreview.src                = originalSrc;
+                imageNamePreview.textContent    = defaultFilename;
+                imagePreview.title              = originalImageTitle;
+
+                buttonsRow.querySelector( '.clear' )?.classList.add( 'hidden' );
+                buttonsRow.querySelector( '.add-file' )?.classList.remove( 'hidden' );
+            }
+
+            imageNamePreview.addEventListener( 'click', imageFullScreenMode );
+            imagePreview.addEventListener( 'dblclick', imageFullScreenMode );
+
+            buttonsRow.addEventListener( 'click', e => {
+                const btn = e.target.closest( '.button' );
+
+                if ( ! btn ) return;
+                
+                if ( btn.classList.contains( 'clear' ) ) {
+                    clearImagePreview();
+                    return;
+                }
+
+                if ( btn.classList.contains( 'add-file' ) ) {
+                    fileInput.click();
+                }                
+            });
+
+            fileInput.addEventListener( 'change', e => {
+                const target    = e.target;
+                if ( target.type !== 'file' ) return;
+
+                /**
+                 * @type {File}
+                 */
+                const image         = target.files[0];
+                
+                if ( ! image || ! image.type.includes( 'image/' ) ) {
+                    clearImagePreview();
+                    smliserNotify( 'Please upload an image.', 3000 );
+                    return;
+                }
+
+                const maxSize = 2 * 1024 * 1024;
+
+                if ( image.size > maxSize ) {
+                    smliserNotify( 'File is too large. Maximum size is 2MB.', 3000 );
+                    fileInput.value = ''; // Reset the input
+                    return;
+                }
+                
+                if ( imagePreview.src.startsWith('blob:') ) {
+                    URL.revokeObjectURL(imagePreview.src);
+                }
+
+                const objectUrl = URL.createObjectURL( image );
+                imagePreview.src = objectUrl;
+                imagePreview.title = image.name;
+                imageNamePreview.textContent = image.name;
+                buttonsRow.querySelector( '.clear' )?.classList.remove( 'hidden' );
+                
+            });
         });
     }
 
