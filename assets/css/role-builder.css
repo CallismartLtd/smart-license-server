@@ -1,0 +1,144 @@
+/* Root */
+.smliser-role-builder {
+    margin-top: 24px;
+    margin-bottom: 24px;
+    font-size: 14px;
+}
+
+/* ---------- Header ---------- */
+
+.rb-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+}
+
+.rb-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 240px;
+}
+
+.rb-field label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1d2327;
+}
+
+.rb-field select,
+.rb-field input[type="text"] {
+    height: 36px;
+    padding: 6px 8px;
+}
+
+/* Disabled role name (preset role selected) */
+.rb-role-name:disabled {
+    background-color: #f6f7f7;
+    color: #50575e;
+}
+
+/* ---------- Capabilities ---------- */
+
+.rb-capabilities-wrapper {
+    margin-top: 24px;
+}
+
+.rb-capabilities-wrapper h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+}
+
+/* Capability panel */
+.rb-capabilities {
+    padding: 18px;
+    background: #f1f1f1;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+}
+
+/* Capability domain */
+.rb-domain {
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 12px 14px 10px;
+    margin-bottom: 16px;
+}
+
+.rb-domain:last-child {
+    margin-bottom: 0;
+}
+
+.rb-domain legend {
+    padding: 0 6px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+/* Capability item */
+.rb-cap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0;
+    cursor: pointer;
+}
+
+.rb-cap span {
+    color: #2c3338;
+}
+
+/* Checkbox spacing */
+.rb-cap input[type="checkbox"] {
+    margin: 0;
+}
+
+/* ---------- Locked (Preset Role) State ---------- */
+
+.smliser-role-builder[data-locked="true"] .rb-capabilities {
+    position: relative;
+    opacity: 0.85;
+}
+
+.smliser-role-builder[data-locked="true"] .rb-capabilities::after {
+    content: "This is a predefined role. Capabilities cannot be modified.";
+    position: absolute;
+    top: -26px;
+    right: 0;
+    font-size: 12px;
+    color: #646970;
+}
+
+/* Disabled checkboxes */
+.rb-cap input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+}
+
+/* ---------- Hover & Focus (Subtle) ---------- */
+
+.rb-cap:hover span {
+    color: #000000;
+}
+
+.rb-field select:focus,
+.rb-field input[type="text"]:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (min-width: 782px) {
+    .rb-domain {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: 24px;
+    }
+
+    .rb-domain legend {
+        grid-column: 1 / -1;
+    }
+}
