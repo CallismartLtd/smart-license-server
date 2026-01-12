@@ -1,4 +1,16 @@
 <?php
+/**
+ * Canonical default role definitions.
+ *
+ * Default roles exist to reduce configuration overhead.
+ * They are optional presets and are NOT user-editable.
+ *
+ * The highest role automatically inherits all registered capabilities.
+ *
+ * @author  Callistus Nwachukwu
+ * @package SmartLicenseServer\Security
+ */
+
 namespace SmartLicenseServer\Security;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -10,23 +22,31 @@ final class DefaultRoles {
      *
      * @var array<string, array{
      *     label: string,
-     *     capabilities: string[]
+     *     capabilities: string[]|callable():string[]
      * }>
      */
     protected static array $roles = [
 
-        'owner' => [
-            'label'        => 'Owner',
+        /**
+         * Super Administrator.
+         *
+         * Full unrestricted access.
+         * Automatically inherits ALL registered capabilities.
+         */
+        'super_admin' => [
+            'label'        => 'Super Administrator',
+            'capabilities' => [ self::class, 'all_capabilities' ],
+        ],
+
+        /**
+         * Resource Administrator.
+         *
+         * Manages applications, monetization, and visibility layers.
+         */
+        'resource_admin' => [
+            'label'        => 'Resource Administrator',
             'capabilities' => [
-                // Full access
-                'security.owner.create',
-                'security.organization.create',
-
-                'security.role.create',
-                'security.role.update',
-                'security.role.delete',
-                'security.capability.assign',
-
+                // Hosted applications
                 'hosted_apps.create',
                 'hosted_apps.update',
                 'hosted_apps.delete',
@@ -34,6 +54,7 @@ final class DefaultRoles {
                 'hosted_apps.upload_assets',
                 'hosted_apps.access_files',
 
+                // Monetization
                 'monetization.pricing.create',
                 'monetization.pricing.update',
                 'monetization.pricing.delete',
@@ -44,50 +65,128 @@ final class DefaultRoles {
                 'monetization.license.issue',
                 'monetization.license.delete',
 
+                // Visibility
                 'repository.view',
                 'repository.download',
-
                 'analytics.view',
-                'messaging.send_bulk',
             ],
         ],
 
-        'manager' => [
-            'label'        => 'Manager',
+        /**
+         * Security Administrator.
+         *
+         * Identity, access control, and role management.
+         */
+        'security_admin' => [
+            'label'        => 'Security Administrator',
+            'capabilities' => [
+                'security.owner.create',
+                'security.organization.create',
+                'security.user.create',
+                'security.service_account.create',
+
+                'security.role.create',
+                'security.role.update',
+                'security.role.delete',
+
+                'security.capability.assign',
+            ],
+        ],
+
+        /**
+         * Application Manager.
+         */
+        'app_manager' => [
+            'label'        => 'Application Manager',
             'capabilities' => [
                 'hosted_apps.create',
                 'hosted_apps.update',
                 'hosted_apps.upload_assets',
+                'hosted_apps.change_status',
+            ],
+        ],
 
+        /**
+         * License & Pricing Manager.
+         */
+        'license_manager' => [
+            'label'        => 'License Manager',
+            'capabilities' => [
                 'monetization.pricing.create',
                 'monetization.pricing.update',
 
                 'monetization.license.create',
                 'monetization.license.update',
                 'monetization.license.issue',
+                'monetization.license.revoke',
+                'monetization.license.deactivate',
+            ],
+        ],
 
-                'repository.view',
+        /**
+         * Analyst.
+         */
+        'analyst' => [
+            'label'        => 'Analyst',
+            'capabilities' => [
                 'analytics.view',
             ],
         ],
 
+        /**
+         * Viewer.
+         */
         'viewer' => [
             'label'        => 'Viewer',
             'capabilities' => [
                 'repository.view',
                 'repository.download',
-                'analytics.view',
             ],
         ],
     ];
 
+    /**
+     * Prevent instantiation.
+     */
     private function __construct() {}
 
     /**
      * Get all default role definitions.
+     *
+     * @return array<string, array{label:string, capabilities:string[]}>
      */
     public static function all() : array {
-        return self::$roles;
+        $roles = [];
+
+        foreach ( self::$roles as $key => $role ) {
+            $roles[ $key ] = [
+                'label'        => $role['label'],
+                'capabilities' => self::resolve_capabilities( $role['capabilities'] ),
+            ];
+        }
+
+        return $roles;
+    }
+
+    /**
+     * Resolve role capabilities.
+     *
+     * @param string[]|callable $caps
+     * @return string[]
+     */
+    protected static function resolve_capabilities( $caps ) : array {
+        return is_callable( $caps ) ? (array) call_user_func( $caps ) : $caps;
+    }
+
+    /**
+     * Get all registered capabilities.
+     *
+     * Used by the highest-privilege role.
+     *
+     * @return string[]
+     */
+    protected static function all_capabilities() : array {
+        return array_keys( Capability::all() );
     }
 
     /**
@@ -98,7 +197,9 @@ final class DefaultRoles {
     }
 
     /**
-     * Get a default role definition.
+     * Retrieve a default role definition.
+     *
+     * @throws \InvalidArgumentException
      */
     public static function get( string $name ) : array {
         if ( ! self::exists( $name ) ) {
@@ -107,6 +208,6 @@ final class DefaultRoles {
             );
         }
 
-        return self::$roles[ $name ];
+        return self::all()[ $name ];
     }
 }
