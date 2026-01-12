@@ -294,12 +294,12 @@ final class DBTables {
             SMLISER_USERS_TABLE     => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'display_name VARCHAR(255) NOT NULL',
-                'identifier VARCHAR(255) NOT NULL',
+                'email VARCHAR(255) NOT NULL',
                 'password_hash VARCHAR(300) NOT NULL',
                 'status VARCHAR(20) DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-                'INDEX smliser_users_identifier (identifier)',
+                'INDEX smliser_users_email (email)',
                 'INDEX smliser_users_created_at (created_at)',
                 'INDEX smliser_users_updated_at (updated_at)',
             ),
@@ -345,8 +345,8 @@ final class DBTables {
              */
             SMLISER_ORGANIZATIONS_TABLE => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-                'name VARCHAR(255) UNSIGNED NOT NULL',
-                'slug VARCHAR(255) UNSIGNED NOT NULL',
+                'name VARCHAR(255) NOT NULL',
+                'slug VARCHAR(255) NOT NULL',
                 'status ENUM(\'active\',\'suspended\',\'disabled\') DEFAULT \'active\'',
                 'role_id BIGINT(20) UNSIGNED NOT NULL',
                 'created_at DATETIME DEFAULT NULL',
