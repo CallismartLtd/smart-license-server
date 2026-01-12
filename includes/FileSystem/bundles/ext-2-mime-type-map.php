@@ -26,6 +26,7 @@ return [
     'bmp'  => 'image/bmp',
     'heic' => 'image/heic',
     'heif' => 'image/heif',
+    'avif'  => 'image/avif',
     'heics' => 'image/heic-sequence',
     'heifs' => 'image/heif-sequence',
 
@@ -150,5 +151,4 @@ return [
     'jsx'   => 'text/jsx',
     'tsx'   => 'text/tsx',
     'vue'   => 'text/x-vue',
-
 ];
