@@ -74,6 +74,11 @@ class RequestException extends Exception {
             'title'   => 'Duplicate Entry',
             'message' => 'A resource with the same unique identifier already exists.'
         ],
+        'email_exists' => [
+            'status'  => 409,
+            'title'   => 'Email Conflict',
+            'message' => 'The provided email is not available.'
+        ],
         'precondition_failed' => [
             'status'  => 412,
             'title'   => 'Precondition Failed',
