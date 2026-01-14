@@ -421,6 +421,30 @@ class ServiceAccount implements PrincipalInterface {
         return $row ? static::from_array( $row ) : null;
     }
 
+    /**
+     * Count total records by status
+     * 
+     * @param string $status
+     * @return int
+     */
+    public static function count_status( $status ) : int {
+        $status             = self::sanitize_text( $status );
+        static $statuses    = [];
+
+        if ( ! array_key_exists( $status, $statuses ) ) {
+            $db     = smliser_dbclass();
+            $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
+
+            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
+
+            $total  = $db->get_var( $sql, [$status] );
+
+            $statuses[$status]  = (int) $total;
+        }
+
+        return $statuses[$status];
+    }
+
     /*--------------------------------
     | UTILITY METHODS
     |--------------------------------*/
@@ -442,6 +466,15 @@ class ServiceAccount implements PrincipalInterface {
         }
 
         return $self;
+    }
+
+    /**
+     * Convert to array
+     * 
+     * @return array
+     */
+    public function to_array() : array {
+        return get_object_vars( $this );
     }
 
     /**
