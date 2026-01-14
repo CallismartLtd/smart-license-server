@@ -721,6 +721,16 @@ function smliser_get_post_param( $param, $default = '' ) {
     return smliser_get_param( $param, $default, $_POST );
 }
 
+/**
+ * Get the value of a ROEQUEST parameter.
+ * @param string $param The name of the REQUEST parameter.
+ * @param mixed $default The default value to return.
+ * @return mixed The sanitized value of the REQUEST parameter.
+ */
+function smliser_get_request_param( $param, $default = '' ) {
+    return smliser_get_param( $param, $default, $_REQUEST );
+}
+
 
 /**
  * Retrieve and sanitize a parameter from a given source array, with automatic type detection.
@@ -1474,6 +1484,41 @@ function smliser_get_placeholder_icon( string $type = '' ) : string {
 }
 
 /**
+ * Get our uploads url.
+ * 
+ * @param $path
+ * @return string
+ */
+function smliser_uploads_url( string $path  = '' ) : string {
+    $uploads_rel_path   = str_replace( SMLISER_ABSPATH, '', SMLISER_UPLOADS_DIR );
+    $path               = FileSystemHelper::join_path( $uploads_rel_path, $path );
+    $uploads_url        = site_url( $path );
+    return $uploads_url;
+}
+
+/**
+ * Get avatar URL.
+ * 
+ * @param $filename_hash    The MD5 hash name of the avatar.
+ * @param $type             The avatar type.
+ * @return string
+ */
+function smliser_avatar_url( string $filename_hash, string $type ) : string {
+    $type       = smliser_pluralize( str_replace( '_', '-', $type ) );
+    $path       = FileSystemHelper::join_path( 'avatars', $type );
+
+    if ( is_smliser_error( $path ) ) {
+        return '';
+    }
+
+    $path       = FileSystemHelper::join_path( $path, $filename_hash );
+    $avatar_url = smliser_uploads_url( $path );
+    return $avatar_url;
+}
+
+
+
+/**
  * Returns the singleton instance of the parser.
  *
  * @return MDParser
@@ -1575,7 +1620,7 @@ function smliser_pluralize( string $string ) : string {
     $uncountable = [
         'information', 'equipment', 'rice', 'money', 'species', 'series',
         'fish', 'sheep', 'deer', 'moose', 'aircraft', 'software', 'hardware',
-        'data', 'news', 'advice', 'furniture', 'luggage', 'evidence'
+        'data', 'news', 'advice', 'furniture', 'luggage', 'evidence', 'users'
     ];
 
     if ( in_array( $lower, $uncountable, true ) ) {
