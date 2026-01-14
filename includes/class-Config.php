@@ -355,7 +355,11 @@ class Config {
             wp_enqueue_script( 'smliser-chart', SMLISER_URL . 'assets/js/chart.js', array(), SMLISER_VER, true );
         }
 
-        if ( 'smart-license-server_page_smliser-bulk-message' === $s || 'smart-license-server_page_licenses' === $s ) {
+        if ( 'smart-license-server_page_smliser-bulk-message' === $s 
+            || 'smart-license-server_page_licenses' === $s 
+            || 'smart-license-server_page_smliser-access-control' === $s 
+            
+            ) {
             wp_enqueue_script( 'select2' );
         }
 
@@ -396,7 +400,11 @@ class Config {
         wp_register_style( 'smliser-role-builder', SMLISER_URL . 'assets/css/role-builder.css', array(), SMLISER_VER, 'all' );
     
         
-        if ( 'smart-license-server_page_smliser-bulk-message' === $s || 'smart-license-server_page_licenses' === $s ) {
+        if ( 'smart-license-server_page_smliser-bulk-message' === $s 
+            || 'smart-license-server_page_licenses' === $s
+            || 'smart-license-server_page_smliser-access-control' === $s 
+            
+        ) {
             wp_enqueue_style( 'select2' );
         }
 
