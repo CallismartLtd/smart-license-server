@@ -10,7 +10,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <div class="smliser-admin-repository-template">
     <?php self::print_header(); ?>
-    <form class="smliser-access-control-form">
+    <form class="smliser-access-control-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
         <h2><?php echo esc_html( $title ); ?></h2>
         <div class="smliser-two-rows">
             <div class="smliser-two-rows_left">
@@ -18,6 +18,8 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                     <?php smliser_render_input_field( $field ); ?>
                 <?php endforeach; ?>
             </div>
+
+            <input type="hidden" name="action" value="smliser_access_control_save">
             <div class="smliser-two-rows_right">
                 <div class="smliser-avatar-upload">
                     <div class="smliser-avatar-upload_image-holder">
@@ -31,7 +33,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         </div>
                         <em>Upload an image(170 x 170 pixels recommended).</em>
 
-                        <span class="smliser-avatar-upload_data-filename"><?php echo esc_html( basename( $avatar_url ) ) ?></span>
+                        <span class="smliser-avatar-upload_data-filename"><?php echo esc_html( $avatar_name ) ?></span>
                     </div>
 
                 </div>

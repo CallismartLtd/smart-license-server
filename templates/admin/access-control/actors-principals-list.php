@@ -37,9 +37,10 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
             <thead class="<?php echo ( empty( $all ) ) ? 'hidden': '' ?>">
                 <tr>
                     <th>ID</th>
+                    <th></th>
                     <th>Name</th>
-                    <th>Type</th>
-                    <th>Status</th>
+                    <th>Date Created</th>
+                    <th>Last Updated</th>
                 </tr>
             </thead>
             <tbody>
@@ -50,10 +51,22 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 <?php else: ?>
                     <?php foreach ( $all as $entity ) : ?>
                         <tr>
-                            <td><?php echo esc_html( $entity->get_id() ); ?></td>
+                            <td>
+                                <?php echo esc_html( $entity->get_id() ); ?>
+                                <p class="smliser-edit-link">
+                                    <a href="<?php echo esc_url( smliser_get_current_url()->add_query_params( ['section' => 'edit', 'id' => $entity->get_id()] ) ); ?>">edit</a>
+                                </p>
+                            </td>
+                            <td>
+                                <img 
+                                    src="<?php echo esc_url( $entity->get_avatar() ); ?>"
+                                    alt="<?php printf( '%s avatar', $entity->get_name() ) ?>" 
+                                    width="32" height="32"
+                                    loading="lazy" decoding="async">
+                            </td>
                             <td><?php echo esc_html( $entity->get_name() ); ?></td>
-                            <td><?php echo esc_html( $entity->get_type() ); ?></td>
-                            <td><?php echo esc_html( $entity->get_status() ); ?></td>
+                            <td><?php echo esc_html( $entity->get_created_at()->format( smliser_datetime_format() ) ); ?></td>
+                            <td><?php echo esc_html( $entity->get_updated_at()->format( smliser_datetime_format() ) ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
