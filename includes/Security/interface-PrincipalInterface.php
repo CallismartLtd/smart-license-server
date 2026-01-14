@@ -109,4 +109,18 @@ interface PrincipalInterface {
      * @return int
      */
     public static function count_status( $status ) : int;
+
+    /**
+     * Hydrate from array.
+     * 
+     * @param array $data
+     * @return static
+     */
+    public static function from_array( array $data ) : static;
+    /**
+     * Convert to array.
+     * 
+     * @return array
+     */
+    public function to_array();
 }
