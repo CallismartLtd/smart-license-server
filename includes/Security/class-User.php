@@ -9,11 +9,13 @@
 namespace SmartLicenseServer\Security;
 
 use DateTimeImmutable;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_USERS_TABLE;
-use function is_string, smliser_dbclass, gmdate, boolval, defined;
+use function is_string, smliser_dbclass, gmdate, boolval, defined, md5, smliser_avatar_url, 
+get_object_vars;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,6 +52,13 @@ class User implements PrincipalInterface{
      * @var string
      */
     public const STATUS_DISABLED = 'disabled';
+
+    /**
+     * Internal principal type identifier.
+     *
+     * @var string
+     */
+    public const TYPE = 'individual';
 
     /**
      * Unique user ID.
@@ -163,6 +172,15 @@ class User implements PrincipalInterface{
      * @return string Display name.
      */
     public function get_display_name() : string {
+        return $this->display_name;
+    }
+
+    /**
+     * Alias for `get_display_name`.
+     *
+     * @return string Display name.
+     */
+    public function get_name() : string {
         return $this->display_name;
     }
 
@@ -322,6 +340,22 @@ class User implements PrincipalInterface{
     }
 
     /**
+     * Get by email
+     * 
+     * @param string $email
+     * @return static
+     */
+    public static function get_by_email( string $email ) : ?static {
+        static $users = [];
+
+        if ( ! array_key_exists( $email, $users ) ) {
+            $users[ $email ] = self::get_self_by( 'email', $email, SMLISER_USERS_TABLE );
+        }
+
+        return $users[ $email ];
+    }
+
+    /**
      * Get all users
      * 
      * @param int $page The current pagination number.
@@ -412,6 +446,20 @@ class User implements PrincipalInterface{
     }
 
     /**
+     * Convert to array
+     * 
+     * @return array
+     */
+    public function to_array() : array {
+        $data   = get_object_vars( $this );
+        
+        $data   = ['type' => static::TYPE] + $data;
+
+        unset( $data['exists_cache'] );
+        return $data;
+    }
+
+    /**
      * Determine whether the user is allowed to authenticate.
      *
      * @return bool True if the user can authenticate.
@@ -444,11 +492,30 @@ class User implements PrincipalInterface{
     }
 
     /**
+     * Check whether a user with email exists in the database
+     * 
+     * @param string $email
+     * @return bool True if user with email exists, false otherwise.
+     */
+    public static function email_exists( string $email ) : bool {
+        return ! empty( static::get_by_email( $email ) );
+    }
+
+    /**
      * Get allowed owner statuses
      *
      * @return array
      */
     public static function get_allowed_statuses() : array {
         return [ self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_DISABLED ];
+    }
+
+    /**
+     * Get user avatar URL.
+     * 
+     * @return URL
+     */
+    public function get_avatar() : URL {
+        return new URL( smliser_avatar_url( md5( $this->get_email() ), 'user' ) );
     }
 }
