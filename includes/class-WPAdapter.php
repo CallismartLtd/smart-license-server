@@ -26,14 +26,17 @@ use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\FileSystem\FileSystem;
-
+use SmartLicenseServer\Security\RequestController;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 
 use const WP_CONTENT_DIR, ABSPATH;
-use function wp_upload_dir, compact;
+use function wp_upload_dir, compact, smliser_get_request_param, smliser_get_query_param, time, is_string,
+smliser_get_post_param, smliser_get_client_ip, smliser_get_authorization_header, smliser_get_user_agent, smliser_abort_request,
+sanitize_text_field, unslash, current_user_can, get_query_var, smliser_send_json_error, wp_get_referer,
+wp_safe_redirect, check_ajax_referer, is_callable, sprintf;
 
 defined( 'ABSPATH'  ) || exit;
 
@@ -91,7 +94,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         }
 
         $handler_map    = [
-            'smliser-downloads'                             => function() { ( self::resolve_download_callback() )(); },
+            'smliser-downloads'                             => function() { ( self::resolve_download_request_parser() )(); },
             'smliser-repository-assets'                     => [__CLASS__, 'parse_app_asset_request'],
             'smliser_admin_download'                        => [__CLASS__, 'parse_admin_download_request'],
             'smliser_download_image'                        => [__CLASS__, 'parse_proxy_image_request'],
@@ -109,14 +112,12 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'smliser_app_status_action'                     => [__CLASS__, 'parse_app_status_action_request'],
             'smliser_save_monetization_provider_options'    => [__CLASS__, 'parse_save_provider_options'],
             'smliser_upgrade'                               => [__CLASS__, 'parse_database_migration_request'],
-            'smliser_key_generate'                          => [SmliserAPICred::class, 'admin_create_cred_form'],
-            'smliser_revoke_key'                            => [SmliserAPICred::class, 'revoke'],
-            'smliser_oauth_login'                           => [SmliserAPICred::class, 'oauth_login_form_handler'],
-            'smliser_authorize_app'                         => [SmliserAPICred::class, 'oauth_client_consent_handler'],
             'smliser_publish_bulk_message'                  => [__CLASS__, 'parse_bulk_message_publish'],
             'smliser_get_product_data'                      => [__CLASS__, 'parse_monetization_provider_product_request'],
             'smliser_delete_monetization_tier'              => [__CLASS__, 'parse_monetization_tier_deletion'],
             'smliser_toggle_monetization'                   => [__CLASS__, 'parse_toggle_monetization'],
+            'smliser_access_control_save'                   => [__CLASS__, 'parse_access_control_save_request'],
+            'smliser_admin_security_entity_search'          => [__CLASS__, 'parse_admin_security_entity_search']
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {
@@ -133,7 +134,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $app_type = get_query_var( 'smliser_app_type' );
         $app_slug = smliser_sanitize_path( get_query_var( 'smliser_app_slug' ) );
 
-        if ( empty( $app_slug ) ) {
+        if ( is_smliser_error( $app_slug ) ) {
             smliser_abort_request(
                 __( 'Please provide the correct application slug', 'smliser' ),
                 'Bad Request',
@@ -149,7 +150,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'authorization'   => smliser_get_authorization_header(),
             'user_agent'      => smliser_get_user_agent(),
             'request_time'    => time(),
-            'client_ip'       => \smliser_get_client_ip(),
+            'client_ip'       => smliser_get_client_ip(),
             'is_authorized'     => true // For public download, monetized app download permission checked by controller.
         ]);
 
@@ -427,18 +428,18 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
      */
     private static function parse_bulk_action_request() {
         $table_nonce_verified   = wp_verify_nonce( smliser_get_post_param( 'smliser_table_nonce' ), 'smliser_table_nonce' );
-        $smliser_nonce_verified = wp_verify_nonce( smliser_get_param( 'smliser_nonce', '', $_REQUEST ), 'smliser_nonce' );
+        $smliser_nonce_verified = wp_verify_nonce( smliser_get_request_param( 'smliser_nonce', '' ), 'smliser_nonce' );
         if ( ! $table_nonce_verified && ! $smliser_nonce_verified ) {
             \wp_safe_redirect( \wp_get_referer() );
             exit;
         }
 
-        $context    = \smliser_get_param( 'context', null, $_REQUEST ) ?? \smliser_abort_request( 'Bulk action context is required', 'Context Required', array( 'status_code' => 400 ) );
-        $handler    = self::resolve_bulk_action_handler( $context );
+        $context    = smliser_get_request_param( 'context', null ) ?? \smliser_abort_request( 'Bulk action context is required', 'Context Required', array( 'status_code' => 400 ) );
+        $handler    = self::resolve_bulk_action_controller( $context );
 
         $request    = new Request([
-            'ids'           => smliser_get_param( 'ids', [], $_REQUEST ),
-            'bulk_action'   => \smliser_get_param( 'bulk_action', '', $_REQUEST ),
+            'ids'           => smliser_get_request_param( 'ids', [] ),
+            'bulk_action'   => smliser_get_request_param( 'bulk_action', '' ),
             'is_authorized' => current_user_can( 'manage_options' ),
             'user_agent'    => smliser_get_user_agent(),
             'request_time'  => time(),
@@ -461,7 +462,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             exit;
         }
 
-        $target = \wp_get_referer();
+        $target = wp_get_referer();
         $url    = new URL( $target );
         $error_message   = $response->has_errors() ? $response->get_exception()->get_error_message() : 'Bulk action failed';
         $url->add_query_param( 'message', $error_message );
@@ -802,6 +803,75 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
 
         $response->send();
     }
+
+    /**
+     * Parse security and access control save request for users, organizations, service accounts,
+     * resource owners.
+     */
+    private static function parse_access_control_save_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+            ), 401 );
+        }
+
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $entity    = smliser_get_request_param( 'entity', false );
+        if ( ! $entity  ) {
+            smliser_send_json_error( array( 'message' => 'Please provide security entity.' ), 400 );
+        }
+
+        $request    = new Request([
+            'id'            => smliser_get_request_param( 'id' ),
+            'name'          => smliser_get_request_param( 'name' ),
+            'display_name'  => smliser_get_request_param( 'display_name' ),
+            'email'         => smliser_get_request_param( 'email' ),
+            'password_1'    => $_REQUEST[ 'password_1' ] ?? '', // phpcs:ignore
+            'password_2'    => $_REQUEST[ 'password_2' ] ?? '', // phpcs:ignore
+            'status'        => smliser_get_request_param( 'status' ),
+            'principal_id'  => smliser_get_request_param( 'principal_id' ),
+            'type'          => smliser_get_request_param( 'type' ),
+            'entity'        => $entity,
+            'avatar'        => isset( $_FILES['avatar'] ) && UPLOAD_ERR_OK === $_FILES['avatar']['error'] ? $_FILES['avatar'] : null,
+            'is_authorized'  => true,
+        ]);
+
+        /** @var Response $response */
+        $response   = RequestController::save_entity( $request );
+
+        $response->send();
+    }
+
+    /**
+     * Parse admin security entity search request.
+     * 
+     * This request searches for users and organizations.
+     */
+    private static function parse_admin_security_entity_search() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+            ), 401 );
+        }
+
+        if ( ! \is_super_admin() ) {
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $request    = new Request([
+            'search_term'   => smliser_get_request_param( 'search' ),
+            'status'        => smliser_get_request_param( 'status', 'active' ),
+            'types'         => smliser_get_request_param( 'types', [] ),
+            'is_authorized' => true
+        ]);
+
+        $response   = RequestController::search_users_orgs( $request );
+
+        $response->send();
+    }
     
     /**
     |------------------------
@@ -906,99 +976,6 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         }
 
         return $response;
-    }
-    
-    /*
-    |----------------
-    |UTILITY METHODS
-    |----------------
-    */
-
-    /**
-     * Normalize the app_type:app-slug form input to associative array
-     * 
-     * @param array $app_ids
-     */
-    private static function normalize_app_ids_form_input( array $app_ids ) : array {
-        $normalized = [];
-
-        foreach ( $app_ids as $item ) {
-            [ $type, $slug ] = explode( ':', $item, 2 );
-
-            if ( empty( $type ) || empty( $slug ) ) {
-                continue;
-            }
-
-            $normalized[] = array( 'app_type' => $type, 'app_slug' => $slug );
-        }
-
-        return $normalized;
-    }
-
-    /**
-     * Initialize the WordPress environment.
-     * 
-     * @return self
-     */
-    public static function init() {
-        if ( is_null( self::$instance ) ) {
-            self::$instance = new self();
-        }
-
-        return self::$instance;
-    }
-
-    /**
-     * Get the download request callback.
-     *  
-     * @return callable
-     */
-    private static function resolve_download_callback() {
-        switch ( get_query_var( 'smliser_app_type' ) ) {
-            case 'plugin':
-            case 'plugins':
-            case 'theme':
-            case 'themes':
-            case 'software':
-                return [__CLASS__, 'parse_public_package_download'];
-            case 'document':
-            case 'documents':
-                return [__CLASS__, 'parse_license_document_download'];
-
-            
-        }
-
-        return function () {
-            smliser_abort_request( new Exception( 'unsupported_route', 'The rquested route is not supported', ['status' => 404 ] ) );
-        };
-    }
-
-    /**
-     * Resolves the bulk action handler
-     * 
-     * @param string $context
-     * @return callable
-     */
-    private static function resolve_bulk_action_handler( $context ) {
-        $context = (string) $context;
-
-        switch( $context ) {
-            case 'license':
-                $handler = [Controller::class, 'license_bulk_action'];
-                break;
-            case 'repository':
-                $handler    = [HostingController::class, 'app_bulk_action'];
-                break;
-            case 'bulk-message':
-                $handler    = [MessageController::class, 'bulk_message_action'];
-                break;
-            default:
-            $handler = function() use( $context ) {
-                smliser_abort_request( \sprintf( 'Bulk action cannot be handled for "%s"', $context ) );
-            };
-        }
-
-        return $handler;
     }
 
     /**
@@ -1119,6 +1096,99 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             return new WP_Error( 'rest_invalid_param', __( 'The value must be an integer.', 'smliser' ), array( 'status' => 400 ) );
         }
         return true;
+    }
+    
+    /*
+    |----------------
+    |UTILITY METHODS
+    |----------------
+    */
+
+    /**
+     * Normalize the app_type:app-slug form input to associative array
+     * 
+     * @param array $app_ids
+     */
+    private static function normalize_app_ids_form_input( array $app_ids ) : array {
+        $normalized = [];
+
+        foreach ( $app_ids as $item ) {
+            [ $type, $slug ] = explode( ':', $item, 2 );
+
+            if ( empty( $type ) || empty( $slug ) ) {
+                continue;
+            }
+
+            $normalized[] = array( 'app_type' => $type, 'app_slug' => $slug );
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Initialize the WordPress environment.
+     * 
+     * @return self
+     */
+    public static function init() {
+        if ( is_null( self::$instance ) ) {
+            self::$instance = new self();
+        }
+
+        return self::$instance;
+    }
+
+    /**
+     * Get the download request parser.
+     *  
+     * @return callable
+     */
+    private static function resolve_download_request_parser() {
+        switch ( get_query_var( 'smliser_app_type' ) ) {
+            case 'plugin':
+            case 'plugins':
+            case 'theme':
+            case 'themes':
+            case 'software':
+                return [__CLASS__, 'parse_public_package_download'];
+            case 'document':
+            case 'documents':
+                return [__CLASS__, 'parse_license_document_download'];
+
+            
+        }
+
+        return function () {
+            smliser_abort_request( new Exception( 'unsupported_route', 'The rquested route is not supported', ['status' => 404 ] ) );
+        };
+    }
+
+    /**
+     * Resolves the bulk action request controller.
+     * 
+     * @param string $context
+     * @return callable
+     */
+    private static function resolve_bulk_action_controller( $context ) {
+        $context = (string) $context;
+
+        switch( $context ) {
+            case 'license':
+                $handler = [Controller::class, 'license_bulk_action'];
+                break;
+            case 'repository':
+                $handler    = [HostingController::class, 'app_bulk_action'];
+                break;
+            case 'bulk-message':
+                $handler    = [MessageController::class, 'bulk_message_action'];
+                break;
+            default:
+            $handler = function() use( $context ) {
+                smliser_abort_request( sprintf( 'Bulk action cannot be handled for "%s"', $context ) );
+            };
+        }
+
+        return $handler;
     }
 
     /**
