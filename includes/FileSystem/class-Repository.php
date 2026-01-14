@@ -1,6 +1,6 @@
 <?php
 /**
- * Repository class for managing application directories.
+ * Repository class for managing hosted application directories.
  *
  * @author  Callistus Nwachukwu
  * @since   0.0.6
