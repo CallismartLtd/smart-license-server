@@ -56,14 +56,14 @@ class FileResponse extends Response {
         parent::__construct();
 
         if ( \is_smliser_error( $file ) ) {
-            // This calls the overridden set_exception which handles both the parent and local error state.
+            // Overrides `set_exception` which handles both the parent and local error state.
             $this->set_exception( $file ); 
         }
             
         $this->file    = $file;
 
         $default_args = array(
-            'is_file'       => true, // Treated as file by default, use false if it is a document string.
+            'is_file'       => true, // Treated as file by default, use false if it is binary.
             'name'          => '',  // File basename will be used as default file name, `untitled` is used when the file does not exist.
             'type'          => '', // The valid default values are `plugin`, `theme`, `software`, and `document`, except there is a corresponding repository class to handle it.
             'content_type'  => '', // The file mime type will be used by default.
@@ -221,15 +221,6 @@ class FileResponse extends Response {
     public function get_content_disposition( string $fileName = '', $mimeType = '', bool $isInlineRequested = false ): string {
         $mimeType = $mimeType ?: FileSystemHelper::get_mime_type( $this->file );
         $fileName = $fileName ?: basename( $this->file );
-        
-        $renderable_prefixes    = [
-            'image/',          // JPG, PNG, GIF, SVG, WEBP
-            'text/plain',      // TXT, LOG
-            'text/html',
-            'application/pdf', // PDFs (Browser support is high)
-            'video/',          // MP4, WebM (Modern browser video support)
-            'audio/',          // MP3, WAV (Modern browser audio support)
-        ];
 
         $can_render_inline = false;
         if ( FileSystemHelper::is_image( $this->file ) ) {
@@ -314,12 +305,12 @@ class FileResponse extends Response {
     public static function is_filesize_within_limit( $filesize, ?float $factor = 0.8 ): bool {
         $filesize = (int) $filesize;
 
-        // Reject invalid or zero-byte input
+        // Reject invalid or zero-byte input.
         if ( $filesize <= 0 ) {
             return false;
         }
 
-        // Normalize ini values to bytes
+        // Normalize ini values to bytes.
         $memory_limit = self::to_bytes( ini_get( 'memory_limit' ) );
         $upload_limit = self::to_bytes( ini_get( 'upload_max_filesize' ) );
         $post_limit   = self::to_bytes( ini_get( 'post_max_size' ) );
@@ -329,9 +320,8 @@ class FileResponse extends Response {
             $memory_limit = PHP_INT_MAX;
         }
 
-        // Sanitize and replace zero/invalid limits with large fallback
         if ( $memory_limit === 0 ) {
-            $memory_limit = 256 * 1024 * 1024; // 256MB reasonable fallback
+            $memory_limit = 256 * 1024 * 1024; // 256MB reasonable fallback.
         }
         if ( $upload_limit === 0 ) {
             $upload_limit = $memory_limit;
@@ -340,10 +330,10 @@ class FileResponse extends Response {
             $post_limit = $memory_limit;
         }
 
-        // Determine the most restrictive limit
+        // Determine the most restrictive limit.
         $max_safe_size = min( $upload_limit, $post_limit, $memory_limit );
 
-        // Apply safety margin
+        // Apply safety margin.
         $factor = (float) $factor;
         if ( $factor > 0 && $factor < 1 ) {
             $max_safe_size = (int) ( $max_safe_size * $factor );
