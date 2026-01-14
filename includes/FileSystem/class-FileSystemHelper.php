@@ -3,7 +3,6 @@
  * Filesystem Helper Class file
  *
  * Provides file analysis, validation, integrity checking, and metadata utilities.
- * Independent of environment (WordPress, Laravel, or bare PHP).
  *
  * @author Callistus Nwachukwu
  * @since 0.0.6
@@ -138,6 +137,20 @@ class FileSystemHelper {
     }
 
     /**
+     * Remove file extension.
+     * 
+     * @param string $filename
+     * @return string
+     */
+    public static function remove_extension( string $filename ) : string {
+        if ( ! \str_contains( $filename, '.' ) ) {
+            return $filename;
+        }
+
+        return substr( $filename, 0, strpos( $filename, '.' ) );
+    }
+
+    /**
      * Check if a file is of given MIME type.
      *
      * @param string $path
@@ -259,7 +272,6 @@ class FileSystemHelper {
         return $file['tmp_name'];
     }
 
-
     /**
      * Check if a file looks like an image.
      *
@@ -300,7 +312,7 @@ class FileSystemHelper {
             return null;
         }
 
-        return hash_file( $algo, $path ) ?: null;
+        return @hash_file( $algo, $path ) ?: null;
     }
 
     /**
@@ -501,7 +513,8 @@ class FileSystemHelper {
             $joined = \sprintf( '%s/', rtrim( $joined, '/' ) );
         }
 
-        return $joined;
+        $joined = self::sanitize_path( $joined );
+        return \is_smliser_error( $joined ) ? '' : $joined;
     }
 
     /**
@@ -675,4 +688,47 @@ class FileSystemHelper {
         }
     }
 
+    /**
+     * Upload avatar.
+     * 
+     * @param array $avatar_file    The avatar file from $_FILES array.
+     * @param string $type          The avatar type(valid options user, organization and service_account).
+     * @param string $filename      The avatar file basename.
+     * @return bool                 True on success, false otherwise.
+     */
+    public static function upload_avatar( array $avatar_file, string $type, string $filename ) : bool {
+        try {
+            $type           = smliser_pluralize( str_replace( '_', '-', $type ) );
+            $tmp_name       = self::validate_uploaded_file( $avatar_file, 'avatar' );
+            $avatar_path    = self::join_path( SMLISER_UPLOADS_DIR, sprintf( 'avatars/%s', $type ) );
+            $fs             = FileSystem::instance();
+
+            if ( \is_smliser_error( $avatar_path ) ) {
+                throw $avatar_path;
+            }
+
+            if ( ! $fs->is_dir( $avatar_path ) ) {
+                $fs->mkdir( $avatar_path, FS_CHMOD_DIR );
+            }
+
+            $filename   = self::remove_extension( $filename );
+
+            $new_path   = self::join_path( $avatar_path, $filename );
+            if ( \is_smliser_error( $new_path ) ) {
+                throw $new_path;
+            }
+
+            if ( ! $fs->move( $tmp_name, $new_path, true ) ) {
+                throw new Exception( 
+                    'file_system_error', 
+                    'Unable to upload avatar, likely due to inconsistent filesystem permission.', 
+                    ['status' => 500]
+                );
+            }
+            @$fs->chmod( $new_path, FS_CHMOD_FILE );
+            return true;
+        } catch ( Exception $e ) {
+            return false;
+        }
+    }
 }
