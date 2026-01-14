@@ -13,7 +13,8 @@ use SmartLicenseServer\Security\Organization;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\User;
 
-use function defined, smliser_get_query_param, array_unshift, sprintf, smliser_json_encode_attr;
+use function defined, smliser_get_query_param, array_unshift, sprintf,time, 
+smliser_json_encode_attr, array_map, array_combine, array_values;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -30,20 +31,21 @@ class AccessControlPage {
 
         $routes = [
             'users' => [
-                'default' => [__CLASS__, 'users_page'],
-                'add-new' => [__CLASS__, 'users_form_page'],
+                'default'   => [__CLASS__, 'users_page'],
+                'add-new'   => [__CLASS__, 'users_form_page'],
+                'edit'      => [__CLASS__, 'users_form_page'],
             ],
             'organizations' => [
-                'default' => [__CLASS__, 'organizations_page'],
-                'add-new' => [__CLASS__, 'add_new_organizations_page'],
+                'default'       => [__CLASS__, 'organizations_page'],
+                'add-new'       => [__CLASS__, 'add_new_organizations_page'],
             ],
-            'owners' => [
-                'default' => [__CLASS__, 'owners_page'],
-                'add-new' => [__CLASS__, 'owners_form_page'],
+            'owners'    => [
+                'default'   => [__CLASS__, 'owners_page'],
+                'add-new'   => [__CLASS__, 'owners_form_page'],
             ],
-            'rest-api' => [
-                'default' => [__CLASS__, 'rest_api_page'],
-                'add-new' => [__CLASS__, 'add_new_rest_api_page'],
+            'rest-api'  => [
+                'default'   => [__CLASS__, 'rest_api_page'],
+                'add-new'   => [__CLASS__, 'add_new_rest_api_page'],
             ],
         ];
 
@@ -83,11 +85,16 @@ class AccessControlPage {
      * The users creation and edit page
      */
     private static function users_form_page() {
-        $user_id    = smliser_get_query_param( 'user_id' );
-        $user       = User::get_by_id( (int) $user_id );
+        $user_id        = smliser_get_query_param( 'id' );
+        $user           = User::get_by_id( (int) $user_id );
 
-        $title              = 'Add New User';
-        $roles_title   = 'Ownership Roles';
+        $title          = sprintf( '%s User', $user ? 'Edit' : 'Add New' );
+        $roles_title    = 'Ownership Roles';
+
+        $_user_statuses = User::get_allowed_statuses();
+        $_status_titles = array_map( 'ucwords', array_values( $_user_statuses ) );
+        $_status_keys   = array_values( $_user_statuses );
+        $_statuses      = array_combine( $_status_keys, $_status_titles );
 
         $form_fields    = array(
             array(
@@ -96,6 +103,15 @@ class AccessControlPage {
                     'type'  => 'hidden',
                     'name'  => 'id',
                     'value' => $user ? $user->get_id() : 0,
+                )
+            ),
+
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'entity',
+                    'value' => 'user',
                 )
             ),
             array(
@@ -136,10 +152,11 @@ class AccessControlPage {
                     'name'  => 'password_1',
                     'value' => '',
                     'attr'  => array(
-                        'autocomplete'  => 'off',
+                        'autocomplete'  => \time(),
                         'spellcheck'    => 'off',
                         'required'      => true,
-                        'placeholder'   => 'Enter password'
+                        'placeholder'   => 'Enter password',
+                        'disabled'      => true
                     )
                 )
             ),
@@ -151,10 +168,11 @@ class AccessControlPage {
                     'name'  => 'password_2',
                     'value' => '',
                     'attr'  => array(
-                        'autocomplete'  => 'off',
+                        'autocomplete'  => \time(),
                         'spellcheck'    => 'off',
                         'required'      => true,
-                        'placeholder'   => 'Confirm passowrd'
+                        'placeholder'   => 'Confirm passowrd',
+                        'disabled'      => true
                     )
                 )
             ),
@@ -185,13 +203,14 @@ class AccessControlPage {
                         'spellcheck'    => 'off',
                         'required'      => true
                     ),
-                    'options'   => Owner::get_allowed_statuses()
+                    'options'   => $_statuses
                 )
             ),
      
         );
 
-        $avatar_url         = '' ?: smliser_get_placeholder_icon( 'avatar' );
+        $avatar_url     = $user ? $user->get_avatar()->add_query_param( 'ver', time() ) : smliser_get_placeholder_icon( 'avatar' );
+        $avatar_name    = $user ? 'View image' : \basename( $avatar_url );
         include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }
 
@@ -219,13 +238,39 @@ class AccessControlPage {
      * The owners creation and edit page
      */
     private static function owners_form_page() {
-        $owner_id   = smliser_get_query_param( 'owner_id' );
-        $owner      = Owner::get_by_id( (int) $owner_id );
+        $owner_id           = smliser_get_query_param( 'owner_id' );
+        $owner              = Owner::get_by_id( (int) $owner_id );
 
         $title              = 'Add New Resource Owner';
-        $roles_title   = 'Ownership Roles';
+        $roles_title        = 'Ownership Roles';
+
+        $_owner_statuses    = Owner::get_allowed_statuses();
+        $_status_titles     = array_map( 'ucwords', array_values( $_owner_statuses ) );
+        $_status_keys       = $_owner_statuses;
+        $_statuses          = array_combine( $_status_keys, $_status_titles );
+
+        $_owner_types_keys  = Owner::get_allowed_owner_types();
+        $_owner_types_titles= array_map( 'ucwords', $_owner_types_keys );
+        $_owner_types       = array_combine( $_owner_types_keys, $_owner_types_titles );
 
         $form_fields    = array(
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'id',
+                    'value' => $owner ? $owner->get_id() : 0,
+                )
+            ),
+
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'entity',
+                    'value' => 'owner',
+                )
+            ),
             array(
                 'label' => __( 'Owner Name', 'smliser' ),
                 'input' => array(
@@ -264,7 +309,7 @@ class AccessControlPage {
                         'spellcheck'    => 'off',
                         'required'      => true
                     ),
-                    'options'   => Owner::get_allowed_owner_types()
+                    'options'   => $_owner_types
                 )
             ),
      
@@ -279,14 +324,15 @@ class AccessControlPage {
                         'spellcheck'    => 'off',
                         'required'      => true
                     ),
-                    'options'   => Owner::get_allowed_statuses()
+                    'options'   => $_statuses 
                 )
             ),
      
         );
 
-        $roles              = $owner ? $owner->get_roles() : DefaultRoles::all();
-        $avatar_url         = '' ?: smliser_get_placeholder_icon( 'avatar' );
+        $roles          = $owner ? $owner->get_roles() : DefaultRoles::all();
+        $avatar_url     = '' ?: smliser_get_placeholder_icon( 'avatar' );
+        $avatar_name    = $owner ? 'View image' : \basename( $avatar_url );
         include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }
 
