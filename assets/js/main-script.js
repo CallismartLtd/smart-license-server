@@ -294,6 +294,90 @@ function smliserSelect2AppSelect( selectEl ) {
     });    
 }
 
+/**
+ * User and organization search selection.
+ * 
+ * @param {HTMLElement} selectEl 
+ */
+function smliserUserOrgSearch( selectEl ) {
+    if ( ! ( selectEl instanceof HTMLElement ) ) {
+        console.warn( 'Could not instantiate app selection, invalid html element' );
+        return;     
+    }
+
+    const prepareArgs = ( params ) => {
+        return {
+            search: params.term
+        };
+    };
+
+    const processResults = ( data ) => {        
+        // Group entities by type (individuals and organizations)
+        const grouped = {};
+
+        data?.items?.forEach( entity => {
+            if ( ! grouped[ entity.type ] ) {
+                grouped[ entity.type ] = [];
+            }
+
+            grouped[ entity.type ].push({
+                id: entity.id,
+                text: entity?.name ?? entity?.display_name ?? 'No name',
+                type: entity.type,
+            });
+        });        
+
+        // Convert to Select2’s optgroup structure
+        const results = Object.keys( grouped ).map( type => ({
+            text: type.charAt(0).toUpperCase() + type.slice(1),
+            children: grouped[ type ]
+        }));
+
+        return { results };
+    };
+
+    const $select2  = jQuery( selectEl );
+    const url       = new URL( smliser_var.smliser_ajax_url );
+
+    url.searchParams.set( 'action', 'smliser_admin_security_entity_search' );
+    url.searchParams.set( 'security', smliser_var.nonce );
+
+    $select2.select2({
+        placeholder: 'Search',
+        ajax: {
+            url: url,
+            dataType: 'json',
+            delay: 500,
+            data: prepareArgs,
+            processResults: processResults,
+            cache: true,
+        },
+        allowClear: true,
+        minimumInputLength: 2,
+        
+    });
+
+    // The type selector.
+    const typeSelect    = $select2.closest( 'form' ).find( '#type' );    
+    const nameInput     = $select2.closest( 'form' ).find( '#name' );    
+
+    if ( typeSelect.length ) {
+        const defaultValue  = typeSelect.val();
+        $select2.on( 'select2:select select2:unselect', e => {
+            const param         = e.params;
+            const entityType    = param?.data?.type;
+
+            typeSelect.val( param.selected ? entityType : defaultValue );      
+            
+            if ( ( param.data.selected && nameInput ) && ! nameInput.val().length ) {
+                nameInput.val( param.data.text );
+            }            
+        });        
+    }
+
+
+}
+
 document.addEventListener( 'DOMContentLoaded', function() {
     let tokenBtn                = document.getElementById( 'smliserDownloadTokenBtn' );
     let licenseKeyContainers    = document.querySelectorAll( '.smliser-license-obfuscation' );
@@ -317,8 +401,11 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const roleBuilderEl         = document.querySelector( '#smliser-role-builder' );
     const avatarUploadFields    = document.querySelectorAll( '.smliser-avatar-upload' );
     const generatePasswordBtn   = document.querySelector( '#smliser-generate-password' );
+    const accessControlForm     = document.querySelector( '.smliser-access-control-form' );
+    const principalSearch       = document.querySelector( '#principal_id' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
+    principalSearch && smliserUserOrgSearch( principalSearch );
 
 
     if ( generatePasswordBtn ) {
@@ -354,16 +441,16 @@ document.addEventListener( 'DOMContentLoaded', function() {
             
         });
 
-        [pwd1Field, pwd2Field].forEach( pwdBtn => {
-            pwdBtn.parentElement.addEventListener( 'click', e => {
+        [pwd1Field, pwd2Field].forEach( pwdInput => {
+            pwdInput.parentElement.addEventListener( 'click', e => {
                 const btn = e.target.closest( '.smliser-password-toggle' );
                 
                 if ( ! btn ) return;
                 
                 const targetId      = btn.getAttribute( 'data-target' );
                 const passwordField = document.querySelector( `#${targetId}` );
-                const showIcon      = btn.querySelector('.smliser-eye-show');
-                const hideIcon      = btn.querySelector('.smliser-eye-hide');
+                const showIcon      = btn.querySelector( '.smliser-eye-show' );
+                const hideIcon      = btn.querySelector( '.smliser-eye-hide' );
                 
                 if ( ! passwordField ) return;
                 
@@ -379,6 +466,17 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     btn.setAttribute( 'aria-label', 'Show password' );
                 }
             });
+
+            const openField = () => {
+                pwdInput.disabled   = false
+                pwdInput.type       = 'text';
+                
+                if ( queryParam.has( 'section', 'edit' ) ) {
+                    pwdInput.required = false;
+                }
+                
+            }
+            setTimeout( openField, 1500);
         })
     }
 
@@ -1439,8 +1537,61 @@ document.addEventListener( 'DOMContentLoaded', function() {
     }
 
     if ( roleBuilderEl ) {
-        const defaultRoles   = smliser_var.default_roles;
+        const defaultRoles  = smliser_var.default_roles;
         const builder       = new RoleBuilder( roleBuilderEl, defaultRoles );
+
+        window.SmliserRoleBuilder   = builder;
+    }
+
+    if ( accessControlForm ) {
+
+        accessControlForm.addEventListener( 'submit', async e => {
+            e.preventDefault();
+            const payLoad   = new FormData( accessControlForm );
+            const url       = new URL( smliser_var.smliser_ajax_url );
+
+            payLoad.set( 'security', smliser_var.nonce );
+
+            try {
+                const response    = await fetch( url.href, {
+                    method: "POST",
+                    body: payLoad,
+                    credentials: "same-origin"
+                });
+
+                const contentType   = response.headers.get( 'Content-Type' );
+                const isJson        = contentType.includes( 'application/json' );
+                let body            = '';
+
+                if ( isJson ) {
+                    body    = await response.json();
+                } else {
+                    body    = await response.text();
+                }
+
+                if ( ! response.ok || ( isJson && ! body.success ) ) {
+                    const errorMessage  = isJson ? body?.data?.message : body;
+                    throw new Error( errorMessage );
+                }
+
+                const message   = body?.data?.message ?? 'Request was successfull, but no response message.';
+
+                smliserNotify( message, 5000 );
+
+                
+            } catch ( error ) {
+                let message;
+                if ( error instanceof TypeError ) {
+                    message = 'Network error, please check your internet connection';
+                } else {
+                    message = error.message;
+                }
+
+                smliserNotify( message, 10000 );
+                
+            }
+
+        });
     }
 
     if ( avatarUploadFields.length ) {
