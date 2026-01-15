@@ -8,15 +8,17 @@
 
 namespace SmartLicenseServer\Security;
 
+use InvalidArgumentException;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 
 use const PASSWORD_ARGON2ID;
 
 use function defined, is_smliser_error, sprintf, smliser_safe_json_encode, password_hash,
-password_verify, in_array, method_exists, str_replace, ucwords, compact;
+password_verify, in_array, is_string, method_exists, str_replace, ucwords, compact;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 /**
@@ -90,6 +92,7 @@ class RequestController {
      * 
      * @param User $user The user object.
      * @param Request $request The request object.
+     * @return bool|RequestException
      */
     protected static function save_user( User $user, Request $request ) : bool|RequestException {
         $email          = $request->get( 'email' );
@@ -115,7 +118,7 @@ class RequestController {
         $display_name   = $request->get( 'display_name' );
         $status         = $request->get( 'status' );
 
-        if ( ! in_array( $status, User::get_allowed_statuses() ) ) {
+        if ( ! in_array( $status, User::get_allowed_statuses(), true ) ) {
             return new RequestException( 'invalid_user_status', 'The status provided is not allowed.', ['status' => 400] );
         }
         
@@ -160,6 +163,90 @@ class RequestController {
             FileSystemHelper::upload_avatar( $avatar, 'user', \md5( $user->get_email() ) );
         }
         return true;
+    }
+
+    /**
+     * Save the owner object.
+     * 
+     * @param Owner $request The Owner object.
+     * @param Request $request The request object.
+     * @return bool|RequestException
+     */
+    protected static function save_owner( Owner $owner, Request $request ): bool|RequestException {
+        $principal_id   = $request->get( 'principal_id' );
+
+        if ( empty( $principal_id ) || ! is_int( $principal_id ) ) {
+            return new RequestException( 'required_param', 'Please provide a valid principal_id.', ['status' => 400] );
+
+        }
+
+        $owner_type   = $request->get( 'type' );
+
+        if ( empty( $owner_type ) ||  ! in_array( $owner_type, Owner::get_allowed_owner_types(), true ) ) {
+            return new RequestException( 'required_param', 'Please provide a valid resource owner type.', ['status' => 400] );
+        }
+
+        $owner_name = $request->get( 'name' );
+
+        if ( empty( $owner_name ) || ! is_string( $owner_name ) ) {
+            return new RequestException( 'required_param', 'Please provide a valid resource owner name.', ['status' => 400] );
+        }
+
+        $status         = $request->get( 'status' );
+
+        if ( ! in_array( $status, Owner::get_allowed_statuses(), true ) ) {
+            return new RequestException( 'required_param', 'The status provided is not allowed.', ['status' => 400] );
+        }
+
+        $owner->set_name( $owner_name )
+            ->set_principal_id( $principal_id )
+            ->set_status( $status )
+        ->set_type( $owner_type );
+        
+        try {
+            $owner_saved    = $owner->save();
+        }  catch( Exception $e ) {
+            $error  = new RequestException( $e->get_error_code(), $e->get_error_message(), ['status' => 500] );
+            return $error;
+        }
+        
+
+        if ( $owner_saved ) {
+            $caps       = (array) $request->get( 'capabilities', [] );
+            $role_name  = $request->get( 'role_name' );
+            $role_label = $request->get( 'role_label' );
+
+            if ( ! empty( $role_label ) && ! empty( $role_name ) ) {
+                $role_id    = (int) $request->get( 'role_id' );
+
+                $role       = Role::get_by_id( $role_id );
+
+                if ( ! $role ) {
+                    $role = new Role();
+                }
+
+                try {
+                    $role->set_label( $role_label )
+                        ->set_name( $role_name )
+                        ->set_owner_id( $owner->get_id() )
+                        ->set_capabilities( $caps );
+
+                    if ( ! $role->save() ) {
+                        throw new RequestException( 'role_save_error', 'Owner has been saved but unable to save roles', ['status' => 500] );
+                    }
+                } catch( InvalidArgumentException $e ) {
+                    return new RequestException( 'role_set_error', $e->getMessage(), ['status' => 400] );
+                } catch( RequestException $e ) {
+                    return $e;
+                } catch( Exception $e ) {
+                    $error  = new RequestException( $e->get_error_code(), $e->get_error_message(), ['status' => 500] );
+                    return $error;
+                }
+
+            }
+        }
+
+        return $owner_saved;
     }
 
     /**

@@ -51,7 +51,12 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 <?php else: ?>
                     <?php foreach ( $owners as $owner ) : ?>
                         <tr>
-                            <td><?php echo esc_html( $owner->get_id() ); ?></td>
+                            <td>
+                                <?php echo esc_html( $owner->get_id() ); ?>
+                                <p class="smliser-edit-link">
+                                    <a href="<?php echo esc_url( smliser_get_current_url()->add_query_params( ['section' => 'edit', 'id' => $owner->get_id()] ) ); ?>">edit</a>
+                                </p>
+                            </td>
                             <td><?php echo esc_html( $owner->get_name() ); ?></td>
                             <td><?php echo esc_html( $owner->get_type() ); ?></td>
                             <td><?php echo esc_html( $owner->get_status() ); ?></td>

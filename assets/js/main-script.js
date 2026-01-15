@@ -1538,8 +1538,16 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
     if ( roleBuilderEl ) {
         const defaultRoles  = smliser_var.default_roles;
-        const builder       = new RoleBuilder( roleBuilderEl, defaultRoles );
 
+        let existingRoles = null;
+        try {
+            existingRoles = JSON.parse( roleBuilderEl.getAttribute( 'data-roles' ) );
+        } catch ( error ) {
+            existingRoles = null;
+        }
+
+        const builder       = new RoleBuilder( roleBuilderEl, defaultRoles, existingRoles );
+        
         window.SmliserRoleBuilder   = builder;
     }
 
@@ -1549,6 +1557,17 @@ document.addEventListener( 'DOMContentLoaded', function() {
             e.preventDefault();
             const payLoad   = new FormData( accessControlForm );
             const url       = new URL( smliser_var.smliser_ajax_url );
+
+            if ( SmliserRoleBuilder ) {
+                const roleValues = SmliserRoleBuilder.getValue();
+
+                payLoad.set( 'role_name', roleValues.roleName ?? '' );
+                payLoad.set( 'role_label', roleValues.roleLabel );
+
+                roleValues.capabilities.forEach( cap => {
+                    payLoad.append( 'capabilities[]', cap );
+                });
+            }
 
             payLoad.set( 'security', smliser_var.nonce );
 

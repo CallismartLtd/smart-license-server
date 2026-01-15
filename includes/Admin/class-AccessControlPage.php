@@ -8,13 +8,14 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Security\ContextServiceProvider;
 use SmartLicenseServer\Security\DefaultRoles;
 use SmartLicenseServer\Security\Organization;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\User;
 
 use function defined, smliser_get_query_param, array_unshift, sprintf,time, 
-smliser_json_encode_attr, array_map, array_combine, array_values;
+smliser_json_encode_attr, array_map, array_combine, array_values, is_array;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -37,11 +38,12 @@ class AccessControlPage {
             ],
             'organizations' => [
                 'default'       => [__CLASS__, 'organizations_page'],
-                'add-new'       => [__CLASS__, 'add_new_organizations_page'],
+                'edit'       => [__CLASS__, 'add_new_organizations_page'],
             ],
             'owners'    => [
                 'default'   => [__CLASS__, 'owners_page'],
                 'add-new'   => [__CLASS__, 'owners_form_page'],
+                'edit'      => [__CLASS__, 'owners_form_page'],
             ],
             'rest-api'  => [
                 'default'   => [__CLASS__, 'rest_api_page'],
@@ -238,7 +240,7 @@ class AccessControlPage {
      * The owners creation and edit page
      */
     private static function owners_form_page() {
-        $owner_id           = smliser_get_query_param( 'owner_id' );
+        $owner_id           = smliser_get_query_param( 'id' );
         $owner              = Owner::get_by_id( (int) $owner_id );
 
         $title              = 'Add New Resource Owner';
@@ -252,6 +254,34 @@ class AccessControlPage {
         $_owner_types_keys  = Owner::get_allowed_owner_types();
         $_owner_types_titles= array_map( 'ucwords', $_owner_types_keys );
         $_owner_types       = array_combine( $_owner_types_keys, $_owner_types_titles );
+        $principal_option   = array();
+
+        if ( $owner ) {
+            $_owner_type    = $owner->get_type();
+            $principal_id   = $owner->get_principal_id();
+            $_entity_class  = ContextServiceProvider::get_entity_classname( $_owner_type );
+            $principal      = $_entity_class ? $_entity_class::get_by_id( $principal_id ) : '';
+
+            $pr_name        = $principal ? $principal->get_name() : '[Deleted entity]';
+
+            $principal_option   = [$principal_id => $pr_name];
+
+            unset( $_owner_type, $entity_class, $_entity_class, $principal, $pr_name );
+
+            $default_roles  = $owner->get_roles();
+            
+            if ( is_array( $default_roles ) ) {
+                $roles = [];
+
+                foreach ( $default_roles as $def_role ) {
+                    $roles[]    = $def_role->to_array();
+                }
+            } else {
+                $roles      = $default_roles ? $default_roles->to_array() : null;
+                $role_id    = $default_roles->get_id();
+            }
+
+        }
 
         $form_fields    = array(
             array(
@@ -269,6 +299,15 @@ class AccessControlPage {
                     'type'  => 'hidden',
                     'name'  => 'entity',
                     'value' => 'owner',
+                )
+            ),
+
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'role_id',
+                    'value' => isset( $role_id ) ? $role_id : 0,
                 )
             ),
             array(
@@ -294,8 +333,9 @@ class AccessControlPage {
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
-                        'required'      => true
-                    )
+                        'required'      => true,
+                    ),
+                    'options'       => $principal_option
                 )
             ),
             array(
@@ -330,9 +370,6 @@ class AccessControlPage {
      
         );
 
-        $roles          = $owner ? $owner->get_roles() : DefaultRoles::all();
-        $avatar_url     = '' ?: smliser_get_placeholder_icon( 'avatar' );
-        $avatar_name    = $owner ? 'View image' : \basename( $avatar_url );
         include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }
 

@@ -15,9 +15,11 @@ use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use DateMalformedStringException;
 use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Exceptions\Exception;
 
 use const SMLISER_OWNERS_TABLE;
-use function defined, smliser_dbclass, array_key_exists, is_string, is_null, is_callable;
+use function defined, smliser_dbclass, array_key_exists, is_string, is_null, is_callable,
+sprintf;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -115,9 +117,17 @@ class Owner {
 
     /** 
      * The roles avaliable to this owner.
-     * @var Role[] 
+     * @var Role|Role[]|null Single role instance for individual users, an array
+     * `                     of role objects for organization 
      */
-    protected ?array $roles = null;
+    protected Role|array|null $roles = null;
+
+    /**
+     * Holds the value of `exists` check
+     *
+     * @var boolean|null 
+     */
+    protected ?bool $exists_cache = null;
 
     /**
      * Class constructor
@@ -351,6 +361,7 @@ class Owner {
      * Save app to the database.
      * 
      * @return bool
+     * @throws \SmartLicenseServer\Exceptions\Exception
      */
     public function save() : bool {
         $db     = smliser_dbclass();
@@ -365,10 +376,15 @@ class Owner {
         ];
 
         if ( $this->get_id() ) {
+            unset( $data['principal_id'], $data['type'] );
             $result = $db->update( $table, $data, ['id' => $this->get_id()] );
         } else {
-            $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
+            $principal_exists = static::get_by_principal_context( $data['principal_id'], $data['type'] );
 
+            if ( $principal_exists ) {
+                throw new Exception( 'duplicate_owner', sprintf( 'This %s is already a resource owner.', $data['type'] ) );
+            }
+            $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $data );
 
             $this->set_id( $db->get_insert_id() );
@@ -394,6 +410,31 @@ class Owner {
     }
 
     /**
+     * Get a resource Owner object in the context of it's pricipal
+     * 
+     * @param int $principal_id The principal ID.
+     * @param string $owner_type    The owner type.
+     * @return static
+     */
+    public static function get_by_principal_context( int $principal_id, string $type ) : ?static {
+        static $owners = [];
+
+        $key    = sprintf( '%s:%s', $principal_id, $type );
+        if ( ! array_key_exists( $key, $owners ) ) {
+            $db     = smliser_dbclass();
+            $table  = SMLISER_OWNERS_TABLE;
+            $sql    = "SELECT * FROM `{$table}` WHERE `principal_id` = ? AND `type` = ?";
+
+            $result = $db->get_row( $sql, [$principal_id, $type] );
+
+            $owner  = $result ? static::from_array( $result ) : null;
+            $owners[ $key ] = $owner;
+        }
+
+        return $owners[ $key ];
+    }
+
+    /**
      * Get all owners
      * 
      * @param int $page The current pagination number.
@@ -408,11 +449,11 @@ class Owner {
     /**
      * Lazy load the roles.
      *
-     * @return array
+     * @return Role|Role[]|null
      */
-    public function get_roles(): array {
+    public function get_roles(): Role|array|null {
         if ( is_null( $this->roles ) ) {
-            $this->roles = Role::get_all_by_owner( $this->get_id() );
+            $this->roles = Role::get_all_by_owner( $this->get_id(), $this->get_type() );
         }
         return $this->roles;
     }
@@ -490,6 +531,29 @@ class Owner {
     | CONDITIONAL METHODS
     |--------------------
     */
+
+    /**
+     * Tells whether this owner exists.
+     * 
+     * @return bool True when the owner exists, false otherwise.
+     */
+    public function exists() : bool {
+        if ( ! $this->get_id() ) {
+            return false;
+        }
+
+        if ( is_null( $this->exists_cache ) ) {
+            $db     = smliser_dbclass();
+            $table  = SMLISER_OWNERS_TABLE;
+            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
+
+            $result = $db->get_var( $sql, [$this->get_id()] );
+
+            $this->exists_cache = boolval( $result );
+        }
+
+        return $this->exists_cache;
+    }
 
     /**
      * Tells whether owner is individual.

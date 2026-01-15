@@ -6,17 +6,19 @@
  * Roles are assigned to principals (User, ServiceAccount)
  * within an ownership scope.
  *
- * @author Callistus Nwachukwu
+ * @author Callistus Nwachukwu.
  * @package SmartLicenseServer\Security
  */
 
 namespace SmartLicenseServer\Security;
 
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_ROLES_TABLE;
-use function is_json, json_decode, defined, smliser_dbclass, smliser_safe_json_encode;
+use function is_json, json_decode, defined, smliser_dbclass, smliser_safe_json_encode,
+get_object_vars;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -160,10 +162,6 @@ class Role {
      * @return static
      */
     public function set_name( $name ) : static {
-        if ( $this->id > 0 ) {
-            return $this;
-        }
-
         $name = self::sanitize_text( $name );
 
         if ( '' === $name ) {
@@ -333,6 +331,16 @@ class Role {
         return $self;
     }
 
+    /**
+     * Convert roles to array.
+     * 
+     * @return array
+     */
+    public function to_array() : array {
+
+        return get_object_vars( $this );
+    }
+
     /*
     |----------------
     | CRUD METHODS
@@ -343,10 +351,16 @@ class Role {
      * Save role to database.
      *
      * @return bool
+     * @throws \SmartLicenseServer\Exceptions\Exception
      */
     public function save() : bool {
-        if ( ! $this->owner_id || '' === $this->name ) {
+
+        if ( $this->get_id() ) {
             return false;
+        }
+        
+        if ( ! $this->owner_id || '' === $this->name ) {
+            throw new Exception( 'role_save_error', 'Owner ID or name must be set' );
         }
 
         $db     = smliser_dbclass();
@@ -362,24 +376,22 @@ class Role {
             'updated_at'    => gmdate( 'Y-m-d H:i:s' ),
         ];
 
-        if ( $this->get_id() ) {
-            unset( $data['owner_id'], $data['name'] );
+        
+        // unset( $data['owner_id'], $data['name'] );
 
-            $result = $db->update( $table, $data, [ 'id' => $this->get_id() ] );
-        } else {
-            $existing = static::get_by_name( $this->get_owner_id(), $this->get_name() );
+        // $result = $db->update( $table, $data, [ 'id' => $this->get_id() ] );
+        
+        $existing = static::get_by_name( $this->get_owner_id(), $this->get_name() );
 
-            if ( $existing ) {
-                return false;
-            }
-
-            $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
-
-            $result = $db->insert( $table, $data );
-            $this->set_id( $db->get_insert_id() );
-            
+        if ( $existing ) {
+            throw new Exception( 'role_save_error', 'The provided role name is not available.' );
         }
 
+        $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
+
+        $result = $db->insert( $table, $data );
+        $this->set_id( $db->get_insert_id() );
+    
         return false !== $result;
     }
 
@@ -440,25 +452,32 @@ class Role {
      * Get all roles for an owner.
      *
      * @param int $owner_id
-     * @return static[]
+     * @param string $owner_type
+     * @return static|static[]|null
      */
-    public static function get_all_by_owner( int $owner_id ) : array {
+    public static function get_all_by_owner( int $owner_id, string $owner_type ) : static|array|null {
         $db     = smliser_dbclass();
         $table  = SMLISER_ROLES_TABLE;
 
-        $rows = $db->get_results(
-            "SELECT * FROM {$table} WHERE owner_id = ?",
-            [ $owner_id ]
-        );
+        $db_method  = match( $owner_type ) {
+            Owner::TYPE_INDIVIDUAL  => "get_row",
+            default                 => "get_results"
+        };
 
-        if ( ! $rows ) {
-            return [];
+        $sql    = "SELECT * FROM `{$table}` WHERE `owner_id` = ?";
+        $rows   = $db->$db_method( $sql, [ $owner_id ] );
+
+        $result = null;
+        if ( $rows ) {
+            $result = 
+                Owner::TYPE_INDIVIDUAL === $owner_type 
+                ? static::from_array( $rows ) : array_map(
+                static fn( $row ) => static::from_array( $row ),
+                $rows
+            );
         }
 
-        return array_map(
-            static fn( $row ) => static::from_array( $row ),
-            $rows
-        );
+        return $result;
     }
 
 }

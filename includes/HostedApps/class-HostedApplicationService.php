@@ -312,7 +312,7 @@ class HostedApplicationService {
      * }
      * @return array Array containing 'items' (software objects) and 'pagination' info.
      */
-    public static function get_softwares( array $args = array() ) {
+    public static function get_software( array $args = array() ) {
         $args['types']  = array( 'software' );
         return self::get_apps( $args );
     }

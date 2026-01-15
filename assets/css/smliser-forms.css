@@ -565,6 +565,14 @@ button.smliser-upload-btn {
   flex-direction: column;
   gap: 5px;
 }
+.smliser-form-label-row input[type="text"],
+.smliser-form-label-row select,
+.app-uploader-form-row input[type="text"],
+.app-uploader-form-row select {
+  max-width: unset;
+  min-height: 30px;
+  border: 1px #dedcde solid;
+}
 
 .app-uploader-form-row span {
   font-weight: 500;

@@ -834,6 +834,10 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'status'        => smliser_get_request_param( 'status' ),
             'principal_id'  => smliser_get_request_param( 'principal_id' ),
             'type'          => smliser_get_request_param( 'type' ),
+            'role_label'    => smliser_get_request_param( 'role_label' ),
+            'role_name'     => smliser_get_request_param( 'role_name' ),
+            'role_id'     => smliser_get_request_param( 'role_id' ),
+            'capabilities'  => smliser_get_request_param( 'capabilities', [] ),
             'entity'        => $entity,
             'avatar'        => isset( $_FILES['avatar'] ) && UPLOAD_ERR_OK === $_FILES['avatar']['error'] ? $_FILES['avatar'] : null,
             'is_authorized'  => true,
@@ -865,7 +869,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'search_term'   => smliser_get_request_param( 'search' ),
             'status'        => smliser_get_request_param( 'status', 'active' ),
             'types'         => smliser_get_request_param( 'types', [] ),
-            'is_authorized' => true
+            'is_authorized' => \is_super_admin()
         ]);
 
         $response   = RequestController::search_users_orgs( $request );

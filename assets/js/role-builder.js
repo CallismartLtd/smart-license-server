@@ -3,10 +3,44 @@ class RoleBuilder {
     /**
      * Create a RoleBuilder instance.
      *
-     * @param {HTMLElement} container Root container element.
-     * @param {Object} data Role and capability definitions.
+     * @param {HTMLElement} container
+     *     Root DOM element where the role builder UI will be rendered.
+     *     This element MUST exist in the document before instantiation.
+     *
+     * @param {Object} data
+     *     Canonical role and capability definitions.
+     *
+     *     Structure:
+     *     {
+     *         roles: {
+     *             [roleKey: string]: {
+     *                 label: string,
+     *                 capabilities: string[]
+     *             }
+     *         },
+     *         capabilities: {
+     *             [domain: string]: {
+     *                 [capability: string]: string   // capability => label
+     *             }
+     *         }
+     *     }
+     *
+     * @param {Object|null} [initialRole=null]
+     *     Optional existing role to preload into the UI.
+     *     Used when editing an existing role.
+     *
+     *     Structure:
+     *     {
+     *         key?: string|null,          // Existing role key (if canonical)
+     *         name: string,               // Human-readable role name
+     *         capabilities: string[]      // List of assigned capability identifiers
+     *     }
+     *
+     *     Behavior:
+     *     - If `key` matches a predefined role, that preset is selected and locked.
+     *     - If no matching preset exists, the role is treated as a custom role.
      */
-    constructor( container, data ) {
+    constructor( container, data, initialRole = null ) {
         this.container  = container;
         this.data       = data;
 
@@ -15,6 +49,10 @@ class RoleBuilder {
 
         this.render();
         this.bindEvents();
+
+        if ( initialRole ) {
+            this.loadRole( initialRole );
+        }
     }
 
     /**
@@ -215,8 +253,8 @@ class RoleBuilder {
      */
     getValue() {
         return {
-            role: this.activeRole,
-            name: this.container.querySelector('.rb-role-name').value,
+            roleName: this.activeRole,
+            roleLabel: this.container.querySelector('.rb-role-name').value,
             capabilities: Array.from(
                 this.container.querySelectorAll(
                     '.rb-capabilities input:checked'
@@ -236,4 +274,57 @@ class RoleBuilder {
             .replace(/_/g, ' ')
             .replace(/\b\w/g, c => c.toUpperCase());
     }
+
+    /**
+     * Load an existing role into the builder (edit mode).
+     *
+     * If the role exactly matches a canonical preset, the preset
+     * is selected and locked. Otherwise, the role is treated as custom.
+     *
+     * @param {{
+     *   name: string,
+     *   capabilities: string[]
+     * }} roleData
+     */
+    loadRole( roleData ) {
+        this.resetCapabilities();
+
+        const presetKey     = this.findMatchingPreset( roleData.capabilities );
+        const roleSelect    = this.container.querySelector( '.rb-role-select' );
+
+        if ( presetKey ) {
+            roleSelect.value = presetKey;
+            this.selectRole( presetKey );
+            return;
+        }
+
+        // Custom / non-canonical role
+        roleSelect.value = '';
+        this.enableCustomRole();
+
+        this.setRoleName( roleData.name );
+        this.checkCapabilities( roleData.capabilities );
+    }
+
+    /**
+     * Find a preset role that exactly matches a capability set.
+     *
+     * @param {string[]} capabilities
+     * @return {string|null} Matching role key or null
+     */
+    findMatchingPreset( capabilities ) {
+        const sorted = [ ...capabilities ].sort().join('|');
+
+        for ( const [ key, role ] of Object.entries( this.data.roles ) ) {
+            const presetCaps = [ ...role.capabilities ].sort().join('|');
+
+            if ( presetCaps === sorted ) {
+                return key;
+            }
+        }
+
+        return null;
+    }
+
+
 }
