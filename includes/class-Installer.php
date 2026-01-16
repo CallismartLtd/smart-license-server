@@ -254,14 +254,25 @@ class Installer {
 
     /**
      * Perform database migrations.
+     * 
+     * @param $base_version The version to perform the migration from.
      */
-    public static function db_migrate() {
+    public static function db_migrate( string $base_version ) {
 
-        $all_func = self::$db_versions[SMLISER_DB_VER] ?? [];
+    if ( empty( $base_version ) ) {
+        return;
+    }
 
-        foreach ( $all_func as $func ) {
-            if ( is_callable( $func ) ) {
-                call_user_func( $func );
+    $versions = array_keys( self::$db_versions );
+        usort( $versions, 'version_compare' );
+
+        foreach ( $versions as $version ) {
+            if ( version_compare( $base_version, $version, '<' ) ) {
+                foreach ( self::$db_versions[ $version ] as $callback ) {
+                    if ( is_callable( $callback ) ) {
+                        call_user_func( $callback );
+                    }
+                }
             }
         }
     }
