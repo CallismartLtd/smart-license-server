@@ -105,8 +105,8 @@ Hosted applications may include:
 ## Architecture Summary
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        PRINCIPAL                             │
-│  (Authenticated Actor: User, Service Account, or Platform)   │
+│                        PRINCIPAL                            │
+│  (Authenticated Actor: User, Service Account, or Platform)  │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      │ performs
