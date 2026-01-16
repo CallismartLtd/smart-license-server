@@ -608,12 +608,12 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         }
 
         $repo_version = \smliser_settings_adapter()->get( 'smliser_repo_version', 0 );
-        if ( SMLISER_VER === $repo_version ) {
+        if ( version_compare( $repo_version, SMLISER_VER, '>=' ) ) {
             \smliser_send_json_error( array( 'message' => 'No upgrade needed' ) );
         }
 
         if ( Installer::install() )  {
-            Installer::db_migrate();   
+            Installer::db_migrate( $repo_version );   
         }
 
         \smliser_settings_adapter()->set( 'smliser_repo_version', SMLISER_VER );
