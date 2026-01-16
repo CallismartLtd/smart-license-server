@@ -209,6 +209,13 @@ class Config {
         define( 'SMLISER_ROLES_TABLE', $parsed_config['db_prefix'] . 'smliser_roles' );
 
         /**
+         * Roles to principals database table name.
+         *
+         * @var string
+         */
+        define( 'SMLISER_ROLE_ASSIGNMENT_TABLE', $parsed_config['db_prefix'] . 'smliser_principal_roles' );
+
+        /**
          * Organizations database table name.
          *
          * @var string
