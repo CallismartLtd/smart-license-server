@@ -94,6 +94,7 @@ class DashboardPage {
             'Performance & Ranking' => [
                 'summary'   => [
                     'top_apps'          => RepositoryAnalytics::get_top_apps( 5, 'downloads' ),
+                    'download_count'    => RepositoryAnalytics::get_total_downloads(),
                     'maintenance_count' => count( RepositoryAnalytics::get_apps_maintained_by_month( 1 ) ),
                 ],
                 'chart_data'    => self::prepare_performance_chart( $months_6 ),
