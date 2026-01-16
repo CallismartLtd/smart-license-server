@@ -210,4 +210,32 @@ final class DefaultRoles {
 
         return self::all()[ $name ];
     }
+
+    /**
+     * Save or update default roles in the database.
+     */
+    public static function install() {
+        $default_roles  = static::all();
+        $roles          = [];
+
+        foreach ( $default_roles as $slug => $roledata ) {
+            $role   = new Role;
+
+            foreach ( $roledata as $k => $v ) {
+                $cap_meth = "set_{$k}";
+                $role->$cap_meth( $v );
+            }
+            $key    = key( $roledata );
+            $value  = $roledata[$key];
+            
+            $method = "set_{$key}";
+            $role->set_slug( $slug );
+            $role->$method( $value );
+
+            $roles[]    = $role;
+
+        }
+
+        return $roles;
+    }
 }

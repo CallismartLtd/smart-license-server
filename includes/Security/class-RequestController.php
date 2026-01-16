@@ -227,7 +227,7 @@ class RequestController {
 
                 try {
                     $role->set_label( $role_label )
-                        ->set_name( $role_name )
+                        ->set_slug( $role_name )
                         ->set_owner_id( $owner->get_id() )
                         ->set_capabilities( $caps );
 

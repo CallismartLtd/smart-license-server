@@ -25,7 +25,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
         <ul class="subsubsub">
             <?php foreach ( Owner::get_allowed_statuses() as $k => $v ) : ?>
-                <?php if ( Owner::count_status( $k ) > 0 ) : ?>
+                <?php if ( Owner::count_status( $v ) > 0 ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( array( 'status' => $k ), smliser_repo_page() ) ); ?>" class="smliser-status-link">
                         <?php echo esc_html( ucfirst( $v ) ); ?> (<?php echo absint( Owner::count_status( $k ) ); ?>)
                     </a>

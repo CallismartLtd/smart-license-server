@@ -14,7 +14,7 @@ SMLISER_PLUGINS_META_TABLE, SMLISER_THEMES_TABLE, SMLISER_THEMES_META_TABLE, SML
 SMLISER_SOFTWARE_META_TABLE, SMLISER_ANALYTICS_LOGS_TABLE, SMLISER_ANALYTICS_DAILY_TABLE, SMLISER_APP_DOWNLOAD_TOKEN_TABLE,
 SMLISER_MONETIZATION_TABLE, SMLISER_PRICING_TIER_TABLE, SMLISER_BULK_MESSAGES_TABLE, SMLISER_BULK_MESSAGES_APPS_TABLE,
 SMLISER_OPTIONS_TABLE, SMLISER_OWNERS_TABLE, SMLISER_USERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE,
-SMLISER_SERVICE_ACCOUNTS_TABLE, SMLISER_ROLES_TABLE;
+SMLISER_SERVICE_ACCOUNTS_TABLE, SMLISER_ROLES_TABLE, SMLISER_ROLE_ASSIGNMENT_TABLE;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -278,9 +278,9 @@ final class DBTables {
             SMLISER_OWNERS_TABLE       => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'principal_id BIGINT(20) NOT NULL',
-                'type ENUM(\'individual\', \'organization\', \'platform\') DEFAULT \'platform\'',
+                'type ENUM(\'individual\', \'organization\', \'platform\') NOT NULL DEFAULT \'platform\'',
                 'name VARCHAR(255) NOT NULL',
-                'status VARCHAR(20) DEFAULT \'active\'',
+                'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'INDEX smliser_owners_principal_id (principal_id)',
@@ -296,7 +296,7 @@ final class DBTables {
                 'display_name VARCHAR(255) NOT NULL',
                 'email VARCHAR(255) NOT NULL',
                 'password_hash VARCHAR(300) NOT NULL',
-                'status VARCHAR(20) DEFAULT \'active\'',
+                'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'INDEX smliser_users_email (email)',
@@ -312,7 +312,7 @@ final class DBTables {
                 'owner_id INT NOT NULL',
                 'display_name VARCHAR(255) NOT NULL',
                 'api_key_hash VARCHAR(255) NOT NULL',
-                'status ENUM(\'active\',\'suspended\',\'disabled\') DEFAULT \'active\'',
+                'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'last_used_at DATETIME NULL',
@@ -329,15 +329,27 @@ final class DBTables {
              */
             SMLISER_ROLES_TABLE     => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-                'owner_id BIGINT(20) UNSIGNED NOT NULL',
-                'name VARCHAR(64) NOT NULL',
+                'slug VARCHAR(64) NOT NULL',
                 'label VARCHAR(190) NOT NULL',
                 'capabilities LONGTEXT NOT NULL',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-                'UNIQUE KEY smliser_owner_role_unique (owner_id, name)',
-                'INDEX smliser_roles_owner_id (owner_id)',
-                'INDEX smliser_roles_name (name)',
+                'UNIQUE KEY smliser_owner_role_unique (slug)',
+                'INDEX smliser_roles_name (slug)',
+            ),
+
+            /**
+             * Role assignment table.
+             */
+            SMLISER_ROLE_ASSIGNMENT_TABLE   => array(
+                'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'role_id BIGINT(20) NOT NULL',
+                'principal_type ENUM(\'user\', \'service_account\', \'platform\') NOT NULL',
+                'principal_id BIGINT(20) UNSIGNED NOT NULL',
+                'owner_type ENUM(\'platform\', \'individual\', \'organization\') NOT NULL',
+                'owner_id BIGINT UNSIGNED NOT NULL',
+                'created_by BIGINT UNSIGNED DEFAULT NULL',
+                'created_at DATETIME DEFAULT NULL'
             ),
 
             /**
@@ -347,7 +359,7 @@ final class DBTables {
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(255) NOT NULL',
-                'status ENUM(\'active\',\'suspended\',\'disabled\') DEFAULT \'active\'',
+                'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
                 'role_id BIGINT(20) UNSIGNED NOT NULL',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
@@ -365,7 +377,6 @@ final class DBTables {
                 'member_id BIGINT(20) UNSIGNED NOT NULL',
                 'member_type ENUM(\'user\', \'service_account\') NOT NULL DEFAULT \'user\''
             )
-
         );
     }
 

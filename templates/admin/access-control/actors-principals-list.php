@@ -24,7 +24,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
         <ul class="subsubsub">
             <?php foreach ( $entity_class::get_allowed_statuses() as $k => $v ) : ?>
-                <?php if ( $entity_class::count_status( $k ) > 0 ) : ?>
+                <?php if ( $entity_class::count_status( $v ) > 0 ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( array( 'status' => $k ), smliser_repo_page() ) ); ?>" class="smliser-status-link">
                         <?php echo esc_html( ucfirst( $v ) ); ?> (<?php echo absint( $entity_class::count_status( $k ) ); ?>)
                     </a>

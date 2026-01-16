@@ -6,7 +6,7 @@
  * Roles are assigned to principals (User, ServiceAccount)
  * within an ownership scope.
  *
- * @author Callistus Nwachukwu.
+ * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Security
  */
 
@@ -44,13 +44,13 @@ class Role {
     protected int $owner_id = 0;
 
     /**
-     * Role machine name (slug).
+     * Role machine slug.
      *
      * Immutable identifier.
      *
      * @var string
      */
-    protected string $name = '';
+    protected string $slug = '';
 
     /**
      * Human-readable role label.
@@ -99,12 +99,12 @@ class Role {
     }
 
     /**
-     * Get role name (slug).
+     * Get role slug.
      *
      * @return string
      */
-    public function get_name() : string {
-        return $this->name;
+    public function get_slug() : string {
+        return $this->slug;
     }
 
     /**
@@ -154,21 +154,21 @@ class Role {
     }
 
     /**
-     * Set role machine name.
+     * Set role machine slug.
      *
      * This value should be immutable once persisted.
      *
-     * @param string $name
+     * @param string $slug
      * @return static
      */
-    public function set_name( $name ) : static {
-        $name = self::sanitize_text( $name );
+    public function set_slug( $slug ) : static {
+        $slug = self::sanitize_text( $slug );
 
-        if ( '' === $name ) {
+        if ( '' === $slug ) {
             return $this;
         }
 
-        $this->name = strtolower( $name );
+        $this->slug = strtolower( str_replace( [' ', '-'], ['_', '_'], $slug ) );
         return $this;
     }
 
@@ -359,8 +359,8 @@ class Role {
             return false;
         }
         
-        if ( ! $this->owner_id || '' === $this->name ) {
-            throw new Exception( 'role_save_error', 'Owner ID or name must be set' );
+        if ( ! $this->owner_id || '' === $this->slug ) {
+            throw new Exception( 'role_save_error', 'Owner ID and role slug must be set' );
         }
 
         $db     = smliser_dbclass();
@@ -370,21 +370,16 @@ class Role {
 
         $data = [
             'owner_id'      => $this->get_owner_id(),
-            'name'          => $this->get_name(),
+            'slug'          => $this->get_slug(),
             'label'         => $this->get_label(),
             'capabilities'  => smliser_safe_json_encode( $capabilities ),
             'updated_at'    => gmdate( 'Y-m-d H:i:s' ),
         ];
 
-        
-        // unset( $data['owner_id'], $data['name'] );
-
-        // $result = $db->update( $table, $data, [ 'id' => $this->get_id() ] );
-        
-        $existing = static::get_by_name( $this->get_owner_id(), $this->get_name() );
+        $existing = static::get_by_slug( $this->get_owner_id(), $this->get_slug() );
 
         if ( $existing ) {
-            throw new Exception( 'role_save_error', 'The provided role name is not available.' );
+            throw new Exception( 'role_save_error', 'The provided role slug is not available.' );
         }
 
         $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
@@ -430,19 +425,19 @@ class Role {
     }
 
     /**
-     * Get role by owner and name.
+     * Get role by owner and slug.
      *
      * @param int    $owner_id
-     * @param string $name
+     * @param string $slug
      * @return static|null
      */
-    public static function get_by_name( int $owner_id, string $name ) : ?static {
+    public static function get_by_slug( int $owner_id, string $slug ) : ?static {
         $db     = smliser_dbclass();
         $table  = SMLISER_ROLES_TABLE;
 
         $row = $db->get_row(
-            "SELECT * FROM {$table} WHERE owner_id = ? AND name = ?",
-            [ $owner_id, self::sanitize_text( $name ) ]
+            "SELECT * FROM {$table} WHERE `owner_id` = ? AND `slug` = ?",
+            [ $owner_id, self::sanitize_text( $slug ) ]
         );
 
         return $row ? static::from_array( $row ) : null;
