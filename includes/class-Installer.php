@@ -9,12 +9,12 @@
  */
 namespace SmartLicenseServer;
 
-use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Database\Schema\DBTables;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\Security\DefaultRoles;
+use SmartLicenseServer\Security\Role;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -42,7 +42,9 @@ class Installer {
     );
 
     /**
-     * Handle plugin activation
+     * Handle installation.
+     * 
+     * @return \SmartLicenseServer\Exceptions\Exception|null|true
      */
     public static function install() {
         $result = self::init_repo_dir();
@@ -53,7 +55,9 @@ class Installer {
             \smliser_settings_adapter()->delete( 'smliser_directory_error' );
         }
 
-        self::create_tables();
+        self::maybe_create_tables();
+        self::install_default_roles();
+        
         return true;
        
     }
@@ -61,7 +65,7 @@ class Installer {
     /**
      * Create Database table
      */
-    private static function create_tables(){
+    private static function maybe_create_tables(){
         $db     = \smliser_dbclass();
         $tables = DBTables::table_names();
 
@@ -70,36 +74,31 @@ class Installer {
             $db_table   = $db->get_var( $sql, [$table] );
 
             if ( $table !== $db_table ) {
-                self::run_db_delta( $table, DBTables::get( $table ) );
+                self::create_table( $table, DBTables::get( $table ) );
             }
         }
     }
 
     /**
-     * Create Tables.
+     * Creates a database table.
      * 
      * @param string $table_name    The table name
      * @param array $columns        The table columns.
      */
-    private static function run_db_delta( string $table_name, array $columns ) {
-        $db = \smliser_dbclass();    
-        
-        $exists_sql     = "SHOW TABLES LIKE ?";
-        $table_exists   = $db->get_var( $exists_sql, [$table_name] );
-    
-        if ( $table_exists !== $table_name ) {
-            $charset_collate = self::charset_collate();
-    
-            $sql = "CREATE TABLE $table_name (";
-            foreach ( $columns as $column ) {
-                $sql .= "$column, ";
-            }
-    
-            $sql  = rtrim( $sql, ', ' );
-            $sql .= ") $charset_collate;";
-    
-            $db->query( $sql );
+    private static function create_table( string $table_name, array $columns ) {
+        $db                 = \smliser_dbclass();     
+        $charset_collate    = self::charset_collate();
+
+        $sql = "CREATE TABLE $table_name (";
+        foreach ( $columns as $column ) {
+            $sql .= "$column, ";
         }
+
+        $sql  = rtrim( $sql, ', ' );
+        $sql .= ") $charset_collate;";
+
+        $db->query( $sql );
+        
     }
 
     /**
@@ -121,6 +120,35 @@ class Installer {
     private static function init_repo_dir() {    
         Config::instance()->include();
         return Repository::create_repository_directories();
+    }
+
+    /**
+     * Save or update missing default role in the database.
+     */
+    public static function install_default_roles() {
+        $default_roles  = DefaultRoles::all();
+
+        foreach ( $default_roles as $slug => $roledata ) {
+            $role   = new Role;
+
+            foreach ( $roledata as $k => $v ) {
+                $setter = "set_{$k}";
+
+                if ( ! is_callable( [$role, $setter] ) ) {
+                    continue;
+                }
+
+                $role->$setter( $v );
+            }
+            
+            $role->set_slug( $slug );
+
+            try {
+                $role->save();
+            } catch ( Exception $e ) {
+                return $e;
+            }
+        }
     }
 
     /**

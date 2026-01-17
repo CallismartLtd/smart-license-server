@@ -13,6 +13,8 @@
 
 namespace SmartLicenseServer\Security;
 
+use SmartLicenseServer\Exceptions\Exception;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 final class DefaultRoles {
@@ -34,8 +36,9 @@ final class DefaultRoles {
          * Automatically inherits ALL registered capabilities.
          */
         'super_admin' => [
-            'label'        => 'Super Administrator',
-            'capabilities' => [ self::class, 'all_capabilities' ],
+            'label'         => 'Super Administrator',
+            'is_canonical'  => true,
+            'capabilities'  => [ self::class, 'all_capabilities' ],
         ],
 
         /**
@@ -44,8 +47,9 @@ final class DefaultRoles {
          * Manages applications, monetization, and visibility layers.
          */
         'resource_admin' => [
-            'label'        => 'Resource Administrator',
-            'capabilities' => [
+            'label'         => 'Resource Administrator',
+            'is_canonical'  => true,
+            'capabilities'  => [
                 // Hosted applications
                 'hosted_apps.create',
                 'hosted_apps.update',
@@ -78,8 +82,9 @@ final class DefaultRoles {
          * Identity, access control, and role management.
          */
         'security_admin' => [
-            'label'        => 'Security Administrator',
-            'capabilities' => [
+            'label'         => 'Security Administrator',
+            'is_canonical'  => true,
+            'capabilities'  => [
                 'security.owner.create',
                 'security.organization.create',
                 'security.user.create',
@@ -97,8 +102,9 @@ final class DefaultRoles {
          * Application Manager.
          */
         'app_manager' => [
-            'label'        => 'Application Manager',
-            'capabilities' => [
+            'label'         => 'Application Manager',
+            'is_canonical'  => true,
+            'capabilities'  => [
                 'hosted_apps.create',
                 'hosted_apps.update',
                 'hosted_apps.upload_assets',
@@ -110,8 +116,9 @@ final class DefaultRoles {
          * License & Pricing Manager.
          */
         'license_manager' => [
-            'label'        => 'License Manager',
-            'capabilities' => [
+            'label'         => 'License Manager',
+            'is_canonical'  => true,
+            'capabilities'  => [
                 'monetization.pricing.create',
                 'monetization.pricing.update',
 
@@ -127,8 +134,9 @@ final class DefaultRoles {
          * Analyst.
          */
         'analyst' => [
-            'label'        => 'Analyst',
-            'capabilities' => [
+            'label'         => 'Analyst',
+            'is_canonical'  => true,
+            'capabilities'  => [
                 'analytics.view',
             ],
         ],
@@ -138,7 +146,8 @@ final class DefaultRoles {
          */
         'viewer' => [
             'label'        => 'Viewer',
-            'capabilities' => [
+            'is_canonical'  => true,
+            'capabilities'  => [
                 'repository.view',
                 'repository.download',
             ],
@@ -209,33 +218,5 @@ final class DefaultRoles {
         }
 
         return self::all()[ $name ];
-    }
-
-    /**
-     * Save or update default roles in the database.
-     */
-    public static function install() {
-        $default_roles  = static::all();
-        $roles          = [];
-
-        foreach ( $default_roles as $slug => $roledata ) {
-            $role   = new Role;
-
-            foreach ( $roledata as $k => $v ) {
-                $cap_meth = "set_{$k}";
-                $role->$cap_meth( $v );
-            }
-            $key    = key( $roledata );
-            $value  = $roledata[$key];
-            
-            $method = "set_{$key}";
-            $role->set_slug( $slug );
-            $role->$method( $value );
-
-            $roles[]    = $role;
-
-        }
-
-        return $roles;
     }
 }

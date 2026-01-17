@@ -9,7 +9,6 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Security\ContextServiceProvider;
-use SmartLicenseServer\Security\DefaultRoles;
 use SmartLicenseServer\Security\Organization;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\User;
@@ -268,18 +267,18 @@ class AccessControlPage {
 
             unset( $_owner_type, $entity_class, $_entity_class, $principal, $pr_name );
 
-            $default_roles  = $owner->get_roles();
+            // $default_roles  = $owner->get_roles();
             
-            if ( is_array( $default_roles ) ) {
-                $roles = [];
+            // if ( is_array( $default_roles ) ) {
+            //     $roles = [];
 
-                foreach ( $default_roles as $def_role ) {
-                    $roles[]    = $def_role->to_array();
-                }
-            } else {
-                $roles      = $default_roles ? $default_roles->to_array() : null;
-                $role_id    = $default_roles->get_id();
-            }
+            //     foreach ( $default_roles as $def_role ) {
+            //         $roles[]    = $def_role->to_array();
+            //     }
+            // } else {
+            //     $roles      = $default_roles ? $default_roles->to_array() : null;
+            //     $role_id    = $default_roles->get_id();
+            // }
 
         }
 

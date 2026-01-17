@@ -271,7 +271,7 @@ class DownloadToken {
 
         $sql    = "DELETE FROM {$table} WHERE expiry < ?";
 
-        $db->query( $sql, [\time()] );
+        $db->get_var( $sql, [\time()] );
 
     }
 

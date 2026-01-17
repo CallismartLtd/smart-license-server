@@ -12,6 +12,7 @@ namespace SmartLicenseServer;
 use RuntimeException;
 use SmartLicenseServer\Security\Capability;
 use SmartLicenseServer\Security\DefaultRoles;
+use SmartLicenseServer\Security\Role;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -209,6 +210,13 @@ class Config {
         define( 'SMLISER_ROLES_TABLE', $parsed_config['db_prefix'] . 'smliser_roles' );
 
         /**
+         * Roles database table name.
+         *
+         * @var string
+         */
+        define( 'SMLISER_ROLE_CAPABILITIES_TABLE', $parsed_config['db_prefix'] . 'smliser_role_caps' );
+
+        /**
          * Roles to principals database table name.
          *
          * @var string
@@ -386,7 +394,7 @@ class Config {
             'wp_spinner_gif_2x' => admin_url('images/spinner-2x.gif'),
             'app_search_api'    => rest_url( self::namespace() . $this->repository_route ),
             'default_roles'     => [
-                'roles'         => DefaultRoles::all(),
+                'roles'         => DefaultRoles::all( true ),
                 'capabilities'  => Capability::get_caps()
             ]
         );

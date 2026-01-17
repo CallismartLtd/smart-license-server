@@ -2,9 +2,8 @@
 /**
  * Role entity.
  *
- * A Role is a named collection of capabilities owned by an Owner.
- * Roles are assigned to principals (User, ServiceAccount)
- * within an ownership scope.
+ * A Role is a named groupings of capabilities that are resolved for a principal 
+ * within a specific owner context.
  *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Security
@@ -16,17 +15,16 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-use const SMLISER_ROLES_TABLE;
+use const SMLISER_ROLES_TABLE, SMLISER_ROLE_CAPABILITIES_TABLE;
 use function is_json, json_decode, defined, smliser_dbclass, smliser_safe_json_encode,
 get_object_vars;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Classical representation of a roles.
+ * Classical representation of a role.
  */
 class Role {
-
     use SanitizeAwareTrait, CommonQueryTrait;
 
     /**
@@ -35,13 +33,6 @@ class Role {
      * @var int
      */
     protected int $id = 0;
-
-    /**
-     * Owner ID this role belongs to.
-     *
-     * @var int
-     */
-    protected int $owner_id = 0;
 
     /**
      * Role machine slug.
@@ -67,12 +58,39 @@ class Role {
     protected array $capabilities = [];
 
     /**
+     * Whether this role is a default system role.
+     * 
+     * @var bool $is_canonical
+     */
+    protected bool $is_canonical = false;
+
+    /**
+     * Tell wether the principal is acting for self.
+     */
+    public readonly bool $is_owner_default;
+
+    /**
+     * Fillable props through mass assignment.
+     *
+     * @var array 
+     */
+    protected static array $fillable = [
+        'id',
+        'slug',
+        'label',
+        'capabilities',
+        'is_canonical',
+    ];
+
+    /**
      * Role constructor.
      *
-     * Intentionally empty.
+     * Intentionally light.
      * Hydration is done via setters or factory methods.
      */
-    public function __construct() {}
+    public function __construct( bool $is_owner_default = false ) {
+        $this->is_owner_default = $is_owner_default;
+    }
 
     /*
     |-----------
@@ -87,15 +105,6 @@ class Role {
      */
     public function get_id() : int {
         return $this->id;
-    }
-
-    /**
-     * Get owner ID.
-     *
-     * @return int
-     */
-    public function get_owner_id() : int {
-        return $this->owner_id;
     }
 
     /**
@@ -125,6 +134,15 @@ class Role {
         return $this->capabilities;
     }
 
+    /**
+     * Get the is_canonical property
+     * 
+     * @return bool
+     */
+    public function get_is_canonical() : bool {
+        return $this->is_canonical;
+    }
+
     /*
     |-----------
     | SETTERS
@@ -139,17 +157,6 @@ class Role {
      */
     public function set_id( $id ) : static {
         $this->id = self::sanitize_int( $id );
-        return $this;
-    }
-
-    /**
-     * Set owner ID.
-     *
-     * @param int $owner_id
-     * @return static
-     */
-    public function set_owner_id( $owner_id ) : static {
-        $this->owner_id = self::sanitize_int( $owner_id );
         return $this;
     }
 
@@ -191,7 +198,14 @@ class Role {
      * @return static
      */
     public function set_capabilities( array|string $capabilities ) : static {
-        if ( is_json( $capabilities ) ) {
+        if ( is_string( $capabilities ) ) {
+            if ( ! is_json( $capabilities ) ) {
+                throw new Exception(
+                    'role_caps_invalid',
+                    'Capabilities must be valid JSON or array'
+                );
+            }
+
             $capabilities = json_decode( $capabilities, true );
         }
 
@@ -200,6 +214,18 @@ class Role {
         foreach ( (array) $capabilities as $capability ) {
             $this->add_capability( $capability );
         }
+
+        return $this;
+    }
+
+
+    /**
+     * Set the value of is_canonical property
+     * 
+     * @param bool $is_canonical
+     */
+    public function set_is_canonical( bool $is_canonical ) : static {
+        $this->is_canonical = $is_canonical;
 
         return $this;
     }
@@ -302,16 +328,6 @@ class Role {
     */
 
     /**
-     * Check whether role belongs to an owner.
-     *
-     * @param int $owner_id
-     * @return bool
-     */
-    public function belongs_to_owner( $owner_id ) : bool {
-        return $this->owner_id === self::sanitize_int( $owner_id );
-    }
-
-    /**
      * Hydrate role from array.
      *
      * @param array $data
@@ -320,25 +336,42 @@ class Role {
     public static function from_array( array $data ) : static {
         $self = new static();
 
-        foreach ( $data as $key => $value ) {
-            $method = "set_{$key}";
-
-            if ( is_callable( [ $self, $method ] ) ) {
-                $self->$method( $value );
+        foreach ( self::$fillable as $key ) {
+            if ( array_key_exists( $key, $data ) ) {
+                $method = "set_{$key}";
+                $self->$method( $data[ $key ] );
             }
         }
 
         return $self;
     }
-
     /**
      * Convert roles to array.
      * 
      * @return array
      */
     public function to_array() : array {
+        return [
+            'id'            => $this->id,
+            'slug'          => $this->slug,
+            'label'         => $this->label,
+            'capabilities'  => $this->capabilities,
+            'is_canonical'  => $this->is_canonical,
+        ];
+    }
 
-        return get_object_vars( $this );
+
+    /**
+     * Tells whether this role exists in the database.
+     * 
+     * @return true;
+     */
+    public function exists() : bool {
+        if ( $this->id > 0 ) {
+            return true;
+        }
+
+        return null !== static::get_by_slug( $this->get_slug() );
     }
 
     /*
@@ -354,39 +387,61 @@ class Role {
      * @throws \SmartLicenseServer\Exceptions\Exception
      */
     public function save() : bool {
-
-        if ( $this->get_id() ) {
-            return false;
-        }
-        
-        if ( ! $this->owner_id || '' === $this->slug ) {
-            throw new Exception( 'role_save_error', 'Owner ID and role slug must be set' );
+        if ( ! $this->get_slug() ) {
+            throw new Exception( 'role_save_error', 'Role slug must be set' );
         }
 
-        $db     = smliser_dbclass();
-        $table  = SMLISER_ROLES_TABLE;
+        $db             = smliser_dbclass();
+        $roles_table    = SMLISER_ROLES_TABLE;
+        $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
+
+        $existing = static::get_by_slug( $this->get_slug() );
 
         $capabilities = array_values( array_unique( $this->get_capabilities() ) );
 
-        $data = [
-            'owner_id'      => $this->get_owner_id(),
-            'slug'          => $this->get_slug(),
-            'label'         => $this->get_label(),
-            'capabilities'  => smliser_safe_json_encode( $capabilities ),
-            'updated_at'    => gmdate( 'Y-m-d H:i:s' ),
-        ];
+        if ( ! $existing ) {
+            $roles_data = [
+                'is_canonical'  => $this->get_is_canonical(),
+                'slug'          => $this->get_slug(),
+                'label'         => $this->get_label(),
+                'updated_at'    => gmdate( 'Y-m-d H:i:s' ),
+                'created_at'    => gmdate( 'Y-m-d H:i:s' ),
+            ];
 
-        $existing = static::get_by_slug( $this->get_owner_id(), $this->get_slug() );
+            $result = $db->insert( $roles_table, $roles_data );
 
-        if ( $existing ) {
-            throw new Exception( 'role_save_error', 'The provided role slug is not available.' );
+            if ( $result ) {
+                $this->set_id( $db->get_insert_id() );
+
+                $caps_data  = [
+                    'role_id'       => $this->get_id(),
+                    'capabilities'  => smliser_safe_json_encode( $capabilities )
+                ];
+
+                $db->insert( $caps_table, $caps_data );
+            }
+
+            return false !== $result;
         }
 
-        $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
+        $this->set_id( $existing->get_id() );
 
-        $result = $db->insert( $table, $data );
-        $this->set_id( $db->get_insert_id() );
-    
+        $caps_data  = [
+            'capabilities' => smliser_safe_json_encode( $capabilities )
+        ];
+
+        $cap_id = $db->get_var(
+            "SELECT `id` FROM {$caps_table} WHERE `role_id` = ?", 
+            $this->get_id() 
+        );
+
+        if ( $cap_id ) {
+            $result = $db->update( $caps_table, $caps_data, ['id' => $cap_id] );
+        } else {
+            $caps_data['role_id'] = $this->get_id();
+            $result = $db->insert( $caps_table, $caps_data );
+        }
+
         return false !== $result;
     }
 
@@ -425,54 +480,35 @@ class Role {
     }
 
     /**
-     * Get role by owner and slug.
+     * Get role by slug.
      *
-     * @param int    $owner_id
      * @param string $slug
      * @return static|null
      */
-    public static function get_by_slug( int $owner_id, string $slug ) : ?static {
-        $db     = smliser_dbclass();
-        $table  = SMLISER_ROLES_TABLE;
-
-        $row = $db->get_row(
-            "SELECT * FROM {$table} WHERE `owner_id` = ? AND `slug` = ?",
-            [ $owner_id, self::sanitize_text( $slug ) ]
-        );
-
-        return $row ? static::from_array( $row ) : null;
+    public static function get_by_slug( string $slug ) : ?static {
+        return static::get_self_by( 'slug', $slug, SMLISER_ROLES_TABLE );
     }
 
     /**
-     * Get all roles for an owner.
-     *
-     * @param int $owner_id
-     * @param string $owner_type
-     * @return static|static[]|null
+     * Get all available roles from the database
+     * 
+     * @param bool $return_array Whether to skip instantiation of self and return array.
+     * @return self[]|array An array of role objects or array of roles if return param is true.
      */
-    public static function get_all_by_owner( int $owner_id, string $owner_type ) : static|array|null {
+    public static function all( bool $return_array = false ) {
         $db     = smliser_dbclass();
         $table  = SMLISER_ROLES_TABLE;
 
-        $db_method  = match( $owner_type ) {
-            Owner::TYPE_INDIVIDUAL  => "get_row",
-            default                 => "get_results"
-        };
+        $sql    = "SELECT * FROM {$table}";
 
-        $sql    = "SELECT * FROM `{$table}` WHERE `owner_id` = ?";
-        $rows   = $db->$db_method( $sql, [ $owner_id ] );
+        $results = $db->get_results( $sql );
 
-        $result = null;
-        if ( $rows ) {
-            $result = 
-                Owner::TYPE_INDIVIDUAL === $owner_type 
-                ? static::from_array( $rows ) : array_map(
-                static fn( $row ) => static::from_array( $row ),
-                $rows
-            );
+        $roles  = $results;
+        if ( ! $return_array ) {
+            $roles  = array_map( [__CLASS__, 'from_array'], $results );
         }
 
-        return $result;
+        return $roles;
     }
 
 }

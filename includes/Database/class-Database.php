@@ -10,8 +10,6 @@ namespace SmartLicenseServer\Database;
 
 use PDO;
 
-use const SMLISER_APP_NAME;
-
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -110,7 +108,7 @@ class Database {
             ] );
         }
 
-        if ( class_exists( 'PDO' ) && in_array( 'mysql', PDO::getAvailableDrivers() ) ) {
+        if ( class_exists( PDO::class ) && in_array( 'mysql', PDO::getAvailableDrivers() ) ) {
             return new PdoAdapter( $config );
         }
 

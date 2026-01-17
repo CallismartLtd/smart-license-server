@@ -443,19 +443,6 @@ class Owner {
      */
     public static function get_all( int $page = 1, $limit = 25 ) : array {
         return self::get_all_self( SMLISER_OWNERS_TABLE, $page, $limit );
-
-    }
-
-    /**
-     * Lazy load the roles.
-     *
-     * @return Role|Role[]|null
-     */
-    public function get_roles(): Role|array|null {
-        if ( is_null( $this->roles ) ) {
-            $this->roles = Role::get_all_by_owner( $this->get_id(), $this->get_type() );
-        }
-        return $this->roles;
     }
 
     /**

@@ -253,7 +253,7 @@ class RoleBuilder {
      */
     getValue() {
         return {
-            roleName: this.activeRole,
+            roleSlug: this.activeRole,
             roleLabel: this.container.querySelector('.rb-role-name').value,
             capabilities: Array.from(
                 this.container.querySelectorAll(

@@ -835,7 +835,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'principal_id'  => smliser_get_request_param( 'principal_id' ),
             'type'          => smliser_get_request_param( 'type' ),
             'role_label'    => smliser_get_request_param( 'role_label' ),
-            'role_name'     => smliser_get_request_param( 'role_name' ),
+            'role_slug'     => smliser_get_request_param( 'role_slug' ),
             'role_id'     => smliser_get_request_param( 'role_id' ),
             'capabilities'  => smliser_get_request_param( 'capabilities', [] ),
             'entity'        => $entity,

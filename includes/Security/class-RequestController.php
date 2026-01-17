@@ -213,10 +213,10 @@ class RequestController {
 
         if ( $owner_saved ) {
             $caps       = (array) $request->get( 'capabilities', [] );
-            $role_name  = $request->get( 'role_name' );
+            $role_slug  = $request->get( 'role_slug' );
             $role_label = $request->get( 'role_label' );
 
-            if ( ! empty( $role_label ) && ! empty( $role_name ) ) {
+            if ( ! empty( $role_label ) && ! empty( $role_slug ) ) {
                 $role_id    = (int) $request->get( 'role_id' );
 
                 $role       = Role::get_by_id( $role_id );
@@ -227,9 +227,8 @@ class RequestController {
 
                 try {
                     $role->set_label( $role_label )
-                        ->set_slug( $role_name )
-                        ->set_owner_id( $owner->get_id() )
-                        ->set_capabilities( $caps );
+                        ->set_slug( $role_slug )
+                    ->set_capabilities( $caps );
 
                     if ( ! $role->save() ) {
                         throw new RequestException( 'role_save_error', 'Owner has been saved but unable to save roles', ['status' => 500] );

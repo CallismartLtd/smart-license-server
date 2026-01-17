@@ -1561,7 +1561,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             if ( SmliserRoleBuilder ) {
                 const roleValues = SmliserRoleBuilder.getValue();
 
-                payLoad.set( 'role_name', roleValues.roleName ?? '' );
+                payLoad.set( 'role_slug', roleValues.roleSlug ?? '' );
                 payLoad.set( 'role_label', roleValues.roleLabel );
 
                 roleValues.capabilities.forEach( cap => {
