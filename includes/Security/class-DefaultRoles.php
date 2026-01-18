@@ -169,8 +169,9 @@ final class DefaultRoles {
 
         foreach ( self::$roles as $key => $role ) {
             $roles[ $key ] = [
-                'label'        => $role['label'],
-                'capabilities' => self::resolve_capabilities( $role['capabilities'] ),
+                'label'         => $role['label'],
+                'is_canonical'  => $role['is_canonical'],
+                'capabilities'  => self::resolve_capabilities( $role['capabilities'] ),
             ];
         }
 

@@ -41,11 +41,13 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 </div>
             <?php endif; ?>
         </div>
+
+       <div class="smliser-spinner"></div>
         
         <?php if ( 'owners' === smliser_get_query_param( 'tab' ) ) : ?>
             <h2 class="smliser-access-control-role-deading"><?php echo esc_html( $roles_title ); ?></h2>
             <!-- Mounted dynamically - @see role-builder.js -->
-            <div id="smliser-role-builder" data-roles="<?php echo esc_attr( smliser_json_encode_attr( $roles ) ); ?>"></div>
+            <div id="smliser-role-builder" data-roles="<?php echo esc_attr( smliser_json_encode_attr( isset( $roles ) ? $roles : [] ) ); ?>"></div>
         <?php endif; ?>
         <button type="submit" class="button smliser-save-button">Save</button>
     </form>
