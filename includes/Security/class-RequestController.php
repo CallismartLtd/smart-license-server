@@ -180,7 +180,7 @@ class RequestController {
 
         }
 
-        $owner_type   = $request->get( 'type' );
+        $owner_type   = $request->get( 'owner_type' );
 
         if ( empty( $owner_type ) ||  ! in_array( $owner_type, Owner::get_allowed_owner_types(), true ) ) {
             return new RequestException( 'required_param', 'Please provide a valid resource owner type.', ['status' => 400] );

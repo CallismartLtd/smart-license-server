@@ -50,7 +50,7 @@ class RoleBuilder {
         this.render();
         this.bindEvents();
 
-        if ( initialRole ) {
+        if ( initialRole?.length ) {
             this.loadRole( initialRole );
         }
     }
@@ -76,6 +76,13 @@ class RoleBuilder {
                     <input type="text"
                            class="rb-role-name"
                            placeholder="Enter role name" id="role-name">
+                </div>
+
+                <div class="rb-field">
+                    <label for="role-slug">Role Slug</label>
+                    <input type="text"
+                           class="rb-role-slug"
+                           placeholder="Enter role slug" id="role-slug">
                 </div>
             </div>
 
@@ -129,15 +136,18 @@ class RoleBuilder {
     bindEvents() {
         this.container
             .querySelector('.rb-role-select')
-            .addEventListener('change', e => {
-                this.selectRole( e.target.value );
-            });
+            .addEventListener('change', e => this.selectRole( e.target.value ) );
 
         this.container
             .querySelector('.rb-role-name')
-            .addEventListener('input', () => {
-                this.enableCustomRole();
-            });
+            .addEventListener('input', this.enableCustomRole.bind(this) );
+
+        this.container
+            .querySelector('.rb-role-slug')
+            .addEventListener('input', e => e.target.value = e.target.value.toLowerCase() );
+        this.container
+            .querySelector('.rb-role-slug')
+            .addEventListener('blur', e => this.formatRoleSlug( e.target.value, true ) );
     }
 
     /**
@@ -150,7 +160,9 @@ class RoleBuilder {
 
         if ( ! roleKey ) {
             this.enableCustomRole();
-            this.setRoleName( '' );       
+            this.setRoleName( '' );
+            
+            this.formatRoleSlug( '' );
             return;
         }
 
@@ -163,6 +175,7 @@ class RoleBuilder {
         this.checkCapabilities( role.capabilities );
         this.lockCapabilities();
         this.setLockedState( true );
+        this.formatRoleSlug( roleKey );
     }
 
     /**
@@ -182,9 +195,9 @@ class RoleBuilder {
      * @param {string} name
      */
     setRoleName( name ) {
-        const input = this.container.querySelector('.rb-role-name');
-        input.value    = name;
-        input.disabled = this.isPreset;
+        const input         = this.container.querySelector('.rb-role-name');
+        input.value         = name;
+        input.disabled      = this.isPreset;
     }
 
     /**
@@ -253,8 +266,8 @@ class RoleBuilder {
      */
     getValue() {
         return {
-            roleSlug: this.activeRole,
-            roleLabel: this.container.querySelector('.rb-role-name').value,
+            roleSlug: this.container.querySelector( '.rb-role-slug' ).value,
+            roleLabel: this.container.querySelector( '.rb-role-name' ).value,
             capabilities: Array.from(
                 this.container.querySelectorAll(
                     '.rb-capabilities input:checked'
@@ -273,6 +286,34 @@ class RoleBuilder {
         return str
             .replace(/_/g, ' ')
             .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    /**
+     * Format role slug
+     * 
+     * @param {string} slug The value of the role slug.
+     * 
+     */
+    formatRoleSlug( slug, isFinal = false ) {
+        const input = this.container.querySelector( '.rb-role-slug' );
+
+        if ( slug ) {
+            slug = slug
+                .toLowerCase()
+                .replace(/[\s-]+/g, '_')    // Replace spaces/hyphens with _
+                .replace(/[^a-z0-9_]/g, ''); // Remove illegal chars
+
+            // Only collapse and trim if we are done typing (on blur)
+            if ( isFinal ) {
+                slug = slug
+                    .replace(/_+/g, '_')
+                    .replace(/[\s]+/i, '_')
+                    .replace(/^_+|_+$/g, '');
+            }
+        }
+
+        input.value     = slug;
+        input.disabled  = this.isPreset;        
     }
 
     /**

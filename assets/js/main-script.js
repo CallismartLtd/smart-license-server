@@ -1,23 +1,3 @@
-
-// Countdown Timer
-function startCountdown(duration, display) {
-    let timer = duration, minutes, seconds;
-    const interval = setInterval(function() {
-        minutes = parseInt(timer / 60, 10);
-        seconds = parseInt(timer % 60, 10);
-
-        minutes = minutes < 10 ? "0" + minutes : minutes;
-        seconds = seconds < 10 ? "0" + seconds : seconds;
-
-        display.textContent = minutes + ":" + seconds;
-
-        if (--timer < 0) {
-            clearInterval(interval);
-            alert("Time's up!");
-        }
-    }, 1000);
-}
-
 /**
  * Add a loading spinner to a given element
  * 
@@ -33,8 +13,8 @@ function showSpinner( selector, larger = false ) {
     const image     = document.createElement( 'img' );
     const gifUrl    = larger ? smliser_var.wp_spinner_gif_2x : smliser_var.wp_spinner_gif;
 
-    image.src   = gifUrl;
-    image.id    = 'smliser-spinner-image';
+    image.src       = gifUrl;
+    image.id        = 'smliser-spinner-image';
 
     element.querySelector( '#smliser-spinner-image' )?.remove();
 
@@ -54,6 +34,28 @@ function removeSpinner( spinner ) {
     document.body.style.removeProperty( 'cursor' );
 }
 
+/**
+ * Utility: Fetch wrapper (consistent error parsing)
+ */
+async function smliserFetch( url, options = {} ) {
+    const response = await fetch( url, options );
+    if ( ! response.ok ) {
+        const contentType = response.headers.get( 'content-type' );
+        let errorMessage = 'An error occurred';
+        let errorField   = null;
+
+        if ( contentType && contentType.includes( 'application/json' ) ) {
+            const errorData = await response.json();
+            errorMessage = errorData.data?.message || errorMessage;
+            errorField   = errorData.data?.field_id || null;
+            throw { message: errorMessage, field: errorField };
+        } else {
+            const text = await response.text();
+            throw { message: text || errorMessage };
+        }
+    }
+    return response.json();
+};
 
 function smliserNotify(message, duration) {
     // Create a div element for the notification
@@ -358,16 +360,16 @@ function smliserUserOrgSearch( selectEl ) {
     });
 
     // The type selector.
-    const typeSelect    = $select2.closest( 'form' ).find( '#type' );    
-    const nameInput     = $select2.closest( 'form' ).find( '#name' );    
+    const ownerTypeInput    = $select2.closest( 'form' ).find( '#owner_type' );
+    const nameInput         = $select2.closest( 'form' ).find( '#name' );    
 
-    if ( typeSelect.length ) {
-        const defaultValue  = typeSelect.val();
+    if ( ownerTypeInput.length ) {
+        const defaultValue  = ownerTypeInput.val();
         $select2.on( 'select2:select select2:unselect', e => {
             const param         = e.params;
             const entityType    = param?.data?.type;
 
-            typeSelect.val( param.selected ? entityType : defaultValue );      
+            ownerTypeInput.val( param.data.selected ? entityType : defaultValue );
             
             if ( ( param.data.selected && nameInput ) && ! nameInput.val().length ) {
                 nameInput.val( param.data.text );
@@ -1063,29 +1065,6 @@ document.addEventListener( 'DOMContentLoaded', function() {
         };
 
         /**
-         * Utility: Fetch wrapper (consistent error parsing)
-         */
-        const smliserFetch = async ( url, options = {} ) => {
-            const response = await fetch( url, options );
-            if ( ! response.ok ) {
-                const contentType = response.headers.get( 'content-type' );
-                let errorMessage = 'An error occurred';
-                let errorField   = null;
-
-                if ( contentType && contentType.includes( 'application/json' ) ) {
-                    const errorData = await response.json();
-                    errorMessage = errorData.data?.message || errorMessage;
-                    errorField   = errorData.data?.field_id || null;
-                    throw { message: errorMessage, field: errorField };
-                } else {
-                    const text = await response.text();
-                    throw { message: text || errorMessage };
-                }
-            }
-            return response.json();
-        };
-
-        /**
          * Form Submit Handler
          */
         const submitForm = ( e ) => {
@@ -1558,7 +1537,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             const payLoad   = new FormData( accessControlForm );
             const url       = new URL( smliser_var.smliser_ajax_url );
 
-            if ( SmliserRoleBuilder ) {
+            if ( typeof window.SmliserRoleBuilder !== 'undefined' ) {
                 const roleValues = SmliserRoleBuilder.getValue();
 
                 payLoad.set( 'role_slug', roleValues.roleSlug ?? '' );
@@ -1572,6 +1551,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             payLoad.set( 'security', smliser_var.nonce );
 
             try {
+                let spinner = showSpinner( '.smliser-spinner', true );
                 const response    = await fetch( url.href, {
                     method: "POST",
                     body: payLoad,

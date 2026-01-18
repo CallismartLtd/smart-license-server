@@ -31,12 +31,16 @@
 
 .rb-field select,
 .rb-field input[type="text"] {
-    height: 36px;
+    max-height: 30px;
+    height: auto;
+    line-height: 1.4;
     padding: 6px 8px;
+    border: 1px solid #dcdcde;
 }
 
 /* Disabled role name (preset role selected) */
-.rb-role-name:disabled {
+.rb-role-name:disabled,
+.rb-role-slug:disabled {
     background-color: #f6f7f7;
     color: #50575e;
 }

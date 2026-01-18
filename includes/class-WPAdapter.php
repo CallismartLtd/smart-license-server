@@ -833,7 +833,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'password_2'    => $_REQUEST[ 'password_2' ] ?? '', // phpcs:ignore
             'status'        => smliser_get_request_param( 'status' ),
             'principal_id'  => smliser_get_request_param( 'principal_id' ),
-            'type'          => smliser_get_request_param( 'type' ),
+            'owner_type'    => smliser_get_request_param( 'owner_type' ),
             'role_label'    => smliser_get_request_param( 'role_label' ),
             'role_slug'     => smliser_get_request_param( 'role_slug' ),
             'role_id'     => smliser_get_request_param( 'role_id' ),

@@ -8,10 +8,13 @@
 
 namespace SmartLicenseServer\Security;
 
+use InvalidArgumentException;
 use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-use function defined, class_exists, parse_args_recursive;
+use const SMLISER_ROLE_ASSIGNMENT_TABLE;
+use function defined, class_exists, parse_args_recursive, smliser_dbclass;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -182,6 +185,45 @@ class ContextServiceProvider {
         }
 
         return $class_name;
+    }
+
+    /**
+     * Saves the role of the principal in owner context
+     * 
+     * @param Owner $owner
+     * @param Role $role
+     * @param User|Organization $owner_principal
+     */
+    public static function save_role_in_principal_context( Owner $owner, Role $role, User|Organization $owner_principal ) {
+        $db     = smliser_dbclass();
+        $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+
+
+        $principal_type = ( $owner_principal instanceof User ) ? $owner::TYPE_INDIVIDUAL : $owner::TYPE_ORGANIZATION;
+        $data   = array(
+            'role_id'           => $role->get_id(),
+            'pricipal_id'       => $owner_principal->get_id(),
+            'principal_type'    => $principal_type,
+            'owner_type'        => $owner->get_type(),
+            'owner_id'          => $owner->get_id(),
+        );
+
+        $missing_keys = Collection::make( $data )
+            ->filter( fn( $value ) => empty( $value ) )
+            ->keys()
+            ->all();
+
+        if ( ! empty( $missing_keys ) ) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'Role assignment failed. Missing required fields: %s',
+                    implode( ', ', $missing_keys )
+                )
+            );
+        }
+
+        
+
     }
 
 }

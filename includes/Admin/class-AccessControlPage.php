@@ -338,17 +338,17 @@ class AccessControlPage {
                 )
             ),
             array(
-                'label' => __( 'Type', 'smliser' ),
+                'label' => __( 'Owner Type', 'smliser' ),
                 'input' => array(
-                    'type'  => 'select',
-                    'name'  => 'type',
+                    'type'  => 'text',
+                    'name'  => 'owner_type',
                     'value' => $owner ? $owner->get_type() : '',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
-                        'required'      => true
+                        'required'      => true,
+                        'readonly'      => true,
                     ),
-                    'options'   => $_owner_types
                 )
             ),
      
