@@ -1525,6 +1525,8 @@ document.addEventListener( 'DOMContentLoaded', function() {
             existingRoles = null;
         }
 
+        console.log( existingRoles );
+
         const builder       = new RoleBuilder( roleBuilderEl, defaultRoles, existingRoles );
         
         window.SmliserRoleBuilder   = builder;
@@ -1549,9 +1551,9 @@ document.addEventListener( 'DOMContentLoaded', function() {
             }
 
             payLoad.set( 'security', smliser_var.nonce );
+            let spinner = showSpinner( '.smliser-spinner', true );
 
             try {
-                let spinner = showSpinner( '.smliser-spinner', true );
                 const response    = await fetch( url.href, {
                     method: "POST",
                     body: payLoad,
@@ -1588,6 +1590,8 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
                 smliserNotify( message, 10000 );
                 
+            } finally {
+                removeSpinner( spinner );
             }
 
         });

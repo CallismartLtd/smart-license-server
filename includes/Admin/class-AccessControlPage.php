@@ -242,7 +242,7 @@ class AccessControlPage {
         $owner_id           = smliser_get_query_param( 'id' );
         $owner              = Owner::get_by_id( (int) $owner_id );
 
-        $title              = 'Add New Resource Owner';
+        $title          = sprintf( '%s Resource Owner', $owner ? 'Edit' : 'Add New' );
         $roles_title        = 'Ownership Roles';
 
         $_owner_statuses    = Owner::get_allowed_statuses();
@@ -265,20 +265,11 @@ class AccessControlPage {
 
             $principal_option   = [$principal_id => $pr_name];
 
+            if ( $principal ) {
+                $role   = ContextServiceProvider::get_principal_role( $owner, $principal )?->to_array();
+            }
+
             unset( $_owner_type, $entity_class, $_entity_class, $principal, $pr_name );
-
-            // $default_roles  = $owner->get_roles();
-            
-            // if ( is_array( $default_roles ) ) {
-            //     $roles = [];
-
-            //     foreach ( $default_roles as $def_role ) {
-            //         $roles[]    = $def_role->to_array();
-            //     }
-            // } else {
-            //     $roles      = $default_roles ? $default_roles->to_array() : null;
-            //     $role_id    = $default_roles->get_id();
-            // }
 
         }
 

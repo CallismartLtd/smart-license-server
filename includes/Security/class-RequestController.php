@@ -167,86 +167,130 @@ class RequestController {
 
     /**
      * Save the owner object.
-     * 
-     * @param Owner $request The Owner object.
+     *
+     * @param Owner   $owner   The Owner object.
      * @param Request $request The request object.
      * @return bool|RequestException
      */
     protected static function save_owner( Owner $owner, Request $request ): bool|RequestException {
-        $principal_id   = $request->get( 'principal_id' );
+
+        $principal_id = $request->get( 'principal_id' );
 
         if ( empty( $principal_id ) || ! is_int( $principal_id ) ) {
-            return new RequestException( 'required_param', 'Please provide a valid principal_id.', ['status' => 400] );
-
+            return new RequestException(
+                'required_param',
+                'Please provide a valid principal_id.',
+                [ 'status' => 400 ]
+            );
         }
 
-        $owner_type   = $request->get( 'owner_type' );
+        $owner_type = $request->get( 'owner_type' );
 
-        if ( empty( $owner_type ) ||  ! in_array( $owner_type, Owner::get_allowed_owner_types(), true ) ) {
-            return new RequestException( 'required_param', 'Please provide a valid resource owner type.', ['status' => 400] );
+        if (
+            empty( $owner_type ) ||
+            ! in_array( $owner_type, Owner::get_allowed_owner_types(), true )
+        ) {
+            return new RequestException(
+                'required_param',
+                'Please provide a valid resource owner type.',
+                [ 'status' => 400 ]
+            );
+        }
+
+        $res_owner_class = ContextServiceProvider::get_entity_classname( $owner_type );
+        /** @var User|Organization|null $principal */
+        $principal = $res_owner_class::get_by_id( $principal_id );
+
+        if ( ! $principal instanceof User && ! $principal instanceof Organization ) {
+            return new RequestException( 'resource_owner_not_found' );
         }
 
         $owner_name = $request->get( 'name' );
 
         if ( empty( $owner_name ) || ! is_string( $owner_name ) ) {
-            return new RequestException( 'required_param', 'Please provide a valid resource owner name.', ['status' => 400] );
+            return new RequestException(
+                'required_param',
+                'Please provide a valid resource owner name.',
+                [ 'status' => 400 ]
+            );
         }
 
-        $status         = $request->get( 'status' );
+        $status = $request->get( 'status' );
 
         if ( ! in_array( $status, Owner::get_allowed_statuses(), true ) ) {
-            return new RequestException( 'required_param', 'The status provided is not allowed.', ['status' => 400] );
+            return new RequestException(
+                'required_param',
+                'The status provided is not allowed.',
+                [ 'status' => 400 ]
+            );
         }
-
-        $owner->set_name( $owner_name )
-            ->set_principal_id( $principal_id )
-            ->set_status( $status )
-        ->set_type( $owner_type );
         
         try {
-            $owner_saved    = $owner->save();
-        }  catch( Exception $e ) {
-            $error  = new RequestException( $e->get_error_code(), $e->get_error_message(), ['status' => 500] );
-            return $error;
-        }
-        
 
-        if ( $owner_saved ) {
+            // Owner
+            $owner->set_name( $owner_name )
+                ->set_principal_id( $principal_id )
+                ->set_status( $status )
+                ->set_type( $owner_type );
+
+            if ( ! $owner->save() ) {
+                throw new RequestException(
+                    'owner_save_error',
+                    'Unable to save resource owner.',
+                    [ 'status' => 500 ]
+                );
+            }
+
+            // Role.
             $caps       = (array) $request->get( 'capabilities', [] );
             $role_slug  = $request->get( 'role_slug' );
             $role_label = $request->get( 'role_label' );
+            $role       = Role::get_by_slug( $role_slug );
 
-            if ( ! empty( $role_label ) && ! empty( $role_slug ) ) {
-                $role_id    = (int) $request->get( 'role_id' );
-
-                $role       = Role::get_by_id( $role_id );
-
-                if ( ! $role ) {
-                    $role = new Role();
-                }
-
-                try {
-                    $role->set_label( $role_label )
-                        ->set_slug( $role_slug )
-                    ->set_capabilities( $caps );
-
-                    if ( ! $role->save() ) {
-                        throw new RequestException( 'role_save_error', 'Owner has been saved but unable to save roles', ['status' => 500] );
-                    }
-                } catch( InvalidArgumentException $e ) {
-                    return new RequestException( 'role_set_error', $e->getMessage(), ['status' => 400] );
-                } catch( RequestException $e ) {
-                    return $e;
-                } catch( Exception $e ) {
-                    $error  = new RequestException( $e->get_error_code(), $e->get_error_message(), ['status' => 500] );
-                    return $error;
-                }
+            if ( ! $role ) {
+                $role = ( new Role() )
+                ->set_slug( $role_slug );
 
             }
-        }
 
-        return $owner_saved;
+            $role->set_label( $role_label )
+            ->set_capabilities( $caps );
+           
+            if ( ! $role->save() ) {
+                throw new RequestException(
+                    'role_save_error',
+                    'Owner has been saved but unable to save role.',
+                    [ 'status' => 500 ]
+                );
+            }
+            
+            // Context binding.
+            ContextServiceProvider::save_resource_owner_role( $owner, $role, $principal );
+
+            return true;
+
+        } catch ( InvalidArgumentException $e ) {
+
+            return new RequestException(
+                'invalid_argument',
+                $e->getMessage(),
+                [ 'status' => 400 ]
+            );
+
+        } catch ( RequestException $e ) {
+
+            return $e;
+
+        } catch ( Exception $e ) {
+
+            return new RequestException(
+                $e->get_error_code(),
+                $e->get_error_message(),
+                [ 'status' => 500 ]
+            );
+        }
     }
+
 
     /**
      * Search for users and organizations.

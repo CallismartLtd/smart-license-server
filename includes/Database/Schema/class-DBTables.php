@@ -350,7 +350,7 @@ final class DBTables {
             SMLISER_ROLE_ASSIGNMENT_TABLE   => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'role_id BIGINT(20) NOT NULL',
-                'principal_type ENUM(\'user\', \'service_account\', \'platform\') NOT NULL',
+                'principal_type ENUM(\'individual\', \'service_account\', \'platform\') NOT NULL',
                 'principal_id BIGINT(20) UNSIGNED NOT NULL',
                 'owner_type ENUM(\'platform\', \'individual\', \'organization\') NOT NULL',
                 'owner_id BIGINT UNSIGNED NOT NULL',

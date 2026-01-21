@@ -171,7 +171,7 @@ class Role {
     public function set_slug( $slug ) : static {
         $slug = self::sanitize_text( $slug );
 
-        if ( '' === $slug ) {
+        if ( '' === $slug || $this->id > 0 ) {
             return $this;
         }
 
@@ -196,6 +196,7 @@ class Role {
      *
      * @param string|string[] $capabilities
      * @return static
+     * @throws \SmartLicenseServer\Exceptions\Exception
      */
     public function set_capabilities( array|string $capabilities ) : static {
         if ( is_string( $capabilities ) ) {
@@ -321,6 +322,26 @@ class Role {
         return false;
     }
 
+    /**
+     * Load the capabilities from the database
+     * 
+     * @return static
+     */
+    public function load_capabilities() : static {
+        $db     = smliser_dbclass();
+        $table  = SMLISER_ROLE_CAPABILITIES_TABLE;
+
+        $sql    = "SELECT `capabilities` FROM `{$table}` WHERE `role_id` = ?";
+
+        $caps   = $db->get_row( $sql, [$this->get_id()] );
+
+        try {
+            $this->set_capabilities( $caps['capabilities'] ?? [] );
+        } catch ( Exception $e ) {}
+
+        return $this;
+    }
+
     /*
     |----------------
     | UTILITY
@@ -341,6 +362,10 @@ class Role {
                 $method = "set_{$key}";
                 $self->$method( $data[ $key ] );
             }
+        }
+
+        if ( $self->get_id() ) {
+            $self->load_capabilities();
         }
 
         return $self;
@@ -394,10 +419,8 @@ class Role {
         $db             = smliser_dbclass();
         $roles_table    = SMLISER_ROLES_TABLE;
         $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
-
-        $existing = static::get_by_slug( $this->get_slug() );
-
-        $capabilities = array_values( array_unique( $this->get_capabilities() ) );
+        $existing       = static::get_by_slug( $this->get_slug() );
+        $capabilities   = array_values( array_unique( $this->get_capabilities() ) );
 
         if ( ! $existing ) {
             $roles_data = [
@@ -432,7 +455,7 @@ class Role {
 
         $cap_id = $db->get_var(
             "SELECT `id` FROM {$caps_table} WHERE `role_id` = ?", 
-            $this->get_id() 
+            [$this->get_id() ]
         );
 
         if ( $cap_id ) {

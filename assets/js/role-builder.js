@@ -50,9 +50,10 @@ class RoleBuilder {
         this.render();
         this.bindEvents();
 
-        if ( initialRole?.length ) {
+        if ( initialRole ) {
             this.loadRole( initialRole );
         }
+
     }
 
     /**
@@ -335,7 +336,7 @@ class RoleBuilder {
 
         if ( presetKey ) {
             roleSelect.value = presetKey;
-            this.selectRole( presetKey );
+            this.selectRole( presetKey );            
             return;
         }
 

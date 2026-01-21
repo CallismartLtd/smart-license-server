@@ -188,21 +188,21 @@ class ContextServiceProvider {
     }
 
     /**
-     * Saves the role of the principal in owner context
+     * Saves the role of a rosource owner.
      * 
      * @param Owner $owner
      * @param Role $role
      * @param User|Organization $owner_principal
+     * @throws InvalidArgumentException When one required field is missing.
      */
-    public static function save_role_in_principal_context( Owner $owner, Role $role, User|Organization $owner_principal ) {
-        $db     = smliser_dbclass();
-        $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
-
-
-        $principal_type = ( $owner_principal instanceof User ) ? $owner::TYPE_INDIVIDUAL : $owner::TYPE_ORGANIZATION;
+    public static function save_resource_owner_role( Owner $owner, Role $role, User|Organization $owner_principal ) : bool {
+        $db             = smliser_dbclass();
+        $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
+        $principal_type = ( $owner_principal instanceof User ) ? Owner::TYPE_INDIVIDUAL : Owner::TYPE_ORGANIZATION;
+        
         $data   = array(
             'role_id'           => $role->get_id(),
-            'pricipal_id'       => $owner_principal->get_id(),
+            'principal_id'      => $owner_principal->get_id(),
             'principal_type'    => $principal_type,
             'owner_type'        => $owner->get_type(),
             'owner_id'          => $owner->get_id(),
@@ -222,8 +222,59 @@ class ContextServiceProvider {
             );
         }
 
-        
+        $existing_role  = self::get_principal_role( $owner, $owner_principal );
 
+        if ( $existing_role && $role->get_id() !== $existing_role->get_id() ) {
+            // Only the role assigned to this owner changes.
+            // Existing owner and principal data remains immutable.
+            $where = [
+                'principal_id'   => $owner_principal->get_id(),
+                'principal_type' => $principal_type,
+                'owner_type'     => $owner->get_type(),
+                'owner_id'       => $owner->get_id(),
+            ];
+
+            $result = $db->update( $table, ['role_id' => $role->get_id()], $where );
+            
+        } else {
+            $data['created_at']   = gmdate( 'Y-m-d H:i:s' );
+            
+            $result = $db->insert( $table, $data );
+            
+        }
+
+        return false !== $result;
+    }
+
+    /**
+     * Get principal role.
+     * 
+     * @param Owner $owner The resource owner object.
+     * @param User|Organization $owner_principal
+     * @return Role|null
+     */
+    public static function get_principal_role( Owner $owner, User|Organization $owner_principal ) : ?Role {
+        $db     = smliser_dbclass();
+        $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+
+        $principal_type = ( $owner_principal instanceof User ) ? Owner::TYPE_INDIVIDUAL : Owner::TYPE_ORGANIZATION;
+        $principal_id   = $owner_principal->get_id();
+        $owner_type     = $owner->get_type();
+        $owner_id       = $owner->get_id();
+
+        $sql    = 
+        "SELECT `role_id` FROM `{$table}` WHERE `principal_id` = ? AND `principal_type` = ? 
+        AND `owner_type` = ? AND `owner_id` = ?";
+
+        $role_id    = $db->get_var( $sql, [ $principal_id, $principal_type, $owner_type, $owner_id ] );
+
+        $role       = null;
+
+        if ( $role_id ) {
+            $role = Role::get_by_id( (int) $role_id );
+        }
+
+        return $role;
     }
 
 }

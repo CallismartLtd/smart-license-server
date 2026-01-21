@@ -147,10 +147,16 @@ class RequestException extends Exception {
             'title'   => 'Not Found',
             'message' => 'The requested API endpoint does not exist.'
         ],
+
         'resource_not_found' => [
             'status'  => 404,
             'title'   => 'Resource Not Found',
             'message' => 'The requested resource could not be located.'
+        ],
+        'resource_owner_not_found' => [
+            'status'  => 404,
+            'title'   => 'Resource Owner Not Found',
+            'message' => 'The resource owner does not exist.'
         ],
 
         // --- 405 Method Not Allowed ---
