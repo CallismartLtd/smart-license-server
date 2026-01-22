@@ -171,10 +171,6 @@ class Role {
     public function set_slug( $slug ) : static {
         $slug = self::sanitize_text( $slug );
 
-        if ( '' === $slug || $this->id > 0 ) {
-            return $this;
-        }
-
         $this->slug = strtolower( str_replace( [' ', '-'], ['_', '_'], $slug ) );
         return $this;
     }
@@ -518,17 +514,22 @@ class Role {
      * @param bool $return_array Whether to skip instantiation of self and return array.
      * @return self[]|array An array of role objects or array of roles if return param is true.
      */
-    public static function all( bool $return_array = false ) {
-        $db     = smliser_dbclass();
-        $table  = SMLISER_ROLES_TABLE;
+    public static function all( bool $return_array = false ) : array {
+        $db         = smliser_dbclass();
+        $table      = SMLISER_ROLES_TABLE;
+        $sql        = "SELECT * FROM {$table}";
+        $results    = $db->get_results( $sql );
 
-        $sql    = "SELECT * FROM {$table}";
-
-        $results = $db->get_results( $sql );
-
-        $roles  = $results;
-        if ( ! $return_array ) {
-            $roles  = array_map( [__CLASS__, 'from_array'], $results );
+        if ( empty( $results ) ) {
+            return [];
+        }
+        
+        /** @var self[] $roles */
+        $roles  = array_map( [__CLASS__, 'from_array'], $results );
+        if ( $return_array ) {
+            foreach ( $roles as &$role ) {
+                $role = $role->to_array();
+            }
         }
 
         return $roles;
