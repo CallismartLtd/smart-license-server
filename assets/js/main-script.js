@@ -1525,8 +1525,6 @@ document.addEventListener( 'DOMContentLoaded', function() {
             existingRoles = null;
         }
 
-        console.log( existingRoles );
-
         const builder       = new RoleBuilder( roleBuilderEl, defaultRoles, existingRoles );
         
         window.SmliserRoleBuilder   = builder;

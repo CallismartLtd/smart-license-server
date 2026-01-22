@@ -133,6 +133,11 @@
     box-shadow: 0 0 0 1px #2271b1;
 }
 
+.rb-field input[type="text"]:read-only {
+  background-color: #fafafa;
+  opacity: .9;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (min-width: 782px) {

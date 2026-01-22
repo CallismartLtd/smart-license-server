@@ -331,6 +331,7 @@ class RoleBuilder {
     loadRole( roleData ) {
         this.resetCapabilities();
 
+        /**@type {HTMLSelectElement} */
         const roleSelect    = this.container.querySelector( '.rb-role-select' );
 
         if ( roleData.is_canonical ) {
@@ -343,6 +344,12 @@ class RoleBuilder {
         }
 
         // Custom / non-canonical role.
+        if ( roleSelect.querySelector( `option[value="${roleData.slug}"]` ) ) {
+            this.selectRole( roleData.slug );
+            roleSelect.value = roleData.slug;
+            return;
+        }
+
         roleSelect.value = '';
         this.enableCustomRole();
 

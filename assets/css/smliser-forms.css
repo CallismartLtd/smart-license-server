@@ -574,6 +574,12 @@ button.smliser-upload-btn {
   border: 1px #dedcde solid;
 }
 
+.smliser-form-label-row input[type="text"]:read-only,
+.app-uploader-form-row input[type="text"]:read-only {
+  background-color: #fafafa;
+  opacity: .5;
+}
+
 .app-uploader-form-row span {
   font-weight: 500;
   color: #333333;
