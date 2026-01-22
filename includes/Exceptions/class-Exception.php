@@ -7,6 +7,7 @@
  */
 namespace SmartLicenseServer\Exceptions;
 use Exception as PHPException;
+use WP_Error;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -363,8 +364,12 @@ class Exception extends PHPException {
 	 * @since 0.1.1
 	 *
 	 * @return \WP_Error
+	 * @throws \RuntimeException In a non-wp environment.
 	 */
 	public function to_wp_error() {
+		if ( ! \class_exists( WP_Error::class ) ) {
+			throw new \RuntimeException( 'WP_Error class is not available.' );
+		}
 		$wp_error = new \WP_Error();
 
 		foreach ( $this->get_error_codes() as $code ) {

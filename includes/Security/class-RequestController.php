@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Security;
 
 use InvalidArgumentException;
+use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\Exception;
@@ -316,17 +317,18 @@ class RequestController {
             $args   = compact( 'term', 'types', 'status' );
 
             $results    = ContextServiceProvider::search( $args );
-            $data       = [];
+            $data       = Collection::make( $results['items'] )->map( 'smliser_value_to_array' );
 
-            foreach ( $results['items'] as $entity ) {
-                $data[] = $entity->to_array();
-            }
+            return ( new Response(
+                200,
+                [],
+                smliser_safe_json_encode( [
+                    'success'       => true,
+                    'items'         => $data->toArray(),
+                    'pagination'    => $results['pagination'],
+                ] )
+            ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
-            $results['success'] = true;
-            $results['items']   = $data;
-
-            return ( new Response( 200, [], smliser_safe_json_encode( $results ) ) )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )

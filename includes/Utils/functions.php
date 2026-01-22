@@ -1846,3 +1846,39 @@ function smliser_dump_url( $url ) : void {
     echo str_repeat('─', 80) . "\n";
     echo '</pre>';
 }
+
+/**
+ * Normalize a value to an array when possible.
+ *
+ * - Calls toArray() or to_array() on objects when available
+ * - Optionally falls back to get_object_vars()
+ * - Returns arrays as-is
+ * - Returns empty array for unsupported values
+ *
+ * @param mixed $value The value to normalize.
+ * @param bool  $use_object_vars Whether to fallback to get_object_vars().
+ * @return array
+ */
+function smliser_value_to_array( mixed $value, bool $use_object_vars = false ): array {
+	if ( is_object( $value ) ) {
+		if ( method_exists( $value, 'toArray' ) ) {
+			return $value->toArray();
+		}
+
+		if ( method_exists( $value, 'to_array' ) ) {
+			return $value->to_array();
+		}
+
+		if ( $use_object_vars ) {
+			return get_object_vars( $value );
+		}
+
+		return [];
+	}
+
+	if ( is_array( $value ) ) {
+		return $value;
+	}
+
+	return [];
+}
