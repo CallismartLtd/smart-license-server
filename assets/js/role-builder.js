@@ -331,20 +331,23 @@ class RoleBuilder {
     loadRole( roleData ) {
         this.resetCapabilities();
 
-        const presetKey     = this.findMatchingPreset( roleData.capabilities );
         const roleSelect    = this.container.querySelector( '.rb-role-select' );
 
-        if ( presetKey ) {
-            roleSelect.value = presetKey;
-            this.selectRole( presetKey );            
-            return;
+        if ( roleData.is_canonical ) {
+            const presetKey     = this.findMatchingPreset( roleData.capabilities );
+            if ( presetKey ) {
+                roleSelect.value = presetKey;
+                this.selectRole( presetKey );            
+                return;
+            }
         }
 
-        // Custom / non-canonical role
+        // Custom / non-canonical role.
         roleSelect.value = '';
         this.enableCustomRole();
 
-        this.setRoleName( roleData.name );
+        this.setRoleName( roleData.label );
+        this.formatRoleSlug( roleData.slug );
         this.checkCapabilities( roleData.capabilities );
     }
 
