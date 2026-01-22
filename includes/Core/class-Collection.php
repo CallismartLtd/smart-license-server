@@ -2,7 +2,7 @@
 /**
  * Collection utility class.
  *
- * Provides a fluent, immutable-style collection API inspired by modern
+ * Provides a fluent collection API inspired by modern
  * collection helpers, tailored for use within the Smart License Server.
  *
  * @package SmartLicenseServer\Core
@@ -99,7 +99,8 @@ class Collection implements IteratorAggregate, Countable, ArrayAccess {
 	 */
 	public function first( ?callable $callback = null, mixed $default = null ): mixed {
 		if ( null === $callback ) {
-			return reset( $this->items ) ?: $default;
+			$first = reset( $this->items );
+			return false === $first ? $default : $first;
 		}
 
 		foreach ( $this->items as $key => $item ) {
@@ -316,6 +317,31 @@ class Collection implements IteratorAggregate, Countable, ArrayAccess {
 	}
 
 	/**
+	 * Key the collection by the given key or callback.
+	 *
+	 * @param string|callable $key
+	 * @return self
+	 */
+	public function keyBy( string|callable $key ): self {
+		$items = [];
+
+		foreach ( $this->items as $item_key => $item ) {
+			if ( is_callable( $key ) ) {
+				$new_key = $key( $item, $item_key );
+			} else {
+				$new_key = is_array( $item )
+					? ( $item[ $key ] ?? null )
+					: ( $item->$key ?? null );
+			}
+
+			$items[ $new_key ] = $item;
+		}
+
+		return new self( $items );
+	}
+
+
+	/**
 	 * Reverse the collection order.
 	 *
 	 * @return self
@@ -414,7 +440,7 @@ class Collection implements IteratorAggregate, Countable, ArrayAccess {
 	 * @param int $depth Flatten depth.
 	 * @return self
 	 */
-	public function flatten( int $depth = INF ): self {
+	public function flatten( int $depth = PHP_INT_MAX ): self {
 		$result = [];
 
 		foreach ( $this->items as $item ) {
@@ -725,7 +751,7 @@ class Collection implements IteratorAggregate, Countable, ArrayAccess {
 	 * @return bool
 	 */
 	public function offsetExists( mixed $offset ): bool {
-		return isset( $this->items[ $offset ] );
+		return array_key_exists( $offset, $this->items );
 	}
 
 	/**

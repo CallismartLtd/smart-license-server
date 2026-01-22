@@ -38,6 +38,7 @@ final class DefaultRoles {
         'super_admin' => [
             'label'         => 'Super Administrator',
             'is_canonical'  => true,
+            'slug'          => 'super_admin',
             'capabilities'  => [ self::class, 'all_capabilities' ],
         ],
 
@@ -49,6 +50,7 @@ final class DefaultRoles {
         'resource_admin' => [
             'label'         => 'Resource Administrator',
             'is_canonical'  => true,
+            'slug'          => 'resource_admin',
             'capabilities'  => [
                 // Hosted applications
                 'hosted_apps.create',
@@ -84,6 +86,7 @@ final class DefaultRoles {
         'security_admin' => [
             'label'         => 'Security Administrator',
             'is_canonical'  => true,
+            'slug'          => 'security_admin',
             'capabilities'  => [
                 'security.owner.create',
                 'security.organization.create',
@@ -104,6 +107,7 @@ final class DefaultRoles {
         'app_manager' => [
             'label'         => 'Application Manager',
             'is_canonical'  => true,
+            'slug'          => 'app_manager',
             'capabilities'  => [
                 'hosted_apps.create',
                 'hosted_apps.update',
@@ -118,6 +122,7 @@ final class DefaultRoles {
         'license_manager' => [
             'label'         => 'License Manager',
             'is_canonical'  => true,
+            'slug'          => 'license_manager',
             'capabilities'  => [
                 'monetization.pricing.create',
                 'monetization.pricing.update',
@@ -136,6 +141,7 @@ final class DefaultRoles {
         'analyst' => [
             'label'         => 'Analyst',
             'is_canonical'  => true,
+            'slug'          => 'analyst',
             'capabilities'  => [
                 'analytics.view',
             ],
@@ -147,6 +153,7 @@ final class DefaultRoles {
         'viewer' => [
             'label'        => 'Viewer',
             'is_canonical'  => true,
+            'slug'          => 'viewer',
             'capabilities'  => [
                 'repository.view',
                 'repository.download',
@@ -171,6 +178,7 @@ final class DefaultRoles {
             $roles[ $key ] = [
                 'label'         => $role['label'],
                 'is_canonical'  => $role['is_canonical'],
+                'slug'          => $role['slug'],
                 'capabilities'  => self::resolve_capabilities( $role['capabilities'] ),
             ];
         }

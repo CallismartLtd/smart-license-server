@@ -527,8 +527,10 @@ class Role {
         /** @var self[] $roles */
         $roles  = array_map( [__CLASS__, 'from_array'], $results );
         if ( $return_array ) {
-            foreach ( $roles as &$role ) {
-                $role = $role->to_array();
+            $role_objs  = $roles;
+            $roles      = [];
+            foreach ( $role_objs as $role ) {
+                $roles[$role->get_slug()]   = $role->to_array();
             }
         }
 
