@@ -268,7 +268,7 @@ class AccessControlPage {
             if ( $principal ) {
                 $role   = ContextServiceProvider::get_principal_role( $owner, $principal )?->to_array();
             }
-
+            
             unset( $_owner_type, $entity_class, $_entity_class, $principal, $pr_name );
 
         }
