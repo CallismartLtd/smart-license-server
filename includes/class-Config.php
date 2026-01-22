@@ -394,7 +394,7 @@ class Config {
             'wp_spinner_gif_2x' => admin_url('images/spinner-2x.gif'),
             'app_search_api'    => rest_url( self::namespace() . $this->repository_route ),
             'default_roles'     => [
-                'roles'         => DefaultRoles::all( true ),
+                'roles'         => Role::all( true ),
                 'capabilities'  => Capability::get_caps()
             ]
         );
