@@ -96,6 +96,6 @@ class Request {
      * @return boolean
      */
     public function is_authorized() : bool {
-        return boolval( $this->get( 'is_authorized' ) );
+        return boolval( $this->get( 'is_authorized' ) ); // @todo Refactor to use the security context or deprecate
     }
 }

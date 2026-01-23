@@ -42,7 +42,7 @@ defined( 'ABSPATH'  ) || exit;
 
 /**
  * Wordpress adapter bridges the gap beween Smart License Server and request from
- * WP environments
+ * WP environments.
  */
 class WPAdapter extends Config implements EnvironmentProviderInterface {
 

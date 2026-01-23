@@ -25,17 +25,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class ContextServiceProvider {
     use CacheAwareTrait, SanitizeAwareTrait;
 
-
-
-
-
-
-
-
-
-
-
-
     /**
      * Search security entities across multiple db tables with pagination.
      *
@@ -163,9 +152,9 @@ class ContextServiceProvider {
 
     /**
      * Get a security entity class name.
-     * * @param string $entity The name of the security entity.
+     * @param string $entity The name of the security entity.
      * - valid names are `owner`, `user`, `organization`, `service_account`, and `role`.
-     * * @return class-string<Owner|Organization|User|ServiceAccount|Role>|null
+     * @return class-string<Owner|Organization|User|ServiceAccount|Role>|null
      */
     public static function get_entity_classname( $entity ) {
         if ( ! is_string( $entity ) ) {
@@ -176,9 +165,8 @@ class ContextServiceProvider {
             $entity = 'User';
         }
 
-        // Logic for service_account (snake_case to PascalCase)
         $formatted_entity = str_replace('_', '', ucwords($entity, '_') );
-        $class_name = '\\SmartLicenseServer\\Security\\' . $formatted_entity;
+        $class_name = __NAMESPACE__. '\\' . $formatted_entity;
 
         if ( ! class_exists( $class_name, true ) ) {
             return null;

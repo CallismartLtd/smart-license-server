@@ -27,7 +27,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * API or system-to-system authentication. They are owned
  * by an Owner entity.
  */
-class ServiceAccount implements PrincipalInterface {
+class ServiceAccount implements ActorInterface {
 
     use SanitizeAwareTrait, CommonQueryTrait, TokenDeliveryTrait;
 

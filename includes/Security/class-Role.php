@@ -417,14 +417,15 @@ class Role {
         $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
         $existing       = static::get_by_slug( $this->get_slug() );
         $capabilities   = array_values( array_unique( $this->get_capabilities() ) );
+        $now            = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
 
         if ( ! $existing ) {
             $roles_data = [
                 'is_canonical'  => $this->get_is_canonical(),
                 'slug'          => $this->get_slug(),
                 'label'         => $this->get_label(),
-                'updated_at'    => gmdate( 'Y-m-d H:i:s' ),
-                'created_at'    => gmdate( 'Y-m-d H:i:s' ),
+                'updated_at'    => $now->format( 'Y-m-d H:i:s' ),
+                'created_at'    => $now->format( 'Y-m-d H:i:s' ),
             ];
 
             $result = $db->insert( $roles_table, $roles_data );

@@ -115,13 +115,6 @@ class Owner {
      */
     protected ?array $apps = null;
 
-    /** 
-     * The roles avaliable to this owner.
-     * @var Role|Role[]|null Single role instance for individual users, an array
-     * `                     of role objects for organization 
-     */
-    protected Role|array|null $roles = null;
-
     /**
      * Holds the value of `exists` check
      *

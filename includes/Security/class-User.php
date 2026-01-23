@@ -29,7 +29,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Users do not own resources directly.
  * Ownership is always mediated through an Owner.
  */
-class User implements PrincipalInterface{
+class User implements ActorInterface {
     use SanitizeAwareTrait, CommonQueryTrait;
 
     /**
@@ -54,7 +54,7 @@ class User implements PrincipalInterface{
     public const STATUS_DISABLED = 'disabled';
 
     /**
-     * Internal principal type identifier.
+     * Internal actor type identifier.
      *
      * @var string
      */
@@ -406,7 +406,6 @@ class User implements PrincipalInterface{
             'password_hash' => $this->get_password_hash(),
             'status'        => $this->get_status(),
             'updated_at'    => gmdate( 'Y-m-d H:i:s' )
-
         );
 
         if ( $this->get_id() ) {
@@ -415,7 +414,10 @@ class User implements PrincipalInterface{
             $fields['created_at']   = gmdate( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $fields );
             $this->set_id( $db->get_insert_id() );
+            $this->set_created_at( $fields['created_at'] );
         }
+
+        $this->set_updated_at( $fields['updated_at'] );
 
         return $result !== false;
     }
@@ -455,7 +457,7 @@ class User implements PrincipalInterface{
         
         $data   = ['type' => static::TYPE] + $data;
 
-        unset( $data['exists_cache'] );
+        unset( $data['exists_cache'], $data['password_hash'] );
         return $data;
     }
 

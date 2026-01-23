@@ -1,6 +1,6 @@
 <?php
 /**
- * The principal interface file.
+ * The actor interface file.
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Security
@@ -12,7 +12,7 @@ use function defined;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-interface PrincipalInterface {
+interface ActorInterface {
     /*
     |--------------
     | SETTERS
@@ -20,14 +20,14 @@ interface PrincipalInterface {
     */
 
     /**
-     * Set principal ID.
+     * Set actor ID.
      * 
      * @param int $id
      */
     public function set_id( $id ) : static;
 
     /**
-     * Set principal display name
+     * Set actor display name
      * 
      * @param string $name
      */

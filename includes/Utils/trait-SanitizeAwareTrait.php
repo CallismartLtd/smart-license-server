@@ -31,12 +31,12 @@ use SmartLicenseServer\Utils\Sanitizer;
  *     private string $name;
  *     private string $email;
  *     
- *     public function setName(string $name): void {
- *         $this->name = self::sanitize_text($name);
+ *     public function set_name( string $name ): void {
+ *         $this->name = self::sanitize_text( $name );
  *     }
  *     
- *     public function setEmail(string $email): void {
- *         $this->email = self::sanitize_email($email);
+ *     public function set_email( string $email ): void {
+ *         $this->email = self::sanitize_email( $email );
  *     }
  * }
  * ```
