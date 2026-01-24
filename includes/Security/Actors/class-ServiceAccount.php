@@ -8,9 +8,10 @@
  * @package SmartLicenseServer\Security
  */
 
-namespace SmartLicenseServer\Security;
+namespace SmartLicenseServer\Security\Actors;
 
 use DateTimeImmutable;
+use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;

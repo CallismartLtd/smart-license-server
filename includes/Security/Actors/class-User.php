@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\Security
  */
 
-namespace SmartLicenseServer\Security;
+namespace SmartLicenseServer\Security\Actors;
 
 use DateTimeImmutable;
 use SmartLicenseServer\Core\URL;

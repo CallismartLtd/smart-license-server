@@ -5,10 +5,14 @@
  * @package SmartLicenseServer\Security
  */
 
-namespace SmartLicenseServer\Security;
+namespace SmartLicenseServer\Security\Context;
 
 use BadMethodCallException;
 use InvalidArgumentException;
+use SmartLicenseServer\Security\Actors\ActorInterface;
+use SmartLicenseServer\Security\Permission\Role;
+use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Security\Permission\Capability;
 use function defined;
 use function get_class;
 use function method_exists;

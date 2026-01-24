@@ -8,10 +8,10 @@
 
 namespace SmartLicenseServer\Admin;
 
-use SmartLicenseServer\Security\ContextServiceProvider;
+use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Organization;
 use SmartLicenseServer\Security\Owner;
-use SmartLicenseServer\Security\User;
+use SmartLicenseServer\Security\Actors\User;
 
 use function defined, smliser_get_query_param, array_unshift, sprintf,time, 
 smliser_json_encode_attr, array_map, array_combine, array_values, is_array;

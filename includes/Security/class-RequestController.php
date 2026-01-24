@@ -15,6 +15,9 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
+use SmartLicenseServer\Security\Context\ContextServiceProvider;
+use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Permission\Role;
 
 use const PASSWORD_ARGON2ID;
 

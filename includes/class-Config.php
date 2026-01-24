@@ -10,9 +10,8 @@
 namespace SmartLicenseServer;
 
 use RuntimeException;
-use SmartLicenseServer\Security\Capability;
-use SmartLicenseServer\Security\DefaultRoles;
-use SmartLicenseServer\Security\Role;
+use SmartLicenseServer\Security\Permission\Capability;
+use SmartLicenseServer\Security\Permission\Role;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 

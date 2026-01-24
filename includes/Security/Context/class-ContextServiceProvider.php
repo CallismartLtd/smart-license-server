@@ -6,12 +6,16 @@
  * @package SmartLicenseServer\Security;
  */
 
-namespace SmartLicenseServer\Security;
+namespace SmartLicenseServer\Security\Context;
 
 use InvalidArgumentException;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
+use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Security\Permission\Role;
+use SmartLicenseServer\Security\Organization;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE;
 use function defined, class_exists, parse_args_recursive, smliser_dbclass;
@@ -165,8 +169,8 @@ class ContextServiceProvider {
             $entity = 'User';
         }
 
-        $formatted_entity = str_replace('_', '', ucwords($entity, '_') );
-        $class_name = __NAMESPACE__. '\\' . $formatted_entity;
+        $formatted_entity = str_replace( '_', '', ucwords( $entity, '_' ) );
+        $class_name = '\\SmartLicenseServer\\Security\\Actors\\' . $formatted_entity;
 
         if ( ! class_exists( $class_name, true ) ) {
             return null;

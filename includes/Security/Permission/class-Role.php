@@ -9,7 +9,7 @@
  * @package SmartLicenseServer\Security
  */
 
-namespace SmartLicenseServer\Security;
+namespace SmartLicenseServer\Security\Permission;
 
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\CommonQueryTrait;

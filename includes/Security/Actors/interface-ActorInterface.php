@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\Security
  */
 
-namespace SmartLicenseServer\Security;
+namespace SmartLicenseServer\Security\Actors;
 
 use function defined;
 

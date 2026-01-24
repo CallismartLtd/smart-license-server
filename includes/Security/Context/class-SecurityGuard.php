@@ -4,11 +4,13 @@
  * @author Callistus Nwachukwu
  */
 
-namespace SmartLicenseServer\Security;
+namespace SmartLicenseServer\Security\Context;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Security\Actors\ActorInterface;
+use SmartLicenseServer\Security\Owner;
 
 /**
  * Orchestrates the transition from an authenticated Actor to a contextual Principal.
