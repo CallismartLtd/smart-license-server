@@ -96,6 +96,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $handler_map    = [
             'smliser-downloads'                             => function() { ( self::resolve_download_request_parser() )(); },
             'smliser-repository-assets'                     => [__CLASS__, 'parse_app_asset_request'],
+            'smliser-uploads'                               => [__CLASS__, 'parse_uploads_dir_request'],
             'smliser_admin_download'                        => [__CLASS__, 'parse_admin_download_request'],
             'smliser_download_image'                        => [__CLASS__, 'parse_proxy_image_request'],
             'smliser_save_plugin'                           => [__CLASS__, 'parse_save_app_request'],
@@ -240,6 +241,32 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         ]);
 
         $response = FileRequestController::get_app_static_asset( $request );
+
+        $response->send();
+    }
+
+    /**
+     * Parse requests for files in the smliser-uploads directory.
+     */
+    private static function parse_uploads_dir_request() {
+        $path   = smliser_sanitize_path( get_query_var( 'smliser_upload_path' ) );
+        if ( is_smliser_error( $path ) ) {
+            smliser_abort_request(
+                __( 'Please provide a valid file path', 'smliser' ),
+                'Bad Request',
+                array( 'response' => 400 )
+            );
+        }
+        
+        $request    = new FileRequest([
+            'file_path'     => $path,
+            'user_agent'    => smliser_get_user_agent(),
+            'request_time'  => time(),
+            'client_ip'     => smliser_get_client_ip(),
+            'is_authorized' => true // Public access to uploads dir files
+        ]);
+
+        $response = FileRequestController::get_uploads_dir_asset( $request );
 
         $response->send();
     }
