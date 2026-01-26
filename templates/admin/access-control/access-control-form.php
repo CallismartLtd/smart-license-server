@@ -4,6 +4,12 @@
  *
  * @author Callistus Nwachukwu
  * @see \SmartLicenseServer\Admin\AccessControlPage
+ * @var string $title
+ * @var string $roles_title
+ * @var array $form_fields
+ * @var \SmartLicenseServer\Core\URL $avatar_url
+ * @var string $avatar_name
+ * @var array $role
  */
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
@@ -24,7 +30,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 <div class="smliser-two-rows_right">
                     <div class="smliser-avatar-upload">
                         <div class="smliser-avatar-upload_image-holder">
-                            <img class="smliser-avatar-upload_image-preview" src="<?php echo esc_url(  $avatar_url ); ?>" title="<?php echo esc_attr( basename( $avatar_url ) ); ?>" alt="avatar">
+                            <img class="smliser-avatar-upload_image-preview" src="<?php echo esc_url( $avatar_url ); ?>" title="<?php echo esc_attr( $avatar_url->basename() ); ?>" alt="avatar">
                         </div>
                         <div class="smliser-avatar-upload_data">
                             <input type="file" name="avatar" id="smliser-avatar-input" accept="image/*" class="hidden">
@@ -44,7 +50,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
        <div class="smliser-spinner"></div>
         
-        <?php if ( 'owners' === smliser_get_query_param( 'tab' ) ) : ?>
+        <?php if ( 'owners' !== smliser_get_query_param( 'tab' ) ) : ?>
             <h2 class="smliser-access-control-role-deading"><?php echo esc_html( $roles_title ); ?></h2>
             <!-- Mounted dynamically - @see role-builder.js -->
             <div id="smliser-role-builder" data-roles="<?php echo esc_attr( smliser_json_encode_attr( isset( $role ) ? $role : [] ) ); ?>"></div>

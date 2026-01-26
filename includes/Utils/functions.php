@@ -969,38 +969,6 @@ function smliser_render_input_field( $args = array() ) {
 }
 
 /**
- * Get the URL for a given app asset.
- *
- * @param string $type     App type ('plugin' or 'theme').
- * @param string $slug     The app slug.
- * @param string $filename The asset file name (e.g. screenshot-1.png).
- * @return string
- */
-function smliser_get_app_asset_url( $type, $slug, $filename ) {
-    return smliser_get_repo_url(
-        sprintf( '%s/%s/assets/%s', $type, $slug, ltrim( $filename, '/' ) )
-    );
-}
-
-/**
- * Get the repository base URL or a path within it.
- *
- * @param string $path Optional relative path within the repo.
- * @return string
- */
-function smliser_get_repo_url( $path = '' ) {
-    $repo_base = \smliser_settings_adapter()->get( 'smliser_repo_base_perma', 'repository' );
-    $base_url  = site_url( $repo_base );
-
-    if ( $path !== '' ) {
-        // Avoid double slashes but do not enforce trailing slash
-        return $base_url . '/' . ltrim( $path, '/' );
-    }
-
-    return $base_url;
-}
-
-/**
  * Parse a given argument with default arguments.
  * Similar to wp_parse_args(), but strips out undefined default keys.
  *
@@ -1439,6 +1407,37 @@ function smliser_settings_adapter() : SmartLicenseServer\SettingsAPI\Settings {
 }
 
 /**
+ * Get the URL for a given app asset.
+ *
+ * @param string $type     App type ('plugin' or 'theme').
+ * @param string $slug     The app slug.
+ * @param string $filename The asset file name (e.g. screenshot-1.png).
+ * @return string
+ */
+function smliser_get_asset_url( $type, $slug, $filename ) {
+    return smliser_get_repo_url(
+        sprintf( '%s/%s/assets/%s', $type, $slug, ltrim( $filename, '/' ) )
+    );
+}
+
+/**
+ * Get the repository base URL or a path within it.
+ *
+ * @param string $path Optional relative path within the repo.
+ * @return string
+ */
+function smliser_get_repo_url( $path = '' ) {
+    $repo_base = \smliser_settings_adapter()->get( 'smliser_repo_base_perma', 'repository' );
+    $base_url  = site_url( $repo_base );
+
+    if ( $path !== '' ) {
+        return $base_url . '/' . ltrim( $path, '/' );
+    }
+
+    return $base_url;
+}
+
+/**
  * Get the cache singleton instance.
  *
  * @return \SmartLicenseServer\Cache\Cache Singleton instance of the Cache class.
@@ -1490,7 +1489,7 @@ function smliser_get_placeholder_icon( string $type = '' ) : string {
  * @return string
  */
 function smliser_uploads_url( string $path  = '' ) : string {
-    $uploads_rel_path   = str_replace( SMLISER_ABSPATH, '', SMLISER_UPLOADS_DIR );
+    $uploads_rel_path   = 'smliser-uploads';
     $path               = FileSystemHelper::join_path( $uploads_rel_path, $path );
     $uploads_url        = site_url( $path );
     return $uploads_url;
@@ -1512,6 +1511,12 @@ function smliser_avatar_url( string $filename_hash, string $type ) : string {
     }
 
     $path       = FileSystemHelper::join_path( $path, $filename_hash );
+    $abs_path   = FileSystemHelper::join_path( SMLISER_UPLOADS_DIR, $path );
+
+    if ( is_smliser_error( $path ) || ! FileSystemHelper::is_valid_file( $abs_path ) ) {
+        return '';
+    }
+
     $avatar_url = smliser_uploads_url( $path );
     return $avatar_url;
 }
