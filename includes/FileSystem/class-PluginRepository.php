@@ -265,7 +265,7 @@ class PluginRepository extends Repository {
         @$this->chmod( $dest_path, FS_CHMOD_FILE );
 
     
-        return smliser_get_app_asset_url( 'plugin', $slug, $target_name );
+        return smliser_get_asset_url( 'plugin', $slug, $target_name );
     }
 
     /**
@@ -303,7 +303,7 @@ class PluginRepository extends Repository {
                     $pattern = $assets_dir . $basename . '.{png,gif,svg}';
                     $matches = glob( $pattern, GLOB_BRACE );
                     $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
-                        ? smliser_get_app_asset_url( 'plugin', $slug, basename( $matches[0] ) )
+                        ? smliser_get_asset_url( 'plugin', $slug, basename( $matches[0] ) )
                         : '';
                 }
                 return $urls;
@@ -319,7 +319,7 @@ class PluginRepository extends Repository {
                     $pattern = $assets_dir . $basename . '.{png,gif,webp,svg}';
                     $matches = glob( $pattern, GLOB_BRACE );
                     $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
-                        ? smliser_get_app_asset_url( 'plugin', $slug, basename( $matches[0] ) )
+                        ? smliser_get_asset_url( 'plugin', $slug, basename( $matches[0] ) )
                         : '';
                 }
 
@@ -327,7 +327,7 @@ class PluginRepository extends Repository {
                 $universal  = $assets_dir . 'icon.{png,gif,webp,svg}';
                 $matches    = glob( $universal, GLOB_BRACE );
                 if ( $matches && $this->is_file( $matches[0] ) && empty( $urls['1x'] ) ) {
-                    $urls['1x'] = smliser_get_app_asset_url( 'plugin', $slug, \basename( $matches[0] ) );
+                    $urls['1x'] = smliser_get_asset_url( 'plugin', $slug, \basename( $matches[0] ) );
                 }
 
                 return $urls;
@@ -335,6 +335,7 @@ class PluginRepository extends Repository {
             case 'screenshots':
                 $pattern = $assets_dir . 'screenshot-*.{png,jpg,jpeg,gif,webp,svg}';
                 $files   = glob( $pattern, GLOB_BRACE );
+                
                 break;
 
             default:
@@ -350,7 +351,7 @@ class PluginRepository extends Repository {
             $indexed = [];
             foreach ( $files as $file_path ) {
                 $basename = basename( $file_path );
-                $url      = smliser_get_app_asset_url( 'plugin', $slug, $basename );
+                $url      = smliser_get_asset_url( 'plugin', $slug, $basename );
 
                 if ( preg_match( '/screenshot-(\d+)\./i', $basename, $m ) ) {
                     $indexed[ (int) $m[1] ] = $url;

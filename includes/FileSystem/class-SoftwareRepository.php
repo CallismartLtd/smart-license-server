@@ -258,7 +258,7 @@ class SoftwareRepository extends Repository {
         @$this->chmod( $dest_path, FS_CHMOD_FILE );
 
     
-        return smliser_get_app_asset_url( 'software', $slug, $target_name );
+        return smliser_get_asset_url( 'software', $slug, $target_name );
     }
 
     /**
@@ -295,7 +295,7 @@ class SoftwareRepository extends Repository {
                     $icon_files = glob( $pattern, GLOB_BRACE );
 
                     foreach ( $icon_files as $icon ) {
-                        $icons[] = smliser_get_app_asset_url( 'software', $slug, basename( $icon ) );
+                        $icons[] = smliser_get_asset_url( 'software', $slug, basename( $icon ) );
                     }
                 }
 
@@ -307,14 +307,14 @@ class SoftwareRepository extends Repository {
                     return '';
                 }
                 $cover          = \reset( $cover_files );
-                return smliser_get_app_asset_url( 'software', $slug, basename( $cover ) );
+                return smliser_get_asset_url( 'software', $slug, basename( $cover ) );
 
             case 'screenshots':
                 $screenshot_files = glob( $assets_dir . 'screenshot-*.{' . implode( ',', $possible_exts ) . '}', GLOB_BRACE );
                 $screenshots = [];
 
                 foreach ( $screenshot_files as $screenshot ) {
-                    $screenshots[] = smliser_get_app_asset_url( 'software', $slug, basename( $screenshot ) );
+                    $screenshots[] = smliser_get_asset_url( 'software', $slug, basename( $screenshot ) );
                 }
 
                 return $screenshots;

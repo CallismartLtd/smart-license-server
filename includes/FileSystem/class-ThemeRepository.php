@@ -246,7 +246,7 @@ class ThemeRepository extends Repository {
 
         @$this->chmod( $target_path, FS_CHMOD_FILE );
 
-        return smliser_get_app_asset_url( 'theme', $slug, \basename( $target_path ) );
+        return smliser_get_asset_url( 'theme', $slug, \basename( $target_path ) );
         
     }
 
@@ -280,7 +280,7 @@ class ThemeRepository extends Repository {
                 $screenshot = FileSystemHelper::join_path( $assets_dir, 'screenshot.png' );
 
                 if ( $this->exists( $screenshot ) ) {
-                    return \smliser_get_app_asset_url( 'theme', $slug, \basename( $screenshot ) );
+                    return \smliser_get_asset_url( 'theme', $slug, \basename( $screenshot ) );
                 }
 
                 return '';
@@ -298,7 +298,7 @@ class ThemeRepository extends Repository {
                 foreach ( $screenshots as $screenshot ) {
                     $name   = basename( $screenshot );
 
-                    $url    = \smliser_get_app_asset_url( 'theme', $slug, $name );
+                    $url    = \smliser_get_asset_url( 'theme', $slug, $name );
 
                     if ( preg_match( '/screenshot-(\d+)\./i', $name, $m ) ) {
                        $urls[ (int) $m[1] ] = $url;
