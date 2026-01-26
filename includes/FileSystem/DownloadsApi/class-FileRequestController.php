@@ -8,8 +8,10 @@
 
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
+use SimplePie\File;
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Exceptions\FileRequestException;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -159,6 +161,38 @@ class FileRequestController {
         } catch ( FileRequestException $e ) {
             return new FileResponse( $e );
         }    
+    }
+
+    /**
+     * Process and serve static assets from the smliser-uploads directory.
+     *
+     * @param FileRequest $request
+     * @return FileResponse
+     */
+    public static function get_uploads_dir_asset( FileRequest $request ): FileResponse {
+        try {
+            $file_path = $request->get( 'file_path' );
+
+            if ( ! $file_path ) {
+                throw new FileRequestException( 'missing_parameter', 'File path is required.', ['status' => 400] );
+            }
+
+            $sanitized_path = FileSystemHelper::sanitize_path( $file_path );
+            $file_path      = \is_smliser_error( $sanitized_path ) ? $sanitized_path : FileSystemHelper::join_path( SMLISER_UPLOADS_DIR, $sanitized_path );
+
+            if ( is_smliser_error( $file_path ) || ! FileSystemHelper::is_valid_file( $file_path ) ) {
+                throw new FileRequestException( 'file_not_found' );
+            }
+
+            $response = new FileResponse( $file_path );
+            $response->set_header( 'Content-Disposition', $response->get_content_disposition( '', '', true ) );
+            $response->set_header( 'Cache-Control', 'max-age=31536000, immutable' );
+            $response->set_header( 'Expires', sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', time() + 31536000 ) ) );
+            return $response;
+
+        } catch ( FileRequestException $e ) {
+            return new FileResponse( $e );
+        }
     }
 
     /**
