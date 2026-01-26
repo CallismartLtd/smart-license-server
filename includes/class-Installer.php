@@ -119,7 +119,7 @@ class Installer {
      */
     private static function init_repo_dir() {    
         Config::instance()->include();
-        return Repository::create_repository_directories();
+        return Repository::make_directories();
     }
 
     /**

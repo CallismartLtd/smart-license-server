@@ -556,14 +556,13 @@ abstract class Repository {
     */
 
     /**
-     * Creates the Smart License Server repository directories
-     * and ensures they are properly secured.
+     * Creates all necessary directories.
      *
      * @since 1.0.0
      *
      * @return true|Exception True on success, Exception instance on failure.
      */
-    public static function create_repository_directories() {
+    public static function make_directories() {
         $fs = FileSystem::instance();
 
         $directories = [
@@ -571,6 +570,8 @@ abstract class Repository {
             'plugin'     => SMLISER_PLUGINS_REPO_DIR,
             'theme'      => SMLISER_THEMES_REPO_DIR,
             'software'   => SMLISER_SOFTWARE_REPO_DIR,
+            'trash'      => FileSystemHelper::join_path( SMLISER_REPO_DIR, self::TRASH_DIR ),
+            'uploads'    => SMLISER_UPLOADS_DIR,
         ];
 
         $exception = new Exception();
@@ -585,7 +586,7 @@ abstract class Repository {
                     );
 
                     $exception->add( 'directory_creation_failed', $message );
-                    continue; // try creating the other directories
+                    continue; // try creating the other directories.
                 }
 
                 // Set directory permissions.
@@ -595,6 +596,8 @@ abstract class Repository {
 
         // Protect the repository root.
         $protection = self::protect_dir( $directories['repository'], $fs );
+        // Protect the uploads directory.
+        $protection = self::protect_dir( $directories['uploads'], $fs );
 
         if ( is_smliser_error( $protection ) ) {
             $exception->merge_from( $protection );
