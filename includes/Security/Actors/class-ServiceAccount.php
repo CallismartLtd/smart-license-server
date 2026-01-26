@@ -478,6 +478,10 @@ class ServiceAccount implements ActorInterface {
         return get_object_vars( $this );
     }
 
+    public function get_type() : string {
+        return 'service_account';
+    }
+
     /**
      * Determine if account can authenticate.
      *

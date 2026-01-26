@@ -8,13 +8,15 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Core\Collection;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Organization;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
 
-use function defined, smliser_get_query_param, array_unshift, sprintf,time, 
-smliser_json_encode_attr, array_map, array_combine, array_values, is_array;
+use function defined, smliser_get_query_param, array_unshift, sprintf, time, basename, call_user_func, 
+smliser_json_encode_attr, array_map, admin_url;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -90,12 +92,14 @@ class AccessControlPage {
         $user           = User::get_by_id( (int) $user_id );
 
         $title          = sprintf( '%s User', $user ? 'Edit' : 'Add New' );
-        $roles_title    = 'Ownership Roles';
+        $roles_title    = sprintf( '%s User Role', $user ? 'Update' : 'Set' );
 
         $_user_statuses = User::get_allowed_statuses();
         $_status_titles = array_map( 'ucwords', array_values( $_user_statuses ) );
         $_status_keys   = array_values( $_user_statuses );
         $_statuses      = array_combine( $_status_keys, $_status_titles );
+
+        $role           = $user ? [] : '';
 
         $form_fields    = array(
             array(
@@ -104,6 +108,14 @@ class AccessControlPage {
                     'type'  => 'hidden',
                     'name'  => 'id',
                     'value' => $user ? $user->get_id() : 0,
+                )
+            ),
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'entity',
+                    'value' => 'user',
                 )
             ),
 
@@ -210,8 +222,22 @@ class AccessControlPage {
      
         );
 
-        $avatar_url     = $user ? $user->get_avatar()->add_query_param( 'ver', time() ) : smliser_get_placeholder_icon( 'avatar' );
-        $avatar_name    = $user ? 'View image' : \basename( $avatar_url );
+        $avatar_url     = 
+            $user && $user->get_avatar()->is_valid() 
+            ? $user->get_avatar()->add_query_param( 'ver', time() )
+            : new URL( smliser_get_placeholder_icon( 'avatar' ) );
+
+        $avatar_name    = $user ? 'View image' : $avatar_url->basename();
+        $role_obj       = $user ? ContextServiceProvider::get_principal_role( $user ) : '';
+
+        if ( $role_obj ) {
+            $collection = Collection::make( $role_obj->to_array() );
+
+            $role   = $collection->toArray();
+
+            unset( $collection );
+        }
+
         include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }
 
@@ -264,10 +290,6 @@ class AccessControlPage {
             $pr_name        = $principal ? $principal->get_name() : '[Deleted entity]';
 
             $principal_option   = [$principal_id => $pr_name];
-
-            if ( $principal ) {
-                $role   = ContextServiceProvider::get_principal_role( $owner, $principal )?->to_array();
-            }
             
             unset( $_owner_type, $entity_class, $_entity_class, $principal, $pr_name );
 

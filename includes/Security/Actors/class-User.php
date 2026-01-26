@@ -520,4 +520,8 @@ class User implements ActorInterface {
     public function get_avatar() : URL {
         return new URL( smliser_avatar_url( md5( $this->get_email() ), 'user' ) );
     }
+    
+    public function get_type() : string {
+        return 'individual';
+    }
 }

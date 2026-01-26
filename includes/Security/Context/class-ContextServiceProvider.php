@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Security\Context;
 use InvalidArgumentException;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Collection;
+use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Owner;
@@ -18,7 +19,7 @@ use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Security\Organization;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE;
-use function defined, class_exists, parse_args_recursive, smliser_dbclass;
+use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -165,12 +166,16 @@ class ContextServiceProvider {
             return null;
         }
 
-        if ( Owner::TYPE_INDIVIDUAL === $entity ) {
-            $entity = 'User';
-        }
+        $entity = str_replace( '_', '', ucwords( $entity, '_' ) );
 
-        $formatted_entity = str_replace( '_', '', ucwords( $entity, '_' ) );
-        $class_name = '\\SmartLicenseServer\\Security\\Actors\\' . $formatted_entity;
+        $class_name = match( strtolower( $entity ) ) {
+            Owner::TYPE_INDIVIDUAL, 'user'  => 'Actors\\User',
+            Owner::TYPE_ORGANIZATION        => 'Organization',
+            'serviceaccount'                => 'Actors\\ServiceAccount',
+            default                         => ''
+        };
+
+        $class_name = '\\SmartLicenseServer\\Security\\' . $class_name;
 
         if ( ! class_exists( $class_name, true ) ) {
             return null;
@@ -180,24 +185,25 @@ class ContextServiceProvider {
     }
 
     /**
-     * Saves the role of a rosource owner.
+     * Saves the role of an actor.
      * 
-     * @param Owner $owner
+     * @param ActorInterface $actor The actor that can authenticate.
      * @param Role $role
-     * @param User|Organization $owner_principal
+     * @param Organization|null $org The organization this actor belongs to.
      * @throws InvalidArgumentException When one required field is missing.
      */
-    public static function save_resource_owner_role( Owner $owner, Role $role, User|Organization $owner_principal ) : bool {
+    public static function save_actor_role( ActorInterface $actor, Role $role, ?Organization $org ) : bool {
         $db             = smliser_dbclass();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
-        $principal_type = ( $owner_principal instanceof User ) ? Owner::TYPE_INDIVIDUAL : Owner::TYPE_ORGANIZATION;
+        $is_org         = ( $org instanceof Organization );
+        $owner_type     = $is_org ? Owner::TYPE_ORGANIZATION : Owner::TYPE_INDIVIDUAL;
         
         $data   = array(
             'role_id'           => $role->get_id(),
-            'principal_id'      => $owner_principal->get_id(),
-            'principal_type'    => $principal_type,
-            'owner_type'        => $owner->get_type(),
-            'owner_id'          => $owner->get_id(),
+            'principal_id'      => $actor->get_id(),
+            'principal_type'    => $actor->get_type(),
+            'owner_type'        => $owner_type,
+            'owner_id'          => $is_org ? $org->get_id() : $actor->get_id(),
         );
 
         $missing_keys = Collection::make( $data )
@@ -214,16 +220,16 @@ class ContextServiceProvider {
             );
         }
 
-        $existing_role  = self::get_principal_role( $owner, $owner_principal );
+        $existing_role  = self::get_principal_role( $actor, $org );
 
         if ( $existing_role && $role->get_id() !== $existing_role->get_id() ) {
             // Only the role assigned to this owner changes.
             // Existing owner and principal data remains immutable.
             $where = [
-                'principal_id'   => $owner_principal->get_id(),
-                'principal_type' => $principal_type,
-                'owner_type'     => $owner->get_type(),
-                'owner_id'       => $owner->get_id(),
+                'principal_id'   => $actor->get_id(),
+                'principal_type' => $actor->get_type(),
+                'owner_type'     => $owner_type,
+                'owner_id'       => $is_org ? $org->get_id() : $actor->get_id(),
             ];
 
             $result = $db->update( $table, ['role_id' => $role->get_id()], $where );
@@ -241,18 +247,19 @@ class ContextServiceProvider {
     /**
      * Get principal role.
      * 
-     * @param Owner $owner The resource owner object.
-     * @param User|Organization $owner_principal
+     * @param ActorInterface $actor The authenticatable actor.
+     * @param Organization|null $owner_principal
      * @return Role|null
      */
-    public static function get_principal_role( Owner $owner, User|Organization $owner_principal ) : ?Role {
-        $db     = smliser_dbclass();
-        $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
-
-        $principal_type = ( $owner_principal instanceof User ) ? Owner::TYPE_INDIVIDUAL : Owner::TYPE_ORGANIZATION;
-        $principal_id   = $owner_principal->get_id();
-        $owner_type     = $owner->get_type();
-        $owner_id       = $owner->get_id();
+    public static function get_principal_role( ActorInterface $actor, ?Organization $org = null ) : ?Role {
+        $db             = smliser_dbclass();
+        $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
+        $is_org         = ( $org instanceof Organization );
+        $principal_type = $actor->get_type();
+        $principal_id   = $actor->get_id();
+        
+        $owner_type     = $is_org ? Owner::TYPE_ORGANIZATION : Owner::TYPE_INDIVIDUAL;
+        $owner_id       = $is_org ? $org->get_id() : $actor->get_id();
 
         $sql    = 
         "SELECT `role_id` FROM `{$table}` WHERE `principal_id` = ? AND `principal_type` = ? 
