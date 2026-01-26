@@ -504,17 +504,21 @@ class FileSystemHelper {
             $cleaned_segments[] = $part;
         }
         $joined = implode( '/', $cleaned_segments );
+        $cleaned = self::sanitize_path( $joined );
+
+        if ( \is_smliser_error( $cleaned ) ) {
+            return '';
+        }
 
         if ( $has_leading_slash ) {
-            $joined = \sprintf( '/%s', \ltrim( $joined, '/' ) );
+            $cleaned = \sprintf( '/%s', \ltrim( $cleaned, '/' ) );
         }
 
         if ( $has_trailing_slash ) {
-            $joined = \sprintf( '%s/', rtrim( $joined, '/' ) );
+            $cleaned = \sprintf( '%s/', rtrim( $cleaned, '/' ) );
         }
 
-        $joined = self::sanitize_path( $joined );
-        return \is_smliser_error( $joined ) ? '' : $joined;
+        return $cleaned;
     }
 
     /**
@@ -529,7 +533,7 @@ class FileSystemHelper {
      * - Preserves absolute paths
      *
      * @param string $path
-     * @return string|\SmartLicenseServer\Exception
+     * @return string|SmartLicenseServer\Exceptions\Exception
      */
     public static function sanitize_path( $path ) {
 
