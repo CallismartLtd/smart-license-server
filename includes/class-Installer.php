@@ -13,8 +13,8 @@ use SmartLicenseServer\Database\Schema\DBTables;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-use SmartLicenseServer\Security\DefaultRoles;
-use SmartLicenseServer\Security\Role;
+use SmartLicenseServer\Security\Permission\DefaultRoles;
+use SmartLicenseServer\Security\Permission\Role;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
