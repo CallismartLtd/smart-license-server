@@ -75,15 +75,17 @@ class RoleBuilder {
                 <div class="rb-field">
                     <label for="role-name">Role name</label>
                     <input type="text"
-                           class="rb-role-name"
-                           placeholder="Enter role name" id="role-name">
+                        class="rb-role-name"
+                        placeholder="Enter role name" id="role-name"
+                        autocomplete="off" spellcheck="off" />
                 </div>
 
                 <div class="rb-field">
                     <label for="role-slug">Role Slug</label>
                     <input type="text"
-                           class="rb-role-slug"
-                           placeholder="Enter role slug" id="role-slug">
+                        class="rb-role-slug"
+                        placeholder="Enter role slug" id="role-slug"
+                        autocomplete="off" spellcheck="off" />
                 </div>
             </div>
 
@@ -122,7 +124,7 @@ class RoleBuilder {
                     ${Object.entries( caps ).map(
                         ([ cap, label ]) => `
                             <label class="rb-cap">
-                                <input type="checkbox" value="${cap}">
+                                <input type="checkbox" autocomplete="off" spellcheck="off" value="${cap}" />
                                 <span>${label}</span>
                             </label>
                         `
@@ -197,7 +199,7 @@ class RoleBuilder {
      */
     setRoleName( name ) {
         const input         = this.container.querySelector('.rb-role-name');
-        input.value         = name;
+        input.value         = name ? name : '';
         input.disabled      = this.isPreset;
     }
 
@@ -207,7 +209,7 @@ class RoleBuilder {
      * @param {string[]} capabilities
      */
     checkCapabilities( capabilities ) {
-        capabilities.forEach( cap => {
+        capabilities?.forEach( cap => {
             const checkbox = this.container.querySelector(
                 `input[value="${cap}"]`
             );
@@ -313,7 +315,7 @@ class RoleBuilder {
             }
         }
 
-        input.value     = slug;
+        input.value     = slug ? slug: '';
         input.disabled  = this.isPreset;        
     }
 
