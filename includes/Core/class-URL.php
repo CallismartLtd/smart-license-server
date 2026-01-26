@@ -376,12 +376,12 @@ class URL {
     public function validate( bool $dns_check = false ): bool {
         $href = $this->get_href();
 
-        // Basic URL syntax check
+        // Basic URL syntax check.
         if ( ! filter_var( $href, FILTER_VALIDATE_URL ) ) {
             return false;
         }
 
-        // Optional DNS check
+        // Optional DNS check.
         if ( $dns_check ) {
             $host = $this->get_host();
             if ( empty( $host ) || ! checkdnsrr( $host, 'A' ) ) {
@@ -631,12 +631,23 @@ class URL {
         return $this;
     }
 
+    /**
+     * Get the basename of the URL path.
+     * @return string|null Basename or null if path is not set.
+     */
+    public function basename(): ?string {
+        $path = $this->get_path();
+        if ( $path === null ) {
+            return null;
+        }
+
+        return basename( $path );
+    }
 
     /*
     |------------------------
     | DEBUG UTILITY METHODS
     |------------------------
-    |
     */
 
     /**
