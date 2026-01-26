@@ -103,6 +103,13 @@ interface ActorInterface {
     public function get_type() : string;
 
     /**
+     * Get the actor avatar URL.
+     * 
+     * @return \SmartLicenseServer\Core\URL
+     */
+    public function get_avatar() : \SmartLicenseServer\Core\URL;
+
+    /**
      * Get allowed statuses.
      * 
      * @return array

@@ -1251,12 +1251,12 @@ input.smliser_toggle-switch-input {
     gap: 10px;
 }
 
-.smliser-icon-btn {
+.smliser-menu-link {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #464545;
-    width: 36px;
-    height: 36px;
+    color: #333333;
+    padding: 5px;
+    font-size: 14px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -1266,14 +1266,16 @@ input.smliser_toggle-switch-input {
     text-decoration: none;
 }
 
-.smliser-icon-btn:hover {
+.smliser-menu-link:hover {
     background: #f1f1f1;
     border-color: #dcdcde;
     color: #000000;
 }
 
-.smliser-icon-btn i {
-    font-size: 25px;
+.smliser-menu-link i {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
 }
 /* ============================================
    HERO SECTION

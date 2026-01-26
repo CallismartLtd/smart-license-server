@@ -11,6 +11,7 @@
 namespace SmartLicenseServer\Security\Actors;
 
 use DateTimeImmutable;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -67,6 +68,13 @@ class ServiceAccount implements ActorInterface {
      * @var string
      */
     protected string $display_name = '';
+
+    /**
+     * Service account description.
+     *
+     * @var string
+     */
+    protected string $description = '';
 
     /**
      * Hashed API key for authentication.
@@ -161,6 +169,15 @@ class ServiceAccount implements ActorInterface {
      */
     public function get_display_name() : string {
         return $this->display_name;
+    }
+
+    /**
+     * Get the service account description.
+     *
+     * @return string
+     */
+    public function get_description() : string {
+        return $this->description;
     }
 
     /**
@@ -275,6 +292,17 @@ class ServiceAccount implements ActorInterface {
      */
     public function set_display_name( $name ) : static {
         $this->display_name = self::sanitize_text( $name );
+        return $this;
+    }
+
+    /**
+     * Set the service account description.
+     *
+     * @param string $description Description of the service account.
+     * @return static Fluent instance.
+     */
+    public function set_description( $description ) : static {
+        $this->description = self::sanitize_textarea( $description );
         return $this;
     }
 
@@ -423,6 +451,17 @@ class ServiceAccount implements ActorInterface {
     }
 
     /**
+     * Get all service accounts.
+     * 
+     * @param int $page
+     * @param int $limit
+     * @return static[]
+     */
+    public static function get_all( int $page = 1, int $limit = 25 ) : array {
+        return self::get_all_self( SMLISER_SERVICE_ACCOUNTS_TABLE, $page, $limit );
+    }
+
+    /**
      * Count total records by status
      * 
      * @param string $status
@@ -480,6 +519,15 @@ class ServiceAccount implements ActorInterface {
 
     public function get_type() : string {
         return 'service_account';
+    }
+
+    /**
+     * Get avatar url
+     * 
+     * @return URL
+     */
+    public function get_avatar() : URL {
+        return new URL( smliser_avatar_url( '', 'user' ) );
     }
 
     /**

@@ -574,6 +574,18 @@ button.smliser-upload-btn {
   border: 1px #dedcde solid;
 }
 
+.smliser-form-label-row textarea {
+  min-height: 130px;
+  border: 1px #dedcde solid;
+  resize: vertical;
+}
+
+.smliser-form-label-row textarea:focus {
+  outline: none;
+  border-color: #000000;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
 .smliser-form-label-row input[type="text"]:read-only,
 .app-uploader-form-row input[type="text"]:read-only {
   background-color: #fafafa;

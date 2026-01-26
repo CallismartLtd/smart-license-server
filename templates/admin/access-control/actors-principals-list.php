@@ -7,7 +7,6 @@
  * @var \SmartLicenseServer\Security\PrincipalInterface $entity_class
  */
 
-
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-admin-repository-template">
     <?php self::print_header(); ?>
@@ -60,11 +59,11 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                             <td>
                                 <img 
                                     src="<?php echo esc_url( $entity->get_avatar() ); ?>"
-                                    alt="<?php printf( '%s avatar', $entity->get_name() ) ?>" 
+                                    alt="<?php printf( '%s avatar', $entity->get_display_name() ) ?>" 
                                     width="32" height="32"
                                     loading="lazy" decoding="async">
                             </td>
-                            <td><?php echo esc_html( $entity->get_name() ); ?></td>
+                            <td><?php echo esc_html( $entity->get_display_name() ); ?></td>
                             <td><?php echo esc_html( $entity->get_created_at()->format( smliser_datetime_format() ) ); ?></td>
                             <td><?php echo esc_html( $entity->get_updated_at()->format( smliser_datetime_format() ) ); ?></td>
                         </tr>

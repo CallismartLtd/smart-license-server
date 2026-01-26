@@ -205,13 +205,14 @@ class Menu {
                 <div class="smliser-quick-actions">
                     <?php foreach ( $args['actions'] as $action ) : ?>
                         <a
-                            class="smliser-icon-btn"
+                            class="smliser-menu-link"
                             href="<?php echo esc_url( $action['url'] ); ?>"
                             title="<?php echo esc_attr( $action['title'] ); ?>"
                         >
                             <?php if ( ! empty( $action['icon'] ) ) : ?>
                                 <i class="<?php echo esc_attr( $action['icon'] ); ?>"></i>
                             <?php endif; ?>
+                            <?php echo esc_html( $action['label'] ?? '' ); ?>
                         </a>
                     <?php endforeach; ?>
                 </div>

@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Organization;
 use SmartLicenseServer\Security\Owner;
@@ -48,7 +49,8 @@ class AccessControlPage {
             ],
             'rest-api'  => [
                 'default'   => [__CLASS__, 'rest_api_page'],
-                'add-new'   => [__CLASS__, 'add_new_rest_api_page'],
+                'add-new'   => [__CLASS__, 'rest_api_form_page'],
+                'edit'      => [__CLASS__, 'rest_api_form_page'],
             ],
         ];
 
@@ -66,7 +68,7 @@ class AccessControlPage {
      * Access control page dashbard.
      */
     public static function dashboard() {
-          
+        
         include_once SMLISER_PATH . 'templates/admin/access-control/dashboard.php';
     
     }
@@ -108,14 +110,6 @@ class AccessControlPage {
                     'type'  => 'hidden',
                     'name'  => 'id',
                     'value' => $user ? $user->get_id() : 0,
-                )
-            ),
-            array(
-                'label' => '',
-                'input' => array(
-                    'type'  => 'hidden',
-                    'name'  => 'entity',
-                    'value' => 'user',
                 )
             ),
 
@@ -246,7 +240,6 @@ class AccessControlPage {
      */
     private static function organizations_page() {
 
-   
         include_once SMLISER_PATH . 'templates/admin/access-control/organizations.php';
     }
 
@@ -389,9 +382,114 @@ class AccessControlPage {
      * REST API setting page.
      */
     private static function rest_api_page() {
+        $page           = (int) smliser_get_query_param( 'paged', 1 );
+        $limit          = (int) smliser_get_query_param( 'limit', 25 );
+        $all            = ServiceAccount::get_all( $page, $limit );
+        $entity_class   = ServiceAccount::class;
+        $type           = 'Service Accounts';
+        include_once SMLISER_PATH . 'templates/admin/access-control/actors-principals-list.php';       
+    }
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/rest-api.php';
-       
+    /**
+     * The users creation and edit page
+     */
+    private static function rest_api_form_page() {
+        $user_id        = smliser_get_query_param( 'id' );
+        $sa_acc           = ServiceAccount::get_by_id( (int) $user_id );
+
+        $title          = sprintf( '%s Service Account', $sa_acc ? 'Edit' : 'Add New' );
+        $roles_title    = sprintf( '%s Service Account Role', $sa_acc ? 'Update' : 'Set' );
+
+        $_sa_statuses = ServiceAccount::get_allowed_statuses();
+        $_status_titles = array_map( 'ucwords', array_values( $_sa_statuses ) );
+        $_status_keys   = array_values( $_sa_statuses );
+        $_statuses      = array_combine( $_status_keys, $_status_titles );
+
+        $role           = $sa_acc ? [] : '';
+
+        $form_fields    = array(
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'id',
+                    'value' => $sa_acc ? $sa_acc->get_id() : 0,
+                )
+            ),
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'entity',
+                    'value' => 'service_account',
+                )
+            ),
+
+            array(
+                'label' => __( 'Account Name', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'display_name',
+                    'value' => $sa_acc ? $sa_acc->get_display_name() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'placeholder'   => 'Enter rest api credential name',
+                        'style'         => 'width: unset'
+                    )
+                )
+            ),
+     
+            array(
+                'label' => __( 'Status', 'smliser' ),
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'status',
+                    'value' => $sa_acc ? $sa_acc->get_status() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true
+                    ),
+                    'options'   => $_statuses
+                )
+            ),
+
+            array(
+                'label' => __( 'Description', 'smliser' ),
+                'input' => array(
+                    'type'  => 'textarea',
+                    'name'  => 'description',
+                    'value' => $sa_acc ? $sa_acc->get_description() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'placeholder'   => 'Enter description'
+                    )
+                )
+            ),
+     
+        );
+
+        $avatar_url     = 
+            $sa_acc && $sa_acc->get_avatar()->is_valid() 
+            ? $sa_acc->get_avatar()->add_query_param( 'ver', time() )
+            : new URL( smliser_get_placeholder_icon( 'avatar' ) );
+
+        $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
+        $role_obj       = $sa_acc ? ContextServiceProvider::get_principal_role( $sa_acc ) : '';
+
+        if ( $role_obj ) {
+            $collection = Collection::make( $role_obj->to_array() );
+
+            $role   = $collection->toArray();
+
+            unset( $collection );
+        }
+
+        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }
 
     /**
@@ -416,26 +514,31 @@ class AccessControlPage {
             ),
             'actions'   => array(
                 array(
-                    'title' => 'Resource Owners',
-                    'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=owners'),
-                    'icon'  => 'ti ti-source-code'
-                ),
-
-                array(
                     'title' => 'Users',
+                    'label' => 'Users',
                     'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=users'),
                     'icon'  => 'ti ti-user'
                 ),
 
                 array(
+                    'title' => 'REST API Service Accounts',
+                    'label' => 'Service Accounts',
+                    'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=rest-api'),
+                    'icon'  => 'ti ti-robot'
+                ),
+
+                array(
+                    'title' => 'Resource Owners',
+                    'label' => 'Owners',
+                    'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=owners'),
+                    'icon'  => 'ti ti-source-code'
+                ),
+
+                array(
                     'title' => 'Organizations',
+                    'label' => 'Organizations',
                     'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=organizations'),
                     'icon'  => 'ti ti-users-group'
-                ),
-                array(
-                    'title' => 'REST API',
-                    'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=rest-api'),
-                    'icon'  => 'ti ti-api'
                 ),
             )
         );
