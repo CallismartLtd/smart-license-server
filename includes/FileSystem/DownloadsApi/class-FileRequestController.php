@@ -184,10 +184,11 @@ class FileRequestController {
                 throw new FileRequestException( 'file_not_found' );
             }
 
-            $response = new FileResponse( $file_path );
-            $response->set_header( 'Content-Disposition', $response->get_content_disposition( '', '', true ) );
-            $response->set_header( 'Cache-Control', 'max-age=31536000, immutable' );
-            $response->set_header( 'Expires', sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', time() + 31536000 ) ) );
+            $response = ( new FileResponse( $file_path ) )
+                ->set_header( 'Cache-Control', 'max-age=31536000, immutable' )
+                ->set_header( 'Expires', sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', time() + 31536000 ) ) )
+                ->remove_header( 'X-Content-Type-Options');
+            $response   = $response->set_header( 'Content-Disposition', $response->get_content_disposition( '', '', true ) );
             return $response;
 
         } catch ( FileRequestException $e ) {

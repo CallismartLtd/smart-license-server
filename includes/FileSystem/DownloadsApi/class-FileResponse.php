@@ -171,7 +171,7 @@ class FileResponse extends Response {
     public function parse_document( $file_name, $content_type ) {
         $file_size = strlen( $this->file );
 
-        if ( ! self::is_filesize_within_limit( $file_size ) ) {
+        if ( ! static::is_filesize_within_limit( $file_size ) ) {
             $this->set_exception( new FileRequestException( 'file_too_large' ) );
         }
 
@@ -194,18 +194,18 @@ class FileResponse extends Response {
         // Set default headers, can be overwritten later...
         $last_modified  = sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s' ) );
         
-        $this->set_header( 'Expires', 0 );
-        $this->set_header( 'Cache-Control', 'private, must-revalidate, max-age=0' );
-        $this->set_header( 'Last-Modified', $last_modified );
-        $this->set_header( 'Date', gmdate('D, d M Y H:i:s \G\M\T') );
-        $this->set_header( 'Content-Transfer-Encoding', 'Binary' );
-        $this->set_header( 'X-Content-Type-Options', 'nosniff' );
-        $this->set_header( 'X-Robots-Tag', 'noindex, nofollow' );
-        $this->set_header( 'Content-Description', 'File Transfer' );
-        $this->set_header( 'Pragma', 'Public' );
-        $this->set_header( 'ETag', "" );
-        $this->set_header( 'Content-Type', 'text/plain' );
-        $this->set_header( 'Content-Length', 0 );
+        $this->set_header( 'Expires', 0 )
+        ->set_header( 'Cache-Control', 'private, must-revalidate, max-age=0' )
+        ->set_header( 'Last-Modified', $last_modified )
+        ->set_header( 'Date', gmdate('D, d M Y H:i:s \G\M\T') )
+        ->set_header( 'Content-Transfer-Encoding', 'Binary' )
+        ->set_header( 'X-Content-Type-Options', 'nosniff' )
+        ->set_header( 'X-Robots-Tag', 'noindex, nofollow' )
+        ->set_header( 'Content-Description', 'File Transfer' )
+        ->set_header( 'Pragma', 'Public' )
+        ->set_header( 'ETag', "" )
+        ->set_header( 'Content-Type', 'text/plain' )
+        ->set_header( 'Content-Length', 0 );
 
     }
 
@@ -270,7 +270,7 @@ class FileResponse extends Response {
      * and the child's specialized error property are updated.
      * * @param Exception|FileRequestException $error
      */
-    public function set_exception( Exception $error ) : self{
+    public function set_exception( Exception $error ) : static{
         $this->error = $error;
         
         // This is crucial for parent::send() to output the correct status code and message.
@@ -311,9 +311,9 @@ class FileResponse extends Response {
         }
 
         // Normalize ini values to bytes.
-        $memory_limit = self::to_bytes( ini_get( 'memory_limit' ) );
-        $upload_limit = self::to_bytes( ini_get( 'upload_max_filesize' ) );
-        $post_limit   = self::to_bytes( ini_get( 'post_max_size' ) );
+        $memory_limit = static::to_bytes( ini_get( 'memory_limit' ) );
+        $upload_limit = static::to_bytes( ini_get( 'upload_max_filesize' ) );
+        $post_limit   = static::to_bytes( ini_get( 'post_max_size' ) );
 
         // Handle unlimited memory (-1 means no limit)
         if ( $memory_limit < 0 ) {
@@ -345,7 +345,7 @@ class FileResponse extends Response {
         }
 
         // Perform a lightweight memory allocation test
-        return self::try_memory_allocation( $filesize );
+        return static::try_memory_allocation( $filesize );
     }
 
     /**

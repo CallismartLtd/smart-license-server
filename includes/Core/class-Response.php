@@ -103,7 +103,7 @@ class Response {
 	 *
 	 * @param int $code HTTP status code.
 	 * @param string|null $reason Custom reason phrase (optional).
-	 * @return self
+	 * @return static
 	 */
 	public function set_status_code( $code, $reason = null ) {
 		$this->status_code  = (int) $code;
@@ -133,7 +133,7 @@ class Response {
 	 * Set custom reason phrase.
 	 *
 	 * @param string $reason Reason phrase.
-	 * @return self
+	 * @return static
 	 */
 	public function set_reason_phrase( $reason ) {
 		$this->reason_phrase = $reason;
@@ -213,7 +213,7 @@ class Response {
 	 *
 	 * @param string $name  Header name.
 	 * @param string $value Header value.
-	 * @return self
+	 * @return static
 	 */
 	public function set_header( $name, $value ) {
 		$this->headers[ strtolower( $name ) ] = $value;
@@ -225,7 +225,7 @@ class Response {
 	 *
 	 * @param string $name  Header name.
 	 * @param string $value Header value.
-	 * @return self
+	 * @return static
 	 */
 	public function add_header( $name, $value ) {
 		$key = strtolower( $name );
@@ -264,7 +264,7 @@ class Response {
 	 * Remove a header.
 	 *
 	 * @param string $name Header name.
-	 * @return self
+	 * @return static
 	 */
 	public function remove_header( $name ) {
 		unset( $this->headers[ strtolower( $name ) ] );
@@ -288,7 +288,7 @@ class Response {
 	 * Set the response body.
 	 *
 	 * @param string $content Body content.
-	 * @return self
+	 * @return static
 	 */
 	public function set_body( $content ) {
 		$this->body = (string) $content;
@@ -300,7 +300,7 @@ class Response {
 	 * Append content to the body.
 	 *
 	 * @param string $content Content to append.
-	 * @return self
+	 * @return static
 	 */
 	public function append_body( $content ) {
 		$this->body .= (string) $content;
@@ -333,7 +333,7 @@ class Response {
 	 * Set the protocol version.
 	 *
 	 * @param string $version HTTP protocol version.
-	 * @return self
+	 * @return static
 	 */
 	public function set_protocol_version( $version ) {
 		$this->protocol_version = $version;
@@ -390,7 +390,7 @@ class Response {
 			}
 		}
 		
-		if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] || self::is_redirect() ) {
+		if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] || static::is_redirect() ) {
 			exit;
 		}
 	}
@@ -441,9 +441,9 @@ class Response {
      * @param string|int $code    Error code.
      * @param string     $message Error message.
      * @param mixed      $data    Optional. Error data. Default empty string.
-     * @return self
+     * @return static
      */
-    public function add_error( $code, $message, $data = '' ): self {
+    public function add_error( $code, $message, $data = '' ): static {
         $this->error->add( $code, $message, $data );
         return $this;
     }
@@ -512,9 +512,9 @@ class Response {
      * Useful when converting external errors (e.g., WP_Error) into the response's error state.
      *
      * @param SmartLicenseServer\Exception $exception The new exception object.
-     * @return self
+     * @return static
      */
-    public function set_exception( Exception $exception ): self {
+    public function set_exception( Exception $exception ): static {
         $this->error = $exception;
         return $this;
     }
@@ -567,9 +567,9 @@ class Response {
 	/**
 	 * Clear headers
 	 *
-	 * @return self
+	 * @return static
 	 */
-	public function clear_headers(): self {
+	public function clear_headers(): static {
 		$this->headers = array();
 		return $this;
 	}
@@ -632,7 +632,7 @@ class Response {
 	 * 
 	 * @param Request $request 
 	 */
-	public function set_response_data( Request $request ) : self {
+	public function set_response_data( Request $request ) : static {
 		$response_data = clone $request;
 
 		$this->response_data = $response_data;

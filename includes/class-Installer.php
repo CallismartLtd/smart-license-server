@@ -287,11 +287,11 @@ class Installer {
      */
     public static function db_migrate( string $base_version ) {
 
-    if ( empty( $base_version ) ) {
-        return;
-    }
+        if ( empty( $base_version ) ) {
+            return;
+        }
 
-    $versions = array_keys( self::$db_versions );
+        $versions = array_keys( self::$db_versions );
         usort( $versions, 'version_compare' );
 
         foreach ( $versions as $version ) {

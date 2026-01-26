@@ -172,6 +172,7 @@ class ContextServiceProvider {
             Owner::TYPE_INDIVIDUAL, 'user'  => 'Actors\\User',
             Owner::TYPE_ORGANIZATION        => 'Organization',
             'serviceaccount'                => 'Actors\\ServiceAccount',
+            'owner'                         => 'Owner',
             default                         => ''
         };
 

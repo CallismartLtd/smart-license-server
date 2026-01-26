@@ -594,7 +594,7 @@ abstract class Repository {
         }
 
         // Protect the repository root.
-        $protection = self::protect_repository_directory( $directories['repository'], $fs );
+        $protection = self::protect_dir( $directories['repository'], $fs );
 
         if ( is_smliser_error( $protection ) ) {
             $exception->merge_from( $protection );
@@ -604,24 +604,51 @@ abstract class Repository {
     }
 
     /**
-     * Protects the given repository directory using an .htaccess file.
+     * Protects the given directory using an .htaccess file.
      *
      * @since 1.0.0
      *
-     * @param string $repo_dir Absolute path to the repository directory.
-     * @param object $fs       FileSystem instance.
+     * @param string $dir Absolute path to the directory.
+     * @param FileSystem $fs  FileSystem instance.
      *
      * @return bool|\SmartLicenseServer\Exception True on success, Exception instance on failure.
      */
-    public static function protect_repository_directory( string $repo_dir, $fs ) {
-        $htaccess_path    = FileSystemHelper::join_path( $repo_dir, '.htaccess' );
-        $htaccess_content = "Deny from all";
+    public static function protect_dir( string $dir, $fs ) {
+
+        $htaccess_path = FileSystemHelper::join_path( $dir, '.htaccess' );
+
+        $htaccess_content = implode(
+            "\n",
+            array(
+                '# Prevent directory listing',
+                'Options -Indexes',
+                '',
+                '# Disable PHP execution when supported',
+                '<IfModule mod_php.c>',
+                'php_flag engine off',
+                '</IfModule>',
+                '',
+                '# Deny all direct access (Apache 2.4+)',
+                '<IfModule mod_authz_core.c>',
+                'Require all denied',
+                '</IfModule>',
+                '',
+                '# Fallback for Apache 2.2',
+                '<IfModule !mod_authz_core.c>',
+                'Order deny,allow',
+                'Deny from all',
+                '</IfModule>',
+                '',
+            )
+        );
 
         if ( ! $fs->exists( $htaccess_path ) ) {
+
             if ( ! $fs->put_contents( $htaccess_path, $htaccess_content, FS_CHMOD_FILE ) ) {
+
                 $message = sprintf(
-                    self::safe_translate( 'Failed to protect repository directory: %s', 'smliser' ),
-                    self::safe_esc_html( $repo_dir )
+                    self::safe_translate( 'Failed to protect directory: %s', 'smliser' ),
+                    self::safe_esc_html( $dir )
                 );
 
                 return new Exception( 'htaccess_protection_failed', $message );
@@ -630,6 +657,7 @@ abstract class Repository {
 
         return true;
     }
+
 
     /**
      * Safely translate a string even outside WordPress.
