@@ -15,6 +15,7 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
+use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Permission\Role;
@@ -99,74 +100,97 @@ class RequestController {
      * @return bool|RequestException
      */
     protected static function save_user( User $user, Request $request ) : bool|RequestException {
-        $email          = $request->get( 'email' );
+        try {
+            $email  = $request->get( 'email' );
 
-        if ( empty( $email ) || ! is_email( $email )) {
-            return new RequestException( 'required_param', 'Please provide a valid email address.', ['status' => 400] );
-        }
-
-        if ( ! $user->exists() && User::email_exists( $email ) ) {
-
-            return new RequestException( 'email_exists' );
-
-        } else if ( $user->exists() && $user->get_email() !== $email ) {
-
-            $email_owner  = User::get_by_email( $email );
-
-            if ( $email_owner && $user->get_id() !== $email_owner->get_id() ) {
-                return new RequestException( 'email_exists' );
+            if ( empty( $email ) || ! is_email( $email )) {
+                throw new RequestException( 'required_param', 'Please provide a valid email address.', ['status' => 400] );
             }
 
-        }
+            if ( ! $user->exists() && User::email_exists( $email ) ) {
 
-        $display_name   = $request->get( 'display_name' );
-        $status         = $request->get( 'status' );
+                throw new RequestException( 'email_exists' );
 
-        if ( ! in_array( $status, User::get_allowed_statuses(), true ) ) {
-            return new RequestException( 'invalid_user_status', 'The status provided is not allowed.', ['status' => 400] );
-        }
-        
-        $password_1     = $request->get( 'password_1' );
-        $password_2     = $request->get( 'password_2' );
+            } else if ( $user->exists() && $user->get_email() !== $email ) {
 
-        if ( $password_1 !== $password_2 ) {
-            return new RequestException( 'password_mismatch', 'Password mismatch, please check and try again.', ['status' => 400] );
-        }
+                $email_owner  = User::get_by_email( $email );
 
-        if ( strlen( $password_1 ) > 128 ) {
-            return new RequestException( 'password_too_long', 'Password exceeds maximum length.', ['status' => 400] );
-        }
+                if ( $email_owner && $user->get_id() !== $email_owner->get_id() ) {
+                    throw new RequestException( 'email_exists' );
+                }
 
-        if ( ! $user->exists() && ( empty( $password_1 ) || empty( $password_2 ) ) ) {
-
-            return new RequestException( 'required_param', 'Please provide new user passwords.', ['status' => 400] );
-
-        }
-
-        if ( ! empty( $password_1 ) ) {
-            $password_hash  = password_hash( $password_1, PASSWORD_ARGON2ID );
-
-            if ( $user->exists() && password_verify( $password_1, $user->get_password_hash() ) ) {
-                return new RequestException( 'same_password', 'Cannot reuse old password, please use new ones.', ['status' => 409] );
             }
 
-            $user->set_password_hash( $password_hash );
-        }
+            $display_name   = $request->get( 'display_name' );
+            $status         = $request->get( 'status' );
 
-        $user->set_email( $email )
-        ->set_display_name( $display_name )
-        ->set_status( $status );
-        
-        if ( ! $user->save() ) {
-            return new RequestException( 'database_error', 'Unable to save user', ['status' => 500] );
-        }
+            if ( ! in_array( $status, User::get_allowed_statuses(), true ) ) {
+                throw new RequestException( 'invalid_user_status', 'The status provided is not allowed.', ['status' => 400] );
+            }
+            
+            $password_1     = $request->get( 'password_1' );
+            $password_2     = $request->get( 'password_2' );
 
-        $avatar = $request->get( 'avatar' );
+            if ( $password_1 !== $password_2 ) {
+                throw new RequestException( 'password_mismatch', 'Password mismatch, please check and try again.', ['status' => 400] );
+            }
 
-        if ( ! empty( $avatar ) ) {
-            FileSystemHelper::upload_avatar( $avatar, 'user', \md5( $user->get_email() ) );
+            if ( strlen( $password_1 ) > 128 ) {
+                throw new RequestException( 'password_too_long', 'Password exceeds maximum length.', ['status' => 400] );
+            }
+
+            if ( ! $user->exists() && ( empty( $password_1 ) || empty( $password_2 ) ) ) {
+
+                throw new RequestException( 'required_param', 'Please provide new user passwords.', ['status' => 400] );
+
+            }
+
+            if ( ! empty( $password_1 ) ) {
+                $password_hash  = password_hash( $password_1, PASSWORD_ARGON2ID );
+
+                if ( $user->exists() && password_verify( $password_1, $user->get_password_hash() ) ) {
+                    throw new RequestException( 'same_password', 'Cannot reuse old password, please use new ones.', ['status' => 409] );
+                }
+
+                $user->set_password_hash( $password_hash );
+            }
+
+            $user->set_email( $email )
+            ->set_display_name( $display_name )
+            ->set_status( $status );
+            
+            if ( ! $user->save() ) {
+                throw new RequestException( 'database_error', 'Unable to save user', ['status' => 500] );
+            }
+
+            self::save_role( $user, $request );
+
+            $avatar = $request->get( 'avatar' );
+
+            if ( ! empty( $avatar ) ) {
+                FileSystemHelper::upload_avatar( $avatar, 'user', \md5( $user->get_email() ) );
+            }
+            return true;
+        } catch ( InvalidArgumentException $e ) {
+
+            return new RequestException(
+                'invalid_argument',
+                $e->getMessage(),
+                [ 'status' => 400 ]
+            );
+
+        } catch ( RequestException $e ) {
+
+            return $e;
+
+        } catch ( Exception $e ) {
+
+            return new RequestException(
+                $e->get_error_code(),
+                $e->get_error_message(),
+                [ 'status' => 500 ]
+            );
         }
-        return true;
     }
 
     /**
@@ -245,32 +269,6 @@ class RequestController {
                 );
             }
 
-            // Role.
-            $caps       = (array) $request->get( 'capabilities', [] );
-            $role_slug  = $request->get( 'role_slug' );
-            $role_label = $request->get( 'role_label' );
-            $role       = Role::get_by_slug( $role_slug );
-
-            if ( ! $role ) {
-                $role = ( new Role() )
-                ->set_slug( $role_slug );
-
-            }
-
-            $role->set_label( $role_label )
-            ->set_capabilities( $caps );
-           
-            if ( ! $role->save() ) {
-                throw new RequestException(
-                    'role_save_error',
-                    'Owner has been saved but unable to save role.',
-                    [ 'status' => 500 ]
-                );
-            }
-            
-            // Context binding.
-            ContextServiceProvider::save_resource_owner_role( $owner, $role, $principal );
-
             return true;
 
         } catch ( InvalidArgumentException $e ) {
@@ -293,6 +291,43 @@ class RequestController {
                 [ 'status' => 500 ]
             );
         }
+    }
+
+    /**
+     * Save role to the database
+     * 
+     * @param Request $request The request object.
+     * @param ActorInterface $actor The either User or ServiceAccount instance.
+     * @throws Exception
+     */
+    protected static function save_role( ActorInterface $actor, Request $request ) {
+        // Role.
+        $caps       = (array) $request->get( 'capabilities', [] );
+        $role_slug  = $request->get( 'role_slug' );
+        $role_label = $request->get( 'role_label' );
+        $role       = Role::get_by_slug( $role_slug );
+        $principal  = $request->get( 'principal' );
+
+        if ( ! $role ) {
+            $role = ( new Role() )
+            ->set_slug( $role_slug );
+
+        }
+
+        $role->set_label( $role_label )
+        ->set_capabilities( $caps );
+        
+        if ( ! $role->save() ) {
+            throw new RequestException(
+                'role_save_error',
+                'Owner has been saved but unable to save role.',
+                [ 'status' => 500 ]
+            );
+        }
+        
+        // Context binding.
+        ContextServiceProvider::save_actor_role( $actor, $role, $principal );
+        
     }
 
 

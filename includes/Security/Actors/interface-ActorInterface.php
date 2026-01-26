@@ -96,6 +96,13 @@ interface ActorInterface {
     public function get_updated_at() : ?\DateTimeImmutable;
 
     /**
+     * Get the actor type.
+     * - eg. user, service_account e.t.c
+     * @return string
+     */
+    public function get_type() : string;
+
+    /**
      * Get allowed statuses.
      * 
      * @return array
