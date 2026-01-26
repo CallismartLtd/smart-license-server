@@ -467,13 +467,21 @@ class Config {
             'top'
         );
 
-
         /**
          * Asset serving url matchs siteurl/repository/{app_type}/{app_slug}/assets/{filename}
          */
         add_rewrite_rule(
             '^' . $repo_base_url . '/([^/]+)/([^/]+)/assets/(.+)$',
             'index.php?pagename=smliser-repository-assets&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]&smliser_asset_name=$matches[3]',
+            'top'
+        );
+
+        /**
+         * Smliser uploads dir serving url matchs siteurl/smliser-uploads/{path_to_file}
+         */
+        add_rewrite_rule(
+            '^smliser-uploads/(.+)$',
+            'index.php?pagename=smliser-uploads&smliser_upload_path=$matches[1]',
             'top'
         );
 
@@ -547,6 +555,7 @@ class Config {
         
         $vars[] = 'smliser_app_slug';
         $vars[] = 'smliser_asset_name';
+        $vars[] = 'smliser_upload_path';
         
         return $vars;
     }    
