@@ -16,6 +16,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Security\Actors\ActorInterface;
+use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Permission\Role;
@@ -194,6 +195,77 @@ class RequestController {
     }
 
     /**
+     * Save service account object.
+     * 
+     * @param ServiceAccount $sa_acc The service account object.
+     * @param Request $request The request object.
+     * @return bool|RequestException
+     */
+    protected static function save_service_account( ServiceAccount $sa_acc, Request $request ) : bool|RequestException {
+        try {
+            $display_name   = $request->get( 'display_name' );
+
+            if ( empty( $display_name ) || ! is_string( $display_name )) {
+                throw new RequestException( 'required_param', 'Please provide a valid service account display name.', ['status' => 400] );
+            }
+
+            $status = $request->get( 'status' );
+
+            if ( ! in_array( $status, ServiceAccount::get_allowed_statuses(), true ) ) {
+                throw new RequestException( 'invalid_service_account_status', 'The status provided is not allowed.', ['status' => 400] );
+            }
+
+            $owner_id   = $request->get( 'owner_id' );
+            $owner      = Owner::get_by_id( $owner_id );
+            $principal  = Owner::get_by_principal_context( $owner->get_principal_id(), $owner->get_type() );
+
+            $request->set( 'principal', $principal );
+            
+            if ( ! $owner || ! $owner->exists() ) {
+                throw new RequestException( 'owner_not_found', 'The resource owner for this service account was not found.', ['status' => 400] );
+            }
+
+            $description    = $request->get( 'description', '' );
+            $sa_acc->set_display_name( $display_name )
+            ->set_status( $status )
+            ->set_owner_id( $owner_id )
+            ->set_description( $description );
+            
+            if ( ! $sa_acc->save() ) {
+                throw new RequestException( 'database_error', 'Unable to save service account', ['status' => 500] );
+            }
+
+            self::save_role( $sa_acc, $request );
+
+            $avatar = $request->get( 'avatar' );
+
+            if ( ! empty( $avatar ) ) {
+                FileSystemHelper::upload_avatar( $avatar, 'service_account', \md5( $sa_acc->get_identifier() ) );
+            }
+            return true;
+        } catch ( InvalidArgumentException $e ) {
+
+            return new RequestException(
+                'invalid_argument',
+                $e->getMessage(),
+                [ 'status' => 400 ]
+            );
+
+        } catch ( RequestException $e ) {
+
+            return $e;
+
+        } catch ( Exception $e ) {
+
+            return new RequestException(
+                $e->get_error_code(),
+                $e->get_error_message(),
+                [ 'status' => 500 ]
+            );
+        }
+    }
+
+    /**
      * Save the owner object.
      *
      * @param Owner   $owner   The Owner object.
@@ -306,7 +378,7 @@ class RequestController {
         $role_slug  = $request->get( 'role_slug' );
         $role_label = $request->get( 'role_label' );
         $role       = Role::get_by_slug( $role_slug );
-        $principal  = $request->get( 'principal' );
+        $principal  = $request->get( 'principal', null );
 
         if ( ! $role ) {
             $role = ( new Role() )
@@ -329,7 +401,6 @@ class RequestController {
         ContextServiceProvider::save_actor_role( $actor, $role, $principal );
         
     }
-
 
     /**
      * Search for users and organizations.
@@ -373,6 +444,48 @@ class RequestController {
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
         
+    }
+
+    /**
+     * Search for resource owners.
+     * 
+     * @param Request $request The request object.
+     * @return Response The response object.
+     */
+    public static function search_resource_owners( Request $request ) : Response {
+        try {
+            if ( ! $request->is_authorized() ) {
+                throw new RequestException( 'permission_denied' );
+            }
+
+            $term   = $request->get( 'search_term' );
+
+            if ( empty( $term ) ) {
+                throw new RequestException( 'required_param', 'Missing parameter "search".' );
+            }
+
+            $status = (string) $request->get( 'status', 'active' );
+
+            $args   = compact( 'term', 'status' );
+
+            $results    = ContextServiceProvider::search_owners( $args );
+            $data       = Collection::make( $results['items'] )->map( 'smliser_value_to_array' );
+
+            return ( new Response(
+                200,
+                [],
+                smliser_safe_json_encode( [
+                    'success'       => true,
+                    'items'         => $data->toArray(),
+                    'pagination'    => $results['pagination'],
+                ] )
+            ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
     }
 
 }

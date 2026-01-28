@@ -440,4 +440,80 @@ trait SanitizeAwareTrait {
     protected static function unslash( $value ): mixed {
         return Sanitizer::unslash( $value );
     }
+
+    /**
+     * Perform conservative, deterministic sanitization based on value type.
+     *
+     * This method is intentionally minimal. It avoids context-specific
+     * transformations and only ensures the value is safe to store.
+     *
+     * @param mixed $value The input value.
+     * @return mixed Sanitized value.
+     */
+    protected static function sanitize_auto( $value ): mixed {
+
+        if ( is_null( $value ) ) {
+            return null;
+        }
+
+        if ( is_bool( $value ) ) {
+            return static::sanitize_bool( $value );
+        }
+
+        if ( is_int( $value ) ) {
+            return static::sanitize_int( $value );
+        }
+
+        if ( is_float( $value ) ) {
+            return static::sanitize_float( $value );
+        }
+
+        if ( is_string( $value ) ) {
+
+            $value = static::unslash( $value );
+            $trimmed = trim( $value );
+
+            if ( $trimmed === '' ) {
+                return '';
+            }
+
+            // Numeric string.
+            if ( is_numeric( $trimmed ) ) {
+                return str_contains( $trimmed, '.' )
+                    ? static::sanitize_float( $trimmed )
+                    : static::sanitize_int( $trimmed );
+            }
+
+            // Email.
+            if ( false !== strpos( $trimmed, '@' ) ) {
+                $email = static::sanitize_email( $trimmed );
+                return $email !== '' ? $email : static::sanitize_text( $trimmed );
+            }
+
+            // URL.
+            if ( preg_match( '#^https?://#i', $trimmed ) ) {
+                $url = static::sanitize_web_url( $trimmed );
+                return $url !== '' ? $url : static::sanitize_text( $trimmed );
+            }
+
+            // Hash-like (md5, sha1, sha256 etc).
+            if ( preg_match( '/^[a-f0-9]{32,64}$/i', $trimmed ) ) {
+                return strtolower( $trimmed );
+            }
+
+            // Fallback: plain text.
+            return static::sanitize_text( $trimmed );
+        }
+
+        if ( is_array( $value ) ) {
+            return array_map(
+                static fn( $item ) => static::sanitize_auto( $item ),
+                $value
+            );
+        }
+
+        // Objects / resources are returned untouched by design.
+        return $value;
+    }
+
 }

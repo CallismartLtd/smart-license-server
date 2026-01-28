@@ -156,6 +156,81 @@ class ContextServiceProvider {
     }
 
     /**
+     * Perform a search in the resource owners table.
+     * 
+     * @param array $args {
+     *    Optional. Arguments to filter results.
+     *    @type string $term   Search term to match against name, type, ids. Required.
+     *    @type int    $page   Current page number. Default 1.
+     *    @type int    $limit  Number of items per page. Default 20.
+     *    @type string $status Entity status filter. Default 'active'.
+     * }
+     * 
+     * @return array {
+     *      @type Owner[] $items An array of owner objects.
+     *      @type array $pagination Pagination info (page, limit, total, total_pages).
+     * }
+     */
+    public static function search_owners( array $args = [] ) : array {
+        $defaults = [
+            'status'        => Owner::STATUS_ACTIVE,
+            'search_term'   => '',
+            'page'          => 1,
+            'limit'         => 20,
+        ];
+        $args   = parse_args_recursive( $args, $defaults );
+        $table  = SMLISER_OWNERS_TABLE;
+        $db     = smliser_dbclass();
+        $term   = self::sanitize_text( $args['search_term'] );
+        $limit  = max( 1, (int) $args['limit'] );
+        $page   = max( 1, (int) $args['page'] );
+        $offset = $db->calculate_query_offset( max( 1, $page ), $limit );
+        $status = $args['status'];
+
+        $where_clauses = [];
+        $params        = [];
+
+        if ( ! empty( $term ) ) {
+            $like = '%' . $term . '%';
+            $where_clauses[] = " ( `name` LIKE ? OR `type` LIKE ? OR `id` LIKE ? ) ";
+            $params = array_merge( $params, [ $like, $like, $like ] );
+        }
+
+        if ( ! empty( $status ) ) {
+            $where_clauses[] = " `status` = ? ";
+            $params[] = $status;
+        }
+
+        $where_sql = '';
+        if ( ! empty( $where_clauses ) ) {
+            $where_sql = ' WHERE ' . implode( ' AND ', $where_clauses );
+        }
+        $sql    = "SELECT SQL_CALC_FOUND_ROWS * FROM `{$table}` {$where_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET ?";
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $rows   = $db->get_results( $sql, $params, ARRAY_A );
+        $total  = (int) $db->get_var( "SELECT FOUND_ROWS()" );
+        $owners = [];
+        foreach ( $rows as $row ) {
+            $owner = Owner::get_by_id( (int) $row['id'] );
+            if ( $owner instanceof Owner ) {
+                $owners[] = $owner;
+            }
+        }
+
+        return [
+            'items'      => $owners,
+            'pagination' => [
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => $total,
+                'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
+            ],
+        ];
+    }
+
+    /**
      * Get a security entity class name.
      * @param string $entity The name of the security entity.
      * - valid names are `owner`, `user`, `organization`, `service_account`, and `role`.

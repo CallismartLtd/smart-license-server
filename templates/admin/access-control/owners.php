@@ -23,11 +23,17 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
             <?php endif; ?>
         </div>
 
+        <p>
+            <i class="ti ti-info-square-rounded" style="font-size: 1.2em; color: #0073aa;"></i>
+            Resource owners are individual users or organizations that own resources in this repository.
+        </p>
+
+
         <ul class="subsubsub">
             <?php foreach ( Owner::get_allowed_statuses() as $k => $v ) : ?>
                 <?php if ( Owner::count_status( $v ) > 0 ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( array( 'status' => $k ), smliser_repo_page() ) ); ?>" class="smliser-status-link">
-                        <?php echo esc_html( ucfirst( $v ) ); ?> (<?php echo absint( Owner::count_status( $k ) ); ?>)
+                        <?php echo esc_html( ucfirst( $v ) ); ?> (<?php echo absint( Owner::count_status( $v ) ); ?>)
                     </a>
                 <?php endif; ?>
             <?php endforeach; ?>

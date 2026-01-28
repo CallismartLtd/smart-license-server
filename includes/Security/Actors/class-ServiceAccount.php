@@ -18,7 +18,8 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 use const SMLISER_SERVICE_ACCOUNTS_TABLE;
-use function is_string, boolval, smliser_dbclass, gmdate, defined;
+use function is_string, boolval, smliser_dbclass, gmdate, defined, uniqid, bin2hex,
+random_bytes, password_hash, hash_hmac, smliser_safe_json_encode, smliser_avatar_url;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -26,8 +27,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Represents a service account that can act as a Principal.
  *
  * Service accounts are non-human actors used primarily for
- * API or system-to-system authentication. They are owned
- * by an Owner entity.
+ * API or system-to-system authentication. They can be owned
+ * by an individual Owner or an Organization.
  */
 class ServiceAccount implements ActorInterface {
 
@@ -61,6 +62,13 @@ class ServiceAccount implements ActorInterface {
      * @var int
      */
     protected int $owner_id = 0;
+
+    /**
+     * Unique service account ID.
+     * 
+     * @var string $identifier
+     */
+    protected string $identifier = '';
 
     /**
      * Human-readable service account name.
@@ -112,13 +120,6 @@ class ServiceAccount implements ActorInterface {
     protected ?DateTimeImmutable $last_used_at = null;
 
     /**
-     * Serialized permissions.
-     *
-     * @var string|null
-     */
-    protected ?string $permissions = null;
-
-    /**
      * Lazy-loaded Owner instance.
      *
      * @var Owner|null
@@ -160,6 +161,15 @@ class ServiceAccount implements ActorInterface {
      */
     public function get_owner_id() : int {
         return $this->owner_id;
+    }
+
+    /**
+     * Get the unique service account identifier.
+     * 
+     * @return string
+     */
+    public function get_identifier() : string {
+        return $this->identifier;
     }
 
     /**
@@ -226,20 +236,6 @@ class ServiceAccount implements ActorInterface {
     }
 
     /**
-     * Get permissions array.
-     *
-     * @return array
-     */
-    public function get_permissions() : array {
-        if ( empty( $this->permissions ) ) {
-            return [];
-        }
-
-        $decoded = json_decode( $this->permissions, true );
-        return is_array( $decoded ) ? $decoded : [];
-    }
-
-    /**
      * Lazy-load owner instance.
      *
      * @return Owner|null
@@ -281,6 +277,17 @@ class ServiceAccount implements ActorInterface {
      */
     public function set_owner_id( $owner_id ) : static {
         $this->owner_id = self::sanitize_int( $owner_id );
+        return $this;
+    }
+
+    /**
+     * Set the unique service account identifier.
+     *
+     * @param string $identifier Unique identifier for the service account.
+     * @return static Fluent instance.
+     */
+    public function set_identifier( $identifier ) : static {
+        $this->identifier = self::sanitize_text( $identifier );
         return $this;
     }
 
@@ -373,17 +380,6 @@ class ServiceAccount implements ActorInterface {
         return $this;
     }
 
-    /**
-     * Set permissions array.
-     *
-     * @param array $permissions
-     * @return static
-     */
-    public function set_permissions( array $permissions ) : static {
-        $this->permissions = json_encode( $permissions );
-        return $this;
-    }
-
     /*
     |--------------
     | CRUD METHODS
@@ -402,15 +398,16 @@ class ServiceAccount implements ActorInterface {
         $data = [
             'owner_id'      => $this->get_owner_id(),
             'display_name'  => $this->get_display_name(),
-            'api_key_hash'  => $this->get_api_key_hash(),
+            'description'   => $this->get_description(),
             'status'        => $this->get_status(),
-            'permissions'   => $this->permissions,
             'updated_at'    => gmdate( 'Y-m-d H:i:s' )
         ];
 
         if ( $this->get_id() ) {
             $result = $db->update( $table, $data, [ 'id' => $this->get_id() ] );
         } else {
+            $data['identifier'] = uniqid('sa_', true );
+            $data['api_key_hash'] = $this->generate_api_key();
             $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $data );
             $this->set_id( $db->get_insert_id() );

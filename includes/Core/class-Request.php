@@ -7,6 +7,8 @@
 
 namespace SmartLicenseServer\Core;
 
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -15,6 +17,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * An object of this class should be prepared by the environment adapter and passed to the core controller.
  */
 class Request {
+    use SanitizeAwareTrait;
 
     /**
      * Internal storage for dynamic properties.
@@ -29,9 +32,12 @@ class Request {
      * @param array $args Optional initial property values.
      */
     public function __construct( array $args = [] ) {
-        foreach ( $args as $key => $value ) {
-            $this->set( $key, $value );
+        $source = empty( $args ) ? $_REQUEST : $args;
+
+        foreach ( $source as $key => $value ) {
+            $this->set( $key, static::sanitize_auto( $value ) );
         }
+
     }
 
     /**

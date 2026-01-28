@@ -395,10 +395,10 @@ class AccessControlPage {
      */
     private static function rest_api_form_page() {
         $user_id        = smliser_get_query_param( 'id' );
-        $sa_acc           = ServiceAccount::get_by_id( (int) $user_id );
+        $sa_acc         = ServiceAccount::get_by_id( (int) $user_id );
 
         $title          = sprintf( '%s Service Account', $sa_acc ? 'Edit' : 'Add New' );
-        $roles_title    = sprintf( '%s Service Account Role', $sa_acc ? 'Update' : 'Set' );
+        $roles_title    = sprintf( '%s Service Account Role & Permissions', $sa_acc ? 'Update' : 'Set' );
 
         $_sa_statuses = ServiceAccount::get_allowed_statuses();
         $_status_titles = array_map( 'ucwords', array_values( $_sa_statuses ) );
@@ -406,6 +406,18 @@ class AccessControlPage {
         $_statuses      = array_combine( $_status_keys, $_status_titles );
 
         $role           = $sa_acc ? [] : '';
+        $owner_option   = [];
+
+        if ( $sa_acc ) {
+            $owner          = $sa_acc->get_owner();
+
+            $owner_name     = $owner ? $owner->get_name() : '[Deleted Owner]';
+            $owner_id       = $owner ? $owner->get_id() : 0;
+
+            $owner_option   = [$owner_id => $owner_name];
+            unset( $entity_class, $owner_name );
+
+        }
 
         $form_fields    = array(
             array(
@@ -440,7 +452,37 @@ class AccessControlPage {
                     )
                 )
             ),
-     
+
+            array(
+                'label' => __( 'Owner', 'smliser' ),
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'owner_id',
+                    'value' => $sa_acc ? $sa_acc->get_owner_id() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                    ),
+                    'options'       => $owner_option
+                )
+            ),
+
+            array(
+                'label' => __( 'Owner Type', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'owner_type',
+                    'value' => isset( $owner ) ? $owner->get_type() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'readonly'      => true,
+                    ),
+                )
+            ),
+
             array(
                 'label' => __( 'Status', 'smliser' ),
                 'input' => array(
@@ -465,7 +507,6 @@ class AccessControlPage {
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
-                        'required'      => true,
                         'placeholder'   => 'Enter description'
                     )
                 )

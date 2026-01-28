@@ -407,7 +407,7 @@ class Owner {
      * 
      * @param int $principal_id The principal ID.
      * @param string $owner_type    The owner type.
-     * @return static
+     * @return static|null
      */
     public static function get_by_principal_context( int $principal_id, string $type ) : ?static {
         static $owners = [];
@@ -483,9 +483,22 @@ class Owner {
                 $self->$method( $value );
             }
         }
-
         
         return $self;
+    }
+
+    /**
+     * Convert to array
+     * 
+     * @return array
+     */
+    public function to_array() : array {
+        $data   = get_object_vars( $this );
+        
+        $data   = ['type' => $this->get_type()] + $data;
+
+        unset( $data['exists_cache'] );
+        return $data;
     }
 
     /**
