@@ -855,6 +855,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'id'            => smliser_get_request_param( 'id' ),
             'name'          => smliser_get_request_param( 'name' ),
             'display_name'  => smliser_get_request_param( 'display_name' ),
+            'description'   => smliser_get_request_param( 'description' ),
             'email'         => smliser_get_request_param( 'email' ),
             'password_1'    => $_REQUEST[ 'password_1' ] ?? '', // phpcs:ignore
             'password_2'    => $_REQUEST[ 'password_2' ] ?? '', // phpcs:ignore
@@ -892,6 +893,8 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
         }
 
+        $entity    = smliser_get_request_param( 'entity_type', 'user' );
+
         $request    = new Request([
             'search_term'   => smliser_get_request_param( 'search' ),
             'status'        => smliser_get_request_param( 'status', 'active' ),
@@ -899,7 +902,11 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'is_authorized' => \is_super_admin()
         ]);
 
-        $response   = RequestController::search_users_orgs( $request );
+        if ( 'users_organizations' === $entity ) {
+            $response   = RequestController::search_users_orgs( $request );
+        } else {
+            $response   = RequestController::search_resource_owners( $request );
+        }
 
         $response->send();
     }
