@@ -1,1 +1,4 @@
 jsconfig.json
+.editorconfig
+.phpcs.xml
+.phpstan.neon
