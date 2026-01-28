@@ -297,15 +297,23 @@ function smliserSelect2AppSelect( selectEl ) {
 }
 
 /**
- * User and organization search selection.
+ * Search security entities.
  * 
- * @param {HTMLElement} selectEl 
+ * @param {HTMLElement} selectEl
+ * @param {Object} options
  */
-function smliserUserOrgSearch( selectEl ) {
+function smliserSearchSecurityEntities( selectEl, options = {} ) {
     if ( ! ( selectEl instanceof HTMLElement ) ) {
         console.warn( 'Could not instantiate app selection, invalid html element' );
         return;     
     }
+
+    const defaults = {
+        placeholder: 'Search users or organizations',
+        entityType: 'resource_owners', // Only `resource_owners` and `users_organizations` supported.
+    };
+
+    options = { ...defaults, ...options };
 
     const prepareArgs = ( params ) => {
         return {
@@ -343,9 +351,10 @@ function smliserUserOrgSearch( selectEl ) {
 
     url.searchParams.set( 'action', 'smliser_admin_security_entity_search' );
     url.searchParams.set( 'security', smliser_var.nonce );
+    url.searchParams.set( 'entity_type', options.entityType );
 
     $select2.select2({
-        placeholder: 'Search',
+        placeholder: options.placeholder,
         ajax: {
             url: url,
             dataType: 'json',
@@ -405,10 +414,26 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const generatePasswordBtn   = document.querySelector( '#smliser-generate-password' );
     const accessControlForm     = document.querySelector( '.smliser-access-control-form' );
     const principalSearch       = document.querySelector( '#principal_id' );
+    const ownersSearch          = document.querySelector( '#owner_id' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
-    principalSearch && smliserUserOrgSearch( principalSearch );
+    
+    if ( principalSearch ) {
+        const options = {
+            entityType: 'users_organizations',
+            placeholder: 'Search for users or organizations...'
+        };
 
+        smliserSearchSecurityEntities( principalSearch, options );
+    }
+
+    if ( ownersSearch ) {
+        const options = {
+            entityType: 'resource_owners',
+            placeholder: 'Search for resource owners...'
+        };
+        smliserSearchSecurityEntities( ownersSearch, options );
+    }
 
     if ( generatePasswordBtn ) {
 
