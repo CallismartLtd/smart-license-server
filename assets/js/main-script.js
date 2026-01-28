@@ -297,7 +297,7 @@ function smliserSelect2AppSelect( selectEl ) {
 }
 
 /**
- * Search security entities.
+ * Search security entities using select2.
  * 
  * @param {HTMLElement} selectEl
  * @param {Object} options
@@ -370,7 +370,7 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
 
     // The type selector.
     const ownerTypeInput    = $select2.closest( 'form' ).find( '#owner_type' );
-    const nameInput         = $select2.closest( 'form' ).find( '#name' );    
+    const nameInput         = $select2.closest( 'form' ).find( '#name, #display_name' );    
 
     if ( ownerTypeInput.length ) {
         const defaultValue  = ownerTypeInput.val();
@@ -397,6 +397,8 @@ document.addEventListener( 'DOMContentLoaded', function() {
     let deleteBtn               = document.getElementById( 'smliser-license-delete-button' );
     let updateBtn               = document.querySelector('#smliser-update-btn');
     let appActionsBtn           = document.querySelectorAll( '.smliser-app-delete-button, .smliser-app-restore-button' );
+
+    /**@type {HTMLInputElement} Select all checkbox */
     let selectAllCheckbox       = document.querySelector('#smliser-select-all');
     let dashboardPage           = document.querySelector( '.smliser-admin-dashboard-template.overview' );
     let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
@@ -412,6 +414,8 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const roleBuilderEl         = document.querySelector( '#smliser-role-builder' );
     const avatarUploadFields    = document.querySelectorAll( '.smliser-avatar-upload' );
     const generatePasswordBtn   = document.querySelector( '#smliser-generate-password' );
+
+    /** @type {HTMLFormElement} */
     const accessControlForm     = document.querySelector( '.smliser-access-control-form' );
     const principalSearch       = document.querySelector( '#principal_id' );
     const ownersSearch          = document.querySelector( '#owner_id' );
@@ -890,7 +894,8 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-    if (selectAllCheckbox) {
+    if ( selectAllCheckbox ) {
+        /** @type {NodeListOf<HTMLInputElement>} */
         let checkboxes = document.querySelectorAll('.smliser-license-checkbox, .smliser-checkbox');
         let lastChecked = null; // Track the last checkbox clicked
 
@@ -1550,8 +1555,9 @@ document.addEventListener( 'DOMContentLoaded', function() {
             existingRoles = null;
         }
 
-        const builder               = new RoleBuilder( roleBuilderEl, defaultRoles, existingRoles );
-        window.SmliserRoleBuilder   = builder;
+        const builder   = new RoleBuilder( roleBuilderEl, defaultRoles, existingRoles );
+    
+        window.SmliserRoleBuilder = builder;
     }
 
     if ( accessControlForm ) {

@@ -3,7 +3,7 @@ class RoleBuilder {
     /**
      * Create a RoleBuilder instance.
      *
-     * @param {HTMLElement} container
+     * @param {Element} container
      *     Root DOM element where the role builder UI will be rendered.
      *     This element MUST exist in the document before instantiation.
      *
@@ -198,6 +198,7 @@ class RoleBuilder {
      * @param {string} name
      */
     setRoleName( name ) {
+        /** @type {HTMLInputElement} input */
         const input         = this.container.querySelector('.rb-role-name');
         input.value         = name ? name : '';
         input.disabled      = this.isPreset;
@@ -379,6 +380,4 @@ class RoleBuilder {
 
         return null;
     }
-
-
 }
