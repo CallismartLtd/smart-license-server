@@ -1842,6 +1842,10 @@ input.smliser_toggle-switch-input {
     .admin-bar .smliser-top-nav {
         top: 46px;
     }
+
+    .smliser-top-nav .smliser-quick-actions {
+        flex-wrap: wrap;
+    }
 }
 
 .smliser-admin-table-body {

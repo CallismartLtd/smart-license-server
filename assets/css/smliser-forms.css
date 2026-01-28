@@ -955,10 +955,33 @@ button.smliser-upload-btn {
   min-width: 100px;
 }
 
-@media (max-width: 475px) {
-  .smliser-two-rows {
+@media ( min-width: 280px ) and ( max-width: 760px ) {
+  .smliser-avatar-upload {
     flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-height: unset;
   }
+  .smliser-avatar-upload_buttons-row {
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    
+  }
+  .smliser-avatar-upload .smliser-avatar-upload_data {
+    padding: 0;
+  }
+
+  @media (max-width: 475px) {
+    .smliser-two-rows {
+      flex-direction: column;
+    }
+
+    .smliser-two-rows_right {
+      width: 95%;
+    }
+  }
+
 }
 
 .smliser-password-field-wrapper {

@@ -292,7 +292,7 @@ function smliserSelect2AppSelect( selectEl ) {
             cache: true,
         },
         allowClear: true,
-        minimumInputLength: 2
+        minimumInputLength: 2,
     });    
 }
 
@@ -365,12 +365,13 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
         },
         allowClear: true,
         minimumInputLength: 2,
+        width: '100%',
         
     });
 
     // The type selector.
     const ownerTypeInput    = $select2.closest( 'form' ).find( '#owner_type' );
-    const nameInput         = $select2.closest( 'form' ).find( '#name, #display_name' );    
+    const nameInput         = $select2.closest( 'form' ).find( '#name' );    
 
     if ( ownerTypeInput.length ) {
         const defaultValue  = ownerTypeInput.val();
