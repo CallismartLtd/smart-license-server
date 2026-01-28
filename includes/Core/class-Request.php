@@ -88,6 +88,32 @@ class Request {
     }
 
     /**
+     * Tells whether the specified property exists and not empty.
+     * 
+     * @param string $property The property name.
+     * @return bool
+     */
+    public function isEmpty( string $property ) : bool {
+        return empty( $this->get( $property ) );
+    }
+
+    /**
+     * Tells whethe the specified properties are all present and not empty.
+     * 
+     * @param array $properties The property names.
+     * @return bool
+     */
+    public function hasAll( array $properties ) : bool {
+        foreach ( $properties as $property ) {
+            if ( $this->isEmpty( $property ) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Return all properties as array.
      *
      * @return array

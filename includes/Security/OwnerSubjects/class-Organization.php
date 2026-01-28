@@ -6,12 +6,13 @@
  * @package SmartLicenseServer\Security
  */
 
-namespace SmartLicenseServer\Security;
+namespace SmartLicenseServer\Security\OwnerSubjects;
 
 use \DateTimeImmutable;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Security\Owner;
 
 use const SMLISER_ORGANIZATIONS_TABLE;
 use function defined, is_string, smliser_dbclass, gmdate, boolval;
@@ -25,7 +26,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * container, allowing for both individual (single-user) and multi-user 
  * collaborative ownership and permission management.
  */
-class Organization {
+class Organization implements OwnerSubjectInterface {
     use SanitizeAwareTrait, CommonQueryTrait;
     /**
      * Organization active status.
@@ -405,6 +406,13 @@ class Organization {
         return $this->exists_cache;
     }
 
-
+    /**
+     * Get type of the owner subject.
+     * 
+     * @return string
+     */
+    public function get_type() : string {
+        return Owner::TYPE_ORGANIZATION;
+    }
 
 }

@@ -24,7 +24,7 @@ sprintf;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Canonical representation of a resource owner.
+ * Classical representation of a resource owner.
  *
  * A resource owner is the legal or logical entity that has ultimate
  * (and delegable) authority over resources in the system.
@@ -35,7 +35,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * An Owner can be:
  * - an individual (personal ownership),
  * - an organization (company / team),
- * - or the platform itself (system-level ownership).
+ * - or the platform itself (system-level ownership)
+ *  and the entity(User, Organization or any class that extends OwnerSubjectInterface) is generally consider an owner subject.
  *
  * Owners do not authenticate or perform actions directly.
  * Actions are performed by actors (Users or Service Accounts)
@@ -59,17 +60,19 @@ class Owner {
     protected int $id = 0;
 
     /**
-     * The principal ID.
+     * The subject id.
      * 
-     * @var int $principal_id The ID of the principal entity.
+     * @var int $subject_id The ID of the subject entity.
      */
-    protected int $principal_id = 0;
+    protected int $subject_id = 0;
 
     /**
      * The owner type.
      * - an individual (personal ownership),
      * - an organization (company / team),
      * - or the platform itself (system-level ownership).
+     * 
+     * This property is a reflection of the subject entity type.
      * 
      * @var string $type
      */
@@ -145,19 +148,19 @@ class Owner {
     }
 
     /**
-     * Set the id of the of the principal
+     * Set the id of the of the subject entity.
      * 
      * @param int $id
      * @return static
      */
-    public function set_principal_id( $id ) : static {
-        $this->principal_id = static::sanitize_int( $id );
+    public function set_subject_id( $id ) : static {
+        $this->subject_id = static::sanitize_int( $id );
 
         return $this;
     }
 
     /**
-     * Set type
+     * Set owner type
      * 
      * @param string $type
      * @return static
@@ -272,12 +275,12 @@ class Owner {
     }
 
     /**
-     * Get the principal ID
+     * Get the subject entity ID
      * 
      * @return int
      */
-    public function get_principal_id() : int {
-        return $this->principal_id;
+    public function get_subject_id() : int {
+        return $this->subject_id;
     }
 
     /**
@@ -359,25 +362,26 @@ class Owner {
     public function save() : bool {
         $db     = smliser_dbclass();
         $table  = SMLISER_OWNERS_TABLE;
+        $now    = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
 
         $data   = [
-            'principal_id'  => $this->get_principal_id(),
+            'subject_id'    => $this->get_subject_id(),
             'name'          => $this->get_name(),
             'type'          => $this->get_type(),
             'status'        => $this->get_status(),
-            'updated_at'    => gmdate( 'Y-m-d H:i:s' )
+            'updated_at'    => $now->format( 'Y-m-d H:i:s' )
         ];
 
         if ( $this->get_id() ) {
-            unset( $data['principal_id'], $data['type'] );
+            unset( $data['subject_id'], $data['type'] );
             $result = $db->update( $table, $data, ['id' => $this->get_id()] );
         } else {
-            $principal_exists = static::get_by_principal_context( $data['principal_id'], $data['type'] );
+            $subject_exists = static::get_by_subject( $data['subject_id'], $data['type'] );
 
-            if ( $principal_exists ) {
+            if ( $subject_exists ) {
                 throw new Exception( 'duplicate_owner', sprintf( 'This %s is already a resource owner.', $data['type'] ) );
             }
-            $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
+            $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $data );
 
             $this->set_id( $db->get_insert_id() );
@@ -403,22 +407,22 @@ class Owner {
     }
 
     /**
-     * Get a resource Owner object in the context of it's pricipal
+     * Get a resource Owner object using the subject properties.
      * 
-     * @param int $principal_id The principal ID.
+     * @param int $subject_id The subject ID.
      * @param string $owner_type    The owner type.
      * @return static|null
      */
-    public static function get_by_principal_context( int $principal_id, string $type ) : ?static {
+    public static function get_by_subject( int $subject_id, string $type ) : ?static {
         static $owners = [];
 
-        $key    = sprintf( '%s:%s', $principal_id, $type );
+        $key    = sprintf( '%s:%s', $subject_id, $type );
         if ( ! array_key_exists( $key, $owners ) ) {
             $db     = smliser_dbclass();
             $table  = SMLISER_OWNERS_TABLE;
-            $sql    = "SELECT * FROM `{$table}` WHERE `principal_id` = ? AND `type` = ?";
+            $sql    = "SELECT * FROM `{$table}` WHERE `subject_id` = ? AND `type` = ?";
 
-            $result = $db->get_row( $sql, [$principal_id, $type] );
+            $result = $db->get_row( $sql, [$subject_id, $type] );
 
             $owner  = $result ? static::from_array( $result ) : null;
             $owners[ $key ] = $owner;

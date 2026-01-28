@@ -277,13 +277,13 @@ final class DBTables {
              */
             SMLISER_OWNERS_TABLE       => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-                'principal_id BIGINT(20) NOT NULL',
+                'subject_id BIGINT(20) NOT NULL',
                 'type ENUM(\'individual\', \'organization\', \'platform\') NOT NULL DEFAULT \'platform\'',
                 'name VARCHAR(255) NOT NULL',
                 'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-                'INDEX smliser_owners_principal_id (principal_id)',
+                'INDEX smliser_owners_subject_id (subject_id)',
                 'INDEX smliser_owners_created_at (created_at)',
                 'INDEX smliser_owners_updated_at (updated_at)',
             ),
@@ -309,6 +309,7 @@ final class DBTables {
              */
             SMLISER_SERVICE_ACCOUNTS_TABLE  => array(
                 'id INT AUTO_INCREMENT PRIMARY KEY',
+                'identifier VARCHAR(255) NOT NULL',
                 'owner_id INT NOT NULL',
                 'display_name VARCHAR(255) NOT NULL',
                 'description TEXT DEFAULT NULL',
@@ -317,7 +318,6 @@ final class DBTables {
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'last_used_at DATETIME NULL',
-                'permissions TEXT NULL',
                 'INDEX smliser_service_acct_owner_id (owner_id)',
                 'INDEX smliser_service_acct_api_key_hash (api_key_hash)',
                 'INDEX smliser_service_acct_status (status)',

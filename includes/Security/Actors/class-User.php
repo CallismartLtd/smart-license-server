@@ -10,6 +10,8 @@ namespace SmartLicenseServer\Security\Actors;
 
 use DateTimeImmutable;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -29,7 +31,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Users do not own resources directly.
  * Ownership is always mediated through an Owner.
  */
-class User implements ActorInterface {
+class User implements ActorInterface, OwnerSubjectInterface {
     use SanitizeAwareTrait, CommonQueryTrait;
 
     /**
@@ -522,6 +524,6 @@ class User implements ActorInterface {
     }
     
     public function get_type() : string {
-        return 'individual';
+        return Owner::TYPE_INDIVIDUAL;
     }
 }

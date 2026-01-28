@@ -48,4 +48,48 @@ trait TokenDeliveryTrait {
         }
         return base64_decode( strtr( $data, '-_', '+/' ) );
     }
+
+    /**
+     * Generate secure random token.
+     * 
+     * @param int $length
+     * @return string
+     */
+    private static function generate_secure_token( int $length = 32 ) : string {
+        return \bin2hex( \random_bytes( $length ) );
+    }
+
+    /**
+     * Wrapper for PHP's password_hash function.
+     * 
+     * @param string $password
+     * @param int $algo Default is PASSWORD_BCRYPT
+     * @return string
+     */
+    private static function hash_password( string $password, string|int|null $algo = PASSWORD_BCRYPT ) : string {
+        return password_hash( $password, $algo );
+    }
+
+    /**
+     * Wrapper for PHP's password_verify function.
+     * 
+     * @param string $password
+     * @param string $hash
+     * @return bool
+     */
+    private static function verify_password( string $password, string $hash ) : bool {
+        return password_verify( $password, $hash );
+    }
+
+    /**
+     * Wrapper for PHP's hash_hmac function.
+     * 
+     * @param string $data
+     * @param string $key
+     * @param string $algo Default is 'sha256'
+     * @return string
+     */
+    private static function hmac_hash( string $data, string $key, string $algo = 'sha256' ) : string {
+        return hash_hmac( $algo, $data, $key );
+    }
 }

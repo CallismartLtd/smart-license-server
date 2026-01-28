@@ -20,6 +20,7 @@ use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Permission\Role;
+use SmartLicenseServer\Security\OwnerSubjects\Organization;
 
 use const PASSWORD_ARGON2ID;
 
@@ -83,6 +84,15 @@ class RequestController {
                     'message'   => sprintf( '%s saved successfully.', ucwords( str_replace( '_', ' ', $entity ) ) )
                 )
             ];
+
+            if ( $entity === 'service_account' ) {
+                $new_api_keys  = $request->get( 'new_api_keys', null );
+
+                if ( $new_api_keys ) {
+                    $data['data']['api_keys'] = $new_api_keys;
+                }
+            }
+
             return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
@@ -215,14 +225,18 @@ class RequestController {
                 throw new RequestException( 'invalid_service_account_status', 'The status provided is not allowed.', ['status' => 400] );
             }
 
-            $owner_id   = $request->get( 'owner_id' );
+            $owner_id   = (int) $request->get( 'owner_id' );
             $owner      = Owner::get_by_id( $owner_id );
-            $principal  = Owner::get_by_principal_context( $owner->get_principal_id(), $owner->get_type() );
+            $subject    = ContextServiceProvider::get_owner_subject( $owner );
 
-            $request->set( 'principal', $principal );
+            $request->set( 'subject', $subject );
             
             if ( ! $owner || ! $owner->exists() ) {
                 throw new RequestException( 'owner_not_found', 'The resource owner for this service account was not found.', ['status' => 400] );
+            }
+
+            if ( $request->isEmpty( 'role_slug' ) ) {
+                throw new RequestException( 'required_param', 'Please select a role for this service account', [ 'status' => 400 ] );
             }
 
             $description    = $request->get( 'description', '' );
@@ -242,6 +256,8 @@ class RequestController {
             if ( ! empty( $avatar ) ) {
                 FileSystemHelper::upload_avatar( $avatar, 'service_account', \md5( $sa_acc->get_identifier() ) );
             }
+
+            $request->set( 'new_api_keys', $sa_acc->get_new_api_key_data() );
             return true;
         } catch ( InvalidArgumentException $e ) {
 
@@ -329,7 +345,7 @@ class RequestController {
 
             // Owner
             $owner->set_name( $owner_name )
-                ->set_principal_id( $principal_id )
+                ->set_subject_id( $principal_id )
                 ->set_status( $status )
                 ->set_type( $owner_type );
 
@@ -378,7 +394,7 @@ class RequestController {
         $role_slug  = $request->get( 'role_slug' );
         $role_label = $request->get( 'role_label' );
         $role       = Role::get_by_slug( $role_slug );
-        $principal  = $request->get( 'principal', null );
+        $subject    = $request->get( 'subject', null );
 
         if ( ! $role ) {
             $role = ( new Role() )
@@ -398,7 +414,7 @@ class RequestController {
         }
         
         // Context binding.
-        ContextServiceProvider::save_actor_role( $actor, $role, $principal );
+        ContextServiceProvider::save_actor_role( $actor, $role, $subject );
         
     }
 

@@ -860,15 +860,16 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'password_1'    => $_REQUEST[ 'password_1' ] ?? '', // phpcs:ignore
             'password_2'    => $_REQUEST[ 'password_2' ] ?? '', // phpcs:ignore
             'status'        => smliser_get_request_param( 'status' ),
-            'principal_id'  => smliser_get_request_param( 'principal_id' ),
+            'subject_id'    => smliser_get_request_param( 'subject_id' ),
+            'owner_id'      => smliser_get_request_param( 'owner_id' ),
             'owner_type'    => smliser_get_request_param( 'owner_type' ),
             'role_label'    => smliser_get_request_param( 'role_label' ),
             'role_slug'     => smliser_get_request_param( 'role_slug' ),
-            'role_id'     => smliser_get_request_param( 'role_id' ),
+            'role_id'       => smliser_get_request_param( 'role_id' ),
             'capabilities'  => smliser_get_request_param( 'capabilities', [] ),
             'entity'        => $entity,
             'avatar'        => isset( $_FILES['avatar'] ) && UPLOAD_ERR_OK === $_FILES['avatar']['error'] ? $_FILES['avatar'] : null,
-            'is_authorized'  => true,
+            'is_authorized' => true,
         ]);
 
         /** @var Response $response */

@@ -272,19 +272,19 @@ class AccessControlPage {
         $_owner_types_keys  = Owner::get_allowed_owner_types();
         $_owner_types_titles= array_map( 'ucwords', $_owner_types_keys );
         $_owner_types       = array_combine( $_owner_types_keys, $_owner_types_titles );
-        $principal_option   = array();
+        $subject_option     = array();
 
         if ( $owner ) {
             $_owner_type    = $owner->get_type();
-            $principal_id   = $owner->get_principal_id();
+            $subject_id     = $owner->get_subject_id();
             $_entity_class  = ContextServiceProvider::get_entity_classname( $_owner_type );
-            $principal      = $_entity_class ? $_entity_class::get_by_id( $principal_id ) : '';
+            $subject        = $_entity_class ? $_entity_class::get_by_id( $subject_id ) : '';
 
-            $pr_name        = $principal ? $principal->get_name() : '[Deleted entity]';
+            $pr_name        = $subject ? $subject->get_name() : '[Deleted entity]';
 
-            $principal_option   = [$principal_id => $pr_name];
+            $subject_option   = [$subject_id => $pr_name];
             
-            unset( $_owner_type, $entity_class, $_entity_class, $principal, $pr_name );
+            unset( $_owner_type, $entity_class, $_entity_class, $subject, $pr_name );
 
         }
 
@@ -330,17 +330,17 @@ class AccessControlPage {
                 )
             ),
             array(
-                'label' => __( 'Principal', 'smliser' ),
+                'label' => __( 'Owner Subject', 'smliser' ),
                 'input' => array(
                     'type'  => 'select',
-                    'name'  => 'principal_id',
-                    'value' => $owner ? $owner->get_principal_id() : '',
+                    'name'  => 'subject_id',
+                    'value' => $owner ? $owner->get_subject_id() : '',
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
                         'required'      => true,
                     ),
-                    'options'       => $principal_option
+                    'options'       => $subject_option
                 )
             ),
             array(

@@ -16,7 +16,8 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Permission\Role;
-use SmartLicenseServer\Security\Organization;
+use SmartLicenseServer\Security\OwnerSubjects\Organization;
+use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE;
 use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower;
@@ -321,21 +322,20 @@ class ContextServiceProvider {
     }
 
     /**
-     * Get principal role.
+     * Get the role assigned to an actor/principal.
      * 
      * @param ActorInterface $actor The authenticatable actor.
-     * @param Organization|null $owner_principal
+     * @param OwnerSubjectInterface|null $subject The owner subject (organization or user).
      * @return Role|null
      */
-    public static function get_principal_role( ActorInterface $actor, ?Organization $org = null ) : ?Role {
+    public static function get_principal_role( ActorInterface $actor, ?OwnerSubjectInterface $subject = null ) : ?Role {
         $db             = smliser_dbclass();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
-        $is_org         = ( $org instanceof Organization );
         $principal_type = $actor->get_type();
         $principal_id   = $actor->get_id();
         
-        $owner_type     = $is_org ? Owner::TYPE_ORGANIZATION : Owner::TYPE_INDIVIDUAL;
-        $owner_id       = $is_org ? $org->get_id() : $actor->get_id();
+        $owner_type     = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
+        $owner_id       = $subject ? $subject->get_id() : $actor->get_id();
 
         $sql    = 
         "SELECT `role_id` FROM `{$table}` WHERE `principal_id` = ? AND `principal_type` = ? 
@@ -352,4 +352,22 @@ class ContextServiceProvider {
         return $role;
     }
 
+    /**
+     * Get either the organization or the individual user associated with a
+     * resource owner object.
+     * 
+     * @param Owner $owner
+     */
+    public static function get_owner_subject( Owner $owner ) : ?OwnerSubjectInterface {
+
+        $subject = null;
+
+        if ( Owner::TYPE_ORGANIZATION === $owner->get_type() ) {
+            $subject = Organization::get_by_id( $owner->get_id() );
+        } elseif ( Owner::TYPE_INDIVIDUAL === $owner->get_type() ) {
+            $subject = User::get_by_id( $owner->get_id() );
+        }
+
+        return $subject;
+    }
 }

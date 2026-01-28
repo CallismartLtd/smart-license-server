@@ -381,7 +381,7 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
 
             ownerTypeInput.val( param.data.selected ? entityType : defaultValue );
             
-            if ( ( param.data.selected && nameInput ) && ! nameInput.val().length ) {
+            if ( ( param.data.selected && nameInput ) && ! nameInput.val()?.length ) {
                 nameInput.val( param.data.text );
             }            
         });        

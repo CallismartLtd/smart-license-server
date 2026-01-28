@@ -11,7 +11,10 @@
 namespace SmartLicenseServer\Security\Actors;
 
 use DateTimeImmutable;
+use DateTimeZone;
+use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -134,6 +137,13 @@ class ServiceAccount implements ActorInterface {
     protected ?bool $exists_cache = null;
 
     /**
+     * Collection object used to deliver new api key data.
+     * 
+     * @var Collection|null
+     */
+    protected ?Collection $new_api_key_data = null;
+
+    /**
      * Constructor.
      *
      * Lightweight. Use setters or `from_array()` for hydration.
@@ -250,6 +260,24 @@ class ServiceAccount implements ActorInterface {
         }
 
         return $this->owner;
+    }
+
+    /**
+     * Get new API key data after generation.
+     * 
+     * @return Collection|null
+     * @throws Exception If no new API key was generated.
+     */
+    public function get_new_api_key_data() : Collection {
+        if ( is_null( $this->new_api_key_data ) ) {
+            throw new Exception(
+                'no_new_api_key',
+                'No new API key data available.',
+                [ 'status' => 400 ]
+            );
+        }
+
+        return $this->new_api_key_data;
     }
 
     /*
@@ -372,11 +400,16 @@ class ServiceAccount implements ActorInterface {
     /**
      * Set the last used timestamp.
      *
-     * @param \DateTimeImmutable $dt
+     * @param string|DateTimeImmutable $dt
      * @return static Fluent instance
      */
-    public function set_last_used_at( \DateTimeImmutable $dt ) : static {
-        $this->last_used_at = $dt;
+    public function set_last_used_at( $dt ) : static {
+        if ( $dt instanceof DateTimeImmutable ) {
+            $this->last_used_at = $dt;
+        } elseif ( is_string( $dt ) ) {
+            try { $this->last_used_at = new DateTimeImmutable( $dt ); } catch ( \Exception $e ) {}
+        }
+        
         return $this;
     }
 
@@ -392,25 +425,36 @@ class ServiceAccount implements ActorInterface {
      * @return bool
      */
     public function save() : bool {
-        $db    = smliser_dbclass();
-        $table = SMLISER_SERVICE_ACCOUNTS_TABLE;
+        $db     = smliser_dbclass();
+        $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
+        $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
         $data = [
             'owner_id'      => $this->get_owner_id(),
             'display_name'  => $this->get_display_name(),
             'description'   => $this->get_description(),
             'status'        => $this->get_status(),
-            'updated_at'    => gmdate( 'Y-m-d H:i:s' )
+            'updated_at'    => $now->format( 'Y-m-d H:i:s' )
         ];
+
+        if ( ! empty( $this->get_last_used_at() ) ) {
+            $data['last_used_at'] = $this->get_last_used_at()->format( 'Y-m-d H:i:s' );
+        }
 
         if ( $this->get_id() ) {
             $result = $db->update( $table, $data, [ 'id' => $this->get_id() ] );
         } else {
-            $data['identifier'] = uniqid('sa_', true );
-            $data['api_key_hash'] = $this->generate_api_key();
-            $data['created_at'] = gmdate( 'Y-m-d H:i:s' );
+            // This is new key generation.
+            $plain_key              = $this->generate_api_key();
+            $data['identifier']     = uniqid('sa_', true );
+            $data['api_key_hash']   = $this->get_api_key_hash();
+            $data['created_at']     = $now->format( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $data );
             $this->set_id( $db->get_insert_id() );
+
+            // Store new API key data for retrieval.
+            $this->new_api_key_data = Collection::make( $this->to_array() )
+            ->merge( [ 'api_key' => $plain_key ] );
         }
 
         return $result !== false;
@@ -511,7 +555,11 @@ class ServiceAccount implements ActorInterface {
      * @return array
      */
     public function to_array() : array {
-        return get_object_vars( $this );
+        $data = get_object_vars( $this );
+
+        unset( $data['owner'], $data['exists_cache'], $data['new_api_key_data'] );
+
+        return $data;
     }
 
     public function get_type() : string {
@@ -579,13 +627,11 @@ class ServiceAccount implements ActorInterface {
      * @return string Base64-url encoded API key for client
      */
     public function generate_api_key( int $length = 32 ) : string {
-        // Generate raw key
-        $raw_key = bin2hex( random_bytes( $length ) );
+        $raw_key = self::generate_secure_token( $length );
 
-        // Hash the raw key with bcrypt for storage
-        $this->set_api_key_hash( password_hash( $raw_key, PASSWORD_BCRYPT ) );
+        // Hash the raw key with bcrypt for storage.
+        $this->set_api_key_hash( self::hash_password( $raw_key ) );
 
-        // Build minimal payload
         $payload = [
             'sa_id'     => $this->get_id(),
             'owner_id'  => $this->get_owner_id(),
@@ -594,12 +640,9 @@ class ServiceAccount implements ActorInterface {
 
         $encoded_payload = \smliser_safe_json_encode( $payload );
 
-        // Sign payload
+        // Sign payload.
         $secret    = self::derive_key();
-        $signature = hash_hmac( 'sha256', $encoded_payload, $secret );
-
-        // Save updated ServiceAccount to DB
-        $this->save();
+        $signature = self::hmac_hash( $encoded_payload, $secret, 'sha256' );
 
         // Return client API key
         $api_key = sprintf( '%s.%s.%s', $encoded_payload, $signature, $raw_key );
@@ -630,8 +673,10 @@ class ServiceAccount implements ActorInterface {
         [$encoded_payload, $signature, $raw_key] = $parts;
 
         // Validate HMAC signature
-        $secret = self::derive_key();
-        if ( ! hash_equals( hash_hmac( 'sha256', $encoded_payload, $secret ), $signature ) ) {
+        $secret     = self::derive_key();
+        $known_hash = self::hmac_hash( $encoded_payload, $secret, 'sha256' );
+
+        if ( ! hash_equals( $known_hash, $signature ) ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
                 'service_account_invalid',
                 'Invalid API key signature',
@@ -660,7 +705,7 @@ class ServiceAccount implements ActorInterface {
         }
 
         // Verify raw key against stored bcrypt hash
-        if ( ! password_verify( $raw_key, $sa->get_api_key_hash() ) ) {
+        if ( ! self::verify_password( $raw_key, $sa->get_api_key_hash() ) ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
                 'service_account_invalid',
                 'API key does not match',
