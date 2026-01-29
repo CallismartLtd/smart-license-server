@@ -12,11 +12,11 @@ use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
-use SmartLicenseServer\Security\Organization;
+use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
 
-use function defined, smliser_get_query_param, array_unshift, sprintf, time, basename, call_user_func, 
+use function defined, smliser_get_query_param, array_unshift, sprintf, time, call_user_func, 
 smliser_json_encode_attr, array_map, admin_url;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -39,8 +39,9 @@ class AccessControlPage {
                 'edit'      => [__CLASS__, 'users_form_page'],
             ],
             'organizations' => [
-                'default'       => [__CLASS__, 'organizations_page'],
-                'edit'       => [__CLASS__, 'add_new_organizations_page'],
+                'default'   => [__CLASS__, 'organizations_page'],
+                'add-new'   => [__CLASS__, 'organizations_form_page'],
+                'edit'      => [__CLASS__, 'organizations_form_page'],
             ],
             'owners'    => [
                 'default'   => [__CLASS__, 'owners_page'],
@@ -68,7 +69,6 @@ class AccessControlPage {
      * Access control page dashbard.
      */
     public static function dashboard() {
-        
         include_once SMLISER_PATH . 'templates/admin/access-control/dashboard.php';
     
     }
@@ -78,12 +78,12 @@ class AccessControlPage {
      */
     private static function users_page() {
         $page           = (int) smliser_get_query_param( 'paged', 1 );
-        $limit          =  (int) smliser_get_query_param( 'limit', 25 );
+        $limit          = (int) smliser_get_query_param( 'limit', 25 );
         $all            = User::get_all( $page, $limit );
         $entity_class   = User::class;
         $type           = 'user';
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/actors-principals-list.php';
+        include_once SMLISER_PATH . 'templates/admin/access-control/principals-subjects-list.php';
     }
 
     /**
@@ -222,12 +222,15 @@ class AccessControlPage {
             : new URL( smliser_get_placeholder_icon( 'avatar' ) );
 
         $avatar_name    = $user ? 'View image' : $avatar_url->basename();
-        $role_obj       = $user ? ContextServiceProvider::get_principal_role( $user ) : '';
+        
+        // Notice we are not passing the `OwnerSubjectInterface` parameter,
+        // An individual user extends the `OwnerSubjectInterface`, the context service
+        // provider will resolve to using the user properties to build its role object.
+        $role_obj   = $user ? ContextServiceProvider::get_principal_role( $user ) : null;
 
         if ( $role_obj ) {
             $collection = Collection::make( $role_obj->to_array() );
-
-            $role   = $collection->toArray();
+            $role       = $collection->toArray();
 
             unset( $collection );
         }
@@ -239,9 +242,107 @@ class AccessControlPage {
      * Organizations page.
      */
     private static function organizations_page() {
+        $page           = (int) smliser_get_query_param( 'paged', 1 );
+        $limit          = (int) smliser_get_query_param( 'limit', 25 );
+        $all            = Organization::get_all( $page, $limit );
+        $entity_class   = Organization::class;
+        $type           = 'organization';
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/organizations.php';
+        include_once SMLISER_PATH . 'templates/admin/access-control/principals-subjects-list.php';
     }
+
+    /**
+     * The organization creation and edit page
+     */
+    private static function organizations_form_page() {
+
+        $org_id         = smliser_get_query_param( 'id' );
+        $organization   = Organization::get_by_id( (int) $org_id );
+
+        $title          = sprintf( '%s Organization', $organization ? 'Edit' : 'Add New' );
+        $roles_title    = sprintf( '%s Organization Role', $organization ? 'Update' : 'Set' );
+
+        $_org_statuses  = Organization::get_allowed_statuses();
+        $_status_titles = array_map( 'ucwords', array_values( $_org_statuses ) );
+        $_status_keys   = array_values( $_org_statuses );
+        $_statuses      = array_combine( $_status_keys, $_status_titles );
+
+        $form_fields    = array(
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'id',
+                    'value' => $organization ? $organization->get_id() : 0,
+                )
+            ),
+
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'entity',
+                    'value' => 'organization',
+                )
+            ),
+            array(
+                'label' => __( 'Organization Name', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'display_name',
+                    'value' => $organization ? $organization->get_display_name() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'placeholder'   => 'Enter full name',
+                        'style'         => 'width: unset'
+                    )
+                )
+            ),
+
+            array(
+                'label' => __( 'Organization Slug', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'org_slug',
+                    'value' => $organization ? $organization->get_slug() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true,
+                        'placeholder'   => 'Enter organization slug'
+                    )
+                )
+            ),
+     
+            array(
+                'label' => __( 'Status', 'smliser' ),
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'status',
+                    'value' => $organization ? $organization->get_status() : '',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true
+                    ),
+                    'options'   => $_statuses
+                )
+            ),
+     
+        );
+
+        $avatar_url     = 
+            $organization && $organization->get_avatar()->is_valid() 
+            ? $organization->get_avatar()->add_query_param( 'ver', time() )
+            : new URL( smliser_get_placeholder_icon( 'avatar' ) );
+
+        $avatar_name    = $organization ? 'View image' : $avatar_url->basename();
+
+        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
+    }
+
 
     /**
      * Resource owners.
@@ -387,7 +488,7 @@ class AccessControlPage {
         $all            = ServiceAccount::get_all( $page, $limit );
         $entity_class   = ServiceAccount::class;
         $type           = 'Service Accounts';
-        include_once SMLISER_PATH . 'templates/admin/access-control/actors-principals-list.php';       
+        include_once SMLISER_PATH . 'templates/admin/access-control/principals-subjects-list.php';       
     }
 
     /**
@@ -404,17 +505,26 @@ class AccessControlPage {
         $_status_titles = array_map( 'ucwords', array_values( $_sa_statuses ) );
         $_status_keys   = array_values( $_sa_statuses );
         $_statuses      = array_combine( $_status_keys, $_status_titles );
-
-        $role           = $sa_acc ? [] : '';
         $owner_option   = [];
+        $role           = '';
 
         if ( $sa_acc ) {
-            $owner          = $sa_acc->get_owner();
+            $owner      = $sa_acc->get_owner();
+            $subject    = ContextServiceProvider::get_owner_subject( $owner );
+            $role_obj   = ContextServiceProvider::get_principal_role( $sa_acc, $subject );
+
+            if ( $role_obj ) {
+                $collection = Collection::make( $role_obj->to_array() );
+
+                $role   = $collection->toArray();
+
+                unset( $collection );
+            }
 
             $owner_name     = $owner ? $owner->get_name() : '[Deleted Owner]';
             $owner_id       = $owner ? $owner->get_id() : 0;
-
             $owner_option   = [$owner_id => $owner_name];
+            
             unset( $entity_class, $owner_name );
 
         }
@@ -520,15 +630,6 @@ class AccessControlPage {
             : new URL( smliser_get_placeholder_icon( 'avatar' ) );
 
         $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
-        $role_obj       = $sa_acc ? ContextServiceProvider::get_principal_role( $sa_acc ) : '';
-
-        if ( $role_obj ) {
-            $collection = Collection::make( $role_obj->to_array() );
-
-            $role   = $collection->toArray();
-
-            unset( $collection );
-        }
 
         include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }
