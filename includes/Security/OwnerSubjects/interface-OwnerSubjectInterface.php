@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\Security\OwnerSubjects;
 
+use SmartLicenseServer\Core\URL;
+
 use function defined;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -29,7 +31,7 @@ interface OwnerSubjectInterface {
      * 
      * @return string
      */
-    public function get_name() : string;
+    public function get_display_name() : string;
 
     /**
      * Get type of the owner subject.
@@ -37,4 +39,18 @@ interface OwnerSubjectInterface {
      * @return string
      */
     public function get_type() : string;
+
+    /**
+     * Get allowed statuses.
+     * 
+     * @return array
+     */
+    public static function get_allowed_statuses() : array;
+
+    /**
+     * Get avatar
+     * 
+     * @return URL
+     */
+    public function get_avatar() : URL;
 }
