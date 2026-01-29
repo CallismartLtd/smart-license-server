@@ -20,7 +20,7 @@ use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE;
-use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower;
+use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower, gmdate;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -174,7 +174,7 @@ class ContextServiceProvider {
      */
     public static function search_owners( array $args = [] ) : array {
         $defaults = [
-            'status'        => Owner::STATUS_ACTIVE,
+            'status'        => '',
             'search_term'   => '',
             'page'          => 1,
             'limit'         => 20,
@@ -266,21 +266,20 @@ class ContextServiceProvider {
      * 
      * @param ActorInterface $actor The actor that can authenticate.
      * @param Role $role
-     * @param Organization|null $org The organization this actor belongs to.
+     * @param OwnerSubjectInterface|null $org The subject entity associated with resource owner.
      * @throws InvalidArgumentException When one required field is missing.
      */
-    public static function save_actor_role( ActorInterface $actor, Role $role, ?Organization $org ) : bool {
+    public static function save_actor_role( ActorInterface $actor, Role $role, ?OwnerSubjectInterface $subject ) : bool {
         $db             = smliser_dbclass();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
-        $is_org         = ( $org instanceof Organization );
-        $owner_type     = $is_org ? Owner::TYPE_ORGANIZATION : Owner::TYPE_INDIVIDUAL;
+        $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
         
         $data   = array(
-            'role_id'           => $role->get_id(),
-            'principal_id'      => $actor->get_id(),
-            'principal_type'    => $actor->get_type(),
-            'owner_type'        => $owner_type,
-            'owner_id'          => $is_org ? $org->get_id() : $actor->get_id(),
+            'role_id'               => $role->get_id(),
+            'principal_id'          => $actor->get_id(),
+            'principal_type'        => $actor->get_type(),
+            'owner_subject_type'    => $subject_type,
+            'owner_subject_id'      => $subject ? $subject->get_id() : $actor->get_id(),
         );
 
         $missing_keys = Collection::make( $data )
@@ -297,25 +296,29 @@ class ContextServiceProvider {
             );
         }
 
-        $existing_role  = self::get_principal_role( $actor, $org );
+        $existing_role  = self::get_principal_role( $actor, $subject );
 
-        if ( $existing_role && $role->get_id() !== $existing_role->get_id() ) {
-            // Only the role assigned to this owner changes.
-            // Existing owner and principal data remains immutable.
-            $where = [
-                'principal_id'   => $actor->get_id(),
-                'principal_type' => $actor->get_type(),
-                'owner_type'     => $owner_type,
-                'owner_id'       => $is_org ? $org->get_id() : $actor->get_id(),
-            ];
+        if ( $existing_role ) {
+            if ( $role->get_id() !== $existing_role->get_id() ) {
+                // Only the role assigned to this owner changes.
+                // Existing owner and principal data remains immutable.
+                $where = [
+                    'principal_id'          => $actor->get_id(),
+                    'principal_type'        => $actor->get_type(),
+                    'owner_subject_type'    => $subject_type,
+                    'owner_subject_id'      => $subject ? $subject->get_id() : $actor->get_id(),
+                ];
+                
+                $data   = ['role_id' => $role->get_id()];
+                $result = $db->update( $table, $data, $where );
+            } else{
+                $result = true;
+            }
 
-            $result = $db->update( $table, ['role_id' => $role->get_id()], $where );
-            
         } else {
             $data['created_at']   = gmdate( 'Y-m-d H:i:s' );
             
             $result = $db->insert( $table, $data );
-            
         }
 
         return false !== $result;
@@ -334,14 +337,14 @@ class ContextServiceProvider {
         $principal_type = $actor->get_type();
         $principal_id   = $actor->get_id();
         
-        $owner_type     = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
-        $owner_id       = $subject ? $subject->get_id() : $actor->get_id();
+        $subject_type = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
+        $sbj_owner_id       = $subject ? $subject->get_id() : $actor->get_id();
 
         $sql    = 
         "SELECT `role_id` FROM `{$table}` WHERE `principal_id` = ? AND `principal_type` = ? 
-        AND `owner_type` = ? AND `owner_id` = ?";
+        AND `owner_subject_type` = ? AND `owner_subject_id` = ?";
 
-        $role_id    = $db->get_var( $sql, [ $principal_id, $principal_type, $owner_type, $owner_id ] );
+        $role_id    = $db->get_var( $sql, [ $principal_id, $principal_type, $subject_type, $sbj_owner_id ] );
 
         $role       = null;
 
@@ -360,14 +363,10 @@ class ContextServiceProvider {
      */
     public static function get_owner_subject( Owner $owner ) : ?OwnerSubjectInterface {
 
-        $subject = null;
-
-        if ( Owner::TYPE_ORGANIZATION === $owner->get_type() ) {
-            $subject = Organization::get_by_id( $owner->get_id() );
-        } elseif ( Owner::TYPE_INDIVIDUAL === $owner->get_type() ) {
-            $subject = User::get_by_id( $owner->get_id() );
-        }
-
-        return $subject;
+        return match( $owner->get_type() ) {
+            Owner::TYPE_ORGANIZATION    => Organization::get_by_id( $owner->get_id() ),
+            Owner::TYPE_INDIVIDUAL      => User::get_by_id( $owner->get_id() ),
+            default                     => null
+        };
     }
 }
