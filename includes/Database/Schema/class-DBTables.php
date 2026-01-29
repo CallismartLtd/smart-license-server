@@ -353,8 +353,8 @@ final class DBTables {
                 'role_id BIGINT(20) NOT NULL',
                 'principal_type ENUM(\'individual\', \'service_account\', \'platform\') NOT NULL',
                 'principal_id BIGINT(20) UNSIGNED NOT NULL',
-                'owner_type ENUM(\'platform\', \'individual\', \'organization\') NOT NULL',
-                'owner_id BIGINT UNSIGNED NOT NULL',
+                'owner_subject_type ENUM(\'platform\', \'individual\', \'organization\') NOT NULL',
+                'owner_subject_id BIGINT UNSIGNED NOT NULL',
                 'created_by BIGINT UNSIGNED DEFAULT NULL',
                 'created_at DATETIME DEFAULT NULL'
             ),
@@ -364,14 +364,13 @@ final class DBTables {
              */
             SMLISER_ORGANIZATIONS_TABLE => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-                'name VARCHAR(255) NOT NULL',
+                'display_name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(255) NOT NULL',
                 'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
-                'role_id BIGINT(20) UNSIGNED NOT NULL',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'INDEX organization_name (display_name)',
                 'INDEX organization_slug (slug)',
-                'INDEX role_index (role_id)'
             ),
 
             /**
