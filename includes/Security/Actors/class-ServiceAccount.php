@@ -21,8 +21,8 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 use const SMLISER_SERVICE_ACCOUNTS_TABLE;
-use function is_string, boolval, smliser_dbclass, gmdate, defined, uniqid, bin2hex,
-random_bytes, password_hash, hash_hmac, smliser_safe_json_encode, smliser_avatar_url;
+use function is_string, boolval, smliser_dbclass, defined, uniqid, md5,
+smliser_safe_json_encode, smliser_avatar_url;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -409,7 +409,7 @@ class ServiceAccount implements ActorInterface {
         } elseif ( is_string( $dt ) ) {
             try { $this->last_used_at = new DateTimeImmutable( $dt ); } catch ( \Exception $e ) {}
         }
-        
+
         return $this;
     }
 
@@ -450,7 +450,10 @@ class ServiceAccount implements ActorInterface {
             $data['api_key_hash']   = $this->get_api_key_hash();
             $data['created_at']     = $now->format( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $data );
-            $this->set_id( $db->get_insert_id() );
+            $this->set_id( $db->get_insert_id() )
+            ->set_identifier( $data['identifier'] )
+            ->set_created_at( $now );
+            
 
             // Store new API key data for retrieval.
             $this->new_api_key_data = Collection::make( $this->to_array() )
@@ -572,7 +575,7 @@ class ServiceAccount implements ActorInterface {
      * @return URL
      */
     public function get_avatar() : URL {
-        return new URL( smliser_avatar_url( '', 'user' ) );
+        return new URL( smliser_avatar_url( md5( $this->get_identifier() ), $this->get_type() ) );
     }
 
     /**
