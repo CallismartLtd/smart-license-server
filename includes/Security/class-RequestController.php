@@ -21,11 +21,12 @@ use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
+use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 
 use const PASSWORD_ARGON2ID;
 
 use function defined, is_smliser_error, sprintf, smliser_safe_json_encode, password_hash,
-password_verify, in_array, is_string, method_exists, str_replace, ucwords, compact;
+password_verify, in_array, is_string, method_exists, str_replace, ucwords, compact, md5, class_implements;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 /**
@@ -179,7 +180,7 @@ class RequestController {
             $avatar = $request->get( 'avatar' );
 
             if ( ! empty( $avatar ) ) {
-                FileSystemHelper::upload_avatar( $avatar, 'user', \md5( $user->get_email() ) );
+                FileSystemHelper::upload_avatar( $avatar, 'user', md5( $user->get_email() ) );
             }
             return true;
         } catch ( InvalidArgumentException $e ) {
@@ -225,15 +226,15 @@ class RequestController {
                 throw new RequestException( 'invalid_service_account_status', 'The status provided is not allowed.', ['status' => 400] );
             }
 
-            $owner_id   = (int) $request->get( 'owner_id' );
+            $owner_id   = (int) $request->get( 'owner_id', 0 );
             $owner      = Owner::get_by_id( $owner_id );
-            $subject    = ContextServiceProvider::get_owner_subject( $owner );
-
-            $request->set( 'subject', $subject );
             
             if ( ! $owner || ! $owner->exists() ) {
                 throw new RequestException( 'owner_not_found', 'The resource owner for this service account was not found.', ['status' => 400] );
             }
+
+            $subject    = ContextServiceProvider::get_owner_subject( $owner );
+            $request->set( 'subject', $subject );
 
             if ( $request->isEmpty( 'role_slug' ) ) {
                 throw new RequestException( 'required_param', 'Please select a role for this service account', [ 'status' => 400 ] );
@@ -242,11 +243,17 @@ class RequestController {
             $description    = $request->get( 'description', '' );
             $sa_acc->set_display_name( $display_name )
             ->set_status( $status )
-            ->set_owner_id( $owner_id )
+            ->set_owner_id( $owner->get_id() )
             ->set_description( $description );
             
+            $account_exists = $sa_acc->exists();
+
             if ( ! $sa_acc->save() ) {
                 throw new RequestException( 'database_error', 'Unable to save service account', ['status' => 500] );
+            }
+
+            if ( ! $account_exists ) {
+                $request->set( 'new_api_keys', $sa_acc->get_new_api_key_data() );
             }
 
             self::save_role( $sa_acc, $request );
@@ -254,10 +261,9 @@ class RequestController {
             $avatar = $request->get( 'avatar' );
 
             if ( ! empty( $avatar ) ) {
-                FileSystemHelper::upload_avatar( $avatar, 'service_account', \md5( $sa_acc->get_identifier() ) );
+                FileSystemHelper::upload_avatar( $avatar, 'service_account', md5( $sa_acc->get_identifier() ) );
             }
-
-            $request->set( 'new_api_keys', $sa_acc->get_new_api_key_data() );
+            
             return true;
         } catch ( InvalidArgumentException $e ) {
 
@@ -290,22 +296,22 @@ class RequestController {
      */
     protected static function save_owner( Owner $owner, Request $request ): bool|RequestException {
 
-        $principal_id = $request->get( 'principal_id' );
+        $subject_id = $request->get( 'subject_id' );
 
-        if ( empty( $principal_id ) || ! is_int( $principal_id ) ) {
+        // Subject ID must exist.
+        if ( empty( $subject_id ) || ! is_int( $subject_id ) ) {
             return new RequestException(
                 'required_param',
-                'Please provide a valid principal_id.',
+                'Please provide a valid subject_id.',
                 [ 'status' => 400 ]
             );
         }
 
         $owner_type = $request->get( 'owner_type' );
+        $is_valid_owner_type = in_array( $owner_type, Owner::get_allowed_owner_types(), true );
 
-        if (
-            empty( $owner_type ) ||
-            ! in_array( $owner_type, Owner::get_allowed_owner_types(), true )
-        ) {
+        // Owner type must be valid.
+        if ( empty( $owner_type ) || ! is_string( $owner_type ) || ! $is_valid_owner_type ) {
             return new RequestException(
                 'required_param',
                 'Please provide a valid resource owner type.',
@@ -313,11 +319,12 @@ class RequestController {
             );
         }
 
-        $res_owner_class = ContextServiceProvider::get_entity_classname( $owner_type );
-        /** @var User|Organization|null $principal */
-        $principal = $res_owner_class::get_by_id( $principal_id );
+        $subject_class = ContextServiceProvider::get_entity_classname( $owner_type );
+        /** @var OwnerSubjectInterface|null $principal */
+        $subject =  $subject_class ? $subject_class::get_by_id( $subject_id ) : null;
 
-        if ( ! $principal instanceof User && ! $principal instanceof Organization ) {
+        // Owner subject entity must be valid and exists.
+        if ( ! $subject || ! in_array( OwnerSubjectInterface::class, (array) class_implements( $subject ), true ) ) {
             return new RequestException( 'resource_owner_not_found' );
         }
 
@@ -345,7 +352,7 @@ class RequestController {
 
             // Owner
             $owner->set_name( $owner_name )
-                ->set_subject_id( $principal_id )
+                ->set_subject_id( $subject_id )
                 ->set_status( $status )
                 ->set_type( $owner_type );
 
@@ -394,6 +401,8 @@ class RequestController {
         $role_slug  = $request->get( 'role_slug' );
         $role_label = $request->get( 'role_label' );
         $role       = Role::get_by_slug( $role_slug );
+
+        /** @var OwnerSubjectInterface|null $subject */
         $subject    = $request->get( 'subject', null );
 
         if ( ! $role ) {
@@ -408,7 +417,7 @@ class RequestController {
         if ( ! $role->save() ) {
             throw new RequestException(
                 'role_save_error',
-                'Owner has been saved but unable to save role.',
+                'Unable to save role to the database.',
                 [ 'status' => 500 ]
             );
         }
@@ -480,7 +489,7 @@ class RequestController {
                 throw new RequestException( 'required_param', 'Missing parameter "search".' );
             }
 
-            $status = (string) $request->get( 'status', 'active' );
+            $status = (string) $request->get( 'status', '' );
 
             $args   = compact( 'term', 'status' );
 
