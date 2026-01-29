@@ -1,6 +1,6 @@
 <?php
 /**
- * Access control dashboard template.
+ * Access control form page template.
  *
  * @author Callistus Nwachukwu
  * @see \SmartLicenseServer\Admin\AccessControlPage
