@@ -310,7 +310,7 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
 
     const defaults = {
         placeholder: 'Search users or organizations',
-        entityType: 'resource_owners', // Only `resource_owners` and `users_organizations` supported.
+        entityType: 'resource_owners', // Only `resource_owners` and `owner_subjects` supported.
     };
 
     options = { ...defaults, ...options };
@@ -418,18 +418,18 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
     /** @type {HTMLFormElement} */
     const accessControlForm     = document.querySelector( '.smliser-access-control-form' );
-    const principalSearch       = document.querySelector( '#principal_id' );
+    const ownerSubjectSearch    = document.querySelector( '#subject_id' );
     const ownersSearch          = document.querySelector( '#owner_id' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
     
-    if ( principalSearch ) {
+    if ( ownerSubjectSearch ) {
         const options = {
-            entityType: 'users_organizations',
+            entityType: 'owner_subjects',
             placeholder: 'Search for users or organizations...'
         };
 
-        smliserSearchSecurityEntities( principalSearch, options );
+        smliserSearchSecurityEntities( ownerSubjectSearch, options );
     }
 
     if ( ownersSearch ) {
@@ -1269,7 +1269,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     });
             },
 
-            'toggleMonetization': ( monetizationId, enabled ) => {
+            toggleMonetization: ( monetizationId, enabled ) => {
                 const payLoad = new FormData();
                 payLoad.set( 'action', 'smliser_toggle_monetization' );
                 payLoad.set( 'security', smliser_var.nonce );
