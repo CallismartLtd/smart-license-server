@@ -8,14 +8,17 @@
 
 namespace SmartLicenseServer\Security\OwnerSubjects;
 
+use DateMalformedStringException;
 use \DateTimeImmutable;
+use DateTimeZone;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
 
 use const SMLISER_ORGANIZATIONS_TABLE;
-use function defined, is_string, smliser_dbclass, gmdate, boolval;
+use function defined, is_string, smliser_dbclass, gmdate, boolval, smliser_avatar_url, md5;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -59,9 +62,9 @@ class Organization implements OwnerSubjectInterface {
     /**
      * The org name.
      * 
-     * @var string $name
+     * @var string $display_name
      */
-    protected string $name = '';
+    protected string $display_name = '';
 
     /**
      * The org slug
@@ -78,13 +81,6 @@ class Organization implements OwnerSubjectInterface {
     protected string $status = self::STATUS_ACTIVE;
 
     /**
-     * Role ID.
-     * 
-     * @var int $role_id
-     */
-    protected int $role_id = 0;
-
-    /**
      * Date the org was created.
      *
      * @var DateTimeImmutable|null
@@ -97,12 +93,6 @@ class Organization implements OwnerSubjectInterface {
      * @var DateTimeImmutable|null
      */
     protected ?DateTimeImmutable $updated_at = null;
-
-    /**
-     * Organization members
-     * 
-     * @var
-     */
 
     /**
      * Holds the value of `exists` check
@@ -144,12 +134,12 @@ class Organization implements OwnerSubjectInterface {
     }
 
     /**
-     * Get the organization name
+     * Get the organization name.
      * 
      * @return string
      */
-    public function get_name() : string {
-        return $this->name;
+    public function get_display_name() : string {
+        return $this->display_name;
     }
     
     /**
@@ -159,15 +149,6 @@ class Organization implements OwnerSubjectInterface {
      */
     public function get_slug() : string {
         return $this->slug;
-    }
-
-    /**
-     * Get role id
-     * 
-     * @return int
-     */
-    public function get_role_id() : int {
-        return $this->role_id;
     }
 
     /**
@@ -208,11 +189,11 @@ class Organization implements OwnerSubjectInterface {
     /**
      * Set name.
      *
-     * @param string $name
+     * @param string $display_name
      * @return static
      */
-    public function set_name( $name ) : static {
-        $this->name = self::sanitize_text( $name );
+    public function set_display_name( $display_name ) : static {
+        $this->display_name = self::sanitize_text( $display_name );
         return $this;
     }
 
@@ -239,17 +220,6 @@ class Organization implements OwnerSubjectInterface {
     }
 
     /**
-     * Set role_id.
-     *
-     * @param int $role_id
-     * @return static
-     */
-    public function set_role_id( $role_id ) : static {
-        $this->role_id = self::sanitize_int( $role_id );
-        return $this;
-    }
-
-    /**
      * Set the creation timestamp.
      *
      * @param string|DateTimeImmutable $date Creation date.
@@ -267,7 +237,7 @@ class Organization implements OwnerSubjectInterface {
         
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch( \DateMalformedStringException $e ) {
+        } catch( DateMalformedStringException $e ) {
             return $this;
         }
 
@@ -293,7 +263,7 @@ class Organization implements OwnerSubjectInterface {
         
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch( \DateMalformedStringException $e ) {
+        } catch( DateMalformedStringException $e ) {
             return $this;
         }
 
@@ -335,26 +305,64 @@ class Organization implements OwnerSubjectInterface {
             return new Exception( 'org_slug_exists', 'This slug has already been taken', ['status' => 409] );
         }
         $db     = smliser_dbclass();
+        $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
         
 
         $fields = array(
-            'name'          => $this->get_name(),
+            'display_name'  => $this->get_display_name(),
             'slug'          => $this->get_slug(),
             'status'        => $this->get_status(),
-            'role_id'       => $this->get_role_id(),
-            'updated_at'    => gmdate( 'Y-m-d H:i:s' )
+            'updated_at'    => $now->format( 'Y-m-d H:i:s' )
 
         );
 
         if ( $this->get_id() ) {
             $result = $db->update( $table, $fields, [ 'id' => $this->get_id() ] );
+            $this->set_updated_at( $now );
         } else {
-            $fields['created_at']   = gmdate( 'Y-m-d H:i:s' );
+            $fields['created_at']   = $now->format( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $fields );
             $this->set_id( $db->get_insert_id() );
+            $this->set_created_at( $now );
         }
 
         return $result !== false;
+    }
+
+    /**
+     * Get all organizations
+     * 
+     * @param int $page The current pagination number.
+     * @param int $limit The maximum number of users to return.
+     * 
+     * @return self[]
+     */
+    public static function get_all(int $page, int $limit ) : array {
+        return self::get_all_self( SMLISER_ORGANIZATIONS_TABLE, $page, $limit );
+    }
+
+    /**
+     * Count total records of users by status
+     * 
+     * @param string $status
+     * @return int
+     */
+    public static function count_status( $status ) : int {
+        $status             = self::sanitize_text( $status );
+        static $statuses    = [];
+
+        if ( ! array_key_exists( $status, $statuses ) ) {
+            $db     = smliser_dbclass();
+            $table  = SMLISER_ORGANIZATIONS_TABLE;
+
+            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
+
+            $total  = $db->get_var( $sql, [$status] );
+
+            $statuses[$status]  = (int) $total;
+        }
+
+        return $statuses[$status];
     }
 
     /*
@@ -413,6 +421,22 @@ class Organization implements OwnerSubjectInterface {
      */
     public function get_type() : string {
         return Owner::TYPE_ORGANIZATION;
+    }
+
+    /**
+     * Get allowed statuses
+     *
+     * @return array
+     */
+    public static function get_allowed_statuses() : array {
+        return [ self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_DISABLED ];
+    }
+
+    /**
+     * Get the organization avatar
+     */
+    public function get_avatar() : URL {
+        return new URL( smliser_avatar_url( md5( $this->get_slug() ), $this->get_type() ) );
     }
 
 }
