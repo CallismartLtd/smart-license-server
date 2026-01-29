@@ -365,7 +365,11 @@ class Config {
         wp_register_script( 'smliser-admin-repository', SMLISER_URL . 'assets/js/admin-repository.js', array( 'jquery' ), SMLISER_VER, true );
         wp_register_script( 'smliser-role-builder', SMLISER_URL . 'assets/js/role-builder.js', array(), SMLISER_VER, true );
         wp_register_script( 'smliser-chart', SMLISER_URL . 'assets/js/Chartjs/chart.min.js', array(), SMLISER_VER, true );
+        wp_register_script( 'smliser-app-modal', SMLISER_URL . 'assets/js/app-modal.js', array(), SMLISER_VER, true );
         
+        if ( is_admin() ) {
+            wp_enqueue_script( 'smliser-app-modal' );
+        }
         if ( is_admin() && 'toplevel_page_smliser-admin' === $s ) {
             wp_enqueue_script( 'smliser-chart' );
         }
@@ -413,8 +417,11 @@ class Config {
         wp_register_style( 'smliser-nanojson', SMLISER_URL . 'assets/css/nanojson.min.css', array(), SMLISER_VER, 'all' );
         wp_register_style( 'smliser-tabler-icons', SMLISER_URL . 'assets/icons/tabler-icons.min.css', array(), SMLISER_VER, 'all' );
         wp_register_style( 'smliser-role-builder', SMLISER_URL . 'assets/css/role-builder.css', array(), SMLISER_VER, 'all' );
+        wp_register_style( 'smliser-app-modal', SMLISER_URL . 'assets/css/app-modal.css', array(), SMLISER_VER, 'all' );
     
-        
+        if ( is_admin() ) {
+            wp_enqueue_style( 'smliser-app-modal' );
+        }
         if ( 'smart-license-server_page_smliser-bulk-message' === $s 
             || 'smart-license-server_page_licenses' === $s
             || 'smart-license-server_page_smliser-access-control' === $s 

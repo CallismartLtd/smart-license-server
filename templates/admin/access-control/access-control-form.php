@@ -12,7 +12,13 @@
  * @var array $role
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ABSPATH' ) || exit;
+
+$current_tab        = smliser_get_query_param( 'tab', '' );
+$current_section    = smliser_get_query_param( 'section', '' );
+$render_roles       = in_array( $current_tab, ['rest-api', 'users', ])
+
+?>
 
 <div class="smliser-admin-repository-template">
     <?php self::print_header(); ?>
