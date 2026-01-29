@@ -1625,7 +1625,8 @@ function smliser_pluralize( string $string ) : string {
     $uncountable = [
         'information', 'equipment', 'rice', 'money', 'species', 'series',
         'fish', 'sheep', 'deer', 'moose', 'aircraft', 'software', 'hardware',
-        'data', 'news', 'advice', 'furniture', 'luggage', 'evidence', 'users'
+        'data', 'news', 'advice', 'furniture', 'luggage', 'evidence', 'users',
+        'houses'
     ];
 
     if ( in_array( $lower, $uncountable, true ) ) {
