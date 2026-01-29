@@ -183,7 +183,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * @return string Display name.
      */
     public function get_name() : string {
-        return $this->display_name;
+        return $this->get_display_name();
     }
 
     /**
