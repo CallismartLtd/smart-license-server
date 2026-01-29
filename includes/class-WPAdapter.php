@@ -865,6 +865,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'owner_type'    => smliser_get_request_param( 'owner_type' ),
             'role_label'    => smliser_get_request_param( 'role_label' ),
             'role_slug'     => smliser_get_request_param( 'role_slug' ),
+            'org_slug'      => smliser_get_request_param( 'org_slug' ),
             'role_id'       => smliser_get_request_param( 'role_id' ),
             'capabilities'  => smliser_get_request_param( 'capabilities', [] ),
             'entity'        => $entity,
@@ -898,12 +899,12 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
 
         $request    = new Request([
             'search_term'   => smliser_get_request_param( 'search' ),
-            'status'        => smliser_get_request_param( 'status', 'active' ),
+            'status'        => smliser_get_request_param( 'status', '' ),
             'types'         => smliser_get_request_param( 'types', [] ),
             'is_authorized' => \is_super_admin()
         ]);
 
-        if ( 'users_organizations' === $entity ) {
+        if ( 'owner_subjects' === $entity ) {
             $response   = RequestController::search_users_orgs( $request );
         } else {
             $response   = RequestController::search_resource_owners( $request );
