@@ -329,7 +329,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * Get by id
      * 
      * @param int $id
-     * @return static
+     * @return static|null
      */
     public static function get_by_id( int $id ) : ?static {
         static $users = [];

@@ -8,19 +8,25 @@
 
 namespace SmartLicenseServer\Security\Context;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Collection;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Actors\ActorInterface;
+use SmartLicenseServer\Security\Actors\OrganizationMember;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
+use SmartLicenseServer\Security\OwnerSubjects\OrganizationMembers;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 
-use const SMLISER_ROLE_ASSIGNMENT_TABLE;
-use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower, gmdate;
+use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE;
+use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower, gmdate,
+sprintf;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -246,7 +252,7 @@ class ContextServiceProvider {
 
         $class_name = match( strtolower( $entity ) ) {
             Owner::TYPE_INDIVIDUAL, 'user'  => 'Actors\\User',
-            Owner::TYPE_ORGANIZATION        => 'Organization',
+            Owner::TYPE_ORGANIZATION        => 'OwnerSubjects\\Organization',
             'serviceaccount'                => 'Actors\\ServiceAccount',
             'owner'                         => 'Owner',
             default                         => ''
@@ -369,4 +375,93 @@ class ContextServiceProvider {
             default                     => null
         };
     }
+
+    /**
+     * Save a single member of an organization with their role.
+     * 
+     * @param User $member
+     * @param Organization $organization
+     * @param Role $role
+     * @throws Exception|InvalidArgumentException
+     */
+    public static function save_organization_member( User $member, Organization $organization, Role $role ) {
+
+        if ( ! $organization->is_member( $member ) ) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    '%s does not belong to this organization "%s"',
+                    $member->get_display_name(),
+                    $organization->get_display_name()
+                )
+            );
+        }
+
+        if ( ! $role->exists() ) {
+            throw new InvalidArgumentException( 'The role assigned to this member does not exist.' );
+        }
+
+        $db     = smliser_dbclass();
+        $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+        $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+
+        $id     = $db->get_var(
+            "SELECT `id` FROM {$table} WHERE `organization_id` = ? AND `member_id` = ?",
+            [$organization->get_id(), $member->get_id()]
+        );
+
+        if ( $id ) {
+            $data   = ['updated_at' => $now->format( 'Y-m-d H:i:s' ) ];
+           $result  = $db->update( $table, $data, ['id' => $id] ); 
+        } else {
+            $data   = [
+                'organization_id'   => $organization->get_id(),
+                'member_id'         => $member->get_id(),
+                'created_at'        => $now->format( 'Y-m-d H:i:s' ),
+                'updated_at'        => $now->format( 'Y-m-d H:i:s' )
+            ];
+
+            $db->insert( $table, $data );
+
+            if ( ! $db->get_insert_id() ) {
+                throw new Exception( 'saving_error', 'Unable to save member' );
+            }
+        }
+        
+        static::save_actor_role( $member, $role, $organization );
+    }
+
+    /**
+     * Get organization members with their roles
+     *
+     * @param Organization $organization
+     * @return OrganizationMembers
+     */
+    public static function get_organization_members( Organization $organization ): OrganizationMembers {
+        $table   = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+        $db      = smliser_dbclass();
+
+        $sql      = "SELECT * FROM `{$table}` WHERE `organization_id` = ?";
+        $results  = $db->get_results( $sql, [$organization->get_id() ]);
+        $members  = new OrganizationMembers();
+
+        foreach ( $results as $result ) {
+            $member_id = (int) $result['member_id'] ?? 0;
+            $user      = User::get_by_id( $member_id );
+
+            if ( ! $user ) {
+                continue;
+            }
+
+            $role           = static::get_principal_role( $user, $organization );
+            $result['role'] = $role;
+
+            $collection     = new Collection( $result );
+            $member         = new OrganizationMember( $user, $collection );
+
+            $members->add( $member );
+        }
+
+        return $members;
+    }
+
 }

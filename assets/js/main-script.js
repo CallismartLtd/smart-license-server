@@ -1633,6 +1633,34 @@ document.addEventListener( 'DOMContentLoaded', function() {
              */
             const fileInput = avatarUpload.querySelector( 'input[type="file"]' );
 
+            avatarUpload.addEventListener( 'dragover', e => {
+                e.preventDefault();
+                if ( e.dataTransfer.types.includes( 'Files' ) ) {
+                    e.dataTransfer.dropEffect = 'copy';
+                } else {
+                    e.dataTransfer.dropEffect = 'none';
+                }
+                avatarUpload.style.border = "dashed 3px #dcdcde";
+            });
+
+            avatarUpload.addEventListener( 'dragleave', e => {
+                e.preventDefault();
+                avatarUpload.style.removeProperty( 'border' );
+            });
+
+            avatarUpload.addEventListener( 'drop', e => {
+                e.preventDefault();
+                avatarUpload.style.removeProperty( 'border' );
+                if ( e.dataTransfer.types.includes( 'Files' ) ) {
+                    const files = e.dataTransfer.files;
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add( files[0] );
+                    fileInput.files = dataTransfer.files;
+                    fileInput.dispatchEvent( new Event( 'change' ) );
+                }
+
+            });
+
             /**
              * @type {HTMLImageElement}
              */

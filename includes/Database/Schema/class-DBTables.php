@@ -379,9 +379,11 @@ final class DBTables {
             SMLISER_ORGANIZATION_MEMBERS_TABLE      => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
                 'organization_id BIGINT(20) UNSIGNED NOT NULL',
-                'role_id BIGINT(20) UNSIGNED NOT NULL',
                 'member_id BIGINT(20) UNSIGNED NOT NULL',
-                'member_type ENUM(\'user\', \'service_account\') NOT NULL DEFAULT \'user\''
+                'created_at DATETIME DEFAULT NULL',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'INDEX organization_member_id (member_id)',
+                'INDEX organization_id (organization_id)',
             )
         );
     }

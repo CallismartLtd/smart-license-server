@@ -15,6 +15,8 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Owner;
 
 use const SMLISER_ORGANIZATIONS_TABLE;
@@ -102,6 +104,13 @@ class Organization implements OwnerSubjectInterface {
     protected ?bool $exists_cache = null;
 
     /**
+     * Lazy loaded members collection.
+     * 
+     * @var OrganizationMembers|null
+     */
+    protected ?OrganizationMembers $members = null;
+
+    /**
      * Class constructor.
      *
      * Intentionally lightweight. Hydration is expected
@@ -169,6 +178,19 @@ class Organization implements OwnerSubjectInterface {
         return $this->updated_at;
     }
 
+    /**
+     * Get the members collection.
+     * 
+     * @return OrganizationMembers
+     */
+    public function get_members() : OrganizationMembers {
+        if ( is_null( $this->members ) ) {
+            $this->members = ContextServiceProvider::get_organization_members( $this );
+        }
+
+        return $this->members;
+    }
+
     /*
     |---------
     | SETTERS
@@ -204,7 +226,14 @@ class Organization implements OwnerSubjectInterface {
      * @return static
      */
     public function set_slug( $slug ) : static {
-        $this->slug = self::sanitize_text( $slug );
+        $slug = self::sanitize_text( $slug );
+
+        if ( $this->exists() ) {
+            $this->slug = $slug; // We won't change slug if org already exists.
+        } else {
+            $this->slug = strtolower( str_replace( [' ', '-'], ['_', '_'], $slug ) );
+        }
+
         return $this;
     }
 
@@ -295,22 +324,23 @@ class Organization implements OwnerSubjectInterface {
     /**
      * Save organization.
      * 
-     * @return bool|Exception True on success, false when saving fails and exception object on duplicate slug entry.
+     * @return bool True on success, false when saving fails.
+     * @throws Exception On duplicate slug entry.
      */
     public function save() : bool|Exception {
         $table          = SMLISER_ORGANIZATIONS_TABLE;
         $exists_by_slug = self::get_self_by( 'slug', $this->get_slug(), $table );
 
         if ( $exists_by_slug && ! $this->exists() ) {
-            return new Exception( 'org_slug_exists', 'This slug has already been taken', ['status' => 409] );
+            throw new Exception( 'org_slug_exists', 'The provided slug is not available.', ['status' => 409] );
         }
+
         $db     = smliser_dbclass();
         $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
         
 
         $fields = array(
             'display_name'  => $this->get_display_name(),
-            'slug'          => $this->get_slug(),
             'status'        => $this->get_status(),
             'updated_at'    => $now->format( 'Y-m-d H:i:s' )
 
@@ -320,6 +350,7 @@ class Organization implements OwnerSubjectInterface {
             $result = $db->update( $table, $fields, [ 'id' => $this->get_id() ] );
             $this->set_updated_at( $now );
         } else {
+            $fields['slug']         = $this->get_slug();
             $fields['created_at']   = $now->format( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $fields );
             $this->set_id( $db->get_insert_id() );
@@ -437,6 +468,16 @@ class Organization implements OwnerSubjectInterface {
      */
     public function get_avatar() : URL {
         return new URL( smliser_avatar_url( md5( $this->get_slug() ), $this->get_type() ) );
+    }
+
+    /**
+     * Tells whether the given user is a member of this organization.
+     * 
+     * @param User|string|int $user
+     * @return bool True when the user is a member, false otherwise.
+     */
+    public function is_member( User|string|int $user ) : bool {
+        return $this->get_members()->has( $user );
     }
 
 }

@@ -10,13 +10,17 @@
  * @var \SmartLicenseServer\Core\URL $avatar_url
  * @var string $avatar_name
  * @var array $role
+ * @var SmartLicenseServer\Security\OwnerSubjects\Organization $organization
  */
 
+use SmartLicenseServer\Security\Context\ContextServiceProvider;
+use SmartLicenseServer\Security\OwnerSubjects\Organization;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 $current_tab        = smliser_get_query_param( 'tab', '' );
 $current_section    = smliser_get_query_param( 'section', '' );
-$render_roles       = in_array( $current_tab, ['rest-api', 'users', ])
+$render_roles       = in_array( $current_tab, ['rest-api', 'users', ]);
+$render_avatar      = ! in_array( $current_tab, ['owners', ] );
 
 ?>
 
@@ -32,7 +36,7 @@ $render_roles       = in_array( $current_tab, ['rest-api', 'users', ])
             </div>
 
             <input type="hidden" name="action" value="smliser_access_control_save">
-            <?php if ( 'owners' !== smliser_get_query_param( 'tab' ) ) : ?>
+            <?php if ( $render_avatar ) : ?>
                 <div class="smliser-two-rows_right">
                     <div class="smliser-avatar-upload">
                         <div class="smliser-avatar-upload_image-holder">
@@ -55,8 +59,46 @@ $render_roles       = in_array( $current_tab, ['rest-api', 'users', ])
         </div>
 
        <div class="smliser-spinner"></div>
+
+       <?php if ( 'organizations' === $current_tab && 'edit' === $current_section ) : ?>
+            <ul class="smliser-organization-members-list">
+                <?php foreach ( $organization->get_members() as $member ) : ?>
+                    <li class="smliser-org-member">
+                        <div class="smliser-org-member_header">
+                            <img src="<?php echo esc_url( $member->get_avatar() ); ?>" alt="Member avatar" width="38" height="38">
+                            <strong class="smliser-org-member_name"><?php echo esc_html( $member->get_name() ); ?></strong>
+                        </div>
+
+                        <?php 
+                            $role = ContextServiceProvider::get_principal_role( $member, $organization );
+                        
+                        ?>
+                        <dl class="smliser-org-member_meta">
+                            <dt>Role:</dt>
+                            <dd><?php echo esc_html( $role ? $role->get_label(): 'Unknown'  ); ?></dd>
+                            <dt>Member Since:</dt>
+                            <dd>22 January 2026</dd>
+                        </dl>
+
+                        <div class="smliser-org-member_actions">
+                            <button type="button" class="button">Edit</button>
+                            <button type="button" class="button">Delete</button>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+
+                <li>
+                    <button type="button" class="smliser-add-member-to-org-btn">
+                        <i class="ti ti-user-plus" aria-hidden="true"></i>
+                        <span>Add member</span>
+                    </button>                
+                </li>
+
+            </ul>
+
+        <?php endif; ?>
         
-        <?php if ( 'owners' !== smliser_get_query_param( 'tab' ) ) : ?>
+        <?php if ( $render_roles ) : ?>
             <h2 class="smliser-access-control-role-deading"><?php echo esc_html( $roles_title ); ?></h2>
             <!-- Mounted dynamically - @see role-builder.js -->
             <div id="smliser-role-builder" data-roles="<?php echo esc_attr( smliser_json_encode_attr( isset( $role ) ? $role : [] ) ); ?>"></div>

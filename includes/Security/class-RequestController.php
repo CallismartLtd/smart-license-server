@@ -288,6 +288,70 @@ class RequestController {
     }
 
     /**
+     * Save organization object.
+     * 
+     * @param Organization $organization The organization object.
+     * @param Request $request The request object.
+     * @return bool|RequestException
+     */
+    protected static function save_organization( Organization $organization, Request $request ) : bool|RequestException{
+        try {
+            $display_name   = $request->get( 'display_name' );
+
+            if ( empty( $display_name ) || ! is_string( $display_name )) {
+                throw new RequestException( 'required_param', 'Please provide a valid organization name.', ['status' => 400] );
+            }
+
+            $status = $request->get( 'status' );
+
+            if ( ! in_array( $status, Organization::get_allowed_statuses(), true ) ) {
+                throw new RequestException( 'invalid_organization_status', 'The status provided is not allowed.', ['status' => 400] );
+            }
+
+            if ( ! $organization->exists() ) {
+                if ( $request->isEmpty( 'slug' ) ) {
+                    $request->set( 'slug', strtolower( str_replace( [' ', '-'], ['_', '_'], $display_name ) ) );
+                }
+
+                $organization->set_slug( $request->get( 'slug' ) );
+            }
+
+            $organization->set_display_name( $display_name )
+            ->set_status( $status );
+            
+            if ( ! $organization->save() ) {
+                throw new RequestException( 'database_error', 'Unable to save organization', ['status' => 500] );
+            }
+
+            $avatar = $request->get( 'avatar' );
+
+            if ( ! empty( $avatar ) ) {
+                FileSystemHelper::upload_avatar( $avatar, 'organization', md5( $organization->get_slug() ) );
+            }
+            return true;
+        } catch ( InvalidArgumentException $e ) {
+
+            return new RequestException(
+                'invalid_argument',
+                $e->getMessage(),
+                [ 'status' => 400 ]
+            );
+
+        } catch ( RequestException $e ) {
+
+            return $e;
+
+        } catch ( Exception $e ) {
+
+            return new RequestException(
+                $e->get_error_code(),
+                $e->get_error_message(),
+                [ 'status' => 500 ]
+            );
+        }
+    }
+
+    /**
      * Save the owner object.
      *
      * @param Owner   $owner   The Owner object.
