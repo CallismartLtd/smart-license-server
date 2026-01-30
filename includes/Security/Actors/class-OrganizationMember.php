@@ -88,7 +88,7 @@ class OrganizationMember implements ActorInterface {
     ----------------------------- */
 
     public function set_id( $id ): static {
-        $this->id = $id;
+        $this->id = intval( $id );
         return $this;
     }
 
@@ -206,9 +206,13 @@ class OrganizationMember implements ActorInterface {
      * @throws BadMethodCallException
      */
     public function to_array(): array {
-        throw new BadMethodCallException(
-            sprintf( 'Method %s::%s is marked private.', get_class( $this ), __METHOD__ )
-        );
+        return [
+            'id'         => $this->id,
+            'role'       => $this->role?->get_label(),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+            'user'       => $this->user->to_array(),
+        ];
     }
 
     /* -----------------------------
@@ -222,5 +226,14 @@ class OrganizationMember implements ActorInterface {
      */
     public function get_user(): User {
         return $this->user;
+    }
+
+    /**
+     * Check whether this member exists.
+     * 
+     * @return bool True when the member has an ID, false otherwise.
+     */
+    public function exists(): bool {
+        return $this->id > 0;
     }
 }

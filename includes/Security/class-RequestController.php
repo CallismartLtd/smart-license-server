@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Security;
 
 use InvalidArgumentException;
+use Mpdf\Tag\S;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
@@ -16,6 +17,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Security\Actors\ActorInterface;
+use SmartLicenseServer\Security\Actors\OrganizationMember;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Actors\User;
@@ -352,6 +354,78 @@ class RequestController {
     }
 
     /**
+     * Save organization member
+     * 
+     * @param Request $request
+     */
+    public static function save_organization_member( Request $request ) : Response {
+        try {
+            $role_slug  = (string )$request->get( 'role_slug' );
+            $role       = Role::get_by_slug( $role_slug );
+
+            if ( ! $role ) {
+                throw new RequestException( 'bad_request', 'Member must have a valid role.', ['status' => 400] );
+            }
+
+            $org_id         = (int) $request->get( 'organization_id' );
+            $organization   = Organization::get_by_id( $org_id );
+
+            if ( ! $organization ) {
+                throw new RequestException( 'bad_request', 'The member must belong to an existing organization.', ['status' => 400] );
+            }
+
+            $user_id    = $request->get( 'user_id' );
+            $user       = User::get_by_id( $user_id );
+
+            if ( ! $user ) {
+                throw new RequestException( 'bad_request', 'The member must be an existing user.', ['status' => 400] );
+            }
+           
+            $member_id  = $request->get( 'member_id' );
+
+            $member     = $organization->get_members()->get( $member_id );
+
+            if ( ! $member ) {
+                $collection = Collection::make( ['role' => $role ] );
+                $member = new OrganizationMember( $user, $collection );
+            }
+
+            ContextServiceProvider::save_organization_member( $member, $organization, $role );
+
+            $data = array(
+                'success'   => true,
+                'data'      => array(
+                    'message'   => 'Member saved successfully.',
+                    'member'    => $member->to_array()
+                )
+            );
+            return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( InvalidArgumentException $e ) {
+            throw new RequestException(
+                'invalid_argument',
+                $e->getMessage(),
+                [ 'status' => 400 ]
+            );
+
+        } catch ( Exception $e ) {
+
+            throw new RequestException(
+                $e->get_error_code(),
+                $e->get_error_message(),
+                [ 'status' => 500 ]
+            );
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        }
+
+    }
+
+    /**
      * Save the owner object.
      *
      * @param Owner   $owner   The Owner object.
@@ -460,7 +534,6 @@ class RequestController {
      * @throws Exception
      */
     protected static function save_role( ActorInterface $actor, Request $request ) {
-        // Role.
         $caps       = (array) $request->get( 'capabilities', [] );
         $role_slug  = $request->get( 'role_slug' );
         $role_label = $request->get( 'role_label' );

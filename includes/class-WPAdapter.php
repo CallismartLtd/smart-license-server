@@ -899,7 +899,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
 
         $request    = new Request([
             'search_term'   => smliser_get_request_param( 'search' ),
-            'status'        => smliser_get_request_param( 'status', '' ),
+            'status'        => smliser_get_request_param( 'status', 'active' ),
             'types'         => smliser_get_request_param( 'types', [] ),
             'is_authorized' => \is_super_admin()
         ]);
@@ -912,6 +912,10 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
 
         $response->send();
     }
+
+    /**
+     * 
+     */
     
     /**
     |------------------------

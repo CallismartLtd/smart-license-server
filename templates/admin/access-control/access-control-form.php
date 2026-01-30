@@ -66,7 +66,7 @@ $render_avatar      = ! in_array( $current_tab, ['owners', ] );
                     <li class="smliser-org-member">
                         <div class="smliser-org-member_header">
                             <img src="<?php echo esc_url( $member->get_avatar() ); ?>" alt="Member avatar" width="38" height="38">
-                            <strong class="smliser-org-member_name"><?php echo esc_html( $member->get_name() ); ?></strong>
+                            <strong class="smliser-org-member_name"><?php echo esc_html( $member->get_display_name() ); ?></strong>
                         </div>
 
                         <?php 
@@ -77,7 +77,7 @@ $render_avatar      = ! in_array( $current_tab, ['owners', ] );
                             <dt>Role:</dt>
                             <dd><?php echo esc_html( $role ? $role->get_label(): 'Unknown'  ); ?></dd>
                             <dt>Member Since:</dt>
-                            <dd>22 January 2026</dd>
+                            <dd><?php echo esc_html( $member->get_created_at()->format( smliser_datetime_format() ) ); ?></dd>
                         </dl>
 
                         <div class="smliser-org-member_actions">
@@ -96,6 +96,24 @@ $render_avatar      = ! in_array( $current_tab, ['owners', ] );
 
             </ul>
 
+            <div class="smliser-organization-member-form">
+                <label for="dispay_name" class="smliser-form-label-row">
+                    <span>Organization Name</span>
+                    <input type="text" name="dispay_name" id="displa_name" value="Callismart Tech" autocomplete="off" spellcheck="off" required="1" placeholder="Enter full name" style="width: unset">
+                </label>
+                <label for="dispay_name" class="smliser-form-label-row">
+                    <span>Organization Name</span>
+                    <input type="text" name="dispay_name" id="displa_name" value="Callismart Tech" autocomplete="off" spellcheck="off" required="1" placeholder="Enter full name" style="width: unset">
+                </label>
+                <label for="dispay_name" class="smliser-form-label-row">
+                    <span>Organization Name</span>
+                    <input type="text" name="dispay_name" id="displa_name" value="Callismart Tech" autocomplete="off" spellcheck="off" required="1" placeholder="Enter full name" style="width: unset">
+                </label>
+                <label for="dispay_name" class="smliser-form-label-row">
+                    <span>Organization Name</span>
+                    <input type="text" name="dispay_name" id="displa_name" value="Callismart Tech" autocomplete="off" spellcheck="off" required="1" placeholder="Enter full name" style="width: unset">
+                </label>
+            </div>
         <?php endif; ?>
         
         <?php if ( $render_roles ) : ?>

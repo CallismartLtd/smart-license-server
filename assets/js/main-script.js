@@ -1562,6 +1562,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     }
 
     if ( accessControlForm ) {
+        const orgMembersContainer   = document.querySelector( '.smliser-organization-members-list' );
 
         accessControlForm.addEventListener( 'submit', async e => {
             e.preventDefault();
@@ -1624,6 +1625,21 @@ document.addEventListener( 'DOMContentLoaded', function() {
             }
 
         });
+
+        orgMembersContainer && orgMembersContainer.addEventListener( 'click', async e => {
+            e.preventDefault();
+            const addnewMemberBtn   = e.target.closest( '.smliser-add-member-to-org-btn' );
+            if ( addnewMemberBtn ) {
+                let spinner = showSpinner( '.smliser-spinner', true );
+                addnewMemberBtn.disabled = true;
+                queryParam.set( 'section', 'add-new-member' )
+                const url   = new URL( window.location );
+                url.search  = queryParam.toString();
+                window.location.href = url.href;
+            }
+            
+        });
+        
     }
 
     if ( avatarUploadFields.length ) {

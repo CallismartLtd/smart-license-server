@@ -110,10 +110,11 @@ class ContextServiceProvider {
                 
                     $name   = match( $type ) {
                         default                 => 'name',
-                        Owner::TYPE_INDIVIDUAL  => 'display_name'
+                        Owner::TYPE_INDIVIDUAL  => 'display_name',
+                        Owner::TYPE_ORGANIZATION  => 'display_name'
                     };
-                    // Query for fetching IDs
-                    $sql_parts[]    = "SELECT id, '{$type}' AS type, `updated_at` FROM `{$table}` WHERE status = ? AND ( `{$name}` LIKE ? OR `id` LIKE ?  )";
+                    // Query for fetching IDs.
+                    $sql_parts[]    = "SELECT `id`, '{$type}' AS type, `updated_at` FROM `{$table}` WHERE status = ? AND ( `{$name}` LIKE ? OR `id` LIKE ?  )";
                     $params_sql     = array_merge( $params_sql, [ $status, $like, $like ] );
 
                     // Query for counting matches
@@ -132,7 +133,7 @@ class ContextServiceProvider {
                 // Aggregate count
                 $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
                 $total = (int) $db->get_var( $count_sql, $params_count );
-
+                
                 // Instantiate app objects
                 $objects = [];
                 foreach ( $rows as $row ) {
@@ -199,7 +200,7 @@ class ContextServiceProvider {
 
         if ( ! empty( $term ) ) {
             $like = '%' . $term . '%';
-            $where_clauses[] = " ( `name` LIKE ? OR `type` LIKE ? OR `id` LIKE ? ) ";
+            $where_clauses[] = " ( `display_name` LIKE ? OR `type` LIKE ? OR `id` LIKE ? ) ";
             $params = array_merge( $params, [ $like, $like, $like ] );
         }
 
@@ -379,12 +380,12 @@ class ContextServiceProvider {
     /**
      * Save a single member of an organization with their role.
      * 
-     * @param User $member
+     * @param OrganizationMember $member
      * @param Organization $organization
      * @param Role $role
      * @throws Exception|InvalidArgumentException
      */
-    public static function save_organization_member( User $member, Organization $organization, Role $role ) {
+    public static function save_organization_member( OrganizationMember $member, Organization $organization, Role $role ) {
 
         if ( ! $organization->is_member( $member ) ) {
             throw new InvalidArgumentException(

@@ -410,6 +410,6 @@ class SmliserModal {
     }
 }
 
-if ( typeof module !== 'undefined' && module.exports ) {
-    module.exports = SmliserModal;
-}
+// if ( typeof module !== 'undefined' && module.exports ) {
+//     module.exports = SmliserModal;
+// }

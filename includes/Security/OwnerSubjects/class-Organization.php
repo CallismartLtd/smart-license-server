@@ -15,6 +15,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Security\Actors\OrganizationMember;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Owner;
@@ -423,6 +424,26 @@ class Organization implements OwnerSubjectInterface {
     }
 
     /**
+     * Convert to array.
+     * 
+     * @return array
+     */
+    public function to_array() : array {
+        $data   = get_object_vars( $this );
+
+        if ( isset( $data['members'] ) ) {
+            foreach( $data['members'] as &$member ) {
+                $member = $member->get_user()->to_array();
+            }
+        }
+        
+        $data   = ['type' => $this->get_type()] + $data;
+
+        unset( $data['exists_cache'] );
+        return $data;
+    }
+
+    /**
      * Tells whether this organization exists.
      * 
      * @return bool True when the organization exists, false otherwise.
@@ -471,13 +492,13 @@ class Organization implements OwnerSubjectInterface {
     }
 
     /**
-     * Tells whether the given user is a member of this organization.
+     * Tells whether the given member is a member of this organization.
      * 
-     * @param User|string|int $user
-     * @return bool True when the user is a member, false otherwise.
+     * @param OrganizationMember|string|int $member
+     * @return bool True when the member is a member, false otherwise.
      */
-    public function is_member( User|string|int $user ) : bool {
-        return $this->get_members()->has( $user );
+    public function is_member( OrganizationMember|string|int $member ) : bool {
+        return $this->get_members()->has( $member );
     }
 
 }

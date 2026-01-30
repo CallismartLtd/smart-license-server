@@ -61,6 +61,21 @@ class OrganizationMembers implements IteratorAggregate, Countable, JsonSerializa
     }
 
     /**
+     * Get a member using their ID.
+     * 
+     * @param OrganizationMember|int $member
+     * @return OrganizationMember|null
+     */
+    public function get( OrganizationMember|int $member ): ?OrganizationMember {
+        if ( ! $this->has( $member ) ) {
+            return null;
+        }
+        
+        $id = $member instanceof OrganizationMember ? $member->get_id() : $member;
+        return $this->members[$id];
+    }
+
+    /**
      * Remove a member from the collection by OrganizationMember object or ID.
      *
      * @param OrganizationMember|int $member

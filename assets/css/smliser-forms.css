@@ -1090,3 +1090,10 @@ button.smliser-add-member-to-org-btn[type="button"]:active {
   display: inline;
   margin: 0 8px 0 0;
 }
+
+.smliser-organization-member-form {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 15px;
+}
