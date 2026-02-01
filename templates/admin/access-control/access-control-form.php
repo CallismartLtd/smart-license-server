@@ -19,8 +19,15 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 $current_tab        = smliser_get_query_param( 'tab', '' );
 $current_section    = smliser_get_query_param( 'section', '' );
-$render_roles       = in_array( $current_tab, ['rest-api', 'users', ]);
-$render_avatar      = ! in_array( $current_tab, ['owners', ] );
+$render_roles       = in_array( $current_tab, ['rest-api', 'users', ], true )
+    || in_array( $current_section, ['add-new-member', 'edit-member'], true );
+$render_avatar      = ! in_array( $current_tab, ['owners'] );
+
+$render_image_only  = in_array( $current_section, ['add-new-member', 'edit-member'], true );
+
+if ( $render_image_only ) {
+    $render_avatar = false;
+}
 
 ?>
 
@@ -55,6 +62,15 @@ $render_avatar      = ! in_array( $current_tab, ['owners', ] );
 
                     </div>
                 </div>
+            <?php elseif ( $render_image_only ) : ?>
+                <div class="smliser-two-rows_right">
+                    <div class="smliser-avatar-upload">
+                        <div class="smliser-avatar-upload_image-holder">
+                            <img class="smliser-avatar-upload_image-preview avatar-only" src="<?php echo esc_url( $avatar_url ); ?>" title="<?php echo esc_attr( $avatar_url->basename() ); ?>" alt="avatar">
+                        </div>
+
+                    </div>
+                </div>
             <?php endif; ?>
         </div>
 
@@ -81,8 +97,8 @@ $render_avatar      = ! in_array( $current_tab, ['owners', ] );
                         </dl>
 
                         <div class="smliser-org-member_actions">
-                            <button type="button" class="button">Edit</button>
-                            <button type="button" class="button">Delete</button>
+                            <button type="button" class="button edit-member" data-member-id="<?php echo esc_attr( $member->get_id() ); ?>">Edit</button>
+                            <button type="button" class="button" data-member-id="<?php echo esc_attr( $member->get_id() ); ?>">Delete</button>
                         </div>
                     </li>
                 <?php endforeach; ?>
@@ -96,24 +112,6 @@ $render_avatar      = ! in_array( $current_tab, ['owners', ] );
 
             </ul>
 
-            <div class="smliser-organization-member-form">
-                <label for="dispay_name" class="smliser-form-label-row">
-                    <span>Organization Name</span>
-                    <input type="text" name="dispay_name" id="displa_name" value="Callismart Tech" autocomplete="off" spellcheck="off" required="1" placeholder="Enter full name" style="width: unset">
-                </label>
-                <label for="dispay_name" class="smliser-form-label-row">
-                    <span>Organization Name</span>
-                    <input type="text" name="dispay_name" id="displa_name" value="Callismart Tech" autocomplete="off" spellcheck="off" required="1" placeholder="Enter full name" style="width: unset">
-                </label>
-                <label for="dispay_name" class="smliser-form-label-row">
-                    <span>Organization Name</span>
-                    <input type="text" name="dispay_name" id="displa_name" value="Callismart Tech" autocomplete="off" spellcheck="off" required="1" placeholder="Enter full name" style="width: unset">
-                </label>
-                <label for="dispay_name" class="smliser-form-label-row">
-                    <span>Organization Name</span>
-                    <input type="text" name="dispay_name" id="displa_name" value="Callismart Tech" autocomplete="off" spellcheck="off" required="1" placeholder="Enter full name" style="width: unset">
-                </label>
-            </div>
         <?php endif; ?>
         
         <?php if ( $render_roles ) : ?>

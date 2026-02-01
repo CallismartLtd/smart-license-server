@@ -65,7 +65,7 @@ class ContextServiceProvider {
             'types'     => Owner::get_allowed_owner_types()
         );
 
-        $args       = parse_args_recursive( $args, $defaults );
+        $args       = parse_args( $args, $defaults );
         $term       = self::sanitize_text( $args['term'] );
         $page       = max( 1, (int) $args['page'] );
         $limit      = max( 1, (int) $args['limit'] );
@@ -407,16 +407,16 @@ class ContextServiceProvider {
 
         $id     = $db->get_var(
             "SELECT `id` FROM {$table} WHERE `organization_id` = ? AND `member_id` = ?",
-            [$organization->get_id(), $member->get_id()]
+            [$organization->get_id(), $member->get_user()->get_id()]
         );
 
         if ( $id ) {
             $data   = ['updated_at' => $now->format( 'Y-m-d H:i:s' ) ];
-           $result  = $db->update( $table, $data, ['id' => $id] ); 
+           $db->update( $table, $data, ['id' => $id] ); 
         } else {
             $data   = [
                 'organization_id'   => $organization->get_id(),
-                'member_id'         => $member->get_id(),
+                'member_id'         => $member->get_user()->get_id(),
                 'created_at'        => $now->format( 'Y-m-d H:i:s' ),
                 'updated_at'        => $now->format( 'Y-m-d H:i:s' )
             ];
@@ -428,7 +428,7 @@ class ContextServiceProvider {
             }
         }
         
-        static::save_actor_role( $member, $role, $organization );
+        static::save_actor_role( $member->get_user(), $role, $organization );
     }
 
     /**

@@ -209,6 +209,7 @@ class OrganizationMember implements ActorInterface {
         return [
             'id'         => $this->id,
             'role'       => $this->role?->get_label(),
+            'avatar'    => $this->get_avatar(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'user'       => $this->user->to_array(),

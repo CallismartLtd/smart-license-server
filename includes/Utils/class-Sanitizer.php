@@ -185,10 +185,11 @@ class Sanitizer {
      * Sanitizes an integer value.
      * 
      * @param mixed $number The input value.
-     * @return int|false Integer value or false if invalid.
+     * @return int Integer value or 0 if invalid.
      */
-    public static function sanitize_int( $number ) : int|false {
-        return filter_var( $number, FILTER_VALIDATE_INT );
+    public static function sanitize_int( $number ) : int {
+        $int = filter_var( $number, FILTER_SANITIZE_NUMBER_INT );
+        return intval( $int );
     }
 
     /**

@@ -558,8 +558,9 @@ class ServiceAccount implements ActorInterface {
      * @return array
      */
     public function to_array() : array {
-        $data = get_object_vars( $this );
-
+        $data   = get_object_vars( $this );
+        $extra  = ['avatar' => $this->get_avatar()->get_href()];
+        $data   = $extra + $data;
         unset( $data['owner'], $data['exists_cache'], $data['new_api_key_data'] );
 
         return $data;

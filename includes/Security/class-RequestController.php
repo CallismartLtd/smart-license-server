@@ -28,7 +28,8 @@ use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 use const PASSWORD_ARGON2ID;
 
 use function defined, is_smliser_error, sprintf, smliser_safe_json_encode, password_hash,
-password_verify, in_array, is_string, method_exists, str_replace, ucwords, compact, md5, class_implements;
+password_verify, in_array, is_string, method_exists, str_replace, ucwords, compact, md5,
+strpos, class_implements;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 /**
@@ -360,7 +361,7 @@ class RequestController {
      */
     public static function save_organization_member( Request $request ) : Response {
         try {
-            $role_slug  = (string )$request->get( 'role_slug' );
+            $role_slug  = (string) $request->get( 'role_slug' );
             $role       = Role::get_by_slug( $role_slug );
 
             if ( ! $role ) {
@@ -375,19 +376,25 @@ class RequestController {
             }
 
             $user_id    = $request->get( 'user_id' );
-            $user       = User::get_by_id( $user_id );
+            if ( is_string( $user_id ) && false !== strpos( $user_id, ':' ) ) {
+                list( $type, $user_id ) = explode( ':', $user_id );
+            }
 
-            if ( ! $user ) {
-                throw new RequestException( 'bad_request', 'The member must be an existing user.', ['status' => 400] );
+            $user_id    = (int) $user_id;
+            $subject    = User::get_by_id( $user_id );
+
+            if ( ! $subject ) {
+                throw new RequestException( 'bad_request', 'The member subject must be an existing user.', ['status' => 400] );
             }
            
-            $member_id  = $request->get( 'member_id' );
-
+            $member_id  = (int) $request->get( 'member_id' );
             $member     = $organization->get_members()->get( $member_id );
 
             if ( ! $member ) {
                 $collection = Collection::make( ['role' => $role ] );
-                $member = new OrganizationMember( $user, $collection );
+                $member = new OrganizationMember( $subject, $collection );
+
+                $organization->get_members()->add( $member );
             }
 
             ContextServiceProvider::save_organization_member( $member, $organization, $role );
@@ -403,7 +410,7 @@ class RequestController {
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
         } catch ( InvalidArgumentException $e ) {
-            throw new RequestException(
+            $error   = new RequestException(
                 'invalid_argument',
                 $e->getMessage(),
                 [ 'status' => 400 ]
@@ -411,17 +418,20 @@ class RequestController {
 
         } catch ( Exception $e ) {
 
-            throw new RequestException(
+            $error   = new RequestException(
                 $e->get_error_code(),
                 $e->get_error_message(),
                 [ 'status' => 500 ]
             );
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            $error   = $e;
 
         }
+
+        $response   = ( new Response() )
+            ->set_exception( $error )
+            ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        return $response;
 
     }
 

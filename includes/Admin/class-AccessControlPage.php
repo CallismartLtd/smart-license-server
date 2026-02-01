@@ -39,9 +39,11 @@ class AccessControlPage {
                 'edit'      => [__CLASS__, 'users_form_page'],
             ],
             'organizations' => [
-                'default'   => [__CLASS__, 'organizations_page'],
-                'add-new'   => [__CLASS__, 'organizations_form_page'],
-                'edit'      => [__CLASS__, 'organizations_form_page'],
+                'default'           => [__CLASS__, 'organizations_page'],
+                'add-new'           => [__CLASS__, 'organizations_form_page'],
+                'edit'              => [__CLASS__, 'organizations_form_page'],
+                'add-new-member'    => [__CLASS__, 'organizations_members_form_page'],
+                'edit-member'       => [__CLASS__, 'organizations_members_form_page'],
             ],
             'owners'    => [
                 'default'   => [__CLASS__, 'owners_page'],
@@ -339,6 +341,122 @@ class AccessControlPage {
             : new URL( smliser_get_placeholder_icon( 'avatar' ) );
 
         $avatar_name    = $organization ? 'View image' : $avatar_url->basename();
+
+        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
+    }
+
+    /**
+     * The organization member creation and edit page.
+     */
+    private static function organizations_members_form_page() {
+
+        $org_id             = smliser_get_query_param( 'org_id' );
+        $organization       = Organization::get_by_id( (int) $org_id );
+        $member_id          = (int) smliser_get_query_param( 'member_id' );
+        $member             = $organization?->get_members()->get( $member_id );
+        $org_name           = $organization?->get_display_name();
+
+        $title              = sprintf( '%s %s Member', $member ? 'Edit' : 'Add New', $org_name );
+        $roles_title        = sprintf( '%s Member Role in %s', $member ? 'Update' : 'Set', $org_name );
+
+        $_org_statuses      = Organization::get_allowed_statuses();
+        $_status_titles     = array_map( 'ucwords', array_values( $_org_statuses ) );
+        $_status_keys       = array_values( $_org_statuses );
+        $_statuses          = array_combine( $_status_keys, $_status_titles );
+        $selected_member    = $member ? [
+            sprintf( '%s:%s', $member->get_type(), $member->get_id() ) => $member->get_display_name()
+        ] : [];
+
+        $role   = $member ? $member->get_role()?->to_array() : [];
+
+        $form_fields        = array(
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'organization_id',
+                    'value' => $org_id,
+                )
+            ),
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'member_id',
+                    'value' => $member_id,
+                )
+            ),
+
+            array(
+                'label' => '',
+                'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'entity',
+                    'value' => 'organization_member',
+                )
+            ),
+
+            array(
+                'label' => __( 'Organization Name', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'org_name',
+                    'value' => $org_name,
+                    'attr'  => array(
+                        'readonly'      => true,
+                    )
+                )
+            ),
+
+            array(
+                'label' => __( 'Organization Slug', 'smliser' ),
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'org_slug',
+                    'value' => $organization?->get_slug(),
+                    'attr'  => array(
+                        'readonly'      => true,
+                    )
+                )
+            ),
+
+            array(
+                'label' => __( 'Member', 'smliser' ),
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'user_id',
+                    'value' => $member?->get_user()->get_id(),
+                    'attr'  => array(
+                        'readonly'      => true,
+                    ),
+                    'options'   => $selected_member
+                )
+            ),
+
+     
+            array(
+                'label' => __( 'Status', 'smliser' ),
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'status',
+                    'value' => $member?->get_status(),
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off',
+                        'required'      => true
+                    ),
+                    'options'   => $_statuses
+                )
+            ),
+     
+        );
+
+        $avatar_url     = 
+            $member && $member->get_avatar()->is_valid() 
+            ? $member->get_avatar()->add_query_param( 'ver', time() )
+            : new URL( smliser_get_placeholder_icon( 'avatar' ) );
+
+        $avatar_name    = $member ? 'View image' : $avatar_url->basename();
 
         include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
     }

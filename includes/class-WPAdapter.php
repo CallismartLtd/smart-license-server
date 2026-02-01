@@ -26,6 +26,7 @@ use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\RequestController;
 use WP_Error;
 use WP_REST_Request;
@@ -36,7 +37,7 @@ use const WP_CONTENT_DIR, ABSPATH;
 use function wp_upload_dir, compact, smliser_get_request_param, smliser_get_query_param, time, is_string,
 smliser_get_post_param, smliser_get_client_ip, smliser_get_authorization_header, smliser_get_user_agent, smliser_abort_request,
 sanitize_text_field, unslash, current_user_can, get_query_var, smliser_send_json_error, wp_get_referer,
-wp_safe_redirect, check_ajax_referer, is_callable, sprintf;
+wp_safe_redirect, check_ajax_referer, is_callable, sprintf, is_super_admin;
 
 defined( 'ABSPATH'  ) || exit;
 
@@ -102,7 +103,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'smliser_save_plugin'                           => [__CLASS__, 'parse_save_app_request'],
             'smliser_save_theme'                            => [__CLASS__, 'parse_save_app_request'],
             'smliser_save_software'                         => [__CLASS__, 'parse_save_app_request'],
-            'smliser_save_license'                          => [__CLASS__, 'parse_license_save_request'],
+            'smliser_save_license'                          => [__CLASS__, 'parse_save_license_request'],
             'smliser_remove_licensed_domain'                => [__CLASS__, 'parse_licensed_domain_removal'],
             'smliser_app_asset_upload'                      => [__CLASS__, 'parse_app_asset_upload_request'],
             'smliser_app_asset_delete'                      => [__CLASS__, 'parse_app_asset_delete_request'],
@@ -417,7 +418,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
     /**
      * Parse license save form request
      */
-    private static function parse_license_save_request() {
+    private static function parse_save_license_request() {
         if ( ! wp_verify_nonce( smliser_get_post_param( 'smliser_nonce_field' ), 'smliser_nonce_field' ) ) {
             wp_safe_redirect( smliser_license_admin_action_page() );
             exit;
@@ -852,29 +853,34 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         }
 
         $request    = new Request([
-            'id'            => smliser_get_request_param( 'id' ),
-            'name'          => smliser_get_request_param( 'name' ),
-            'display_name'  => smliser_get_request_param( 'display_name' ),
-            'description'   => smliser_get_request_param( 'description' ),
-            'email'         => smliser_get_request_param( 'email' ),
-            'password_1'    => $_REQUEST[ 'password_1' ] ?? '', // phpcs:ignore
-            'password_2'    => $_REQUEST[ 'password_2' ] ?? '', // phpcs:ignore
-            'status'        => smliser_get_request_param( 'status' ),
-            'subject_id'    => smliser_get_request_param( 'subject_id' ),
-            'owner_id'      => smliser_get_request_param( 'owner_id' ),
-            'owner_type'    => smliser_get_request_param( 'owner_type' ),
-            'role_label'    => smliser_get_request_param( 'role_label' ),
-            'role_slug'     => smliser_get_request_param( 'role_slug' ),
-            'org_slug'      => smliser_get_request_param( 'org_slug' ),
-            'role_id'       => smliser_get_request_param( 'role_id' ),
-            'capabilities'  => smliser_get_request_param( 'capabilities', [] ),
-            'entity'        => $entity,
-            'avatar'        => isset( $_FILES['avatar'] ) && UPLOAD_ERR_OK === $_FILES['avatar']['error'] ? $_FILES['avatar'] : null,
-            'is_authorized' => true,
+            'id'                => smliser_get_request_param( 'id' ),
+            'name'              => smliser_get_request_param( 'name' ),
+            'display_name'      => smliser_get_request_param( 'display_name' ),
+            'description'       => smliser_get_request_param( 'description' ),
+            'email'             => smliser_get_request_param( 'email' ),
+            'password_1'        => $_REQUEST[ 'password_1' ] ?? '', // phpcs:ignore
+            'password_2'        => $_REQUEST[ 'password_2' ] ?? '', // phpcs:ignore
+            'status'            => smliser_get_request_param( 'status' ),
+            'subject_id'        => smliser_get_request_param( 'subject_id' ),
+            'owner_id'          => smliser_get_request_param( 'owner_id' ),
+            'owner_type'        => smliser_get_request_param( 'owner_type' ),
+            'role_label'        => smliser_get_request_param( 'role_label' ),
+            'role_slug'         => smliser_get_request_param( 'role_slug' ),
+            'org_slug'          => smliser_get_request_param( 'org_slug' ),
+            'organization_id'   => smliser_get_request_param( 'organization_id' ),
+            'role_id'           => smliser_get_request_param( 'role_id' ),
+            'member_id'         => smliser_get_request_param( 'member_id' ),
+            'user_id'           => smliser_get_request_param( 'user_id' ),
+            'capabilities'      => smliser_get_request_param( 'capabilities', [] ),
+            'entity'            => $entity,
+            'avatar'            => isset( $_FILES['avatar'] ) && UPLOAD_ERR_OK === $_FILES['avatar']['error'] ? $_FILES['avatar'] : null,
+            'is_authorized'     => true,
         ]);
 
+        $method = 'organization_member' === $request->get( 'entity' ) ? 'save_organization_member' : 'save_entity';
+
         /** @var Response $response */
-        $response   = RequestController::save_entity( $request );
+        $response   = RequestController::$method( $request );
 
         $response->send();
     }
@@ -891,7 +897,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             ), 401 );
         }
 
-        if ( ! \is_super_admin() ) {
+        if ( ! is_super_admin() ) {
             smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
         }
 
@@ -900,8 +906,8 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $request    = new Request([
             'search_term'   => smliser_get_request_param( 'search' ),
             'status'        => smliser_get_request_param( 'status', 'active' ),
-            'types'         => smliser_get_request_param( 'types', [] ),
-            'is_authorized' => \is_super_admin()
+            'types'         => smliser_get_request_param( 'types', Owner::get_allowed_owner_types() ),
+            'is_authorized' => is_super_admin()
         ]);
 
         if ( 'owner_subjects' === $entity ) {
@@ -912,10 +918,6 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
 
         $response->send();
     }
-
-    /**
-     * 
-     */
     
     /**
     |------------------------

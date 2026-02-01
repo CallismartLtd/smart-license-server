@@ -456,8 +456,8 @@ class User implements ActorInterface, OwnerSubjectInterface {
      */
     public function to_array() : array {
         $data   = get_object_vars( $this );
-        
-        $data   = ['type' => static::TYPE] + $data;
+        $extra  = ['type' => static::TYPE, 'avatar' => $this->get_avatar()->get_href()];
+        $data   = $extra + $data;
 
         unset( $data['exists_cache'], $data['password_hash'] );
         return $data;

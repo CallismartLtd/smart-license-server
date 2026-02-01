@@ -292,7 +292,7 @@ function smliserSelect2AppSelect( selectEl ) {
             cache: true,
         },
         allowClear: true,
-        minimumInputLength: 2,
+        minimumInputLength: 1,
     });    
 }
 
@@ -311,13 +311,15 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
     const defaults = {
         placeholder: 'Search users or organizations',
         entityType: 'resource_owners', // Only `resource_owners` and `owner_subjects` supported.
+        types: []
     };
 
     options = { ...defaults, ...options };
 
     const prepareArgs = ( params ) => {
         return {
-            search: params.term
+            search: params.term,
+            types: options.types
         };
     };
 
@@ -331,18 +333,19 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
             }
 
             grouped[ entity.type ].push({
-                id: entity.id,
+                id: `${entity.type}:${entity.id}`,
                 text: entity?.name ?? entity?.display_name ?? 'No name',
                 type: entity.type,
+                avatar: entity?.avatar
             });
         });        
 
         // Convert to Select2’s optgroup structure
         const results = Object.keys( grouped ).map( type => ({
-            text: type.charAt(0).toUpperCase() + type.slice(1),
+            text: StringUtils.ucwords(type),
             children: grouped[ type ]
         }));
-
+        
         return { results };
     };
 
@@ -361,7 +364,7 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
             delay: 500,
             data: prepareArgs,
             processResults: processResults,
-            cache: true,
+            // cache: true,
         },
         allowClear: true,
         minimumInputLength: 2,
@@ -369,24 +372,30 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
         
     });
 
-    // The type selector.
     const ownerTypeInput    = $select2.closest( 'form' ).find( '#owner_type' );
-    const nameInput         = $select2.closest( 'form' ).find( '#name' );    
+    const nameInput         = $select2.closest( 'form' ).find( '#name' );
+    const avatarOnly        = $select2.closest( 'form' ).find( '.smliser-avatar-upload_image-preview.avatar-only' );
+    const defaultValue      = ownerTypeInput.val();
+    
+    $select2.on( 'select2:select select2:unselect', e => {
+        const param         = e.params;
+        const data          = param?.data;
+        const entityType    = data?.type;
 
-    if ( ownerTypeInput.length ) {
-        const defaultValue  = ownerTypeInput.val();
-        $select2.on( 'select2:select select2:unselect', e => {
-            const param         = e.params;
-            const entityType    = param?.data?.type;
-
+        if ( ownerTypeInput.length ) {
             ownerTypeInput.val( param.data.selected ? entityType : defaultValue );
-            
+
             if ( ( param.data.selected && nameInput ) && ! nameInput.val()?.length ) {
                 nameInput.val( param.data.text );
-            }            
-        });        
-    }
+            }
+        }
 
+        if ( avatarOnly && data.avatar ) {
+            avatarOnly.attr( 'src', data.avatar );
+            avatarOnly.attr( 'title', data.text );
+        }        
+                    
+    }); 
 
 }
 
@@ -419,10 +428,21 @@ document.addEventListener( 'DOMContentLoaded', function() {
     /** @type {HTMLFormElement} */
     const accessControlForm     = document.querySelector( '.smliser-access-control-form' );
     const ownerSubjectSearch    = document.querySelector( '#subject_id' );
+    const usersSearch           = document.querySelector( '#user_id' );
     const ownersSearch          = document.querySelector( '#owner_id' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
     
+    if ( usersSearch ) {
+        const options = {
+            entityType: 'owner_subjects',
+            placeholder: 'Search users...',
+            types: ['individual']
+        };
+
+        smliserSearchSecurityEntities( usersSearch, options );
+    }
+
     if ( ownerSubjectSearch ) {
         const options = {
             entityType: 'owner_subjects',
@@ -1563,7 +1583,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
     if ( accessControlForm ) {
         const orgMembersContainer   = document.querySelector( '.smliser-organization-members-list' );
-
+        const qv                    = queryParam;
         accessControlForm.addEventListener( 'submit', async e => {
             e.preventDefault();
             const payLoad   = new FormData( accessControlForm );
@@ -1629,12 +1649,22 @@ document.addEventListener( 'DOMContentLoaded', function() {
         orgMembersContainer && orgMembersContainer.addEventListener( 'click', async e => {
             e.preventDefault();
             const addnewMemberBtn   = e.target.closest( '.smliser-add-member-to-org-btn' );
-            if ( addnewMemberBtn ) {
+            const editMemberBtn     = e.target.closest( '.button.edit-member' );
+            const clickedBtn        = addnewMemberBtn ?? editMemberBtn;
+            
+            qv.set( 'section', addnewMemberBtn ? 'add-new-member': 'edit-member' );
+            qv.set( 'org_id', qv.get( 'id' ) );
+            qv.delete( 'id' );
+
+            if ( editMemberBtn ) {
+                qv.set( 'member_id', editMemberBtn.dataset.memberId );
+            }
+
+            if ( clickedBtn ) {
                 let spinner = showSpinner( '.smliser-spinner', true );
-                addnewMemberBtn.disabled = true;
-                queryParam.set( 'section', 'add-new-member' )
+                clickedBtn.disabled = true;
                 const url   = new URL( window.location );
-                url.search  = queryParam.toString();
+                url.search  = qv.toString();
                 window.location.href = url.href;
             }
             
@@ -1685,7 +1715,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             const originalSrc           = imagePreview.src;
             const originalImageTitle    = imagePreview.title;
             const imageNamePreview      = avatarUpload.querySelector( '.smliser-avatar-upload_data-filename' );
-            const defaultFilename       = imageNamePreview.textContent;
+            const defaultFilename       = imageNamePreview?.textContent;
 
             const buttonsRow            = avatarUpload.querySelector( '.smliser-avatar-upload_buttons-row' );
 
@@ -1710,10 +1740,10 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 buttonsRow.querySelector( '.add-file' )?.classList.remove( 'hidden' );
             }
 
-            imageNamePreview.addEventListener( 'click', imageFullScreenMode );
-            imagePreview.addEventListener( 'dblclick', imageFullScreenMode );
+            imageNamePreview?.addEventListener( 'click', imageFullScreenMode );
+            imagePreview?.addEventListener( 'dblclick', imageFullScreenMode );
 
-            buttonsRow.addEventListener( 'click', e => {
+            buttonsRow?.addEventListener( 'click', e => {
                 const btn = e.target.closest( '.button' );
 
                 if ( ! btn ) return;
@@ -1728,7 +1758,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 }                
             });
 
-            fileInput.addEventListener( 'change', e => {
+            fileInput?.addEventListener( 'change', e => {
                 const target    = e.target;
                 if ( target.type !== 'file' ) return;
 
