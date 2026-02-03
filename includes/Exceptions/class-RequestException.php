@@ -12,7 +12,7 @@
 
 namespace SmartLicenseServer\Exceptions;
 
-use SmartLicenseServer\Exceptions\Exception; // Assuming this is your base exception
+use SmartLicenseServer\Exceptions\Exception;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
