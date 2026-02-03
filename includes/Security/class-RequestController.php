@@ -24,6 +24,7 @@ use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const PASSWORD_ARGON2ID;
 
@@ -36,6 +37,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * This controller is used to CRUD requests for security entities.
  */
 class RequestController {
+    use SanitizeAwareTrait;
     /**
      * Process request to create or update a security entity.
      * 
@@ -85,7 +87,8 @@ class RequestController {
             $data   = [
                 'success'   => true,
                 'data'      => array(
-                    'message'   => sprintf( '%s saved successfully.', ucwords( str_replace( '_', ' ', $entity ) ) )
+                    'message'   => sprintf( '%s saved successfully.', ucwords( str_replace( '_', ' ', $entity ) ) ),
+                    'entity_id' => $ent_object->get_id()
                 )
             ];
 
@@ -229,7 +232,7 @@ class RequestController {
                 throw new RequestException( 'invalid_service_account_status', 'The status provided is not allowed.', ['status' => 400] );
             }
 
-            $owner_id   = (int) $request->get( 'owner_id', 0 );
+            $owner_id   = static::sanitize_int( $request->get( 'owner_id', 0 ) );
             $owner      = Owner::get_by_id( $owner_id );
             
             if ( ! $owner || ! $owner->exists() ) {
@@ -368,26 +371,21 @@ class RequestController {
                 throw new RequestException( 'bad_request', 'Member must have a valid role.', ['status' => 400] );
             }
 
-            $org_id         = (int) $request->get( 'organization_id' );
+            $org_id         = static::sanitize_int( $request->get( 'organization_id' ) );
             $organization   = Organization::get_by_id( $org_id );
 
             if ( ! $organization ) {
                 throw new RequestException( 'bad_request', 'The member must belong to an existing organization.', ['status' => 400] );
             }
 
-            $user_id    = $request->get( 'user_id' );
-            if ( is_string( $user_id ) && false !== strpos( $user_id, ':' ) ) {
-                list( $type, $user_id ) = explode( ':', $user_id );
-            }
-
-            $user_id    = (int) $user_id;
+            $user_id    = static::sanitize_int( $request->get( 'user_id' ) );
             $subject    = User::get_by_id( $user_id );
 
             if ( ! $subject ) {
                 throw new RequestException( 'bad_request', 'The member subject must be an existing user.', ['status' => 400] );
             }
            
-            $member_id  = (int) $request->get( 'member_id' );
+            $member_id  = static::sanitize_int( $request->get( 'member_id' ) );
             $member     = $organization->get_members()->get( $member_id );
 
             if ( ! $member ) {
@@ -444,10 +442,10 @@ class RequestController {
      */
     protected static function save_owner( Owner $owner, Request $request ): bool|RequestException {
 
-        $subject_id = $request->get( 'subject_id' );
+        $subject_id = static::sanitize_int( $request->get( 'subject_id' ) );
 
         // Subject ID must exist.
-        if ( empty( $subject_id ) || ! is_int( $subject_id ) ) {
+        if ( empty( $subject_id ) ) {
             return new RequestException(
                 'required_param',
                 'Please provide a valid subject_id.',
