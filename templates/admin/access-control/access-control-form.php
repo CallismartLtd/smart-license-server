@@ -89,16 +89,21 @@ if ( $render_image_only ) {
                             $role = ContextServiceProvider::get_principal_role( $member, $organization );
                         
                         ?>
-                        <dl class="smliser-org-member_meta">
-                            <dt>Role:</dt>
-                            <dd><?php echo esc_html( $role ? $role->get_label(): 'Unknown'  ); ?></dd>
-                            <dt>Member Since:</dt>
-                            <dd><?php echo esc_html( $member->get_created_at()->format( smliser_datetime_format() ) ); ?></dd>
-                        </dl>
+                        <table class="smliser-org-member_meta">
+                            <tr>
+                                <th>Role:</th>
+                                <td><?php echo esc_html( $role ? $role->get_label(): 'Unknown'  ); ?></td>
+                            </tr>
+                            
+                            <tr>
+                                <th>Member Since:</th>
+                                <td><?php echo esc_html( $member->get_created_at()->format( smliser_datetime_format() ) ); ?></td>
+                            </tr>
+                        </table>
 
                         <div class="smliser-org-member_actions">
-                            <button type="button" class="button edit-member" data-member-id="<?php echo esc_attr( $member->get_id() ); ?>">Edit</button>
-                            <button type="button" class="button" data-member-id="<?php echo esc_attr( $member->get_id() ); ?>">Delete</button>
+                            <button type="button" class="button edit-member" data-member-id="<?php echo absint( $member->get_id() ); ?>">Edit</button>
+                            <button type="button" class="button delete-member" data-member-id="<?php echo absint( $member->get_id() ); ?>">Delete</button>
                         </div>
                     </li>
                 <?php endforeach; ?>
