@@ -2,3 +2,4 @@ jsconfig.json
 .editorconfig
 .phpcs.xml
 .phpstan.neon
+smliser_var.js
