@@ -452,7 +452,8 @@ class ServiceAccount implements ActorInterface {
             $result = $db->insert( $table, $data );
             $this->set_id( $db->get_insert_id() )
             ->set_identifier( $data['identifier'] )
-            ->set_created_at( $now );
+            ->set_created_at( $now )
+            ->set_updated_at( $now );
             
 
             // Store new API key data for retrieval.
