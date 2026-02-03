@@ -658,4 +658,42 @@ class RequestController {
         }
     }
 
+    /**
+     * Delete/remove a member from an organization.
+     * 
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function delete_org_member( Request $request ): Response {
+        try {
+            $org_id     = static::sanitize_int( $request->get( 'organization_id' ) );
+            $member_id  = static::sanitize_int( $request->get( 'member_id' ) );
+
+            $organization   = Organization::get_by_id( $org_id );
+
+            if ( ! $organization ) {
+                throw new RequestException( 'error', 'The provided orgaization does exist.', ['status' => 400] );
+            }
+
+            if ( ! $organization->is_member( $member_id ) ) {
+                throw new RequestException( 'error', 'The provided member does not belong to this organization, try refreshing the current page.', ['status' => 400] );
+            }
+
+            $member = $organization->get_members()->get( $member_id );
+            ContextServiceProvider::delete_organization_member( $member, $organization );
+
+            $data   = array(
+                'success'   => true,
+                'data'      => array(
+                    'message'   => sprintf( '%s has been successfully removed from %s.', $member->get_display_name(), $organization->get_display_name() )
+                )
+            );
+            return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
+            ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        } catch ( Exception $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
+    }
 }

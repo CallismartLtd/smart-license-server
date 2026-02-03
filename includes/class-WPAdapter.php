@@ -119,6 +119,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'smliser_delete_monetization_tier'              => [__CLASS__, 'parse_monetization_tier_deletion'],
             'smliser_toggle_monetization'                   => [__CLASS__, 'parse_toggle_monetization'],
             'smliser_access_control_save'                   => [__CLASS__, 'parse_access_control_save_request'],
+            'smliser_delete_org_member'                     => [__CLASS__, 'parse_smliser_delete_org_member_request'],
             'smliser_admin_security_entity_search'          => [__CLASS__, 'parse_admin_security_entity_search']
         ];
 
@@ -843,7 +844,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             ), 401 );
         }
 
-        if ( ! \current_user_can( 'manage_options' ) ) {
+        if ( ! is_super_admin() ) {
             smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
         }
 
@@ -919,6 +920,31 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $response->send();
     }
     
+    /**
+     * Parse request to delete a member of an organization
+     */
+    private static function parse_smliser_delete_org_member_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+            ), 401 );
+        }
+
+        if ( ! is_super_admin() ) {
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $request    = new Request([
+            'organization_id'   => smliser_get_query_param( 'organization_id' ),
+            'member_id'         => smliser_get_query_param( 'member_id' )
+        ]);
+
+        $response   = RequestController::delete_org_member( $request );
+
+        $response->send();
+
+    }
+
     /**
     |------------------------
     | REST API Configuration

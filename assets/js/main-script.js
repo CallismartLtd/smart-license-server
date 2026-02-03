@@ -36,26 +36,185 @@ function removeSpinner( spinner ) {
 
 /**
  * Utility: Fetch wrapper (consistent error parsing)
+ * 
+ * @param {string} url - The URL to fetch
+ * @param {Object} options - Fetch options
+ * @param {string} options.responseType - Expected response type: 'json' (default), 'text', 'html', 'blob'
+ * @returns {Promise<Object|string|Blob>} Parsed response based on type
+ * @throws {Object} Error object with message and optional field
  */
 async function smliserFetch( url, options = {} ) {
-    const response = await fetch( url, options );
-    if ( ! response.ok ) {
-        const contentType = response.headers.get( 'content-type' );
-        let errorMessage = 'An error occurred';
-        let errorField   = null;
-
-        if ( contentType && contentType.includes( 'application/json' ) ) {
-            const errorData = await response.json();
-            errorMessage = errorData.data?.message || errorMessage;
-            errorField   = errorData.data?.field_id || null;
-            throw { message: errorMessage, field: errorField };
-        } else {
-            const text = await response.text();
-            throw { message: text || errorMessage };
+    // Extract custom option
+    const responseType = options.responseType || 'json';
+    delete options.responseType; // Remove before passing to fetch
+    
+    try {
+        const response = await fetch( url, options );
+        const contentType = response.headers.get( 'content-type' ) || '';
+        
+        // Handle successful responses
+        if ( response.ok ) {
+            // Return based on requested response type
+            switch ( responseType ) {
+                case 'json':
+                    if ( contentType.includes( 'application/json' ) ) {
+                        return await response.json();
+                    }
+                    // Fallback: try to parse as JSON anyway
+                    try {
+                        return await response.json();
+                    } catch {
+                        return { success: true };
+                    }
+                
+                case 'text':
+                case 'html':
+                    return await response.text();
+                
+                case 'blob':
+                    return await response.blob();
+                
+                case 'arraybuffer':
+                    return await response.arrayBuffer();
+                
+                case 'formdata':
+                    return await response.formData();
+                
+                default:
+                    // Auto-detect based on content-type
+                    if ( contentType.includes( 'application/json' ) ) {
+                        return await response.json();
+                    } else if ( contentType.includes( 'text/html' ) ) {
+                        return await response.text();
+                    } else if ( contentType.includes( 'text/' ) ) {
+                        return await response.text();
+                    } else {
+                        return await response.blob();
+                    }
+            }
         }
+        
+        // Handle error responses
+        let errorMessage = 'An error occurred';
+        let errorField = null;
+        let errorCode = null;
+        
+        if ( contentType.includes( 'application/json' ) ) {
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.data?.message 
+                            || errorData.message 
+                            || errorData.error 
+                            || errorMessage;
+                errorField = errorData.data?.field_id || errorData.field || null;
+                errorCode = errorData.code || errorData.data?.code || null;
+            } catch ( parseError ) {
+                console.error( 'Failed to parse error JSON:', parseError );
+            }
+        } else if ( contentType.includes( 'text/html' ) ) {
+            // Handle HTML error pages (e.g., 404, 500 pages)
+            try {
+                const htmlText = await response.text();
+                
+                // Try to extract meaningful error from HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString( htmlText, 'text/html' );
+                
+                // Look for common error message containers
+                const errorElement = doc.querySelector( '.error-message, .wp-die-message, h1, title' );
+                if ( errorElement ) {
+                    errorMessage = errorElement.textContent.trim() || errorMessage;
+                }
+                
+                // Fallback to status text
+                if ( errorMessage === 'An error occurred' ) {
+                    errorMessage = `${response.status}: ${response.statusText}`;
+                }
+            } catch ( htmlError ) {
+                errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
+            }
+        } else {
+            // Non-JSON, non-HTML error response
+            try {
+                const text = await response.text();
+                errorMessage = text || `HTTP Error ${response.status}: ${response.statusText}`;
+            } catch ( textError ) {
+                errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
+            }
+        }
+        
+        // Throw structured error object.
+        throw {
+            message: errorMessage,
+            field: errorField,
+            code: errorCode,
+            status: response.status,
+            statusText: response.statusText,
+            contentType: contentType
+        };
+        
+    } catch ( error ) {
+        if ( error.message && typeof error.status !== 'undefined' ) {
+            // Already structured error from above.
+            throw error;
+        }        
+        
+        let category        = 'request_failed';
+        let customMessage   = error.message || 'An unexpected error occurred';
+
+        if ( error instanceof TypeError ) {
+            // The request never reached the server.
+            if ( ! navigator.onLine ) {
+                category = 'offline';
+                customMessage = 'You appear to be offline. Please check your connection.';
+            } else {
+                // If online but TypeError occurs, it's almost always DNS or CORS.
+                category = 'network_error';
+                customMessage = 'Server unreachable (DNS or Connection Refused).';
+            }
+        } else if ( error.name === 'AbortError' ) {
+            category = 'timeout';
+            customMessage = 'The request timed out.';
+        }
+
+        throw {
+            message: customMessage,
+            field: null,
+            code: category,
+            status: 0,
+            statusText: 'Network Error',
+            originalError: error // Useful for debugging
+        };
     }
-    return response.json();
-};
+}
+
+/**
+ * Helper: Fetch and expect JSON
+ */
+async function smliserFetchJSON( url, options = {} ) {
+    return await smliserFetch( url, { ...options, responseType: 'json' } );
+}
+
+/**
+ * Helper: Fetch and expect HTML
+ */
+async function smliserFetchHTML( url, options = {} ) {
+    return await smliserFetch( url, { ...options, responseType: 'html' } );
+}
+
+/**
+ * Helper: Fetch and expect text
+ */
+async function smliserFetchText( url, options = {} ) {
+    return await smliserFetch( url, { ...options, responseType: 'text' } );
+}
+
+/**
+ * Helper: Fetch and expect blob (for files/images)
+ */
+async function smliserFetchBlob( url, options = {} ) {
+    return await smliserFetch( url, { ...options, responseType: 'blob' } );
+}
 
 function smliserNotify(message, duration) {
     // Create a div element for the notification
@@ -107,24 +266,28 @@ function smliserCopyToClipboard(text) {
     });
 }
 
+/**
+ * StringUtils - Comprehensive string manipulation utilities
+ * @version 2.0.0
+ */
 const StringUtils = {
     /**
      * Capitalize the first character of a string.
-     * @param {string} str
-     * @returns {string}
+     * @param {string} str - Input string
+     * @returns {string} String with first character capitalized
      */
     ucfirst: function ( str ) {
-        if ( ! str ) return '';
+        if ( ! str || typeof str !== 'string' ) return '';
         return str.charAt( 0 ).toUpperCase() + str.slice( 1 );
     },
 
     /**
      * Capitalize the first character of each word in a string.
-     * @param {string} str
-     * @returns {string}
+     * @param {string} str - Input string
+     * @returns {string} String with each word capitalized
      */
     ucwords: function ( str ) {
-        if ( ! str ) return '';
+        if ( ! str || typeof str !== 'string' ) return '';
         return str
             .toLowerCase()
             .split( ' ' )
@@ -133,56 +296,146 @@ const StringUtils = {
     },
 
     /**
+     * Convert string to camelCase
+     * @param {string} str - Input string
+     * @returns {string} camelCase string
+     */
+    camelCase: function ( str ) {
+        if ( ! str || typeof str !== 'string' ) return '';
+        return str
+            .toLowerCase()
+            .replace( /[^a-zA-Z0-9]+(.)/g, ( match, chr ) => chr.toUpperCase() );
+    },
+
+    /**
+     * Convert string to snake_case
+     * @param {string} str - Input string
+     * @returns {string} snake_case string
+     */
+    snakeCase: function ( str ) {
+        if ( ! str || typeof str !== 'string' ) return '';
+        return str
+            .replace( /([A-Z])/g, '_$1' )
+            .toLowerCase()
+            .replace( /[^a-z0-9]+/g, '_' )
+            .replace( /^_|_$/g, '' );
+    },
+
+    /**
+     * Convert string to kebab-case
+     * @param {string} str - Input string
+     * @returns {string} kebab-case string
+     */
+    kebabCase: function ( str ) {
+        if ( ! str || typeof str !== 'string' ) return '';
+        return str
+            .replace( /([A-Z])/g, '-$1' )
+            .toLowerCase()
+            .replace( /[^a-z0-9]+/g, '-' )
+            .replace( /^-|-$/g, '' );
+    },
+
+    /**
      * Decodes HTML entities
-     * @param {String} html - The html string to decode 
-     * @returns {String} Decoded html
+     * @param {string} html - The HTML string to decode 
+     * @returns {string} Decoded HTML
      */
     decodeEntity: function ( html ) {
+        if ( ! html || typeof html !== 'string' ) return '';
         const textarea = document.createElement( 'textarea' );
         textarea.innerHTML = html;
         return textarea.value;
     },
 
     /**
-     *  Escapes html
-     * 
-     * @param {String} string - The string to escape
-     * @return {String} Safe html for outputs
+     * Escapes HTML special characters
+     * @param {string} string - The string to escape
+     * @returns {string} Safe HTML for output
      */
-    escHtml: ( string ) => {
-        const div = document.createElement('div' );
+    escHtml: function ( string ) {
+        if ( ! string || typeof string !== 'string' ) return '';
+        const div = document.createElement( 'div' );
         div.textContent = string;
-
-        return div.innerHTML.replace(/"/g, '&quot;');
+        return div.innerHTML.replace( /"/g, '&quot;' );
     },
-    
+
+    /**
+     * Strip HTML tags from string
+     * @param {string} html - HTML string
+     * @returns {string} Plain text
+     */
+    stripTags: function ( html ) {
+        if ( ! html || typeof html !== 'string' ) return '';
+        const div = document.createElement( 'div' );
+        div.innerHTML = html;
+        return div.textContent || div.innerText || '';
+    },
+
+    /**
+     * Truncate string to specified length
+     * @param {string} str - Input string
+     * @param {number} length - Max length
+     * @param {string} suffix - Suffix to add (default: '...')
+     * @returns {string} Truncated string
+     */
+    truncate: function ( str, length, suffix = '...' ) {
+        if ( ! str || typeof str !== 'string' ) return '';
+        if ( str.length <= length ) return str;
+        return str.substring( 0, length - suffix.length ) + suffix;
+    },
+
+    /**
+     * Truncate string at word boundary
+     * @param {string} str - Input string
+     * @param {number} length - Max length
+     * @param {string} suffix - Suffix to add (default: '...')
+     * @returns {string} Truncated string
+     */
+    truncateWords: function ( str, length, suffix = '...' ) {
+        if ( ! str || typeof str !== 'string' ) return '';
+        if ( str.length <= length ) return str;
+        
+        const truncated = str.substring( 0, length - suffix.length );
+        const lastSpace = truncated.lastIndexOf( ' ' );
+        
+        if ( lastSpace > 0 ) {
+            return truncated.substring( 0, lastSpace ) + suffix;
+        }
+        
+        return truncated + suffix;
+    },
+
     /**
      * Format a number as currency.
-     * @param {number} amount
-     * @param {Object} config
-     * @returns {string}
+     * @param {number} amount - Amount to format
+     * @param {Object} config - Currency configuration
+     * @returns {string} Formatted currency string
      */
-    formatCurrency: function ( amount, config ) {
+    formatCurrency: function ( amount, config = {} ) {
         const {
             symbol = '$',
             symbol_position = 'left',
             decimals = 2,
             decimal_separator = '.',
             thousand_separator = ','
-        } = config || {};
-    
-        const isNegative = amount < 0;
-        const absAmount = Math.abs( amount );
-    
+        } = config;
+
+        // Handle non-numeric values
+        const numAmount = parseFloat( amount );
+        if ( isNaN( numAmount ) ) return symbol + '0.00';
+
+        const isNegative = numAmount < 0;
+        const absAmount = Math.abs( numAmount );
+
         // Format the number
         let formatted = absAmount
             .toFixed( decimals )
             .replace( /\B(?=(\d{3})+(?!\d))/g, thousand_separator )
             .replace( '.', decimal_separator );
-    
+
         // Decode currency symbol (in case it's encoded)
-        const decodedSymbol = StringUtils.decodeEntity( symbol );
-    
+        const decodedSymbol = this.decodeEntity( symbol );
+
         switch ( symbol_position ) {
             case 'left':
                 formatted = decodedSymbol + formatted;
@@ -197,45 +450,304 @@ const StringUtils = {
                 formatted = formatted + ' ' + decodedSymbol;
                 break;
         }
-    
+
         return isNegative ? '-' + formatted : formatted;
     },
 
     /**
-     * Generates a cryptographically strong random password.
-     * * @param {number} length - Length of the password (default 16).
-     * @param {object} options - Which character sets to include.
-     * @return {string} The generated password.
+     * Format bytes to human-readable size
+     * @param {number} bytes - Size in bytes
+     * @param {number} decimals - Decimal places (default: 2)
+     * @returns {string} Formatted size string
      */
-    generatePassword: (length = 16, options = {} ) => {
+    formatBytes: function ( bytes, decimals = 2 ) {
+        if ( bytes === 0 ) return '0 Bytes';
+        
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = [ 'Bytes', 'KB', 'MB', 'GB', 'TB', 'PB' ];
+        const i = Math.floor( Math.log( bytes ) / Math.log( k ) );
+        
+        return parseFloat( ( bytes / Math.pow( k, i ) ).toFixed( dm ) ) + ' ' + sizes[ i ];
+    },
+
+    /**
+     * Format number with separators
+     * @param {number} num - Number to format
+     * @param {string} separator - Thousand separator (default: ',')
+     * @returns {string} Formatted number
+     */
+    formatNumber: function ( num, separator = ',' ) {
+        const numValue = parseFloat( num );
+        if ( isNaN( numValue ) ) return '0';
+        return numValue.toString().replace( /\B(?=(\d{3})+(?!\d))/g, separator );
+    },
+
+    /**
+     * Generates a cryptographically strong random password.
+     * @param {number} length - Length of the password (default: 16)
+     * @param {Object} options - Character set options
+     * @returns {string} Generated password
+     */
+    generatePassword: function ( length = 16, options = {} ) {
         const {
             includeUpper = true,
             includeNumbers = true,
-            includeSymbols = true
+            includeSymbols = true,
+            excludeAmbiguous = false // Exclude similar-looking characters
         } = options;
 
-        const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-        const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const numbers = '0123456789';
-        const symbols = '!@#$%^&*()_+~`|}{[]:;?><,./-';
+        let lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        let uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let numbers = '0123456789';
+        let symbols = '!@#$%^&*()_+~`|}{[]:;?><,./-=';
+
+        // Exclude ambiguous characters if requested
+        if ( excludeAmbiguous ) {
+            lowercase = lowercase.replace( /[ilo]/g, '' );
+            uppercase = uppercase.replace( /[IO]/g, '' );
+            numbers = numbers.replace( /[01]/g, '' );
+            symbols = symbols.replace( /[|`]/g, '' );
+        }
 
         let charset = lowercase;
-        if (includeUpper) charset += uppercase;
-        if (includeNumbers) charset += numbers;
-        if (includeSymbols) charset += symbols;
+        if ( includeUpper ) charset += uppercase;
+        if ( includeNumbers ) charset += numbers;
+        if ( includeSymbols ) charset += symbols;
+
+        if ( ! charset ) charset = lowercase; // Fallback
 
         let password = '';
-        const array = new Uint32Array(length);
+        const array = new Uint32Array( length );
         
-        // Fill array with cryptographically strong random numbers
-        window.crypto.getRandomValues(array);
-
-        for (let i = 0; i < length; i++) {
-            // Use modulo to pick a character from the charset
-            password += charset.charAt(array[i] % charset.length);
+        // Use crypto API if available, fallback to Math.random
+        if ( window.crypto && window.crypto.getRandomValues ) {
+            window.crypto.getRandomValues( array );
+            for ( let i = 0; i < length; i++ ) {
+                password += charset.charAt( array[ i ] % charset.length );
+            }
+        } else {
+            // Fallback for older browsers
+            for ( let i = 0; i < length; i++ ) {
+                password += charset.charAt( Math.floor( Math.random() * charset.length ) );
+            }
         }
 
         return password;
+    },
+
+    /**
+     * Generate a random slug-safe string
+     * @param {number} length - Length of slug (default: 8)
+     * @returns {string} Random slug
+     */
+    generateSlug: function ( length = 8 ) {
+        const charset = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let slug = '';
+        
+        for ( let i = 0; i < length; i++ ) {
+            slug += charset.charAt( Math.floor( Math.random() * charset.length ) );
+        }
+        
+        return slug;
+    },
+
+    /**
+     * Convert string to URL-friendly slug
+     * @param {string} str - Input string
+     * @returns {string} URL slug
+     */
+    slugify: function ( str ) {
+        if ( ! str || typeof str !== 'string' ) return '';
+        
+        return str
+            .toLowerCase()
+            .trim()
+            .replace( /[^\w\s-]/g, '' ) // Remove non-word chars
+            .replace( /[\s_-]+/g, '-' ) // Replace spaces/underscores with dash
+            .replace( /^-+|-+$/g, '' ); // Remove leading/trailing dashes
+    },
+
+    /**
+     * Parse JSON safely
+     * @param {string} string - JSON string
+     * @param {*} defaultValue - Default value if parsing fails (default: {})
+     * @returns {*} Parsed JSON or default value
+     */
+    JSONparse: function ( string, defaultValue = {} ) {
+        if ( ! string || typeof string !== 'string' ) return defaultValue;
+        
+        try {
+            return JSON.parse( string );
+        } catch ( error ) {
+            console.warn( 'JSON parse error:', error.message );
+            return defaultValue;
+        }
+    },
+
+    /**
+     * Stringify JSON safely
+     * @param {*} value - Value to stringify
+     * @param {number} space - Indentation spaces (default: 0)
+     * @returns {string} JSON string or empty string on error
+     */
+    JSONstringify: function ( value, space = 0 ) {
+        try {
+            return JSON.stringify( value, null, space );
+        } catch ( error ) {
+            console.warn( 'JSON stringify error:', error.message );
+            return '';
+        }
+    },
+
+    /**
+     * Check if string is valid JSON
+     * @param {string} string - String to test
+     * @returns {boolean} True if valid JSON
+     */
+    isJSON: function ( string ) {
+        if ( ! string || typeof string !== 'string' ) return false;
+        
+        try {
+            JSON.parse( string );
+            return true;
+        } catch {
+            return false;
+        }
+    },
+
+    /**
+     * Check if string is valid email
+     * @param {string} email - Email to validate
+     * @returns {boolean} True if valid email
+     */
+    isEmail: function ( email ) {
+        if ( ! email || typeof email !== 'string' ) return false;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test( email );
+    },
+
+    /**
+     * Check if string is valid URL
+     * @param {string} url - URL to validate
+     * @returns {boolean} True if valid URL
+     */
+    isURL: function ( url ) {
+        if ( ! url || typeof url !== 'string' ) return false;
+        
+        try {
+            new URL( url );
+            return true;
+        } catch {
+            return false;
+        }
+    },
+
+    /**
+     * Extract all URLs from text
+     * @param {string} text - Text to search
+     * @returns {Array<string>} Array of URLs
+     */
+    extractURLs: function ( text ) {
+        if ( ! text || typeof text !== 'string' ) return [];
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.match( urlRegex ) || [];
+    },
+
+    /**
+     * Replace placeholders in template string
+     * @param {string} template - Template string with {{placeholders}}
+     * @param {Object} data - Data object
+     * @returns {string} Processed string
+     */
+    template: function ( template, data = {} ) {
+        if ( ! template || typeof template !== 'string' ) return '';
+        
+        return template.replace( /\{\{(\w+)\}\}/g, ( match, key ) => {
+            return data.hasOwnProperty( key ) ? data[ key ] : match;
+        } );
+    },
+
+    /**
+     * Count words in text
+     * @param {string} text - Text to count
+     * @returns {number} Word count
+     */
+    wordCount: function ( text ) {
+        if ( ! text || typeof text !== 'string' ) return 0;
+        return text.trim().split( /\s+/ ).filter( word => word.length > 0 ).length;
+    },
+
+    /**
+     * Calculate reading time
+     * @param {string} text - Text to analyze
+     * @param {number} wordsPerMinute - Average reading speed (default: 200)
+     * @returns {number} Reading time in minutes
+     */
+    readingTime: function ( text, wordsPerMinute = 200 ) {
+        const words = this.wordCount( text );
+        return Math.ceil( words / wordsPerMinute );
+    },
+
+    /**
+     * Reverse a string
+     * @param {string} str - String to reverse
+     * @returns {string} Reversed string
+     */
+    reverse: function ( str ) {
+        if ( ! str || typeof str !== 'string' ) return '';
+        return str.split( '' ).reverse().join( '' );
+    },
+
+    /**
+     * Check if string is palindrome
+     * @param {string} str - String to check
+     * @returns {boolean} True if palindrome
+     */
+    isPalindrome: function ( str ) {
+        if ( ! str || typeof str !== 'string' ) return false;
+        const cleaned = str.toLowerCase().replace( /[^a-z0-9]/g, '' );
+        return cleaned === cleaned.split( '' ).reverse().join( '' );
+    },
+
+    /**
+     * Repeat string n times
+     * @param {string} str - String to repeat
+     * @param {number} times - Number of repetitions
+     * @returns {string} Repeated string
+     */
+    repeat: function ( str, times ) {
+        if ( ! str || typeof str !== 'string' ) return '';
+        return str.repeat( times );
+    },
+
+    /**
+     * Pad string to specified length
+     * @param {string} str - String to pad
+     * @param {number} length - Target length
+     * @param {string} char - Padding character (default: ' ')
+     * @param {string} position - 'left', 'right', or 'both' (default: 'right')
+     * @returns {string} Padded string
+     */
+    pad: function ( str, length, char = ' ', position = 'right' ) {
+        if ( ! str || typeof str !== 'string' ) str = '';
+        
+        const padLength = length - str.length;
+        if ( padLength <= 0 ) return str;
+        
+        const padding = char.repeat( padLength );
+        
+        switch ( position ) {
+            case 'left':
+                return padding + str;
+            case 'both':
+                const leftPad = Math.floor( padLength / 2 );
+                const rightPad = padLength - leftPad;
+                return char.repeat( leftPad ) + str + char.repeat( rightPad );
+            case 'right':
+            default:
+                return str + padding;
+        }
     }
 };
 
@@ -1619,40 +2131,25 @@ document.addEventListener( 'DOMContentLoaded', function() {
             let spinner = showSpinner( '.smliser-spinner', true );
 
             try {
-                const response    = await fetch( url.href, {
+                const response    = await smliserFetchJSON( url.href, {
                     method: "POST",
                     body: payLoad,
                     credentials: "same-origin"
                 });
 
-                const contentType   = response.headers.get( 'Content-Type' );
-                const isJson        = contentType.includes( 'application/json' );
-                let body            = '';
+                let message   = response?.data?.message ?? response;
 
-                if ( isJson ) {
-                    body    = await response.json();
-                } else {
-                    body    = await response.text();
-                }
-
-                if ( ! response.ok || ( isJson && ! body.success ) ) {
-                    const errorMessage  = isJson ? body?.data?.message : body;
+                if ( ! response.success ) {
+                    const errorMessage  = message;
                     throw new Error( errorMessage );
                 }
 
-                const message   = body?.data?.message ?? 'Request was successfull, but no response message.';
+                message   = message ?? 'Request was successfull, but no response message.';
 
-                smliserNotify( message, 5000 );
-                setTimeout( processAfterEntitySave, 5000, body );
+                smliserNotify( message, 3000 );
+                setTimeout( processAfterEntitySave, 3000, response );
             } catch ( error ) {
-                let message;
-                if ( error instanceof TypeError ) {
-                    message = 'Network error, please check your internet connection';
-                } else {
-                    message = error.message;
-                }
-
-                smliserNotify( message, 10000 );
+                smliserNotify( error.message, 10000 );
                 
             } finally {
                 removeSpinner( spinner );
@@ -1660,45 +2157,71 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
         });
 
-        orgMembersContainer && orgMembersContainer.addEventListener( 'click', async e => {
-            e.preventDefault();
-            const addnewMemberBtn   = e.target.closest( '.smliser-add-member-to-org-btn' );
-            const editMemberBtn     = e.target.closest( '.button.edit-member' );
-            const deleteMemberBtn   = e.target.closest( '.button.delete-member' );
-            const clickedBtn        = addnewMemberBtn ?? editMemberBtn ?? deleteMemberBtn;
-            
-            qv.set( 'section', addnewMemberBtn ? 'add-new-member': 'edit-member' );
-            qv.set( 'org_id', qv.get( 'id' ) );
-            qv.delete( 'id' );
+        if ( orgMembersContainer ) {
+            orgMembersContainer.addEventListener( 'click', async e => {
+                e.preventDefault();
+                const addnewMemberBtn   = e.target.closest( '.smliser-add-member-to-org-btn' );
+                const editMemberBtn     = e.target.closest( '.button.edit-member' );
+                const deleteMemberBtn   = e.target.closest( '.button.delete-member' );
+                const clickedBtn    = addnewMemberBtn ?? editMemberBtn ?? deleteMemberBtn;
+                
+                qv.set( 'org_id', qv.get( 'id' ) );
 
-            if ( editMemberBtn ) {
-                qv.set( 'section', 'edit-member' );
-                qv.set( 'member_id', editMemberBtn.dataset.memberId );
-            }
-
-            if ( addnewMemberBtn ) {
-                qv.set( 'section', 'add-new-member' );
-            }
-
-            if ( clickedBtn ) {
-                let spinner = showSpinner( '.smliser-spinner', true );
-                clickedBtn.disabled = true;
-
-                if ( clickedBtn === deleteMemberBtn && confirm( 'Are you sure you want to remove the selected member from this organization?' ) ) {
-                    const url   = new URL( smliser_var.smliser_ajax_url );
-
-                    url.searchParams.set( 'action', 'smliser_delete_org_member' );
-                    url.searchParams.set( 'security', smliser_var.nonce );
-                    url.searchParams.set( 'action', 'smliser_delete_org_member' );
-                    url.searchParams.set( 'action', 'smliser_delete_org_member' );
-                    return;
+                if ( editMemberBtn ) {
+                    qv.set( 'section', 'edit-member' );
+                    qv.set( 'member_id', editMemberBtn.dataset.memberId );
                 }
-                const url   = new URL( window.location );
-                url.search  = qv.toString();
-                window.location.href = url.href;
-            }
-            
-        });
+
+                if ( addnewMemberBtn ) {
+                    qv.set( 'section', 'add-new-member' );
+                }
+
+                if ( clickedBtn ) {
+                    let spinner = showSpinner( '.smliser-spinner', true );
+                    clickedBtn.disabled = true;
+
+                    if ( clickedBtn === deleteMemberBtn && confirm( 'Are you sure you want to remove the selected member from this organization?' ) ) {
+                        const url   = new URL( smliser_var.smliser_ajax_url );
+
+                        url.searchParams.set( 'action', 'smliser_delete_org_member' );
+                        url.searchParams.set( 'security', smliser_var.nonce );
+                        url.searchParams.set( 'organization_id', qv.get( 'org_id' ) );
+                        url.searchParams.set( 'member_id', deleteMemberBtn.dataset.memberId );
+                        url.searchParams.set( 'action', 'smliser_delete_org_member' );
+
+                        try {
+                            const response  = await smliserFetchJSON( url.href );
+                            let message     = response?.data.message;
+
+                            if ( response?.success ) {
+                                const memberContainer   = clickedBtn.closest( 'li.smliser-org-member' );
+                                jQuery( memberContainer ).fadeOut( 'slow', () => {
+                                    memberContainer.remove();
+                                });
+
+                                smliserNotify( message, 5000 );
+                            } else {
+                                throw new Error( message );
+                            }                         
+
+                        } catch (error) {
+                            clickedBtn.disabled = false;
+                            smliserNotify( error.message, 10000 );
+                        } finally {
+                            removeSpinner( spinner );
+                        }
+                        return;
+                    }
+
+                    qv.delete( 'id' );
+                    const url   = new URL( window.location );
+                    url.search  = qv.toString();
+                    window.location.href = url.href;
+                }
+                
+            });
+        }
+
 
         /**
          * Process the response body ofter a successful submission of the

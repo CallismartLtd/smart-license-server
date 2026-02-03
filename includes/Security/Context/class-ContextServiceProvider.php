@@ -14,6 +14,7 @@ use InvalidArgumentException;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\SecurityException;
 use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Security\Actors\OrganizationMember;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -26,7 +27,7 @@ use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE;
 use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower, gmdate,
-sprintf;
+sprintf, class_implements;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -275,8 +276,17 @@ class ContextServiceProvider {
      * @param Role $role
      * @param OwnerSubjectInterface|null $org The subject entity associated with resource owner.
      * @throws InvalidArgumentException When one required field is missing.
+     * @throws SecurityException When there is no valid resource owner in context.
      */
     public static function save_actor_role( ActorInterface $actor, Role $role, ?OwnerSubjectInterface $subject ) : bool {
+        if ( ! $subject && ! in_array( OwnerSubjectInterface::class, class_implements( $actor ), true ) ) {
+            throw new SecurityException( 
+                'invalid_scope', 
+                'Principal must either be a valid resource owner or be acting for a resource owner.',
+                ['status' => 500]
+            );
+        }
+
         $db             = smliser_dbclass();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
@@ -329,6 +339,42 @@ class ContextServiceProvider {
         }
 
         return false !== $result;
+    }
+
+    /**
+     * Delete an actors' assignedrole from the assignment table.
+     * 
+     * @param ActorInterface $actor
+     * @param OwnerSubjectInterface|null $subject
+     * @throws SecurityException On failure.
+     */
+    public static function delete_actor_role( ActorInterface $actor, ?OwnerSubjectInterface $subject ) : void {
+        if ( ! $subject && ! in_array( OwnerSubjectInterface::class, class_implements( $actor ), true ) ) {
+            throw new SecurityException( 
+                'invalid_scope', 
+                'Principal must either be a valid resource owner or be acting for a resource owner.',
+                ['status' => 500]
+            );
+        }
+
+        $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+        $db     = smliser_dbclass();
+        $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
+
+        $deleted    = $db->delete( $table,[
+            'principal_id'          => $actor->get_id(),
+            'principal_type'        => $actor->get_type(),
+            'owner_subject_type'    => $subject_type,
+            'owner_subject_id'      => $subject ? $subject->get_id() : $actor->get_id(),
+        ]);
+
+        if ( ! $deleted ) {
+            throw new SecurityException( 
+                'delete_error', 
+                'Unable to delete the role of this actor.',
+                ['status' => 500]
+            );
+        }
     }
 
     /**
@@ -465,4 +511,35 @@ class ContextServiceProvider {
         return $members;
     }
 
+    /**
+     * Deletes an organization member and their roles
+     * 
+     * @param OrganizationMember $member
+     * @param Organization $organization
+     */
+    public static function delete_organization_member( OrganizationMember $member, Organization $organization ) {
+        if ( ! $organization->is_member( $member ) ) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    '%s does not belong to this organization "%s"',
+                    $member->get_display_name(),
+                    $organization->get_display_name()
+                )
+            );
+        }
+        $db     = smliser_dbclass();
+        $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+
+        $deleted    = $db->delete( $table, [
+            'id'                => $member->get_id(),
+            'member_id'         => $member->get_user()->get_id(),
+            'organization_id'   => $organization->get_id()
+        ]);
+
+        if ( ! $deleted ) {
+            throw new SecurityException( 'delete_error', 'Unable to delete member', ['status' => 500] );
+        }
+
+        static::delete_actor_role( $member, $organization );
+    }
 }
