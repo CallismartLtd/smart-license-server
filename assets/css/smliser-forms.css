@@ -1045,6 +1045,12 @@ button.smliser-upload-btn {
   gap: 10px;
   padding: 8px;
   background-color: #ffffff;
+  border-radius: 6px;
+  transition: box-shadow .5s ease-in-out;
+}
+.smliser-organization-members-list li:hover {
+  box-shadow: 0px 2px 3px 0px rgba(3, 1, 2, 0.2);
+
 }
 
 li.smliser-org-member .smliser-org-member_header {
@@ -1076,19 +1082,11 @@ button.smliser-add-member-to-org-btn[type="button"]:active {
 }
 
 .smliser-org-member_meta {
-  display: flex;
-  flex-direction: row;
-  gap: 2px;
+  width: 100%;
 }
 
-.smliser-org-member_meta dt {
-  font-weight: 600;
-  display: inline;
-}
-
-.smliser-org-member_meta dd {
-  display: inline;
-  margin: 0 8px 0 0;
+.smliser-org-member_meta tr {
+  text-align: left;
 }
 
 .smliser-organization-member-form {
@@ -1096,4 +1094,108 @@ button.smliser-add-member-to-org-btn[type="button"]:active {
   flex-direction: row;
   flex-wrap: wrap;
   gap: 15px;
+}
+
+/* Container and Warning */
+.smliser-api-key-delivery {
+    text-align: left;
+}
+
+.smliser-api-key-warning {
+    background-color: #fff4e5;
+    color: #663c00;
+    padding: 12px;
+    border-radius: 4px;
+    border-left: 4px solid #ff9800;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+/* Key Display Area */
+.smliser-api-key-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.smliser-api-key-display {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    padding: 15px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    word-break: break-all;
+    border-radius: 4px;
+    user-select: all;
+    margin-bottom: 10px;
+    line-height: 1.5;
+    color: #222;
+}
+
+/* Footer Action Layout */
+.smliser-modal-footer-api-actions {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Primary Action: Copy */
+.smliser-copy-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.smliser-copy-btn:hover {
+    background: #0056b3;
+}
+
+.smliser-copy-btn:active {
+    transform: translateY(1px);
+}
+
+.smliser-copy-btn.copied {
+    background: #28a745;
+}
+
+/* Secondary Action: Download */
+.smliser-btn-secondary {
+    background: #f0f0f0;
+    color: #444;
+    border: 1px solid #ccc;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.smliser-btn-secondary:hover {
+    background: #e4e4e4;
+    border-color: #bbb;
+    color: #000;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 520px) {
+    .smliser-modal-footer-api-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .smliser-modal-footer-api-actions > div {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
 }
