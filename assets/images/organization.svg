@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="orgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#be185d;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="teamGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fce7f3;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <radialGradient id="shine">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Rounded Square Background -->
+  <rect width="128" height="128" rx="24" fill="url(#orgGradient)"/>
+  
+  <!-- Decorative shine circles -->
+  <g opacity="0.15">
+    <circle cx="30" cy="30" r="40" fill="url(#shine)"/>
+    <circle cx="98" cy="98" r="35" fill="url(#shine)"/>
+  </g>
+  
+  <!-- Organization Shield/Building Structure -->
+  <g transform="translate(64, 58)" filter="url(#shadow)">
+    <!-- Building/Org structure base -->
+    <path d="M0,-28 L18,-20 L18,15 L-18,15 L-18,-20 Z" 
+          fill="url(#teamGradient)" 
+          opacity="0.95"/>
+    
+    <!-- Building windows/grid -->
+    <g fill="#ec4899" opacity="0.3">
+      <rect x="-12" y="-15" width="5" height="5" rx="1"/>
+      <rect x="-5" y="-15" width="5" height="5" rx="1"/>
+      <rect x="2" y="-15" width="5" height="5" rx="1"/>
+      <rect x="9" y="-15" width="5" height="5" rx="1"/>
+      
+      <rect x="-12" y="-8" width="5" height="5" rx="1"/>
+      <rect x="-5" y="-8" width="5" height="5" rx="1"/>
+      <rect x="2" y="-8" width="5" height="5" rx="1"/>
+      <rect x="9" y="-8" width="5" height="5" rx="1"/>
+      
+      <rect x="-12" y="-1" width="5" height="5" rx="1"/>
+      <rect x="-5" y="-1" width="5" height="5" rx="1"/>
+      <rect x="2" y="-1" width="5" height="5" rx="1"/>
+      <rect x="9" y="-1" width="5" height="5" rx="1"/>
+    </g>
+    
+    <!-- Door/entrance -->
+    <rect x="-4" y="6" width="8" height="9" rx="1" fill="#ec4899" opacity="0.4"/>
+    
+    <!-- Roof/top accent -->
+    <path d="M0,-28 L18,-20 L-18,-20 Z" fill="#be185d" opacity="0.3"/>
+    
+    <!-- Flag on top -->
+    <g transform="translate(0, -28)">
+      <line x1="0" y1="0" x2="0" y2="-8" stroke="white" stroke-width="1.5" opacity="0.8"/>
+      <path d="M0,-8 L8,-6 L0,-4 Z" fill="white" opacity="0.8">
+        <animateTransform attributeName="transform" type="scale" 
+                          values="1,1;1.1,1;1,1" dur="2s" repeatCount="indefinite"/>
+      </path>
+    </g>
+  </g>
+  
+  <!-- Team Members (Three people silhouettes) -->
+  <g filter="url(#glow)">
+    <!-- Left person -->
+    <g transform="translate(35, 75)" opacity="0.9">
+      <circle cx="0" cy="0" r="8" fill="url(#teamGradient)"/>
+      <path d="M-10,18 Q-10,10 -6,8 Q-3,6 0,6 Q3,6 6,8 Q10,10 10,18 L10,22 L-10,22 Z" 
+            fill="url(#teamGradient)"/>
+    </g>
+    
+    <!-- Center person (larger - leader) -->
+    <g transform="translate(64, 70)">
+      <circle cx="0" cy="0" r="10" fill="url(#teamGradient)"/>
+      <path d="M-12,20 Q-12,12 -7,9 Q-4,7 0,7 Q4,7 7,9 Q12,12 12,20 L12,25 L-12,25 Z" 
+            fill="url(#teamGradient)"/>
+      <!-- Leader badge -->
+      <circle cx="6" cy="-6" r="4" fill="#fbbf24" opacity="0.9">
+        <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    
+    <!-- Right person -->
+    <g transform="translate(93, 75)" opacity="0.9">
+      <circle cx="0" cy="0" r="8" fill="url(#teamGradient)"/>
+      <path d="M-10,18 Q-10,10 -6,8 Q-3,6 0,6 Q3,6 6,8 Q10,10 10,18 L10,22 L-10,22 Z" 
+            fill="url(#teamGradient)"/>
+    </g>
+  </g>
+  
+  <!-- Collaboration Connection Lines -->
+  <g stroke="white" stroke-width="2" opacity="0.3" stroke-dasharray="3,3">
+    <line x1="43" y1="82" x2="56" y2="82">
+      <animate attributeName="stroke-dashoffset" from="0" to="6" dur="1s" repeatCount="indefinite"/>
+    </line>
+    <line x1="72" y1="82" x2="85" y2="82">
+      <animate attributeName="stroke-dashoffset" from="0" to="6" dur="1s" repeatCount="indefinite"/>
+    </line>
+  </g>
+  
+  <!-- Shared Resources/Apps (Bottom) -->
+  <g transform="translate(64, 105)">
+    <!-- Shared workspace indicator -->
+    <rect x="-25" y="-6" width="50" height="12" rx="6" fill="white" opacity="0.2"/>
+    
+    <!-- Multiple app icons (shared resources) -->
+    <g transform="translate(-15, 0)" opacity="0.8">
+      <rect x="-4" y="-4" width="8" height="8" rx="2" fill="white" opacity="0.9"/>
+      <circle cx="0" cy="0" r="2" fill="#ec4899" opacity="0.6"/>
+    </g>
+    
+    <g transform="translate(0, 0)" opacity="0.8">
+      <rect x="-4" y="-4" width="8" height="8" rx="2" fill="white" opacity="0.9"/>
+      <path d="M-2,-2 L-2,0 L0,0 L0,-2 Z M1,-2 L1,2 L3,2 L3,-2 Z M-2,1 L0,1 L0,2 L-2,2 Z" fill="#ec4899" opacity="0.6"/>
+    </g>
+    
+    <g transform="translate(15, 0)" opacity="0.8">
+      <rect x="-4" y="-4" width="8" height="8" rx="2" fill="white" opacity="0.9"/>
+      <rect x="-2" y="-2" width="4" height="1" rx="0.5" fill="#ec4899" opacity="0.6"/>
+      <line x1="-1" y1="0" x2="1" y2="0" stroke="#ec4899" stroke-width="0.8" opacity="0.6"/>
+      <line x1="-1" y1="1.5" x2="1" y2="1.5" stroke="#ec4899" stroke-width="0.8" opacity="0.6"/>
+    </g>
+  </g>
+  
+  <!-- Organization Network Nodes -->
+  <g fill="white" opacity="0.3">
+    <circle cx="25" cy="50" r="2.5">
+      <animate attributeName="opacity" values="0.2;0.6;0.2" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="103" cy="50" r="2.5">
+      <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2.3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="20" cy="90" r="2">
+      <animate attributeName="opacity" values="0.2;0.5;0.2" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="108" cy="90" r="2">
+      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2.7s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Team Count Badge (Top Right) -->
+  <g transform="translate(95, 30)" filter="url(#shadow)">
+    <circle r="12" fill="white" opacity="0.95"/>
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="central" 
+          font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ec4899">
+      3+
+    </text>
+  </g>
+  
+  <!-- Verified Organization Badge (Left) -->
+  <g transform="translate(33, 30)" filter="url(#shadow)">
+    <circle r="10" fill="#10b981" opacity="0.95"/>
+    <path d="M-3,0 L-1,3 L4,-3" 
+          fill="none" 
+          stroke="white" 
+          stroke-width="2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Sparkle Effects (Collaboration magic) -->
+  <g fill="#fbbf24" opacity="0.4">
+    <path d="M48,25 L49,27 L51,28 L49,29 L48,31 L47,29 L45,28 L47,27 Z">
+      <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite"/>
+    </path>
+    <path d="M80,25 L81,27 L83,28 L81,29 L80,31 L79,29 L77,28 L79,27 Z">
+      <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2.3s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  
+  <!-- "ORG" Badge (Bottom Right) -->
+  <g transform="translate(100, 100)">
+    <circle r="14" fill="white" opacity="0.95"/>
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="central" 
+          font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#ec4899">
+      ORG
+    </text>
+  </g>
+</svg>
