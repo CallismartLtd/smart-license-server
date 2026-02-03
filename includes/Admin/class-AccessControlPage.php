@@ -338,7 +338,7 @@ class AccessControlPage {
         $avatar_url     = 
             $organization && $organization->get_avatar()->is_valid() 
             ? $organization->get_avatar()->add_query_param( 'ver', time() )
-            : new URL( smliser_get_placeholder_icon( 'avatar' ) );
+            : new URL( smliser_get_placeholder_icon( 'organization' ) );
 
         $avatar_name    = $organization ? 'View image' : $avatar_url->basename();
 
@@ -427,9 +427,10 @@ class AccessControlPage {
                     'name'  => 'user_id',
                     'value' => $member?->get_user()->get_id(),
                     'attr'  => array(
-                        'readonly'      => true,
+                        'readonly'  => true,
                     ),
-                    'options'   => $selected_member
+                    'options'   => $selected_member,
+                    
                 )
             ),
 
@@ -745,7 +746,7 @@ class AccessControlPage {
         $avatar_url     = 
             $sa_acc && $sa_acc->get_avatar()->is_valid() 
             ? $sa_acc->get_avatar()->add_query_param( 'ver', time() )
-            : new URL( smliser_get_placeholder_icon( 'avatar' ) );
+            : new URL( smliser_get_placeholder_icon( 'api-key' ) );
 
         $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
 
