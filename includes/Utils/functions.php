@@ -1472,6 +1472,8 @@ function smliser_get_placeholder_icon( string $type = '' ) : string {
         'software', 'softwares'     => 'assets/images/software-placeholder.svg',
         'download', 'downloads'     => 'assets/images/downloads-icon.svg',
         'avatar', 'default-avatar'  => 'assets/images/default-avatar.svg',
+        'api-key', 'apikey', 'api'  => 'assets/images/api-key.svg',
+        'org', 'organization'       => 'assets/images/organization.svg',
         default                     => 'assets/images/software-placeholder.svg',
     };
 
