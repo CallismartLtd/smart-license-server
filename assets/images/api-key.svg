@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="apiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="codeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <radialGradient id="shine">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </radialGradient>
+    
+    <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dbeafe;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded Square Background -->
+  <rect width="128" height="128" rx="24" fill="url(#apiGradient)"/>
+  
+  <!-- Decorative shine circles -->
+  <g opacity="0.2">
+    <circle cx="30" cy="30" r="40" fill="url(#shine)"/>
+    <circle cx="98" cy="98" r="35" fill="url(#shine)"/>
+  </g>
+  
+  <!-- API Key Card -->
+  <g transform="translate(64, 60)" filter="url(#shadow)">
+    <rect x="-38" y="-22" width="76" height="44" rx="6" fill="url(#cardGradient)"/>
+    
+    <!-- Card top stripe (like credit card) -->
+    <rect x="-38" y="-22" width="76" height="8" rx="6" fill="url(#codeGradient)" opacity="0.3"/>
+    
+    <!-- Chip icon (left side) -->
+    <g transform="translate(-25, -10)">
+      <rect x="-6" y="-6" width="12" height="12" rx="2" fill="url(#codeGradient)" opacity="0.6"/>
+      <rect x="-4" y="-4" width="8" height="8" rx="1" fill="none" stroke="#1d4ed8" stroke-width="1"/>
+      <line x1="-2" y1="-4" x2="-2" y2="4" stroke="#1d4ed8" stroke-width="0.5"/>
+      <line x1="2" y1="-4" x2="2" y2="4" stroke="#1d4ed8" stroke-width="0.5"/>
+      <line x1="-4" y1="-2" x2="4" y2="-2" stroke="#1d4ed8" stroke-width="0.5"/>
+      <line x1="-4" y1="2" x2="4" y2="2" stroke="#1d4ed8" stroke-width="0.5"/>
+    </g>
+    
+    <!-- API Key Code (monospace font) -->
+    <g filter="url(#glow)">
+      <text x="-35" y="6" 
+            font-family="'Courier New', Consolas, monospace" 
+            font-size="7" 
+            font-weight="600" 
+            fill="#3b82f6" 
+            letter-spacing="0.5">
+        sk_live_4a7c9f2b
+      </text>
+      <text x="-35" y="15" 
+            font-family="'Courier New', Consolas, monospace" 
+            font-size="7" 
+            font-weight="600" 
+            fill="#3b82f6" 
+            letter-spacing="0.5">
+        e3d8k9m1n6p2q7r8
+      </text>
+    </g>
+    
+    <!-- QR Code representation (right side) -->
+    <g transform="translate(24, 0)" opacity="0.4">
+      <rect x="-6" y="-6" width="12" height="12" rx="1" fill="none" stroke="#3b82f6" stroke-width="1"/>
+      <rect x="-4" y="-4" width="2" height="2" fill="#3b82f6"/>
+      <rect x="-1" y="-4" width="2" height="2" fill="#3b82f6"/>
+      <rect x="2" y="-4" width="2" height="2" fill="#3b82f6"/>
+      <rect x="-4" y="-1" width="2" height="2" fill="#3b82f6"/>
+      <rect x="2" y="-1" width="2" height="2" fill="#3b82f6"/>
+      <rect x="-4" y="2" width="2" height="2" fill="#3b82f6"/>
+      <rect x="-1" y="2" width="2" height="2" fill="#3b82f6"/>
+      <rect x="2" y="2" width="2" height="2" fill="#3b82f6"/>
+    </g>
+  </g>
+  
+  <!-- Code Brackets (Decorative) -->
+  <g opacity="0.3" fill="white">
+    <text x="20" y="35" font-family="monospace" font-size="20" font-weight="bold">&lt;</text>
+    <text x="100" y="35" font-family="monospace" font-size="20" font-weight="bold">/&gt;</text>
+  </g>
+  
+  <!-- API Connection Nodes (Floating) -->
+  <g fill="white" opacity="0.4">
+    <circle cx="25" cy="90" r="3">
+      <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="103" cy="90" r="3">
+      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2.3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="64" cy="95" r="2">
+      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Connection lines -->
+    <line x1="25" y1="90" x2="64" y2="95" stroke="white" stroke-width="1" opacity="0.2">
+      <animate attributeName="opacity" values="0.1;0.3;0.1" dur="2s" repeatCount="indefinite"/>
+    </line>
+    <line x1="103" y1="90" x2="64" y2="95" stroke="white" stroke-width="1" opacity="0.2">
+      <animate attributeName="opacity" values="0.1;0.3;0.1" dur="2.3s" repeatCount="indefinite"/>
+    </line>
+  </g>
+  
+  <!-- Lock/Security Badge (Top Right) -->
+  <g transform="translate(95, 30)" filter="url(#shadow)">
+    <circle r="12" fill="white" opacity="0.95"/>
+    <g transform="translate(0, -1)">
+      <!-- Lock body -->
+      <rect x="-3.5" y="1" width="7" height="5" rx="1" fill="#3b82f6"/>
+      <!-- Lock shackle -->
+      <path d="M-2.5,-2 L-2.5,1 M2.5,-2 L2.5,1" stroke="#3b82f6" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M-2.5,-2 Q0,-4 2.5,-2" stroke="#3b82f6" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+  
+  <!-- Data Stream Effect (Right side) -->
+  <g opacity="0.2" fill="white">
+    <rect x="108" y="50" width="2" height="4" rx="1">
+      <animate attributeName="y" values="45;60;45" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.2;0;0.2" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="112" y="55" width="2" height="5" rx="1">
+      <animate attributeName="y" values="50;65;50" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0;0.3" dur="1.8s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="116" y="52" width="2" height="4" rx="1">
+      <animate attributeName="y" values="47;62;47" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.2;0;0.2" dur="2s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  
+  <!-- "API" Badge (Bottom Right) -->
+  <g transform="translate(100, 100)">
+    <circle r="14" fill="white" opacity="0.95"/>
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="central" 
+          font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#3b82f6">
+      API
+    </text>
+  </g>
+</svg>
