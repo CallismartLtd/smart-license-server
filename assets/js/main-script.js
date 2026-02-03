@@ -100,9 +100,10 @@ function smliserNotify(message, duration) {
 // Function to copy text to clipboard using Clipboard API
 function smliserCopyToClipboard(text) {
     navigator.clipboard.writeText(text).then( () => {
-        smliserNotify( `Copied to clipboard: ${text}`, 3000);
+        const copiedText    = text.length > 0 && text.length < 50 ? `: ${text}` : '';
+        smliserNotify( `Copied to clipboard ${copiedText}`, 3000);
     }).catch( (err) => {
-        console.error('Could not copy text: ', err);
+        console.error('Could not copy text', err);
     });
 }
 
@@ -420,7 +421,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const allCopyEl             = document.querySelectorAll( '.smliser-click-to-copy' );
     const adminNav              = document.querySelector( '.smliser-top-nav' );
     const allLicenseDomain      = document.querySelector( '.smliser-all-license-domains' );
-    const queryParam            = new URLSearchParams( window.location.search )
+    const queryParam            = new URLSearchParams( window.location.search );
     const roleBuilderEl         = document.querySelector( '#smliser-role-builder' );
     const avatarUploadFields    = document.querySelectorAll( '.smliser-avatar-upload' );
     const generatePasswordBtn   = document.querySelector( '#smliser-generate-password' );
@@ -440,6 +441,19 @@ document.addEventListener( 'DOMContentLoaded', function() {
             types: ['individual']
         };
 
+        const selectedUser  = usersSearch.value.trim();
+        if ( selectedUser.length ) {
+            const shadowInput       = document.createElement( 'input' );
+            shadowInput.name        = usersSearch.name;
+            shadowInput.type        = 'hidden';
+            shadowInput.value       = selectedUser;
+            const form              = usersSearch.closest( 'form' );
+            
+            usersSearch.removeAttribute('name');
+            usersSearch.disabled    = true;
+
+            form.appendChild( shadowInput );
+        }
         smliserSearchSecurityEntities( usersSearch, options );
     }
 
@@ -1583,7 +1597,8 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
     if ( accessControlForm ) {
         const orgMembersContainer   = document.querySelector( '.smliser-organization-members-list' );
-        const qv                    = queryParam;
+        const qv                    = new URLSearchParams( queryParam );
+        
         accessControlForm.addEventListener( 'submit', async e => {
             e.preventDefault();
             const payLoad   = new FormData( accessControlForm );
@@ -1628,8 +1643,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 const message   = body?.data?.message ?? 'Request was successfull, but no response message.';
 
                 smliserNotify( message, 5000 );
-
-                
+                setTimeout( processAfterEntitySave, 5000, body );
             } catch ( error ) {
                 let message;
                 if ( error instanceof TypeError ) {
@@ -1650,26 +1664,199 @@ document.addEventListener( 'DOMContentLoaded', function() {
             e.preventDefault();
             const addnewMemberBtn   = e.target.closest( '.smliser-add-member-to-org-btn' );
             const editMemberBtn     = e.target.closest( '.button.edit-member' );
-            const clickedBtn        = addnewMemberBtn ?? editMemberBtn;
+            const deleteMemberBtn   = e.target.closest( '.button.delete-member' );
+            const clickedBtn        = addnewMemberBtn ?? editMemberBtn ?? deleteMemberBtn;
             
             qv.set( 'section', addnewMemberBtn ? 'add-new-member': 'edit-member' );
             qv.set( 'org_id', qv.get( 'id' ) );
             qv.delete( 'id' );
 
             if ( editMemberBtn ) {
+                qv.set( 'section', 'edit-member' );
                 qv.set( 'member_id', editMemberBtn.dataset.memberId );
+            }
+
+            if ( addnewMemberBtn ) {
+                qv.set( 'section', 'add-new-member' );
             }
 
             if ( clickedBtn ) {
                 let spinner = showSpinner( '.smliser-spinner', true );
                 clickedBtn.disabled = true;
+
+                if ( clickedBtn === deleteMemberBtn && confirm( 'Are you sure you want to remove the selected member from this organization?' ) ) {
+                    const url   = new URL( smliser_var.smliser_ajax_url );
+
+                    url.searchParams.set( 'action', 'smliser_delete_org_member' );
+                    url.searchParams.set( 'security', smliser_var.nonce );
+                    url.searchParams.set( 'action', 'smliser_delete_org_member' );
+                    url.searchParams.set( 'action', 'smliser_delete_org_member' );
+                    return;
+                }
                 const url   = new URL( window.location );
                 url.search  = qv.toString();
                 window.location.href = url.href;
             }
             
         });
-        
+
+        /**
+         * Process the response body ofter a successful submission of the
+         * access control form.
+         * 
+         * @param {Object} responseBody - The HTTP response body.
+         */
+        const processAfterEntitySave    = ( responseBody ) => {
+            const isUsersTab                = qv.has( 'tab', 'users' );
+            const isAPITab                  = qv.has( 'tab', 'rest-api' );
+            const isOwnersTab               = qv.has( 'tab', 'owners' );
+            const isOrgTab                  = qv.has( 'tab', 'organizations' );
+            const currentUrl                = window.location.href;
+            const doRedirectOnAddNewPage    = isUsersTab || isOrgTab || isOwnersTab;
+            const responseData              = responseBody.data;
+            const redirectUrl               = new URL( currentUrl );
+            const entityID                  = responseData?.entity_id ?? 0;
+
+            redirectUrl.searchParams.set( 'section', 'edit' );
+            redirectUrl.searchParams.set( 'id', entityID );
+
+            if ( 'add-new' === qv.get( 'section' ) ) {
+                
+                if ( doRedirectOnAddNewPage ) {
+                    window.location.href = redirectUrl.href;
+                    return;                 
+                }
+
+                if ( isAPITab ) {
+                    const apiKeyData = responseData?.api_keys;
+
+                    if ( ! apiKeyData?.api_key ) {
+                        console.warn( 'Unable to get API key Data' );
+                        return;                        
+                    }
+
+                    const modalBody     = document.createElement( 'div' );
+                    modalBody.className = 'smliser-api-key-delivery';
+
+                    const warning       = document.createElement( 'div' );
+                    warning.className   = 'smliser-api-key-warning';
+                    const strong        = document.createElement( 'strong' );
+                    strong.textContent  = 'Important: ';
+                    warning.append( strong, document.createTextNode( 'Save this key now. For security, we cannot show it to you again.' ) );
+
+                    const label         = document.createElement( 'span' );
+                    label.className     = 'smliser-api-key-label';
+                    label.textContent   = 'Identifier: ';
+                    const code          = document.createElement( 'code' );
+                    code.textContent    = apiKeyData.identifier;
+                    label.appendChild( code );
+
+                    const keyDisplay        = document.createElement( 'div' );
+                    keyDisplay.className    = 'smliser-api-key-display';
+                    keyDisplay.textContent  = apiKeyData.api_key;
+
+                    modalBody.append( warning, label, keyDisplay );
+
+                    const footerContainer                   = document.createElement( 'div' );
+                    footerContainer.className               = 'smliser-modal-footer-api-actions';
+                    footerContainer.style.display           = 'flex';
+                    footerContainer.style.justifyContent    = 'space-between';
+                    footerContainer.style.alignItems        = 'center';
+                    footerContainer.style.width             = '100%';
+
+                    const creationInfo          = document.createElement( 'span' );
+                    creationInfo.style.fontSize = '12px';
+                    creationInfo.style.color    = '#666';
+                    creationInfo.textContent    = `For: ${apiKeyData.display_name}`;
+
+                    const btnGroup              = document.createElement( 'div' );
+                    btnGroup.style.display      = 'flex';
+                    btnGroup.style.gap          = '10px';
+
+                    const downloadBtn           = document.createElement( 'button' );
+                    downloadBtn.className       = 'button';
+                    downloadBtn.textContent     = 'Download Key';
+
+                    const copyBtn               = document.createElement( 'button' );
+                    copyBtn.className           = 'smliser-copy-btn';
+                    copyBtn.textContent         = 'Copy Key';
+
+                    btnGroup.append( downloadBtn, copyBtn );
+                    footerContainer.append( creationInfo, btnGroup );
+
+                    const modal = new SmliserModal({
+                        title: 'API Key Generated',
+                        body: modalBody,
+                        footer: footerContainer,
+                    });
+
+                    copyBtn.addEventListener( 'click', () => {
+                        navigator.clipboard.writeText( apiKeyData.api_key ).then( () => {
+                            const originalText = copyBtn.textContent;
+                            copyBtn.textContent = 'Copied!';
+                            setTimeout( () => { copyBtn.textContent = originalText; }, 2000 );
+                        });
+                    });
+
+                    downloadBtn.addEventListener( 'click', () => {
+                        const timestamp = new Date().toLocaleString();
+                        const fileContent = [
+                            `Smart License Server - API Key Export`,
+                            `------------------------------------`,
+                            `Display Name : ${apiKeyData.display_name}`,
+                            `Identifier   : ${apiKeyData.identifier}`,
+                            `Description  : ${apiKeyData.description || 'N/A'}`,
+                            `Created At   : ${timestamp}`,
+                            `------------------------------------`,
+                            `SECRET API KEY (Keep this safe):`,
+                            `${apiKeyData.api_key}`,
+                            `------------------------------------`,
+                            `Note: This key provides access to your service account. Do not share it.`
+                        ].join('\n');
+
+                        const blob = new Blob([fileContent], { type: 'text/plain' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        
+                        a.href = url;
+                        a.download = `${apiKeyData.identifier}_key.txt`;
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    });
+
+                    modal.open();
+                    
+                    modal.on( 'afterClose', () => {
+                        window.location.href = redirectUrl.href;
+                    });
+
+                    return;
+                }
+
+
+            }
+            
+            if ( isOrgTab && 'add-new-member' === qv.get( 'section' ) ) {
+                const orgID = qv.get( 'org_id' );
+
+                redirectUrl.searchParams.set( 'section', 'edit' );
+                redirectUrl.searchParams.set( 'id', orgID );
+
+                redirectUrl.searchParams.delete( 'org_id', orgID );
+                window.location.href = redirectUrl.href;
+                return;
+            }
+
+            if ( 'edit' === qv.get( 'section' ) ) {
+                window.location.reload();
+            }
+        }
+
+
+
     }
 
     if ( avatarUploadFields.length ) {
