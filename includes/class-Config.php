@@ -370,7 +370,7 @@ class Config {
         if ( is_admin() ) {
             wp_enqueue_script( 'smliser-app-modal' );
         }
-        if ( is_admin() && 'toplevel_page_smliser-admin' === $s ) {
+        if ( is_admin() && 'toplevel_page_smliser-admin' === $s || 'smart-license-server_page_repository' === $s ) {
             wp_enqueue_script( 'smliser-chart' );
         }
 
