@@ -82,7 +82,7 @@ _buildChart(canvas) {
 
     let analytics;
     try {
-        analytics = JSON.parse(rawData);
+        analytics = StringUtils.JSONparse(rawData);
     } catch (e) {
         console.error('Failed to parse analytics data:', e);
         return;

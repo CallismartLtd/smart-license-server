@@ -272,7 +272,7 @@ class AppUploader {
         
         if ( ! action ) return;
         
-        const config = JSON.parse( decodeURIComponent( clickedBtn.getAttribute( 'data-config' ) ) );
+        const config = StringUtils.JSONparse( decodeURIComponent( clickedBtn.getAttribute( 'data-config' ) ) );
         
         // Call the appropriate method
         switch ( action) {
@@ -787,7 +787,7 @@ class AppUploader {
         let jsonData            = {};
 
         try {
-            jsonData = JSON.parse( textarea.value );
+            jsonData = StringUtils.JSONparse( textarea.value );
         } catch (error) {
             jsonData = {};
         }

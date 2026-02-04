@@ -575,7 +575,7 @@ const StringUtils = {
      * @returns {*} Parsed JSON or default value
      */
     JSONparse: function ( string, defaultValue = {} ) {
-        if ( ! string || typeof string !== 'string' ) return defaultValue;
+        if ( ! this.isJSON(string) ) return defaultValue;
         
         try {
             return JSON.parse( string );
@@ -943,6 +943,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const ownerSubjectSearch    = document.querySelector( '#subject_id' );
     const usersSearch           = document.querySelector( '#user_id' );
     const ownersSearch          = document.querySelector( '#owner_id' );
+    const deleteEntities        = document.querySelectorAll( '.smliser-delete-entity' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
     
@@ -989,13 +990,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     if ( generatePasswordBtn ) {
 
         const jsonField = generatePasswordBtn.getAttribute( 'data-fields' );
-        let pwdvalues = null;
-
-        try {
-            pwdvalues = JSON.parse( jsonField );
-        } catch (error) {
-            smliserNotify( `Cannot generate passoword: ${error.message}` );
-        }
+        let pwdvalues   = StringUtils.JSONparse( jsonField, null );
 
         if ( ! pwdvalues ) return;
 
@@ -1393,10 +1388,9 @@ document.addEventListener( 'DOMContentLoaded', function() {
         appActionsBtn.forEach( actionBtn => {
             actionBtn.addEventListener('click', (e)=>{
                 e.preventDefault();
-                let requestArgs    = '';
-                try {
-                    requestArgs = JSON.parse( actionBtn.getAttribute( 'data-action-args' ) );
-                } catch (error) {
+                let requestArgs    = StringUtils.JSONparse( actionBtn.getAttribute( 'data-action-args' ) );
+                
+                if ( ! requestArgs ) {
                     smliserNotify( 'App data not found', 5000 );
                     return;
                 }
@@ -1484,20 +1478,20 @@ document.addEventListener( 'DOMContentLoaded', function() {
             amber:  { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' }
         };
 
-        Chart.defaults.font.family = "'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', Roboto, sans-serif";
-        Chart.defaults.font.size = 12;
-        Chart.defaults.color = '#64748b'; // Slate 500
-        Chart.defaults.plugins.tooltip.padding = 12;
+        Chart.defaults.font.family  = "'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', Roboto, sans-serif";
+        Chart.defaults.font.size    = 12;
+        Chart.defaults.color        = '#64748b'; // Slate 500
+        Chart.defaults.plugins.tooltip.padding      = 12;
         Chart.defaults.plugins.tooltip.borderRadius = 8;
-        Chart.defaults.elements.bar.borderRadius = 4; // Rounded bars
-        Chart.defaults.elements.line.borderWidth = 3;
-        Chart.defaults.elements.point.radius = 0; // Hide points until hover
-        Chart.defaults.elements.point.hoverRadius = 5;
+        Chart.defaults.elements.bar.borderRadius    = 4; // Rounded bars
+        Chart.defaults.elements.line.borderWidth    = 3;
+        Chart.defaults.elements.point.radius        = 0; // Hide points until hover
+        Chart.defaults.elements.point.hoverRadius   = 5;
 
-        const canvases = document.querySelectorAll('canvas[data-chart-json]');
+        const canvases                              = document.querySelectorAll('canvas[data-chart-json]');
         
         canvases.forEach(function(canvas) {
-            const chartConfig = JSON.parse(canvas.getAttribute('data-chart-json'));
+            const chartConfig = StringUtils.JSONparse( canvas.getAttribute( 'data-chart-json' ) );
             
             // Inject smooth line tension if not defined
             if (chartConfig.type === 'line') {
@@ -1693,7 +1687,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             },
 
             editTier: ( json ) => {
-                let tier = JSON.parse( json );
+                let tier = StringUtils.JSONparse( json );
                 tierModal.classList.remove( 'hidden' );
 
                 // Switch action to update
@@ -1709,7 +1703,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             },
 
             deleteTier: ( json ) => {
-                let tier = JSON.parse( json );
+                let tier = StringUtils.JSONparse( json );
                 if ( confirm( `Are you sure you want to delete tier "${tier.name}"?` ) ) {
                     const payLoad = new FormData();
                     payLoad.set( 'action', 'smliser_delete_monetization_tier' );
@@ -1735,7 +1729,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             },
 
             viewProductData: ( json ) => {
-                let tier = JSON.parse( json );
+                let tier = StringUtils.JSONparse( json );
 
                 // Remove any existing product-data modal
                 monetizationUI.querySelector( '.smliser-admin-modal.product-data' )?.remove();
@@ -2095,14 +2089,8 @@ document.addEventListener( 'DOMContentLoaded', function() {
     if ( roleBuilderEl ) {
         const defaultRoles  = smliser_var.default_roles;
 
-        let existingRoles = null;
-        try {
-            existingRoles = JSON.parse( roleBuilderEl.getAttribute( 'data-roles' ) );
-        } catch ( error ) {
-            existingRoles = null;
-        }
-
-        const builder   = new RoleBuilder( roleBuilderEl, defaultRoles, existingRoles );
+        let existingRoles   = StringUtils.JSONparse( roleBuilderEl.getAttribute( 'data-roles' ), null );
+        const builder       = new RoleBuilder( roleBuilderEl, defaultRoles, existingRoles );
     
         window.SmliserRoleBuilder = builder;
     }
@@ -2501,6 +2489,19 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 imageNamePreview.textContent = image.name;
                 buttonsRow.querySelector( '.clear' )?.classList.remove( 'hidden' );
                 
+            });
+        });
+    }
+
+    if ( deleteEntities.length ) {
+        deleteEntities.forEach( deleteBtn => {
+            deleteBtn.addEventListener( 'click', e => {
+                e.preventDefault();
+                const args  = StringUtils.JSONparse( e.target.dataset.args, null );
+                if ( ! args ) return;
+
+                const url   = new URL( smliser_var.smliser_ajax_url );
+
             });
         });
     }
