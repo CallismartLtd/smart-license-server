@@ -62,9 +62,10 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         <tr>
                             <td>
                                 <?php echo esc_html( $owner->get_id() ); ?>
-                                <p class="smliser-edit-link">
+                                <span class="smliser-edit-link">
                                     <a href="<?php echo esc_url( smliser_get_current_url()->add_query_params( ['section' => 'edit', 'id' => $owner->get_id()] ) ); ?>">edit</a>
-                                </p>
+                                    <a href="#" role="button" class="smliser-delete-entity" data-args="<?php echo esc_attr( smliser_json_encode_attr( ['id' => $owner->get_id(), 'entity_type' => 'owner'] ) ); ?>">Delete</a>
+                                </span>
                             </td>
                             <td><?php echo esc_html( $owner->get_name() ); ?></td>
                             <td><?php echo esc_html( $owner->get_type() ); ?></td>
