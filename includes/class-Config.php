@@ -391,7 +391,7 @@ class Config {
         }
 
         $vars   = array(
-            'smliser_ajax_url'  => admin_url( 'admin-ajax.php' ),
+            'ajaxURL'  => admin_url( 'admin-ajax.php' ),
             'nonce'             => wp_create_nonce( 'smliser_nonce' ),
             'admin_url'         => admin_url(),
             'wp_spinner_gif'    => admin_url('images/spinner.gif'),
