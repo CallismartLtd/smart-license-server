@@ -1210,19 +1210,24 @@ input.smliser_toggle-switch-input {
    ============================================ */
 .smliser-top-nav {
     background: #ffffff;
-    backdrop-filter: blur(10px);
     border-bottom: 1px solid #dcdcde;
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 32px;
+    position: fixed;
+    top: 20px;
+    right: auto;
     z-index: 100;
+    width: calc(100% - 160px);
 }
 
 .smliser-top-nav.is-scrolled {
     box-shadow: 1px 1px 8px 8px rgb(0 0 0 / 30%);
+}
+
+.smliser-top-nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 5px;
+    padding: 10px;
 }
 
 .smliser-breadcrumb {
@@ -1231,6 +1236,7 @@ input.smliser_toggle-switch-input {
     gap: 10px;
     color: #94a3b8;
     font-size: 14px;
+    margin: 8px;
 }
 
 .smliser-breadcrumb a {
@@ -1251,6 +1257,22 @@ input.smliser_toggle-switch-input {
     gap: 10px;
 }
 
+@media only screen and (min-width: 19px) and (max-width: 960px ) {
+
+    @media (max-width: 782px ) {
+        .smliser-top-nav {
+            width: 101% !important;
+        }        
+    }
+    .smliser-top-nav-content {
+        flex-wrap: wrap;
+    }
+    .smliser-top-nav {
+        width: calc(100% - 36px);
+    }
+}
+
+
 .smliser-menu-link {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1264,6 +1286,7 @@ input.smliser_toggle-switch-input {
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
+    gap: 5px;
 }
 
 .smliser-menu-link:hover {
@@ -1833,7 +1856,14 @@ input.smliser_toggle-switch-input {
 
 /* ============================================
    WORDPRESS ADMIN BAR COMPATIBILITY
-   ============================================ */
+   ============================================ 
+*/
+#wpbody-content:has(.smliser-top-nav) {
+    margin-top: 70px;
+}
+.folded .smliser-top-nav {
+    width: calc(100% - 36px);
+}
 .admin-bar .smliser-top-nav {
     top: 32px;
 }
