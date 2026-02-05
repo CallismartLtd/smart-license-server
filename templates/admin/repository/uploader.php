@@ -7,6 +7,8 @@
  * @see \SmartLicenseServer\Admin\RepositoryPage::edit_page()
  */
 
+use SmartLicenseServer\Admin\Menu;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 $max_upload_size_bytes = wp_max_upload_size();
@@ -14,30 +16,48 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
 ?>
 
 <div class="application-uploader-page">
-    <!-- Top Navigation Breadcrumb -->
-    <nav class="smliser-top-nav">
-        <div class="smliser-breadcrumb">
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository' ) ); ?>">
-                <i class="dashicons dashicons-admin-home"></i> Repository
-            </a>
-            <span>/</span>
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=repository&type=' . $type ) ); ?>">
-                <i class="dashicons dashicons-open-folder"></i> <?php echo esc_html( rtrim( ucfirst( $type ), 's' ) . 's' ); ?>
-            </a>
-            <span>/</span>
-            <span><?php echo esc_html( $title ); ?></span>
-        </div>
-        <div class="smliser-quick-actions">
-            <?php if ( ! empty( $app ) ) : ?>
-                <a class="smliser-icon-btn" href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>" title="<?php esc_attr_e( 'View', 'smliser' ); ?>">
-                    <i class="dashicons dashicons-visibility"></i>
-                </a>
-            <?php endif; ?>
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=smliser-options')) ?>" class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
-                <i class="dashicons dashicons-admin-generic"></i>
-            </a>
-        </div>
-    </nav>
+    <?php Menu::print_admin_top_menu(
+        [
+            'breadcrumbs'   => array(
+                array(
+                    'label' => 'Repository',
+                    'url'   => admin_url( 'admin.php?page=repository' ),
+                    'icon'  => 'ti ti-home-filled'
+                ),
+
+                array(
+                    'label' => smliser_pluralize( $app->get_type() ),
+                    'url'   => admin_url( 'admin.php?page=repository&type=' . $app->get_type() ),
+                    'icon'  => 'ti ti-folder-open'
+                ),
+                array(
+                    'label' => $title
+                )
+            ),
+            'actions'   => array(
+                array(
+                    'title' => 'View App',
+                    'label' => 'View App',
+                    'url'   => smliser_get_current_url()->add_query_params( 
+                        array(
+                            'app_id'    => $app->get_id(), 
+                            'type'      => $app->get_type(),
+                            'tab'       => 'view' 
+                        ) 
+                    ),
+                    'icon'  => 'ti ti-eye'
+                ),
+
+                array(
+                    'title' => 'Settings',
+                    'label' => 'Settings',
+                    'url'   => admin_url( 'admin.php?page=smliser-options'),
+                    'icon'  => 'dashicons dashicons-admin-generic'
+                )
+            )
+        ]
+    ); ?>
+ 
 
     <form action="" class="app-uploader-form" id="appUploaderForm">
         <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', esc_html( $type ) ) ?>">

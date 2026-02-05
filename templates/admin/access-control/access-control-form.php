@@ -86,7 +86,7 @@ if ( $render_image_only ) {
                         </div>
 
                         <?php 
-                            $role = ContextServiceProvider::get_principal_role( $member, $organization );
+                            $role = $member->get_role();
                         
                         ?>
                         <table class="smliser-org-member_meta">

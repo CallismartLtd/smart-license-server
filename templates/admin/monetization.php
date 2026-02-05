@@ -153,23 +153,25 @@ $edit_url->add_query_param( 'tab', 'edit' );
         </div>
 
         <div class="smliser-monetization-ui__monetization-providers">
-            <div class="monetization-providers_header">
-                <h2>Monetization Providers</h2>
-                <button type="button" class="button action smliser-nav-btn" id="add-pricing-tier" data-command="addNewTier"><span class="dashicons dashicons-plus"></span> Add Pricing Tier</button>
+            <div class="smliser-monetization-ui__providiers-list">
+                <div class="monetization-providers_header">
+                    <h2>Monetization Providers</h2>
+                    <button type="button" class="button action smliser-nav-btn" id="add-pricing-tier" data-command="addNewTier"><span class="dashicons dashicons-plus"></span> Add Pricing Tier</button>
+                </div>
+                <?php if ( empty( $providers ) ) : ?>
+                    <?php echo smliser_not_found_container( 'No monetization provider found' ); ?>
+                <?php else: ?>
+                    <?php foreach( $providers as $provider ): ?>
+                        <div class="smliser-monetization-ui__monetization-provider">
+                            <p>Name: <strong><?php echo esc_html( $provider->get_name() ); ?></strong></p>
+                            <p>Base URL: <?php echo esc_html( $provider->get_url() ); ?></p>
+                            <p>Checkout URL: <?php echo esc_html( $provider->get_checkout_url() ); ?></p>
+
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+
             </div>
-            <?php if ( empty( $providers ) ) : ?>
-                <?php echo smliser_not_found_container( 'No monetization provider found' ); ?>
-            <?php else: ?>
-                <?php foreach( $providers as $provider ): ?>
-                    <div class="smliser-monetization-ui__monetization-provider">
-                        <p>Name: <strong><?php echo esc_html( $provider->get_name() ); ?></strong></p>
-                        <p>Base URL: <?php echo esc_html( $provider->get_url() ); ?></p>
-                        <p>Checkout URL: <?php echo esc_html( $provider->get_checkout_url() ); ?></p>
-
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-
         </div>
         <div class="smliser-admin-modal pricing-tier hidden">
             <div class="smliser-admin-modal_content">

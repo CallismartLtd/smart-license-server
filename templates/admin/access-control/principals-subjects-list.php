@@ -61,7 +61,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         <tr>
                             <td>
                                 <?php echo esc_html( $entity->get_id() ); ?>
-                                <p class="smliser-edit-link">
+                                <span class="smliser-edit-link">
                                     <a href="<?php
                                         echo esc_url( 
                                             smliser_get_current_url()
@@ -69,7 +69,15 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                                                 ['section' => 'edit', 'id' => $entity->get_id()]
                                             ) ); 
                                     ?>">edit</a>
-                                </p>
+                                    <a href="#" role="button" class="smliser-delete-entity"
+                                        data-args="
+                                            <?php echo esc_attr(
+                                                smliser_json_encode_attr( ['id' => $entity->get_id(), 'entity_type' => $entity->get_type()] ) );
+                                            ?>"
+                                        >
+                                    delete</a>
+
+                                </span>
                             </td>
                             <td>
                                 <img 

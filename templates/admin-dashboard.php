@@ -5,20 +5,27 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-
+use const SMLISER_APP_NAME;
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 <div class="smliser-admin-dashboard-template overview">
-    <nav class="smliser-top-nav">
-        <div class="smliser-breadcrumb">
-            <h1><?php echo esc_html( \SMLISER_APP_NAME ); ?></h1>
-        </div>
-        <div class="smliser-quick-actions">
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=smliser-options')) ?>" class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
-                <i class="dashicons dashicons-admin-generic"></i>
-            </a>
-        </div>
-    </nav>
+    <?php Menu::print_admin_top_menu(
+        [
+            'breadcrumbs'   => array(
+                array(
+                    'label' => SMLISER_APP_NAME
+                )
+            ),
+            'actions'   => array(
+                array(
+                    'title' => 'Settings',
+                    'label' => 'Settings',
+                    'url'   => admin_url( 'admin.php?page=smliser-options'),
+                    'icon'  => 'dashicons dashicons-admin-generic'
+                )
+            )
+        ]
+    ); ?>
 
     <div class="smliser-admin-body">
         <div class="smliser-dashboard-hero">

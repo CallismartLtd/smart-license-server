@@ -8,26 +8,35 @@
  * @package Smliser\templates
  */
 
+use SmartLicenseServer\Admin\Menu;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 
 <div class="smliser-admin-page">
-    <!-- Top Navigation Breadcrumb -->
-    <nav class="smliser-top-nav">
-        <div class="smliser-breadcrumb">
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=licenses' ) ); ?>">
-                <i class="dashicons dashicons-admin-home"></i> Licenses
-            </a>
+    <?php Menu::print_admin_top_menu(
+        [
+            'breadcrumbs'   => array(
+                array(
+                    'label' => 'Licenses',
+                    'url'   => admin_url( 'admin.php?page=licenses' ),
+                    'icon'  => 'dashicons dashicons-admin-home'
+                ),
+                array(
+                    'label' => 'License Activity Logs',
+                )
+            ),
+            'actions'   => array(
+                array(
+                    'title' => 'Settings',
+                    'label' => 'Settings',
+                    'url'   => admin_url( 'admin.php?page=smliser-options'),
+                    'icon'  => 'dashicons dashicons-admin-generic'
+                )
+            )
+        ]
+    ); ?>
 
-            <span>/</span>
-            <span>License Activity Log</span>
-        </div>
-        <div class="smliser-quick-actions">
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=smliser-options')) ?>" class="smliser-icon-btn" title="<?php esc_attr_e( 'Settings', 'smliser' ); ?>">
-                <i class="dashicons dashicons-admin-generic"></i>
-            </a>
-        </div>
-    </nav>
     <div class="smliser-admin-body">
         <p>Logs over three months are automatically deleted</p>
         <table class="widefat striped">
