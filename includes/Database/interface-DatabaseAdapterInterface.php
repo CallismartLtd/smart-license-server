@@ -151,6 +151,12 @@ interface DatabaseAdapterInterface {
      */
     public function get_last_error();
 
+    /**
+     * Get last executed query.
+     * 
+     * @return string
+     */
+    public function get_last_query() : string;
 
     /**
      * Get the database server version.
