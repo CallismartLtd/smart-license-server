@@ -119,6 +119,7 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
             'smliser_delete_monetization_tier'              => [__CLASS__, 'parse_monetization_tier_deletion'],
             'smliser_toggle_monetization'                   => [__CLASS__, 'parse_toggle_monetization'],
             'smliser_access_control_save'                   => [__CLASS__, 'parse_access_control_save_request'],
+            'smliser_access_control_delete'                 => [__CLASS__, 'parse_access_control_delete_request'],
             'smliser_delete_org_member'                     => [__CLASS__, 'parse_smliser_delete_org_member_request'],
             'smliser_admin_security_entity_search'          => [__CLASS__, 'parse_admin_security_entity_search']
         ];
@@ -884,6 +885,36 @@ class WPAdapter extends Config implements EnvironmentProviderInterface {
         $response   = RequestController::$method( $request );
 
         $response->send();
+    }
+
+    /**
+     * Parse access control request to delete a security entity.
+     */
+    private static function parse_access_control_delete_request() {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+            ), 401 );
+        }
+
+        if ( ! is_super_admin() ) {
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $entity    = smliser_get_request_param( 'entity_type', false );
+        if ( ! $entity  ) {
+            smliser_send_json_error( array( 'message' => 'Please provide security entity type.' ), 400 );
+        }
+
+        $request = new Request([
+            'entity'    => $entity,
+            'id'        => smliser_get_request_param( 'id' )
+        ]);
+
+        $response   = RequestController::delete_entity( $request );
+
+        $response->send();
+
     }
 
     /**
