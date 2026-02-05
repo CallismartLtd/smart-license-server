@@ -168,63 +168,63 @@ class Menu {
 
         $args = wp_parse_args( $args, $defaults );
 
-        ob_start();
-        ?>
+        ob_start(); ?>
+        
         <nav class="smliser-top-nav">
+            <div class="smliser-top-nav-content">
+                <?php if ( ! empty( $args['breadcrumbs'] ) ) : ?>
+                    <div class="smliser-breadcrumb">
+                        <?php
+                        $breadcrumb_count = count( $args['breadcrumbs'] );
+                        $current_index    = 0;
 
-            <?php if ( ! empty( $args['breadcrumbs'] ) ) : ?>
-                <div class="smliser-breadcrumb">
-                    <?php
-                    $breadcrumb_count = count( $args['breadcrumbs'] );
-                    $current_index    = 0;
+                        foreach ( $args['breadcrumbs'] as $breadcrumb ) :
+                            $current_index++;
 
-                    foreach ( $args['breadcrumbs'] as $breadcrumb ) :
-                        $current_index++;
-
-                        if ( ! empty( $breadcrumb['url'] ) ) :
-                            ?>
-                            <a href="<?php echo esc_url( $breadcrumb['url'] ); ?>">
-                                <?php if ( ! empty( $breadcrumb['icon'] ) ) : ?>
-                                    <i class="<?php echo esc_attr( $breadcrumb['icon'] ); ?>"></i>
-                                <?php endif; ?>
-                                <?php echo esc_html( $breadcrumb['label'] ); ?>
-                            </a>
-                        <?php else : ?>
-                            <span><?php echo esc_html( $breadcrumb['label'] ); ?></span>
-                        <?php endif; ?>
-
-                        <?php if ( $current_index < $breadcrumb_count ) : ?>
-                            <span>/</span>
-                        <?php endif; ?>
-
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if ( ! empty( $args['actions'] ) ) : ?>
-                <div class="smliser-quick-actions">
-                    <?php foreach ( $args['actions'] as $action ) : ?>
-                        <a
-                            class="smliser-menu-link"
-                            href="<?php echo esc_url( $action['url'] ); ?>"
-                            title="<?php echo esc_attr( $action['title'] ); ?>"
-                        >
-                            <?php if ( ! empty( $action['icon'] ) ) : ?>
-                                <i class="<?php echo esc_attr( $action['icon'] ); ?>"></i>
+                            if ( ! empty( $breadcrumb['url'] ) ) :
+                                ?>
+                                <a href="<?php echo esc_url( $breadcrumb['url'] ); ?>">
+                                    <?php if ( ! empty( $breadcrumb['icon'] ) ) : ?>
+                                        <i class="<?php echo esc_attr( $breadcrumb['icon'] ); ?>"></i>
+                                    <?php endif; ?>
+                                    <?php echo esc_html( $breadcrumb['label'] ); ?>
+                                </a>
+                            <?php else : ?>
+                                <span><?php echo esc_html( $breadcrumb['label'] ); ?></span>
                             <?php endif; ?>
-                            <?php echo esc_html( $action['label'] ?? '' ); ?>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
 
+                            <?php if ( $current_index < $breadcrumb_count ) : ?>
+                                <span>/</span>
+                            <?php endif; ?>
+
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ( ! empty( $args['actions'] ) ) : ?>
+                    <div class="smliser-quick-actions">
+                        <?php foreach ( $args['actions'] as $action ) : ?>
+                            <a
+                                class="smliser-menu-link"
+                                href="<?php echo esc_url( $action['url'] ); ?>"
+                                title="<?php echo esc_attr( $action['title'] ); ?>"
+                            >
+                                <?php if ( ! empty( $action['icon'] ) ) : ?>
+                                    <i class="<?php echo esc_attr( $action['icon'] ); ?>"></i>
+                                <?php endif; ?>
+                                <?php echo esc_html( $action['label'] ?? '' ); ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
         </nav>
-        <?php
+        
 
-        $output = ob_get_clean();
+        <?php $output = ob_get_clean();
 
         if ( true === $echo ) {
-            echo $output; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo $output; // phpcs:ignore
             return null;
         }
 
