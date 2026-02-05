@@ -500,7 +500,7 @@ class AccessControlPage {
             $_entity_class  = ContextServiceProvider::get_entity_classname( $_owner_type );
             $subject        = $_entity_class ? $_entity_class::get_by_id( $subject_id ) : '';
 
-            $pr_name        = $subject ? $subject->get_name() : '[Deleted entity]';
+            $pr_name        = $subject ? $subject->get_display_name() : '[Deleted entity]';
 
             $subject_option   = [$subject_id => $pr_name];
             
