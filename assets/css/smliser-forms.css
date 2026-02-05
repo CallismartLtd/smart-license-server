@@ -277,9 +277,14 @@ button.smliser-upload-btn {
 
 .smliser-monetization-ui__monetization-providers {
   flex: 1 1 200px;
+}
+
+.smliser-monetization-ui__providiers-list {
   border: 1px #dcdcde solid;
-  border-radius: 4px;
+  position: sticky;
+  top: 50px;
   padding: 10px;
+  border-radius: 4px;
 }
 
 .monetization-providers_header {
@@ -356,7 +361,6 @@ button.smliser-upload-btn {
   flex-direction: row;
   flex-wrap: wrap;
   gap: 10px;
-  height: 250px;
   overflow-y: auto;
 }
 
@@ -380,7 +384,7 @@ button.smliser-upload-btn {
   resize: none;
 }
 
-.smliser-admin-modal_content-form label:has( > textarea) {
+.smliser-admin-modal_content-form label:has( > textarea ) {
   min-width: 100%;
   max-width: 100%;
 }
