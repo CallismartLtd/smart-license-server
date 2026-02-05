@@ -86,7 +86,7 @@ class Database {
      */
     protected static function detect_environment() {
         if ( defined( 'ABSPATH' ) && class_exists( \wpdb::class ) && isset( $GLOBALS['wpdb'] ) ) {
-            return new WPAdapter();
+            return new WPDBAdapter();
         }
 
         if ( class_exists( 'Illuminate\Support\Facades\DB' ) ) {

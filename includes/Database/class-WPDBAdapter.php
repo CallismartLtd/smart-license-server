@@ -18,7 +18,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * This adapter provides a unified interface to WordPress's $wpdb,
  * allowing Smart License Server to operate in WP environments.
  */
-class WPAdapter implements DatabaseAdapterInterface {
+class WPDBAdapter implements DatabaseAdapterInterface {
 
     /**
      * Global $wpdb instance.
