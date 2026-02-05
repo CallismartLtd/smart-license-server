@@ -388,9 +388,9 @@ class SmliserModal {
     /**
      * Destroy modal and clean up
      */
-    destroy() {
+    async destroy() {
         if ( this.isOpen ) {
-            this.close();
+            await this.close();
         }
         
         if ( this.backdrop && this.backdrop.parentNode ) {
@@ -408,6 +408,574 @@ class SmliserModal {
         this.bodyElement    = null;
         this.footerElement  = null;
     }
+
+    /**
+     * Show confirmation dialog (use instead of window.confirm).
+     * 
+     * @param {string|Object} options - Message string or options object
+     * @param {string} options.title - Dialog title
+     * @param {string} options.message - Confirmation message
+     * @param {string} options.confirmText - Confirm button text (default: 'OK')
+     * @param {string} options.cancelText - Cancel button text (default: 'Cancel')
+     * @param {string} options.confirmClass - CSS class for confirm button (default: 'btn-primary')
+     * @param {string} options.cancelClass - CSS class for cancel button (default: 'btn-secondary')
+     * @param {boolean} options.danger - Use danger styling (default: false)
+     * @returns {Promise<boolean>} True if confirmed, false if cancelled
+     * 
+     * @example
+     * const confirmed = await SmliserModal.confirm('Are you sure?');
+     * if (confirmed) {
+     *     console.log('User confirmed');
+     * }
+     * 
+     * @example
+     * const result = await SmliserModal.confirm({
+     *     title: 'Delete Item',
+     *     message: 'This action cannot be undone. Continue?',
+     *     confirmText: 'Delete',
+     *     cancelText: 'Keep',
+     *     danger: true
+     * });
+     */
+    static confirm( options ) {
+        return new Promise( ( resolve ) => {
+            // Handle string parameter
+            if ( typeof options === 'string' ) {
+                options = { message: options };
+            }
+
+            const config = {
+                title: options.title || 'Confirm',
+                message: options.message || 'Are you sure?',
+                confirmText: options.confirmText || 'OK',
+                cancelText: options.cancelText || 'Cancel',
+                confirmClass: options.confirmClass || 'smliser-btn-primary',
+                cancelClass: options.cancelClass || 'smliser-btn-secondary',
+                danger: options.danger || false,
+                icon: options.icon || '❓'
+            };
+
+            // Create body content
+            const bodyContent = document.createElement( 'div' );
+            bodyContent.className = 'smliser-dialog-content';
+            bodyContent.innerHTML = `
+                <div class="smliser-dialog-icon ${config.danger ? 'danger' : 'info'}">
+                    ${config.danger ? '⚠️' : config.icon}
+                </div>
+                <div class="smliser-dialog-message">${config.message}</div>
+            `;
+
+            // Create footer buttons
+            const footerContent = document.createElement( 'div' );
+            footerContent.className = 'smliser-dialog-buttons';
+            
+            const cancelBtn = document.createElement( 'button' );
+            cancelBtn.className = `smliser-btn ${config.cancelClass}`;
+            cancelBtn.textContent = config.cancelText;
+            cancelBtn.type = 'button';
+            
+            const confirmBtn = document.createElement( 'button' );
+            confirmBtn.className = `smliser-btn ${config.danger ? 'smliser-btn-danger' : config.confirmClass}`;
+            confirmBtn.textContent = config.confirmText;
+            confirmBtn.type = 'button';
+            confirmBtn.setAttribute( 'autofocus', 'true' );
+            
+            footerContent.appendChild( cancelBtn );
+            footerContent.appendChild( confirmBtn );
+
+            // Create modal
+            const modal = new SmliserModal({
+                title: config.title,
+                body: bodyContent,
+                footer: footerContent,
+                width: '500px',
+                customClass: 'smliser-dialog smliser-confirm-dialog',
+                closeOnBackdropClick: false,
+                closeOnEscape: true
+            });
+
+            let handled = false;
+            // Event handlers
+            const handleConfirm = async () => {
+                handled = true;
+                await modal.destroy();
+                resolve( true );
+            };
+
+            const handleCancel = async () => {
+                handled = true;
+                await modal.destroy();
+                resolve( false );
+            };
+
+            // Attach event listeners
+            confirmBtn.addEventListener( 'click', handleConfirm );
+            cancelBtn.addEventListener( 'click', handleCancel );
+            
+            modal.on( 'afterClose', () => {
+                if ( ! handled ) {
+                    resolve( false );
+                }
+            });
+
+            // Open modal and focus confirm button
+            modal.open().then( () => {
+                setTimeout( () => confirmBtn.focus(), 100 );
+            });
+        });
+    };
+
+    /**
+     * Show alert dialog (replaces window.alert)
+     * 
+     * @param {string|Object} options - Message string or options object
+     * @param {string} options.title - Dialog title
+     * @param {string} options.message - Alert message
+     * @param {string} options.buttonText - Button text (default: 'OK')
+     * @param {string} options.type - Alert type: 'info', 'success', 'warning', 'error' (default: 'info')
+     * @returns {Promise<void>}
+     * 
+     * @example
+     * await SmliserModal.alert('Operation completed successfully!');
+     * 
+     * @example
+     * await SmliserModal.alert({
+     *     title: 'Success',
+     *     message: 'Your changes have been saved.',
+     *     type: 'success',
+     *     buttonText: 'Great!'
+     * });
+     */
+    static alert( options ) {
+        return new Promise( ( resolve ) => {
+            // Handle string parameter
+            if ( typeof options === 'string' ) {
+                options = { message: options };
+            }
+
+            const config = {
+                title: options.title || 'Alert',
+                message: options.message || '',
+                buttonText: options.buttonText || 'OK',
+                type: options.type || 'info',
+                buttonClass: options.buttonClass || 'smliser-btn-primary'
+            };
+
+            // Icon mapping
+            const iconMap = {
+                info: 'ℹ️',
+                success: '✅',
+                warning: '⚠️',
+                error: '❌'
+            };
+
+            // Create body content
+            const bodyContent = document.createElement( 'div' );
+            bodyContent.className = 'smliser-dialog-content';
+            bodyContent.innerHTML = `
+                <div class="smliser-dialog-icon ${config.type}">
+                    ${iconMap[ config.type ] || iconMap.info}
+                </div>
+                <div class="smliser-dialog-message">${config.message}</div>
+            `;
+
+            // Create footer button
+            const footerContent     = document.createElement( 'div' );
+            footerContent.className = 'smliser-dialog-buttons smliser-dialog-single-button';
+            
+            const okBtn         = document.createElement( 'button' );
+            okBtn.className     = `smliser-btn ${config.buttonClass}`;
+            okBtn.textContent   = config.buttonText;
+            okBtn.type = 'button';
+            okBtn.setAttribute( 'autofocus', 'true' );
+            
+            footerContent.appendChild( okBtn );
+
+            // Create modal
+            const modal = new SmliserModal({
+                title: config.title,
+                body: bodyContent,
+                footer: footerContent,
+                width: '500px',
+                customClass: `smliser-dialog smliser-alert-dialog smliser-alert-${config.type}`,
+                closeOnBackdropClick: false,
+                closeOnEscape: true
+            });
+
+            // Event handler
+            const handleOk = async () => {
+                await modal.destroy();
+                resolve();
+            };
+
+            // Attach event listener
+            okBtn.addEventListener( 'click', handleOk );
+            
+            modal.on( 'afterClose', async () => resolve() );
+
+            // Open modal and focus button
+            modal.open().then( () => {
+                setTimeout( () => okBtn.focus(), 100 );
+            });
+        });
+    };
+
+    /**
+     * Show prompt dialog (replaces window.prompt)
+     * 
+     * @param {string|Object} options - Message string or options object
+     * @param {string} options.title - Dialog title
+     * @param {string} options.message - Prompt message
+     * @param {string} options.defaultValue - Default input value
+     * @param {string} options.placeholder - Input placeholder
+     * @param {string} options.inputType - Input type: 'text', 'email', 'password', 'number', 'textarea' (default: 'text')
+     * @param {string} options.confirmText - Confirm button text (default: 'OK')
+     * @param {string} options.cancelText - Cancel button text (default: 'Cancel')
+     * @param {Function} options.validator - Validation function, return error message or null
+     * @param {boolean} options.required - Input is required (default: false)
+     * @returns {Promise<string|null>} Input value or null if cancelled
+     * 
+     * @example
+     * const name = await SmliserModal.prompt('Enter your name:');
+     * if (name) {
+     *     console.log('Hello', name);
+     * }
+     * 
+     * @example
+     * const email = await SmliserModal.prompt({
+     *     title: 'Email Required',
+     *     message: 'Please enter your email address:',
+     *     placeholder: 'user@example.com',
+     *     inputType: 'email',
+     *     required: true,
+     *     validator: (value) => {
+     *         if (!value.includes('@')) {
+     *             return 'Please enter a valid email address';
+     *         }
+     *         return null;
+     *     }
+     * });
+     */
+    static prompt( options ) {
+        return new Promise( ( resolve ) => {
+            // Handle string parameter
+            if ( typeof options === 'string' ) {
+                options = { message: options };
+            }
+
+            const config = {
+                title: options.title || 'Input',
+                message: options.message || 'Please enter a value:',
+                defaultValue: options.defaultValue || '',
+                placeholder: options.placeholder || '',
+                inputType: options.inputType || 'text',
+                confirmText: options.confirmText || 'OK',
+                cancelText: options.cancelText || 'Cancel',
+                validator: options.validator || null,
+                required: options.required || false,
+                confirmClass: options.confirmClass || 'smliser-btn-primary',
+                cancelClass: options.cancelClass || 'smliser-btn-secondary'
+            };
+
+            // Create body content
+            const bodyContent = document.createElement( 'div' );
+            bodyContent.className = 'smliser-dialog-content smliser-prompt-content';
+            
+            const messageDiv = document.createElement( 'div' );
+            messageDiv.className = 'smliser-dialog-message';
+            messageDiv.textContent = config.message;
+            
+            let inputElement;
+            if ( config.inputType === 'textarea' ) {
+                inputElement = document.createElement( 'textarea' );
+                inputElement.className = 'smliser-prompt-input smliser-prompt-textarea';
+                inputElement.rows = 4;
+            } else {
+                inputElement = document.createElement( 'input' );
+                inputElement.className = 'smliser-prompt-input';
+                inputElement.type = config.inputType;
+            }
+            
+            inputElement.value = config.defaultValue;
+            inputElement.placeholder = config.placeholder;
+            if ( config.required ) {
+                inputElement.setAttribute( 'required', 'true' );
+            }
+            
+            const errorDiv = document.createElement( 'div' );
+            errorDiv.className = 'smliser-prompt-error';
+            errorDiv.style.display = 'none';
+            
+            bodyContent.appendChild( messageDiv );
+            bodyContent.appendChild( inputElement );
+            bodyContent.appendChild( errorDiv );
+
+            // Create footer buttons
+            const footerContent = document.createElement( 'div' );
+            footerContent.className = 'smliser-dialog-buttons';
+            
+            const cancelBtn = document.createElement( 'button' );
+            cancelBtn.className = `smliser-btn ${config.cancelClass}`;
+            cancelBtn.textContent = config.cancelText;
+            cancelBtn.type = 'button';
+            
+            const confirmBtn = document.createElement( 'button' );
+            confirmBtn.className = `smliser-btn ${config.confirmClass}`;
+            confirmBtn.textContent = config.confirmText;
+            confirmBtn.type = 'button';
+            
+            footerContent.appendChild( cancelBtn );
+            footerContent.appendChild( confirmBtn );
+
+            // Create modal
+            const modal = new SmliserModal({
+                title: config.title,
+                body: bodyContent,
+                footer: footerContent,
+                width: '500px',
+                customClass: 'smliser-dialog smliser-prompt-dialog',
+                closeOnBackdropClick: false,
+                closeOnEscape: true
+            });
+
+            // Validation helper
+            const validateInput = ( value ) => {
+                // Required check
+                if ( config.required && ! value.trim() ) {
+                    return 'This field is required';
+                }
+                
+                // Custom validator
+                if ( config.validator ) {
+                    return config.validator( value );
+                }
+                
+                return null;
+            };
+
+            // Show error message
+            const showError = ( message ) => {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                inputElement.classList.add( 'error' );
+            };
+
+            // Clear error message
+            const clearError = () => {
+                errorDiv.style.display = 'none';
+                inputElement.classList.remove( 'error' );
+            };
+
+            let handled = false;
+            // Event handlers
+            const handleConfirm = async () => {
+                const value = inputElement.value;
+                const error = validateInput( value );
+                
+                if ( error ) {
+                    showError( error );
+                    inputElement.focus();
+                    return;
+                }
+
+                handled = true;
+                await modal.destroy();
+                resolve( value );
+            };
+
+            const handleCancel = async () => {
+                handled = true;
+                await modal.destroy();
+                resolve( null );
+            };
+
+            // Attach event listeners
+            confirmBtn.addEventListener( 'click', handleConfirm );
+            cancelBtn.addEventListener( 'click', handleCancel );
+            
+            // Clear error on input
+            inputElement.addEventListener( 'input', clearError );
+            
+            // Handle Enter key (submit)
+            inputElement.addEventListener( 'keydown', ( e ) => {
+                if ( e.key === 'Enter' && config.inputType !== 'textarea' ) {
+                    e.preventDefault();
+                    handleConfirm();
+                }
+            });
+            
+            // Handle modal close (ESC key or X button)
+            modal.on( 'afterClose', () => {
+                if ( ! handled ) {
+                    resolve( null );
+                }
+            });
+
+            // Open modal and focus input
+            modal.open().then( () => {
+                setTimeout( () => {
+                    inputElement.focus();
+                    inputElement.select();
+                }, 100 );
+            });
+        });
+    };
+
+    /**
+     * Show custom dialog with multiple choices
+     * 
+     * @param {Object} options - Dialog options
+     * @param {string} options.title - Dialog title
+     * @param {string} options.message - Dialog message
+     * @param {Array} options.buttons - Array of button configurations
+     * @param {string} options.buttons[].text - Button text
+     * @param {string} options.buttons[].value - Button return value
+     * @param {string} options.buttons[].class - Button CSS class
+     * @param {boolean} options.buttons[].primary - Is primary button
+     * @returns {Promise<string|null>} Selected button value or null if closed
+     * 
+     * @example
+     * const choice = await SmliserModal.choice({
+     *     title: 'Save Changes?',
+     *     message: 'You have unsaved changes. What would you like to do?',
+     *     buttons: [
+     *         { text: 'Save', value: 'save', class: 'smliser-btn-primary', primary: true },
+     *         { text: 'Discard', value: 'discard', class: 'smliser-btn-danger' },
+     *         { text: 'Cancel', value: 'cancel', class: 'smliser-btn-secondary' }
+     *     ]
+     * });
+     * 
+     * if (choice === 'save') {
+     *     // Save changes
+     * } else if (choice === 'discard') {
+     *     // Discard changes
+     * }
+     */
+    static choice = function( options ) {
+        return new Promise( ( resolve ) => {
+            const config = {
+                title: options.title || 'Choose',
+                message: options.message || 'Please select an option:',
+                buttons: options.buttons || [],
+                icon: options.icon || '❓'
+            };
+
+            // Create body content
+            const bodyContent = document.createElement( 'div' );
+            bodyContent.className = 'smliser-dialog-content';
+            bodyContent.innerHTML = `
+                <div class="smliser-dialog-icon info">
+                    ${config.icon}
+                </div>
+                <div class="smliser-dialog-message">${config.message}</div>
+            `;
+
+            // Create footer buttons
+            const footerContent = document.createElement( 'div' );
+            footerContent.className = 'smliser-dialog-buttons smliser-choice-buttons';
+            
+            const buttonElements = [];
+            
+            config.buttons.forEach( ( btnConfig, index ) => {
+                const btn = document.createElement( 'button' );
+                btn.className = `smliser-btn ${btnConfig.class || 'smliser-btn-secondary'}`;
+                btn.textContent = btnConfig.text || `Option ${index + 1}`;
+                btn.type = 'button';
+                btn.dataset.value = btnConfig.value || btnConfig.text;
+                
+                if ( btnConfig.primary ) {
+                    btn.setAttribute( 'autofocus', 'true' );
+                }
+                
+                footerContent.appendChild( btn );
+                buttonElements.push( btn );
+            });
+
+            // Create modal
+            const modal = new SmliserModal({
+                title: config.title,
+                body: bodyContent,
+                footer: footerContent,
+                width: '500px',
+                customClass: 'smliser-dialog smliser-choice-dialog',
+                closeOnBackdropClick: false,
+                closeOnEscape: true
+            });
+
+            let handled = false;
+            // Event handler.
+            const handleChoice = async ( value ) => {
+                handled = true;
+                await modal.destroy();
+                resolve( value );
+            };
+
+            // Attach event listeners to all buttons
+            buttonElements.forEach( btn => {
+                btn.addEventListener( 'click', () => handleChoice( btn.dataset.value ) );
+            });
+            
+            // Handle modal close (ESC key or X button)
+            modal.on( 'afterClose', () => {
+                if ( ! handled ) {
+                    resolve( null );
+                }
+            });
+
+            // Open modal
+            modal.open().then( () => {
+                const primaryBtn = buttonElements.find( btn => btn.hasAttribute( 'autofocus' ) );
+                if ( primaryBtn ) {
+                    setTimeout( () => primaryBtn.focus(), 100 );
+                }
+            });
+        });
+    };
+
+    /**
+     * Convenience method: Show success alert
+     */
+    static success( message, title = 'Success' ) {
+        return SmliserModal.alert({
+            title: title,
+            message: message,
+            type: 'success'
+        });
+    };
+
+    /**
+     * Convenience method: Show error alert
+     */
+    static error( message, title = 'Error' ) {
+        return SmliserModal.alert({
+            title: title,
+            message: message,
+            type: 'error'
+        });
+    };
+
+    /**
+     * Convenience method: Show warning alert
+     */
+    static warning( message, title = 'Warning' ) {
+        return SmliserModal.alert({
+            title: title,
+            message: message,
+            type: 'warning'
+        });
+    };
+
+    /**
+     * Convenience method: Show info alert
+     */
+    static info( message, title = 'Information' ) {
+        return SmliserModal.alert({
+            title: title,
+            message: message,
+            type: 'info'
+        });
+    };
+
 }
 
 // if ( typeof module !== 'undefined' && module.exports ) {
