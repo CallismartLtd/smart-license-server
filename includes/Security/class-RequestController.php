@@ -111,6 +111,59 @@ class RequestController {
     }
 
     /**
+     * Process result to delete a security entity.
+     * 
+     * @param Request $request
+     * @return Response
+     */
+    public static function delete_entity( Request $request ) : Response {
+        try {
+            $entity = $request->get( 'entity' );
+
+            if ( ! $entity ) {
+                throw new RequestException( 'required_param', 'Please provide the security entity.' );
+            }
+
+            /** @var Owner|Organization|User|ServiceAccount|null $class */
+            $class  = ContextServiceProvider::get_entity_classname( $entity );
+
+            if ( ! $class ) {
+                throw new RequestException( 'required_param', 'This provided security entity is not supported.', ['status' => 400] );
+            }
+
+            $id     = $request->get( 'id' );
+
+            $ent_object = $class::get_by_id( $id );
+
+            if ( ! $ent_object ) {
+                $ent_object = new $class;
+            }
+
+
+            $result    = ContextServiceProvider::delete_entity( $ent_object );
+
+            if ( is_smliser_error( $result ) ) {
+                throw $result;
+            }
+
+            $data   = [
+                'success'   => true,
+                'data'      => array(
+                    'message'   => sprintf( '%s deleted successfully.', ucwords( str_replace( '_', ' ', $entity ) ) ),
+                    'entity_id' => $ent_object->get_id()
+                )
+            ];
+
+            return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        } catch ( Exception $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
+    }
+
+    /**
      * Save the user object.
      * 
      * @param User $user The user object.
@@ -210,6 +263,12 @@ class RequestController {
             );
         }
     }
+
+    /**
+     * Delete the user object
+     * 
+     * @param User $user
+     */
 
     /**
      * Save service account object.

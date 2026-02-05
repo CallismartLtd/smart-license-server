@@ -17,6 +17,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\SecurityException;
 use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Security\Actors\OrganizationMember;
+use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Owner;
@@ -25,9 +26,10 @@ use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\OwnerSubjects\OrganizationMembers;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 
-use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE;
+use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE, 
+SMLISER_OWNERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_USERS_TABLE, SMLISER_SERVICE_ACCOUNTS_TABLE;
 use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower, gmdate,
-sprintf, class_implements;
+sprintf, class_implements, in_array;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -59,109 +61,78 @@ class ContextServiceProvider {
         $db = smliser_dbclass();
 
         $defaults = array(
-            'term'      => '',
-            'page'      => 1,
-            'limit'     => 20,
-            'status'    => User::STATUS_ACTIVE,
-            'types'     => Owner::get_allowed_owner_types()
+            'term'   => '',
+            'page'   => 1,
+            'limit'  => 20,
+            'types'  => Owner::get_allowed_owner_types()
         );
 
-        $args       = parse_args( $args, $defaults );
-        $term       = self::sanitize_text( $args['term'] );
-        $page       = max( 1, (int) $args['page'] );
-        $limit      = max( 1, (int) $args['limit'] );
-        $offset     = $db->calculate_query_offset( $page, $limit );
-        $status     = $args['status'];
-        $types      = array_filter( (array) $args['types'] );
-        $key        = self::make_cache_key( __METHOD__, \compact( 'term', 'page', 'limit', 'status', 'types' ) );
+        $args   = parse_args( $args, $defaults );
+        $term   = self::sanitize_text( $args['term'] );
+        $page   = max( 1, (int) $args['page'] );
+        $limit  = max( 1, (int) $args['limit'] );
+        $offset = $db->calculate_query_offset( $page, $limit );
+        $types  = array_filter( (array) $args['types'] );
 
-        $results    = false; //self::cache_get( $key );
-
-        if ( false === $results ) {
-            
-            if ( empty( $term ) || empty( $types ) ) {
-                $results    = array(
-                    'items'      => array(),
-                    'pagination' => array(
-                        'page'        => $page,
-                        'limit'       => $limit,
-                        'total'       => 0,
-                        'total_pages' => 0,
-                    ),
-                );
-                
-            } else {
-                $like        = '%' . $term . '%';
-                $sql_parts   = [];
-                $count_parts = [];
-                $params_sql  = [];
-                $params_count = [];
-
-                foreach ( $types as $type ) {
-                    switch ( $type ) {
-                        case Owner::TYPE_ORGANIZATION:
-                            $table = SMLISER_ORGANIZATIONS_TABLE;
-                            break;
-                        case Owner::TYPE_INDIVIDUAL:
-                            $table = SMLISER_USERS_TABLE;
-                            break;
-                        default:
-                            continue 2;
-                    }
-                
-                    $name   = match( $type ) {
-                        default                 => 'name',
-                        Owner::TYPE_INDIVIDUAL  => 'display_name',
-                        Owner::TYPE_ORGANIZATION  => 'display_name'
-                    };
-                    // Query for fetching IDs.
-                    $sql_parts[]    = "SELECT `id`, '{$type}' AS type, `updated_at` FROM `{$table}` WHERE status = ? AND ( `{$name}` LIKE ? OR `id` LIKE ?  )";
-                    $params_sql     = array_merge( $params_sql, [ $status, $like, $like ] );
-
-                    // Query for counting matches
-                    $count_parts[]  = "SELECT COUNT(*) AS total FROM {$table} WHERE status = ? AND ( `{$name}` LIKE ? OR `id` LIKE ? )";
-                    $params_count   = array_merge( $params_count, [ $status, $like, $like ] );
-                }
-
-                // Build union query
-                $union_sql = implode( " UNION ALL ", $sql_parts );
-                $query_sql = "{$union_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET ?";
-                $params_sql = array_merge( $params_sql, [ $limit, $offset ] );
-                
-                // Fetch rows via adapter
-                $rows = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS entities", $params_sql, ARRAY_A );
-
-                // Aggregate count
-                $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
-                $total = (int) $db->get_var( $count_sql, $params_count );
-                
-                // Instantiate app objects
-                $objects = [];
-                foreach ( $rows as $row ) {
-                    $class  = (string) self::get_entity_classname( $row['type'] );
-                    $method = "get_by_id";
-
-                    if ( method_exists( $class, $method ) ) {
-                        $objects[] = $class::$method( (int) $row['id'] );
-                    }
-                }
-
-                $results    = array(
-                    'items'      => $objects,
-                    'pagination' => array(
-                        'page'        => $page,
-                        'limit'       => $limit,
-                        'total'       => $total,
-                        'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
-                    ),
-                );                
-            }
-
-
-            // self::cache_set( $key, $results, 30 * \MINUTE_IN_SECONDS );
+        if ( empty( $term ) || empty( $types ) ) {
+            return [
+                'items'      => [],
+                'pagination' => [ 'page' => $page, 'limit' => $limit, 'total' => 0, 'total_pages' => 0 ]
+            ];
         }
 
-        return $results;
+        $like         = '%' . $term . '%';
+        $sql_parts    = [];
+        $count_parts  = [];
+        $params_sql   = [];
+        $params_count = [];
+
+        foreach ( $types as $type ) {
+            $table = match ( $type ) {
+                Owner::TYPE_ORGANIZATION => SMLISER_ORGANIZATIONS_TABLE,
+                Owner::TYPE_INDIVIDUAL   => SMLISER_USERS_TABLE,
+                default                  => null
+            };
+
+            if ( ! $table ) continue;
+            $sql_parts[]   = "( SELECT `id`, '{$type}' AS type, `updated_at` 
+                            FROM `{$table}` 
+                            WHERE `display_name` LIKE ? 
+                            ORDER BY `updated_at` DESC 
+                            LIMIT {$limit} OFFSET {$offset} )";
+            $params_sql[]  = $like;
+
+            $count_parts[] = "SELECT COUNT(*) AS total FROM `{$table}` WHERE `display_name` LIKE ?";
+            $params_count[] = $like;
+        }
+
+        // 1. Fetch Items: Merge subqueries and re-sort the final slice
+        $union_sql = implode( " UNION ALL ", $sql_parts );
+        $final_sql = "{$union_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET 0";
+        $rows      = $db->get_results( $final_sql, array_merge( $params_sql, [ $limit ] ), ARRAY_A );
+
+        // 2. Aggregate Count
+        $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
+        $total     = (int) $db->get_var( $count_sql, $params_count );
+        
+        // 3. Instantiate Objects
+        $objects = [];
+        foreach ( $rows as $row ) {
+            $class  = self::get_entity_classname( $row['type'] );
+            if ( $class && method_exists( $class, 'get_by_id' ) ) {
+                $objects[] = $class::get_by_id( (int) $row['id'] );
+            }
+        }
+
+        return array(
+            'items'      => $objects,
+            'pagination' => array(
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => $total,
+                'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
+            ),
+        );
     }
 
     /**
@@ -181,50 +152,44 @@ class ContextServiceProvider {
      * }
      */
     public static function search_owners( array $args = [] ) : array {
+        $db = smliser_dbclass();
         $defaults = [
-            'status'        => '',
-            'search_term'   => '',
-            'page'          => 1,
-            'limit'         => 20,
+            'search_term' => '',
+            'page'        => 1,
+            'limit'       => 20,
         ];
+
         $args   = parse_args_recursive( $args, $defaults );
         $table  = SMLISER_OWNERS_TABLE;
-        $db     = smliser_dbclass();
         $term   = self::sanitize_text( $args['search_term'] );
         $limit  = max( 1, (int) $args['limit'] );
         $page   = max( 1, (int) $args['page'] );
-        $offset = $db->calculate_query_offset( max( 1, $page ), $limit );
-        $status = $args['status'];
+        $offset = $db->calculate_query_offset( $page, $limit );
 
         $where_clauses = [];
         $params        = [];
 
+        // Focus strictly on display_name and type (logical search)
         if ( ! empty( $term ) ) {
             $like = '%' . $term . '%';
-            $where_clauses[] = " ( `display_name` LIKE ? OR `type` LIKE ? OR `id` LIKE ? ) ";
-            $params = array_merge( $params, [ $like, $like, $like ] );
+            $where_clauses[] = "( `name` LIKE ? OR `type` LIKE ? )";
+            $params = array_merge( $params, [ $like, $like ] );
         }
 
-        if ( ! empty( $status ) ) {
-            $where_clauses[] = " `status` = ? ";
-            $params[] = $status;
-        }
+        $where_sql = ! empty( $where_clauses ) ? ' WHERE ' . implode( ' AND ', $where_clauses ) : '';
+        $sql  = "SELECT `id` FROM `{$table}` {$where_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET ?";
+        $rows = $db->get_results( $sql, array_merge( $params, [ $limit, $offset ] ), ARRAY_A );
 
-        $where_sql = '';
-        if ( ! empty( $where_clauses ) ) {
-            $where_sql = ' WHERE ' . implode( ' AND ', $where_clauses );
-        }
-        $sql    = "SELECT SQL_CALC_FOUND_ROWS * FROM `{$table}` {$where_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET ?";
-        $params[] = $limit;
-        $params[] = $offset;
+        // Get total count
+        $total = (int) $db->get_var( "SELECT COUNT(`id`) FROM `{$table}` {$where_sql}", $params );
 
-        $rows   = $db->get_results( $sql, $params, ARRAY_A );
-        $total  = (int) $db->get_var( "SELECT FOUND_ROWS()" );
         $owners = [];
-        foreach ( $rows as $row ) {
-            $owner = Owner::get_by_id( (int) $row['id'] );
-            if ( $owner instanceof Owner ) {
-                $owners[] = $owner;
+        if ( ! empty( $rows ) ) {
+            foreach ( $rows as $row ) {
+                $owner = Owner::get_by_id( (int) $row['id'] );
+                if ( $owner instanceof Owner ) {
+                    $owners[] = $owner;
+                }
             }
         }
 
@@ -512,6 +477,28 @@ class ContextServiceProvider {
     }
 
     /**
+     * Get all the organization a user belongs to.
+     * 
+     * @param User $user
+     * @return Organization[]|null
+     */
+    public static function get_user_organizations( User $user ) : ?array {
+        $table  = SMLISER_ORGANIZATIONS_TABLE;
+        $db     = smliser_dbclass();
+
+        $sql    = "SELECT `organization_id` FROM `{$table}` WHERE `member_id` = ?";
+        $results    = $db->get_col( $sql, [$user->get_id()] );
+
+        $organizations = array();
+
+        foreach ( $results as $result ) {
+            $organization[] = Organization::get_by_id( $result['id'] ?? 0 );
+        }
+
+        return empty( $organizations ) ? null : $organizations;
+    }
+
+    /**
      * Deletes an organization member and their roles
      * 
      * @param OrganizationMember $member
@@ -541,5 +528,76 @@ class ContextServiceProvider {
         }
 
         static::delete_actor_role( $member, $organization );
+    }
+
+    /**
+     * Delete a sucurity entity.
+     * 
+     * @param User|Organization|ServiceAccount|Owner $entity.
+     * @return void
+     * @throws SecurityException On failed or partial delete.
+     */
+    public static function delete_entity( User|Organization|ServiceAccount|Owner $entity ) : void {
+        $interfaces = class_implements( $entity );
+        $can_delete = ( $entity instanceof Owner ) || in_array( ActorInterface::class, $interfaces, true ) || in_array( OwnerSubjectInterface::class, $interfaces, true );
+
+        \pretty_print( $can_delete );
+        if ( ! $can_delete ) {
+            throw new SecurityException(
+                'delete_error',
+                'The provided entity cannot be deleted.',
+                ['status' => 404]
+            );
+        }
+
+        $db             = smliser_dbclass();
+        $entity_type    = $entity->get_type();
+        $table  = match( true ) {
+            $entity instanceof User             => SMLISER_USERS_TABLE,
+            $entity instanceof Organization     => SMLISER_ORGANIZATIONS_TABLE,
+            $entity instanceof ServiceAccount   => SMLISER_SERVICE_ACCOUNTS_TABLE,
+            $entity instanceof Owner            => SMLISER_OWNERS_TABLE,
+            default                             => null
+        };
+
+        if ( ! $table ) {
+            throw new SecurityException(
+                'delete_error',
+                'The provided entity does not have a database table',
+                ['status' => 400]
+            );
+        }
+
+        // Delete from main table.
+        $main_deleted = $db->delete( $table, ['id' => $entity->get_id()] );
+
+        if ( ! $main_deleted ) {
+            throw new SecurityException(
+                'delete_error',
+                'Unable to delete the provided entity from the database.',
+                ['status' => 500]
+            );
+        }
+
+        if ( in_array( ActorInterface::class, $interfaces, true ) ) {
+            if ( $entity instanceof User ) {
+                $orgs   = ( $entity instanceof User ) ? static::get_user_organizations( $entity ) : null;
+                
+                if ( is_array( $orgs ) ) {
+                    foreach ( $orgs as $org ) {
+                        static::delete_actor_role( $entity, $org );
+                    }
+                } else {
+                    static::delete_actor_role( $entity, $orgs );
+                }                    
+            } else if ( $entity instanceof ServiceAccount ) {
+                $owner      = $entity->get_owner();
+                $subject    = static::get_owner_subject( $owner );
+                static::delete_actor_role( $entity, $subject );
+            }
+            
+        } else if ( $entity instanceof Organization ) {
+
+        }
     }
 }

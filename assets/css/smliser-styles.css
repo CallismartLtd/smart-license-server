@@ -252,7 +252,8 @@ input[type="checkbox"].smliser-licence-key-visibility-toggle {
 }
 
 /* Show the edit link when hovering over the table cell */
-tr:hover:has( .smliser-edit-link ) .smliser-edit-link {
+tr:hover:has( .smliser-edit-link ) .smliser-edit-link,
+.smliser-edit-link:focus-within {
     opacity: 1;
     animation: fadeIn 1s;
 }

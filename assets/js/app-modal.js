@@ -1,6 +1,7 @@
 /**
  * SmliserModal - A highly customizable, event-driven modal component
  * Supports HTMLElement instances, template strings, and custom events
+ * WITH FULL ACCESSIBILITY SUPPORT
  */
 class SmliserModal {
     constructor( options = {} ) {
@@ -26,6 +27,15 @@ class SmliserModal {
         this.header         = null;
         this.bodyElement    = null;
         this.footerElement  = null;
+
+        // Accessibility properties
+        this.previousFocus = null;
+        this.focusableElements = null;
+        this.firstFocusable = null;
+        this.lastFocusable = null;
+        this._hiddenElements = null;
+        this.titleId = 'smliser-modal-title-' + Date.now();
+        this.bodyId = 'smliser-modal-body-' + Date.now();
 
         // Event handlers storage.
         this.eventHandlers = {
@@ -76,6 +86,8 @@ class SmliserModal {
         this.modal.style.maxWidth = this.options.maxWidth;
         this.modal.setAttribute( 'role', 'dialog' );
         this.modal.setAttribute( 'aria-modal', 'true' );
+        this.modal.setAttribute( 'aria-labelledby', this.titleId );
+        this.modal.setAttribute( 'aria-describedby', this.bodyId );
 
         // Create header.
         this._createHeader();
@@ -101,13 +113,22 @@ class SmliserModal {
 
         const title = document.createElement( 'h2' );
         title.className = 'smliser-modal-title';
+        title.id = this.titleId;
         title.textContent = this.options.title;
+        title.setAttribute( 'role', 'heading' );
+        title.setAttribute( 'aria-level', '2' );
+
         this.header.appendChild( title );
 
         if ( this.options.showCloseButton ) {
             const closeBtn = document.createElement( 'button' );
             closeBtn.className = 'smliser-modal-close';
-            closeBtn.setAttribute( 'aria-label', 'Close modal' );
+            closeBtn.setAttribute( 'type', 'button' );
+            closeBtn.setAttribute(
+                'aria-label',
+                `Close ${this.options.title} dialog`
+            );
+
             closeBtn.innerHTML = '&times;';
             closeBtn.addEventListener( 'click', this.close.bind(this) );
             this.header.appendChild(closeBtn);
@@ -123,6 +144,7 @@ class SmliserModal {
     _createBody() {
         this.bodyElement = document.createElement( 'div' );
         this.bodyElement.className = 'smliser-modal-body';
+        this.bodyElement.id = this.bodyId;
         this._setContent( this.bodyElement, this.options.body );
         this.modal.appendChild( this.bodyElement );
     }
@@ -167,12 +189,130 @@ class SmliserModal {
     }
 
     /**
+     * Get all focusable elements within the modal
+     * @private
+     */
+    _getFocusableElements() {
+        const focusableSelectors = [
+            'a[href]',
+            'button:not([disabled])',
+            'textarea:not([disabled])',
+            'input:not([disabled])',
+            'select:not([disabled])',
+            '[tabindex]:not([tabindex="-1"])'
+        ].join(', ');
+        
+        return this.modal.querySelectorAll( focusableSelectors );
+    }
+
+    /**
+     * Trap focus within modal
+     * @private
+     */
+    _trapFocus() {
+        this.focusableElements = this._getFocusableElements();
+        
+        if ( this.focusableElements.length === 0 ) return;
+        
+        this.firstFocusable = this.focusableElements[0];
+        this.lastFocusable = this.focusableElements[ this.focusableElements.length - 1 ];
+        
+        this._handleTabKey = ( e ) => {
+            if ( e.key !== 'Tab' || ! this.isOpen ) return;
+            
+            if ( e.shiftKey ) {
+                if ( document.activeElement === this.firstFocusable ) {
+                    e.preventDefault();
+                    this.lastFocusable.focus();
+                }
+            } else {
+                if ( document.activeElement === this.lastFocusable ) {
+                    e.preventDefault();
+                    this.firstFocusable.focus();
+                }
+            }
+        };
+        
+        document.addEventListener( 'keydown', this._handleTabKey );
+    }
+
+    /**
+     * Remove focus trap
+     * @private
+     */
+    _removeFocusTrap() {
+        if ( this._handleTabKey ) {
+            document.removeEventListener( 'keydown', this._handleTabKey );
+        }
+    }
+
+    /**
+     * Manage focus on modal open
+     * @private
+     */
+    _manageFocus() {
+        this.previousFocus = document.activeElement;
+        
+        const focusableElements = this._getFocusableElements();
+        if ( focusableElements.length > 0 ) {
+            setTimeout( () => focusableElements[0].focus(), 100 );
+        } else {
+            this.modal.setAttribute( 'tabindex', '-1' );
+            setTimeout( () => this.modal.focus(), 100 );
+        }
+    }
+
+    /**
+     * Restore focus to previously focused element
+     * @private
+     */
+    _restoreFocus() {
+        if ( this.previousFocus && typeof this.previousFocus.focus === 'function' ) {
+            this.previousFocus.focus();
+        }
+        this.previousFocus = null;
+    }
+
+    /**
+     * Hide external content from screen readers
+     * @private
+     */
+    _hideExternalContent() {
+        const bodyChildren = Array.from( document.body.children ).filter( 
+            child => child !== this.backdrop 
+        );
+        
+        this._hiddenElements = bodyChildren.map( element => {
+            const originalAriaHidden = element.getAttribute( 'aria-hidden' );
+            element.setAttribute( 'aria-hidden', 'true' );
+            return { element, originalAriaHidden };
+        });
+    }
+
+    /**
+     * Restore external content visibility
+     * @private
+     */
+    _restoreExternalContent() {
+        if ( ! this._hiddenElements ) return;
+        
+        this._hiddenElements.forEach( ({ element, originalAriaHidden }) => {
+            if ( originalAriaHidden === null ) {
+                element.removeAttribute( 'aria-hidden' );
+            } else {
+                element.setAttribute( 'aria-hidden', originalAriaHidden );
+            }
+        });
+        
+        this._hiddenElements = null;
+    }
+
+    /**
      * Open the modal asynchronously
      * @returns {Promise<SmliserModal>}
      */
     async open() {
         if ( this.isOpen ) return this;
-
         // Trigger beforeOpen event.
         await this._triggerEvent( 'beforeOpen' );
 
@@ -187,6 +327,11 @@ class SmliserModal {
         this.backdrop.classList.add( 'smliser-modal-open' );
         this.isOpen = true;
 
+        // Accessibility enhancements
+        this._hideExternalContent();
+        this._trapFocus();
+        this._manageFocus();
+
         // Add escape key listener.
         if ( this.options.closeOnEscape ) {
             document.addEventListener( 'keydown', this._handleEscape );
@@ -197,7 +342,7 @@ class SmliserModal {
             await this._delay( this.options.animationDuration );
         }
         await this._triggerEvent( 'afterOpen' );
-
+        
         return this;
     }
 
@@ -222,6 +367,11 @@ class SmliserModal {
         if ( this.backdrop.parentNode ) {
             document.body.removeChild( this.backdrop );
         }
+
+        // Accessibility cleanup
+        this._removeFocusTrap();
+        this._restoreExternalContent();
+        this._restoreFocus();
 
         this.isOpen = false;
 
@@ -401,12 +551,20 @@ class SmliserModal {
             document.removeEventListener( 'keydown', this._handleEscape );
         }
 
+        // Accessibility cleanup
+        this._removeFocusTrap();
+        this._restoreExternalContent();
+        this._restoreFocus();
+
         this.eventHandlers  = {};
         this.backdrop       = null;
         this.modal          = null;
         this.header         = null;
         this.bodyElement    = null;
         this.footerElement  = null;
+        this.previousFocus  = null;
+        this.focusableElements = null;
+        this._hiddenElements = null;
     }
 
     /**

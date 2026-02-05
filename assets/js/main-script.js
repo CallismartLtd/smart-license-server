@@ -2502,6 +2502,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 const args  = StringUtils.JSONparse( e.target?.dataset.args, null );
                 if ( ! args ) return;
 
+                deleteBtn.blur();
                 const confirmed = await SmliserModal.confirm( 'Are you sure to delete' );
                 
                 if ( ! confirmed ) return;

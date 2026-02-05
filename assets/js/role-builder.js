@@ -1,5 +1,4 @@
 class RoleBuilder {
-
     /**
      * Create a RoleBuilder instance.
      *
@@ -53,20 +52,26 @@ class RoleBuilder {
         if ( initialRole ) {
             this.loadRole( initialRole );
         }
-
     }
 
-    /**
-     * Render the entire role builder UI.
-     */
     render() {
         this.container.classList.add('smliser-role-builder');
 
+        this.container.setAttribute('role', 'application');
+        this.container.setAttribute('aria-label', 'Role Builder');
+
         this.container.innerHTML = `
-            <div class="rb-header">
+            <div class="rb-header" role="region" aria-labelledby="rb-header-title">
+                <h2 id="rb-header-title" class="screen-reader-text">Role Configuration</h2>
+
                 <div class="rb-field">
                     <label for="role-select">Role preset</label>
-                    <select class="rb-role-select" id="role-select">
+                    <select
+                        class="rb-role-select"
+                        id="role-select"
+                        aria-label="Select role preset"
+                        aria-controls="rb-capabilities-area"
+                    >
                         <option value="">Custom role</option>
                         ${this.renderRoleOptions()}
                     </select>
@@ -74,23 +79,48 @@ class RoleBuilder {
 
                 <div class="rb-field">
                     <label for="role-name">Role name</label>
-                    <input type="text"
+                    <input
+                        type="text"
                         class="rb-role-name"
-                        placeholder="Enter role name" id="role-name"
-                        autocomplete="off" spellcheck="off" />
+                        id="role-name"
+                        placeholder="Enter role name"
+                        autocomplete="off"
+                        spellcheck="off"
+                        aria-required="true"
+                        aria-describedby="role-name-desc"
+                    />
+                    <span id="role-name-desc" class="screen-reader-text">
+                        Human readable name for the role
+                    </span>
                 </div>
 
                 <div class="rb-field">
                     <label for="role-slug">Role Slug</label>
-                    <input type="text"
+                    <input
+                        type="text"
                         class="rb-role-slug"
-                        placeholder="Enter role slug" id="role-slug"
-                        autocomplete="off" spellcheck="off" />
+                        id="role-slug"
+                        placeholder="Enter role slug"
+                        autocomplete="off"
+                        spellcheck="off"
+                        aria-required="true"
+                        aria-describedby="role-slug-desc"
+                    />
+                    <span id="role-slug-desc" class="screen-reader-text">
+                        Machine readable identifier for the role
+                    </span>
                 </div>
             </div>
 
-            <div class="rb-capabilities-wrapper">
-                <h3>Capabilities</h3>
+            <div
+                id="rb-capabilities-area"
+                class="rb-capabilities-wrapper"
+                role="region"
+                aria-labelledby="rb-capabilities-title"
+                aria-live="polite"
+            >
+                <h3 id="rb-capabilities-title">Capabilities</h3>
+
                 <div class="rb-capabilities">
                     ${this.renderCapabilities()}
                 </div>
@@ -98,11 +128,6 @@ class RoleBuilder {
         `;
     }
 
-    /**
-     * Render role preset <option> elements.
-     *
-     * @return {string}
-     */
     renderRoleOptions() {
         return Object.entries( this.data.roles )
             .map( ([ key, role ]) =>
@@ -111,31 +136,48 @@ class RoleBuilder {
             .join('');
     }
 
-    /**
-     * Render all capability groups and checkboxes.
-     *
-     * @return {string}
-     */
     renderCapabilities() {
         return Object.entries( this.data.capabilities )
-            .map( ([ domain, caps ]) => `
-                <fieldset class="rb-domain" data-domain="${domain}">
-                    <legend>${this.humanize(domain)}</legend>
+            .map( ([ domain, caps ]) => {
+
+                const fieldsetId = `rb-domain-${domain}`;
+
+                return `
+                <fieldset
+                    class="rb-domain"
+                    id="${fieldsetId}"
+                    data-domain="${domain}"
+                    aria-labelledby="${fieldsetId}-legend"
+                >
+                    <legend id="${fieldsetId}-legend">
+                        ${this.humanize(domain)}
+                    </legend>
+
                     ${Object.entries( caps ).map(
-                        ([ cap, label ]) => `
-                            <label class="rb-cap">
-                                <input type="checkbox" autocomplete="off" spellcheck="off" value="${cap}" />
+                        ([ cap, label ]) => {
+
+                            const inputId = `cap-${cap}`;
+
+                            return `
+                            <label class="rb-cap" for="${inputId}">
+                                <input
+                                    id="${inputId}"
+                                    type="checkbox"
+                                    value="${cap}"
+                                    autocomplete="off"
+                                    spellcheck="off"
+                                    aria-checked="false"
+                                />
                                 <span>${label}</span>
                             </label>
-                        `
+                        `;
+                        }
                     ).join('')}
                 </fieldset>
-            `).join('');
+            `;
+            }).join('');
     }
 
-    /**
-     * Bind UI event listeners.
-     */
     bindEvents() {
         this.container
             .querySelector('.rb-role-select')
@@ -148,23 +190,28 @@ class RoleBuilder {
         this.container
             .querySelector('.rb-role-slug')
             .addEventListener('input', e => e.target.value = e.target.value.toLowerCase() );
+
         this.container
             .querySelector('.rb-role-slug')
             .addEventListener('blur', e => this.formatRoleSlug( e.target.value, true ) );
+
+        this.container.addEventListener('change', e => {
+            if ( e.target.matches('input[type="checkbox"]') ) {
+                e.target.setAttribute(
+                    'aria-checked',
+                    e.target.checked ? 'true' : 'false'
+                );
+            }
+        });
     }
 
-    /**
-     * Select a predefined role.
-     *
-     * @param {string} roleKey Role identifier.
-     */
     selectRole( roleKey ) {
-        this.resetCapabilities();        
+        this.resetCapabilities();
 
         if ( ! roleKey ) {
             this.enableCustomRole();
             this.setRoleName( '' );
-            
+
             this.formatRoleSlug( '' );
             return;
         }
@@ -181,93 +228,77 @@ class RoleBuilder {
         this.formatRoleSlug( roleKey );
     }
 
-    /**
-     * Switch UI to custom role mode.
-     */
     enableCustomRole() {
         this.activeRole = null;
         this.isPreset   = false;
 
         this.unlockCapabilities();
-        this.setLockedState( false );        
+        this.setLockedState( false );
     }
 
-    /**
-     * Set the role name field value and lock state.
-     *
-     * @param {string} name
-     */
     setRoleName( name ) {
-        /** @type {HTMLInputElement} input */
-        const input         = this.container.querySelector('.rb-role-name');
-        input.value         = name ? name : '';
-        input.disabled      = this.isPreset;
+        const input = this.container.querySelector('.rb-role-name');
+
+        input.value    = name ? name : '';
+        input.disabled = this.isPreset;
+
+        input.setAttribute(
+            'aria-disabled',
+            this.isPreset ? 'true' : 'false'
+        );
     }
 
-    /**
-     * Check a list of capability checkboxes.
-     *
-     * @param {string[]} capabilities
-     */
     checkCapabilities( capabilities ) {
         capabilities?.forEach( cap => {
             const checkbox = this.container.querySelector(
                 `input[value="${cap}"]`
             );
+
             if ( checkbox ) {
                 checkbox.checked = true;
+                checkbox.setAttribute('aria-checked', 'true');
             }
         });
     }
 
-    /**
-     * Uncheck all capability checkboxes.
-     */
     resetCapabilities() {
         this.container
             .querySelectorAll('.rb-capabilities input[type=checkbox]')
-            .forEach( cb => cb.checked = false );
+            .forEach( cb => {
+                cb.checked = false;
+                cb.setAttribute('aria-checked', 'false');
+            });
     }
 
-    /**
-     * Disable all capability checkboxes.
-     */
     lockCapabilities() {
         this.toggleCapabilities( true );
     }
 
-    /**
-     * Enable all capability checkboxes.
-     */
     unlockCapabilities() {
         this.toggleCapabilities( false );
     }
 
-    /**
-     * Toggle capability checkbox disabled state.
-     *
-     * @param {boolean} disabled
-     */
     toggleCapabilities( disabled ) {
         this.container
             .querySelectorAll('.rb-capabilities input[type=checkbox]')
-            .forEach( cb => cb.disabled = disabled );
+            .forEach( cb => {
+                cb.disabled = disabled;
+                cb.setAttribute(
+                    'aria-disabled',
+                    disabled ? 'true' : 'false'
+                );
+            });
     }
 
-    /**
-     * Set locked state on the root element (for styling).
-     *
-     * @param {boolean} locked
-     */
     setLockedState( locked ) {
         this.container.dataset.locked = locked ? 'true' : 'false';
+
+        this.container.setAttribute(
+            'aria-busy',
+            locked ? 'true' : 'false'
+        );
     }
 
-    /**
-     * Get the current role configuration.
-     *
-     * @return {{role: string|null, name: string, capabilities: string[]}}
-     */
     getValue() {
         return {
             roleSlug: this.container.querySelector( '.rb-role-slug' ).value,
@@ -280,73 +311,52 @@ class RoleBuilder {
         };
     }
 
-    /**
-     * Convert snake_case identifiers to human-readable text.
-     *
-     * @param {string} str
-     * @return {string}
-     */
     humanize( str ) {
         return str
             .replace(/_/g, ' ')
             .replace(/\b\w/g, c => c.toUpperCase());
     }
 
-    /**
-     * Format role slug
-     * 
-     * @param {string} slug The value of the role slug.
-     * 
-     */
     formatRoleSlug( slug, isFinal = false ) {
         const input = this.container.querySelector( '.rb-role-slug' );
 
         if ( slug ) {
             slug = slug
                 .toLowerCase()
-                .replace(/[\s-]+/g, '_')    // Replace spaces/hyphens with _
-                .replace(/[^a-z0-9_]/g, ''); // Remove illegal chars
+                .replace(/[\s-]+/g, '_')
+                .replace(/[^a-z0-9_]/g, '');
 
-            // Only collapse and trim if we are done typing (on blur)
             if ( isFinal ) {
                 slug = slug
                     .replace(/_+/g, '_')
-                    .replace(/[\s]+/i, '_')
                     .replace(/^_+|_+$/g, '');
             }
         }
 
-        input.value     = slug ? slug: '';
-        input.disabled  = this.isPreset;        
+        input.value = slug ? slug: '';
+        input.disabled = this.isPreset;
+
+        input.setAttribute(
+            'aria-disabled',
+            this.isPreset ? 'true' : 'false'
+        );
     }
 
-    /**
-     * Load an existing role into the builder (edit mode).
-     *
-     * If the role exactly matches a canonical preset, the preset
-     * is selected and locked. Otherwise, the role is treated as custom.
-     *
-     * @param {{
-     *   name: string,
-     *   capabilities: string[]
-     * }} roleData
-     */
     loadRole( roleData ) {
         this.resetCapabilities();
 
-        /**@type {HTMLSelectElement} */
-        const roleSelect    = this.container.querySelector( '.rb-role-select' );
+        const roleSelect = this.container.querySelector( '.rb-role-select' );
 
         if ( roleData.is_canonical ) {
-            const presetKey     = this.findMatchingPreset( roleData.capabilities );
+            const presetKey = this.findMatchingPreset( roleData.capabilities );
+
             if ( presetKey ) {
                 roleSelect.value = presetKey;
-                this.selectRole( presetKey );            
+                this.selectRole( presetKey );
                 return;
             }
         }
 
-        // Custom / non-canonical role.
         if ( roleSelect.querySelector( `option[value="${roleData.slug}"]` ) ) {
             this.selectRole( roleData.slug );
             roleSelect.value = roleData.slug;
@@ -361,12 +371,6 @@ class RoleBuilder {
         this.checkCapabilities( roleData.capabilities );
     }
 
-    /**
-     * Find a preset role that exactly matches a capability set.
-     *
-     * @param {string[]} capabilities
-     * @return {string|null} Matching role key or null
-     */
     findMatchingPreset( capabilities ) {
         const sorted = [ ...capabilities ].sort().join('|');
 
