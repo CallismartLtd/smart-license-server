@@ -8,7 +8,7 @@
 function showSpinner( selector, larger = false ) {
     const element = ( selector instanceof HTMLElement ) ? selector : document.querySelector( selector );
 
-    if ( ! element ) return console.warn( 'Spinner element not found' );
+    if ( ! element ) { console.warn( 'Spinner element not found' ); return };
 
     const image     = document.createElement( 'img' );
     const gifUrl    = larger ? smliser_var.wp_spinner_gif_2x : smliser_var.wp_spinner_gif;
@@ -43,7 +43,7 @@ function removeSpinner( spinner ) {
  * @returns {Promise<Object|string|Blob>} Parsed response based on type
  * @throws {Object} Error object with message and optional field
  */
-async function smliserFetch( url, options = {} ) {
+async function smliserFetch( url, options = { responseType: 'json' } ) {
     // Extract custom option
     const responseType = options.responseType || 'json';
     delete options.responseType; // Remove before passing to fetch
@@ -407,7 +407,7 @@ const StringUtils = {
 
     /**
      * Format a number as currency.
-     * @param {number} amount - Amount to format
+     * @param {string} amount - Amount to format
      * @param {Object} config - Currency configuration
      * @returns {string} Formatted currency string
      */
@@ -473,7 +473,7 @@ const StringUtils = {
 
     /**
      * Format number with separators
-     * @param {number} num - Number to format
+     * @param {string} num - Number to format
      * @param {string} separator - Thousand separator (default: ',')
      * @returns {string} Formatted number
      */
@@ -754,10 +754,10 @@ const StringUtils = {
 /**
  * App section via select2
  * 
- * @param {HTMLElement} selectEl 
+ * @param {Element} selectEl 
  */
 function smliserSelect2AppSelect( selectEl ) {
-    if ( ! selectEl instanceof HTMLElement ) {
+    if ( ! ( selectEl instanceof HTMLElement ) ) {
         console.warn( 'Could not instantiate app selection, invalid html element' );
         return;     
     }
@@ -812,7 +812,7 @@ function smliserSelect2AppSelect( selectEl ) {
 /**
  * Search security entities using select2.
  * 
- * @param {HTMLElement} selectEl
+ * @param {Element} selectEl
  * @param {Object} options
  */
 function smliserSearchSecurityEntities( selectEl, options = {} ) {
@@ -863,7 +863,7 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
     };
 
     const $select2  = jQuery( selectEl );
-    const url       = new URL( smliser_var.smliser_ajax_url );
+    const url       = new URL( smliser_var.ajaxURL );
 
     url.searchParams.set( 'action', 'smliser_admin_security_entity_search' );
     url.searchParams.set( 'security', smliser_var.nonce );
@@ -877,7 +877,7 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
             delay: 500,
             data: prepareArgs,
             processResults: processResults,
-            // cache: true,
+            cache: true,
         },
         allowClear: true,
         minimumInputLength: 2,
@@ -898,7 +898,7 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
         if ( ownerTypeInput.length ) {
             ownerTypeInput.val( param.data.selected ? entityType : defaultValue );
 
-            if ( ( param.data.selected && nameInput ) && ! nameInput.val()?.length ) {
+            if ( ( param.data.selected && nameInput ) && ! nameInput.val() ) {
                 nameInput.val( param.data.text );
             }
         }
@@ -941,7 +941,9 @@ document.addEventListener( 'DOMContentLoaded', function() {
     /** @type {HTMLFormElement} */
     const accessControlForm     = document.querySelector( '.smliser-access-control-form' );
     const ownerSubjectSearch    = document.querySelector( '#subject_id' );
+    /** @type {HTMLSelectElement} */
     const usersSearch           = document.querySelector( '#user_id' );
+    /** @type {HTMLSelectElement} */
     const ownersSearch          = document.querySelector( '#owner_id' );
     const deleteEntities        = document.querySelectorAll( '.smliser-delete-entity' );
 
@@ -995,11 +997,13 @@ document.addEventListener( 'DOMContentLoaded', function() {
         if ( ! pwdvalues ) return;
 
         const [pwd1Selector, pwd2Selector] = pwdvalues;
+        /** @type {HTMLInputElement} */
         const pwd1Field = document.querySelector( `#${pwd1Selector}` );
+         /** @type {HTMLInputElement} */
         const pwd2Field = document.querySelector( `#${pwd2Selector}` );
 
         generatePasswordBtn.addEventListener( 'click', e => {
-            const btn   = e.target.closest( '.button' );
+            const btn   = e.target?.closest( '.button' );
 
             if ( ! btn ) return;
             const password  = StringUtils.generatePassword();
@@ -1068,13 +1072,14 @@ document.addEventListener( 'DOMContentLoaded', function() {
         optionForms.forEach( form => {
             form.addEventListener( 'submit', ( e ) => {
                 e.preventDefault();
-
-                const payLoad   = new FormData( e.target );
-                const url       = smliser_var.smliser_ajax_url;
+                const submittedForm = e.target;
+                if ( ! ( submittedForm instanceof HTMLFormElement ) ) return;
+                const payLoad   = new FormData( submittedForm );
+                const url       = smliser_var.ajaxURL;
                 payLoad.set( 'security', smliser_var.nonce );
-                const submitBtn = e.target.querySelector( 'button[type="submit"]' );
+                const submitBtn = submittedForm.querySelector( 'button[type="submit"]' );
                 
-                submitBtn?.setAttribute( 'disabled', true );
+                submitBtn?.setAttribute( 'disabled', 'disabled' );
                 const spinner = showSpinner( '.smliser-spinner', true );
 
                 fetch( url, {
@@ -1103,7 +1108,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                         throw new Error( errorMessage );
                     }
 
-                    const message = response?.data?.message ?? 'Success';
+                    const message = responseJson?.data?.message ?? 'Success';
                     smliserNotify( message, 5000 );
                 }).catch( error => {
                     if ( error.message?.toLowerCase().includes( "network" ) || error.message?.toLowerCase().includes( "failed to fetch" ) ){
@@ -1183,7 +1188,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             if ( ! expiryDate ) {
                 expiryDate = '';
             }
-            let url = new URL( smliser_var.smliser_ajax_url );
+            let url = new URL( smliser_var.ajaxURL );
             let payLoad = new FormData();
             payLoad.set( 'action', 'smliser_generate_download_token' );
             payLoad.set( 'security', smliser_var.nonce );
@@ -1355,7 +1360,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             updateClickedNotice.appendChild(dismissBtn);
             
             // Construct the URL
-            let updateUrl = new URL( smliser_var.smliser_ajax_url );
+            let updateUrl = new URL( smliser_var.ajaxURL );
             updateUrl.searchParams.set( 'action', 'smliser_upgrade' );
             updateUrl.searchParams.set( 'security', smliser_var.nonce );
         
@@ -1404,7 +1409,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     }                    
                 }
 
-                let url = new URL( smliser_var.smliser_ajax_url );
+                let url = new URL( smliser_var.ajaxURL );
                 url.searchParams.set( 'action', 'smliser_app_status_action' );
                 url.searchParams.set( 'slug', requestArgs.slug );
                 url.searchParams.set( 'type', requestArgs.type );
@@ -1514,7 +1519,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             let formData = new FormData( apiKeyForm );
             formData.append( 'action', 'smliser_key_generate' );
             formData.append( 'security', smliser_var.nonce );
-            fetch( smliser_var.smliser_ajax_url, {
+            fetch( smliser_var.ajaxURL, {
                 method: 'POST',
                 body: formData,
             }).then( response => {
@@ -1576,7 +1581,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     return;
                 }
                 spinnerOverlay.classList.add('show');
-                let url = new URL( smliser_var.smliser_ajax_url );
+                let url = new URL( smliser_var.ajaxURL );
                 url.searchParams.set( 'action', 'smliser_revoke_key' );
                 url.searchParams.set( 'security', smliser_var.nonce );
                 url.searchParams.set( 'api_key_id', apiKeyId );
@@ -1652,7 +1657,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             const payLoad = new FormData( tierForm );
             payLoad.set( 'security', smliser_var.nonce );
 
-            smliserFetch( smliser_var.smliser_ajax_url, { method: 'POST', body: payLoad } )
+            smliserFetch( smliser_var.ajaxURL, { method: 'POST', body: payLoad } )
                 .then( responseJson => {
                     if ( responseJson.success ) {
                         smliserNotify( responseJson.data?.message || 'Operation successful', 3000 );
@@ -1711,7 +1716,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     payLoad.set( 'monetization_id', tier.monetization_id );
                     payLoad.set( 'tier_id', tier.id );
 
-                    smliserFetch( smliser_var.smliser_ajax_url, { method: 'POST', body: payLoad } )
+                    smliserFetch( smliser_var.ajaxURL, { method: 'POST', body: payLoad } )
                         .then( responseJson => {
                             if ( responseJson.success ) {
                                 smliserNotify( responseJson.data?.message || 'Tier deleted', 3000 );
@@ -1774,7 +1779,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     product_id: tier.product_id,
                 });
 
-                smliserFetch( `${smliser_var.smliser_ajax_url}?${params.toString()}`, { method: 'GET' } )
+                smliserFetch( `${smliser_var.ajaxURL}?${params.toString()}`, { method: 'GET' } )
                     .then( responseJson => {
                         modal.querySelector( '.spinner-overlay' )?.remove();
                         if ( ! responseJson.success ) {
@@ -1816,7 +1821,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 payLoad.set( 'monetization_id', monetizationId );
                 payLoad.set( 'enabled', enabled );
 
-                fetch( smliser_var.smliser_ajax_url, {
+                fetch( smliser_var.ajaxURL, {
                     method: 'POST',
                     body: payLoad,
                 })
@@ -1968,7 +1973,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             submitBtn && ( submitBtn.disabled = true );
 
             try {
-                const response = await fetch( smliser_var.smliser_ajax_url, {
+                const response = await fetch( smliser_var.ajaxURL, {
                     method: 'POST',
                     body: payLoad,
                     credentials: 'same-origin',
@@ -2040,7 +2045,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 return;
             }
 
-            const url   = new URL( smliser_var.smliser_ajax_url );
+            const url   = new URL( smliser_var.ajaxURL );
 
             url.searchParams.set( 'action', 'smliser_remove_licensed_domain' );
             url.searchParams.set( 'security', smliser_var.nonce );
@@ -2102,7 +2107,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
         accessControlForm.addEventListener( 'submit', async e => {
             e.preventDefault();
             const payLoad   = new FormData( accessControlForm );
-            const url       = new URL( smliser_var.smliser_ajax_url );
+            const url       = new URL( smliser_var.ajaxURL );
 
             if ( typeof window.SmliserRoleBuilder !== 'undefined' ) {
                 const roleValues = SmliserRoleBuilder.getValue();
@@ -2169,7 +2174,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     clickedBtn.disabled = true;
 
                     if ( clickedBtn === deleteMemberBtn && confirm( 'Are you sure you want to remove the selected member from this organization?' ) ) {
-                        const url   = new URL( smliser_var.smliser_ajax_url );
+                        const url   = new URL( smliser_var.ajaxURL );
 
                         url.searchParams.set( 'action', 'smliser_delete_org_member' );
                         url.searchParams.set( 'security', smliser_var.nonce );
@@ -2209,7 +2214,6 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 
             });
         }
-
 
         /**
          * Process the response body ofter a successful submission of the
@@ -2365,9 +2369,6 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 window.location.reload();
             }
         }
-
-
-
     }
 
     if ( avatarUploadFields.length ) {
@@ -2495,12 +2496,40 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
     if ( deleteEntities.length ) {
         deleteEntities.forEach( deleteBtn => {
-            deleteBtn.addEventListener( 'click', e => {
+            deleteBtn.addEventListener( 'click', async e => {
                 e.preventDefault();
-                const args  = StringUtils.JSONparse( e.target.dataset.args, null );
+                
+                const args  = StringUtils.JSONparse( e.target?.dataset.args, null );
                 if ( ! args ) return;
 
-                const url   = new URL( smliser_var.smliser_ajax_url );
+                const confirmed = await SmliserModal.confirm( 'Are you sure to delete' );
+                
+                if ( ! confirmed ) return;
+
+                const url   = new URL( smliser_var.ajaxURL );
+                url.searchParams.set( 'action', 'smliser_access_control_delete' );
+                url.searchParams.set( 'security', smliser_var.nonce );
+
+                Object.entries( args ).forEach( ( [key, value] ) => {
+                    url.searchParams.set( key, value );
+                });
+                
+                try {
+                    const result    = await smliserFetchJSON( url.href,{
+                        method: 'DELETE',
+                        credentials: 'same-origin',
+                        headers: {
+                            'X-HTTP-Method-Override': 'DELETE'
+                        }
+                    });
+
+                    if ( result.success ) {
+                        SmliserModal.success( result.data.message || 'Deleted' );
+                    }
+
+                } catch ( error ) {
+                    SmliserModal.error( error.message, error.statusText );
+                }
 
             });
         });

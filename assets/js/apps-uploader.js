@@ -192,7 +192,7 @@ class AppUploader {
         const spinner = showSpinner( '.smliser-spinner', true );
         
         try {
-            const response = await fetch( smliser_var.smliser_ajax_url, {
+            const response = await fetch( smliser_var.ajaxURL, {
                 method: 'POST',
                 credentials: 'same-origin',
                 body: payLoad
@@ -573,7 +573,7 @@ class AppUploader {
         clickedBtn.setAttribute( 'disabled', true );
         const container = document.querySelector( `.app-uploader-asset-container.${this.currentConfig.get( 'asset_type' )}` );
         
-        const url = new URL( smliser_var.smliser_ajax_url );
+        const url = new URL( smliser_var.ajaxURL );
         url.searchParams.set( 'action', 'smliser_app_asset_upload' );
         url.searchParams.set( 'security', smliser_var.nonce );
         
@@ -690,7 +690,7 @@ class AppUploader {
         clickedBtn.setAttribute( 'disabled', true );
         
         try {
-            const response = await fetch( smliser_var.smliser_ajax_url, {
+            const response = await fetch( smliser_var.ajaxURL, {
                 method: 'POST',
                 body: payLoad,
                 credentials: 'same-origin'
