@@ -2342,7 +2342,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                         document.body.removeChild(a);
                     });
 
-                    modal.open();
+                    modal.open().then( () => downloadBtn.focus() );
                     
                     modal.on( 'afterClose', () => {
                         window.location.href = redirectUrl.href;
@@ -2418,6 +2418,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
             const buttonsRow            = avatarUpload.querySelector( '.smliser-avatar-upload_buttons-row' );
 
+            imagePreview?.setAttribute( 'draggable', false );
             const imageFullScreenMode = () => {
                 if ( ! imageHolder.requestFullscreen ) {
                     smliserNotify( 'Fullscreen not supported by your browser.', 3000 );
@@ -2499,13 +2500,18 @@ document.addEventListener( 'DOMContentLoaded', function() {
             deleteBtn.addEventListener( 'click', async e => {
                 e.preventDefault();
                 
-                const args  = StringUtils.JSONparse( e.target?.dataset.args, null );
+                const args  = StringUtils.JSONparse( deleteBtn.dataset.args, null );
                 if ( ! args ) return;
 
                 deleteBtn.blur();
-                const confirmed = await SmliserModal.confirm( 'Are you sure to delete' );
+                deleteBtn.style.pointerEvents   = 'none'; 
+                const confirmed                 = await SmliserModal.confirm( 'Are you sure to delete' );
                 
-                if ( ! confirmed ) return;
+                if ( ! confirmed ) {
+                    deleteBtn.style.pointerEvents = 'auto';
+                    deleteBtn.style.opacity = '1';
+                    return;
+                };
 
                 const url   = new URL( smliser_var.ajaxURL );
                 url.searchParams.set( 'action', 'smliser_access_control_delete' );
@@ -2519,17 +2525,21 @@ document.addEventListener( 'DOMContentLoaded', function() {
                     const result    = await smliserFetchJSON( url.href,{
                         method: 'DELETE',
                         credentials: 'same-origin',
-                        headers: {
-                            'X-HTTP-Method-Override': 'DELETE'
-                        }
+                        headers: { 'X-HTTP-Method-Override': 'DELETE' }
                     });
 
                     if ( result.success ) {
-                        SmliserModal.success( result.data.message || 'Deleted' );
+                        await SmliserModal.success( result.data.message || 'Deleted' );
+
+                        const tableRow  = deleteBtn.closest( 'tr' );
+
+                        jQuery( tableRow ).fadeOut( 'slow', () => tableRow.remove() );
                     }
 
                 } catch ( error ) {
-                    SmliserModal.error( error.message, error.statusText );
+                    await SmliserModal.error( error.message, error.statusText );
+                } finally {
+                    deleteBtn?.style.removeProperty( 'pointer-events' )
                 }
 
             });

@@ -244,14 +244,6 @@ class ContextServiceProvider {
      * @throws SecurityException When there is no valid resource owner in context.
      */
     public static function save_actor_role( ActorInterface $actor, Role $role, ?OwnerSubjectInterface $subject ) : bool {
-        if ( ! $subject && ! in_array( OwnerSubjectInterface::class, class_implements( $actor ), true ) ) {
-            throw new SecurityException( 
-                'invalid_scope', 
-                'Principal must either be a valid resource owner or be acting for a resource owner.',
-                ['status' => 500]
-            );
-        }
-
         $db             = smliser_dbclass();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
@@ -531,17 +523,18 @@ class ContextServiceProvider {
     }
 
     /**
-     * Delete a sucurity entity.
-     * 
-     * @param User|Organization|ServiceAccount|Owner $entity.
+     * Delete a security entity and all its related data in a single query where possible.
+     *
+     * @param User|Organization|ServiceAccount|Owner $entity
      * @return void
      * @throws SecurityException On failed or partial delete.
      */
     public static function delete_entity( User|Organization|ServiceAccount|Owner $entity ) : void {
         $interfaces = class_implements( $entity );
-        $can_delete = ( $entity instanceof Owner ) || in_array( ActorInterface::class, $interfaces, true ) || in_array( OwnerSubjectInterface::class, $interfaces, true );
+        $can_delete = ( $entity instanceof Owner )
+            || in_array( ActorInterface::class, $interfaces, true )
+            || in_array( OwnerSubjectInterface::class, $interfaces, true );
 
-        \pretty_print( $can_delete );
         if ( ! $can_delete ) {
             throw new SecurityException(
                 'delete_error',
@@ -550,54 +543,80 @@ class ContextServiceProvider {
             );
         }
 
-        $db             = smliser_dbclass();
-        $entity_type    = $entity->get_type();
-        $table  = match( true ) {
-            $entity instanceof User             => SMLISER_USERS_TABLE,
-            $entity instanceof Organization     => SMLISER_ORGANIZATIONS_TABLE,
-            $entity instanceof ServiceAccount   => SMLISER_SERVICE_ACCOUNTS_TABLE,
-            $entity instanceof Owner            => SMLISER_OWNERS_TABLE,
-            default                             => null
-        };
+        $db = smliser_dbclass();
 
-        if ( ! $table ) {
-            throw new SecurityException(
-                'delete_error',
-                'The provided entity does not have a database table',
-                ['status' => 400]
-            );
-        }
+        try {
+            $db->begin_transaction();
 
-        // Delete from main table.
-        $main_deleted = $db->delete( $table, ['id' => $entity->get_id()] );
+            switch ( true ) {
+                case $entity instanceof User:
+                    // Delete user and related role assignments + memberships in a single transaction
+                    $sql = "
+                        DELETE u, ra, om
+                        FROM `" . SMLISER_USERS_TABLE . "` AS u
+                        LEFT JOIN `" . SMLISER_ROLE_ASSIGNMENT_TABLE . "` AS ra
+                            ON ra.principal_type = 'individual' AND ra.principal_id = u.id
+                        LEFT JOIN `" . SMLISER_ORGANIZATION_MEMBERS_TABLE . "` AS om
+                            ON om.member_id = u.id
+                        WHERE u.id = ?
+                    ";
+                    $deleted = $db->query( $sql, [ $entity->get_id() ] );
+                    break;
 
-        if ( ! $main_deleted ) {
-            throw new SecurityException(
-                'delete_error',
-                'Unable to delete the provided entity from the database.',
-                ['status' => 500]
-            );
-        }
+                case $entity instanceof Organization:
+                    // Delete organization, its members, and role assignments in one query
+                    $sql = "
+                        DELETE o, om, ra
+                        FROM `" . SMLISER_ORGANIZATIONS_TABLE . "` AS o
+                        LEFT JOIN `" . SMLISER_ORGANIZATION_MEMBERS_TABLE . "` AS om
+                            ON om.organization_id = o.id
+                        LEFT JOIN `" . SMLISER_ROLE_ASSIGNMENT_TABLE . "` AS ra
+                            ON ra.owner_subject_type = 'organization' AND ra.owner_subject_id = o.id
+                        WHERE o.id = ?
+                    ";
+                    $deleted = $db->query( $sql, [ $entity->get_id() ] );
+                    break;
 
-        if ( in_array( ActorInterface::class, $interfaces, true ) ) {
-            if ( $entity instanceof User ) {
-                $orgs   = ( $entity instanceof User ) ? static::get_user_organizations( $entity ) : null;
-                
-                if ( is_array( $orgs ) ) {
-                    foreach ( $orgs as $org ) {
-                        static::delete_actor_role( $entity, $org );
-                    }
-                } else {
-                    static::delete_actor_role( $entity, $orgs );
-                }                    
-            } else if ( $entity instanceof ServiceAccount ) {
-                $owner      = $entity->get_owner();
-                $subject    = static::get_owner_subject( $owner );
-                static::delete_actor_role( $entity, $subject );
+                case $entity instanceof ServiceAccount:
+                    // Delete service account and its role assignment
+                    $owner   = $entity->get_owner();
+                    $subject = $owner ? static::get_owner_subject( $owner ) : null;
+
+                    static::delete_actor_role( $entity, $subject );
+
+                    $deleted = $db->delete( SMLISER_SERVICE_ACCOUNTS_TABLE, ['id' => $entity->get_id()] );
+                    break;
+
+                case $entity instanceof Owner:
+                    // Delete from owners table
+                    $deleted = $db->delete( SMLISER_OWNERS_TABLE, ['id' => $entity->get_id()] );
+                    break;
+
+                default:
+                    throw new SecurityException(
+                        'delete_error',
+                        'Unsupported entity type for deletion.',
+                        ['status' => 400]
+                    );
             }
-            
-        } else if ( $entity instanceof Organization ) {
 
+            if ( false === $deleted ) {
+                throw new SecurityException(
+                    'delete_error',
+                    'Unable to delete the provided entity from the database.',
+                    ['status' => 500]
+                );
+            }
+
+            $db->commit();
+        } catch ( \Exception $e ) {
+            $db->rollback();
+            throw new SecurityException(
+                'delete_error',
+                'Failed to delete entity. Transaction rolled back.',
+                ['status' => 500, 'error' => $e->getMessage()]
+            );
         }
     }
+
 }

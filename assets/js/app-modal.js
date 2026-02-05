@@ -1009,7 +1009,7 @@ class SmliserModal {
      *     // Discard changes
      * }
      */
-    static choice = function( options ) {
+    static choice( options ) {
         return new Promise( ( resolve ) => {
             const config = {
                 title: options.title || 'Choose',

@@ -269,7 +269,7 @@ class AccessControlPage {
         $_status_keys   = array_values( $_org_statuses );
         $_statuses      = array_combine( $_status_keys, $_status_titles );
 
-        $form_fields    = array(
+        $form_fields = array(
             array(
                 'label' => '',
                 'input' => array(
@@ -298,7 +298,10 @@ class AccessControlPage {
                         'spellcheck'    => 'off',
                         'required'      => true,
                         'placeholder'   => 'Enter full name',
-                        'style'         => 'width: unset'
+                        'style'         => 'width: unset',
+                        // Accessibility
+                        'aria-required' => 'true',
+                        'aria-label'    => __( 'Organization Name', 'smliser' ),
                     )
                 )
             ),
@@ -312,12 +315,13 @@ class AccessControlPage {
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
-                        'required'      => true,
-                        'placeholder'   => 'Enter organization slug'
+                        'placeholder'   => 'Enter organization slug',
+                        // Accessibility
+                        'aria-label'    => __( 'Organization Slug', 'smliser' ),
                     )
                 )
             ),
-     
+
             array(
                 'label' => __( 'Status', 'smliser' ),
                 'input' => array(
@@ -327,12 +331,14 @@ class AccessControlPage {
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
-                        'required'      => true
+                        'required'      => true,
+                        // Accessibility
+                        'aria-required' => 'true',
+                        'aria-label'    => __( 'Select Organization Status', 'smliser' ),
                     ),
                     'options'   => $_statuses
                 )
             ),
-     
         );
 
         $avatar_url     = 
@@ -369,7 +375,7 @@ class AccessControlPage {
 
         $role   = $member ? $member->get_role()?->to_array() : [];
 
-        $form_fields        = array(
+        $form_fields = array(
             array(
                 'label' => '',
                 'input' => array(
@@ -404,6 +410,9 @@ class AccessControlPage {
                     'value' => $org_name,
                     'attr'  => array(
                         'readonly'      => true,
+                        // Accessibility
+                        'aria-readonly' => 'true',
+                        'aria-label'    => __( 'Organization Name', 'smliser' ),
                     )
                 )
             ),
@@ -416,6 +425,9 @@ class AccessControlPage {
                     'value' => $organization?->get_slug(),
                     'attr'  => array(
                         'readonly'      => true,
+                        // Accessibility
+                        'aria-readonly' => 'true',
+                        'aria-label'    => __( 'Organization Slug', 'smliser' ),
                     )
                 )
             ),
@@ -428,13 +440,14 @@ class AccessControlPage {
                     'value' => $member?->get_user()->get_id(),
                     'attr'  => array(
                         'readonly'  => true,
+                        // Accessibility
+                        'aria-readonly' => 'true',
+                        'aria-label'    => __( 'Member Name', 'smliser' ),
                     ),
                     'options'   => $selected_member,
-                    
                 )
             ),
 
-     
             array(
                 'label' => __( 'Status', 'smliser' ),
                 'input' => array(
@@ -444,12 +457,14 @@ class AccessControlPage {
                     'attr'  => array(
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
-                        'required'      => true
+                        'required'      => true,
+                        // Accessibility
+                        'aria-required' => 'true',
+                        'aria-label'    => __( 'Member Status', 'smliser' ),
                     ),
                     'options'   => $_statuses
                 )
             ),
-     
         );
 
         $avatar_url     = 

@@ -265,12 +265,6 @@ class RequestController {
     }
 
     /**
-     * Delete the user object
-     * 
-     * @param User $user
-     */
-
-    /**
      * Save service account object.
      * 
      * @param ServiceAccount $sa_acc The service account object.
@@ -299,7 +293,6 @@ class RequestController {
             }
 
             $subject    = ContextServiceProvider::get_owner_subject( $owner );
-            $request->set( 'subject', $subject );
 
             if ( $request->isEmpty( 'role_slug' ) ) {
                 throw new RequestException( 'required_param', 'Please select a role for this service account', [ 'status' => 400 ] );
@@ -316,6 +309,8 @@ class RequestController {
             if ( ! $sa_acc->save() ) {
                 throw new RequestException( 'database_error', 'Unable to save service account', ['status' => 500] );
             }
+            
+            $request->set( 'subject', $subject );
 
             if ( ! $account_exists ) {
                 $request->set( 'new_api_keys', $sa_acc->get_new_api_key_data() );
@@ -444,7 +439,8 @@ class RequestController {
                 throw new RequestException( 'bad_request', 'The member subject must be an existing user.', ['status' => 400] );
             }
            
-            $member_id  = static::sanitize_int( $request->get( 'member_id' ) );
+            $member_id  = static::sanitize_int( $request->get( 'member_id' ) );                    
+            
             $member     = $organization->get_members()->get( $member_id );
 
             if ( ! $member ) {
