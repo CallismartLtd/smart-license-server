@@ -2223,7 +2223,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
          */
         const processAfterEntitySave    = ( responseBody ) => {
             const isUsersTab                = qv.has( 'tab', 'users' );
-            const isAPITab                  = qv.has( 'tab', 'rest-api' );
+            const isAPITab                  = qv.has( 'tab', 'service-account' );
             const isOwnersTab               = qv.has( 'tab', 'owners' );
             const isOrgTab                  = qv.has( 'tab', 'organizations' );
             const currentUrl                = window.location.href;
@@ -2496,6 +2496,27 @@ document.addEventListener( 'DOMContentLoaded', function() {
     }
 
     if ( deleteEntities.length ) {
+        /**
+         * Render empty table state.
+         * @param {HTMLTableElement} table HTML table
+         */
+        const renderEmptyTableState = ( table ) => {
+            if ( ! table ) return;
+            
+            // Find how many columns the table has to span the message across all of them
+            const colCount          = table.querySelector( 'thead tr' )?.cells.length || 1;
+            const notFoundMessage   = `No ${queryParam.get( 'tab' ).replace( '-', ' ' )} found`;
+            
+            const emptyRow = `
+                <tr class="no-results">
+                    <td colspan="${colCount}" style="text-align: center;
+                        padding: 20px; background-color: #ffffff">
+                        ${notFoundMessage}
+                    </td>
+                </tr>`;
+            table.querySelector( 'thead' )?.classList.add( 'hidden' );
+            table.tBodies[0].innerHTML = emptyRow;
+        }
         deleteEntities.forEach( deleteBtn => {
             deleteBtn.addEventListener( 'click', async e => {
                 e.preventDefault();
@@ -2532,8 +2553,21 @@ document.addEventListener( 'DOMContentLoaded', function() {
                         await SmliserModal.success( result.data.message || 'Deleted' );
 
                         const tableRow  = deleteBtn.closest( 'tr' );
+                        const table     = tableRow?.closest( 'table' );
 
-                        jQuery( tableRow ).fadeOut( 'slow', () => tableRow.remove() );
+                        jQuery( tableRow ).fadeOut( 'slow', () => {
+                            tableRow.remove();
+
+                            // Check the row count AFTER removal
+                            const bodyRowsCount = table?.tBodies[0]?.rows.length || 0;
+
+                            if ( bodyRowsCount === 0 ) {
+                                renderEmptyTableState( table );
+                            }
+
+                            console.log(bodyRowsCount);
+                            
+                        });
                     }
 
                 } catch ( error ) {

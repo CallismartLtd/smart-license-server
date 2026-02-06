@@ -735,4 +735,25 @@ class FileSystemHelper {
             return false;
         }
     }
+
+    /**
+     * Delete an avatar from the upload directory.
+     * 
+     * @param string $filename  The file name.
+     * @param string $type      The avatar type.
+     * @return bool True on success, false on failure.
+     */
+    public static function delete_avatar( $filename, $type ) : bool {
+        $type   = smliser_pluralize( str_replace( '_', '-', $type ) );
+        $file   = self::join_path( SMLISER_UPLOADS_DIR, sprintf( 'avatars/%s', $type ), $filename);
+
+        $fs     = FileSystem::instance();
+
+        if ( is_smliser_error( $file ) || ! $fs->exists( $file ) || $fs->is_dir( $file ) ) {
+            return false;
+        }
+
+        return $fs->delete( $file );
+
+    }
 }

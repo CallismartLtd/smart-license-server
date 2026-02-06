@@ -10,6 +10,8 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
@@ -50,7 +52,7 @@ class AccessControlPage {
                 'add-new'   => [__CLASS__, 'owners_form_page'],
                 'edit'      => [__CLASS__, 'owners_form_page'],
             ],
-            'rest-api'  => [
+            'service-account'  => [
                 'default'   => [__CLASS__, 'rest_api_page'],
                 'add-new'   => [__CLASS__, 'rest_api_form_page'],
                 'edit'      => [__CLASS__, 'rest_api_form_page'],
@@ -71,6 +73,12 @@ class AccessControlPage {
      * Access control page dashbard.
      */
     public static function dashboard() {
+        $fs         = FileSystem::instance();
+        $parser     = smliser_md_parser();
+        $path       = FileSystemHelper::join_path( SMLISER_PATH, 'security.md' );
+        $md_content = $fs->get_contents( $path );
+
+        $html       = $md_content ? $parser->parse( $md_content ) : smliser_not_found_container( 'Security file is missing!' );
         include_once SMLISER_PATH . 'templates/admin/access-control/dashboard.php';
     
     }
@@ -621,7 +629,7 @@ class AccessControlPage {
         $limit          = (int) smliser_get_query_param( 'limit', 25 );
         $all            = ServiceAccount::get_all( $page, $limit );
         $entity_class   = ServiceAccount::class;
-        $type           = 'Service Accounts';
+        $type           = 'Service Account';
         include_once SMLISER_PATH . 'templates/admin/access-control/principals-subjects-list.php';       
     }
 
@@ -774,11 +782,12 @@ class AccessControlPage {
     protected static function print_header() {
         $tab        = smliser_get_query_param( 'tab' );
         $title      = match( $tab ) {
-            'users'         => 'Users',
-            'organizations' => 'Organization',
-            'owners'        => 'Resource Owners',
-            'rest-api'      => 'REST API Credentials',
-            default         => 'Security & Access Control'
+            'users'             => 'Users',
+            'organizations'     => 'Organizations',
+            'owners'            => 'Resource Owners',
+            'service-account'   => 'Service Accounts',
+            'security-doc'      => 'Security Doc',
+            default             => 'Security & Access Control'
 
         };
 
@@ -790,43 +799,47 @@ class AccessControlPage {
             ),
             'actions'   => array(
                 array(
-                    'title' => 'Users',
-                    'label' => 'Users',
-                    'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=users'),
-                    'icon'  => 'ti ti-user'
+                    'title'     => 'Users',
+                    'label'     => 'Users',
+                    'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=users' ),
+                    'icon'      => 'ti ti-user',
+                    'active'    => $tab === 'users'
                 ),
 
                 array(
-                    'title' => 'REST API Service Accounts',
-                    'label' => 'Service Accounts',
-                    'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=rest-api'),
-                    'icon'  => 'ti ti-robot'
+                    'title'     => 'REST API Service Accounts',
+                    'label'     => 'Service Accounts',
+                    'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=service-account' ),
+                    'icon'      => 'ti ti-robot',
+                    'active'    => $tab === 'service-account'
                 ),
 
                 array(
-                    'title' => 'Resource Owners',
-                    'label' => 'Owners',
-                    'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=owners'),
-                    'icon'  => 'ti ti-source-code'
+                    'title'     => 'Resource Owners',
+                    'label'     => 'Owners',
+                    'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=owners' ),
+                    'icon'      => 'ti ti-source-code',
+                    'active'    => $tab === 'owners'
                 ),
 
                 array(
-                    'title' => 'Organizations',
-                    'label' => 'Organizations',
-                    'url'   => admin_url( 'admin.php?page=smliser-access-control&tab=organizations'),
-                    'icon'  => 'ti ti-users-group'
+                    'title'     => 'Organizations',
+                    'label'     => 'Organizations',
+                    'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=organizations' ),
+                    'icon'      => 'ti ti-users-group',
+                    'active'    => $tab === 'organizations'
                 ),
             )
         );
 
         if ( $tab ) {
             $home = array(
-                'title' => 'Security & Access Control',
+                'label' => 'Security & Access Control',
                 'url'   => admin_url( 'admin.php?page=smliser-access-control' ),
                 'icon'  => 'ti ti-home'
             );
             
-            array_unshift( $args['actions'], $home );
+            array_unshift( $args['breadcrumbs'], $home );
         }
 
         Menu::print_admin_top_menu( $args );

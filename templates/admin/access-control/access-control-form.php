@@ -18,7 +18,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 $current_tab        = smliser_get_query_param( 'tab', '' );
 $current_section    = smliser_get_query_param( 'section', '' );
-$render_roles       = in_array( $current_tab, ['rest-api', 'users', ], true )
+$render_roles       = in_array( $current_tab, ['service-account', 'users', ], true )
     || in_array( $current_section, ['add-new-member', 'edit-member'], true );
 $render_avatar      = ! in_array( $current_tab, ['owners'] );
 

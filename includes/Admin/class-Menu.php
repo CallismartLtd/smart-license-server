@@ -167,6 +167,7 @@ class Menu {
         );
 
         $args = wp_parse_args( $args, $defaults );
+        $print_active   = fn ( bool $cond ) => $cond ? ' active' : '';
 
         ob_start(); ?>
         
@@ -205,7 +206,7 @@ class Menu {
                     <div class="smliser-quick-actions">
                         <?php foreach ( $args['actions'] as $action ) : ?>
                             <a
-                                class="smliser-menu-link"
+                                class="smliser-menu-link<?php echo esc_attr( $print_active( $action['active'] ?? '' ) ); ?>"
                                 href="<?php echo esc_url( $action['url'] ); ?>"
                                 title="<?php echo esc_attr( $action['title'] ); ?>"
                             >

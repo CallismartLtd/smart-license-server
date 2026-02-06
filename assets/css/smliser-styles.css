@@ -1290,6 +1290,9 @@ input.smliser_toggle-switch-input {
     gap: 5px;
 }
 
+.smliser-menu-link.active {
+    border-bottom: solid 1px #000;
+}
 .smliser-menu-link:hover {
     background: #f1f1f1;
     border-color: #dcdcde;
@@ -1881,4 +1884,90 @@ input.smliser_toggle-switch-input {
 
 .smliser-admin-table-body {
     margin: 20px;
+}
+
+.smliser-security-doc {
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.smliser-security-doc h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #222;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+.smliser-security-doc h2 {
+    font-size: 1.5rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.smliser-security-doc h3 {
+    font-size: 1.25rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #444;
+}
+
+.smliser-security-doc p {
+    margin-bottom: 1rem;
+}
+
+.smliser-security-doc ul,
+.smliser-security-doc ol {
+    margin: 0 0 1rem 1.5rem;
+    padding: 0;
+}
+
+.smliser-security-doc li {
+    margin-bottom: 0.5rem;
+}
+
+.smliser-security-doc strong {
+    color: #000;
+    font-weight: 600;
+}
+
+.smliser-security-doc hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 2rem 0;
+}
+
+.smliser-security-doc pre {
+    background: #f7f7f7;
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+
+.smliser-security-doc code {
+    font-family: "Fira Code", monospace;
+    font-size: 0.95rem;
+    background: #f0f0f0;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+}
+
+.smliser-security-doc li ul,
+.smliser-security-doc li ol {
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.smliser-security-doc pre code {
+    display: flex;
+    white-space: pre;
+    background-color: unset;
+    margin: 0 auto !important;
+    justify-content: center;
 }

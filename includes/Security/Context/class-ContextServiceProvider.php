@@ -15,6 +15,7 @@ use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\SecurityException;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Security\Actors\OrganizationMember;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
@@ -28,7 +29,7 @@ use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE, 
 SMLISER_OWNERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_USERS_TABLE, SMLISER_SERVICE_ACCOUNTS_TABLE;
-use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower, gmdate,
+use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower, gmdate, method_exists,
 sprintf, class_implements, in_array;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -247,13 +248,14 @@ class ContextServiceProvider {
         $db             = smliser_dbclass();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
+        $subject_id     = $subject ? $subject->get_id() : $actor->get_id();
         
         $data   = array(
             'role_id'               => $role->get_id(),
             'principal_id'          => $actor->get_id(),
             'principal_type'        => $actor->get_type(),
             'owner_subject_type'    => $subject_type,
-            'owner_subject_id'      => $subject ? $subject->get_id() : $actor->get_id(),
+            'owner_subject_id'      => $subject_id,
         );
 
         $missing_keys = Collection::make( $data )
@@ -269,11 +271,18 @@ class ContextServiceProvider {
                 )
             );
         }
+        
+        $exists_sql    = 
+        "SELECT `role_id` FROM `{$table}` WHERE `principal_id` = ? AND `principal_type` = ? 
+        AND `owner_subject_type` = ? AND `owner_subject_id` = ? LIMIT 1";
 
-        $existing_role  = self::get_principal_role( $actor, $subject );
+        $role_id    = (int) $db->get_var( 
+            $exists_sql,
+            [ $actor->get_id(), $actor->get_type(), $subject_type, $subject_id ]
+        );
 
-        if ( $existing_role ) {
-            if ( $role->get_id() !== $existing_role->get_id() ) {
+        if ( $role_id ) {
+            if ( $role->get_id() !== $role_id ) {
                 // Only the role assigned to this owner changes.
                 // Existing owner and principal data remains immutable.
                 $where = [
@@ -352,7 +361,7 @@ class ContextServiceProvider {
 
         $sql    = 
         "SELECT `role_id` FROM `{$table}` WHERE `principal_id` = ? AND `principal_type` = ? 
-        AND `owner_subject_type` = ? AND `owner_subject_id` = ?";
+        AND `owner_subject_type` = ? AND `owner_subject_id` = ? LIMIT 1";
 
         $role_id    = $db->get_var( $sql, [ $principal_id, $principal_type, $subject_type, $sbj_owner_id ] );
 
@@ -543,54 +552,100 @@ class ContextServiceProvider {
             );
         }
 
-        $db = smliser_dbclass();
+        $db                     = smliser_dbclass();
+        $users_table            = SMLISER_USERS_TABLE;
+        $org_table              = SMLISER_ORGANIZATIONS_TABLE;
+        $org_member_table       = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+        $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
+        $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+        $resource_owners_table  = SMLISER_OWNERS_TABLE;
 
         try {
             $db->begin_transaction();
 
             switch ( true ) {
                 case $entity instanceof User:
-                    // Delete user and related role assignments + memberships in a single transaction
-                    $sql = "
-                        DELETE u, ra, om
-                        FROM `" . SMLISER_USERS_TABLE . "` AS u
-                        LEFT JOIN `" . SMLISER_ROLE_ASSIGNMENT_TABLE . "` AS ra
+                    // Delete user + related individual role assignments, organization memberships,
+                    // resource ownership and owned service accounts + role assignment in a single transaction.
+                    $sql = "DELETE u, ra, om, ro, sa, rsa
+                        FROM `{$users_table}` AS u
+                        LEFT JOIN `{$role_assignment_table}` AS ra
                             ON ra.principal_type = 'individual' AND ra.principal_id = u.id
-                        LEFT JOIN `" . SMLISER_ORGANIZATION_MEMBERS_TABLE . "` AS om
+                        LEFT JOIN `{$org_member_table}` AS om
                             ON om.member_id = u.id
+                        LEFT JOIN `{$resource_owners_table}` AS ro
+                            ON ro.type = 'individual' AND ro.subject_id = u.id
+                        LEFT JOIN `{$service_accounts_table}` AS sa
+                            ON sa.owner_id = ro.id
+                        LEFT JOIN `{$role_assignment_table}` AS rsa
+                            ON rsa.principal_type = 'service_account' AND rsa.principal_id = sa.id
                         WHERE u.id = ?
                     ";
                     $deleted = $db->query( $sql, [ $entity->get_id() ] );
                     break;
 
                 case $entity instanceof Organization:
-                    // Delete organization, its members, and role assignments in one query
-                    $sql = "
-                        DELETE o, om, ra
-                        FROM `" . SMLISER_ORGANIZATIONS_TABLE . "` AS o
-                        LEFT JOIN `" . SMLISER_ORGANIZATION_MEMBERS_TABLE . "` AS om
+                    // Delete organization, its members, direct role assignments,
+                    // organization ownership records, owned service accounts,
+                    // and roles assigned to those service accounts – all in one query.
+                    $sql = "DELETE o, om, ra, ro, sa, rsa
+                        FROM `{$org_table}` AS o
+
+                        LEFT JOIN `{$org_member_table}` AS om
                             ON om.organization_id = o.id
-                        LEFT JOIN `" . SMLISER_ROLE_ASSIGNMENT_TABLE . "` AS ra
-                            ON ra.owner_subject_type = 'organization' AND ra.owner_subject_id = o.id
+
+                        LEFT JOIN `{$role_assignment_table}` AS ra
+                            ON ra.owner_subject_type = 'organization'
+                            AND ra.owner_subject_id = o.id
+
+                        LEFT JOIN `{$resource_owners_table}` AS ro
+                            ON ro.type = 'organization'
+                            AND ro.subject_id = o.id
+
+                        LEFT JOIN `{$service_accounts_table}` AS sa
+                            ON sa.owner_id = ro.id
+
+                        LEFT JOIN `{$role_assignment_table}` AS rsa
+                            ON rsa.principal_type = 'service_account'
+                            AND rsa.principal_id = sa.id
+
                         WHERE o.id = ?
                     ";
+
                     $deleted = $db->query( $sql, [ $entity->get_id() ] );
                     break;
 
                 case $entity instanceof ServiceAccount:
-                    // Delete service account and its role assignment
-                    $owner   = $entity->get_owner();
-                    $subject = $owner ? static::get_owner_subject( $owner ) : null;
+                    // Delete service account and all roles assigned to it.
+                    $sql = "DELETE sa, ra
+                        FROM `{$service_accounts_table}` AS sa
+                        LEFT JOIN `{$role_assignment_table}` AS ra
+                            ON ra.principal_type = 'service_account'
+                            AND ra.principal_id = sa.id
+                        WHERE sa.id = ?
+                    ";
 
-                    static::delete_actor_role( $entity, $subject );
-
-                    $deleted = $db->delete( SMLISER_SERVICE_ACCOUNTS_TABLE, ['id' => $entity->get_id()] );
+                    $deleted = $db->query( $sql, [ $entity->get_id() ] );
                     break;
 
                 case $entity instanceof Owner:
-                    // Delete from owners table
-                    $deleted = $db->delete( SMLISER_OWNERS_TABLE, ['id' => $entity->get_id()] );
+                    // Delete owner, all owned service accounts, and their role assignments.
+                    $sql = "DELETE ro, sa, ra
+                        FROM `{$resource_owners_table}` AS ro
+
+                        LEFT JOIN `{$service_accounts_table}` AS sa
+                            ON sa.owner_id = ro.id
+
+                        LEFT JOIN `{$role_assignment_table}` AS ra
+                            ON ra.principal_type = 'service_account'
+                            AND ra.principal_id = sa.id
+
+                        WHERE ro.id = ?
+                    ";
+
+                    $deleted = $db->query( $sql, [ $entity->get_id() ] );
                     break;
+
 
                 default:
                     throw new SecurityException(
@@ -608,7 +663,7 @@ class ContextServiceProvider {
                 );
             }
 
-            $db->commit();
+            // $db->commit();
         } catch ( \Exception $e ) {
             $db->rollback();
             throw new SecurityException(
@@ -616,6 +671,15 @@ class ContextServiceProvider {
                 'Failed to delete entity. Transaction rolled back.',
                 ['status' => 500, 'error' => $e->getMessage()]
             );
+        }
+
+        if ( method_exists( $entity, 'get_avatar' ) ) {
+            $avatar     = $entity->get_avatar();
+            $filename   = $avatar->basename();
+            $avatar_type    = $entity instanceof User ? 'user' : $entity->get_type();
+            
+            FileSystemHelper::delete_avatar( $filename, $avatar_type );
+
         }
     }
 
