@@ -33,7 +33,7 @@ class AppCollection {
             return true;
         }
 
-        return RESTAuthentication::authenticate( $request );
+        return false;
     }
 
     /**
