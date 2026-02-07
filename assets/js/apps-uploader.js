@@ -249,6 +249,8 @@ class AppUploader {
         this.imageUrlInput?.addEventListener( 'blur', (e) => this.manageInputFocus(e) );
         this.imageUrlInput?.addEventListener( 'focus', (e) => this.manageInputFocus(e) );
         
+        this.imagePreview?.addEventListener( 'dblclick', () => this.imagePreview.requestFullscreen() );
+        
         // Image preview src change observer.
         this.imagePreview?.addEventListener( 'srcChanged', (e) => {
             const { oldSrc, newSrc } = e.detail;
