@@ -1892,3 +1892,19 @@ function smliser_value_to_array( mixed $value, bool $use_object_vars = false ): 
 
 	return [];
 }
+/**
+ * Helper: Format label from snake_case to readable format
+ */
+function smliser_format_label( $label ) {
+    return ucwords( str_replace( '_', ' ', $label ) );
+}
+
+/**
+ * Helper: Check if array contains only scalar values
+ */
+function smliser_is_scalar_array( $array ) {
+    if ( empty( $array ) || ! is_array( $array ) ) {
+        return false;
+    }
+    return count( array_filter( $array, 'is_array' ) ) === 0;
+}
