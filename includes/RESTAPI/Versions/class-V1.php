@@ -9,9 +9,11 @@
 
 namespace SmartLicenseServer\RESTAPI\Versions;
 
-use SmartLicenseServer\RESTAPI\RESTAuthentication;
+use SmartLicenseServer\RESTAPI\RESTInterface;
 
-\defined( 'SMLISER_ABSPATH' ) || exit;
+use function defined;
+
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * API version 1
@@ -21,7 +23,7 @@ use SmartLicenseServer\RESTAPI\RESTAuthentication;
  * 
  * @version 1.0.0
  */
-class V1 {
+class V1 implements RESTInterface {
     /** 
      * REST API Route namespace.
      * 
@@ -35,13 +37,6 @@ class V1 {
      * @var string
      */
     private static $plugin_info = '/plugin-info/';
-
-    /** 
-     * Theme info REST API route.
-     * 
-     * @var string
-     */
-    private static $theme_info = '/theme-info/';
 
     /** 
      * License activation REST API route.
@@ -84,13 +79,6 @@ class V1 {
      * @var string
      */
     private static $repository_app_route = '/repository/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
-    
-    /** 
-     * Client authentication REST API route, essentially for token regeneration.
-     * 
-     * @var string
-     */
-    private static $app_reauth = '/client-auth/';
 
     /**
      * Download token regeneration REST API route
@@ -111,7 +99,7 @@ class V1 {
      * 
      * @return string
      */
-    public static function get_namespace() {
+    public static function get_namespace() : string {
         return self::$namespace;
     }
 
@@ -123,7 +111,7 @@ class V1 {
      * 
      * @return array Array of route configurations with namespace and routes.
      */
-    public static function get_routes() {
+    public static function get_routes() : array {
         return array(
             'namespace' => self::$namespace,
             'routes'    => array(
@@ -202,17 +190,6 @@ class V1 {
                     'args'       => self::get_repository_app_args(),
                     'category'   => 'repository',
                     'name'       => 'Repository App CRUD',
-                ),
-
-                // OAuth Client Authentication Route
-                array(
-                    'route'      => self::$app_reauth,
-                    'methods'    => 'GET',
-                    'callback'   => array( RESTAuthentication::class, 'client_authentication_response' ),
-                    'permission' => array( RESTAuthentication::class, 'auth_permission' ),
-                    'args'       => array(),
-                    'category'   => 'authentication',
-                    'name'       => 'OAuth Client Authentication',
                 ),
 
                 // Download Token Reauthentication Route
@@ -495,7 +472,7 @@ class V1 {
      * 
      * @return array List of available categories.
      */
-    public static function get_categories() {
+    public static function get_categories() : array {
         return array(
             'license'         => 'License Management',
             'repository'      => 'Repository',
@@ -515,7 +492,7 @@ class V1 {
      *                              If null, returns all routes.
      * @return array Associative array where key is the route path and value is formatted HTML card.
      */
-    public static function describe_routes( $category = null ) {
+    public static function describe_routes( ?string $category = null ) : array {
         $api_config = self::get_routes();
         $routes = $api_config['routes'];
         $namespace = $api_config['namespace'];
