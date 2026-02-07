@@ -10,6 +10,8 @@
 
 namespace SmartLicenseServer;
 
+use SmartLicenseServer\Environment\WordPress\SetUp;
+
 defined( 'ABSPATH' ) || exit;
 
 if ( defined( 'SMLISER_ABSPATH' ) ) {
@@ -26,4 +28,4 @@ define( 'SMLISER_APP_NAME', 'Smart License Server' );
 
 require_once SMLISER_PATH . 'includes/class-Autoloader.php';
 
-WPAdapter::init();
+SetUp::init();
