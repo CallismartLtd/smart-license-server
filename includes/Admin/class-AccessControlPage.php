@@ -79,7 +79,7 @@ class AccessControlPage {
         $md_content = $fs->get_contents( $path );
 
         $html       = $md_content ? $parser->parse( $md_content ) : smliser_not_found_container( 'Security file is missing!' );
-        include_once SMLISER_PATH . 'templates/admin/access-control/dashboard.php';
+        include_once SMLISER_PATH . 'templates/admin/accounts/dashboard.php';
     
     }
 
@@ -93,7 +93,7 @@ class AccessControlPage {
         $entity_class   = User::class;
         $type           = 'user';
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/principals-subjects-list.php';
+        include_once SMLISER_PATH . 'templates/admin/accounts/principals-subjects-list.php';
     }
 
     /**
@@ -245,7 +245,7 @@ class AccessControlPage {
             unset( $collection );
         }
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
+        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
     }
 
     /**
@@ -258,7 +258,7 @@ class AccessControlPage {
         $entity_class   = Organization::class;
         $type           = 'organization';
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/principals-subjects-list.php';
+        include_once SMLISER_PATH . 'templates/admin/accounts/principals-subjects-list.php';
     }
 
     /**
@@ -356,7 +356,7 @@ class AccessControlPage {
 
         $avatar_name    = $organization ? 'View image' : $avatar_url->basename();
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
+        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
     }
 
     /**
@@ -482,7 +482,7 @@ class AccessControlPage {
 
         $avatar_name    = $member ? 'View image' : $avatar_url->basename();
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
+        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
     }
 
 
@@ -494,7 +494,7 @@ class AccessControlPage {
         $limit  = (int) smliser_get_query_param( 'limit', 25 );
         $owners = Owner::get_all( $page, $limit );
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/owners.php';
+        include_once SMLISER_PATH . 'templates/admin/accounts/owners.php';
     }
 
     /**
@@ -618,7 +618,7 @@ class AccessControlPage {
      
         );
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
+        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
     }
 
     /**
@@ -630,7 +630,7 @@ class AccessControlPage {
         $all            = ServiceAccount::get_all( $page, $limit );
         $entity_class   = ServiceAccount::class;
         $type           = 'Service Account';
-        include_once SMLISER_PATH . 'templates/admin/access-control/principals-subjects-list.php';       
+        include_once SMLISER_PATH . 'templates/admin/accounts/principals-subjects-list.php';       
     }
 
     /**
@@ -773,7 +773,7 @@ class AccessControlPage {
 
         $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
 
-        include_once SMLISER_PATH . 'templates/admin/access-control/access-control-form.php';
+        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
     }
 
     /**

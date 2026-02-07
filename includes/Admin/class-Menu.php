@@ -53,11 +53,11 @@ class Menu {
     public static $rest_api_page_id;
 
     /**
-     * Access control page ID.
+     * Accounts page ID.
      * 
      * @var string
      */
-    public static $access_control_page_id;
+    public static $accounts_page_id;
 
     /**
      * Options page ID.
@@ -116,10 +116,10 @@ class Menu {
             array( V1::class, 'html_index' )
         );
 
-        self::$access_control_page_id = add_submenu_page(
+        self::$accounts_page_id = add_submenu_page(
             'smliser-admin',
-            'Access Control',
-            'Access Control',
+            'Accounts',
+            'Accounts',
             'manage_options',
             'smliser-access-control',
             array( AccessControlPage::class, 'router' )

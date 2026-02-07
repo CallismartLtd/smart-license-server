@@ -160,7 +160,7 @@ if ( $render_image_only ) {
 
                             <div class="smliser-org-member_header">
                                 <img 
-                                    src="<?php echo esc_url( $member->get_avatar() ); ?>" 
+                                    src="<?php echo esc_url( $member->get_avatar()->is_valid() ? $member->get_avatar() : smliser_get_placeholder_icon( 'avatar' ) ); ?>" 
                                     alt="<?php echo esc_attr__( 'Member avatar', 'smart-license-server' ); ?>" 
                                     width="38" 
                                     height="38"
