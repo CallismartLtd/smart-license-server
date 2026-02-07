@@ -1203,3 +1203,161 @@ button.smliser-add-member-to-org-btn[type="button"]:active {
         justify-content: space-between;
     }
 }
+
+/* Wrapper */
+.smliser-account-summary-wrapper {
+    margin: 20px;
+    font-family: inherit;
+    color: #23282d;
+}
+
+/* Domain Section */
+.smliser-account-domain-section {
+    margin-bottom: 40px;
+    border: 1px solid #ccd0d4;
+    border-radius: 6px;
+    padding: 20px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Status variants for integrity section */
+.smliser-account-domain-section.smliser-status-warning {
+    border-left: 4px solid #f0b849;
+}
+
+.smliser-account-domain-section.smliser-status-success {
+    border-left: 4px solid #46b450;
+}
+
+/* Domain Header */
+.smliser-account-domain-header {
+    border-bottom: 1px solid #e1e1e1;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+}
+
+.smliser-account-domain-title {
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+/* Metrics Grid */
+.smliser-account-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.smliser-account-metric-card {
+    border: 1px solid #e1e1e1;
+    border-radius: 4px;
+    padding: 15px 12px;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease-in-out;
+}
+
+.smliser-account-metric-card:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    border-color: #0073aa;
+}
+
+.smliser-account-metric-icon {
+    font-size: 28px;
+    color: #0073aa;
+    flex-shrink: 0;
+}
+
+.smliser-account-metric-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.smliser-account-metric-label {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 6px 0;
+    color: #555;
+}
+
+.smliser-account-metric-value {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    color: #23282d;
+}
+
+/* Info Block (for warnings and notices) */
+.smliser-account-info-block {
+    margin: 15px 0 0 0;
+    padding: 12px 15px;
+    font-size: 14px;
+    background: #f7f7f7;
+    border-left: 3px solid #ccd0d4;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.smliser-account-info-block.smliser-account-warning {
+    background: #fff8e5;
+    border-left-color: #f0b849;
+}
+
+.smliser-account-info-block .dashicons {
+    color: #f0b849;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.smliser-account-info-block strong {
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+/* Empty State */
+.smliser-account-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    border: 1px dashed #ccd0d4;
+    border-radius: 6px;
+    color: #555;
+}
+
+.smliser-account-empty-state .dashicons {
+    font-size: 48px;
+    color: #ccd0d4;
+}
+
+.smliser-account-empty-state h3 {
+    margin-top: 15px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.smliser-account-empty-state p {
+    font-size: 14px;
+    color: #666;
+    margin-top: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+    .smliser-account-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .smliser-account-domain-section {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+}
