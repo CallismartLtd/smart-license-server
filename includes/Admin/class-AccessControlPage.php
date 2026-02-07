@@ -57,6 +57,9 @@ class AccessControlPage {
                 'add-new'   => [__CLASS__, 'rest_api_form_page'],
                 'edit'      => [__CLASS__, 'rest_api_form_page'],
             ],
+            'doc'  => [
+                'default'   => [__CLASS__, 'doc_page'],
+            ],
         ];
 
         if ( isset( $routes[ $tab ] ) ) {
@@ -73,12 +76,7 @@ class AccessControlPage {
      * Access control page dashbard.
      */
     public static function dashboard() {
-        $fs         = FileSystem::instance();
-        $parser     = smliser_md_parser();
-        $path       = FileSystemHelper::join_path( SMLISER_PATH, 'security.md' );
-        $md_content = $fs->get_contents( $path );
-
-        $html       = $md_content ? $parser->parse( $md_content ) : smliser_not_found_container( 'Security file is missing!' );
+        $account_summaries  = ContextServiceProvider::get_accounts_summary_report();
         include_once SMLISER_PATH . 'templates/admin/accounts/dashboard.php';
     
     }
@@ -777,6 +775,19 @@ class AccessControlPage {
     }
 
     /**
+     * Accounts and access control documentation page.
+     */
+    private static function doc_page() {
+        $fs         = FileSystem::instance();
+        $parser     = smliser_md_parser();
+        $path       = FileSystemHelper::join_path( SMLISER_PATH, 'security.md' );
+        $md_content = $fs->get_contents( $path );
+
+        $html       = $md_content ? $parser->parse( $md_content ) : smliser_not_found_container( 'Security file is missing!' );
+        include_once SMLISER_PATH . 'templates/admin/accounts/docs.php';
+    }
+
+    /**
      * Print admin header
      */
     protected static function print_header() {
@@ -786,7 +797,7 @@ class AccessControlPage {
             'organizations'     => 'Organizations',
             'owners'            => 'Resource Owners',
             'service-account'   => 'Service Accounts',
-            'security-doc'      => 'Security Doc',
+            'doc'               => 'Security Documentation',
             default             => 'Security & Access Control'
 
         };
@@ -828,6 +839,14 @@ class AccessControlPage {
                     'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=organizations' ),
                     'icon'      => 'ti ti-users-group',
                     'active'    => $tab === 'organizations'
+                ),
+
+                array(
+                    'title'     => 'Security & access control documentation',
+                    'label'     => 'Documentation',
+                    'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=doc' ),
+                    'icon'      => 'ti ti-document',
+                    'active'    => $tab === 'doc'
                 ),
             )
         );
