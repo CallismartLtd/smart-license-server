@@ -7,7 +7,6 @@
  */
 namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\Monetization\ProviderCollection;
-use SmartLicenseServer\SmliserAPICred;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -27,9 +26,6 @@ class OptionsPage {
         
         echo wp_kses_post( smliser_sub_menu_nav( $tabs, 'Settings', 'smliser-options', $tab, 'tab' ) );
         switch( $tab ) {
-            case 'api-keys': 
-                self::api_keys_option();
-                break;
             case 'pages':
                 self::pages_options();
                 break;
@@ -50,13 +46,6 @@ class OptionsPage {
         include_once SMLISER_PATH . 'templates/admin/options/options.php';
     }
 
-    /**
-     * API Keys options page
-     */
-    private static function api_keys_option() {
-        $all_api_data   = SmliserAPICred::get_all();
-        include_once SMLISER_PATH . 'templates/admin/options/api-keys.php';
-    }
     /**
      * Permalink settings
      */
