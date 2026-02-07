@@ -107,16 +107,16 @@ class ContextServiceProvider {
             $params_count[] = $like;
         }
 
-        // 1. Fetch Items: Merge subqueries and re-sort the final slice
+        // Fetch Items: Merge subqueries and re-sort the final slice.
         $union_sql = implode( " UNION ALL ", $sql_parts );
         $final_sql = "{$union_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET 0";
-        $rows      = $db->get_results( $final_sql, array_merge( $params_sql, [ $limit ] ), ARRAY_A );
+        $rows      = $db->get_results( $final_sql, array_merge( $params_sql, [ $limit ] ) );
 
-        // 2. Aggregate Count
+        // Aggregate Count.
         $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
         $total     = (int) $db->get_var( $count_sql, $params_count );
         
-        // 3. Instantiate Objects
+        // Instantiate Objects.
         $objects = [];
         foreach ( $rows as $row ) {
             $class  = self::get_entity_classname( $row['type'] );
@@ -179,7 +179,7 @@ class ContextServiceProvider {
 
         $where_sql = ! empty( $where_clauses ) ? ' WHERE ' . implode( ' AND ', $where_clauses ) : '';
         $sql  = "SELECT `id` FROM `{$table}` {$where_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET ?";
-        $rows = $db->get_results( $sql, array_merge( $params, [ $limit, $offset ] ), ARRAY_A );
+        $rows = $db->get_results( $sql, array_merge( $params, [ $limit, $offset ] ) );
 
         // Get total count
         $total = (int) $db->get_var( "SELECT COUNT(`id`) FROM `{$table}` {$where_sql}", $params );
@@ -304,6 +304,7 @@ class ContextServiceProvider {
             $result = $db->insert( $table, $data );
         }
 
+        static::cache_clear();
         return false !== $result;
     }
 
@@ -341,6 +342,8 @@ class ContextServiceProvider {
                 ['status' => 500]
             );
         }
+
+        static::cache_clear();
     }
 
     /**
@@ -441,6 +444,7 @@ class ContextServiceProvider {
         }
         
         static::save_actor_role( $member->get_user(), $role, $organization );
+        static::cache_clear();
     }
 
     /**
@@ -529,6 +533,7 @@ class ContextServiceProvider {
         }
 
         static::delete_actor_role( $member, $organization );
+        static::cache_clear();
     }
 
     /**
@@ -663,7 +668,8 @@ class ContextServiceProvider {
                 );
             }
 
-            // $db->commit();
+            $db->commit();
+            static::cache_clear();
         } catch ( \Exception $e ) {
             $db->rollback();
             throw new SecurityException(
@@ -680,6 +686,121 @@ class ContextServiceProvider {
             
             FileSystemHelper::delete_avatar( $filename, $avatar_type );
 
+        }
+    }
+
+    /**
+     * Generate overview report for Accounts & Access dashboard.
+     *
+     * @return array<string, mixed>
+     * @throws SecurityException
+     */
+    public static function get_accounts_summary_report() : array {
+        $cache_key              = static::make_cache_key( __METHOD__ );
+        $report                 = static::cache_get( $cache_key );
+
+        if ( false !== $report ) {
+            return $report;
+        }
+
+        $db                     = smliser_dbclass();
+        $users_table            = SMLISER_USERS_TABLE;
+        $organizations_table    = SMLISER_ORGANIZATIONS_TABLE;
+        $org_members_table      = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+        $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
+        $owners_table           = SMLISER_OWNERS_TABLE;
+
+        try {
+            $counts = $db->get_row(
+                "SELECT
+                    ( SELECT COUNT(*) FROM `{$users_table}` ) AS users_total,
+                    ( SELECT COUNT(*) FROM `{$organizations_table}` ) AS organizations_total,
+                    ( SELECT COUNT(*) FROM `{$service_accounts_table}` ) AS service_accounts_total,
+                    ( SELECT COUNT(*) FROM `{$org_members_table}` ) AS organization_members_total,
+                    ( SELECT COUNT(*) FROM `{$owners_table}` ) AS resource_owners_total
+                ",
+            );
+
+            $integrity = $db->get_row(
+                "SELECT
+                    ( SELECT COUNT(*) 
+                      FROM `{$service_accounts_table}` sa
+                      LEFT JOIN `{$owners_table}` ro ON sa.owner_id = ro.id
+                      WHERE ro.id IS NULL 
+                    ) AS orphaned_service_accounts,
+                    
+                    ( SELECT COUNT(*) 
+                      FROM `{$org_members_table}` om
+                      LEFT JOIN `{$users_table}` u ON om.member_id = u.id
+                      WHERE u.id IS NULL 
+                    ) AS orphaned_members,
+                    
+                    ( SELECT COUNT(*) 
+                      FROM `{$owners_table}` ro
+                      LEFT JOIN `{$users_table}` u
+                          ON ro.type = 'individual' AND ro.subject_id = u.id
+                      LEFT JOIN `{$organizations_table}` o
+                          ON ro.type = 'organization' AND ro.subject_id = o.id
+                      WHERE
+                          ( ro.type = 'individual' AND u.id IS NULL )
+                          OR
+                          ( ro.type = 'organization' AND o.id IS NULL )
+                    ) AS orphaned_owners
+                ",
+            );
+
+            $usage = $db->get_row(
+                "SELECT
+                    COUNT(*) AS total,
+                    COUNT( last_used_at ) AS ever_used,
+                    MAX( last_used_at ) AS most_recent_use,
+                    MIN( last_used_at ) AS oldest_use
+                FROM `{$service_accounts_table}`
+                ",
+            );
+            
+            $report = [
+                'summary' => [
+                    'users'                => (int) $counts['users_total'],
+                    'organizations'        => (int) $counts['organizations_total'],
+                    'service_accounts'     => (int) $counts['service_accounts_total'],
+                    'organization_members' => (int) $counts['organization_members_total'],
+                    'resource_owners'      => (int) $counts['resource_owners_total'],
+                ],
+
+                'integrity' => [
+                    'orphaned_service_accounts' => (int) $integrity['orphaned_service_accounts'],
+                    'orphaned_members'          => (int) $integrity['orphaned_members'],
+                    'orphaned_owners'           => (int) $integrity['orphaned_owners'],
+                    'has_issues'                => 
+                        $integrity['orphaned_service_accounts'] > 0 ||
+                        $integrity['orphaned_members'] > 0 ||
+                        $integrity['orphaned_owners'] > 0,
+                ],
+
+                'usage' => [
+                    'service_accounts' => [
+                        'total'           => (int) $usage['total'],
+                        'ever_used'       => (int) $usage['ever_used'],
+                        'never_used'      => (int) $usage['total'] - (int) $usage['ever_used'],
+                        'most_recent_use' => $usage['most_recent_use'],
+                        'oldest_use'      => $usage['oldest_use'],
+                    ],
+                ],
+            ];
+
+            static::cache_set( $cache_key, $report, 4 * HOUR_IN_SECONDS );
+            return $report;
+
+        } catch ( \Exception $e ) {
+            throw new SecurityException(
+                'accounts_summary_error',
+                'Unable to build accounts summary report.',
+                [
+                    'status' => 500,
+                    'error'  => $e->getMessage(),
+                ]
+            );
         }
     }
 
