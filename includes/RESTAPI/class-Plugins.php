@@ -9,10 +9,10 @@
 namespace SmartLicenseServer\RESTAPI;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
-use SmartLicenseServer\HostedApps\Plugin as HostedPlugin;
-use WP_REST_Request;
-use WP_REST_Response;
-use WP_Error;
+use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\HostedApps\Plugin;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -24,33 +24,37 @@ class Plugins {
     /**
      * Plugin info endpoint permission callback.
      * 
-     * @param WP_REST_Request $request The REST API request object.
-     * @return WP_Error|false WordPress error object if permission is denied, false otherwise.
+     * @param Request $request The REST API request object.
+     * @return RequestException|false WordPress error object if permission is denied, false otherwise.
      */
-    public static function info_permission_callback( WP_REST_Request $request ) {
+    public static function info_permission_callback( Request $request ) : RequestException|bool {
         /**
          * We handle the required parameters here.
          */
-        $plugin_id  = $request->get_param( 'id' );
-        $slug       = $request->get_param( 'slug' );
+        $plugin_id  = $request->get( 'id' );
+        $slug       = $request->get( 'slug' );
 
         if ( empty( $plugin_id ) && empty( $slug ) ) {
-            return new WP_Error(
+            return new RequestException(
                 'smliser_plugin_info_error',
                 __( 'You must provide either the plugin ID or the plugin slug.', 'smliser' ),
                 array( 'status' => 400 )
             );
         }
 
-        // Let's identify the plugin.
-        $plugin = HostedPlugin::get_plugin( $plugin_id ) ?? HostedPlugin::get_by_slug( $slug );
+        
+        $arg    = $plugin_id ? $plugin_id : $slug;
+        
+        $method = $plugin_id ? "get_plugin" : "get_by_slug";
+        /** @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $plugin */
+        $plugin = Plugin::$method( $arg );
 
         if ( ! $plugin ) {
             $message = __( 'The plugin does not exist, please check the typography or the plugin slug.', 'smliser' );
-            return new WP_Error( 'plugin_not_found', $message, array( 'status' => 404 ) );
+            return new RequestException( 'plugin_not_found', $message, array( 'status' => 404 ) );
         }
 
-        $request->set_param( 'smliser_resource', $plugin );
+        $request->set( 'smliser_resource', $plugin );
         return true;
 
     }
@@ -58,14 +62,14 @@ class Plugins {
     /**
      * Plugin info response handler.
      * 
-     * @param WP_REST_Request $request The REST API request object.
-     * @return WP_REST_Response The REST API response object.
+     * @param Request $request The REST API request object.
+     * @return Response The REST API response object.
      */
-    public static function plugin_info_response( WP_REST_Request $request ) {
-        /** @var HostedPlugin $plugin */
-        $plugin = $request->get_param( 'smliser_resource' );
+    public static function plugin_info_response( Request $request ) {
+        /** @var Plugin $plugin */
+        $plugin = $request->get( 'smliser_resource' );
 
-        $response = new WP_REST_Response( $plugin->formalize_response(), 200 );
+        $response = new Response( 200, array(), $plugin->formalize_response() );
         AppsAnalytics::log_client_access( $plugin, 'plugin_info' );
         return $response;
 

@@ -246,8 +246,8 @@ class FileResponse extends Response {
     /**
      * Sends the file or error to the client
      */
-    public function send_body() {
-        return $this->download();
+    public function send_body() : void {
+        $this->download();
     }
 
     /**
@@ -270,10 +270,9 @@ class FileResponse extends Response {
      * and the child's specialized error property are updated.
      * * @param Exception|FileRequestException $error
      */
-    public function set_exception( Exception $error ) : static{
+    public function set_exception( Exception $error ) : static {
         $this->error = $error;
         
-        // This is crucial for parent::send() to output the correct status code and message.
         return parent::set_exception( $this->error );
     }
 

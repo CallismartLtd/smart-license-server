@@ -9,10 +9,10 @@
 namespace SmartLicenseServer\RESTAPI;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
+use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\Theme;
-use WP_REST_Request;
-use WP_REST_Response;
-use WP_Error;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -23,18 +23,18 @@ class Themes {
     /**
      * Theme info endpoint permission callback.
      * 
-     * @param WP_REST_Request $request The REST API request object.
-     * @return WP_Error|false WordPress error object if permission is denied, false otherwise.
+     * @param Request $request The REST API request object.
+     * @return RequestException|false WordPress error object if permission is denied, false otherwise.
      */
-    public static function info_permission_callback( WP_REST_Request $request ) {
+    public static function info_permission_callback( Request $request ) : bool|RequestException {
         /**
          * We handle the required parameters here.
          */
-        $theme_id   = $request->get_param( 'theme_id' );
-        $slug       = $request->get_param( 'slug' );
+        $theme_id   = $request->get( 'theme_id' );
+        $slug       = $request->get( 'slug' );
 
         if ( empty( $theme_id ) && empty( $slug ) ) {
-            return new WP_Error(
+            return new RequestException(
                 'smliser_theme_info_error',
                 __( 'You must provide either the theme ID or the theme slug.', 'smliser' ),
                 array( 'status' => 400 )
@@ -46,10 +46,10 @@ class Themes {
 
         if ( ! $theme ) {
             $message = __( 'The theme does not exist.', 'smliser' );
-            return new WP_Error( 'theme_not_found', $message, array( 'status' => 404 ) );
+            return new RequestException( 'theme_not_found', $message, array( 'status' => 404 ) );
         }
 
-        $request->set_param( 'smliser_resource', $theme );
+        $request->set( 'smliser_resource', $theme );
 
         return true;
 
@@ -58,15 +58,16 @@ class Themes {
     /**
      * Theme info response handler.
      * 
-     * @param WP_REST_Request $request The REST API request object.
-     * @return WP_REST_Response The REST API response object.
+     * @param Request $request The REST API request object.
+     * @return Response The REST API response object.
      */
-    public static function theme_info_response( WP_REST_Request $request ) {
+    public static function theme_info_response( Request $request ) : Response {
         /** @var Theme $theme */
-        $theme = $request->get_param( 'smliser_resource' );
+        $theme = $request->get( 'smliser_resource' );
 
-        $response = new WP_REST_Response( $theme->get_rest_response(), 200 );
+        $response = new Response( 200, array(), $theme->get_rest_response() );
         AppsAnalytics::log_client_access( $theme, 'theme_info' );    
+        
         return $response;
     }
 

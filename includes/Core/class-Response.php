@@ -1,6 +1,6 @@
 <?php
 /**
- * A comprehensive HTTP response handler class.
+ * Core response class file.
  *
  * @package SmartLicenseServer\Core
  * @author  Callistus
@@ -10,12 +10,23 @@ namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Exceptions\Exception;
 
+use function smliser_safe_json_encode, defined, is_array, array_push;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Class HttpResponse
- *
- * Handles HTTP responses in a framework-agnostic way.
+ * The core HTTP response class used to deliver responses to client.
+ * 
+ * @example 
+ * ```php 
+ * $data		= "Some strings or array";
+ * $headers		= array( 
+ *	['Content-Type', 'application/json; charset=utf-8;'],
+ *	['X-Custom-Header', 'custom header value']
+ * );
+ * $response	= new \SmartLicenseServer\Core\Response( 200, $headers, $data );
+ * $response->send();
+ * ```
  */
 class Response {
 
@@ -50,7 +61,7 @@ class Response {
 	/**
 	 * Response headers.
 	 *
-	 * @var array
+	 * @var array<string,string>
 	 */
 	protected $headers = array();
 
@@ -64,7 +75,7 @@ class Response {
 	/**
 	 * Response body.
 	 *
-	 * @var string
+	 * @var string|array
 	 */
 	protected $body = '';
 
@@ -86,11 +97,11 @@ class Response {
 	 * @param array  $headers     Optional. Initial headers.
 	 * @param string $body        Optional. Initial body content.
 	 */
-	public function __construct( $status_code = 200, $headers = array(), $body = '' ) {
+	public function __construct( int $status_code = 200, $headers = array(), $body = '' ) {
 		$this->error	= new Exception();
 		
 		$this->set_status_code( $status_code );
-		$this->headers = array_change_key_case( (array) $headers, CASE_LOWER );
+		$this->headers = array_map( [$this, 'set_header'], $headers );
 		$this->set_body( $body );
 	}
 
@@ -105,9 +116,9 @@ class Response {
 	 * @param string|null $reason Custom reason phrase (optional).
 	 * @return static
 	 */
-	public function set_status_code( $code, $reason = null ) {
-		$this->status_code  = (int) $code;
-		$this->reason_phrase = $reason ?: $this->get_default_reason_phrase( $code );
+	public function set_status_code( int $code, ?string $reason = null ) : static {
+		$this->status_code		= $code;
+		$this->reason_phrase	= $reason ?: $this->get_default_reason_phrase( $code );
 		return $this;
 	}
 
@@ -116,7 +127,7 @@ class Response {
 	 *
 	 * @return int
 	 */
-	public function get_status_code() {
+	public function get_status_code() : int {
 		return $this->status_code;
 	}
 
@@ -125,7 +136,7 @@ class Response {
 	 *
 	 * @return string
 	 */
-	public function get_reason_phrase() {
+	public function get_reason_phrase() : string {
 		return $this->reason_phrase;
 	}
 
@@ -135,7 +146,7 @@ class Response {
 	 * @param string $reason Reason phrase.
 	 * @return static
 	 */
-	public function set_reason_phrase( $reason ) {
+	public function set_reason_phrase( string $reason ) : static {
 		$this->reason_phrase = $reason;
 		return $this;
 	}
@@ -146,7 +157,7 @@ class Response {
      * @param int $code HTTP status code.
      * @return string
      */
-    protected function get_default_reason_phrase( $code ) {
+    protected function get_default_reason_phrase( $code ) : string {
         static $phrases = array(
             // --- 1xx Informational ---
             100 => 'Continue',
@@ -213,29 +224,18 @@ class Response {
 	 *
 	 * @param string $name  Header name.
 	 * @param string $value Header value.
+	 * @param bool $override Whether or not to override existing value
 	 * @return static
 	 */
-	public function set_header( $name, $value ) {
-		$this->headers[ strtolower( $name ) ] = $value;
-		return $this;
-	}
+	public function set_header( string $name, string $value, bool $override = true  ) {
+		$key					= $this->header_canonical( $name );
 
-	/**
-	 * Add a header (can coexist with others of same name).
-	 *
-	 * @param string $name  Header name.
-	 * @param string $value Header value.
-	 * @return static
-	 */
-	public function add_header( $name, $value ) {
-		$key = strtolower( $name );
-		if ( isset( $this->headers[ $key ] ) && is_array( $this->headers[ $key ] ) ) {
-			$this->headers[ $key ][] = $value;
-		} elseif ( isset( $this->headers[ $key ] ) ) {
-			$this->headers[ $key ] = array( $this->headers[ $key ], $value );
+		if ( ! $this->has_header( $key ) || $override ) {
+			$this->headers[ $key ]	= $value;
 		} else {
-			$this->headers[ $key ] = $value;
+			$this->headers[ $key ]	.= ', ' . $value;
 		}
+		
 		return $this;
 	}
 
@@ -246,8 +246,9 @@ class Response {
 	 * @return string|array|null
 	 */
 	public function get_header( $name ) {
-		$key = strtolower( $name );
-		return isset( $this->headers[ $key ] ) ? $this->headers[ $key ] : null;
+		$key = $this->header_canonical( $name );
+
+		return $this->headers[ $key ] ?? null;
 	}
 
 	/**
@@ -256,8 +257,9 @@ class Response {
 	 * @param string $name Header name.
 	 * @return bool
 	 */
-	public function has_header( $name ) {
-		return isset( $this->headers[ strtolower( $name ) ] );
+	public function has_header( $name ) : bool {
+		$key	= $this->header_canonical( $name );
+		return array_key_exists( $key, $this->headers );
 	}
 
 	/**
@@ -266,17 +268,18 @@ class Response {
 	 * @param string $name Header name.
 	 * @return static
 	 */
-	public function remove_header( $name ) {
-		unset( $this->headers[ strtolower( $name ) ] );
+	public function remove_header( string $name ) : static {
+		$key	= $this->header_canonical( $name );
+		unset( $this->headers[$key] );
 		return $this;
 	}
 
 	/**
 	 * Get all headers.
 	 *
-	 * @return array
+	 * @return array<string,string>
 	 */
-	public function get_headers() {
+	public function get_headers() : array {
 		return $this->headers;
 	}
 
@@ -287,12 +290,13 @@ class Response {
 	/**
 	 * Set the response body.
 	 *
-	 * @param string $content Body content.
+	 * @param mixed $content Body content.
 	 * @return static
 	 */
-	public function set_body( $content ) {
-		$this->body = (string) $content;
-		$this->set_header( 'Content-Length', strlen( $this->body ) );
+	public function set_body( mixed $content ) : static {
+		$this->body = $content;
+		$length		= is_array( $this->body ) ? count( $this->body ) : mb_strlen( $this->body );
+		$this->set_header( 'Content-Length', $length );
 		return $this;
 	}
 
@@ -303,16 +307,21 @@ class Response {
 	 * @return static
 	 */
 	public function append_body( $content ) {
-		$this->body .= (string) $content;
+		if ( is_array( $this->body ) ) {
+			array_push( $this->body, $content );
+		} else {
+			$this->body .= (string) $content;
+		}
+
 		return $this;
 	}
 
 	/**
 	 * Get the response body.
 	 *
-	 * @return string
+	 * @return string|array
 	 */
-	public function get_body() {
+	public function get_body() : string|array {
 		return $this->body;
 	}
 
@@ -325,7 +334,7 @@ class Response {
 	 *
 	 * @return string
 	 */
-	public function get_protocol_version() {
+	public function get_protocol_version() : string {
 		return $this->protocol_version;
 	}
 
@@ -335,7 +344,7 @@ class Response {
 	 * @param string $version HTTP protocol version.
 	 * @return static
 	 */
-	public function set_protocol_version( $version ) {
+	public function set_protocol_version( $version ) : static {
 		$this->protocol_version = $version;
 		return $this;
 	}
@@ -351,10 +360,8 @@ class Response {
 	 *
 	 * @return void
 	 */
-	public function send_headers() {
+	public function send_headers() : void {
 		if ( headers_sent( $file, $line ) ) {
-			// Optional: debug log or trigger warning
-			error_log( sprintf( 'Headers already sent in %s on line %d', $file, $line ) );
 			return;
 		}
 
@@ -370,27 +377,13 @@ class Response {
 			$this->status_code
 		);
 
-		// Normalize header name for proper capitalization
-		$normalize_name = function( $name ) {
-			// Converts "x-content-type-options" -> "X-Content-Type-Options"
-			$parts = explode( '-', $name );
-			$parts = array_map( 'ucfirst', $parts );
-			return implode( '-', $parts );
-		};
-
 		foreach ( $this->headers as $name => $value ) {
-			$name = $normalize_name( $name );
-
-			if ( is_array( $value ) ) {
-				foreach ( $value as $v ) {
-					header( $name . ': ' . $v, false );
-				}
-			} else {
-				header( $name . ': ' . $value );
-			}
+			header( $name . ': ' . $value );
 		}
 		
-		if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] || static::is_redirect() ) {
+		$method	= $_SERVER['REQUEST_METHOD'] ?? '';
+
+		if ( 'OPTIONS' === $method || static::is_redirect() ) {
 			exit;
 		}
 	}
@@ -401,7 +394,11 @@ class Response {
 	 *
 	 * @return void
 	 */
-	public function send_body() {
+	public function send_body() : void {
+		if ( is_array( $this->body ) ) {
+			$this->body = smliser_safe_json_encode( $this->body );
+		}
+
 		echo $this->body;
 	}
 
@@ -410,7 +407,7 @@ class Response {
 	 *
 	 * @return void
 	 */
-	public function send() {
+	public function send() : void {
 		
         if ( $this->has_errors() ) {
 			if ( $this->is_json_response() ) {
@@ -443,7 +440,7 @@ class Response {
      * @param mixed      $data    Optional. Error data. Default empty string.
      * @return static
      */
-    public function add_error( $code, $message, $data = '' ): static {
+    public function add_error( $code, $message, $data = '' ) : static {
         $this->error->add( $code, $message, $data );
         return $this;
     }
@@ -593,7 +590,7 @@ class Response {
     /**
      * Trigger all registered after-serve callbacks.
      *
-     * Automatically injects the current FileResponse instance ($this)
+     * Automatically injects the current Response instance ($this)
      * as the last parameter.
      *
      * @return void
@@ -616,8 +613,10 @@ class Response {
                     $callback_name = $callback;
                 }
 
+				$class_name	= get_class( $this );
                 error_log( sprintf(
-                    '[FileResponse] Post-serve callback failed (%s): %s in %s:%d',
+                    '[%ss] Post-serve callback failed (%s): %s in %s:%d',
+					$class_name,
                     $callback_name,
                     $e->getMessage(),
                     $e->getFile(),
@@ -647,5 +646,20 @@ class Response {
 	 */
 	public function get_response_data() : Request {
 		return $this->response_data;
+	}
+
+	/**
+	 * Ensures that header names are always treated the same regardless of
+	 * source. Header names are always case-insensitive.
+	 *
+	 *
+	 * @param string $key Header name.
+	 * @return string Canonicalized name.
+	 */
+	public static function header_canonical( $key ) : string {
+		$key = strtolower( $key );
+		$key = str_replace( '-', '_', $key );
+
+		return $key;
 	}
 }

@@ -8,6 +8,7 @@
  * @package Smliser\functions
  */
 
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
@@ -195,9 +196,9 @@ function smliser_form_message( $texts ) {
 /**
  * Get the client's IP address.
  *
- * @return string|false The client's IP address or false if not found.
+ * @return string
  */
-function smliser_get_client_ip() {
+function smliser_get_client_ip() : string {
     $ip_keys = array(
         'HTTP_X_REAL_IP',
         'HTTP_CLIENT_IP',
@@ -210,17 +211,20 @@ function smliser_get_client_ip() {
     );
 
     foreach ( $ip_keys as $key ) {
-        if ( ! empty( $_SERVER[ $key ] ) ) {
-            // In case of multiple IPs, we take the first one (usually the client IP)
-            $ip_list = explode( ',', sanitize_text_field( unslash( $_SERVER[ $key ] ) ) );
-            foreach ( $ip_list as $ip ) {
-                $ip = trim( $ip ); // Remove any extra spaces
-                // Validate both IPv4 and IPv6 addresses
-                if ( filter_var( $ip, FILTER_VALIDATE_IP, array( FILTER_FLAG_NO_RES_RANGE, FILTER_FLAG_IPV4, FILTER_FLAG_IPV6 ) ) ) {
-                    return $ip;
-                }
+        if ( empty( $_SERVER[ $key ] ) ) {
+            continue;
+        }
+
+        // In case of multiple IPs, we take the first one (usually the client IP).
+        $ip_list = explode( ',', sanitize_text_field( unslash( $_SERVER[ $key ] ) ) );
+        foreach ( $ip_list as $ip ) {
+            $ip = trim( $ip );
+            // Validate both IPv4 and IPv6 addresses.
+            if ( filter_var( $ip, FILTER_VALIDATE_IP, array( FILTER_FLAG_NO_RES_RANGE, FILTER_FLAG_IPV4, FILTER_FLAG_IPV6 ) ) ) {
+                return $ip;
             }
         }
+        
     }
 
     return 'unresoved_ip';
@@ -393,10 +397,10 @@ function smliser_get_user_agent( bool $raw = false ) {
 /**
  * Extract the token from the authorization header.
  * 
- * @param WP_REST_Request $request The current request object.
+ * @param Request $request The current request object.
  * @return string|null The extracted token or null if not found.
  */
-function smliser_get_auth_token( WP_REST_Request $request ) {
+function smliser_get_auth_token( Request $request ) {
     // Get the authorization header.
     $headers = $request->get_headers();
     

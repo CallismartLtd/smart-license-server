@@ -12,7 +12,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * The classical representation a request object that is undrstood by all core models.
+ * The classical representation a request object that is understood by all core models.
  * 
  * An object of this class should be prepared by the environment adapter and passed to the core controller.
  */
@@ -20,46 +20,161 @@ class Request {
     use SanitizeAwareTrait;
 
     /**
-     * Internal storage for dynamic properties.
+     * Internal storage for all parameters.
+     * 
+     * Please note: Both Json, GET and POST data are merged by default.
      *
      * @var array
      */
-    private array $props = [];
+    private array $params = [];
+
+    /**
+     * Internal storage for all headers.
+     * Keys are canonicalized (lowercase with underscores).
+     * 
+     * @var array
+     */
+    private array $headers = [];
+
+    /**
+     * Original header names for preserving case.
+     * Maps canonical names to original names.
+     * 
+     * @var array
+     */
+    private array $original_header_names = [];
+
+    /**
+     * The HTTP method (GET, POST, PUT, DELETE, etc.)
+     * 
+     * @var string
+     */
+    private string $method;
+
+    /**
+     * The request URI
+     * 
+     * @var string
+     */
+    private string $uri;
+
+    /**
+     * Tracks when the request object was instantiated.
+     * 
+     * @var float $startTime
+     */
+    private float $startTime = 0.0;
 
     /**
      * Constructor.
      *
-     * @param array $args Optional initial property values.
+     * @param array  $params  The request params, defaults to $_REQUEST array.
+     * @param array  $headers The request headers, defaults to all headers.
+     * @param string $method  The HTTP method, defaults to $_SERVER['REQUEST_METHOD'].
+     * @param string $uri     The request URI, defaults to $_SERVER['REQUEST_URI'].
      */
-    public function __construct( array $args = [] ) {
-        $source = empty( $args ) ? $_REQUEST : $args;
+    public function __construct( array $params = [], array $headers = [], string $method = '', string $uri = '' ) {
+        $this->startTime = microtime( true );
+        // Set params - default to $_REQUEST if empty
+        $params = empty( $params ) ? $_REQUEST : $params;
+        
+        // Set method - default to server value
+        $this->method = ! empty( $method ) ? strtoupper( $method ) : ( $_SERVER['REQUEST_METHOD'] ?? 'GET' );
+        
+        // Set URI - default to server value
+        $this->uri = ! empty( $uri ) ? $uri : ( $_SERVER['REQUEST_URI'] ?? '/' );
 
-        foreach ( $source as $key => $value ) {
-            $this->set( $key, static::sanitize_auto( $value ) );
+        // Set headers - parse default headers if empty, then normalize
+        $raw_headers = empty( $headers ) ? $this->parse_default_headers() : $headers;
+        $this->normalize_headers( $raw_headers );
+
+        // Populate params
+        foreach ( $params as $key => $value ) {
+            $this->set( $key, $value );
         }
-
     }
 
     /**
-     * Set a property value.
+     * Set a parameter value.
      *
-     * @param string $property
+     * @param string $parameter
      * @param mixed  $value
+     * @return static For method chaining
      */
-    public function set( string $property, $value ): void {
-        $this->props[ $property ] = $value;
+    public function set( string $parameter, $value ): static {
+        $this->params[ $parameter ] = $value;
+        return $this;
     }
 
     /**
-     * Get a property value.
+     * Get a parameter value.
      *
-     * @param string $property
-     * @param mixed  $default Optional default value if property is not set.
-     *
+     * @param string $parameter
+     * @param mixed  $default Optional default value if parameter is not set.
      * @return mixed
      */
-    public function get( string $property, $default = null ) {
-        return $this->props[ $property ] ?? $default;
+    public function get( string $parameter, $default = null ) {
+        return $this->params[ $parameter ] ?? $default;
+    }
+
+    /**
+     * Get a parameter value as a specific type.
+     * 
+     * @param string $parameter
+     * @param string $type      Type to cast to (string, int, float, bool, array)
+     * @param mixed  $default   Optional default value if parameter is not set.
+     * @return mixed
+     */
+    public function getTyped( string $parameter, string $type = 'string', $default = null ) {
+        $value = $this->get( $parameter, $default );
+        
+        if ( $value === $default ) {
+            return $value;
+        }
+
+        return match ( $type ) {
+            'int', 'integer' => (int) $value,
+            'float', 'double' => (float) $value,
+            'bool', 'boolean' => (bool) $value,
+            'array' => (array) $value,
+            'string' => (string) $value,
+            default => $value,
+        };
+    }
+
+    /**
+     * Get multiple parameters at once.
+     * 
+     * @param array $parameters Array of parameter names
+     * @param mixed $default    Default value for missing parameters
+     * @return array
+     */
+    public function getMany( array $parameters, $default = null ): array {
+        $result = [];
+        foreach ( $parameters as $param ) {
+            $result[ $param ] = $this->get( $param, $default );
+        }
+        return $result;
+    }
+
+    /**
+     * Get only the specified parameters.
+     * 
+     * @param array $parameters Array of parameter names to include
+     * @return array
+     */
+    public function only( array $parameters ): array {
+        return array_intersect_key( $this->params, array_flip( $parameters ) );
+    }
+
+    /**
+     * Get all parameters except the specified ones.
+     * 
+     * @param array $parameters Array of parameter names to exclude
+     * @return array
+     */
+    public function except( array $parameters ): array {
+        return array_diff_key( $this->params, array_flip( $parameters ) );
     }
 
     /**
@@ -77,35 +192,45 @@ class Request {
     }
 
     /**
-     * Check if a property exists.
+     * Check if a parameter exists.
      *
-     * @param string $property
-     *
+     * @param string $parameter
      * @return bool
      */
-    public function has( string $property ): bool {
-        return array_key_exists( $property, $this->props );
+    public function has( string $parameter ): bool {
+        return array_key_exists( $parameter, $this->params );
     }
 
     /**
-     * Tells whether the specified property exists and not empty.
+     * Tells whether the specified parameter exists and is not empty.
      * 
-     * @param string $property The property name.
+     * @param string $parameter The parameter name.
      * @return bool
      */
-    public function isEmpty( string $property ) : bool {
-        return empty( $this->get( $property ) );
+    public function isEmpty( string $parameter ): bool {
+        return empty( $this->get( $parameter ) );
     }
 
     /**
-     * Tells whethe the specified properties are all present and not empty.
+     * Tells whether the specified parameter exists and is not empty.
+     * Alias for !isEmpty() for better readability.
      * 
-     * @param array $properties The property names.
+     * @param string $parameter The parameter name.
      * @return bool
      */
-    public function hasAll( array $properties ) : bool {
-        foreach ( $properties as $property ) {
-            if ( $this->isEmpty( $property ) ) {
+    public function filled( string $parameter ): bool {
+        return ! $this->isEmpty( $parameter );
+    }
+
+    /**
+     * Tells whether the specified properties are all present and not empty.
+     * 
+     * @param array $properties The parameter names.
+     * @return bool
+     */
+    public function hasAll( array $properties ): bool {
+        foreach ( $properties as $parameter ) {
+            if ( $this->isEmpty( $parameter ) ) {
                 return false;
             }
         }
@@ -114,20 +239,346 @@ class Request {
     }
 
     /**
-     * Return all properties as array.
-     *
-     * @return array
+     * Check if any of the specified parameters are present and not empty.
+     * 
+     * @param array $properties The parameter names.
+     * @return bool
      */
-    public function all(): array {
-        return $this->props;
+    public function hasAny( array $properties ): bool {
+        foreach ( $properties as $parameter ) {
+            if ( $this->filled( $parameter ) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
-     * Whether a request is authorized
-     * 
-     * @return boolean
+     * Return all parameters as array.
+     *
+     * @return array
      */
-    public function is_authorized() : bool {
+    public function get_params(): array {
+        return $this->params;
+    }
+
+    /**
+     * Get all parameters as array (alias for get_params).
+     * 
+     * @return array
+     */
+    public function all(): array {
+        return $this->params;
+    }
+
+    /**
+     * Merge additional parameters into the request.
+     * 
+     * @param array $params
+     * @return static
+     */
+    public function merge( array $params ): static {
+        $this->params = array_merge( $this->params, $params );
+        return $this;
+    }
+
+    /**
+     * Remove a parameter.
+     * 
+     * @param string $parameter
+     * @return static
+     */
+    public function remove( string $parameter ): static {
+        unset( $this->params[ $parameter ] );
+        return $this;
+    }
+
+    /**
+     * Get a header value.
+     * 
+     * @param string $header  Header name (case-insensitive)
+     * @param mixed  $default Default value if header not found
+     * @return mixed
+     */
+    public function get_header( string $header, $default = null ) {
+        $canonical = $this->header_canonical( $header );
+        
+        if ( ! $this->has_header( $canonical ) ) {
+            return $default;
+        }
+
+        return implode( ',', $this->headers[$canonical] );
+    }
+
+    /**
+     * Get all headers.
+     * 
+     * @return array
+     */
+    public function get_headers(): array {
+        return $this->headers;
+    }
+
+    /**
+     * Set a header value.
+     * 
+     * @param string $header Header name
+     * @param mixed  $value  Header value
+     * @return static
+     */
+    public function set_header( string $header, $value ): static {
+        $canonical = $this->header_canonical( $header );
+        $this->headers[ $canonical ] = $value;
+        $this->original_header_names[ $canonical ] = $header;
+        return $this;
+    }
+
+    /**
+     * Set headers
+     * 
+     * @param array $headers
+     * @return static
+     */
+    public function set_headers( array $headers ) : static {
+        foreach( $headers as $key => $value ) {
+            $this->set_header( $key, $value );
+        }
+
+        return $this;
+    }
+
+    /**
+     * Check if a header exists.
+     * 
+     * @param string $header Header name (case-insensitive)
+     * @return bool
+     */
+    public function has_header( string $header ): bool {
+        $canonical = $this->header_canonical( $header );
+        return array_key_exists( $canonical, $this->headers );
+    }
+
+    /**
+     * Get the HTTP method.
+     * 
+     * @return string
+     */
+    public function method(): string {
+        return $this->method;
+    }
+
+    /**
+     * Check if the request method matches.
+     * 
+     * @param string $method
+     * @return bool
+     */
+    public function is_method( string $method ): bool {
+        return strcasecmp( $this->method, $method ) === 0;
+    }
+
+    /**
+     * Get the request URI.
+     * 
+     * @return string
+     */
+    public function uri(): string {
+        return $this->uri;
+    }
+
+    /**
+     * Get the request path (URI without query string).
+     * 
+     * @return string
+     */
+    public function path(): string {
+        return parse_url( $this->uri, PHP_URL_PATH ) ?: '/';
+    }
+
+    /**
+     * Check if request is GET.
+     * 
+     * @return bool
+     */
+    public function isGet(): bool {
+        return $this->method === 'GET';
+    }
+
+    /**
+     * Check if request is POST.
+     * 
+     * @return bool
+     */
+    public function isPost(): bool {
+        return $this->method === 'POST';
+    }
+
+    /**
+     * Check if request is PUT.
+     * 
+     * @return bool
+     */
+    public function isPut(): bool {
+        return $this->method === 'PUT';
+    }
+
+    /**
+     * Check if request is DELETE.
+     * 
+     * @return bool
+     */
+    public function isDelete(): bool {
+        return $this->method === 'DELETE';
+    }
+
+    /**
+     * Check if request is PATCH.
+     * 
+     * @return bool
+     */
+    public function isPatch(): bool {
+        return $this->method === 'PATCH';
+    }
+
+    /**
+     * Check if request is AJAX.
+     * 
+     * @return bool
+     */
+    public function isAjax(): bool {
+        return strcasecmp( $this->get_header( 'X-Requested-With', '' ), 'XMLHttpRequest' ) === 0;
+    }
+
+    /**
+     * Check if request expects JSON response.
+     * 
+     * @return bool
+     */
+    public function wantsJson(): bool {
+        $accept = $this->get_header( 'Accept', '' );
+        return str_contains( strtolower( $accept ), 'application/json' );
+    }
+
+    /**
+     * Get the Content-Type header value.
+     * 
+     * @return string
+     */
+    public function contentType(): string {
+        return $this->get_header( 'Content-Type', '' );
+    }
+
+    /**
+     * Check if request content type is JSON.
+     * 
+     * @return bool
+     */
+    public function isJson(): bool {
+        return str_contains( strtolower( $this->contentType() ), 'application/json' );
+    }
+
+    /**
+     * Whether a request is authorized.
+     * 
+     * @return bool
+     */
+    public function is_authorized(): bool {
         return boolval( $this->get( 'is_authorized' ) ); // @todo Refactor to use the security context or deprecate
+    }
+
+    /**
+     * Get the authorization token from header.
+     * 
+     * @return string|null
+     */
+    public function bearerToken(): ?string {
+        $header = $this->get_header( 'Authorization', '' );
+
+        if ( is_array( $header ) ) {
+            foreach ( $header as $value ) {
+                if ( preg_match( '/Bearer\s+(.*)$/i', $value, $matches ) ) {
+                    return $matches[1];
+                }
+            }
+        } else if ( preg_match( '/Bearer\s+(.*)$/i', $header, $matches ) ) {
+            return $matches[1];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Ensures that header names are always treated the same regardless of
+     * source. Header names are always case-insensitive.
+     *
+     * @param string $key Header name.
+     * @return string Canonicalized name.
+     */
+    private function header_canonical( string $key ): string {
+        $key = strtolower( $key );
+        $key = str_replace( '-', '_', $key );
+
+        return $key;
+    }
+
+    /**
+     * Normalize headers array using canonical naming.
+     * 
+     * @param array $headers Raw headers array
+     * @return void
+     */
+    private function normalize_headers( array $headers ): void {
+        foreach ( $headers as $name => $value ) {
+            $canonical = $this->header_canonical( $name );
+            $this->headers[ $canonical ] = $value;
+            $this->original_header_names[ $canonical ] = $name;
+        }
+    }
+
+    /**
+     * Parse default HTTP headers.
+     * 
+     * @return array
+     */
+    private function parse_default_headers(): array {
+        $headers = [];
+
+        if ( function_exists( 'getallheaders' ) ) {
+            $headers = (array) getallheaders();
+        } else {
+            // Fallback for environments where getallheaders() is not available.
+            foreach ( $_SERVER as $key => $value ) {
+                if ( str_starts_with( $key, 'HTTP_' ) ) {
+                    $header = str_replace( '_', '-', substr( $key, 5 ) );
+                    $headers[ $header ] = $value;
+                }
+            }
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Convert request to array representation.
+     * 
+     * @return array
+     */
+    public function toArray(): array {
+        return [
+            'params'  => $this->params,
+            'headers' => $this->headers,
+            'method'  => $this->method,
+            'uri'     => $this->uri,
+        ];
+    }
+
+    /**
+     * Get the request start time
+     * 
+     * @return float
+     */
+    public function startTime() : float {
+        return $this->startTime;
     }
 }

@@ -2,7 +2,7 @@
 /**
  * WooCommerce Monetization Provider.
  *
- * Fetches SmartWoo products from a WooCommerce site via the Store API.
+ * Fetches products from a WooCommerce site via the Store API.
  *
  * @package Smart_License_Server
  * @subpackage Monetization
