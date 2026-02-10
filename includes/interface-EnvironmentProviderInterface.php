@@ -12,9 +12,9 @@ namespace SmartLicenseServer;
  */
 interface EnvironmentProviderInterface {
     /**
-     * Auto registers the monetization providers
+     * Load the monetization providers
      */
-    public function auto_register_monetization_providers();
+    public function load_monetization_providers();
 
     /**
      * Database upgrade request parser

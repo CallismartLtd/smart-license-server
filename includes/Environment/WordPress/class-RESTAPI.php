@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environment\WordPress;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\RESTAPI\RESTInterface;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use WP_Error;
@@ -49,10 +50,10 @@ class RESTAPI {
         
         add_filter( 'rest_request_before_callbacks', [$this, 'rest_request_before_callbacks'], -1, 3 );
         add_filter( 'rest_post_dispatch', [$this, 'filter_response'], 10, 3 );
-        add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https' ), 10, 3 );
-        add_action( 'rest_api_init', [$this, 'register_rest_routes'] );
+        add_filter( 'rest_pre_dispatch', [$this, 'enforce_https'], 10, 3 );
+        add_action( 'rest_api_init', [$this, 'register_rest_routes'], 30 );
+        add_action( 'rest_authentication_errors', [$this, 'authenticate'], 5 );
     }
-
 
     /**
      * Preempt REST API request callbacks.
@@ -149,11 +150,11 @@ class RESTAPI {
                 array(
                     'methods'   => $route_config['methods'],
                     'callback'  => function( WP_REST_Request $wp_request ) use ( $route_config ) {
-                        return $this->main_dispatcher( $wp_request, $route_config['callback'] );
+                        return $this->main_dispatcher( $wp_request, $route_config['handler'] );
                     },
 
                     'permission_callback' => function( WP_REST_Request $wp_request ) use ( $route_config ) {
-                        return $this->permission_dispatcher( $wp_request, $route_config['permission'] );
+                        return $this->permission_dispatcher( $wp_request, $route_config['guard'] );
                     },
 
                     'args'  => $this->prepare_rest_args( $route_config['args'] ),
@@ -316,6 +317,13 @@ class RESTAPI {
     }
 
     /**
+     * Perform Authentication using our security and access control policy.
+     */
+    public function authenticate() {
+
+    }
+
+    /**
      * Generate a unique identifier for a WordPress REST request instance.
      *
      * This ensures that the same request object used in permission callback
@@ -339,20 +347,24 @@ class RESTAPI {
      *
      * @param WP_REST_Request $wp_request The original WordPress REST request.
      * @param callable        $callback   The permission callback to execute.
-     * @return mixed Result of the permission callback.
+     * @return WP_Errpr|bool Result of the permission callback.
      */
-    public function permission_dispatcher( WP_REST_Request $wp_request, callable $callback ) : mixed {
+    public function permission_dispatcher( WP_REST_Request $wp_request, callable $callback ) : WP_Error|bool {
 
-        $request = $this->convert_wp_request( $wp_request );
+        $request    = $this->convert_wp_request( $wp_request );
 
-        $result = call_user_func( $callback, $request );
-
-        $key = $this->get_request_key( $wp_request );
+        /** @var RequestException|bool $result */ 
+        $result     = call_user_func( $callback, $request );
+        $key        = $this->get_request_key( $wp_request );
 
         $this->request_cache[ $key ] = $request;
 
         if ( is_smliser_error( $result ) ) {
-            $result = method_exists( $result, 'to_wp_error' ) ? $result->to_wp_error() : $result;
+            if ( method_exists( $result, 'to_wp_error' ) ) {
+                $result = $result->to_wp_error();
+            } else {
+                $result = new WP_Error( $result->get_error_code(), $result->get_error_message() );
+            }
         }
 
         return $result;
@@ -380,7 +392,11 @@ class RESTAPI {
             $request = $this->convert_wp_request( $wp_request );
         }
 
-        return call_user_func( $callback, $request );
+        $result = call_user_func( $callback, $request );
+        
+        $this->clear_request_cache();
+
+        return $result;
     }
 
     /**

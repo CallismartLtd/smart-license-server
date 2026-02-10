@@ -37,6 +37,13 @@ class V1 implements RESTInterface {
      * @var string
      */
     private static $plugin_info = '/plugin-info/';
+    
+    /** 
+     * Plugin info REST API route.
+     * 
+     * @var string
+     */
+    private static $theme_info = '/theme-info/';
 
     /** 
      * License activation REST API route.
@@ -67,14 +74,17 @@ class V1 implements RESTInterface {
     private static $license_validity_route = '/license-validity-test/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
 
     /** 
-     * Repository REST API route.
+     * Route to query the entire repository.
      * 
      * @var string
      */
     private static $repository_route = '/repository/';
 
     /** 
-     * Repository REST API route for specific hosted application type.
+     * Route to perform CRUD operations on an application.
+     * @example ```GET
+     *  /repository/plugin/woocommerce
+     * ```
      * 
      * @var string
      */
@@ -105,11 +115,68 @@ class V1 implements RESTInterface {
 
     /**
      * Get all route definitions for the API.
-     * 
-     * Returns an array of route configurations that can be registered
-     * by any environment (WordPress, Laravel, etc.).
-     * 
-     * @return array Array of route configurations with namespace and routes.
+     *
+     * Returns a structured array of route configurations that can be consumed
+     * and registered by any supported environment implementation
+     * (WordPress, Laravel, custom PHP router, etc.).
+     *
+     * Each route definition contains the following keys:
+     *
+     * - namespace (string)
+     *      The base namespace under which all routes are grouped.
+     *      Example: "smart-license-server/v1"
+     *
+     * - routes (array)
+     *      A list of individual route configuration arrays.
+     *
+     * Each route configuration supports the following keys:
+     *
+     * - route (string)
+     *      The URI pattern relative to the namespace.
+     *      Example: "/activate" or "/repository/{id}"
+     *
+     * - methods (string|array)
+     *      Allowed HTTP methods for the route.
+     *      Can be a string (e.g. "GET") or an array of methods
+     *      (e.g. ["POST", "PUT"]).
+     *
+     * - handler (callable)
+     *      The main route handler callback that processes the request
+     *      and returns a Response object or compatible result.
+     *      Receives an instance of SmartLicenseServer\Core\Request.
+     *
+     * - guard (callable)
+     *      Authorization callback executed before the handler.
+     *      Determines whether the request is permitted to proceed.
+     *      Must return true to allow execution of the handler,
+     *      or an error result to reject the request.
+     *
+     * - args (array)
+     *      Definition of expected route parameters including type,
+     *      validation rules, and sanitization callbacks.
+     *      Used by environment implementations to validate input.
+     *
+     * - category (string)
+     *      Logical grouping identifier for the route, such as
+     *      "license", "repository", or "testing".
+     *      Used for internal organization and documentation purposes.
+     *
+     * - name (string)
+     *      Human-readable descriptive name for the route.
+     *      Useful for logging, debugging, or UI display.
+     *
+     * @return array{
+     *     namespace: string,
+     *     routes: array<int, array{
+     *         route: string,
+     *         methods: string|array,
+     *         handler: callable,
+     *         guard: callable,
+     *         args: array,
+     *         category: string,
+     *         name: string
+     *     }>
+     * }
      */
     public static function get_routes() : array {
         return array(
@@ -117,112 +184,123 @@ class V1 implements RESTInterface {
             'routes'    => array(
                 // License Activation Route
                 array(
-                    'route'      => self::$activation_route,
-                    'methods'    => 'POST',
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'activation_response' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'activation_permission_callback' ),
-                    'args'       => self::get_license_activation_args(),
-                    'category'   => 'license',
-                    'name'       => 'License Activation',
+                    'route'         => self::$activation_route,
+                    'methods'       => ['POST'],
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'activation_response' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'activation_permission_callback' ),
+                    'args'          => self::get_license_activation_args(),
+                    'category'      => 'license',
+                    'name'          => 'License Activation',
                 ),
 
                 // License Deactivation Route
                 array(
-                    'route'      => self::$deactivation_route,
-                    'methods'    => array( 'PUT', 'POST', 'PATCH' ),
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_response' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_permission' ),
-                    'args'       => self::get_license_deactivation_args(),
-                    'category'   => 'license',
-                    'name'       => 'License Deactivation',
+                    'route'         => self::$deactivation_route,
+                    'methods'       => array( 'PUT', 'POST', 'PATCH' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_response' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_permission' ),
+                    'args'          => self::get_license_deactivation_args(),
+                    'category'      => 'license',
+                    'name'          => 'License Deactivation',
                 ),
 
                 // License Uninstallation Route
                 array(
-                    'route'      => self::$license_uninstallation_route,
-                    'methods'    => array( 'PUT', 'POST', 'PATCH' ),
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_response' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_permission' ),
-                    'args'       => self::get_license_uninstallation_args(),
-                    'category'   => 'license',
-                    'name'       => 'License Uninstallation',
+                    'route'         => self::$license_uninstallation_route,
+                    'methods'       => array( 'PUT', 'POST', 'PATCH' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_response' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_permission' ),
+                    'args'          => self::get_license_uninstallation_args(),
+                    'category'      => 'license',
+                    'name'          => 'License Uninstallation',
                 ),
 
                 // License Validity Test Route
                 array(
-                    'route'      => self::$license_validity_route,
-                    'methods'    => 'POST',
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_response' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_permission' ),
-                    'args'       => self::get_license_validity_args(),
-                    'category'   => 'license',
-                    'name'       => 'License Validity Test',
+                    'route'         => self::$license_validity_route,
+                    'methods'       => ['POST'],
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_response' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_permission' ),
+                    'args'          => self::get_license_validity_args(),
+                    'category'      => 'license',
+                    'name'          => 'License Validity Test',
                 ),
 
                 // Plugin Info Route
                 array(
-                    'route'      => self::$plugin_info,
-                    'methods'    => 'GET',
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'plugin_info_response' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'info_permission_callback' ),
-                    'args'       => self::get_plugin_info_args(),
-                    'category'   => 'repository',
-                    'name'       => 'Plugin Information',
+                    'route'         => self::$plugin_info,
+                    'methods'       => ['GET'],
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'plugin_info_response' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'info_permission_callback' ),
+                    'args'          => self::get_app_info_args(),
+                    'category'      => 'repository',
+                    'name'          => 'Plugin Information',
+                ),
+
+                // Theme Info Route
+                array(
+                    'route'         => self::$theme_info,
+                    'methods'       => ['GET'],
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\Themes::class, 'theme_info_response' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\Themes::class, 'info_permission_callback' ),
+                    'args'          => self::get_app_info_args(),
+                    'category'      => 'repository',
+                    'name'          => 'Plugin Information',
                 ),
 
                 // Repository Route
                 array(
-                    'route'      => self::$repository_route,
-                    'methods'    => 'GET',
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_response' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_access_permission' ),
-                    'args'       => self::get_repository_args(),
-                    'category'   => 'repository',
-                    'name'       => 'Repository Query',
+                    'route'         => self::$repository_route,
+                    'methods'       => ['GET'],
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_response' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_access_permission' ),
+                    'args'          => self::get_repository_args(),
+                    'category'      => 'repository',
+                    'name'          => 'Repository Query',
                 ),
 
                 // Repository App Route (CRUD)
                 array(
-                    'route'      => self::$repository_app_route,
-                    'methods'    => array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ),
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_crud' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_access_permission' ),
-                    'args'       => self::get_repository_app_args(),
-                    'category'   => 'repository',
-                    'name'       => 'Repository App CRUD',
+                    'route'         => self::$repository_app_route,
+                    'methods'       => array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_crud' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_access_permission' ),
+                    'args'          => self::get_repository_app_args(),
+                    'category'      => 'repository',
+                    'name'          => 'Repository App CRUD',
                 ),
 
                 // Download Token Reauthentication Route
                 array(
-                    'route'      => self::$download_reauth,
-                    'methods'    => 'POST',
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'app_download_reauth' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'download_reauth_permission' ),
-                    'args'       => self::get_download_reauth_args(),
-                    'category'   => 'license',
-                    'name'       => 'Download Token Reauthentication',
+                    'route'         => self::$download_reauth,
+                    'methods'       => 'POST',
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'app_download_reauth' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'download_reauth_permission' ),
+                    'args'          => self::get_download_reauth_args(),
+                    'category'      => 'license',
+                    'name'          => 'Download Token Reauthentication',
                 ),
 
                 // Mock Inbox Route (for testing)
                 array(
-                    'route'      => '/mock-inbox',
-                    'methods'    => 'GET',
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\BulkMessages::class, 'mock_dispatch' ),
-                    'permission' => '__return_true',
-                    'args'       => array(),
-                    'category'   => 'testing',
-                    'name'       => 'Mock Inbox (Testing)',
+                    'route'         => '/mock-inbox',
+                    'methods'       => ['GET'],
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\BulkMessages::class, 'mock_dispatch' ),
+                    'guard'         => [__CLASS__, 'return_true'],
+                    'args'          => array(),
+                    'category'      => 'testing',
+                    'name'          => 'Mock Inbox (Testing)',
                 ),
 
                 // Bulk Messages Route
                 array(
-                    'route'      => self::$bulk_messages_route,
-                    'methods'    => 'GET',
-                    'callback'   => array( \SmartLicenseServer\RESTAPI\BulkMessages::class, 'dispatch_response' ),
-                    'permission' => array( \SmartLicenseServer\RESTAPI\BulkMessages::class, 'permission_callback' ),
-                    'args'       => self::get_bulk_messages_args(),
-                    'category'   => 'bulk-messages',
-                    'name'       => 'Bulk Messages',
+                    'route'         => self::$bulk_messages_route,
+                    'methods'       => ['GET'],
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\BulkMessages::class, 'dispatch_response' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\BulkMessages::class, 'permission_callback' ),
+                    'args'          => self::get_bulk_messages_args(),
+                    'category'      => 'bulk-messages',
+                    'name'          => 'Bulk Messages',
                 ),
             ),
         );
@@ -329,11 +407,11 @@ class V1 implements RESTInterface {
     }
 
     /**
-     * Get plugin info route arguments.
+     * Get plugin and theme info route arguments.
      * 
      * @return array
      */
-    private static function get_plugin_info_args() {
+    private static function get_app_info_args() {
         return array(
             'id' => array(
                 'required'    => false,
@@ -392,15 +470,15 @@ class V1 implements RESTInterface {
      */
     private static function get_repository_app_args() {
         return array(
-            'item_id' => array(
-                'required'    => false,
-                'type'        => 'integer',
-                'description' => 'The plugin ID',
-            ),
-            'slug' => array(
+            'app_type' => array(
                 'required'    => false,
                 'type'        => 'string',
-                'description' => 'The plugin slug eg. plugin-slug',
+                'description' => 'The type of application being queried. This should be speciified in the URL path after /repository/, example /repository/plugin/',
+            ),
+            'app_slug' => array(
+                'required'    => false,
+                'type'        => 'string',
+                'description' => 'The slug of the application being queried. This should be specified in the URL path after /repository/app-type/, eg /repository/plugin/smart-woo-pro',
             ),
         );
     }
@@ -573,6 +651,15 @@ class V1 implements RESTInterface {
         }
 
         return $descriptions;
+    }
+
+    /**
+     * Helper method to return true
+     * 
+     * @return true
+     */
+    public static function return_true() : true {
+        return true;
     }
 
     /**

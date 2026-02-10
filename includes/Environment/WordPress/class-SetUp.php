@@ -25,7 +25,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
      * 
      * @var self $instance
      */
-    private static ?self $instance;
+    private static self $instance;
 
     /**
      * Class constructor
@@ -43,7 +43,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         add_action( 'admin_menu', [Menu::class, 'modify_sw_menu'], 999 );
 
         add_action( 'admin_notices', [ __CLASS__, 'check_filesystem_errors'] );
-        add_action( 'init', [$this, 'auto_register_monetization_providers'] );
+        add_action( 'init', [$this, 'load_monetization_providers'] );
         
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
@@ -69,9 +69,9 @@ class SetUp extends Config implements EnvironmentProviderInterface {
 
 
     /**
-     * Auto register monetization providers
+     * Load monetization providers
      */
-    public function auto_register_monetization_providers() {
+    public function load_monetization_providers() {
         ProviderCollection::auto_load();
     }
 
