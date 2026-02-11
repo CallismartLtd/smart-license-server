@@ -380,7 +380,7 @@ class FileSystemHelper {
      * - Removes invalid OS characters
      * - Collapses separators (spaces, dots, underscores, hyphens)
      * - Preserves extension optionally
-     * - Removes leading dots → prevents hidden/system files (.env, .htaccess)
+     * - Removes leading dots, prevents hidden/system files (.env, .htaccess)
      * - Handles Windows reserved device names
      * - Multibyte-safe
      *

@@ -382,6 +382,7 @@ class ContextServiceProvider {
      * resource owner object.
      * 
      * @param Owner $owner
+     * @return null|\SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface
      */
     public static function get_owner_subject( Owner $owner ) : ?OwnerSubjectInterface {
 

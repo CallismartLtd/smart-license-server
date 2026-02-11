@@ -15,6 +15,8 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\Security\Context\Principal;
+use SmartLicenseServer\Security\Context\SecurityGuard;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -35,7 +37,15 @@ class AppCollection {
             return true;
         }
 
-        return false;
+        $actor          = SecurityGuard::get_principal();
+        $has_permission = match( $request->method() ) {
+            'POST'   => $actor->can( 'hosted_apps.create' ),
+            'DELETE' => $actor->can( 'hosted_apps.delete' ),
+            'UPDATE' => $actor->can( 'hosted_apps.update' ),
+            default  => false,
+        };
+
+        return $has_permission ?: new RequestException( 'permission_denied' );
     }
 
     /**

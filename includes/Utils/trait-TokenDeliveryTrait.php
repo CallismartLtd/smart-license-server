@@ -92,4 +92,9 @@ trait TokenDeliveryTrait {
     private static function hmac_hash( string $data, string $key, string $algo = 'sha256' ) : string {
         return hash_hmac( $algo, $data, $key );
     }
+
+    private static function generate_uuid_v4() : string {
+        return smliser_generate_uuid_v4();
+    }
+
 }

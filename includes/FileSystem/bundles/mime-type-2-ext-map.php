@@ -1,6 +1,6 @@
 <?php
 /**
- * MIME type → preferred file extension map.
+ * MIME type - preferred file extension map.
  *
  * This map is used by the FileSystemHelper to determine the *safe* file extension
  * based on the file's binary signature (MIME type).

@@ -2,7 +2,7 @@
 /**
  * Smliser Markdown parser (CommonMark wrapper + fallback).
  *
- * Pure Markdown → HTML conversion.
+ * Pure Markdown, HTML conversion.
  * WP-specific syntax should be handled by a dedicated parser.
  *
  * @package SmartLicenseServer\MDParser

@@ -74,24 +74,14 @@ class Request {
      * @param string $uri     The request URI, defaults to $_SERVER['REQUEST_URI'].
      */
     public function __construct( array $params = [], array $headers = [], string $method = '', string $uri = '' ) {
-        $this->startTime = microtime( true );
-        // Set params - default to $_REQUEST if empty
-        $params = empty( $params ) ? $_REQUEST : $params;
+        $this->startTime    = microtime( true );
+        $params             = empty( $params ) ? $_REQUEST : $params;
+        $this->method       = ! empty( $method ) ? strtoupper( $method ) : ( $_SERVER['REQUEST_METHOD'] ?? 'GET' );
+        $this->uri          = ! empty( $uri ) ? $uri : ( $_SERVER['REQUEST_URI'] ?? '/' );
+        $raw_headers        = empty( $headers ) ? $this->parse_default_headers() : $headers;
         
-        // Set method - default to server value
-        $this->method = ! empty( $method ) ? strtoupper( $method ) : ( $_SERVER['REQUEST_METHOD'] ?? 'GET' );
-        
-        // Set URI - default to server value
-        $this->uri = ! empty( $uri ) ? $uri : ( $_SERVER['REQUEST_URI'] ?? '/' );
-
-        // Set headers - parse default headers if empty, then normalize
-        $raw_headers = empty( $headers ) ? $this->parse_default_headers() : $headers;
-        $this->normalize_headers( $raw_headers );
-
-        // Populate params
-        foreach ( $params as $key => $value ) {
-            $this->set( $key, $value );
-        }
+        $this->set_headers( $raw_headers );
+        $this->set_params( $params );
     }
 
     /**
@@ -103,6 +93,20 @@ class Request {
      */
     public function set( string $parameter, $value ): static {
         $this->params[ $parameter ] = $value;
+        return $this;
+    }
+
+    /**
+     * Set multiple parameters
+     * 
+     * @param array $parameters
+     * @return static
+     */
+    public function set_params( array $parameters ) : static {
+        foreach ( $parameters as $key => $value ) {
+            $this->set( $key, $value );
+        }
+
         return $this;
     }
 
@@ -308,7 +312,7 @@ class Request {
             return $default;
         }
 
-        return implode( ',', $this->headers[$canonical] );
+        return implode( ',', (array) $this->headers[$canonical] );
     }
 
     /**
@@ -323,14 +327,14 @@ class Request {
     /**
      * Set a header value.
      * 
-     * @param string $header Header name
-     * @param mixed  $value  Header value
+     * @param string $header Header name.
+     * @param mixed  $value  Header value.
      * @return static
      */
     public function set_header( string $header, $value ): static {
-        $canonical = $this->header_canonical( $header );
-        $this->headers[ $canonical ] = $value;
-        $this->original_header_names[ $canonical ] = $header;
+        $canonical                                  = $this->header_canonical( $header );
+        $this->headers[ $canonical ]                = $value;
+        $this->original_header_names[ $canonical ]  = $header;
         return $this;
     }
 
@@ -381,10 +385,15 @@ class Request {
     /**
      * Get the request URI.
      * 
+     * @param bool $with_query Whether ton include the query parameter.
      * @return string
      */
-    public function uri(): string {
-        return $this->uri;
+    public function uri( bool $with_query = true ): string {
+        if ( $with_query ) {
+            return $this->uri;
+        }
+        
+        return explode( '?', $this->uri, 2 )[0];
     }
 
     /**
@@ -523,25 +532,11 @@ class Request {
     }
 
     /**
-     * Normalize headers array using canonical naming.
-     * 
-     * @param array $headers Raw headers array
-     * @return void
-     */
-    private function normalize_headers( array $headers ): void {
-        foreach ( $headers as $name => $value ) {
-            $canonical = $this->header_canonical( $name );
-            $this->headers[ $canonical ] = $value;
-            $this->original_header_names[ $canonical ] = $name;
-        }
-    }
-
-    /**
      * Parse default HTTP headers.
      * 
      * @return array
      */
-    private function parse_default_headers(): array {
+    public static function parse_default_headers(): array {
         $headers = [];
 
         if ( function_exists( 'getallheaders' ) ) {

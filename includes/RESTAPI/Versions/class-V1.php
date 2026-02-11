@@ -21,7 +21,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Environment-agnostic REST API route definitions.
  * Call get_routes() to retrieve all route configurations for registration.
  * 
- * @version 1.0.0
+ * @version 1.0
  */
 class V1 implements RESTInterface {
     /** 

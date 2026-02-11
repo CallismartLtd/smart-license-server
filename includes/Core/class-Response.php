@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Exceptions\Exception;
 
-use function smliser_safe_json_encode, defined, is_array, array_push;
+use function smliser_safe_json_encode, defined, is_array, array_push, preg_replace, sprintf;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -224,7 +224,7 @@ class Response {
 	 *
 	 * @param string $name  Header name.
 	 * @param string $value Header value.
-	 * @param bool $override Whether or not to override existing value
+	 * @param bool $override Whether or not to override existing value.
 	 * @return static
 	 */
 	public function set_header( string $name, string $value, bool $override = true  ) {
@@ -295,8 +295,7 @@ class Response {
 	 */
 	public function set_body( mixed $content ) : static {
 		$this->body = $content;
-		$length		= is_array( $this->body ) ? count( $this->body ) : mb_strlen( $this->body );
-		$this->set_header( 'Content-Length', $length );
+		$this->remove_header( 'Content-Length' );
 		return $this;
 	}
 
@@ -354,9 +353,27 @@ class Response {
 	--------------------------------------------------------------*/
 
 	/**
-	 * Send headers to the client.
+	 * Send HTTP response headers to the client.
 	 *
-	 * Handles multi-word capitalization and respects already sent headers.
+	 * This method implements header transmission in accordance with:
+	 *
+	 * - RFC 7230: Hypertext Transfer Protocol (HTTP/1.1): Message Syntax and Routing
+	 *   - §3.1.2 – Status Line format: "HTTP-version status-code reason-phrase"
+	 *   - §3.2 – Header Fields: case-insensitive names and token formatting
+	 *   - §3.2.4 – Field Parsing: prevention of CRLF injection
+	 *
+	 * - RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
+	 *   - §6 – Response Status Codes
+	 *   - §7.1.2 – Location header semantics for redirects
+	 *
+	 * Behavior:
+	 * - Ensures headers are not re-sent if output has already begun.
+	 * - Sends a properly formatted HTTP status line.
+	 * - Normalizes header names to hyphenated form as recommended by RFC 7230.
+	 * - Sanitizes header values to prevent CRLF injection and invalid whitespace.
+	 * - Sends each header using PHP’s native header() function.
+	 * - Terminates execution for OPTIONS requests or redirect responses,
+	 *   as no message body is expected in these cases.
 	 *
 	 * @return void
 	 */
@@ -365,7 +382,7 @@ class Response {
 			return;
 		}
 
-		// Send the status line
+		// Send the status line.
 		header(
 			sprintf(
 				'HTTP/%s %d %s',
@@ -378,6 +395,11 @@ class Response {
 		);
 
 		foreach ( $this->headers as $name => $value ) {
+			$name	= str_replace( '_', '-', $name );
+					
+			$value = trim( preg_replace( '/[\r\n]+/', ' ', $value ) );
+			$value = preg_replace( '/\s+/', ' ', $value );
+			
 			header( $name . ': ' . $value );
 		}
 		
@@ -388,7 +410,6 @@ class Response {
 		}
 	}
 
-
 	/**
 	 * Send the response body.
 	 *
@@ -397,6 +418,10 @@ class Response {
 	public function send_body() : void {
 		if ( is_array( $this->body ) ) {
 			$this->body = smliser_safe_json_encode( $this->body );
+		}
+
+		if ( ! $this->has_header( 'Content-Length' ) ) {
+			$this->set_header( 'Content-Length', strlen( $this->body ) );
 		}
 
 		echo $this->body;
@@ -545,9 +570,10 @@ class Response {
 		if ( is_array( $redirect_header ) ) {
 			$redirect_header = reset( $redirect_header );
 		}
-		return ( $this->status_code >= 300 && $this->status_code < 400 ) 
-			&& 
-		stripos( $redirect_header, 'http' ) !== false;
+
+		return ( $this->status_code >= 300 && $this->status_code < 400 )
+		&& ! empty( $redirect_header );
+
 	}
 
 

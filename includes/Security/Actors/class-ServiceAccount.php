@@ -446,12 +446,13 @@ class ServiceAccount implements ActorInterface {
         } else {
             // This is new key generation.
             $plain_key              = $this->generate_api_key();
-            $data['identifier']     = uniqid('sa_', true );
+
+            $data['identifier']     = $this->get_identifier();
             $data['api_key_hash']   = $this->get_api_key_hash();
             $data['created_at']     = $now->format( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $data );
+            
             $this->set_id( $db->get_insert_id() )
-            ->set_identifier( $data['identifier'] )
             ->set_created_at( $now )
             ->set_updated_at( $now );
             
@@ -562,7 +563,7 @@ class ServiceAccount implements ActorInterface {
         $data   = get_object_vars( $this );
         $extra  = ['avatar' => $this->get_avatar()->get_href()];
         $data   = $extra + $data;
-        unset( $data['owner'], $data['exists_cache'], $data['new_api_key_data'] );
+        unset( $data['owner'], $data['exists_cache'], $data['new_api_key_data'], $data['api_key_hash'] );
 
         return $data;
     }
@@ -631,14 +632,15 @@ class ServiceAccount implements ActorInterface {
      * @param int $length Length of random raw key in bytes (default 32)
      * @return string Base64-url encoded API key for client
      */
-    public function generate_api_key( int $length = 32 ) : string {
+    private function generate_api_key( int $length = 32 ) : string {
         $raw_key = self::generate_secure_token( $length );
 
         // Hash the raw key with bcrypt for storage.
-        $this->set_api_key_hash( self::hash_password( $raw_key ) );
+        $this->set_api_key_hash( self::hash_password( $raw_key ) )
+        ->set_identifier( 'sa_' . self::generate_uuid_v4() );
 
         $payload = [
-            'sa_id'     => $this->get_id(),
+            'sa_id'     => $this->get_identifier(),
             'owner_id'  => $this->get_owner_id(),
             'timestamp' => time()
         ];
@@ -648,8 +650,8 @@ class ServiceAccount implements ActorInterface {
         // Sign payload.
         $secret    = self::derive_key();
         $signature = self::hmac_hash( $encoded_payload, $secret, 'sha256' );
-
-        // Return client API key
+        
+        // Return client API key.
         $api_key = sprintf( '%s.%s.%s', $encoded_payload, $signature, $raw_key );
 
         return self::base64url_encode( $api_key );
@@ -677,10 +679,9 @@ class ServiceAccount implements ActorInterface {
 
         [$encoded_payload, $signature, $raw_key] = $parts;
 
-        // Validate HMAC signature
+        // Validate HMAC signature.
         $secret     = self::derive_key();
         $known_hash = self::hmac_hash( $encoded_payload, $secret, 'sha256' );
-
         if ( ! hash_equals( $known_hash, $signature ) ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
                 'service_account_invalid',
@@ -691,6 +692,7 @@ class ServiceAccount implements ActorInterface {
 
         // Decode payload
         $payload = json_decode( $encoded_payload, true );
+        
         if ( ! is_array( $payload ) || empty( $payload['sa_id'] ) ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
                 'service_account_invalid',
@@ -699,8 +701,8 @@ class ServiceAccount implements ActorInterface {
             );
         }
 
-        // Hydrate ServiceAccount
-        $sa = static::get_by_id( (int) $payload['sa_id'] );
+        // Hydrate ServiceAccount.
+        $sa = static::get_self_by( 'identifier', $payload['sa_id'], SMLISER_SERVICE_ACCOUNTS_TABLE );
         if ( ! $sa || ! $sa->can_authenticate() ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
                 'service_account_disabled',
@@ -709,17 +711,22 @@ class ServiceAccount implements ActorInterface {
             );
         }
 
-        // Verify raw key against stored bcrypt hash
+        // Verify raw key against stored bcrypt hash.
         if ( ! self::verify_password( $raw_key, $sa->get_api_key_hash() ) ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
                 'service_account_invalid',
-                'API key does not match',
+                'API cannot be verified.',
                 ['status' => 403]
             );
         }
-
-        // Update last used timestamp
-        $sa->set_last_used_at( new \DateTimeImmutable() )->save();
+        
+        // Smart "Last Used" Update (Throttle to once every 5 minutes).
+        $now = new DateTimeImmutable();
+        $last_used = $sa->get_last_used_at();
+        
+        if ( ! $last_used || ( $now->getTimestamp() - $last_used->getTimestamp() ) > 300 ) {
+            $sa->set_last_used_at( $now )->save();
+        }
 
         return $sa;
     }

@@ -85,7 +85,6 @@ final class Principal {
         try {
             Capability::assert_exists( $capability );
         } catch ( InvalidArgumentException $e ) {
-            // Return false for unknown/invalid capabilities to fail safely.
             return false;
         }
 

@@ -8,11 +8,18 @@
 
 namespace SmartLicenseServer\Environment\WordPress;
 
+use ArgumentCountError;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\RESTAPI\RESTInterface;
+use SmartLicenseServer\RESTAPI\RESTProviderInterface;
+use SmartLicenseServer\Security\Actors\ServiceAccount;
+use SmartLicenseServer\Security\Context\ContextServiceProvider;
+use SmartLicenseServer\Security\Context\Principal;
+use SmartLicenseServer\Security\Context\SecurityGuard;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use WP_Error;
 use WP_REST_Request;
@@ -23,7 +30,7 @@ use function is_smliser_error, defined, add_action, add_filter, method_exists;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class RESTAPI {
+class RESTAPI implements RESTProviderInterface {
     use SanitizeAwareTrait;
     /**
      * The current REST API object.
@@ -31,14 +38,18 @@ class RESTAPI {
     private ?RESTInterface $rest;
 
     /**
-     * Temporary cache for converted request objects during REST dispatch lifecycle.
-     *
-     * Used to persist our request instance between permission
-     * and main callbacks for the same WP_REST_Request object.
-     *
-     * @var array<string, Request>
+     * Holds the current WP_REST_Request object.
+     * 
+     * @var WP_REST_Request $wp_request
      */
-    private array $request_cache = [];
+    private WP_REST_Request $wp_request;
+
+    /**
+     * Holds a refrence to our request object in the current request.
+     * 
+     * @var Request $request
+     */
+    private Request $request;
 
     /**
      * Class constructor
@@ -120,14 +131,39 @@ class RESTAPI {
      * @return mixed WP_Error object if HTTPS/TLS requirement is not met, mixed 
      * depending on what other callbacks might return.
      */
-    public function enforce_https( $result, $server, $request ) : mixed {
+    public function enforce_https( ...$params ) : mixed {
+        $total_args = count( $params );
+
+        if ( $total_args < 3 ) {
+            $reflection = new \ReflectionMethod( $this, __FUNCTION__ );
+            $func_line  = $reflection->getStartLine();
+            $bt = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 1 )[0]; // top of stack
+
+            throw new ArgumentCountError(
+                sprintf(
+                    'Too few arguments to function %s, %d passed in %s on line %d and exactly 3 expected in %s on line %d',
+                    __METHOD__,
+                    $total_args,
+                    $bt['file'] ?? 'unknown',
+                    $bt['line'] ?? 0,
+                    __FILE__,
+                    $func_line
+                )
+            );
+        }
+
+        [$result, $server, $request] = $params;
+
         if ( ! $this->in_namespace( $request->get_route() ) ) {
             return $result;
         }
 
-        // Check if environment is production and request is not over HTTPS.
         if ( 'production' === wp_get_environment_type() && ! is_ssl() ) {
-            $result = new WP_Error( 'connection_not_secure', 'HTTPS/TLS is required for secure communication.', array( 'status' => 400, ) );
+            $result = new WP_Error(
+                'connection_not_secure',
+                'HTTPS/TLS is required for secure communication.',
+                [ 'status' => 400 ]
+            );
         }
 
         return $result;
@@ -138,7 +174,7 @@ class RESTAPI {
      *
      * @return void
      */
-    public function register_rest_routes() {
+    public function register_rest_routes() : void {
         $api_config     = $this->rest->get_routes();
         $namespace      = $api_config['namespace'];
         $routes         = $api_config['routes'];
@@ -205,12 +241,153 @@ class RESTAPI {
         $headers    = $wp_request->get_headers();
         $params     = $wp_request->get_params();
 
-        $request    = new Request( $params );
+        return $this->get_request()
+            ->merge( $params )
+        ->set_headers( $headers );    
+    }
 
-        $request->set_headers( $headers );
+    /**
+     * The the current request object.
+     * 
+     * @return Request
+     */
+    public function get_request() : Request {
+        if ( ! isset( $this->request ) ) {
+            $this->request = new Request;
+        }
 
-        return $request;
-    } 
+        return $this->request;
+    }
+
+    /**
+     * Perform Authentication using our security and access control policy.
+     * 
+     * Authentication method is by the HTTP authorization bearer <TOKEN>.
+     *
+     * @return bool|\WP_Error|null
+     */
+    public function authenticate() {
+
+        $request = $this->get_request();
+        $route   = $this->guess_route();
+
+        if ( ! $this->in_namespace( $route ) ) {
+            return null;
+        }
+
+        $bearer_token = (string) $request->bearerToken();
+
+        try {
+
+            // No token provided.
+            if ( ! $bearer_token ) {
+
+                // Allow anonymous GET requests.
+                if ( $request->isGet() ) {
+                    return false;
+                }
+
+                // All non-GET requests require authentication.
+                throw new Exception(
+                    'authentication_error',
+                    'Authorization header is missing. Please provide a valid Bearer token.',
+                    [ 'status' => 401 ]
+                );
+            }
+
+            // Token provided, attempt authentication.
+            $actor = ServiceAccount::verify_api_key( $bearer_token );
+
+            $owner = $actor->get_owner();
+
+            if ( ! $owner || ! $owner->exists() ) {
+                throw new Exception(
+                    'authentication_error',
+                    'Sorry, the service account owner does not exist.',
+                    [ 'status' => 403 ]
+                );
+            }
+
+            $owner_subject = ContextServiceProvider::get_owner_subject( $owner );
+
+            if ( ! $owner_subject ) {
+                throw new Exception(
+                    'authentication_error',
+                    'Sorry, you can no longer act for this resource owner.',
+                    [ 'status' => 403 ]
+                );
+            }
+
+            $role = ContextServiceProvider::get_principal_role( $actor, $owner_subject );
+
+            if ( ! $role ) {
+                throw new Exception(
+                    'authentication_error',
+                    'Sorry, you do not have a valid role.',
+                    [ 'status' => 403 ]
+                );
+            }
+
+            $principal = new Principal( $actor, $role, $owner );
+
+            SecurityGuard::set_principal( $principal );
+
+            return true;
+
+        } catch ( Exception $e ) {
+            return $e->to_wp_error();
+        }
+    }
+
+    /**
+     * Dispatch permission callback using our request object.
+     *
+     * Converts the WP_REST_Request into our internal Request object,
+     * executes the permission callback, and stores the converted
+     * request instance for reuse in the main callback.
+     *
+     * This avoids WordPress recreating request data between callbacks.
+     *
+     * @param WP_REST_Request $wp_request The original WordPress REST request.
+     * @param callable        $callback   The permission callback to execute.
+     * @return WP_Error|bool Result of the permission callback.
+     */
+    public function permission_dispatcher( WP_REST_Request $wp_request, callable $callback ) : WP_Error|bool {
+
+        $request    = $this->convert_wp_request( $wp_request );
+
+        /** @var RequestException|bool $result */ 
+        $result     = call_user_func( $callback, $request );
+
+        if ( is_smliser_error( $result ) ) {
+            if ( method_exists( $result, 'to_wp_error' ) ) {
+                $result = $result->to_wp_error();
+            } else {
+                $result = new WP_Error( $result->get_error_code(), $result->get_error_message() );
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Dispatch main REST callback using our request object.
+     *
+     * Reuses the Request instance created during permission callback
+     * if available, ensuring consistent data between both execution stages.
+     *
+     * After execution, the cached request is removed to prevent memory leaks.
+     *
+     * @param WP_REST_Request $wp_request The original WordPress REST request.
+     * @param callable        $callback   The main route callback to execute.
+     * @return mixed Result of the main callback.
+     */
+    public function main_dispatcher( WP_REST_Request $wp_request, callable $callback ) : mixed {
+        $request    = $this->convert_wp_request( $wp_request );
+        $result     = call_user_func( $callback, $request );
+        
+        return $result;
+    }
 
     /**
      * Encapsulted sanitization function for REST param.
@@ -317,97 +494,15 @@ class RESTAPI {
     }
 
     /**
-     * Perform Authentication using our security and access control policy.
+     * Attempt to guess the rest route
+     * 
+     * @return string
      */
-    public function authenticate() {
+    public function guess_route() : string {
+        $uri        = ltrim( $this->get_request()->uri( false ), '/' );
+        $prefix     = rest_get_url_prefix();
+        $route      = substr( $uri, strlen( $prefix ) ); 
 
+        return $route;
     }
-
-    /**
-     * Generate a unique identifier for a WordPress REST request instance.
-     *
-     * This ensures that the same request object used in permission callback
-     * can be reliably matched to the one used in the main callback.
-     *
-     * @param WP_REST_Request $request The WordPress REST request object.
-     * @return string Unique object hash for the request.
-     */
-    private function get_request_key( WP_REST_Request $request ) : string {
-        return spl_object_hash( $request );
-    }
-
-    /**
-     * Dispatch permission callback using our request object.
-     *
-     * Converts the WP_REST_Request into our internal Request object,
-     * executes the permission callback, and stores the converted
-     * request instance for reuse in the main callback.
-     *
-     * This avoids WordPress recreating request data between callbacks.
-     *
-     * @param WP_REST_Request $wp_request The original WordPress REST request.
-     * @param callable        $callback   The permission callback to execute.
-     * @return WP_Errpr|bool Result of the permission callback.
-     */
-    public function permission_dispatcher( WP_REST_Request $wp_request, callable $callback ) : WP_Error|bool {
-
-        $request    = $this->convert_wp_request( $wp_request );
-
-        /** @var RequestException|bool $result */ 
-        $result     = call_user_func( $callback, $request );
-        $key        = $this->get_request_key( $wp_request );
-
-        $this->request_cache[ $key ] = $request;
-
-        if ( is_smliser_error( $result ) ) {
-            if ( method_exists( $result, 'to_wp_error' ) ) {
-                $result = $result->to_wp_error();
-            } else {
-                $result = new WP_Error( $result->get_error_code(), $result->get_error_message() );
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Dispatch main REST callback using our request object.
-     *
-     * Reuses the Request instance created during permission callback
-     * if available, ensuring consistent data between both execution stages.
-     *
-     * After execution, the cached request is removed to prevent memory leaks.
-     *
-     * @param WP_REST_Request $wp_request The original WordPress REST request.
-     * @param callable        $callback   The main route callback to execute.
-     * @return mixed Result of the main callback.
-     */
-    public function main_dispatcher( WP_REST_Request $wp_request, callable $callback ) : mixed {
-
-        $key = $this->get_request_key( $wp_request );
-
-        if ( isset( $this->request_cache[ $key ] ) ) {
-            $request = $this->request_cache[ $key ];
-        } else {
-            $request = $this->convert_wp_request( $wp_request );
-        }
-
-        $result = call_user_func( $callback, $request );
-        
-        $this->clear_request_cache();
-
-        return $result;
-    }
-
-    /**
-     * Clear request cache manually if needed.
-     *
-     * Useful for debugging or explicit lifecycle cleanup.
-     *
-     * @return void
-     */
-    public function clear_request_cache() : void {
-        $this->request_cache = [];
-    }
-
 }

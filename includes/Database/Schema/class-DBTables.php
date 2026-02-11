@@ -313,7 +313,7 @@ final class DBTables {
                 'owner_id INT NOT NULL',
                 'display_name VARCHAR(255) NOT NULL',
                 'description TEXT DEFAULT NULL',
-                'api_key_hash VARCHAR(255) NOT NULL',
+                'api_key_hash VARCHAR(512) NOT NULL',
                 'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
                 'created_at DATETIME DEFAULT NULL',
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
