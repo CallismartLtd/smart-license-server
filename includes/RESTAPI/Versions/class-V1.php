@@ -253,7 +253,7 @@ class V1 implements RESTInterface {
                     'route'         => self::$repository_route,
                     'methods'       => ['GET'],
                     'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_access_permission' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
                     'args'          => self::get_repository_args(),
                     'category'      => 'repository',
                     'name'          => 'Repository Query',
@@ -262,9 +262,36 @@ class V1 implements RESTInterface {
                 // Repository App Route (CRUD)
                 array(
                     'route'         => self::$repository_app_route,
+                    'methods'       => ['GET'],
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_get' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
+                    'args'          => self::get_repository_app_args(),
+                    'category'      => 'repository',
+                    'name'          => 'Repository App CRUD',
+                ),
+                array(
+                    'route'         => self::$repository_app_route,
                     'methods'       => array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ),
                     'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_crud' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_access_permission' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
+                    'args'          => self::get_repository_app_args(),
+                    'category'      => 'repository',
+                    'name'          => 'Repository App CRUD',
+                ),
+                array(
+                    'route'         => self::$repository_app_route,
+                    'methods'       => array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_crud' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
+                    'args'          => self::get_repository_app_args(),
+                    'category'      => 'repository',
+                    'name'          => 'Repository App CRUD',
+                ),
+                array(
+                    'route'         => self::$repository_app_route,
+                    'methods'       => array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_crud' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
                     'args'          => self::get_repository_app_args(),
                     'category'      => 'repository',
                     'name'          => 'Repository App CRUD',
@@ -464,23 +491,50 @@ class V1 implements RESTInterface {
     }
 
     /**
-     * Get repository app route arguments.
+     * Repository app route arguments.
      * 
      * @return array
      */
-    private static function get_repository_app_args() {
+    private static function get_repository_app_args() : array {
         return array(
             'app_type' => array(
                 'required'    => false,
                 'type'        => 'string',
-                'description' => 'The type of application being queried. This should be speciified in the URL path after /repository/, example /repository/plugin/',
+                'description' => 'The type of application being queried. This should be specified in the URL path after /repository/, example /repository/plugin/',
             ),
             'app_slug' => array(
                 'required'    => false,
                 'type'        => 'string',
-                'description' => 'The slug of the application being queried. This should be specified in the URL path after /repository/app-type/, eg /repository/plugin/smart-woo-pro',
+                'description' => 'The slug of the application being queried. This should be specified in the URL path after /repository/{app-type}/, eg /repository/plugin/smart-woo-pro',
             ),
         );
+    }
+
+    /**
+     * Request arguments for `Non-Safe Methods` on single app route.
+     * 
+     * @return array
+     */
+    private static function get_app_write_args() : array {
+        return [
+            'app_type'                      => array(),
+            'app_id'                        => array(),
+            'app_name'                      => array(),
+            'app_author'                    => array(),
+            'app_author_url'                => array(),
+            'app_version'                   => array(),
+            'app_required_php_version'      => array(),
+            'app_required_wp_version'       => array(),
+            'app_tested_wp_version'         => array(),
+            'app_download_url'              => array(),
+            'app_support_url'               => array(),
+            'app_homepage_url'              => array(),
+            'app_preview_url'               => array(),
+            'app_documentation_url'         => array(),
+            'app_external_repository_url'   => array(),
+            'app_zip_file'                  => array(),
+            'app_json_file'                 => array(),
+        ];
     }
 
     /**

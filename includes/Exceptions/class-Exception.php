@@ -314,7 +314,7 @@ class Exception extends PHPException {
      * @param self|\WP_Error $to   The destination error object.
      */
     protected static function copy_errors( $from, $to ) {
-        // --- Get error codes ---
+        // Get error codes.
         if ( $from instanceof self ) {
             $codes = $from->get_error_codes();
         } elseif ( class_exists( 'WP_Error' ) && $from instanceof \WP_Error ) {

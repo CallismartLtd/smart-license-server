@@ -15,7 +15,6 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-use SmartLicenseServer\Security\Context\Principal;
 use SmartLicenseServer\Security\Context\SecurityGuard;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -27,17 +26,25 @@ class AppCollection {
     use CacheAwareTrait;
 
     /**
-     * Repository REST API Route permission handler
+     * Guards the repository route against HTTP `Non-Safe Methods`.
      *
      * @param Request $request The current request object.
      * @return bool
      */
-    public static function repository_access_permission( Request $request ) : bool|RequestException {
+    public static function repository_get_guard( Request $request ) : bool|RequestException {
         if ( $request->is_method( 'GET' ) ) {
             return true;
         }
 
-        $actor          = SecurityGuard::get_principal();
+        return new RequestException( 'not_implemented' );
+
+        $actor  = SecurityGuard::get_principal();
+
+        if ( ! $actor ) {
+            // Actor is not authenticated.
+            return new RequestException( 'Unauthorized' );
+        }
+
         $has_permission = match( $request->method() ) {
             'POST'   => $actor->can( 'hosted_apps.create' ),
             'DELETE' => $actor->can( 'hosted_apps.delete' ),
@@ -101,11 +108,13 @@ class AppCollection {
     }
 
     /**
-     * Perform CRUD operation on a single hosted app
+     * Responds to GET HTTP request method on the single app route.
+     * This method responds to /repostory/{app-type}/{app-slug}/ 
+     * path of the our REST API namespace 
      * 
      * @param Request $request The REST API request object.
      */
-    public static function single_app_crud( Request $request ) : RequestException|Response {
+    public static function single_app_get( Request $request ) : RequestException|Response {
         $app_type   = $request->get( 'app_type' );
         $app_slug   = $request->get( 'app_slug' );
 

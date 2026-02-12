@@ -25,7 +25,7 @@ trait FileSystemAwareTrait {
         return FileSystem::instance();
     }
 
-    // --- Core checks ---
+    // Core checks.
     public function is_dir( string $path ): bool {
         return $this->fs()->is_dir( $path );
     }
@@ -50,7 +50,7 @@ trait FileSystemAwareTrait {
         return $this->fs()->is_stream( $thing );
     }
 
-    // --- File operations ---
+    // File operations.
     public function get_contents( string $file ): string|false {
         return $this->fs()->get_contents( $file );
     }
@@ -95,12 +95,12 @@ trait FileSystemAwareTrait {
         return $this->fs()->chown( $file, $owner, $recursive );
     }
 
-    // --- Directory / listing ---
+    // Directory / listing.
     public function list( string|null $path = null ): array|false {
         return $this->fs()->list( $path );
     }
 
-    // --- File information ---
+    // File information.
     public function filesize( string $path ): int|false {
         return $this->fs()->filesize( $path );
     }
@@ -113,7 +113,7 @@ trait FileSystemAwareTrait {
         return $this->fs()->stat( $path );
     }
 
-    // --- Utilities ---
+    // Utilities.
     public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ): bool {
         return $this->fs()->readfile( $path, $start, $length, $chunk_size );
     }

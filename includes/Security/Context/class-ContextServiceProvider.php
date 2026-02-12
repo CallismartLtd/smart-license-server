@@ -207,8 +207,9 @@ class ContextServiceProvider {
 
     /**
      * Get a security entity class name.
+     * 
      * @param string $entity The name of the security entity.
-     * - valid names are `owner`, `user`, `organization`, `service_account`, and `role`.
+     * - valid names are `owner`, `user`, `individual`, `organization`, `service_account`, and `role`.
      * @return class-string<Owner|Organization|User|ServiceAccount|Role>|null
      */
     public static function get_entity_classname( $entity ) {

@@ -98,7 +98,7 @@ class ThemeRepository extends Repository {
      * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
      */
     public function upload_zip( array $file, string $new_name = '', bool $update = false ) {
-        // --- Core upload via Repository::safe_zip_upload() ---
+        // Core upload via `Repository::safe_zip_upload()`.
         $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
         if ( is_smliser_error( $stored_path ) ) {
             return $stored_path;
@@ -115,7 +115,7 @@ class ThemeRepository extends Repository {
             }
         };
 
-        // --- Post-upload validation: Check style.css and metadata ---
+        // Post-upload validation: Check style.css and metadata.
         $zip = new ZipArchive();
 
         if ( true !== $zip->open( $stored_path ) ) {

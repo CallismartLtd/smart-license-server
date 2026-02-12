@@ -163,8 +163,6 @@ abstract class AbstractSettings implements SettingsInterface {
 		}
 	}
 
-	// --- ABSTRACT PERSISTENCE METHODS ---
-
 	/**
 	 * Concrete implementation for retrieving a setting from the physical storage.
 	 *

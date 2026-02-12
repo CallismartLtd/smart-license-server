@@ -63,8 +63,6 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
         return $this->fs;
     }
 
-    // --- Core checks ---
-
     /**
      * Check if a path is a directory.
      *
@@ -129,8 +127,6 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
         $stream = substr( $thing, 0, $scheme_separator );
         return in_array( $stream, stream_get_wrappers(), true );
     }
-
-    // --- File operations ---
 
     /**
      * Get file contents.

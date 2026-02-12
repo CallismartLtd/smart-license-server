@@ -15,8 +15,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 interface FileSystemAdapterInterface {
 
-    // --- Core checks ---
-
     /**
      * Determine if a given path is a directory.
      *
@@ -64,9 +62,6 @@ interface FileSystemAdapterInterface {
      * @return bool True if a stream wrapper, false otherwise.
      */
     public function is_stream( mixed $thing ): bool;
-
-
-    // --- File operations ---
 
     /**
      * Retrieve the contents of a file.
@@ -173,9 +168,6 @@ interface FileSystemAdapterInterface {
      */
     public function chown( string $file, string|int $owner, bool $recursive = false ): bool;
 
-
-    // --- Directory / listing ---
-
     /**
      * List files and directories at a path.
      *
@@ -183,9 +175,6 @@ interface FileSystemAdapterInterface {
      * @return array|false Array of file info or false on failure.
      */
     public function list( string|null $path = null ): array|false;
-
-
-    // --- File information ---
 
     /**
      * Get file size.
@@ -210,9 +199,6 @@ interface FileSystemAdapterInterface {
      * @return array|false Array with keys: path, exists, is_dir, is_file, size, mtime, perms, or false on failure.
      */
     public function stat( string $path ): array|false;
-
-
-    // --- Utilities ---
 
     /**
      * Output a file in chunks.

@@ -26,7 +26,7 @@ class FileRequestException extends Exception {
      */
     protected static $error_map = [
 
-        // --- 400 Bad Request Errors (Client-side input problems) ---
+        // 400 Bad Request Errors (Client-side input problems).
         'invalid_app_type_method' => [
             'status'  => 400,
             'title'   => 'Invalid App Type',
@@ -68,7 +68,7 @@ class FileRequestException extends Exception {
             'message' => 'The file upload process encountered an unexpected error.'
         ],
 
-        // --- 401 Unauthorized Errors ---
+        // 401 Unauthorized Errors.
         'invalid_token' => [
             'status'  => 401,
             'title'   => 'Unauthorized',
@@ -80,7 +80,7 @@ class FileRequestException extends Exception {
             'message' => 'Authentication credentials are required for this resource but were not provided.'
         ],
 
-        // --- 402 Payment Required Errors ---
+        // 402 Payment Required Errors.
         'payment_required' => [
             'status'  => 402,
             'title'   => 'Payment Required',
@@ -92,7 +92,7 @@ class FileRequestException extends Exception {
             'message' => 'A valid token is required to access the license document file.'
         ],
 
-        // --- 403 Forbidden Errors ---
+        // 403 Forbidden Errors.
         'user_not_authorized' => [
             'status'  => 403,
             'title'   => 'Forbidden',
@@ -114,7 +114,7 @@ class FileRequestException extends Exception {
             'message' => 'The file exists but cannot be read or written due to insufficient permissions.'
         ],
 
-        // --- 404 Not Found Errors ---
+        // 404 Not Found Errors.
         'app_not_found' => [
             'status'  => 404,
             'title'   => 'App Not Found',
@@ -137,7 +137,7 @@ class FileRequestException extends Exception {
             'message' => 'The specified directory or repository path does not exist on the server.'
         ],
 
-        // --- 409 Conflict Errors ---
+        // 409 Conflict Errors.
         'file_already_exists' => [
             'status'  => 409,
             'title'   => 'Conflict',
@@ -149,7 +149,7 @@ class FileRequestException extends Exception {
             'message' => 'File synchronization conflict: repository or metadata version mismatch detected.'
         ],
 
-        // --- 422 Unprocessable Entity Errors ---
+        // 422 Unprocessable Entity Errors.
         'file_integrity_failure' => [
             'status'  => 422,
             'title'   => 'File Integrity Error',
@@ -161,7 +161,7 @@ class FileRequestException extends Exception {
             'message' => 'The file does not meet the required validation criteria (e.g., missing manifest or invalid structure).'
         ],
 
-        // --- 500 Internal Server Errors ---
+        // 500 Internal Server Errors
         'file_reading_error' => [
             'status'  => 500,
             'title'   => 'File Reading Error',

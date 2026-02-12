@@ -417,27 +417,21 @@ class RepositoryPage {
      */
     private static function build_analytics_html( AbstractHostedApp $app ) {
 
-        // -----------------------------
-        // Downloads
-        // -----------------------------
+        // Downloads.
         $downloads_daily   = AppsAnalytics::get_downloads_per_day( $app, 30 );
         ksort( $downloads_daily );
 
         $download_days     = array_keys( $downloads_daily );
         $download_values   = array_values( $downloads_daily );
 
-        // -----------------------------
-        // Client access
-        // -----------------------------
+        // Client access.
         $access_daily      = AppsAnalytics::get_client_access_per_day( $app, 30 );
         ksort( $access_daily );
 
         $access_days       = array_keys( $access_daily );
         $access_values     = array_values( $access_daily );
 
-        // -----------------------------
-        // Aggregate KPIs
-        // -----------------------------
+        // Aggregate KPIs.
         $analytics = array(
             'downloads' => array(
                 'total'        => AppsAnalytics::get_total_downloads( $app ),

@@ -94,7 +94,7 @@ class PluginRepository extends Repository {
      * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
      */
     public function upload_zip( array $file, string $new_name = '', bool $update = false ) {
-        // --- Core upload via Repository::safe_zip_upload() ---
+        // Core upload via `Repository::safe_zip_upload()`.
         $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
         if ( is_smliser_error( $stored_path ) ) {
             return $stored_path;
@@ -111,7 +111,7 @@ class PluginRepository extends Repository {
             }
         };
 
-        // --- Post-upload: Validate ZIP and extract readme.txt ---
+        // Post-upload: Validate ZIP and extract readme.txt.
         $zip = new \ZipArchive();
         if ( $zip->open( $stored_path ) !== true ) {
             $cleanup_func();        
@@ -185,7 +185,7 @@ class PluginRepository extends Repository {
             return new Exception( 'repo_error', 'The extension for the for this image could not be trusted.', [ 'status' => 400 ] );
         }
 
-        // --- Enforce naming rules ---
+        // Enforce naming rules.
         switch ( $type ) {
             case 'banner':
                 $allowed_names = [ 'banner-772x250', 'banner-1544x500' ];
@@ -342,7 +342,7 @@ class PluginRepository extends Repository {
                 return [];
         }
 
-        // --- Screenshots: indexed results ---
+        // Screenshots: indexed results.
         if ( 'screenshots' === $type && $files ) {
             usort( $files, function( $a, $b ) {
                 return strnatcmp( basename( $a ), basename( $b ) );

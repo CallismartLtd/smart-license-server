@@ -499,7 +499,7 @@ class RESTAPI implements RESTProviderInterface {
      * @return string
      */
     public function guess_route() : string {
-        $uri        = ltrim( $this->get_request()->uri( false ), '/' );
+        $uri        = ltrim( $this->get_request()->path(), '/' );
         $prefix     = rest_get_url_prefix();
         $route      = substr( $uri, strlen( $prefix ) ); 
 

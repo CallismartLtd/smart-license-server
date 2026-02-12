@@ -116,7 +116,7 @@ class SoftwareRepository extends Repository {
             }
         };
 
-        // --- Post-upload validation: Check readme.md and metadata ---
+        // Post-upload validation: Check readme.md and metadata.
         $zip = new ZipArchive();
         if ( true !== $zip->open( $stored_path ) ) {
             $cleanup_func();

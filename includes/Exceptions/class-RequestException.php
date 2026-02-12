@@ -28,7 +28,7 @@ class RequestException extends Exception {
      */
     protected static $error_map = [
 
-        // --- 400 Bad Request Errors ---
+        // 400 Bad Request Errors.
         'invalid_input' => [
             'status'  => 400,
             'title'   => 'Invalid Request',
@@ -85,7 +85,7 @@ class RequestException extends Exception {
             'message' => 'A required precondition for this request was not met.'
         ],
 
-        // --- 401 Unauthorized Errors ---
+        // 401 Unauthorized Errors.
         'missing_auth' => [
             'status'  => 401,
             'title'   => 'Unauthorized',
@@ -114,7 +114,7 @@ class RequestException extends Exception {
             'message' => 'The provided credentials do not grant access to this resource.'
         ],
 
-        // --- 403 Forbidden Errors ---
+        // 403 Forbidden Errors.
         'permission_denied' => [
             'status'  => 403,
             'title'   => 'Forbidden',
@@ -141,7 +141,7 @@ class RequestException extends Exception {
             'message' => 'This operation is restricted under current system settings.'
         ],
 
-        // --- 404 Not Found Errors ---
+        // 404 Not Found Errors.
         'endpoint_not_found' => [
             'status'  => 404,
             'title'   => 'Not Found',
@@ -159,21 +159,21 @@ class RequestException extends Exception {
             'message' => 'The resource owner does not exist.'
         ],
 
-        // --- 405 Method Not Allowed ---
+        // 405 Method Not Allowed.
         'method_not_allowed' => [
             'status'  => 405,
             'title'   => 'Method Not Allowed',
             'message' => 'The request method is not supported for this resource.'
         ],
 
-        // --- 408 Request Timeout ---
+        // 408 Request Timeout
         'request_timeout' => [
             'status'  => 408,
             'title'   => 'Request Timeout',
             'message' => 'The server timed out waiting for the request to complete.'
         ],
 
-        // --- 409–429 Rate/Quota/Conflict Related ---
+        // 409–429 Rate/Quota/Conflict Related.
         'rate_limited' => [
             'status'  => 429,
             'title'   => 'Rate Limit Exceeded',
@@ -185,7 +185,7 @@ class RequestException extends Exception {
             'message' => 'You have used all available quota for this operation.'
         ],
 
-        // --- 500 Internal Errors ---
+        // 500 Internal Errors
         'internal_server_error' => [
             'status'  => 500,
             'title'   => 'Internal Server Error',
@@ -205,6 +205,11 @@ class RequestException extends Exception {
             'status'  => 503,
             'title'   => 'Service Unavailable',
             'message' => 'The service is temporarily unavailable or under maintenance.'
+        ],
+        'not_implemented' => [
+            'status'  => 501,
+            'title'   => 'Method not implemented',
+            'message' => 'The server does not support the action requested.'
         ],
         'gateway_timeout' => [
             'status'  => 504,

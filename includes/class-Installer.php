@@ -192,7 +192,7 @@ class Installer {
 
         \smliser_cache()->set( 'smliser_db_migrate_011', $plugin_ids, WEEK_IN_SECONDS );
 
-        // --- Alter item_id to app_prop if column exists ---
+        // Alter item_id to app_prop if column exists.
         $column_exists = $db->get_var(
             "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
             [$table, 'item_id']
@@ -213,7 +213,7 @@ class Installer {
             }
         }
 
-        // --- Alter allowed_sites to max_allowed_domains if column exists ---
+        // Alter allowed_sites to max_allowed_domains if column exists.
         $column_exists = $db->get_var(
             "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s",
             [$table, 'allowed_sites']

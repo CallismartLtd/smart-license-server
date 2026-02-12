@@ -18,6 +18,56 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 class Request {
     use SanitizeAwareTrait;
+    
+    /**
+     * HTTP DELETE method.
+     *
+     * @var string
+     */
+    const DELETE = 'DELETE';
+
+    /**
+     * HTTP GET method.
+     *
+     * @var string
+     */
+    const GET = 'GET';
+
+    /**
+     * HTTP HEAD method.
+     *
+     * @var string
+     */
+    const HEAD = 'HEAD';
+
+    /**
+     * HTTP OPTIONS method.
+     *
+     * @var string
+     */
+    const OPTIONS = 'OPTIONS';
+
+    /**
+     * HTTP PATCH method.
+     *
+     * @var string
+     */
+    const PATCH = 'PATCH';
+
+    /**
+     * HTTP POST method.
+     *
+     * @var string
+     */
+    const POST = 'POST';
+
+    /**
+     * HTTP PUT method.
+     *
+     * @var string
+     */
+    const PUT = 'PUT';
+
 
     /**
      * Internal storage for all parameters.
@@ -385,15 +435,10 @@ class Request {
     /**
      * Get the request URI.
      * 
-     * @param bool $with_query Whether ton include the query parameter.
      * @return string
      */
-    public function uri( bool $with_query = true ): string {
-        if ( $with_query ) {
-            return $this->uri;
-        }
-        
-        return explode( '?', $this->uri, 2 )[0];
+    public function uri(): string {
+        return $this->uri;
     }
 
     /**
@@ -411,7 +456,7 @@ class Request {
      * @return bool
      */
     public function isGet(): bool {
-        return $this->method === 'GET';
+        return static::GET === $this->method;
     }
 
     /**
@@ -420,7 +465,7 @@ class Request {
      * @return bool
      */
     public function isPost(): bool {
-        return $this->method === 'POST';
+        return static::POST === $this->method;
     }
 
     /**
@@ -429,7 +474,7 @@ class Request {
      * @return bool
      */
     public function isPut(): bool {
-        return $this->method === 'PUT';
+        return static::PUT === $this->method;
     }
 
     /**
@@ -438,7 +483,7 @@ class Request {
      * @return bool
      */
     public function isDelete(): bool {
-        return $this->method === 'DELETE';
+        return static::DELETE === $this->method;
     }
 
     /**
@@ -447,7 +492,7 @@ class Request {
      * @return bool
      */
     public function isPatch(): bool {
-        return $this->method === 'PATCH';
+        return static::PATCH === $this->method;
     }
 
     /**
