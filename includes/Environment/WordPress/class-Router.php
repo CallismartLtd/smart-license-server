@@ -104,13 +104,13 @@ class Router implements RouterInterface {
 
         // Construct the FileRequest object.
         $request = new FileRequest([
-            'app_type'        => $app_type,
-            'app_slug'        => $app_slug,
-            'download_token'  => smliser_get_query_param( 'download_token' ),
-            'authorization'   => smliser_get_authorization_header(),
-            'user_agent'      => smliser_get_user_agent(),
-            'request_time'    => time(),
-            'client_ip'       => smliser_get_client_ip(),
+            'app_type'          => $app_type,
+            'app_slug'          => $app_slug,
+            'download_token'    => smliser_get_query_param( 'download_token' ),
+            'authorization'     => smliser_get_authorization_header(),
+            'user_agent'        => smliser_get_user_agent(),
+            'request_time'      => time(),
+            'client_ip'         => smliser_get_client_ip(),
             'is_authorized'     => true // For public download, monetized app download permission checked by controller.
         ]);
 

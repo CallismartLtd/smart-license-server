@@ -540,11 +540,18 @@ input.smliser_toggle-switch-input {
 
 .smliser-admin-api-description-section {
     background: #1e1e1e;
-    border-radius: 8px;
     padding: 16px;
-    margin-top: 20px;
+    margin: 0 0 -30px -20px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    max-width: 95%;
+    
+}
+
+.smliser-admin-api-description-section h2.heading {
+    color: #999;
+    font-size: 25px;
+    border-bottom: 1px solid #dcdcde;
+    padding: 5px;
+    margin: 5px 10px 20px 5px;
 }
 
 .smliser-api-base-url {

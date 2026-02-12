@@ -15,6 +15,7 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Security\Context\SecurityGuard;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -37,6 +38,18 @@ class AppCollection {
         }
 
         return new RequestException( 'not_implemented' );
+    }
+
+    /**
+     * Guard against GET methods and safely check permissions on HTTP `Non-Safe Methods`.
+     * 
+     * @param Request $request The request object.
+     * @return bool|RequestException
+     */
+    public static function repository_unsafe_method_guard( Request $request ) : bool|RequestException {
+        if ( $request->is_method( 'GET' ) ) {
+            return new RequestException( 'not_implemented' );
+        }
 
         $actor  = SecurityGuard::get_principal();
 
@@ -108,7 +121,7 @@ class AppCollection {
     }
 
     /**
-     * Responds to GET HTTP request method on the single app route.
+     * Responds to HTTP GET request method on the single app route.
      * This method responds to /repostory/{app-type}/{app-slug}/ 
      * path of the our REST API namespace 
      * 
@@ -126,6 +139,32 @@ class AppCollection {
 
         AppsAnalytics::log_client_access( $app, \sprintf( '%s_info', $app->get_type() ) );
         return new Response( 200, array(), $app->get_rest_response() );
+    }
+
+    /**
+     * Responds to HTTP POST request on single app route.
+     * 
+     * @param Request $request The request object
+     * @return Response
+     */
+    public static function create_app( Request $request ) : Response {
+        try {
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+
+            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( $app_exists ) {
+                throw new RequestException( 'app_slug_exists' );
+            }
+
+            return HostingController::save_app( $request );
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+        }
+
     }
 }
 

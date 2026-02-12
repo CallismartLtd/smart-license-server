@@ -277,9 +277,23 @@ class Response {
 	/**
 	 * Get all headers.
 	 *
+	 * @param bool $normalize Whether to nomalize the headers.
 	 * @return array<string,string>
 	 */
-	public function get_headers() : array {
+	public function get_headers( bool $normalize = false ) : array {
+		if ( ! $normalize ) {
+			return $this->headers;
+		}
+
+		foreach ( $this->headers as $key => $value ) {
+			$new_key	= str_replace( '_', '-', $key );
+			$value = trim( preg_replace( '/[\r\n]+/', ' ', $value ) );
+			$value = preg_replace( '/\s+/', ' ', $value );
+
+			unset( $this->headers[$key] );
+			$this->headers[$new_key]	= $value;
+		}
+
 		return $this->headers;
 	}
 
@@ -538,6 +552,8 @@ class Response {
      */
     public function set_exception( Exception $exception ): static {
         $this->error = $exception;
+		$error_data		= $this->error->get_error_data();
+		$this->set_status_code( (int) $error_data['status'] ?? 500 );
         return $this;
     }
 

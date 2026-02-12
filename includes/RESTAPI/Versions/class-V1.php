@@ -169,12 +169,17 @@ class V1 implements RESTInterface {
      *     namespace: string,
      *     routes: array<int, array{
      *         route: string,
-     *         methods: string|array,
+     *         methods: string|array<int, string>,
      *         handler: callable,
-     *         guard: callable,
-     *         args: array,
-     *         category: string,
-     *         name: string
+     *         guard?: callable,
+     *         args?: array<string, array{
+     *             required?: bool,
+     *             type?: string,
+     *             description?: string,
+     *             default?: mixed
+     *         }>,
+     *         category?: string,
+     *         name?: string
      *     }>
      * }
      */
@@ -204,7 +209,7 @@ class V1 implements RESTInterface {
                     'name'          => 'License Deactivation',
                 ),
 
-                // License Uninstallation Route
+                // License Uninstallation Route.
                 array(
                     'route'         => self::$license_uninstallation_route,
                     'methods'       => array( 'PUT', 'POST', 'PATCH' ),
@@ -215,7 +220,7 @@ class V1 implements RESTInterface {
                     'name'          => 'License Uninstallation',
                 ),
 
-                // License Validity Test Route
+                // License Validity Test Route.
                 array(
                     'route'         => self::$license_validity_route,
                     'methods'       => ['POST'],
@@ -226,29 +231,29 @@ class V1 implements RESTInterface {
                     'name'          => 'License Validity Test',
                 ),
 
-                // Plugin Info Route
+                // Plugin Info Route.
                 array(
                     'route'         => self::$plugin_info,
                     'methods'       => ['GET'],
                     'handler'       => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'plugin_info_response' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'info_permission_callback' ),
-                    'args'          => self::get_app_info_args(),
+                    'args'          => self::get_app_info_args( 'plugin' ),
                     'category'      => 'repository',
                     'name'          => 'Plugin Information',
                 ),
 
-                // Theme Info Route
+                // Theme Info Route.
                 array(
                     'route'         => self::$theme_info,
                     'methods'       => ['GET'],
                     'handler'       => array( \SmartLicenseServer\RESTAPI\Themes::class, 'theme_info_response' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\Themes::class, 'info_permission_callback' ),
-                    'args'          => self::get_app_info_args(),
+                    'args'          => self::get_app_info_args( 'theme' ),
                     'category'      => 'repository',
-                    'name'          => 'Plugin Information',
+                    'name'          => 'Theme Information',
                 ),
 
-                // Repository Route
+                // Repository Route.
                 array(
                     'route'         => self::$repository_route,
                     'methods'       => ['GET'],
@@ -259,7 +264,7 @@ class V1 implements RESTInterface {
                     'name'          => 'Repository Query',
                 ),
 
-                // Repository App Route (CRUD)
+                // Repository App Route (CRUD).
                 array(
                     'route'         => self::$repository_app_route,
                     'methods'       => ['GET'],
@@ -267,40 +272,40 @@ class V1 implements RESTInterface {
                     'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
                     'args'          => self::get_repository_app_args(),
                     'category'      => 'repository',
-                    'name'          => 'Repository App CRUD',
+                    'name'          => 'Get Single Application',
                 ),
                 array(
                     'route'         => self::$repository_app_route,
-                    'methods'       => array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_crud' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
-                    'args'          => self::get_repository_app_args(),
+                    'methods'       => ['POST'],
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'create_app' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_unsafe_method_guard' ),
+                    'args'          => self::get_app_write_args(),
                     'category'      => 'repository',
-                    'name'          => 'Repository App CRUD',
+                    'name'          => 'Create a New Application',
                 ),
                 array(
                     'route'         => self::$repository_app_route,
-                    'methods'       => array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_crud' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
-                    'args'          => self::get_repository_app_args(),
+                    'methods'       => array( 'PUT', 'PATCH', ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'update_app' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_unsafe_method_guard' ),
+                    'args'          => self::get_app_write_args(),
                     'category'      => 'repository',
-                    'name'          => 'Repository App CRUD',
+                    'name'          => 'Update an Existing Application',
                 ),
                 array(
                     'route'         => self::$repository_app_route,
-                    'methods'       => array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_crud' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
-                    'args'          => self::get_repository_app_args(),
+                    'methods'       => array( 'DELETE' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'delete_app' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_unsafe_method_guard' ),
+                    'args'          => self::get_app_delete_args(),
                     'category'      => 'repository',
-                    'name'          => 'Repository App CRUD',
+                    'name'          => 'Delete Existing Application'
                 ),
 
                 // Download Token Reauthentication Route
                 array(
                     'route'         => self::$download_reauth,
-                    'methods'       => 'POST',
+                    'methods'       => ['POST'],
                     'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'app_download_reauth' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'download_reauth_permission' ),
                     'args'          => self::get_download_reauth_args(),
@@ -436,19 +441,25 @@ class V1 implements RESTInterface {
     /**
      * Get plugin and theme info route arguments.
      * 
+     * @param string $type
      * @return array
      */
-    private static function get_app_info_args() {
+    private static function get_app_info_args( string $type ) {
+        $eg_slug    = match ( $type ) {
+            'plugin'    => 'smart-woo-service-invoicing',
+            'theme'     => 'astra',
+            default     => 'software-slug'
+        };
         return array(
             'id' => array(
                 'required'    => false,
                 'type'        => 'integer',
-                'description' => 'The plugin ID',
+                'description' => sprintf( 'The %s ID', $type ),
             ),
             'slug' => array(
                 'required'    => false,
                 'type'        => 'string',
-                'description' => 'The plugin slug eg. plugin-slug/plugin-slug',
+                'description' => sprintf( 'The %1$s slug eg. %2$s', $type, $eg_slug ),
             ),
         );
     }
@@ -469,13 +480,13 @@ class V1 implements RESTInterface {
                 'required'    => false,
                 'type'        => 'integer',
                 'default'     => 1,
-                'description' => 'Page number for pagination.',
+                'description' => 'Current pagination number.',
             ),
             'limit' => array(
                 'required'    => false,
                 'type'        => 'integer',
                 'default'     => 10,
-                'description' => 'Number of messages per page.',
+                'description' => 'Maximum number of apps per page.',
             ),
             'app_slugs' => array(
                 'required'    => false,
@@ -517,26 +528,85 @@ class V1 implements RESTInterface {
      */
     private static function get_app_write_args() : array {
         return [
-            'app_type'                      => array(),
-            'app_id'                        => array(),
-            'app_name'                      => array(),
-            'app_author'                    => array(),
-            'app_author_url'                => array(),
-            'app_version'                   => array(),
-            'app_required_php_version'      => array(),
-            'app_required_wp_version'       => array(),
-            'app_tested_wp_version'         => array(),
-            'app_download_url'              => array(),
-            'app_support_url'               => array(),
-            'app_homepage_url'              => array(),
-            'app_preview_url'               => array(),
-            'app_documentation_url'         => array(),
-            'app_external_repository_url'   => array(),
-            'app_zip_file'                  => array(),
-            'app_json_file'                 => array(),
+            'app_id'    => array(
+                'required'      => false,
+                'type'          => 'integer',
+                'description'   => 'The ID of the app in context. Required when updating an existing app.',
+                'default'       => 0
+            ),
+            'app_name'  => array(
+                'required'  => true,
+                'type'      => 'string',
+                'description'   => 'The application name. Required when uploading new app.'
+            ),
+            'app_author'    => array(
+                'required'      => true,
+                'type'          => 'string',
+                'description'   => 'The full name of the application author.'
+            ),
+            'app_author_url'    => array(
+                'required'      => false,
+                'type'          => 'string',
+                'description'   => 'The author URL.'
+            ),
+            'app_version'   => array(
+                'required'      => false,
+                'type'          => 'string',
+                'description'   => 'The application version. For Wordpress plugins and themes, the version will be extracted from the readme.txt and style.css respectively, custom apps should define the app version in the app.json file.'
+            ),
+
+            'app_download_url'  => array(
+                'required'      => false,
+                'type'          => 'string',
+                'description'   => 'Optional, leave empty to serve app zip file from this server or specify alternative download URL.'
+            ),
+            'app_support_url'   => array(
+                'required'      => false,
+                'type'          => 'string',
+                'description'   => 'Optional, provide support URL for the application if applicable.'
+            ),
+            'app_homepage_url'  => array(
+                'required'      => false,
+                'type'          => 'string',
+                'description'   => 'Optional, provide alternative homepage URL for the application.'
+            ),
+            'app_preview_url'   => array(
+                'required'      => false,
+                'type'          => 'string',
+                'description'   => 'Optional, provide preview URL for WordPress themes.'
+            ),
+            'app_documentation_url' => array(
+                'required'      => false,
+                'type'          => 'string',
+                'description'   => 'Optional, provide the application documentation URL.'
+            ),
+            'app_external_repository_url'   => array(
+                'required'      => false,
+                'type'          => 'string',
+                'description'   => 'Optional, provide external repository URL for WordPress themes.'
+            
+            ),
+            'app_zip_file'  => array(
+                'required'      => false,
+                'type'          => 'binary',
+                'description'   => 'Submit a zip file for the app, keyed in with this argument in a multipart/form-data request. This is required for new applications.'
+            
+            ),
+            'app_json_file' => array(
+                'required'      => false,
+                'type'          => 'binary',
+                'description'   => 'Submit an app.json file, keyed in with this argument in a multipart/form-data request. This is required for new non-WordPress applications.'
+            
+            ),
         ];
     }
 
+    /**
+     * Request arguments for deleting an application
+     */
+    private static function get_app_delete_args() {
+        return [];
+    }
     /**
      * Get download reauthentication route arguments.
      * 
@@ -625,83 +695,82 @@ class V1 implements RESTInterface {
      * @return array Associative array where key is the route path and value is formatted HTML card.
      */
     public static function describe_routes( ?string $category = null ) : array {
-        $api_config = self::get_routes();
-        $routes = $api_config['routes'];
-        $namespace = $api_config['namespace'];
+
+        $api_config   = self::get_routes();
+        $routes       = $api_config['routes'];
+        $namespace    = $api_config['namespace'];
         $descriptions = array();
 
         foreach ( $routes as $route_config ) {
-            // Filter by category if specified
-            if ( $category !== null && ( ! isset( $route_config['category'] ) || $route_config['category'] !== $category ) ) {
+
+            // Filter by category.
+            if (
+                $category !== null &&
+                ( ! isset( $route_config['category'] ) || $route_config['category'] !== $category )
+            ) {
                 continue;
             }
 
             $route_path = $namespace . $route_config['route'];
-            $route_name = isset( $route_config['name'] ) ? $route_config['name'] : 'Unnamed Route';
-            $methods = is_array( $route_config['methods'] ) ? $route_config['methods'] : array( $route_config['methods'] );
-            
-            // Build HTML card
-            $html = '<div class="smliser-api-route-card">';
-            
-            // Header section
-            $html .= '<div class="smliser-api-route-header">';
-            $html .= '<h3 class="smliser-api-route-name">' . self::esc_html( $route_name ) . '</h3>';
-            
-            // Method badges
-            $html .= '<div class="smliser-api-route-methods">';
+            $route_name = $route_config['name'] ?? 'Unnamed Route';
+            $methods    = is_array( $route_config['methods'] ) ? $route_config['methods'] : array( $route_config['methods'] );
+            $args       = $route_config['args'] ?? array();
+
+            // Create **one card per method**.
             foreach ( $methods as $method ) {
-                $method = strtoupper( trim( $method ) );
-                $method_class = 'method-' . strtolower( $method );
-                $html .= '<span class="smliser-api-method-badge ' . $method_class . '">' . self::esc_html( $method ) . '</span>';
-            }
-            $html .= '</div>';
-            
-            // Route path with copy button
-            $html .= '<div class="smliser-api-route-path-container">';
-            $html .= '<div class="smliser-api-route-path">' . self::esc_html( $route_path ) . '</div>';
-            $html .= '<button class="smliser-api-copy-btn" onclick="navigator.clipboard.writeText(\'' . self::esc_js( $route_path ) . '\'); this.textContent=\'Copied!\'; setTimeout(() => this.textContent=\'Copy\', 2000);">Copy</button>';
-            $html .= '</div>';
-            $html .= '</div>'; // End header
-            
-            // Body section
-            $html .= '<div class="smliser-api-route-body">';
-            
-            if ( empty( $route_config['args'] ) ) {
-                $html .= '<p class="smliser-api-no-arguments">No arguments required.</p>';
-            } else {
-                $html .= '<h4 class="smliser-api-arguments-title">Parameters</h4>';
-                
-                foreach ( $route_config['args'] as $arg_name => $arg_config ) {
-                    $required = isset( $arg_config['required'] ) && $arg_config['required'];
-                    $type = isset( $arg_config['type'] ) ? $arg_config['type'] : 'mixed';
-                    $arg_description = isset( $arg_config['description'] ) ? $arg_config['description'] : 'No description';
-                    $default = isset( $arg_config['default'] ) ? $arg_config['default'] : null;
-                    
-                    $html .= '<div class="smliser-api-argument">';
-                    $html .= '<div class="smliser-api-argument-header">';
-                    $html .= '<span class="smliser-api-argument-name">' . self::esc_html( $arg_name ) . '</span>';
-                    $html .= '<span class="smliser-api-argument-type">' . self::esc_html( $type ) . '</span>';
-                    
-                    if ( $required ) {
-                        $html .= '<span class="smliser-api-argument-required">Required</span>';
-                    } else {
-                        $html .= '<span class="smliser-api-argument-optional">Optional</span>';
+                $method_upper = strtoupper( trim( $method ) );
+                $card_key     = $route_path . '|' . $method_upper; // unique key per route+method
+
+                $html  = '<div class="smliser-api-route-card">';
+                $html .= '<div class="smliser-api-route-header">';
+                $html .= '<h3 class="smliser-api-route-name">' . self::esc_html( $route_name ) . ' <span class="method">' . self::esc_html( $method_upper ) . '</span></h3>';
+
+                // Route path + copy button
+                $html .= '<div class="smliser-api-route-path-container">';
+                $html .= '<div class="smliser-api-route-path">' . self::esc_html( $route_path ) . '</div>';
+                $html .= '<button class="smliser-api-copy-btn" onclick="navigator.clipboard.writeText(\'' . self::esc_js( $route_path ) . '\'); this.textContent=\'Copied!\'; setTimeout(() => this.textContent=\'Copy\', 2000);">Copy</button>';
+                $html .= '</div>'; // path container
+
+                $html .= '</div>'; // header
+
+                // Body: args
+                $html .= '<div class="smliser-api-route-body">';
+                if ( empty( $args ) ) {
+                    $html .= '<p class="smliser-api-no-arguments">No arguments required.</p>';
+                } else {
+                    $html .= '<h4 class="smliser-api-arguments-title">Parameters</h4>';
+                    foreach ( $args as $arg_name => $arg_config ) {
+                        $required        = ! empty( $arg_config['required'] );
+                        $type            = $arg_config['type'] ?? 'mixed';
+                        $arg_description = $arg_config['description'] ?? 'No description';
+                        $default         = $arg_config['default'] ?? null;
+
+                        $html .= '<div class="smliser-api-argument">';
+                        $html .= '<div class="smliser-api-argument-header">';
+                        $html .= '<span class="smliser-api-argument-name">' . self::esc_html( $arg_name ) . '</span>';
+                        $html .= '<span class="smliser-api-argument-type">' . self::esc_html( $type ) . '</span>';
+
+                        if ( $required ) {
+                            $html .= '<span class="smliser-api-argument-required">Required</span>';
+                        } else {
+                            $html .= '<span class="smliser-api-argument-optional">Optional</span>';
+                        }
+
+                        if ( null !== $default ) {
+                            $html .= '<span class="smliser-api-argument-default">Default: ' . self::esc_html( $default ) . '</span>';
+                        }
+
+                        $html .= '</div>'; // arg header
+                        $html .= '<p class="smliser-api-argument-description">' . self::esc_html( $arg_description ) . '</p>';
+                        $html .= '</div>'; // arg
                     }
-                    
-                    if ( $default !== null ) {
-                        $html .= '<span class="smliser-api-argument-default">Default: ' . self::esc_html( $default ) . '</span>';
-                    }
-                    
-                    $html .= '</div>';
-                    $html .= '<p class="smliser-api-argument-description">' . self::esc_html( $arg_description ) . '</p>';
-                    $html .= '</div>';
                 }
+
+                $html .= '</div>'; // body
+                $html .= '</div>'; // card
+
+                $descriptions[ $card_key ] = $html;
             }
-            
-            $html .= '</div>'; // End body
-            $html .= '</div>'; // End card
-            
-            $descriptions[$route_path] = $html;
         }
 
         return $descriptions;
@@ -741,19 +810,18 @@ class V1 implements RESTInterface {
      */
     public static function html_index() {
         ?>
-            <div>
-                <h2>REST API Documentation</h2>
-                <div class="smliser-admin-api-description-section">
-                    <div class="smliser-api-base-url">
-                        <strong>Base URL:</strong>
-                        <code><?php echo esc_url( rest_url() ); ?></code>
-                    </div>
-                    
-                    <?php foreach ( self::describe_routes() as $path => $html ) : 
-                        echo $html; // Already safely escaped in the V1 class
-                    endforeach; ?>
+            <div class="smliser-admin-api-description-section">
+                <h2 class="heading">REST API Documentation</h2>
+                <div class="smliser-api-base-url">
+                    <strong>Base URL:</strong>
+                    <code><?php echo esc_url( rest_url() ); ?></code>
                 </div>
+                
+                <?php foreach ( self::describe_routes() as $path => $html ) : 
+                    echo $html;
+                endforeach; ?>
             </div>
+    
         <?php
     }
 }

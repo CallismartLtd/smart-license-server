@@ -102,11 +102,20 @@ class RESTAPI implements RESTProviderInterface {
             $data = $response->get_data();
 
             if ( $data instanceof Response ) {
-                foreach ( $data->get_headers() as $key => $value ) {
+                $data->remove_header( 'Content-Length' ); // Allow WordPress to calculate.
+                
+                foreach ( $data->get_headers( true ) as $key => $value ) {                    
                     $response->header( $key, $value );
                 }
 
-                $data   = $data->get_body();
+                $response->set_status( $data->get_status_code() );
+                
+                if ( $data->has_errors() ) {
+                    $data = $data->get_exception()->to_wp_error();
+                } else {
+                    $data   = $data->get_body();
+                }
+
                 $response->set_data( $data );
             }
 
@@ -170,34 +179,53 @@ class RESTAPI implements RESTProviderInterface {
     }
 
     /**
-     * Register REST API routes
+     * Register REST API routes in WordPress.
      *
      * @return void
      */
     public function register_rest_routes() : void {
-        $api_config     = $this->rest->get_routes();
-        $namespace      = $api_config['namespace'];
-        $routes         = $api_config['routes'];
+        $api_config = $this->rest->get_routes();
+        $namespace  = $api_config['namespace'];
+        $routes     = $api_config['routes'];
 
         foreach ( $routes as $route_config ) {
-            register_rest_route(
-                $namespace,
-                $route_config['route'],
-                array(
-                    'methods'   => $route_config['methods'],
-                    'callback'  => function( WP_REST_Request $wp_request ) use ( $route_config ) {
-                        return $this->main_dispatcher( $wp_request, $route_config['handler'] );
+            $methods =  $route_config['methods'];
+
+            $handlers = [];
+
+            foreach ( $methods as $method ) {
+                $handlers[] = [
+                    'methods'  => $method,
+
+                    'callback' => function( WP_REST_Request $wp_request ) use ( $route_config ) {
+                        return $this->main_dispatcher(
+                            $wp_request,
+                            $route_config['handler']
+                        );
                     },
 
                     'permission_callback' => function( WP_REST_Request $wp_request ) use ( $route_config ) {
-                        return $this->permission_dispatcher( $wp_request, $route_config['guard'] );
+                        
+                        return $this->permission_dispatcher(
+                            $wp_request,
+                            $route_config['guard']
+                        );
                     },
 
-                    'args'  => $this->prepare_rest_args( $route_config['args'] ),
-                )
+                    'args' => $this->prepare_rest_args(
+                        $route_config['args'] ?? []
+                    ),
+                ];
+            }
+
+            register_rest_route(
+                $namespace,
+                $route_config['route'],
+                $handlers
             );
-        }        
+        }
     }
+
 
     /**
      * Prepare and enhance REST route arguments with WordPress-specific

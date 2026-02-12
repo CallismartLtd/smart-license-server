@@ -26,8 +26,8 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                 ),
 
                 array(
-                    'label' => smliser_pluralize( $app->get_type() ),
-                    'url'   => admin_url( 'admin.php?page=repository&type=' . $app->get_type() ),
+                    'label' => smliser_pluralize( $type ),
+                    'url'   => admin_url( 'admin.php?page=repository&type=' . $type ),
                     'icon'  => 'ti ti-folder-open'
                 ),
                 array(
@@ -35,19 +35,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                 )
             ),
             'actions'   => array(
-                array(
-                    'title' => 'View App',
-                    'label' => 'View App',
-                    'url'   => smliser_get_current_url()->add_query_params( 
-                        array(
-                            'app_id'    => $app->get_id(), 
-                            'type'      => $app->get_type(),
-                            'tab'       => 'view' 
-                        ) 
-                    ),
-                    'icon'  => 'ti ti-eye'
-                ),
-
+                $app_action,
                 array(
                     'title' => 'Settings',
                     'label' => 'Settings',

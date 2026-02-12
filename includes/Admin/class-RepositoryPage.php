@@ -87,7 +87,14 @@ class RepositoryPage {
         $title      = \sprintf( 'Upload New %s', $type_title );
 
         $essential_fields = self::prepare_essential_app_fields();
-        
+        $app_action = array(
+            'title' => 'Repository',
+            'label' => 'Repository',
+            'url'   => smliser_get_current_url()->remove_query_param( 
+                array( 'app_id', 'type', 'tab' )
+            ),
+            'icon'  => 'ti ti-arrow-back'
+        );
         include_once $app_upload_page;
     }
 
@@ -107,6 +114,18 @@ class RepositoryPage {
         if ( ! $app ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
+        $app_action = array(
+            'title' => 'View App',
+            'label' => 'View App',
+            'url'   => smliser_get_current_url()->add_query_params( 
+                array(
+                    'app_id'    => $app->get_id(), 
+                    'type'      => $app->get_type(),
+                    'tab'       => 'view' 
+                ) 
+            ),
+            'icon'  => 'ti ti-eye'
+        );
         $essential_fields   = self::prepare_essential_app_fields( $app );
         $type_title         = ucfirst( $type );
         $file               = sprintf( SMLISER_PATH . 'templates/admin/repository/edit-%s.php', $type );

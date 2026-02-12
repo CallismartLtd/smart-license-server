@@ -533,15 +533,6 @@ class Request {
     }
 
     /**
-     * Whether a request is authorized.
-     * 
-     * @return bool
-     */
-    public function is_authorized(): bool {
-        return boolval( $this->get( 'is_authorized' ) ); // @todo Refactor to use the security context or deprecate
-    }
-
-    /**
      * Get the authorization token from header.
      * 
      * @return string|null

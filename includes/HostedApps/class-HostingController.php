@@ -18,6 +18,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\HostedApps\Theme;
 use SmartLicenseServer\HostedApps\Software;
+use SmartLicenseServer\Security\Context\SecurityGuard;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -40,8 +41,9 @@ class HostingController {
      */
     public static function save_app( Request $request ) {
         try {
+            $principal  = SecurityGuard::get_principal();
             if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
+                throw new RequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation.' , array( 'status' => 401 ) );
             }
 
             $app_type = $request->get( 'app_type', null );
@@ -53,6 +55,7 @@ class HostingController {
             if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
                 throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , array( 'status' => 400 ) );
             }
+            
             $app_id         = $request->get( 'app_id', 0 );
             $app_class      = HostedApplicationService::get_app_class( $app_type );
             $init_method    = "get_{$app_type}";
@@ -371,7 +374,7 @@ class HostingController {
     public static function change_app_status( Request $request ) : Response {
         try {
             if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
+                throw new RequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 401 ) );
             }
 
             $app_slug   = $request->get( 'slug' );

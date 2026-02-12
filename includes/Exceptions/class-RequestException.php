@@ -79,6 +79,12 @@ class RequestException extends Exception {
             'title'   => 'Email Conflict',
             'message' => 'The provided email is not available.'
         ],
+
+        'app_slug_exists' => [
+            'status'  => 409,
+            'title'   => 'App Slug Conflict',
+            'message' => 'The provided slug for this application is not available.'
+        ],
         'precondition_failed' => [
             'status'  => 412,
             'title'   => 'Precondition Failed',
@@ -234,13 +240,13 @@ class RequestException extends Exception {
      * @param string|null $custom_message Optional custom message.
      * @param mixed $custom_data Optional custom data array to merge with defaults.
      */
-    public function __construct( string $error_slug, ?string $custom_message = null, $custom_data = [] ) {
-        // Fallback to a generic 400 error if the slug is unknown
-        if ( ! isset( self::$error_map[ $error_slug ] ) ) {
+    public function __construct( string $error_slug, ?string $custom_message = null, $custom_data = [] ) {        
+        
+        if ( ! isset( static::$error_map[ $error_slug ] ) ) {
             $error_slug = 'invalid_input';
         }
 
-        $default_data = self::$error_map[ $error_slug ];
+        $default_data = static::$error_map[ $error_slug ];
         $message      = $custom_message ?: $default_data['message'];
         
         $data = array_merge( 

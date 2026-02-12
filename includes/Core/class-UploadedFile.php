@@ -8,465 +8,335 @@
  * @author Callistus Nwachukwu
  */
 
+declare( strict_types = 1 );
+
 namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\FileSystem\FileSystemAwareTrait;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
+use SmartLicenseServer\FileSystem\FileSystem;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Represents an uploaded file with validation and storage capabilities.
+ * Represents a single client-uploaded file.
+ *
+ * This object assumes the file is dangerous by default.
+ * It does not auto-validate — it exposes state and allows controlled actions.
  */
-class UploadedFile {
-    use FileSystemAwareTrait;
+final class UploadedFile {
 
     /**
-     * Raw file data from $_FILES array.
-     * 
-     * @var array
-     */
-    protected array $file_data;
-
-    /**
-     * The field name/key from the upload form.
-     * 
-     * @var string
-     */
-    protected string $key;
-
-    /**
-     * Cached validation result to avoid redundant checks.
-     * 
-     * @var string|null
-     */
-    private ?string $validated_path = null;
-
-    /**
-     * Constructor.
-     * 
-     * @param array  $file_data Raw data from $_FILES array
-     * @param string $key       Form field name (default: 'file')
-     */
-    public function __construct( array $file_data, string $key = 'file' ) {
-        $this->file_data = $file_data;
-        $this->key       = $key;
-    }
-
-    /**
-     * Create instance from $_FILES global array.
-     * 
-     * @param string $key The field name in $_FILES
-     * @return static|null Returns null if key doesn't exist
-     */
-    public static function from_files( string $key ): ?static {
-        if ( ! isset( $_FILES[ $key ] ) ) {
-            return null;
-        }
-
-        return new static( $_FILES[ $key ], $key );
-    }
-
-    /**
-     * Get the original client-side filename.
-     * 
-     * @return string
-     */
-    public function get_client_name(): string {
-        return $this->file_data['name'] ?? '';
-    }
-
-    /**
-     * Get the filename without extension.
-     * 
-     * @return string
-     */
-    public function get_base_name(): string {
-        return FileSystemHelper::remove_extension( $this->get_client_name() );
-    }
-
-    /**
-     * Get the current temporary path on the server.
-     * 
-     * @return string
-     */
-    public function get_tmp_path(): string {
-        return $this->file_data['tmp_name'] ?? '';
-    }
-
-    /**
-     * Get the file size in bytes.
-     * 
-     * @return int
-     */
-    public function get_size(): int {
-        return (int) ( $this->file_data['size'] ?? 0 );
-    }
-
-    /**
-     * Get human-readable file size.
-     * 
-     * @param int $decimals Number of decimal places
-     * @return string
-     */
-    public function get_size_formatted( int $decimals = 2 ): string {
-        return FileSystemHelper::format_file_size( $this->get_size(), $decimals );
-    }
-
-    /**
-     * Get the file extension (lowercase, no dot).
-     * 
-     * @return string
-     */
-    public function get_extension(): string {
-        return FileSystemHelper::get_extension( $this->get_client_name() );
-    }
-
-    /**
-     * Get the canonical extension based on actual file content.
-     * More reliable than get_extension() as it checks MIME type.
-     * 
-     * @return string
-     */
-    public function get_canonical_extension(): string {
-        $tmp_path = $this->get_tmp_path();
-        
-        if ( empty( $tmp_path ) || ! $this->exists( $tmp_path ) ) {
-            return $this->get_extension();
-        }
-
-        return FileSystemHelper::get_canonical_extension( $tmp_path );
-    }
-
-    /**
-     * Get the MIME type of the uploaded file.
-     * 
-     * @return string|null
-     */
-    public function get_mime_type(): ?string {
-        $tmp_path = $this->get_tmp_path();
-        
-        if ( empty( $tmp_path ) ) {
-            // Fallback to client-provided type
-            return $this->file_data['type'] ?? null;
-        }
-
-        // Use FileSystemHelper for accurate detection
-        $mime = FileSystemHelper::get_mime_type( $tmp_path );
-        
-        // Fallback to client-provided if detection fails
-        return $mime ?? ( $this->file_data['type'] ?? null );
-    }
-
-    /**
-     * Get the upload error code.
-     * 
-     * @return int
-     */
-    public function get_error(): int {
-        return (int) ( $this->file_data['error'] ?? UPLOAD_ERR_NO_FILE );
-    }
-
-    /**
-     * Check if the file was uploaded successfully (no errors).
-     * 
-     * @return bool
-     */
-    public function is_valid(): bool {
-        return $this->get_error() === UPLOAD_ERR_OK;
-    }
-
-    /**
-     * Get human-readable error message.
-     * 
-     * @return string
-     */
-    public function get_error_message(): string {
-        return FileSystemHelper::interpret_upload_error( $this->get_error(), $this->key );
-    }
-
-    /**
-     * Check if file has a specific extension.
-     * 
-     * @param string|array $extensions Extension(s) to check (without dot)
-     * @return bool
-     */
-    public function has_extension( $extensions ): bool {
-        return FileSystemHelper::has_allowed_extension( $this->get_client_name(), (array) $extensions );
-    }
-
-    /**
-     * Check if file matches a specific MIME type pattern.
-     * 
-     * @param string|array $mime_types MIME type(s) to check (supports wildcards like 'image/*')
-     * @return bool
-     */
-    public function has_mime_type( $mime_types ): bool {
-        $tmp_path = $this->get_tmp_path();
-        
-        if ( empty( $tmp_path ) || ! $this->exists( $tmp_path ) ) {
-            return false;
-        }
-
-        return FileSystemHelper::has_mime( $tmp_path, $mime_types );
-    }
-
-    /**
-     * Check if file is an image.
-     * 
-     * @return bool
-     */
-    public function is_image(): bool {
-        $tmp_path = $this->get_tmp_path();
-        
-        if ( empty( $tmp_path ) || ! $this->exists( $tmp_path ) ) {
-            return false;
-        }
-
-        return FileSystemHelper::is_image( $tmp_path );
-    }
-
-    /**
-     * Check if file is an archive.
-     * 
-     * @return bool
-     */
-    public function is_archive(): bool {
-        $tmp_path = $this->get_tmp_path();
-        
-        if ( empty( $tmp_path ) || ! $this->exists( $tmp_path ) ) {
-            return false;
-        }
-
-        return FileSystemHelper::is_archive( $tmp_path );
-    }
-
-    /**
-     * Check if file exceeds a maximum size.
-     * 
-     * @param int $max_size Maximum size in bytes
-     * @return bool
-     */
-    public function exceeds_size( int $max_size ): bool {
-        return $this->get_size() > $max_size;
-    }
-
-    /**
-     * Generate a checksum for the uploaded file.
-     * 
-     * @param string $algo Hash algorithm (default: sha256)
-     * @return string|null
-     */
-    public function checksum( string $algo = 'sha256' ): ?string {
-        $tmp_path = $this->get_tmp_path();
-        
-        if ( empty( $tmp_path ) || ! $this->exists( $tmp_path ) ) {
-            return null;
-        }
-
-        return FileSystemHelper::checksum( $tmp_path, $algo );
-    }
-
-    /**
-     * Verify the uploaded file against a known checksum.
-     * 
-     * @param string $expected_hash Expected hash value
-     * @param string $algo          Algorithm used (default: sha256)
-     * @return bool
-     */
-    public function verify_checksum( string $expected_hash, string $algo = 'sha256' ): bool {
-        $tmp_path = $this->get_tmp_path();
-        
-        if ( empty( $tmp_path ) || ! $this->exists( $tmp_path ) ) {
-            return false;
-        }
-
-        return FileSystemHelper::verify_checksum( $tmp_path, $expected_hash, $algo );
-    }
-
-    /**
-     * Get comprehensive file inspection data.
-     * 
-     * @return array|null
-     */
-    public function inspect(): ?array {
-        $tmp_path = $this->get_tmp_path();
-        
-        if ( empty( $tmp_path ) || ! $this->exists( $tmp_path ) ) {
-            return null;
-        }
-
-        return FileSystemHelper::inspect( $tmp_path );
-    }
-
-    /**
-     * Validate the upload using FileSystemHelper.
-     * 
-     * @return string The validated temporary path
-     * @throws Exception If the file is invalid or was not uploaded via POST
-     */
-    public function validate(): string {
-        // Return cached result if already validated
-        if ( null !== $this->validated_path ) {
-            return $this->validated_path;
-        }
-
-        // Perform validation using FileSystemHelper
-        $this->validated_path = FileSystemHelper::validate_uploaded_file( $this->file_data, $this->key );
-
-        return $this->validated_path;
-    }
-
-    /**
-     * Securely store the file.
+     * Raw $_FILES entry.
      *
-     * @param string      $directory    The destination directory
-     * @param string|null $filename     Optional custom name (will be sanitized)
-     * @param bool        $unique       Whether to make filename unique if it exists
-     * @param int|null    $permissions  File permissions (default: FS_CHMOD_FILE)
-     * @return string The final absolute path of the stored file
-     * @throws Exception
+     * @var array<string,mixed>|null
      */
-    public function store( string $directory, ?string $filename = null, bool $unique = false, ?int $permissions = null ): string {
-        // 1. Validate the upload first
-        $tmp_path = $this->validate();
+    private ?array $file;
 
-        // 2. Determine and sanitize the filename using FileSystemHelper
-        $target_name = $filename ?? $this->get_client_name();
-        $safe_name   = FileSystemHelper::sanitize_filename( $target_name );
+    /**
+     * Logical key name.
+     */
+    private string $key;
 
-        // 3. Make filename unique if requested
-        if ( $unique ) {
-            $safe_name = $this->make_unique_filename( $directory, $safe_name );
+    /**
+     * Filesystem abstraction.
+     */
+    private FileSystem $fs;
+
+    /**
+     * Lifecycle flags.
+     */
+    private bool $moved    = false;
+    private bool $rejected = false;
+
+    /**
+     * @param array<string,mixed>|null $file
+     * @param string                   $key
+     */
+    public function __construct( ?array $file, string $key = 'file' ) {
+        $this->file = $file;
+        $this->key  = $key;
+        $this->fs   = FileSystem::instance();
+    }
+
+    /**
+     * Create from $_FILES global.
+     */
+    public static function from_files( string $key ) : self {
+        return new self( $_FILES[ $key ] ?? null, $key );
+    }
+
+    /**
+     * Whether file key exists.
+     */
+    public function exists() : bool {
+        return is_array( $this->file );
+    }
+
+    /**
+     * Whether structure is valid.
+     */
+    public function has_valid_structure() : bool {
+
+        if ( ! $this->exists() ) {
+            return false;
         }
 
-        // 4. Build the final path using FileSystemHelper::join_path
-        $final_path = FileSystemHelper::join_path( $directory, $safe_name );
-        
-        if ( is_smliser_error( $final_path ) ) {
-            throw $final_path;
-        }
-
-        // 5. Ensure directory exists
-        if ( ! $this->exists( $directory ) ) {
-            $created = $this->mkdir_recursive( $directory, FS_CHMOD_DIR );
-            
-            if ( ! $created ) {
-                throw new Exception( 
-                    'directory_creation_error', 
-                    "Could not create directory: {$directory}" 
-                );
+        foreach ( [ 'name', 'type', 'tmp_name', 'error', 'size' ] as $field ) {
+            if ( ! array_key_exists( $field, $this->file ) ) {
+                return false;
             }
         }
 
-        // 6. Move the file using FileSystemAwareTrait
-        if ( ! $this->move( $tmp_path, $final_path, true ) ) {
-            throw new Exception( 
-                'storage_error', 
-                "Could not move uploaded file to {$final_path}" 
+        return true;
+    }
+
+    /**
+     * Upload error code.
+     */
+    public function get_error_code() : ?int {
+        return $this->exists()
+            ? (int) ( $this->file['error'] ?? UPLOAD_ERR_NO_FILE )
+            : null;
+    }
+
+    /**
+     * Human readable upload error.
+     */
+    public function get_error_message() : string {
+
+        if ( ! $this->exists() ) {
+            return sprintf( 'No %s was uploaded.', $this->key );
+        }
+
+        return FileSystemHelper::interpret_upload_error(
+            $this->get_error_code(),
+            $this->key
+        );
+    }
+
+    /**
+     * Whether upload succeeded.
+     */
+    public function is_upload_successful() : bool {
+        return $this->get_error_code() === UPLOAD_ERR_OK;
+    }
+
+    /**
+     * Temporary file path.
+     */
+    public function get_tmp_path() : ?string {
+        return $this->exists()
+            ? (string) ( $this->file['tmp_name'] ?? '' )
+            : null;
+    }
+
+    /**
+     * Original client filename.
+     */
+    public function get_client_name() : ?string {
+        return $this->exists()
+            ? (string) ( $this->file['name'] ?? '' )
+            : null;
+    }
+
+    /**
+     * Sanitized safe filename.
+     */
+    public function get_sanitized_name() : ?string {
+
+        $name = $this->get_client_name();
+
+        return $name
+            ? FileSystemHelper::sanitize_filename( $name )
+            : null;
+    }
+
+    /**
+     * File size in bytes.
+     */
+    public function get_size() : ?int {
+        return $this->exists()
+            ? (int) ( $this->file['size'] ?? 0 )
+            : null;
+    }
+
+    /**
+     * Whether file was uploaded via HTTP POST.
+     */
+    public function is_uploaded_via_http() : bool {
+
+        $tmp = $this->get_tmp_path();
+
+        if ( ! $tmp ) {
+            return false;
+        }
+
+        return is_uploaded_file( $tmp );
+    }
+
+    /**
+     * Server-detected MIME type.
+     */
+    public function get_detected_mime() : ?string {
+
+        $tmp = $this->get_tmp_path();
+
+        if ( ! $tmp || ! $this->fs->exists( $tmp ) ) {
+            return null;
+        }
+
+        return FileSystemHelper::get_mime_type( $tmp );
+    }
+
+    /**
+     * Canonical extension based on file content.
+     */
+    public function get_canonical_extension() : string {
+
+        $tmp = $this->get_tmp_path();
+
+        if ( ! $tmp ) {
+            return '';
+        }
+
+        return FileSystemHelper::get_canonical_extension( $tmp );
+    }
+
+    /**
+     * File checksum.
+     */
+    public function checksum( string $algo = 'sha256' ) : ?string {
+
+        $tmp = $this->get_tmp_path();
+
+        if ( ! $tmp ) {
+            return null;
+        }
+
+        return FileSystemHelper::checksum( $tmp, $algo );
+    }
+
+    /**
+     * Whether file is moveable.
+     */
+    public function is_moveable() : bool {
+
+        return $this->exists()
+            && $this->has_valid_structure()
+            && $this->is_upload_successful()
+            && $this->is_uploaded_via_http()
+            && ! $this->moved
+            && ! $this->rejected;
+    }
+
+    /**
+     * Reject and delete temporary upload.
+     */
+    public function reject() : bool {
+
+        $tmp = $this->get_tmp_path();
+
+        if ( ! $tmp || ! $this->fs->exists( $tmp ) ) {
+            return false;
+        }
+
+        $deleted = $this->fs->delete( $tmp );
+
+        if ( $deleted ) {
+            $this->rejected = true;
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Move upload to destination.
+     *
+     * @throws Exception
+     */
+    public function move( string $directory, ?string $filename = null ) : string {
+
+        if ( ! $this->is_moveable() ) {
+            throw new Exception(
+                'upload_not_moveable',
+                $this->get_error_message()
             );
         }
 
-        // 7. Set proper permissions
-        $perms = $permissions ?? FS_CHMOD_FILE;
-        $this->chmod( $final_path, $perms );
+        $safe_directory = FileSystemHelper::join_path( $directory );
 
-        return $final_path;
-    }
-
-    /**
-     * Store the file with a custom name generator callback.
-     * 
-     * @param string   $directory       The destination directory
-     * @param callable $name_generator  Callback that receives UploadedFile and returns filename
-     * @param bool     $unique          Whether to make filename unique if it exists
-     * @param int|null $permissions     File permissions
-     * @return string The final absolute path
-     * @throws Exception
-     */
-    public function store_as( string $directory, callable $name_generator, bool $unique = false, ?int $permissions = null ): string {
-        $filename = call_user_func( $name_generator, $this );
-        return $this->store( $directory, $filename, $unique, $permissions );
-    }
-
-    /**
-     * Store avatar file using the existing avatar upload logic.
-     * 
-     * @param string $type     Avatar type (user, organization, service_account)
-     * @param string $filename Base filename (without extension)
-     * @return bool True on success, false on failure
-     */
-    public function store_avatar( string $type, string $filename ): bool {
-        return FileSystemHelper::upload_avatar( $this->file_data, $type, $filename );
-    }
-
-    /**
-     * Generate a unique filename if file already exists.
-     * 
-     * @param string $directory Target directory
-     * @param string $filename  Desired filename
-     * @return string Unique filename
-     */
-    private function make_unique_filename( string $directory, string $filename ): string {
-        $path_info = pathinfo( $filename );
-        $base_name = $path_info['filename'];
-        $extension = isset( $path_info['extension'] ) ? '.' . $path_info['extension'] : '';
-
-        $counter    = 1;
-        $final_name = $filename;
-        
-        while ( true ) {
-            $test_path = FileSystemHelper::join_path( $directory, $final_name );
-            
-            if ( is_smliser_error( $test_path ) || ! $this->exists( $test_path ) ) {
-                break;
-            }
-            
-            $final_name = $base_name . '-' . $counter . $extension;
-            $counter++;
+        if ( is_smliser_error( $safe_directory ) ) {
+            throw $safe_directory;
         }
 
-        return $final_name;
-    }
-
-    /**
-     * Delete the temporary file if it still exists.
-     * 
-     * @return bool
-     */
-    public function delete_tmp(): bool {
-        $tmp_path = $this->get_tmp_path();
-        
-        if ( $tmp_path && $this->exists( $tmp_path ) ) {
-            return $this->delete( $tmp_path );
+        if ( ! $this->fs->is_dir( $safe_directory ) ) {
+            $this->fs->mkdir( $safe_directory, FS_CHMOD_DIR );
         }
 
-        return false;
+        $filename = $filename
+            ? FileSystemHelper::sanitize_filename( $filename )
+            : $this->get_sanitized_name();
+
+        $destination = FileSystemHelper::join_path(
+            $safe_directory,
+            $filename
+        );
+
+        if ( is_smliser_error( $destination ) ) {
+            throw $destination;
+        }
+
+        if ( ! $this->fs->move( $this->get_tmp_path(), $destination, true ) ) {
+            throw new Exception(
+                'upload_move_failed',
+                sprintf(
+                    'Failed to move uploaded %s.',
+                    $this->key
+                )
+            );
+        }
+
+        $this->fs->chmod( $destination, FS_CHMOD_FILE );
+
+        $this->moved = true;
+
+        return $destination;
     }
 
     /**
-     * Get file info as an array.
-     * 
-     * @return array
+     * Whether file has been moved.
      */
-    public function to_array(): array {
+    public function is_moved() : bool {
+        return $this->moved;
+    }
+
+    /**
+     * Whether file was rejected.
+     */
+    public function is_rejected() : bool {
+        return $this->rejected;
+    }
+
+    /**
+     * Debug inspection snapshot.
+     */
+    public function inspect() : array {
+
         return [
-            'name'               => $this->get_client_name(),
-            'base_name'          => $this->get_base_name(),
-            'extension'          => $this->get_extension(),
-            'canonical_extension' => $this->get_canonical_extension(),
-            'mime_type'          => $this->get_mime_type(),
-            'size'               => $this->get_size(),
-            'size_formatted'     => $this->get_size_formatted(),
-            'tmp_path'           => $this->get_tmp_path(),
-            'error'              => $this->get_error(),
-            'error_message'      => $this->get_error_message(),
-            'is_valid'           => $this->is_valid(),
-            'is_image'           => $this->is_image(),
-            'is_archive'         => $this->is_archive(),
-            'checksum'           => $this->checksum(),
-            'key'                => $this->key,
+            'exists'         => $this->exists(),
+            'structure_ok'   => $this->has_valid_structure(),
+            'error_code'     => $this->get_error_code(),
+            'error_message'  => $this->get_error_message(),
+            'is_successful'  => $this->is_upload_successful(),
+            'is_http_upload' => $this->is_uploaded_via_http(),
+            'size'           => $this->get_size(),
+            'mime'           => $this->get_detected_mime(),
+            'checksum'       => $this->checksum(),
+            'moved'          => $this->moved,
+            'rejected'       => $this->rejected,
         ];
     }
 }
+
+
