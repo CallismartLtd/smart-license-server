@@ -717,6 +717,7 @@ function smliser_get_query_param( $param, $default = '' ) {
 
 /**
  * Get the value of a POST parameter.
+ * 
  * @param string $param The name of the POST parameter.
  * @param mixed $default The default value to return.
  * @return mixed The sanitized value of the POST parameter.
@@ -726,13 +727,24 @@ function smliser_get_post_param( $param, $default = '' ) {
 }
 
 /**
- * Get the value of a ROEQUEST parameter.
- * @param string $param The name of the REQUEST parameter.
+ * Get the value of a $_REQUEST parameter.
+ * @param string $param The name of the $_REQUEST parameter.
  * @param mixed $default The default value to return.
- * @return mixed The sanitized value of the REQUEST parameter.
+ * @return mixed The sanitized value of the $_REQUEST parameter.
  */
 function smliser_get_request_param( $param, $default = '' ) {
     return smliser_get_param( $param, $default, $_REQUEST );
+}
+
+/**
+ * Get the value of a $_FILES key.
+ * 
+ * @param string $key The key of the $_FILES to look for.
+ * @param mixed $default The default value to return.
+ * @return mixed The sanitized value of the POST parameter.
+ */
+function smliser_get_files_param( $key, $default = null ) {
+    return $_FILES[$key] ?? null;
 }
 
 
