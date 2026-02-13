@@ -279,6 +279,11 @@ class Config {
          * @var string
          */
         define( 'SMLISER_UPLOADS_DIR', $parsed_config['uploads_dir'] . '/smliser-uploads' );
+
+        /**
+         * Temporary file prefix
+         */
+        define( 'SMLISER_UPLOAD_TMP_PREFIX', 'smliser_mp_' );
         
         register_activation_hook( SMLISER_FILE, array( Installer::class, 'install' ) );
 

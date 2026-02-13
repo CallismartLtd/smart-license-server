@@ -11,6 +11,7 @@
 
 namespace SmartLicenseServer\FileSystem;
 
+use SmartLicenseServer\Core\UploadedFile;
 use \ZipArchive;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\MDParser;
@@ -92,12 +93,12 @@ class ThemeRepository extends Repository {
      *
      * - Post-upload: validates the theme style.css and metadata.
      *
-     * @param array  $file      The uploaded file ($_FILES format).
+     * @param UploadedFile  $file      The uploaded file instance.
      * @param string $new_name  The preferred filename (without path).
      * @param bool   $update    Whether this is an update to an existing theme.
      * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
      */
-    public function upload_zip( array $file, string $new_name = '', bool $update = false ) {
+    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) {
         // Core upload via `Repository::safe_zip_upload()`.
         $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
         if ( is_smliser_error( $stored_path ) ) {

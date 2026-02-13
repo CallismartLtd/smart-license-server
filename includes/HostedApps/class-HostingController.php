@@ -20,6 +20,7 @@ use SmartLicenseServer\HostedApps\Theme;
 use SmartLicenseServer\HostedApps\Software;
 use SmartLicenseServer\Security\Context\SecurityGuard;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
+use WP_REST_Server;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -28,6 +29,24 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 class HostingController {
     use SanitizeAwareTrait;
+
+    /**
+     * Check minimum required permissions.
+     * 
+     * @param string[] $perms
+     * @throws RequestException When actor is unauthenticated.
+     */
+    private static function check_permissions( ...$perms ) {
+        $principal      = SecurityGuard::get_principal();
+
+        if ( ! $principal ) {
+            throw new RequestException( 'missing_auth' );
+        }
+
+        if ( ! empty( $perms ) && ! $principal->can_any( $perms ) ) {
+            throw new RequestException( 'unauthorized_scope' );
+        }
+    }
     /*
     |---------------------------
     | CREATE OPERATION METHODS
@@ -41,10 +60,7 @@ class HostingController {
      */
     public static function save_app( Request $request ) {
         try {
-            $principal  = SecurityGuard::get_principal();
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation.' , array( 'status' => 401 ) );
-            }
+            static::check_permissions( 'hosted_apps.create', 'hosted_apps.update' );
 
             $app_type = $request->get( 'app_type', null );
 
@@ -56,16 +72,19 @@ class HostingController {
                 throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , array( 'status' => 400 ) );
             }
             
-            $app_id         = $request->get( 'app_id', 0 );
-            $app_class      = HostedApplicationService::get_app_class( $app_type );
-            $init_method    = "get_{$app_type}";
+            $app_id     = $request->get( 'app_id', 0 );
+            $app_slug   = $request->get( 'app_slug' );
+            $app_class  = HostedApplicationService::get_app_class( $app_type );
+            
+            $init_method    = $app_id ? "get_{$app_type}" : "get_by_slug";
+            $arg            = $app_id ? $app_id : $app_slug;
 
             if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $init_method ) ) {
                 throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" class did not define the required method "%s::%s($id)"', $app_type, $app_class, $init_method ) , array( 'status' => 500 ) );
             }
             
-            if ( $app_id ) {
-                $class = $app_class::$init_method( $app_id );
+            if ( $arg ) {
+                $class = $app_class::$init_method( $arg );
             } else {
                 $class = new $app_class();
             }
@@ -81,21 +100,26 @@ class HostingController {
             if ( empty( $name ) ) {
                 throw new RequestException( 'invalid_input', 'Application name parameter is required' , array( 'status' => 400 ) );
             }
-            $author     = $request->get( 'app_author', null );
+
+            $author = $request->get( 'app_author', null );
 
             if ( empty( $author ) ) {
                 throw new RequestException( 'invalid_input', 'Application author name is required' , array( 'status' => 400 ) );
             }
 
-            $app_zip_file   = $request->get( 'app_zip_file' );
+            $app_zip_file   = $request->get_file( 'app_zip_file' );
             $author_url     = $request->get( 'app_author_url', '' );
             $version        = $request->get( 'app_version', '' );
+
+            if ( ! $class->get_slug() && $request->has( 'app_slug' ) ) {
+                $class->set_slug( $request->get( 'app_slug' ) );
+            }
 
             $class->set_name( $name );
             $class->set_author( $author );
             $class->set_author_profile( $author_url );
             $class->set_version( $version );
-            $class->set_file( $app_zip_file );
+            $class->set_file( $app_zip_file ?? '' );
         
             if ( ! empty( $app_id ) ) {
                 $class->set_id( $app_id );
@@ -117,7 +141,10 @@ class HostingController {
             $result = $class->save();
 
             if ( is_smliser_error( $result ) ) {
-                throw new RequestException( $result->get_error_code() ?: 'save_failed', $result->get_error_message(), array( 'status' => 500 )  );
+                throw new RequestException(
+                    $result->get_error_code() ?: 'save_failed', $result->get_error_message(),
+                    $result->get_error_data()
+                );
             }
 
             \smliser_cache()->clear();
@@ -130,7 +157,9 @@ class HostingController {
                 )
             ));
 
-            return ( new Response( 200, array(), smliser_safe_json_encode( $data ) ) )
+            $request->set( 'smliser_resource', $class );
+            return ( new Response( 200, array(), $data ) )
+            ->set_response_data( $request )
             ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
         } catch ( RequestException $e ) {
             return ( new Response() )
@@ -195,25 +224,30 @@ class HostingController {
             );
         }
 
-        $uploaded_json = $request->get( 'app_json_file' );
+        $uploaded_json = $request->get_file( 'app_json_file' );
 
-        if ( ! is_array( $uploaded_json ) ) {
+        if ( ! $uploaded_json || ! $uploaded_json->is_upload_successful() ) {
             return new RequestException(
                 'missing_file',
                 'Please upload app.json file using "app_json_file" file key.'
             );
         }
 
-        try {
-            $tmp_name = FileSystemHelper::validate_uploaded_file(
-                $uploaded_json,
-                'app.json'
+        if ( ! $uploaded_json->is_uploaded_via_http() ) {
+            return new RequestException(
+                'missing_file',
+                'app.json files must be correctly uploaded.'
             );
-        } catch ( Exception $e ) {
-            return new RequestException( $e->get_error_code(), $e->get_error_message(), ['status' => 400] );
         }
 
-        $contents = file_get_contents( $tmp_name );
+        if ( 'json' !== $uploaded_json->get_canonical_extension() ) {
+            return new RequestException(
+                'missing_file',
+                'app.json files must be correctly uploaded.'
+            );
+        }
+
+        $contents = $uploaded_json->get_contents();
 
         if ( false === $contents ) {
             return new RequestException( 'file_read_error', 'Unable to read uploaded app.json file.' );
@@ -242,10 +276,7 @@ class HostingController {
      */
     public static function app_asset_upload( Request $request ) {
         try {
-            // must still enforce the permission if the adapter missed it (defense-in-depth).
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied', 'Missing required authorization flag.' ); 
-            }
+            static::check_permissions( ['hosted_apps.create', 'hosted_apps.update'] );
 
             $app_type   = $request->get( 'app_type' );
             $app_slug   = $request->get( 'app_slug' );
@@ -318,10 +349,7 @@ class HostingController {
      */
     public static function app_asset_delete( Request $request ) {
         try {
-            // Check authorization flag passed by the adapter (defense-in-depth)
-            if ( ! $request->get( 'is_authorized' ) ) {
-                throw new RequestException( 'permission_denied', 'Missing required authorization flag.' );
-            }
+            static::check_permissions( ['hosted_apps.delete'] );
 
             $app_type   = $request->get( 'app_type' );
             $app_slug   = $request->get( 'app_slug' );
@@ -373,9 +401,7 @@ class HostingController {
      */
     public static function change_app_status( Request $request ) : Response {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 401 ) );
-            }
+            static::check_permissions( ['hosted_apps.create', 'hosted_apps.update'] );
 
             $app_slug   = $request->get( 'slug' );
             $app_type   = $request->get( 'type' );

@@ -10,6 +10,7 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
 
@@ -84,11 +85,11 @@ interface HostedAppsInterface {
     public function set_download_url( $url );
 
     /**
-     * Set the absolute path to the applications zip file.
+     * Set the absolute path to the applications zip file or an uploaded file.
      * 
-     * @param string $path
+     * @param string|UploadedFile $file
      */
-    public function set_file( $path );
+    public function set_file( string|UploadedFile $file );
 
     /**
      * The the value of the software license.

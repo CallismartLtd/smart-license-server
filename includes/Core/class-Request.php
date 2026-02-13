@@ -79,6 +79,13 @@ class Request {
     private array $params = [];
 
     /**
+     * Holds the files uploaded
+     * 
+     * @var array<string, \SmartLicenseServer\Core\UploadedFile>
+     */
+    protected array $files = [];
+
+    /**
      * Internal storage for all headers.
      * Keys are canonicalized (lowercase with underscores).
      * 
@@ -125,11 +132,18 @@ class Request {
      */
     public function __construct( array $params = [], array $headers = [], string $method = '', string $uri = '' ) {
         $this->startTime    = microtime( true );
+
+        if ( class_exists( MultipartRequestParser::class, true ) ) {
+            $parser = new MultipartRequestParser();
+            $parser->populate_globals();
+        }
+
         $params             = empty( $params ) ? $_REQUEST : $params;
         $this->method       = ! empty( $method ) ? strtoupper( $method ) : ( $_SERVER['REQUEST_METHOD'] ?? 'GET' );
         $this->uri          = ! empty( $uri ) ? $uri : ( $_SERVER['REQUEST_URI'] ?? '/' );
         $raw_headers        = empty( $headers ) ? $this->parse_default_headers() : $headers;
         
+        $this->parse_uploaded_files();
         $this->set_headers( $raw_headers );
         $this->set_params( $params );
     }
@@ -597,10 +611,11 @@ class Request {
      */
     public function toArray(): array {
         return [
-            'params'  => $this->params,
-            'headers' => $this->headers,
-            'method'  => $this->method,
-            'uri'     => $this->uri,
+            'files'     => $this->files,
+            'params'    => $this->params,
+            'headers'   => $this->headers,
+            'method'    => $this->method,
+            'uri'       => $this->uri,
         ];
     }
 
@@ -612,4 +627,24 @@ class Request {
     public function startTime() : float {
         return $this->startTime;
     }
+
+    /**
+     * Parse and convert each uploaded files
+     */
+    public function parse_uploaded_files() : void {
+        foreach ( $_FILES as $key => $value ) {
+            $this->files[$key]  = new UploadedFile( $value, $key );
+        }
+    }
+
+    /**
+     * Get a file.
+     * 
+     * @param string $key
+     * @return ?UploadedFile
+     */
+    public function get_file( string $key ) : ?UploadedFile {
+        return $this->files[$key] ?? null;
+    }
+
 }

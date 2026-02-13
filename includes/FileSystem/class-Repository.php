@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\FileSystem;
 
+use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
 use ZipArchive;
 
@@ -254,13 +255,13 @@ abstract class Repository {
     /**
      * Safely upload or update an application ZIP file in the repository.
      *
-     * @param array  $file      The uploaded file ($_FILES format).
-     * @param string $new_name  The preferred filename (without path).
-     * @param bool   $update    Whether this is an update to an existing app.
+     * @param UploadedFile  $file   The uploaded file.
+     * @param string $new_name      The preferred filename (without path).
+     * @param bool   $update        Whether this is an update to an existing app.
      * @return string|\SmartLicenseServer\Exception Relative path to stored ZIP on success, Exception on failure.
      */
-    protected function safe_zip_upload( array $file, string $new_name, bool $update = false ) {
-        if ( empty( $file ) || ! isset( $file['tmp_name'], $file['name'] ) ) {
+    protected function safe_zip_upload( UploadedFile $file, string $new_name, bool $update = false ) {
+        if ( ! $file->is_upload_successful() ) {
             return new Exception( 'invalid_file', 'No file uploaded.', [ 'status' => 400 ] );
         }
 
@@ -268,17 +269,15 @@ abstract class Repository {
             return new Exception( 'invalid_filename', 'The new filename cannot be empty.', [ 'status' => 400 ] );
         }
 
-        $tmp_name = $file['tmp_name'] ?? '';
-
-        if ( ! is_uploaded_file( $tmp_name ) ) {
+        if ( ! $file->is_uploaded_via_http() ) {
             return new Exception( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
         }
 
-        if ( 'zip' !== FileSystemHelper::get_canonical_extension( $tmp_name ) ) {
+        if ( 'zip' !== $file->get_canonical_extension() ) {
             return new Exception( 'invalid_file_type', 'The application archive file must be in ZIP format.', [ 'status' => 400 ] );
         }
 
-        // Normalize filename
+        // Normalize filename.
         $new_name  = FileSystemHelper::sanitize_filename( $new_name );
 
         try {
@@ -323,7 +322,7 @@ abstract class Repository {
             }
         }
 
-        return $this->save_zip_file( $tmp_name, $dest_path );
+        return $this->save_zip_file( $file->get_tmp_path(), $dest_path );
     }
 
     /**
@@ -507,11 +506,11 @@ abstract class Repository {
     /**
      * Upload an application ZIP file to the repository.
      * 
-     * @param array $file The uploaded file ($_FILES format).
+     * @param UploadedFile $file The uploaded file.
      * @param string $new_name The preferred filename (without path).
      * @param bool   $update    Whether this is an update to an existing app.
      */
-    abstract public function upload_zip( array $file, string $new_name, bool $update = false );
+    abstract public function upload_zip( UploadedFile $file, string $new_name, bool $update = false );
 
     /**
      * Get the assets for a given hosted application.

@@ -220,7 +220,6 @@ class Theme extends AbstractHostedApp {
         $table      = self::TABLE;
 
         $file       = $this->file;
-        $filename   = strtolower( str_replace( ' ', '-', $this->get_name() ) );
         $repo_class = new ThemeRepository();
 
         $theme_data = array(
@@ -232,7 +231,7 @@ class Theme extends AbstractHostedApp {
         );
 
         if ( $this->get_id() ) {
-            if ( is_array( $this->file ) ) {
+            if ( ! is_string( $this->file ) ) {
                 $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
                 if ( is_smliser_error( $slug ) ) {
                     return $slug;
@@ -247,11 +246,12 @@ class Theme extends AbstractHostedApp {
             $result = $db->update( $table, $theme_data, array( 'id' => absint( $this->get_id() ) ) );
 
         } else {
-            if ( ! is_array( $file ) ) {
+            if ( is_string( $file ) ) {
                 return new Exception( 'no_file_provided', __( 'No theme file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
             }
-
-            $slug = $repo_class->upload_zip( $file, $filename );
+            
+            $filename   = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
+            $slug       = $repo_class->upload_zip( $file, $filename );
 
             if ( is_smliser_error( $slug ) ) {
                 return $slug;
@@ -377,7 +377,7 @@ class Theme extends AbstractHostedApp {
         if ( ! is_smliser_error( $theme_file ) ) {
             $self->set_file( $theme_file );
         } else {
-            $self->set_file( null );
+            $self->set_file( '' );
         }
 
         /** 

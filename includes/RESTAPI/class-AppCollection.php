@@ -37,7 +37,8 @@ class AppCollection {
             return true;
         }
 
-        return new RequestException( 'not_implemented' );
+        // 405 errror.
+        return new RequestException( 'method_not_allowed' );
     }
 
     /**
@@ -48,24 +49,32 @@ class AppCollection {
      */
     public static function repository_unsafe_method_guard( Request $request ) : bool|RequestException {
         if ( $request->is_method( 'GET' ) ) {
-            return new RequestException( 'not_implemented' );
+            // Edge-case 405 error.
+            return new RequestException( 'method_not_allowed' );
         }
 
         $actor  = SecurityGuard::get_principal();
 
         if ( ! $actor ) {
-            // Actor is not authenticated.
-            return new RequestException( 'Unauthorized' );
+            // Actor is not authenticated, return 401 response code.
+            return new RequestException( 'missing_auth' );
+        }
+
+        $content_type   = strtolower( $request->contentType() );
+
+        if ( ! \str_contains( $content_type, 'multipart/form-data' ) && ! $request->isDelete() ) {
+            return new RequestException( 'requires_multipart_form_data' );
         }
 
         $has_permission = match( $request->method() ) {
-            'POST'   => $actor->can( 'hosted_apps.create' ),
-            'DELETE' => $actor->can( 'hosted_apps.delete' ),
-            'UPDATE' => $actor->can( 'hosted_apps.update' ),
-            default  => false,
+            'POST'          => $actor->can( 'hosted_apps.create' ),
+            'DELETE'        => $actor->can( 'hosted_apps.delete' ),
+            'PUT', 'PATCH'  => $actor->can( 'hosted_apps.update' ),
+            default         => false,
         };
 
-        return $has_permission ?: new RequestException( 'permission_denied' );
+        // Allow or deny with 403 response code.
+        return $has_permission ?: new RequestException( 'unauthorized_scope' );
     }
 
     /**
@@ -158,13 +167,73 @@ class AppCollection {
                 throw new RequestException( 'app_slug_exists' );
             }
 
-            return HostingController::save_app( $request );
+            $request->set( 'app_slug', $app_slug )
+            ->set( 'app_type', $app_type );
+
+            $response = HostingController::save_app( $request );
+
+            if ( $response->ok() ) {
+                $resource_location  = $request->path();
+
+                $response->set_header( 'Location', $resource_location );
+                $response->set_status_code( 201 );
+                $app            = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+                $response_body  = $app->get_rest_response();
+                
+                $response->set_body( $response_body );
+
+                static::cache_clear();
+            }
+            
+            return $response;
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
         }
 
+    }
+
+    /**
+     * Update an existing application
+     * 
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function update_app( Request $request ) : Response {
+        try {
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+
+            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app_exists ) {
+                if ( $request->isPut() ) {
+                    return static::create_app( $request );
+                }
+
+                throw new RequestException( 'app_not_found' );
+            }
+
+            $request->set( 'app_slug', $app_slug )
+            ->set( 'app_type', $app_type );
+
+            $response = HostingController::save_app( $request );
+
+            if ( $response->ok() ) {
+                $response->remove_header( 'Location' );
+                $response->set_status_code( 204 );
+                
+                $response->set_body( null );
+                static::cache_clear();
+            }
+
+            return $response;
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+        }
     }
 }
 

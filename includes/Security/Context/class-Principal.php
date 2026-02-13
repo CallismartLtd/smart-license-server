@@ -92,6 +92,49 @@ final class Principal {
     }
 
     /**
+     * Determine if the principal has at least one of the given capabilities.
+     *
+     * @param array<int, string> $capabilities
+     * @return bool
+     */
+    public function can_any( array $capabilities ) : bool {
+
+        if ( empty( $capabilities ) ) {
+            return false;
+        }
+
+        foreach ( $capabilities as $capability ) {
+            if ( $this->can( $capability ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if the principal has all of the given capabilities.
+     *
+     * @param array<int, string> $capabilities
+     * @return bool
+     */
+    public function can_all( array $capabilities ) : bool {
+
+        if ( empty( $capabilities ) ) {
+            return false;
+        }
+
+        foreach ( $capabilities as $capability ) {
+            if ( ! $this->can( $capability ) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    /**
      * Get the Resource Owner context for this principal.
      * @return Owner
      */

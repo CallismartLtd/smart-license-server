@@ -260,7 +260,6 @@ class Plugin extends AbstractHostedApp {
         $table      = self::TABLE;
 
         $file       = $this->file;
-        $filename   = strtolower( str_replace( ' ', '-', $this->get_name() ) );
         $repo_class = new PluginRepository();
 
         $plugin_data = array(
@@ -274,7 +273,7 @@ class Plugin extends AbstractHostedApp {
         );
 
         if ( $this->get_id() ) {
-            if ( is_array( $file ) ) {
+            if ( ! \is_string( $file ) ) {
                 $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
                 if ( is_smliser_error( $slug ) ) {
                     return $slug;
@@ -289,11 +288,12 @@ class Plugin extends AbstractHostedApp {
             $result = $db->update( $table, $plugin_data, array( 'id' => absint( $this->get_id() ) ) );
 
         } else {
-            if ( ! is_array( $file ) ) {
-                return new Exception( 'no_file_provided', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
+            if ( is_string( $file ) ) {
+                return new Exception( 'required_file', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
             }
 
-            $slug = $repo_class->upload_zip( $file, $filename );
+            $filename   = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
+            $slug       = $repo_class->upload_zip( $file, $filename );
 
             if ( is_smliser_error( $slug ) ) {
                 return $slug;
@@ -377,12 +377,12 @@ class Plugin extends AbstractHostedApp {
 
         $self->set_license( $license );
         
-        $file       = $repo_class->locate( $self->get_slug() );
+        $file   = $repo_class->locate( $self->get_slug() );
 
         if ( ! is_smliser_error( $file ) ) {
             $self->set_file( $file );
         } else {
-            $self->set_file( null );
+            $self->set_file( '' );
         }
 
         /** 

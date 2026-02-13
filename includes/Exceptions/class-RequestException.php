@@ -49,6 +49,11 @@ class RequestException extends Exception {
             'title'   => 'Invalid Parameter',
             'message' => 'The please provide the missing request parameter.'
         ],
+        'required_file' => [
+            'status'  => 400,
+            'title'   => 'Missing File',
+            'message' => 'The please provide the required file.'
+        ],
         'invalid_parameter_type' => [
             'status'  => 400,
             'title'   => 'Type Mismatch',
@@ -58,6 +63,12 @@ class RequestException extends Exception {
             'status'  => 415,
             'title'   => 'Unsupported Media Type',
             'message' => 'The request content type is not supported by this endpoint.'
+        ],
+
+        'requires_multipart_form_data' => [
+            'status'  => 415,
+            'title'   => 'Unsupported Content Type',
+            'message' => 'Content-Type header value must be multipart/form-data.'
         ],
         'validation_failed' => [
             'status'  => 422,
@@ -103,7 +114,6 @@ class RequestException extends Exception {
             'message' => 'The provided API key or token is incorrect or expired.'
         ],
 
-        
         'token_expired' => [
             'status'  => 401,
             'title'   => 'Session Expired',
@@ -115,7 +125,7 @@ class RequestException extends Exception {
             'message' => 'The request signature could not be verified.'
         ],
         'unauthorized_scope' => [
-            'status'  => 401,
+            'status'  => 403,
             'title'   => 'Insufficient Scope',
             'message' => 'The provided credentials do not grant access to this resource.'
         ],
@@ -158,6 +168,12 @@ class RequestException extends Exception {
             'status'  => 404,
             'title'   => 'Resource Not Found',
             'message' => 'The requested resource could not be located.'
+        ],
+
+        'app_not_found' => [
+            'status'  => 404,
+            'title'   => 'Application Not Found',
+            'message' => 'The requested application could not be located.'
         ],
         'resource_owner_not_found' => [
             'status'  => 404,

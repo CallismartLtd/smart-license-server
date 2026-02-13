@@ -178,7 +178,6 @@ class Software extends AbstractHostedApp {
         $table      = self::TABLE;
 
         $file       = $this->file;
-        $filename   = strtolower( str_replace( ' ', '-', $this->get_name() ) );
         $repo_class = new SoftwareRepository;
 
         $software_data = [
@@ -192,7 +191,7 @@ class Software extends AbstractHostedApp {
 
         if ( $this->get_id() ) {
 
-            if ( is_array( $file ) ) {
+            if ( ! is_string( $file ) ) {
                 $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
                 
                 if ( is_smliser_error( $slug ) ) {
@@ -210,11 +209,12 @@ class Software extends AbstractHostedApp {
             $result = $db->update( $table, $software_data, [ 'id' => $this->get_id() ] );
         } else {
 
-            if ( ! is_array( $file ) ) {
+            if ( is_string( $file ) ) {
                 return new Exception( 'no_file_provided', 'No software file provided for new software.', ['status' => 400] );
             }
-
-            $slug = $repo_class->upload_zip( $file, $filename, false );
+            
+            $filename   = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
+            $slug       = $repo_class->upload_zip( $file, $filename, false );
 
             if ( is_smliser_error( $slug ) ) {
                 return $slug;

@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Environment\WordPress;
 
 use ArgumentCountError;
+use SmartLicenseServer\Core\MultipartRequestParser;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
@@ -62,6 +63,7 @@ class RESTAPI implements RESTProviderInterface {
         add_filter( 'rest_request_before_callbacks', [$this, 'rest_request_before_callbacks'], -1, 3 );
         add_filter( 'rest_post_dispatch', [$this, 'filter_response'], 10, 3 );
         add_filter( 'rest_pre_dispatch', [$this, 'enforce_https'], 10, 3 );
+        add_filter( 'rest_jsonp_enabled', [$this, 'fix_wp_request_parsing'], 1, 1 );
         add_action( 'rest_api_init', [$this, 'register_rest_routes'], 30 );
         add_action( 'rest_authentication_errors', [$this, 'authenticate'], 5 );
     }
@@ -173,6 +175,40 @@ class RESTAPI implements RESTProviderInterface {
                 'HTTPS/TLS is required for secure communication.',
                 [ 'status' => 400 ]
             );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Ensures multipart/form-data request bodies are parsed for non-POST methods.
+     *
+     * WordPress relies on PHP's native superglobals (e.g. $_POST, $_FILES) when
+     * constructing the WP_REST_Request object. However, PHP only automatically
+     * parses multipart/form-data payloads for POST requests. For PUT, PATCH,
+     * and DELETE methods, the body is left unparsed, which results in missing
+     * parameters and failed validation within the REST API.
+     *
+     * This method runs early in the REST lifecycle via the `rest_jsonp_enabled`
+     * filter — before WP_REST_Request is instantiated. At this stage, we
+     * manually parse multipart payloads (when applicable) and populate the
+     * global $_POST and $_FILES arrays so that WordPress can process the
+     * request normally during request initialization.
+     *
+     * The original filter value is always returned unmodified.
+     *
+     * @param bool $result Whether JSONP is enabled.
+     * @return bool The unmodified JSONP enabled flag.
+     */
+    public function fix_wp_request_parsing( bool $result ) : bool {
+
+        if ( $this->in_namespace( $this->guess_route() ) ) {
+
+            $parser = new MultipartRequestParser();
+
+            if ( $parser->should_parse() ) {
+                $parser->populate_globals();
+            }
         }
 
         return $result;

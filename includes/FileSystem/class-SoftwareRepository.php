@@ -13,6 +13,7 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Utils\MDParser;
 use InvalidArgumentException;
+use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\Software;
 use ZipArchive;
@@ -91,12 +92,12 @@ class SoftwareRepository extends Repository {
      * Upload a software ZIP file to the repository.
      * - Post update: validates readme.md presence in the ZIP.
      * 
-     * @param array  $file      The uploaded file array from $_FILES.
-     * @param string $new_name  Optional new name for the uploaded file (without .zip).
-     * @param bool   $update    Whether this is an update to an existing software.
-     * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
+     * @param UploadedFile $file    The uploaded file array from $_FILES.
+     * @param string $new_name      Optional new name for the uploaded file (without .zip).
+     * @param bool   $update        Whether this is an update to an existing software.
+     * @return string|Exception     Relative path to stored ZIP on success, Exception on failure.
      */
-    public function upload_zip( array $file, string $new_name = '', bool $update = false ) {
+    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) {
         // -- Core upload.
         $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
 

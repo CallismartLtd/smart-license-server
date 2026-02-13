@@ -162,7 +162,7 @@ final class UploadedFile {
     }
 
     /**
-     * Whether file was uploaded via HTTP POST.
+     * Whether file was uploaded via HTTP POST or through our other method parser.
      */
     public function is_uploaded_via_http() : bool {
 
@@ -172,8 +172,17 @@ final class UploadedFile {
             return false;
         }
 
-        return is_uploaded_file( $tmp );
+        // For native PHP POST uploads.
+        if ( is_uploaded_file( $tmp ) ) {
+            return true;
+        }
+
+        $tmp_basename   = basename( $tmp );
+        // For custom stream parser uploads.
+        return $this->fs->exists( $tmp )
+            && str_starts_with( $tmp_basename, SMLISER_UPLOAD_TMP_PREFIX );
     }
+
 
     /**
      * Server-detected MIME type.
@@ -201,6 +210,21 @@ final class UploadedFile {
         }
 
         return FileSystemHelper::get_canonical_extension( $tmp );
+    }
+
+    /**
+     * Read the entire contents of the uploaded file as string
+     * 
+     * @return bool|string
+     */
+    public function get_contents() : bool|string {
+        $tmp    = $this->get_tmp_path();
+
+        if ( ! $tmp ) {
+            return false;
+        }
+
+        return $this->fs->get_contents( $tmp );
     }
 
     /**
@@ -338,5 +362,3 @@ final class UploadedFile {
         ];
     }
 }
-
-

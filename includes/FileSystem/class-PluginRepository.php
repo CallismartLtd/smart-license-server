@@ -12,6 +12,7 @@
 namespace SmartLicenseServer\FileSystem;
 
 use InvalidArgumentException;
+use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Utils\MDParser;
@@ -88,12 +89,12 @@ class PluginRepository extends Repository {
      *
      * - Post-upload: validates ZIP and extracts readme.txt to plugin folder.
      *
-     * @param array  $file      The uploaded file ($_FILES format).
-     * @param string $new_name  The preferred filename (without path).
-     * @param bool   $update    Whether this is an update to an existing plugin.
-     * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
+     * @param UploadedFile $file    The uploaded file ($_FILES format).
+     * @param string $new_name      The preferred filename (without path).
+     * @param bool   $update        Whether this is an update to an existing plugin.
+     * @return string|Exception     Relative path to stored ZIP on success, Exception on failure.
      */
-    public function upload_zip( array $file, string $new_name = '', bool $update = false ) {
+    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) {
         // Core upload via `Repository::safe_zip_upload()`.
         $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
         if ( is_smliser_error( $stored_path ) ) {
@@ -124,7 +125,7 @@ class PluginRepository extends Repository {
         if ( $readme_index === false ) {
             $zip->close();
             $cleanup_func();
-            return new Exception( 'readme_missing', 'The plugin ZIP must contain a readme.txt file.', [ 'status' => 400 ] );
+            return new Exception( 'readme_missing', 'The plugin ZIP file must contain a readme.txt file.', [ 'status' => 400 ] );
         }
 
         $readme_contents = $zip->getFromIndex( $readme_index );

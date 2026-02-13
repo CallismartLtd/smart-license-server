@@ -7,6 +7,7 @@
  */
 namespace SmartLicenseServer\HostedApps;
 
+use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
@@ -180,9 +181,9 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     /**
      * Absolute path to the application's zip file.
      * 
-     * @var string|array $file The absolute path to the app zip file or an array of uploaded file data.
+     * @var string|UploadedFile $file The absolute path to the app zip file or an uploaded zip file.
      */
-    protected $file;
+    protected string|UploadedFile $file;
 
     /**
      * The app tags.
@@ -444,9 +445,9 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     /**
      *  Set the file
      * 
-     * @param array|string $file
+     * @param string|UploadedFile $file
      */
-    public function set_file( $file ) {
+    public function set_file( string|UploadedFile $file ) {
         $this->file = $file;
     }
 
@@ -724,9 +725,11 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     }
 
     /**
-     * Get the file
+     * Get the file.
+     * 
+     * @return string|UploadedFile
      */
-    public function get_file() {
+    public function get_file() : string|UploadedFile {
         return $this->file;
     }
 
