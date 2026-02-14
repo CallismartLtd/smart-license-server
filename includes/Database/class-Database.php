@@ -30,6 +30,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @method void commit()
  * @method void rollback()
  * @method string|null get_last_error() Get last database error.
+ * @method string get_last_query() Get last executed query string.
  * @method int|null get_insert_id() Get the last insertion ID.
  * @method mixed query(string $query, array $params = []) Execute a raw SQL query.
  * @method string get_server_version() Get the database server version.
