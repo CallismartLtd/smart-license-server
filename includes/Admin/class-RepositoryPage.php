@@ -399,21 +399,9 @@ class RepositoryPage {
 
             if ( is_array( $value ) ) {
                 // Detect if associative array
-                $is_assoc = array_keys($value) !== range(0, count($value) - 1);
+                $is_assoc = array_keys( $value) !== range(0, count( $value ) - 1 );
 
-                if ( $is_assoc ) {
-                    $parts = [];
-                    foreach( $value as $k => $v ) {
-                        if ( is_array( $v ) ) {
-                            $v = implode(', ', $v);
-                        }
-                        $parts[] = "$k: $v";
-                    }
-                    $value = implode(', ', $parts);
-                } else {
-                    // Sequential array: just implode values
-                    $value = implode(', ', $value);
-                }
+                $value = smliser_implode_deep_smart( $value );
             }
 
             $details .= sprintf(
