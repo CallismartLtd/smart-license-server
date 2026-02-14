@@ -168,10 +168,16 @@ class SmliserModal {
         if ( content instanceof HTMLElement ) {
             element.appendChild( content );
         } else if ( typeof content === 'string' ) {
-            element.innerHTML = content;
+            element.innerHTML = this.sanitize( content );
         } else if ( content !== null && content !== undefined ) {
             element.textContent = String( content );
         }
+    }
+
+    sanitize(html) {
+        const div = document.createElement('div');
+        div.textContent = html; // Use textContent to prevent XSS
+        return div.innerHTML;
     }
 
     /**
