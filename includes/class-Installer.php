@@ -36,7 +36,8 @@ class Installer {
         '0.2.0' => array(
             [__CLASS__, 'monetization_table_upgrade_020'],
             [__CLASS__, 'migrate_bulk_message_table_020'],
-            [__CLASS__, 'add_apps_owner_id_020']
+            [__CLASS__, 'add_apps_owner_id_020'],
+            [__CLASS__, 'change_last_updated_column_020'],
         )
 
     );
@@ -260,6 +261,27 @@ class Installer {
     }
 
     /**
+     * Change the last_updated column of the apps table to `updated_at`
+     */
+    public static function change_last_updated_column_020() {
+        $db     = \smliser_dbclass();
+        $tables = [\SMLISER_SOFTWARE_TABLE, \SMLISER_PLUGINS_TABLE, \SMLISER_THEMES_TABLE];
+
+        foreach ( $tables as $table ) {
+            $table_exists   = $db->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'last_updated'" );
+            if ( ! $table_exists ) {
+                continue;
+            }
+
+            $sql    = "ALTER TABLE `{$table}` CHANGE `last_updated` `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP";
+
+            $db->query( $sql );            
+        }
+
+
+    }
+
+    /**
      * Add owner_id column to the apps tables
      */
     public static function add_apps_owner_id_020() {
@@ -295,7 +317,7 @@ class Installer {
         usort( $versions, 'version_compare' );
 
         foreach ( $versions as $version ) {
-            if ( version_compare( $base_version, $version, '<' ) ) {
+            if ( version_compare( $base_version, $version, '<=' ) ) {
                 foreach ( self::$db_versions[ $version ] as $callback ) {
                     if ( is_callable( $callback ) ) {
                         call_user_func( $callback );
@@ -303,5 +325,7 @@ class Installer {
                 }
             }
         }
+
+        \smliser_cache()->clear();
     }
 }
