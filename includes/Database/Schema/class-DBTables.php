@@ -83,7 +83,7 @@ final class DBTables {
                 'author_profile VARCHAR(255) DEFAULT NULL',
                 'download_link VARCHAR(400) DEFAULT NULL',
                 'created_at DATETIME DEFAULT NULL',
-                'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'INDEX plugin_download_link_index (download_link)',
                 'INDEX plugin_slug_index (slug)',
                 'INDEX plugin_author_index (author)',
@@ -113,7 +113,7 @@ final class DBTables {
                 'status VARCHAR(55) DEFAULT \'active\'',
                 'download_link VARCHAR(400) DEFAULT NULL', // Could be external URL.
                 'created_at DATETIME DEFAULT NULL',
-                'last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'INDEX theme_slug_index (slug)',
                 'INDEX theme_author_index (author)',
                 'INDEX theme_download_link_index (download_link)',
