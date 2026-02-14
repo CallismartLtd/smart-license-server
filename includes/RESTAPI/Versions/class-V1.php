@@ -24,6 +24,12 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @version 1.0
  */
 class V1 implements RESTInterface {
+    /**
+     * App route regex.
+     * 
+     * @var string
+     */
+    const APP_ROUTE_REGEX   = '(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
     /** 
      * REST API Route namespace.
      * 
@@ -50,7 +56,7 @@ class V1 implements RESTInterface {
      * 
      * @var string
      */
-    private static $activation_route = '/license-activation/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
+    private static $activation_route = '/license-activation/' . self::APP_ROUTE_REGEX;
 
     /** 
      * License deactivation REST API route
@@ -71,7 +77,7 @@ class V1 implements RESTInterface {
      * 
      * @var string
      */
-    private static $license_validity_route = '/license-validity-test/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
+    private static $license_validity_route = '/license-validity-test/'. self::APP_ROUTE_REGEX;
 
     /** 
      * Route to query the entire repository.
@@ -88,14 +94,14 @@ class V1 implements RESTInterface {
      * 
      * @var string
      */
-    private static $repository_app_route = '/repository/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
+    private static $repository_app_route = '/repository/' . self::APP_ROUTE_REGEX;
 
     /**
      * Download token regeneration REST API route
      * 
      * @var string
      */
-    private static $download_reauth = '/download-token-reauthentication/(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
+    private static $download_reauth = '/download-token-reauthentication/' . self::APP_ROUTE_REGEX;
 
     /**
      * REST endpoint for bulk messages fetching.
@@ -279,16 +285,16 @@ class V1 implements RESTInterface {
                     'methods'       => ['POST'],
                     'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'create_app' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_unsafe_method_guard' ),
-                    'args'          => self::get_app_write_args(),
+                    'args'          => self::get_app_write_args( 'POST' ),
                     'category'      => 'repository',
                     'name'          => 'Create a New Application',
                 ),
                 array(
                     'route'         => self::$repository_app_route,
-                    'methods'       => array( 'PUT', 'PATCH', ),
+                    'methods'       => array( 'PUT', 'PATCH' ),
                     'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'update_app' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_unsafe_method_guard' ),
-                    'args'          => self::get_app_write_args(),
+                    'args'          => self::get_app_write_args( 'PUT', 'PATCH' ),
                     'category'      => 'repository',
                     'name'          => 'Update an Existing Application',
                 ),
@@ -507,40 +513,24 @@ class V1 implements RESTInterface {
      * @return array
      */
     private static function get_repository_app_args() : array {
-        return array(
-            'app_type' => array(
-                'required'    => false,
-                'type'        => 'string',
-                'description' => 'The type of application being queried. This should be specified in the URL path after /repository/, example /repository/plugin/',
-            ),
-            'app_slug' => array(
-                'required'    => false,
-                'type'        => 'string',
-                'description' => 'The slug of the application being queried. This should be specified in the URL path after /repository/{app-type}/, eg /repository/plugin/smart-woo-pro',
-            ),
-        );
+        return array();
     }
 
     /**
      * Request arguments for `Non-Safe Methods` on single app route.
      * 
+     * @param string[] $method HTTP request method.
      * @return array
      */
-    private static function get_app_write_args() : array {
+    private static function get_app_write_args( string ...$method ) : array {
         return [
-            'app_id'    => array(
-                'required'      => false,
-                'type'          => 'integer',
-                'description'   => 'The ID of the app in context. Required when updating an existing app.',
-                'default'       => 0
-            ),
             'app_name'  => array(
-                'required'  => true,
+                'required'  => in_array( 'POST', $method ),
                 'type'      => 'string',
                 'description'   => 'The application name. Required when uploading new app.'
             ),
             'app_author'    => array(
-                'required'      => true,
+                'required'      => in_array( 'POST', $method ),
                 'type'          => 'string',
                 'description'   => 'The full name of the application author.'
             ),
@@ -595,7 +585,7 @@ class V1 implements RESTInterface {
             'app_json_file' => array(
                 'required'      => false,
                 'type'          => 'binary',
-                'description'   => 'Submit an app.json file, keyed in with this argument in a multipart/form-data request. This is required for new non-WordPress applications.'
+                'description'   => 'Submit an app.json file, keyed in with this argument in a multipart/form-data request. The content of this file will be served in the "manifest" property of REST response for the application.'
             
             ),
         ];
@@ -711,7 +701,7 @@ class V1 implements RESTInterface {
                 continue;
             }
 
-            $route_path = $namespace . $route_config['route'];
+            $route_path = \str_ireplace( self::APP_ROUTE_REGEX, '{app-type}/{app-slug}', $namespace . $route_config['route'] );
             $route_name = $route_config['name'] ?? 'Unnamed Route';
             $methods    = is_array( $route_config['methods'] ) ? $route_config['methods'] : array( $route_config['methods'] );
             $args       = $route_config['args'] ?? array();
@@ -729,11 +719,11 @@ class V1 implements RESTInterface {
                 $html .= '<div class="smliser-api-route-path-container">';
                 $html .= '<div class="smliser-api-route-path">' . self::esc_html( $route_path ) . '</div>';
                 $html .= '<button class="smliser-api-copy-btn" onclick="navigator.clipboard.writeText(\'' . self::esc_js( $route_path ) . '\'); this.textContent=\'Copied!\'; setTimeout(() => this.textContent=\'Copy\', 2000);">Copy</button>';
-                $html .= '</div>'; // path container
+                $html .= '</div>'; // path container.
 
-                $html .= '</div>'; // header
+                $html .= '</div>'; // header.
 
-                // Body: args
+                // Body: args.
                 $html .= '<div class="smliser-api-route-body">';
                 if ( empty( $args ) ) {
                     $html .= '<p class="smliser-api-no-arguments">No arguments required.</p>';
@@ -760,14 +750,14 @@ class V1 implements RESTInterface {
                             $html .= '<span class="smliser-api-argument-default">Default: ' . self::esc_html( $default ) . '</span>';
                         }
 
-                        $html .= '</div>'; // arg header
+                        $html .= '</div>'; // arg header.
                         $html .= '<p class="smliser-api-argument-description">' . self::esc_html( $arg_description ) . '</p>';
-                        $html .= '</div>'; // arg
+                        $html .= '</div>'; // arg.
                     }
                 }
 
-                $html .= '</div>'; // body
-                $html .= '</div>'; // card
+                $html .= '</div>'; // body.
+                $html .= '</div>'; // card.
 
                 $descriptions[ $card_key ] = $html;
             }

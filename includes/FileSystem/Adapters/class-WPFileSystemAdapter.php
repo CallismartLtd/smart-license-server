@@ -90,6 +90,10 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if exists, false otherwise.
      */
     public function exists( string $path ): bool {
+        if ( empty( $path ) ) {
+            return false;
+        }
+
         return $this->fs->exists( $path );
     }
 
@@ -135,6 +139,10 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return string|false File contents or false on failure.
      */
     public function get_contents( string $file ): string|false {
+        if ( empty( $file ) ) {
+            return false;
+        }
+        
         return $this->fs->get_contents( $file );
     }
 
@@ -147,6 +155,10 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function put_contents( string $path, string $contents, int $mode = FS_CHMOD_FILE ): bool {
+        if ( empty( $path ) ) {
+            return false;
+        }
+        
         return $this->fs->put_contents( $path, $contents, $mode );
     }
 
@@ -341,7 +353,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return array|false Information array or false on failure.
      */
     public function stat( string $path ): array|false {
-        if ( ! $path || ! $this->fs->exists( $path ) ) {
+        if ( ! $path || ! $this->exists( $path ) ) {
             return false;
         }
 

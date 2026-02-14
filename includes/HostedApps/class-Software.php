@@ -67,6 +67,15 @@ class Software extends AbstractHostedApp {
     }
 
     /**
+     * Get database fields.
+     * 
+     * @return array<int, string>
+     */
+    public function get_fillable() : array{
+        return ['name', 'owner_id', 'author', 'status', 'download_link' ];
+    }
+
+    /**
      * Get the metadata table for software.
      * 
      * @return string Metadata table name.
@@ -169,71 +178,6 @@ class Software extends AbstractHostedApp {
     }
 
     /**
-     * Save software to the database.
-     * 
-     * @return true|Exception True on success, exception on failure.
-     */
-    public function save() : true|Exception {
-        $db         = smliser_dbclass();
-        $table      = self::TABLE;
-
-        $file       = $this->file;
-        $repo_class = new SoftwareRepository;
-
-        $software_data = [
-            'name'          => $this->get_name(),
-            'owner_id'      => $this->get_owner_id(),
-            'author'        => $this->get_author(),
-            'status'        => $this->get_status(),
-            'download_link' => $this->get_download_url(),
-            'updated_at'    => \gmdate( 'Y-m-d H:i:s' ),
-        ];
-
-        if ( $this->get_id() ) {
-
-            if ( ! is_string( $file ) ) {
-                $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
-                
-                if ( is_smliser_error( $slug ) ) {
-                    return $slug;
-                }
-
-                if ( $this->get_slug() !== $slug ) {
-                    $software_data['slug'] = $slug;
-
-                    $this->set_slug( $slug );
-                }
-            }
-
-
-            $result = $db->update( $table, $software_data, [ 'id' => $this->get_id() ] );
-        } else {
-
-            if ( is_string( $file ) ) {
-                return new Exception( 'no_file_provided', 'No software file provided for new software.', ['status' => 400] );
-            }
-            
-            $filename   = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
-            $slug       = $repo_class->upload_zip( $file, $filename, false );
-
-            if ( is_smliser_error( $slug ) ) {
-                return $slug;
-            }
-
-            $software_data['slug']          = $slug;
-            $software_data['created_at']    = \gmdate( 'Y-m-d H:i:s' );
-
-            $result = $db->insert( $table, $software_data );
-
-            $this->set_id( $db->get_insert_id() );
-        }
-
-        $repo_class->regenerate_app_dot_json( $this );
-
-        return ( false !== $result ) ? true : new Exception( 'db_insert_error', $db->get_last_error() );
-    }
-
-    /**
      * Permanently delete a software.
      * 
      * @return bool True on success, false on failure.
@@ -276,9 +220,9 @@ class Software extends AbstractHostedApp {
         $self->set_author( $result['author'] ?? '' );
         $self->set_author_profile( $result['author_profile'] ?? '' );
         $self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
-        $self->set_download_url( $result['download_link'] ?? '' );
+        $self->set_download_url( (string) $result['download_link'] ?? '' );
         $self->set_created_at( $result['created_at'] ?? '' );
-        $self->set_last_updated( $result['updated_at'] ?? '' );
+        $self->set_updated_at( $result['updated_at'] ?? '' );
 
         $repo_class = new SoftwareRepository();
 
@@ -342,10 +286,10 @@ class Software extends AbstractHostedApp {
             'ratings'           => $this->get_ratings(),
             'support_url'       => $this->get_support_url(),
             'active_installs'   => $this->get_active_installs(),
-            'is_monetized'       => $this->is_monetized(),
+            'is_monetized'      => $this->is_monetized(),
             'monetization'      => [],
-            'created_at'        => $this->get_date_created(),
-            'updated_at'        => $this->get_last_updated(),
+            'created_at'        => $this->get_created_at(),
+            'updated_at'        => $this->get_updated_at(),
         );
 
         if ( $this->is_monetized() ) {

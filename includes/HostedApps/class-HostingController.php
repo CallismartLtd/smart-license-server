@@ -80,49 +80,46 @@ class HostingController {
             $arg            = $app_id ? $app_id : $app_slug;
 
             if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $init_method ) ) {
-                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" class did not define the required method "%s::%s($id)"', $app_type, $app_class, $init_method ) , array( 'status' => 500 ) );
+                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" class did not define the required method "%s::%s($id)."', $app_type, $app_class, $init_method ) , array( 'status' => 500 ) );
             }
             
             if ( $arg ) {
-                $class = $app_class::$init_method( $arg );
+                $app    = $app_class::$init_method( $arg );
             } else {
-                $class = new $app_class();
+                $app    = new $app_class;
             }
 
-            /**
-             * The app instance
-             * 
-             * @var \SmartLicenseServer\HostedApps\AbstractHostedApp $class
-             */
-            
+            if ( ! ( $app instanceof AbstractHostedApp ) ) {
+                throw new RequestException( 'invalid_input', 'Sorry there is no app matching the provided slug or ID.' , array( 'status' => 404 ) );
+            }
+
             $name   = $request->get( 'app_name', null );
 
-            if ( empty( $name ) ) {
-                throw new RequestException( 'invalid_input', 'Application name parameter is required' , array( 'status' => 400 ) );
+            if ( empty( $name ) && ! $app->get_id() ) {
+                throw new RequestException( 'invalid_input', 'Application name is required.' , array( 'status' => 400 ) );
             }
 
             $author = $request->get( 'app_author', null );
 
-            if ( empty( $author ) ) {
-                throw new RequestException( 'invalid_input', 'Application author name is required' , array( 'status' => 400 ) );
+            if ( empty( $author ) && ! $app->get_id() ) {
+                throw new RequestException( 'invalid_input', 'Application author name is required.' , array( 'status' => 400 ) );
             }
 
             $app_zip_file   = $request->get_file( 'app_zip_file' );
             $author_url     = $request->get( 'app_author_url', '' );
             $version        = $request->get( 'app_version', '' );
 
-            if ( ! $class->get_slug() && $request->has( 'app_slug' ) ) {
-                $class->set_slug( $request->get( 'app_slug' ) );
+            if ( ! $app->get_slug() && ! $request->isEmpty( 'app_slug' ) ) {
+                $app->set_slug( $request->get( 'app_slug' ) );
             }
 
-            $class->set_name( $name );
-            $class->set_author( $author );
-            $class->set_author_profile( $author_url );
-            $class->set_version( $version );
-            $class->set_file( $app_zip_file ?? '' );
+            $app->set_name( $name );
+            $app->set_author( $author );
+            $app->set_author_profile( $author_url );
+            $app->set_version( $version );
+            $app->set_file( $app_zip_file ?? '' );
         
-            if ( ! empty( $app_id ) ) {
-                $class->set_id( $app_id );
+            if ( $app->get_id() ) {
 
                 $update_method = "update_{$app_type}";
 
@@ -130,7 +127,7 @@ class HostingController {
                     throw new RequestException( 'internal_server_error', sprintf( 'The update method for the application type "%s" was not found!', $app_type ) , array( 'status' => 500 ) );
                 }
 
-                $updated = self::$update_method( $class, $request );
+                $updated = self::$update_method( $app, $request );
 
                 if ( is_smliser_error( $updated ) ) {
                     throw $updated;
@@ -138,7 +135,7 @@ class HostingController {
                 
             }
 
-            $result = $class->save();
+            $result = $app->save();
 
             if ( is_smliser_error( $result ) ) {
                 throw new RequestException(
@@ -147,17 +144,21 @@ class HostingController {
                 );
             }
 
+            if ( ! $request->isEmpty( 'app_status' ) && AbstractHostedApp::STATUS_TRASH !== $request->get( 'app_status' ) ) {
+                static::change_app_status( $request, $app );
+            }
+
             \smliser_cache()->clear();
 
             $data = array(
                 'success'   => true,
                 'data'      => array(
                     'message' => sprintf( '%s Saved', ucfirst( $app_type ) ),
-                    'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'app_id' => $class->get_id() )
+                    'redirect_url' => smliser_admin_repo_tab( 'edit', array( 'type' => $app_type, 'app_id' => $app->get_id() )
                 )
             ));
 
-            $request->set( 'smliser_resource', $class );
+            $request->set( 'smliser_resource', $app );
             return ( new Response( 200, array(), $data ) )
             ->set_response_data( $request )
             ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
@@ -180,7 +181,7 @@ class HostingController {
             return new RequestException( 'message', 'Wrong plugin object passed' );
         }
 
-        $plugin->set_download_url( $request->get( 'app_download_url' ) );
+        $plugin->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
         $plugin->update_meta( 'support_url', $request->get( 'app_support_url' ) );
         $plugin->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
 
@@ -199,7 +200,7 @@ class HostingController {
             return new RequestException( 'message', 'Wrong theme object passed' );
         }
 
-        $theme->set_download_url( $request->get( 'app_download_url' ) );
+        $theme->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
         $theme->update_meta( 'support_url', $request->get( 'app_support_url' ) );
         $theme->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
         $theme->update_meta( 'preview_url', $request->get( 'app_preview_url', '' ) );
@@ -229,7 +230,7 @@ class HostingController {
         if ( ! $uploaded_json || ! $uploaded_json->is_upload_successful() ) {
             return new RequestException(
                 'missing_file',
-                'Please upload app.json file using "app_json_file" file key.'
+                'Please upload app.json file using "app_json_file" key in your file parameter.'
             );
         }
 
@@ -243,7 +244,7 @@ class HostingController {
         if ( 'json' !== $uploaded_json->get_canonical_extension() ) {
             return new RequestException(
                 'missing_file',
-                'app.json files must be correctly uploaded.'
+                'app.json files must be a json file.'
             );
         }
 
@@ -260,7 +261,7 @@ class HostingController {
         }
 
         $software->set_manifest( self::sanitize_deep( $manifest ) );
-        $software->set_download_url( $request->get( 'app_download_url' ) );
+        $software->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
         $software->update_meta( 'support_url', $request->get( 'app_support_url' ) );
         $software->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
         $software->update_meta( 'documentation_url', $request->get( 'app_documentation_url', null ) );
@@ -399,20 +400,19 @@ class HostingController {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function change_app_status( Request $request ) : Response {
+    public static function change_app_status( Request $request, ?AbstractHostedApp $app = null ) : Response {
         try {
-            static::check_permissions( ['hosted_apps.create', 'hosted_apps.update'] );
+            static::check_permissions( 'hosted_apps.change_status' );
 
-            $app_slug   = $request->get( 'slug' );
-            $app_type   = $request->get( 'type' );
-
-            $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+            $app_slug   = $request->get( 'app_slug' );
+            $app_type   = $request->get( 'app_type' );
+            $app        = $app ?? HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
             if ( ! $app ) {
                 throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found', $app_type, $app_slug ), array( 'status' => 404 ) );
             }
 
-            $status             = $request->get( 'status' );
+            $status             = $request->get( 'app_status' );
             $knowned_statuses   = array_keys( $app->get_statuses() );
 
             if ( ! in_array( $status, $knowned_statuses, true ) ) {
@@ -421,13 +421,16 @@ class HostingController {
 
             $old_status = $app->get_status();
             $app->set_status( $status );
+            $saved  = $app->save();
 
-            if ( is_smliser_error( $app->save() ) ) {
-                throw new RequestException( 'status_change_failed', sprintf( 'Failed to change status for the %s from %s to %s', $app_type, $old_status, $status ), array( 'status' => 500 ) );
+            if ( is_smliser_error( $saved ) ) {
+                throw new RequestException( 'status_change_failed', sprintf( 'Failed to change status for the %s from %s to %s, error: %s', $app_type, $old_status, $status, $saved->get_error_message() ), array( 'status' => 500 ) );
             }
 
             // Deal with trashed apps.
             if ( in_array( AbstractHostedApp::STATUS_TRASH, array( $old_status, $status ), true ) ) {
+                static::check_permissions( 'hosted_apps.delete' );
+
                 $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
                 
                 if ( ! $repo_class ) {
@@ -435,10 +438,10 @@ class HostingController {
                 }
 
                 if ( $old_status === AbstractHostedApp::STATUS_TRASH && $status !== AbstractHostedApp::STATUS_TRASH ) {
-                    // Restoring from trash
+                    // Restoring from trash.
                     @$repo_class->restore_from_trash( $app->get_slug() );
                 } elseif ( $status === AbstractHostedApp::STATUS_TRASH ) {
-                    // Moving to trash
+                    // Moving to trash.
                     @$repo_class->queue_app_for_deletion( $app->get_slug() );
                 }
 

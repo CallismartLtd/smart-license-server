@@ -21,7 +21,7 @@ use SmartLicenseServer\Security\Context\SecurityGuard;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Dedicated WordPress REST API endpoint for perform CRUD operations on hosted apps. 
+ * Dedicated REST API endpoint for perform CRUD operations on hosted apps. 
  */
 class AppCollection {
     use CacheAwareTrait;
@@ -168,7 +168,7 @@ class AppCollection {
             }
 
             $request->set( 'app_slug', $app_slug )
-            ->set( 'app_type', $app_type );
+                    ->set( 'app_type', $app_type );
 
             $response = HostingController::save_app( $request );
 
@@ -195,7 +195,7 @@ class AppCollection {
     }
 
     /**
-     * Update an existing application
+     * Responds to HTTP PATCH and PUT request on single app route.
      * 
      * @param Request $request The request object.
      * @return Response
@@ -224,7 +224,46 @@ class AppCollection {
                 $response->remove_header( 'Location' );
                 $response->set_status_code( 204 );
                 
-                $response->set_body( null );
+                $response->set_body( '' );
+                static::cache_clear();
+            }
+
+            return $response;
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+        }
+    }
+
+    /**
+     * Responds to HTTP DELETE request to delete a hosted application.
+     * 
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function delete_app( Request $request ) : Response {
+        try {
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+
+            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app_exists ) {
+                throw new RequestException( 'app_not_found' );
+            }
+
+            $request->set( 'app_slug', $app_slug )
+                    ->set( 'app_type', $app_type )
+                    ->set( 'status', AbstractHostedApp::STATUS_TRASH );
+
+            $response   = HostingController::change_app_status( $request );
+
+            if ( $response->ok() ) {
+                $response->remove_header( 'Location' );
+                $response->set_status_code( 204 );
+                
+                $response->set_body( '' );
                 static::cache_clear();
             }
 

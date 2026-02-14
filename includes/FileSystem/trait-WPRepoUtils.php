@@ -10,6 +10,7 @@
 
 namespace SmartLicenseServer\FileSystem;
 
+use InvalidArgumentException;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\HostedApps\Theme;
 use TypeError;
@@ -83,7 +84,6 @@ trait WPRepoUtils {
      * }
      *
      * @throws TypeError
-     * @throws \InvalidArgumentException When slug directory cannot be entered.
      */
     protected function resolve_app_manifest( $app ) : array {
 
@@ -99,7 +99,16 @@ trait WPRepoUtils {
 
         $slug      = $this->real_slug( $app->get_slug() );
         $manifest  = $this->build_app_manifest( $app, $slug );
-        $base_dir  = $this->enter_slug( $slug );
+        
+        try {
+            $base_dir  = $this->enter_slug( $slug );
+        } catch( InvalidArgumentException $e ) {
+            return array(
+                'file_path' => '',
+                'manifest'  => $manifest,
+            );
+        }
+        
         $file_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
 
         return array(

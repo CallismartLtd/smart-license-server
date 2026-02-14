@@ -203,9 +203,6 @@ class FileRequestController {
      */
     public static function get_app_static_asset( FileRequest $request ){
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new FileRequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
-            }
 
             $app_type   = $request->get( 'app_type' );
             $app_slug   = $request->get( 'app_slug' );

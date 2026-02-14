@@ -82,7 +82,7 @@ interface HostedAppsInterface {
      * 
      * @param string $url
      */
-    public function set_download_url( $url );
+    public function set_download_url( string $url );
 
     /**
      * Set the absolute path to the applications zip file or an uploaded file.

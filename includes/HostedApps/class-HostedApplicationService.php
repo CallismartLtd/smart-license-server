@@ -74,21 +74,21 @@ class HostedApplicationService {
 
             if ( in_array( 'plugin', $types, true ) ) {
                 $table_name     = SMLISER_PLUGINS_TABLE;
-                $sql_parts[]    = "SELECT id, 'plugin' AS type, last_updated FROM {$table_name} WHERE status = ?";
+                $sql_parts[]    = "SELECT id, 'plugin' AS type, updated_at FROM {$table_name} WHERE status = ?";
                 $params[]       = $status;
                 
             }
 
             if ( in_array( 'theme', $types, true ) ) {
                 $table_name = SMLISER_THEMES_TABLE;
-                $sql_parts[] = "SELECT id, 'theme' AS type, last_updated FROM {$table_name} WHERE status = ?";
+                $sql_parts[] = "SELECT id, 'theme' AS type, updated_at FROM {$table_name} WHERE status = ?";
                 $params[] = $status;
                 
             }
 
             if ( in_array( 'software', $types, true ) ) {
                 $table_name     = SMLISER_SOFTWARE_TABLE;
-                $sql_parts[]    = "SELECT id, 'software' AS type, updated_at as last_updated FROM {$table_name} WHERE status = ?";
+                $sql_parts[]    = "SELECT id, 'software' AS type, updated_at as updated_at FROM {$table_name} WHERE status = ?";
                 $params[]       = $status;
                 
             }
@@ -112,7 +112,7 @@ class HostedApplicationService {
                 $total     = (int) $db->get_var( $count_sql, $params );
 
                 // Fetch paginated rows
-                $sql            = "SELECT * FROM ( {$union_sql} ) AS apps ORDER BY last_updated DESC LIMIT ? OFFSET ?";
+                $sql            = "SELECT * FROM ( {$union_sql} ) AS apps ORDER BY updated_at DESC LIMIT ? OFFSET ?";
                 $query_params   = array_merge( $params, [ $limit, $offset ] );
 
                 $rows    = $db->get_results( $sql, $query_params );
@@ -198,11 +198,6 @@ class HostedApplicationService {
             }
 
             $table_name = $type_tables[ $type ];
-            $update_at_col  = match( $type ) {
-                'plugin'   => 'last_updated',
-                'theme'    => 'last_updated',
-                'software' => 'updated_at',
-            };
 
             // Count total items for this type
             $count_sql   = "SELECT COUNT(*) FROM {$table_name} WHERE status = ?";
@@ -215,7 +210,7 @@ class HostedApplicationService {
             // Fetch paginated rows for this type
             $select_sql = "SELECT id FROM {$table_name} 
                         WHERE status = ? 
-                        ORDER BY {$update_at_col} DESC 
+                        ORDER BY update_at DESC 
                         LIMIT ? OFFSET ?";
             $rows = $db->get_results( $select_sql, [$status, $per_type_limit, $offset] );
 
@@ -387,13 +382,9 @@ class HostedApplicationService {
                         default:
                             continue 2;
                     }
-                    $update_at_col  = match( $type ) {
-                        'plugin'   => 'last_updated',
-                        'theme'    => 'last_updated',
-                        'software' => 'updated_at',
-                    };
+                   
                     // Query for fetching IDs
-                    $sql_parts[]    = "SELECT id, '{$type}' AS type, {$update_at_col} FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
+                    $sql_parts[]    = "SELECT id, '{$type}' AS type, update_at FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
                     $params_sql     = array_merge( $params_sql, [ $status, $like, $like, $like ] );
 
                     // Query for counting matches
@@ -402,14 +393,14 @@ class HostedApplicationService {
                 }
 
                 // Build union query
-                $union_sql = implode( " UNION ALL ", $sql_parts );
-                $query_sql = "{$union_sql} ORDER BY last_updated DESC LIMIT ? OFFSET ?";
+                $union_sql  = implode( " UNION ALL ", $sql_parts );
+                $query_sql  = "{$union_sql} ORDER BY updated_at DESC LIMIT ? OFFSET ?";
                 $params_sql = array_merge( $params_sql, [ $limit, $offset ] );
 
                 // Fetch rows via adapter
                 $rows = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS apps", $params_sql, ARRAY_A );
 
-                // Aggregate count
+                // Aggregate count.
                 $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
                 $total = (int) $db->get_var( $count_sql, $params_count );
 
@@ -579,7 +570,7 @@ class HostedApplicationService {
      * Get the class for a hosted application type
      * 
      * @param string $type The type name.
-     * @return string $class_name The app's class name.
+     * @return class-string<AbstractHostedApp> $class_name The app's class name.
      */
     public static function get_app_class( $type ) {
         $class = '\\SmartLicenseServer\\HostedApps\\' . ucfirst( (string) $type );

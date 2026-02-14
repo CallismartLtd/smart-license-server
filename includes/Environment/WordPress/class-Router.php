@@ -596,7 +596,7 @@ class Router implements RouterInterface {
         }
 
         $repo_version = \smliser_settings_adapter()->get( 'smliser_repo_version', 0 );
-        if ( version_compare( $repo_version, SMLISER_VER, '>=' ) ) {
+        if ( version_compare( $repo_version, SMLISER_VER, '>' ) ) {
             \smliser_send_json_error( array( 'message' => 'No upgrade needed' ) );
         }
 

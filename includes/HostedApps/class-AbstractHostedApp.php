@@ -7,11 +7,15 @@
  */
 namespace SmartLicenseServer\HostedApps;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
+
+use function smliser_dbclass;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -83,9 +87,9 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     /**
      * Update time.
      * 
-     * @var string $last_updated The last time the app was updated
+     * @var string $updated_at The last time the app was updated
      */
-    protected $last_updated = '';
+    protected $updated_at = '';
 
     /**
      * Date created
@@ -375,7 +379,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param string $link The download url.
      */
-    public function set_download_url( $link = '' ) {
+    public function set_download_url( string $link = '' ) {
         $url            = new URL( $link );
         if ( $url->is_valid() ) {
             $this->download_link = $url->__toString();
@@ -398,8 +402,8 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param $date
      */
-    public function set_last_updated( $date ) {
-        $this->last_updated = self::sanitize_text( $date );
+    public function set_updated_at( $date ) {
+        $this->updated_at = self::sanitize_text( $date );
     }
 
     /**
@@ -745,14 +749,28 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     /**
      * Get last updated
      */
+    public function get_updated_at() {
+        return $this->updated_at;
+    }
+    
+    /**
+     * Get last updated
+     */
     public function get_last_updated() {
-        return $this->last_updated;
+        return $this->get_updated_at();
+    }
+
+    /**
+     * Get when created.
+     */
+    public function get_created_at() {
+        return $this->created_at;
     }
     /**
-     * Get when updated
+     * Get when created.
      */
     public function get_date_created() {
-        return $this->created_at;
+        return $this->get_created_at();
     }
 
     /**
@@ -826,7 +844,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     abstract protected function get_meta_foreign_key() : string;
     
-    abstract public function save() : true|Exception;
+    // abstract public function save() : true|Exception;
 
     /**
      * Get an instance of this class from an array
@@ -835,10 +853,97 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     abstract public static function from_array( $data ) : static;
 
     /**
+     * Get database fields.
+     * 
+     * @return array<int, string>
+     */
+    abstract public function get_fillable() : array;
+
+    /**
     |---------------------
     | SHARED CRUD METHODS
     |---------------------
     */
+
+    /**
+     * Save the app.
+     * 
+     * @return bool|Exception
+     */
+    final public function save() : bool|Exception {
+        if ( ! $this->get_id() ) {
+            return false;
+        }
+
+        $db         = smliser_dbclass();
+        $table      = static::get_db_table();
+        $file       = $this->file;
+        $repo_class = HostedApplicationService::get_app_repository_class( $this->get_type() );
+        $db_fields  = $this->get_fillable();
+        $now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+
+        $data       = [];
+
+        foreach( $db_fields as $key ) {
+            $method     = "get_{$key}";
+
+            if ( ! \is_callable( [$this, $method] ) ) {
+                continue;
+            }
+
+            $data[$key] = $this->$method();
+        }
+
+        $data['updated_at']  = $now->format( 'Y-m-d H:i:s' );
+
+        if ( $this->get_id() ) {
+            if ( ! is_string( $file ) ) {
+                $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
+                
+                if ( is_smliser_error( $slug ) ) {
+                    return $slug;
+                }
+
+                /** @var string $slug  */
+                if ( $slug !== $this->get_slug() ) {
+                    $data['slug'] = $slug;
+                    $this->set_slug( $slug );
+                }
+            }
+
+            $result = $db->update( $table, $data, array( 'id' => absint( $this->get_id() ) ) );
+
+        } else {
+            if ( is_string( $file ) ) {
+                return new Exception( 'required_file', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
+            }
+
+            $filename   = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
+            $slug       = $repo_class->upload_zip( $file, $filename );
+
+            if ( is_smliser_error( $slug ) ) {
+                return $slug;
+            }
+
+            /** @var string $slug  */
+            $this->set_slug( $slug );
+
+            $data['slug']       = $this->get_slug();
+            $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
+            $result             = $db->insert( $table, $data );
+
+            $this->set_id( $db->get_insert_id() );
+            $this->set_created_at( $now->format( 'Y-m-d H:i:s' ) );
+        }
+
+        $this->set_updated_at( $now->format( 'Y-m-d H:i:s' ) );
+        $this->set_file( $repo_class->locate( $this->get_slug() ) );
+        $repo_class->regenerate_app_dot_json( $this );
+
+        return ( false !== $result ) ? true : new Exception( 'db_insert_error', $db->get_last_error() );
+
+
+    }
 
     /**
      * Get a app by it's slug.

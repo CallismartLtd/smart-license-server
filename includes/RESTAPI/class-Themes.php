@@ -24,7 +24,7 @@ class Themes {
      * Theme info endpoint permission callback.
      * 
      * @param Request $request The REST API request object.
-     * @return RequestException|false WordPress error object if permission is denied, false otherwise.
+     * @return RequestException|false Error object if permission is denied, false otherwise.
      */
     public static function info_permission_callback( Request $request ) : bool|RequestException {
         /**

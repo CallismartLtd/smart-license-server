@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
@@ -99,7 +101,7 @@ class Theme extends AbstractHostedApp {
     public function get_author( $context = 'author' ) {
         $author = parent::get_author();
 
-        if ( ! empty( $context ) && array_key_exists( $context, $author ) ) {
+        if ( ! empty( $context ) && array_key_exists( $context, (array) $author ) ) {
             return $author[ $context ];
         }
 
@@ -211,67 +213,6 @@ class Theme extends AbstractHostedApp {
     }
 
     /**
-     * Create new theme or update the existing one.
-     * 
-     * @return true|Exception True on success, exception on failure.
-     */
-    public function save() : true|Exception {
-        $db         = smliser_dbclass();
-        $table      = self::TABLE;
-
-        $file       = $this->file;
-        $repo_class = new ThemeRepository();
-
-        $theme_data = array(
-            'owner_id'      => $this->get_owner_id(),
-            'name'          => $this->get_name(),
-            'status'        => $this->get_status(),
-            'download_link' => $this->get_download_url(),
-            'last_updated'  => \gmdate( 'Y-m-d H:i:s' ),
-        );
-
-        if ( $this->get_id() ) {
-            if ( ! is_string( $this->file ) ) {
-                $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
-                if ( is_smliser_error( $slug ) ) {
-                    return $slug;
-                }
-
-                if ( $slug !== $this->get_slug() ) {
-                    $theme_data['slug'] = $slug;
-                    $this->set_slug( $slug );
-                }
-            }
-
-            $result = $db->update( $table, $theme_data, array( 'id' => absint( $this->get_id() ) ) );
-
-        } else {
-            if ( is_string( $file ) ) {
-                return new Exception( 'no_file_provided', __( 'No theme file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
-            }
-            
-            $filename   = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
-            $slug       = $repo_class->upload_zip( $file, $filename );
-
-            if ( is_smliser_error( $slug ) ) {
-                return $slug;
-            }
-
-            $this->set_slug( $slug );
-
-            $theme_data['slug']        = $this->get_slug();
-            $theme_data['created_at']  = \gmdate( 'Y-m-d H:i:s' );
-
-            $result = $db->insert( $table, $theme_data );
-
-            $this->set_id( $db->get_insert_id() );
-        }
-
-        $repo_class->regenerate_app_dot_json( $this );
-        return ( false !== $result ) ? true : new Exception( 'db_insert_error', $db->get_last_error() );
-    }
-
-    /**
      * Delete a theme.
      * 
      * @return bool True on success, false on otherwise.
@@ -301,6 +242,15 @@ class Theme extends AbstractHostedApp {
      */
     public static function get_db_table() : string {
         return self::TABLE;
+    }
+
+    /**
+     * Get database fields.
+     * 
+     * @return array<int, string>
+     */
+    public function get_fillable() : array {
+        return array( 'owner_id', 'name', 'author', 'status', 'download_link' );
     }
 
     /**
@@ -341,7 +291,7 @@ class Theme extends AbstractHostedApp {
         $self->set_slug( $result['slug'] ?? '' );
         $self->set_download_url( $result['download_link'] ?? '' );
         $self->set_created_at( $result['created_at'] ?? '' );
-        $self->set_last_updated( $result['last_updated'] ?? '' );
+        $self->set_updated_at( $result['updated_at'] ?? '' );
         $self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
 
         $self->load_meta();

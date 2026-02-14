@@ -447,8 +447,8 @@ class Licenses {
     /**
      * Verify that a domain can access the license REST API endpoint.
      * 
-     * @param Request $request The WordPress REST API request object.
-     * @return RequestException|true WordPress error object on failure, true otherwise.
+     * @param Request $request The request object.
+     * @return RequestException|true Error object on failure, true otherwise.
      */
     public static function verify_domain( Request $request ) {
         /** @var License $license */
