@@ -81,7 +81,7 @@ class Request {
     /**
      * Holds the files uploaded
      * 
-     * @var array<string, \SmartLicenseServer\Core\UploadedFile>
+     * @var array<string, UploadedFileCollection>
      */
     protected array $files = [];
 
@@ -135,7 +135,9 @@ class Request {
 
         if ( class_exists( MultipartRequestParser::class, true ) ) {
             $parser = new MultipartRequestParser();
-            $parser->populate_globals();
+            try {
+                $parser->populate_globals();
+            } catch( \Exception $e ) {}
         }
 
         $params             = empty( $params ) ? $_REQUEST : $params;
@@ -286,7 +288,7 @@ class Request {
      * @param string $parameter The parameter name.
      * @return bool
      */
-    public function filled( string $parameter ): bool {
+    public function hasValue( string $parameter ): bool {
         return ! $this->isEmpty( $parameter );
     }
 
@@ -314,7 +316,7 @@ class Request {
      */
     public function hasAny( array $properties ): bool {
         foreach ( $properties as $parameter ) {
-            if ( $this->filled( $parameter ) ) {
+            if ( $this->hasValue( $parameter ) ) {
                 return true;
             }
         }
@@ -629,22 +631,40 @@ class Request {
     }
 
     /**
-     * Parse and convert each uploaded files
+     * Parse and normalize uploaded files into collections.
      */
     public function parse_uploaded_files() : void {
-        foreach ( $_FILES as $key => $value ) {
-            $this->files[$key]  = new UploadedFile( $value, $key );
+
+        foreach ( $_FILES as $key => $_ ) {
+            $this->files[ $key ] = UploadedFileCollection::from_files( $key );
         }
     }
 
     /**
-     * Get a file.
-     * 
+     * Get first file for key (backward compatible).
+     *
      * @param string $key
-     * @return ?UploadedFile
+     * @return UploadedFile|null
      */
     public function get_file( string $key ) : ?UploadedFile {
-        return $this->files[$key] ?? null;
+
+        $collection = $this->files[ $key ] ?? null;
+
+        if ( ! $collection instanceof UploadedFileCollection ) {
+            return null;
+        }
+
+        return $collection->get( 0 );
+    }
+
+    /**
+     * Get file collection.
+     *
+     * @param string $key
+     * @return UploadedFileCollection|null
+     */
+    public function get_files( string $key ) : ?UploadedFileCollection {
+        return $this->files[ $key ] ?? null;
     }
 
 }
