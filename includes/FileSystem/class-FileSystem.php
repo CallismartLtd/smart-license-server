@@ -24,27 +24,27 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  * Automatically detects the environment and uses the correct FileSystem adapter.
  *
- * @method bool is_dir(string $path)
- * @method bool is_file(string $path)
- * @method bool exists(string $path)
- * @method bool is_readable(string $path)
- * @method bool is_writable(string $path)
- * @method bool is_stream(mixed $thing)
- * @method string|false get_contents(string $file)
- * @method bool put_contents(string $path, string $contents, int $mode = FS_CHMOD_FILE)
- * @method bool delete(string $file, bool $recursive = false, string|false $type = false)
- * @method bool mkdir(string $path, int|false $chmod = false, bool $recursive = true)
- * @method bool rmdir(string $path, bool $recursive = false)
- * @method bool copy(string $source, string $dest, bool $overwrite = false)
- * @method bool move(string $source, string $dest, bool $overwrite = false)
- * @method bool rename(string $source, string $dest)
- * @method bool chmod(string $file, int|false $mode = false, bool $recursive = false)
- * @method bool chown(string $file, string|int $owner, bool $recursive = false)
- * @method array|false list(?string $path = null)
- * @method int|false filesize(string $path)
- * @method int|false filemtime(string $path)
- * @method array|false stat(string $path)
- * @method bool readfile(string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576)
+ * @method bool is_dir(string $path) Tells whether the filename is a directory.
+ * @method bool is_file(string $path) Tells whether the filename is a regular file.
+ * @method bool exists(string $path) Tells whether the directory or file exists
+ * @method bool is_readable(string $path) Tells whether a file exists and is readable.
+ * @method bool is_writable(string $path) Tells whether the filename is writable.
+ * @method bool is_stream(mixed $thing) Tells whether the given `thing` is a stream.
+ * @method string|false get_contents(string $file) Reads the content of a file as string.
+ * @method bool put_contents(string $path, string $contents, int $mode = FS_CHMOD_FILE) Write string content to the specified filename
+ * @method bool delete(string $file, bool $recursive = false, string|false $type = false) Deletes a file or directory.
+ * @method bool mkdir(string $path, int|false $chmod = false, bool $recursive = true) Makes directory.
+ * @method bool rmdir(string $path, bool $recursive = false) Removes directory.
+ * @method bool copy(string $source, string $dest, bool $overwrite = false) Copy file
+ * @method bool move(string $source, string $dest, bool $overwrite = false) Moves file
+ * @method bool rename(string $source, string $dest) Renames a file or directory.
+ * @method bool chmod(string $file, int|false $mode = false, bool $recursive = false) Changes file mode.
+ * @method bool chown(string $file, string|int $owner, bool $recursive = false) Changes file owner.
+ * @method array|false list(?string $path ) List files and directories at a path.
+ * @method int|false filesize(string $path) Gets file size
+ * @method int|false filemtime(string $path) Gets file modification time
+ * @method array|false stat(string $path) Gives information about a file
+ * @method bool readfile(string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576) Efficiently outputs the contents of a file.
  * @method object get_fs() Get the underlying filesytem object
  */
 class FileSystem {
