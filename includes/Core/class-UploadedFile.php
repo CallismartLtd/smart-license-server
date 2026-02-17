@@ -12,6 +12,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Core;
 
+use RuntimeException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\FileSystem\FileSystem;
@@ -39,6 +40,13 @@ final class UploadedFile {
     private string $key;
 
     /**
+     * Desired file name, used to override client supplied name.
+     * 
+     * @var ?string $new_name
+     */
+    private ?string $new_name;
+
+    /**
      * Filesystem abstraction.
      */
     private FileSystem $fs;
@@ -50,20 +58,55 @@ final class UploadedFile {
     private bool $rejected = false;
 
     /**
-     * @param array<string,mixed>|null $file
-     * @param string                   $key
+     * @param array<string,mixed>|null  $file
+     * @param string                    $key
+     * @param object                    $fs Optional instance of a filesystem abstraction class.
      */
-    public function __construct( ?array $file, string $key = 'file' ) {
+    public function __construct( ?array $file, string $key = 'file', $fs = null ) {
         $this->file = $file;
         $this->key  = $key;
-        $this->fs   = FileSystem::instance();
+        $this->fs   = $fs ?? FileSystem::instance();
     }
 
     /**
      * Create from $_FILES global.
+     * 
+     * @param string $key The file key in the $_FILES array.
      */
-    public static function from_files( string $key ) : self {
-        return new self( $_FILES[ $key ] ?? null, $key );
+    public static function from_files( string $key ) : static {
+        return new static( $_FILES[ $key ] ?? null, $key );
+    }
+
+    /**
+     * Set new file name.
+     * 
+     * @param string $name
+     * @throws RuntimeException On empty file name.
+     */
+    public function set_new_name( string $name ) : static {
+        if ( '' === $name ) {
+            throw new RuntimeException( 'New file name must not be an empty string.' );
+        }
+
+        $this->new_name = FileSystemHelper::sanitize_filename( $name );
+
+        return $this;
+    }
+
+    /**
+     * Get file name.
+     * 
+     * @param bool $with_ext
+     * @return ?string
+     */
+    public function get_name( bool $with_ext = true ) : ?string {
+        if ( isset( $this->new_name ) ) {
+            $name   = $this->new_name;
+        } else {
+            $name   = $this->get_sanitized_name();
+        }
+        
+        return $with_ext ? $name : FileSystemHelper::remove_extension( $name );
     }
 
     /**
@@ -164,7 +207,7 @@ final class UploadedFile {
     /**
      * Whether file was uploaded via HTTP POST or through our other method parser.
      */
-    public function is_uploaded_via_http() : bool {
+    public function is_uploaded_file() : bool {
 
         $tmp = $this->get_tmp_path();
 
@@ -249,7 +292,7 @@ final class UploadedFile {
         return $this->exists()
             && $this->has_valid_structure()
             && $this->is_upload_successful()
-            && $this->is_uploaded_via_http()
+            && $this->is_uploaded_file()
             && ! $this->moved
             && ! $this->rejected;
     }
@@ -298,9 +341,7 @@ final class UploadedFile {
             $this->fs->mkdir( $safe_directory, FS_CHMOD_DIR );
         }
 
-        $filename = $filename
-            ? FileSystemHelper::sanitize_filename( $filename )
-            : $this->get_sanitized_name();
+        $filename = $filename ?: $this->get_name();
 
         $destination = FileSystemHelper::join_path(
             $safe_directory,
@@ -321,7 +362,7 @@ final class UploadedFile {
             );
         }
 
-        $this->fs->chmod( $destination, FS_CHMOD_FILE );
+        @$this->fs->chmod( $destination, FS_CHMOD_FILE );
 
         $this->moved = true;
 
@@ -353,7 +394,7 @@ final class UploadedFile {
             'error_code'     => $this->get_error_code(),
             'error_message'  => $this->get_error_message(),
             'is_successful'  => $this->is_upload_successful(),
-            'is_http_upload' => $this->is_uploaded_via_http(),
+            'is_http_upload' => $this->is_uploaded_file(),
             'size'           => $this->get_size(),
             'mime'           => $this->get_detected_mime(),
             'checksum'       => $this->checksum(),
