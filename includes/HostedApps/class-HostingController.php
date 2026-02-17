@@ -47,6 +47,23 @@ class HostingController {
             throw new RequestException( 'unauthorized_scope' );
         }
     }
+
+    /**
+     * Tells whether the current principal owns or has permission to work on the app.
+     * 
+     * @param HostedAppsInterface $app.
+     */
+    private static function check_app_ownership( HostedAppsInterface $app ) {
+        $principal      = SecurityGuard::get_principal();
+
+        if ( ! $principal ) {
+            throw new RequestException( 'missing_auth' );
+        }
+
+        if ( ! $principal->get_owner()->owns_app( $app ) ) {
+            throw new RequestException( 'unuathorized_app_access' );
+        }
+    }
     /*
     |---------------------------
     | CREATE OPERATION METHODS
@@ -93,6 +110,10 @@ class HostingController {
                 throw new RequestException( 'invalid_input', 'Sorry there is no app matching the provided slug or ID.' , array( 'status' => 404 ) );
             }
 
+            if ( $app->exists() ) {
+                static::check_app_ownership( $app );
+            }
+
             $name   = $request->get( 'app_name', null );
 
             if ( empty( $name ) && ! $app->get_id() ) {
@@ -119,7 +140,7 @@ class HostingController {
             $app->set_version( $version );
             $app->set_file( $app_zip_file ?? '' );
         
-            if ( $app->get_id() ) {
+            if ( $app->exists() ) {
 
                 $update_method = "update_{$app_type}";
 
@@ -133,6 +154,10 @@ class HostingController {
                     throw $updated;
                 }
                 
+            } else if ( $request->hasValue( 'app_owner_id' ) ) {
+                $app->set_owner_id( $request->get( 'app_owner_id' ) );
+            } else {
+                $app->set_owner_id( SecurityGuard::get_principal()?->get_owner()->get_id() ?? 0 );
             }
 
             $result = $app->save();
@@ -234,7 +259,7 @@ class HostingController {
             );
         }
 
-        if ( ! $uploaded_json->is_uploaded_via_http() ) {
+        if ( ! $uploaded_json->is_uploaded_file() ) {
             return new RequestException(
                 'missing_file',
                 'app.json files must be correctly uploaded.'
@@ -277,17 +302,31 @@ class HostingController {
      */
     public static function app_asset_upload( Request $request ) {
         try {
-            static::check_permissions( ['hosted_apps.create', 'hosted_apps.update'] );
+            static::check_permissions( 'hosted_apps.upload_assets', 'hosted_apps.edit_assets' );
 
             $app_type   = $request->get( 'app_type' );
             $app_slug   = $request->get( 'app_slug' );
             $asset_type = $request->get( 'asset_type' );
             $asset_name = $request->get( 'asset_name', '' );
-            $asset_file = $request->get( 'asset_file' );
 
-            if ( empty( $app_type ) || empty( $app_slug ) || empty( $asset_type ) || empty( $asset_file ) ) {
-                throw new RequestException( 'missing_data', 'Missing required application, slug, asset type, or file data.' );
+            $missing    = [];
+            foreach ( \compact( 'app_slug', 'app_type', 'asset_type' ) as $key => $value ) {
+                if ( empty( $value ) ) {
+                    $missing[] = $key;
+                }
             }
+
+            if ( ! empty( $missing ) ) {
+                throw new RequestException(
+                    'required_param',
+                    sprintf(
+                        'Missing required parameters: %s',
+                        implode( ', ', $missing )
+                    )
+                );
+            }
+
+            unset( $missing );
             
             if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
                 throw new RequestException( 
@@ -295,44 +334,37 @@ class HostingController {
                     sprintf( 'The app type "%s" is not supported.', $app_type ) 
                 );
             }
+
+            $app    = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app ) {
+                throw new RequestException( 'app_not_found' );
+            }
+
+            // static::check_app_ownership( $app );
+
+            $asset_file = $request->get_files( 'asset_files' );
             
-            if ( ! is_array( $asset_file ) || ! isset( $asset_file['tmp_name'] ) ) {
-                throw new RequestException( 'invalid_input', 'Uploaded asset file is invalid or missing.' );
+            if ( ! $asset_file || ! ( $asset_file->count() > 0 ) ) {
+                throw new RequestException( 'invalid_input', 'Upload at least one asset using "asset_files" key in your file parameter name.' );
             }
 
             $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
+            
             if ( ! $repo_class ) {
                 throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
             }
             
-            $url = $repo_class->upload_asset( $app_slug, $asset_file, $asset_type, $asset_name );
-
-            if ( is_smliser_error( $url ) ) {
-                throw new RequestException( $url->get_error_code() ?: 'remote_download_failed', $url->get_error_message() );
-            }
+            $result = $repo_class->safe_asset_upload( $app_slug, $asset_file, $asset_type, $asset_name );
 
             \smliser_cache()->clear();
             
-            $url = ( new URL( $url ) )
-                ->add_query_param( 'ver', time() )
-            ->__toString();
-
-            $config = array(
-                'asset_type'    => $asset_type,
-                'app_slug'      => $app_slug,
-                'app_type'      => $app_type,
-                'asset_name'    => basename( $url ),
-                'asset_url'     => $url
-            );
-
-            // Return a success JSON response object
-            $data   = array( 'message' => 'Asset uploaded successfully', 'config' => $config );
             $response   = [
                 'success'   => true,
-                'data'      => $data
+                'result'    => $result
             ];
 
-            return ( new Response( 200, array(), smliser_safe_json_encode( $response ) ) )
+            return ( new Response( 200, array(), $response ) )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
 
         } catch ( RequestException $e ) {

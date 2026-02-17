@@ -14,6 +14,7 @@ namespace SmartLicenseServer\FileSystem;
 use SmartLicenseServer\Core\UploadedFile;
 use \ZipArchive;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\Utils\MDParser;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -66,10 +67,10 @@ class ThemeRepository extends Repository {
         try {
             $slug = $this->real_slug( $theme_slug );
             $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return new Exception(
                 'invalid_slug',
-                $e->getMessage(),
+                $e->get_error_message(),
                 [ 'status' => 400 ]
             );
         }
@@ -147,7 +148,7 @@ class ThemeRepository extends Repository {
     }
 
     /**
-     * Upload theme assets (eg. screenshot, screenshots) to the repository.
+     * Upload a themes' assets (eg. screenshot, screenshots) to the theme repository.
      * 
      * @param string $slug Theme slug.
      * @param array $file Uploaded file ($_FILES format).
@@ -170,10 +171,10 @@ class ThemeRepository extends Repository {
         // Enter theme slug directory.
         try {
             $path = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return new Exception( 
                 'invalid_slug', 
-                $e->getMessage(),
+                $e->get_error_message(),
                 [ 'status' => 400 ] 
             );
         }
@@ -252,6 +253,17 @@ class ThemeRepository extends Repository {
     }
 
     /**
+     * Validate names and types of asset that can be uploaded for a theme.
+     * 
+     * @param UploadedFile $file The uploaded file instance.
+     * @param string $type       The asset type.
+     * @return FileSystemException|string On error, file name otherwise.
+     */
+    public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : FileSystemException|string {
+        return '';
+    }
+
+    /**
      * Abstract Implementation: Get theme assets as URLs.
      *
      * Theme assets includes screenshots (screenshot.png, etc.).
@@ -266,7 +278,7 @@ class ThemeRepository extends Repository {
 
         try {
             $base_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return ( 'screenshot' === $type ) ? '' : [];
         }
 

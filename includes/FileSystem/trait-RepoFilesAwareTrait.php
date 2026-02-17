@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\FileSystem;
 
+use SmartLicenseServer\Exceptions\FileSystemException;
+
 /**
  * Provides unified methods to get known and shared repository files like 
  * - readme.md
@@ -60,7 +62,7 @@ trait RepoFilesAwareTrait {
         $file_contents  = '';
         try {
             $base_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return $file_contents;
         }
         $file_path = FileSystemHelper::join_path( $base_dir, $filename );

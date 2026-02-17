@@ -10,7 +10,7 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-use InvalidArgumentException;
+use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\HostedApps\Theme;
 use TypeError;
@@ -32,7 +32,7 @@ trait WPRepoUtils {
 
         try {
             $resolved = $this->resolve_app_manifest( $app );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             // Slug directory does not exist yet — return canonical manifest
             return $this->build_app_manifest( $app );
         }
@@ -102,7 +102,7 @@ trait WPRepoUtils {
         
         try {
             $base_dir  = $this->enter_slug( $slug );
-        } catch( InvalidArgumentException $e ) {
+        } catch( FileSystemException $e ) {
             return array(
                 'file_path' => '',
                 'manifest'  => $manifest,

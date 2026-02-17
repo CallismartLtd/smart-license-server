@@ -23,19 +23,13 @@ $author = sprintf(
 
 $template_sidebar['Author']['content']  = $author;
 
-$screenshots = [];
-
-foreach( $app->get_screenshots() as $screenshot ) {
-    $screenshots[] = $screenshot['src'] ?? '';
-}
-
 $cover  = [$app->get_cover()];
 $icons  = $app->get_icons();
 
 $images = [
     'Icons'         => array_filter( $icons ),
     'Cover'         => array_filter( $cover ),
-    'Screenshots'   => array_filter( $screenshots ),
+    'Screenshots'   => array_filter( $app->get_screenshots() ),
 ];
 
 include_once SMLISER_PATH . 'templates/admin/repository/preview.php';

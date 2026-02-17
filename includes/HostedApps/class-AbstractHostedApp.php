@@ -1160,19 +1160,6 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     }
 
     /**
-     * Check if this app is monetized.
-     * 
-     * @return bool true if monetized, false otherwise.
-     */
-    public function is_monetized() : bool {
-        $db         = smliser_dbclass();
-        $table_name = SMLISER_MONETIZATION_TABLE;
-        $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `app_type` = ? AND `app_id` = ? AND `enabled` = ?";
-        $params     = [$this->get_type(), absint( $this->id ), '1'];
-        return $db->get_var( $query, $params ) > 0;
-    }
-
-    /**
      * Get a sample of download URL for licensed app
      */
     public function monetized_url_sample() {
@@ -1306,4 +1293,34 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         return ! $this->is_trashed();
     }
     
+    /**
+     * Check if this app is monetized.
+     * 
+     * @return bool true if monetized, false otherwise.
+     */
+    public function is_monetized() : bool {
+        $db         = smliser_dbclass();
+        $table_name = SMLISER_MONETIZATION_TABLE;
+        $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `app_type` = ? AND `app_id` = ? AND `enabled` = ?";
+        $params     = [$this->get_type(), absint( $this->id ), '1'];
+        return $db->get_var( $query, $params ) > 0;
+    }
+
+    /**
+     * Tells if the app exists.
+     * 
+     * @return bool
+     */
+    public function exists() : bool {
+        return $this->get_id() > 0;
+    }
+
+    /**
+     * Tells whether this app has an owner.
+     * 
+     * @return bool
+     */
+    public function has_owner() : bool {
+        return ( $this->get_owner() instanceof Owner );
+    }
 }

@@ -9,8 +9,13 @@
 namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Core\UploadedFile;
+use SmartLicenseServer\Core\UploadedFileCollection;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\FileSystemException;
 use ZipArchive;
+
+use function is_smliser_error, defined;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -51,6 +56,15 @@ abstract class Repository {
     const TRASH_METADATA_FILE = '.smliser_meta';
 
     /**
+     * Allowed image extensions.
+     */
+    const ALLOWED_IMAGE_EXTENSIONS = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp' ];
+
+    /**
+     * Allowed icon names.
+     */
+    const ALLOWED_ICON_NAMES    = [ 'icon-128x128', 'icon-256x256', 'icon' ];
+    /**
      * Currently active subdirectory.
      *
      * @var string
@@ -84,11 +98,11 @@ abstract class Repository {
      *
      * @param string $dir
      * @return void
-     * @throws \InvalidArgumentException
+     * @throws FileSystemException When illegal subdirectory is passed.
      */
     public function switch( $dir ) {
         if ( ! in_array( $dir, $this->allowed_dirs, true ) ) {
-            throw new \InvalidArgumentException( sprintf(
+            throw new FileSystemException( sprintf(
                 'Directory "%s" is not allowed. Allowed directories: %s',
                 $dir,
                 implode( ', ', $this->allowed_dirs )
@@ -104,7 +118,7 @@ abstract class Repository {
      *
      * @param string $slug Slug name (folder inside current repo subdir).
      * @return string Absolute path
-     * @throws \InvalidArgumentException If the slug directory does not exist.
+     * @throws FileSystemException When the slug directory does not exist.
      */
     public function enter_slug( $slug ) {
         $slug = $this->real_slug( $slug );
@@ -119,7 +133,7 @@ abstract class Repository {
         $real     = $this->full_path( $relative );
 
         if ( ! $real || ! $this->is_dir( $real ) ) {
-            throw new \InvalidArgumentException( sprintf(
+            throw new FileSystemException( sprintf(
                 'Slug directory "%s" does not exist in "%s" repository.',
                 $slug,
                 $this->current_dir
@@ -135,11 +149,11 @@ abstract class Repository {
      *
      * @param string $filename Optional filename relative to current slug.
      * @return string
-     * @throws \RuntimeException If no subdirectory is selected.
+     * @throws FileSystemException When there is no selected directory.
      */
     public function path( $filename = '' ) {
         if ( ! $this->current_dir ) {
-            throw new \RuntimeException( 'No subdirectory selected.' );
+            throw new FileSystemException( 'No subdirectory selected.' );
         }
 
         $parts = [ $this->current_dir ];
@@ -152,7 +166,6 @@ abstract class Repository {
 
         $relative = implode( '/', $parts );
 
-        // Use FileSystem to get absolute path
         return $this->full_path( $relative );
     }
 
@@ -197,18 +210,18 @@ abstract class Repository {
      * List contents of a ZIP archive (inside current slug dir).
      *
      * @param string $filename Relative filename.
-     * @return array|Exception
+     * @return array|FileSystemException
      */
     public function list_zip_contents( $filename ) {
         $real = $this->full_path( $this->path( $filename ) );
 
         if ( ! $real || ! $this->exists( $real ) ) {
-            return new Exception( 'zip_not_found', __( 'ZIP file not found.', 'smart-license-server' ) );
+            return new FileSystemException( __( 'ZIP file not found.', 'smart-license-server' ) );
         }
 
         $zip = new ZipArchive();
         if ( $zip->open( $real ) !== true ) {
-            return new Exception( 'zip_invalid', __( 'Unable to open ZIP file.', 'smart-license-server' ) );
+            return new FileSystemException( __( 'Unable to open ZIP file.', 'smart-license-server' ) );
         }
 
         $files = [];
@@ -227,7 +240,7 @@ abstract class Repository {
      *
      * @param string $from Absolute temporary file path.
      * @param string $to   Absolute destination file path.
-     * @return string|\SmartLicenseServer\Exception Absolute path of stored ZIP or Exception on failure.
+     * @return string|Exception Absolute path of stored ZIP or error on failure.
      */
     private function save_zip_file( $from, $to ) {
         // Ensure destination file name ends with .zip.
@@ -253,7 +266,7 @@ abstract class Repository {
     }
 
     /**
-     * Safely upload or update an application ZIP file in the repository.
+     * Safely upload or update an application ZIP file.
      *
      * @param UploadedFile  $file   The uploaded file.
      * @param string $new_name      The preferred filename (without path).
@@ -269,7 +282,7 @@ abstract class Repository {
             return new Exception( 'invalid_filename', 'The new filename cannot be empty.', [ 'status' => 400 ] );
         }
 
-        if ( ! $file->is_uploaded_via_http() ) {
+        if ( ! $file->is_uploaded_file() ) {
             return new Exception( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
         }
 
@@ -282,19 +295,23 @@ abstract class Repository {
 
         try {
             $slug = $this->real_slug( $new_name );
-        } catch ( \InvalidArgumentException $e ) {
-            return new Exception( 'invalid_slug', $e->getMessage(), [ 'status' => 400 ] );
+        } catch ( FileSystemException $e ) {
+            return new Exception( $e->get_error_code(), $e->get_error_message(), [ 'status' => 400 ] );
         }
 
         // Force the filename to strictly be "{slug}.zip".
         $file_name = "{$slug}.zip";
 
-        // Build destination folder and file path
+        // Build destination directory.
         try {
             $base_folder = $this->path( $slug );
             $dest_path   = FileSystemHelper::join_path( $base_folder, $file_name );
-        } catch ( \RuntimeException $e ) {
-            return new Exception( 'repo_error', $e->getMessage(), [ 'status' => 500 ] );
+
+            if ( is_smliser_error( $dest_path ) ) {
+                throw $dest_path;
+            }
+        } catch ( FileSystemException $e ) {
+            return new Exception( $e->get_error_code(), $e->get_error_message(), [ 'status' => 500 ] );
         }
 
         if ( ! $update ) {
@@ -326,17 +343,110 @@ abstract class Repository {
     }
 
     /**
+     * Safely upload or update application assets.
+     * 
+     * @param string                    $slug       The application slug.
+     * @param UploadedFileCollection    $files      The uploaded file instances.
+     * @param string                    $asset_type The type of asset(eg screenshots, icon, banners etc).
+     * @return array{
+     *      uploaded: array<
+     *          string|int, array{
+     *              app_slug: string,
+     *              app_type: string,
+     *              asset_name: string,
+     *              asset_url: string
+     *          }
+     *      },
+     *      
+     *      failed: array{
+     *          string|int, array
+     *      }
+     * }
+     */
+    public function safe_asset_upload( string $slug, UploadedFileCollection $files, string $asset_type ) : array {
+        $result = [
+            'uploaded'  => [],
+            'failed'    => []
+        ];
+
+        try {
+            $slug       = $this->real_slug( $slug );
+            $base_path  = $this->enter_slug( $slug );
+            $assets_dir = FileSystemHelper::join_path( $base_path, '/assets' );
+
+            if ( ! $assets_dir ) {
+                throw new FileSystemException( 'Malformed assets directory.' );
+            }
+
+            if ( ! $this->is_dir( $assets_dir ) && ! $this->mkdir( $assets_dir, FS_CHMOD_DIR, true ) ) {
+                throw new FileSystemException( 'Unable to create asset directory.' );
+            }
+        } catch ( FileSystemException $e ) {
+            $result['failed']['system'] = $e->get_error_message();
+
+            return $result;
+        }
+
+        foreach ( $files->all() as $file ) {
+            $has_error  = false;
+
+            if ( ! $file->is_upload_successful() ) {
+                $result['failed'][$file->get_name( false )]['partial_upload']   = 'Upload was not success.';
+                $has_error                                      = true;
+            }
+
+            if ( ! $file->is_uploaded_file() ) {
+                $result['failed'][$file->get_name( false )]['invalid_http_upload']   = 'File is not a valid HTTP uploaded file.';
+                $has_error                                      = true;
+            }
+
+            if ( ! $file->is_moveable() ) {
+                $result['failed'][$file->get_name( false )]['filesystem_error']   = 'Asset cannot be reliably moved to the repository.';
+                $has_error                                      = true;
+            }
+
+            $asset_name = $this->validate_app_asset( $file, $asset_type, $assets_dir );
+
+            if ( is_smliser_error( $asset_name ) ) {
+                $result['failed'][$file->get_name( false )][$asset_name->get_error_code()]   = $asset_name->get_error_message();
+                $has_error                                      = true;
+            }
+
+            if ( $has_error ) {
+                continue;
+            }
+
+            try {
+                $path       = $file->move( $assets_dir, $asset_name );
+                $app_type   = $this->current_dir;
+                $app_slug   = $slug;
+                $asset_name = basename( $path );
+                $raw_url    = smliser_get_asset_url( $app_type, $app_slug, $asset_name );
+                $asset_url  = ( new URL( $raw_url ) )
+                ->add_query_param( 'ver', \microtime() )->get_href();
+
+                $result['uploaded'][$file->get_client_name()] = \compact( 'app_slug', 'app_type', 'asset_name', 'asset_url' );
+            } catch( Exception $e ) {
+                $result['failed'][$file->get_client_name()][]   = $e->get_error_message();
+            }
+
+        }
+
+        return $result;
+    }
+
+    /**
      * Normalize an app slug to get the first folder.
      *
      * @param string $slug Input like "plugin/plugin.zip or theme.zip"
      * @return string First folder name (slug)
-     * @throws \InvalidArgumentException If slug is empty or contains invalid references
+     * @throws FileSystemException If slug is empty or contains invalid references
      */
     public function real_slug( $slug ) {
         $slug = trim( $slug );
 
         if ( empty( $slug ) ) {
-            throw new \InvalidArgumentException( 'Invalid slug provided.' );
+            throw new FileSystemException( 'Invalid slug provided.' );
         }
 
         $parts      = explode( '/', $slug );
@@ -489,6 +599,30 @@ abstract class Repository {
     }
 
     /**
+     * Find the next screenshot name in a given directory.
+     * 
+     * Works by serching for `screenshot-{index}` in the given directory.
+     * 
+     * @param string $dir The directory to search.
+     * @return string
+     */
+    public function find_next_screenshot_name( string $dir )  {
+        $path           = FileSystemHelper::join_path( $dir, 'screenshot' );
+        $pattern        = $path . '-*.{' . implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) . '}';
+        $screenshots    = glob( $pattern, GLOB_BRACE );
+        $indexes        = [];
+
+        foreach ( $screenshots as $screenshot ) {
+            if ( preg_match( '/screenshot-(\d+)\./', basename( $screenshot ), $m ) ) {
+                $indexes[] = (int) $m[1];
+            }
+        }
+
+        $next_index  = empty( $indexes ) ? 1 : ( max( $indexes ) + 1 );
+        return sprintf( 'screenshot-%d', $next_index );
+    }
+
+    /**
     |---------------------------
     | ABSTRACT METHODS
     |---------------------------
@@ -549,6 +683,16 @@ abstract class Repository {
     abstract public function regenerate_app_dot_json( \SmartLicenseServer\HostedApps\AbstractHostedApp $app ) : array;
 
     /**
+     * Allows hosted app repository classes to validate app asset types.
+     * 
+     * @param UploadedFile $file  Uploaded file instance.
+     * @param string        $type Asset type.
+     * @param string        $dir  The current asset directory.
+     * @return Exception|string Error or file name
+     */
+    abstract public function validate_app_asset( UploadedFile $file, string $type, string $dir ) : Exception|string;
+
+    /**
     |---------------------------
     | SETTING UP THE REPOSITORY 
     |---------------------------
@@ -561,7 +705,7 @@ abstract class Repository {
      *
      * @return true|Exception True on success, Exception instance on failure.
      */
-    public static function make_directories() {
+    public static function make_default_directories() {
         $fs = FileSystem::instance();
 
         $directories = [
@@ -660,7 +804,6 @@ abstract class Repository {
         return true;
     }
 
-
     /**
      * Safely translate a string even outside WordPress.
      *
@@ -697,8 +840,8 @@ abstract class Repository {
         $slug = $this->real_slug( $slug );
         try {
             $base_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
-            return new Exception( 'invalid_dir', $e->getMessage(), [ 'status' => 400 ] );
+        } catch ( FileSystemException $e ) {
+            return new Exception( 'invalid_dir', $e->get_error_message(), [ 'status' => 400 ] );
         }
 
         $filename   = FileSystemHelper::sanitize_filename( $filename );

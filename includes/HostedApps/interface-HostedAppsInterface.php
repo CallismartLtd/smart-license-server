@@ -267,6 +267,13 @@ interface HostedAppsInterface {
      */
     public function is_monetized() : bool;
 
+    /**
+     * Tells whether an app exists.
+     * 
+     * @return bool
+     */
+    public function exists() : bool;
+
     /*
     |----------------------------------
     | Repository FileSystem operations

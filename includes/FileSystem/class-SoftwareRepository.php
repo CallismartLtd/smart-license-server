@@ -12,9 +12,9 @@
 namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Utils\MDParser;
-use InvalidArgumentException;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\HostedApps\Software;
 use ZipArchive;
 
@@ -43,13 +43,6 @@ class SoftwareRepository extends Repository {
     }
 
     /**
-     * Allowed image extensions for software assets.
-     * 
-     * @var array $allowed_image_exts
-     */
-    protected array $allowed_image_exts = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp' ];
-
-    /**
      * Locate the software ZIP file inside the repository.
      * 
      * @param string $slug The software slug.
@@ -67,10 +60,10 @@ class SoftwareRepository extends Repository {
         try {
             $slug = $this->real_slug( $slug );
             $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return new Exception(
                 'invalid_slug',
-                $e->getMessage(),
+                $e->get_error_message(),
                 [ 'status' => 400 ]
             );
         }
@@ -149,7 +142,7 @@ class SoftwareRepository extends Repository {
     }
 
     /**
-     * Upload software assets to the repository.
+     * Upload a software assets to the software repository.
      * 
      * @param string $slug Software slug.
      * @param array $file Uploaded file ($_FILES format).
@@ -157,7 +150,7 @@ class SoftwareRepository extends Repository {
      * @param string $filename Desired filename within the asset type directory.
      * @return string|Exception Relative path to stored asset on success, Exception on failure.
      */
-    public function upload_asset(string $slug, array $file, string $type, string $filename = '' ) {
+    public function upload_asset( string $slug, array $file, string $type, string $filename = '' ) {
         // Validate upload
         if ( ! is_uploaded_file( $file['tmp_name'] ?? '' ) ) {
             return new Exception( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );
@@ -172,10 +165,10 @@ class SoftwareRepository extends Repository {
         // Enter theme slug directory.
         try {
             $path = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return new Exception( 
                 'invalid_slug', 
-                $e->getMessage(),
+                $e->get_error_message(),
                 [ 'status' => 400 ] 
             );
         }
@@ -198,7 +191,7 @@ class SoftwareRepository extends Repository {
             case 'icon':
                 $allowed_names = [ 'icon-128x128', 'icon-256x256', 'icon' ];
                 if ( ! in_array( pathinfo( $file['name'], PATHINFO_FILENAME ), $allowed_names, true ) 
-                    || ! in_array( $ext, $this->allowed_image_exts, true ) ) {
+                    || ! in_array( $ext, static::ALLOWED_IMAGE_EXTENSIONS, true ) ) {
                     return new Exception(
                         'invalid_icon_name',
                         'Icon must follow these naming convention: icon, icon-128x128 or icon-256x256 and be a PNG, GIF, or SVG file.',
@@ -211,7 +204,7 @@ class SoftwareRepository extends Repository {
                 $target_name = 'cover.' . $ext;
                 break;
             case 'screenshot':
-                if ( ! in_array( $ext, $this->allowed_image_exts, true ) ) {
+                if ( ! in_array( $ext, static::ALLOWED_IMAGE_EXTENSIONS, true ) ) {
                     return new Exception(
                         'invalid_screenshot_type',
                         'Screenshots must be PNG, JPG, JPEG, GIF, WEBP or SVG.',
@@ -230,8 +223,8 @@ class SoftwareRepository extends Repository {
                         );
                     }
                 } else {
-                    // Auto-generate next index
-                    $existing = glob( $asset_dir . 'screenshot-*.' . implode( ',', $this->allowed_image_exts ), GLOB_BRACE );
+                    // Auto-generate next index.
+                    $existing = glob( $asset_dir . 'screenshot-*.' . implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ), GLOB_BRACE );
                     $indexes  = [];
 
                     foreach ( $existing as $shot ) {
@@ -263,6 +256,55 @@ class SoftwareRepository extends Repository {
     }
 
     /**
+     * Validate names and types of asset that can be uploaded for a software.
+     * 
+     * @param UploadedFile $file The uploaded file instance.
+     * @param string $type       The asset type.
+     * @return Exception|string On error, file name otherwise.
+     */
+    public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
+        $ext    = $file->get_canonical_extension();
+
+        if ( ! $ext ) {
+            return new Exception( 'repo_error', 'The extension for the for this image could not be trusted.', [ 'status' => 400 ] );
+        }
+
+        if ( ! in_array( $ext, static::ALLOWED_IMAGE_EXTENSIONS, true ) ) {
+            return new Exception(
+                'file_ext_error',
+                sprintf( 'Icon file must be one of: %s', implode( ', ', static::ALLOWED_IMAGE_EXTENSIONS ) ),
+            );
+        }
+
+        // Only icon, cover and screenshots are allowed.
+        switch ( $type ) {
+            case 'icon':
+                $allowed    = in_array( $file->get_name( false ), static::ALLOWED_ICON_NAMES, true );
+                if ( ! $allowed ) {
+                    return new Exception(
+                        'filename_error',
+                        sprintf( 'Icon name must be one of: %s', implode( ', ', static::ALLOWED_ICON_NAMES ) )
+                    );
+                }
+
+                return $file->get_name();
+            case 'cover':
+                return sprintf( 'cover.%s', $ext );
+            case 'screenshot':
+                if ( preg_match( '/screenshot-(\d+)\./', $file->get_name( false ), $m ) ) {
+                    return sprintf( 'screenshot-%d.%s', $m[1], $ext );
+                    
+                } else {
+                    // Auto-generate next index.
+                    return sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
+                }
+
+            default:
+                return new Exception( 'invalid_type', 'Unsupported asset type.', [ 'status' => 400 ] );
+        }
+    }
+
+    /**
      * Get software assets as URL.
      * 
      * @param string $slug Software slug.
@@ -274,7 +316,7 @@ class SoftwareRepository extends Repository {
 
         try {
             $base_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return ( 'cover' === $type ) ? '' : [];
         }
 
@@ -284,7 +326,7 @@ class SoftwareRepository extends Repository {
              return ( 'cover' === $type ) ? '' : [];
         }
 
-        $possible_exts  = $this->allowed_image_exts;
+        $possible_exts  = static::ALLOWED_IMAGE_EXTENSIONS;
 
         switch ( $type ) {
             case 'icons':
@@ -336,7 +378,7 @@ class SoftwareRepository extends Repository {
 
         try {
             $base_dir =$this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return $this->regenerate_app_dot_json( $software );
         }
 

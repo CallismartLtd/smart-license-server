@@ -210,7 +210,7 @@ class HostedApplicationService {
             // Fetch paginated rows for this type
             $select_sql = "SELECT id FROM {$table_name} 
                         WHERE status = ? 
-                        ORDER BY update_at DESC 
+                        ORDER BY updated_at DESC 
                         LIMIT ? OFFSET ?";
             $rows = $db->get_results( $select_sql, [$status, $per_type_limit, $offset] );
 
@@ -384,7 +384,7 @@ class HostedApplicationService {
                     }
                    
                     // Query for fetching IDs
-                    $sql_parts[]    = "SELECT id, '{$type}' AS type, update_at FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
+                    $sql_parts[]    = "SELECT id, '{$type}' AS type, updated_at FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
                     $params_sql     = array_merge( $params_sql, [ $status, $like, $like, $like ] );
 
                     // Query for counting matches

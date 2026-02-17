@@ -28,12 +28,14 @@ final class Capability {
          * Hosted Applications (Plugin, Theme, Software)
          */
         'hosted_apps' => [
-            'hosted_apps.create'         => 'Create hosted applications',
-            'hosted_apps.update'         => 'Update hosted application details',
-            'hosted_apps.delete'         => 'Delete hosted applications',
-            'hosted_apps.change_status'  => 'Change hosted application status',
-            'hosted_apps.upload_assets'  => 'Upload application assets',
-            'hosted_apps.access_files'   => 'Access application package files',
+            'hosted_apps.create'            => 'Create hosted applications',
+            'hosted_apps.update'            => 'Update hosted application details',
+            'hosted_apps.delete'            => 'Delete hosted applications',
+            'hosted_apps.change_status'     => 'Change hosted application status',
+            'hosted_apps.upload_assets'     => 'Upload application assets',
+            'hosted_apps.edit_assets'       => 'Edit application assets',
+            'hosted_apps.delete_assets'     => 'Delete application assets',
+            'hosted_apps.access_files'      => 'Access application package files',
         ],
 
         /**

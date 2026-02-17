@@ -10,6 +10,7 @@ namespace SmartLicenseServer\RESTAPI;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -255,20 +256,93 @@ class AppCollection {
 
             $request->set( 'app_slug', $app_slug )
                     ->set( 'app_type', $app_type )
-                    ->set( 'status', AbstractHostedApp::STATUS_TRASH );
+                    ->set( 'app_status', AbstractHostedApp::STATUS_TRASH );
 
             $response   = HostingController::change_app_status( $request );
 
             if ( $response->ok() ) {
-                $response->remove_header( 'Location' );
-                $response->set_status_code( 204 );
+                $response->set_status_code( 204 )         
+                ->set_body( '' );
                 
-                $response->set_body( '' );
                 static::cache_clear();
             }
 
             return $response;
         } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+        }
+    }
+
+    /**
+     * Guards asset upload for an application.
+     * 
+     * @param Request $request The request object.
+     * @return RequestException|bool
+     */
+    public static function assets_management_guard( Request $request ) : RequestException|bool {
+        if ( $request->is_method( 'GET' ) ) {
+            // Edge-case 405 error.
+            return new RequestException( 'method_not_allowed' );
+        }
+
+        $actor  = SecurityGuard::get_principal();
+
+        if ( ! $actor ) {
+            // Actor is not authenticated, return 401 response code.
+            return new RequestException( 'missing_auth' );
+        }
+
+        $content_type   = strtolower( $request->contentType() );
+
+        if ( ! \str_contains( $content_type, 'multipart/form-data' ) && ! $request->isDelete() ) {
+            return new RequestException( 'requires_multipart_form_data' );
+        }
+
+        $has_permission = match( $request->method() ) {
+            'POST'      => $actor->can( 'hosted_apps.upload_assets' ),
+            'DELETE'    => $actor->can( 'hosted_apps.delete_assets' ),
+            'PUT',      => $actor->can( 'hosted_apps.edit_assets' ),
+            default     => false,
+        };
+
+        // Allow or deny with 403 response code.
+        return $has_permission ?: new RequestException( 'unauthorized_scope' );
+    }
+
+    /**
+     * Upload app assets.
+     * 
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function upload_app_assets( Request $request ) : Response {
+        try {
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+
+            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app_exists ) {
+                throw new RequestException( 'app_not_found' );
+            }
+
+            $response   = HostingController::app_asset_upload( $request );
+
+            if ( $response->ok() ) {
+                // $response_body  = (array) $response->get_body();
+                // $data           = $response_body['data']['config'] ?? [];
+                // $url            = $data['asset_url'] ?? '';
+
+                // $response->set_header( 'Location', $url );
+                // $new_body   = Collection::make( $data )
+                //     ->only( ['app_slug', 'app_type', 'asset_name', 'asset_url'] );
+                // $response->set_body( $new_body->toArray() );
+            }
+
+            return $response;     
+        } catch( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );

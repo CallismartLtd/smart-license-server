@@ -30,6 +30,18 @@ class V1 implements RESTInterface {
      * @var string
      */
     const APP_ROUTE_REGEX   = '(?P<app_type>[a-zA-Z0-9_-]+)/(?P<app_slug>[a-zA-Z0-9_-]+)';
+    
+    /**
+     * Asset type regex.
+     */
+    const ASSET_TYPE_REGEX = '(?P<asset_type>icon|banner|screenshot|screenshots)';
+
+    /**
+     * Asset name regex.
+     */
+    const ASSET_NAME_REGEX = '(?P<asset_name>[a-zA-Z0-9_-]+)';
+
+
     /** 
      * REST API Route namespace.
      * 
@@ -95,6 +107,17 @@ class V1 implements RESTInterface {
      * @var string
      */
     private static $repository_app_route = '/repository/' . self::APP_ROUTE_REGEX;
+
+    /** 
+     * Route to  operations on an applications' assets.
+     * @example ```POST
+     *  /repository/plugin/smart-woo-pro/assets/screenshots
+     * ```
+     * 
+     * @var string
+     */
+    private static $app_assets_type_route = '/repository/' . self::APP_ROUTE_REGEX . '/assets/' . self::ASSET_TYPE_REGEX;
+
 
     /**
      * Download token regeneration REST API route
@@ -280,6 +303,7 @@ class V1 implements RESTInterface {
                     'category'      => 'repository',
                     'name'          => 'Get Single Application',
                 ),
+                
                 array(
                     'route'         => self::$repository_app_route,
                     'methods'       => ['POST'],
@@ -289,6 +313,7 @@ class V1 implements RESTInterface {
                     'category'      => 'repository',
                     'name'          => 'Create a New Application',
                 ),
+
                 array(
                     'route'         => self::$repository_app_route,
                     'methods'       => array( 'PUT', 'PATCH' ),
@@ -298,6 +323,7 @@ class V1 implements RESTInterface {
                     'category'      => 'repository',
                     'name'          => 'Update an Existing Application',
                 ),
+
                 array(
                     'route'         => self::$repository_app_route,
                     'methods'       => array( 'DELETE' ),
@@ -306,6 +332,27 @@ class V1 implements RESTInterface {
                     'args'          => self::get_app_delete_args(),
                     'category'      => 'repository',
                     'name'          => 'Delete Existing Application'
+                ),
+
+                // App asset routes.
+                array(
+                    'route'         => self::$app_assets_type_route,
+                    'methods'       => array( 'POST' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'upload_app_assets' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'assets_management_guard' ),
+                    'args'          => [],
+                    'category'      => 'repository',
+                    'name'          => 'App Asset Bulk Upload'
+                ),
+
+                array(
+                    'route'         => self::$app_assets_type_route . '/' . self::ASSET_NAME_REGEX,
+                    'methods'       => array( 'PUT' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'replace_app_asset' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'assets_management_guard' ),
+                    'args'          => [],
+                    'category'      => 'repository',
+                    'name'          => 'Create or Replace App Asset'
                 ),
 
                 // Download Token Reauthentication Route
