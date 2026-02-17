@@ -11,10 +11,9 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-use InvalidArgumentException;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\Utils\MDParser;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -48,7 +47,7 @@ class PluginRepository extends Repository {
      * Locate a plugin zip file in the repository and enter the plugin slug.
      *
      * @param string $plugin_slug The plugin slug (e.g., "my-plugin").
-     * @return string|Exception Absolute file path or Exception on failure.
+     * @return string|Exception Absolute file path or error on failure.
      */
     public function locate( $plugin_slug ) : string| Exception {
         if ( empty( $plugin_slug ) || ! is_string( $plugin_slug ) ) {
@@ -62,10 +61,10 @@ class PluginRepository extends Repository {
         try {
             $slug = $this->real_slug( $plugin_slug );
             $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return new Exception( 
                 'invalid_slug', 
-                $e->getMessage(),
+                $e->get_error_message(),
                 [ 'status' => 400 ] 
             );
         }
@@ -142,7 +141,7 @@ class PluginRepository extends Repository {
     }
 
     /**
-     * Upload an asset (banner, icon, or screenshot) for a plugin.
+     * Upload a plugins' asset (banner, icon, or screenshots) to the plugin repository.
      *
      * @param string $slug     Plugin slug (e.g., "my-plugin").
      * @param array  $file     Uploaded file ($_FILES format).
@@ -166,10 +165,10 @@ class PluginRepository extends Repository {
         // Attempt to enter the plugin slug dir.
         try {
             $path = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return new Exception( 
                 'invalid_slug', 
-                $e->getMessage(),
+                $e->get_error_message(),
                 [ 'status' => 400 ] 
             );
         }
@@ -270,6 +269,17 @@ class PluginRepository extends Repository {
     }
 
     /**
+     * Validate names and types of asset that can be uploaded for a theme.
+     * 
+     * @param UploadedFile $file The uploaded file instance.
+     * @param string $type       The asset type.
+     * @return FileSystemException|string On error, file name otherwise.
+     */
+    public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : FileSystemException|string {
+        return '';
+    }
+
+    /**
      * Get plugin assets as URLs.
      *
      * @uses self::real_slug() and self::enter_slug() to ensure we operate inside the repository sandbox.
@@ -284,7 +294,7 @@ class PluginRepository extends Repository {
 
         try {
             $base_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return [];
         }
 
@@ -658,7 +668,7 @@ class PluginRepository extends Repository {
         $slug = $this->real_slug( $slug );
         try {
             $base_dir = $this->enter_slug( $slug );
-        } catch ( \InvalidArgumentException $e ) {
+        } catch ( FileSystemException $e ) {
             return '';
         }
 
