@@ -129,6 +129,11 @@ class RequestException extends Exception {
             'title'   => 'Insufficient Scope',
             'message' => 'The provided credentials do not grant access to this resource.'
         ],
+        'unuathorized_app_access' => [
+            'status'  => 403,
+            'title'   => 'Unathorized App Access',
+            'message' => 'Sorry, you do not have the correct app ownership permission.'
+        ],
 
         // 403 Forbidden Errors.
         'permission_denied' => [
