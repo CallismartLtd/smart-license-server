@@ -322,18 +322,18 @@ class Router implements RouterInterface {
         
         $asset_file = null;
         if ( ! ( isset( $_FILES['asset_file'] ) && UPLOAD_ERR_OK === $_FILES['asset_file']['error'] ) ) {
-             // Throw exception if file is missing or corrupted
-             throw new RequestException( 'invalid_input', 'Uploaded file missing or corrupted.' );
+            // Throw exception if file is missing or corrupted
+            throw new RequestException( 'invalid_input', 'Uploaded file missing or corrupted.' );
         }
+
         $asset_file = $_FILES['asset_file'];
 
         $request = new Request([
-            'is_authorized' => $is_authorized,
             'app_type'      => smliser_get_post_param( 'app_type' ),
             'app_slug'      => smliser_get_post_param( 'app_slug' ),
             'asset_type'    => smliser_get_post_param( 'asset_type' ),
             'asset_name'    => smliser_get_post_param( 'asset_name', '' ),
-            'asset_file'    => $asset_file, // Pass the normalized file array
+            'asset_file'    => $asset_file, // Pass the normalized file array.
             'user_agent'    => smliser_get_user_agent(),
             'request_time'  => time(),
             'client_ip'     => smliser_get_client_ip(),
