@@ -118,7 +118,7 @@
 .smliser-json-editor {
     display: flex;
     flex-direction: column;
-    min-height: 600px;
+    height: 600px;
     max-height: 90vh;
     border-radius: var(--sje-border-radius-lg);
     overflow: hidden;
@@ -416,7 +416,8 @@
     display: none !important;
 }
 
-.toolbar-search-input {
+.toolbar-search-input,
+.toolbar-filename-input {
     width: 100%;
     padding: var(--sje-spacing-sm) var(--sje-spacing-lg);
     border: 1px solid var(--sje-light-border-strong);
@@ -429,29 +430,40 @@
     transition: var(--sje-transition-fast);
 }
 
-.theme-dark .toolbar-search-input {
+.toolbar-filename-input {
+    min-width: 150px;
+    max-width: 200px;
+    font-family: var(--sje-font-family-mono);
+}
+
+.theme-dark .toolbar-search-input,
+.theme-dark .toolbar-filename-input {
     border-color: var(--sje-dark-border-strong);
     background: var(--sje-dark-bg-tertiary);
     color: var(--sje-dark-text-primary);
 }
 
-.toolbar-search-input:focus {
+.toolbar-search-input:focus,
+.toolbar-filename-input:focus {
     outline: none;
     border-color: var(--sje-light-active);
     box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
-.theme-dark .toolbar-search-input:focus {
+.theme-dark .toolbar-search-input:focus,
+.theme-dark .toolbar-filename-input:focus {
     border-color: var(--sje-dark-active);
     box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
 }
 
-.toolbar-search-input::placeholder {
+.toolbar-search-input::placeholder,
+.toolbar-filename-input::placeholder {
     color: var(--sje-light-text-muted);
     font-weight: 400;
 }
 
-.theme-dark .toolbar-search-input::placeholder {
+.theme-dark .toolbar-search-input::placeholder,
+.theme-dark .toolbar-filename-input::placeholder {
     color: var(--sje-dark-text-muted);
 }
 
@@ -527,7 +539,7 @@
 
 /* Tree nodes with improved spacing */
 .json-tree-node {
-    margin: 8px 0;
+    margin: 2px 0;
     line-height: var(--sje-line-height-relaxed);
 }
 
@@ -1132,7 +1144,8 @@
 }
 
 .json-tree-node {
-    animation: fadeIn 0.2s ease;
+    animation: fadeIn 1s ease;
+    margin: 10px 5px;
 }
 
 /* ============================================================================

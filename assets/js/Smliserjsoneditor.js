@@ -193,13 +193,13 @@ class SmliserJsonEditor {
             this._buildToolbar();
         }
 
-        // Build views
+        // Build views.
         this._buildViews();
 
         // Build status bar
         this._buildStatusBar();
 
-        // Replace target or append
+        // Replace target or append.
         if (this.targetElement.tagName === 'TEXTAREA') {
             this.targetElement.style.display = 'none';
             this.targetElement.parentNode.insertBefore(this.container, this.targetElement.nextSibling);
@@ -221,58 +221,94 @@ class SmliserJsonEditor {
 
         const toolbarHTML = `
             <div class="toolbar-group">
-                <button class="toolbar-btn" data-action="import" title="Import JSON file (Ctrl+O)" aria-label="Import JSON file">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 2v8m0-8L5 5m3-3l3 3M2 10v4h12v-4"/></svg>
-                    <span>Import</span>
+                <button class="toolbar-btn" data-action="import" title="Upload JSON file (Ctrl+O)" aria-label="Upload JSON file">
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M8 3v7m0-7l-3 3m3-3l3 3"/>
+                        <path d="M2 12v2h12v-2"/>
+                    </svg>
+                    <span>Upload File</span>
                 </button>
-                <button class="toolbar-btn" data-action="export" title="Export JSON file (Ctrl+S)" aria-label="Export JSON file">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 14V6m0 8l-3-3m3 3l3-3M2 2v4h12V2"/></svg>
-                    <span>Export</span>
+                <button class="toolbar-btn" data-action="export" title="Download JSON file (Ctrl+S)" aria-label="Download JSON file">
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M8 11V3m0 8l-3-3m3 3l3-3"/>
+                        <path d="M2 14h12"/>
+                    </svg>
+                    <span>Download</span>
                 </button>
+                <input type="text" class="toolbar-filename-input" value="data.json" title="Filename for export" aria-label="Output filename" placeholder="filename.json">
+            </div>
+
+            <div class="toolbar-group">
                 <button class="toolbar-btn" data-action="copy" title="Copy JSON to clipboard (Ctrl+C)" aria-label="Copy JSON">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><rect x="3" y="3" width="8" height="10" fill="none" stroke="currentColor"/><path d="M6 3V1h8v10h-2"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <rect x="5" y="5" width="9" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M3 11V3a1 1 0 0 1 1-1h6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                    </svg>
                     <span>Copy</span>
                 </button>
                 <button class="toolbar-btn" data-action="paste" title="Paste JSON from clipboard (Ctrl+V)" aria-label="Paste JSON">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="10" fill="none" stroke="currentColor"/><path d="M6 4V2h4v2"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M5.5 2h5M5.5 2a1 1 0 0 0-1 1v1h7V3a1 1 0 0 0-1-1m-5 0a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <rect x="3" y="4" width="10" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
                     <span>Paste</span>
                 </button>
             </div>
 
             <div class="toolbar-group">
                 <button class="toolbar-btn" data-action="undo" title="Undo (Ctrl+Z)" aria-label="Undo" ${!this.options.enableUndo ? 'disabled' : ''}>
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8h8c2 0 3 1 3 3s-1 3-3 3H8M3 8l3-3M3 8l3 3"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M4 8h8a3 3 0 0 1 0 6H9" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <path d="M4 8l3-3M4 8l3 3" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                    </svg>
                     <span>Undo</span>
                 </button>
                 <button class="toolbar-btn" data-action="redo" title="Redo (Ctrl+Y)" aria-label="Redo" ${!this.options.enableUndo ? 'disabled' : ''}>
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M13 8H5c-2 0-3 1-3 3s1 3 3 3h3M13 8l-3-3M13 8l-3 3"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M12 8H4a3 3 0 0 0 0 6h3" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <path d="M12 8l-3-3M12 8l-3 3" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                    </svg>
                     <span>Redo</span>
                 </button>
             </div>
 
             <div class="toolbar-group">
-                <button class="toolbar-btn" data-action="format" title="Format JSON" aria-label="Format JSON">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 4h10M3 8h7M3 12h10"/></svg>
+                <button class="toolbar-btn" data-action="format" title="Format JSON (prettify)" aria-label="Format JSON">
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M2 4h12M2 8h9M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
                     <span>Format</span>
                 </button>
-                <button class="toolbar-btn" data-action="compact" title="Compact JSON" aria-label="Compact JSON">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+                <button class="toolbar-btn" data-action="compact" title="Compact JSON (minify)" aria-label="Compact JSON">
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M2 5h12M2 8h12M2 11h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
                     <span>Compact</span>
                 </button>
-                <button class="toolbar-btn ${this.options.sortKeys ? 'active' : ''}" data-action="sort" title="Sort keys" aria-label="Sort keys">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M4 4v8m0 0l2-2m-2 2l-2-2M12 12V4m0 0L10 6m2-2l2 2"/></svg>
-                    <span>Sort</span>
+                <button class="toolbar-btn ${this.options.sortKeys ? 'active' : ''}" data-action="sort" title="Sort keys alphabetically" aria-label="Sort keys">
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M4 3v10m0 0l-2-2m2 2l2-2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <path d="M12 13V3m0 0L10 5m2-2l2 2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                    </svg>
+                    <span>Sort Keys</span>
                 </button>
             </div>
 
             <div class="toolbar-group">
                 <div class="toolbar-segmented" role="radiogroup" aria-label="Editor mode">
                     <button class="toolbar-btn ${this.currentMode === 'tree' ? 'active' : ''}" data-action="mode-tree" title="Tree view" role="radio" aria-checked="${this.currentMode === 'tree'}">
-                        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M2 2h5v3H2zM2 8h5v3H2zM9 8h5v3H9z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16">
+                            <rect x="2" y="2" width="5" height="3" rx="0.5" fill="currentColor"/>
+                            <rect x="2" y="7" width="5" height="3" rx="0.5" fill="currentColor"/>
+                            <rect x="9" y="7" width="5" height="3" rx="0.5" fill="currentColor"/>
+                            <path d="M4.5 5v2M4.5 7h4.5M9 7v2.5" stroke="currentColor" stroke-width="1" fill="none"/>
+                        </svg>
                         <span>Tree</span>
                     </button>
                     <button class="toolbar-btn ${this.currentMode === 'code' ? 'active' : ''}" data-action="mode-code" title="Code view" role="radio" aria-checked="${this.currentMode === 'code'}">
-                        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M5 5L2 8l3 3M11 5l3 3-3 3M9 3L7 13"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 16 16">
+                            <path d="M5 4L2 8l3 4M11 4l3 4-3 4M9 2L7 14" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                        </svg>
                         <span>Code</span>
                     </button>
                 </div>
@@ -280,19 +316,40 @@ class SmliserJsonEditor {
 
             ${this.options.enableSearch ? `
             <div class="toolbar-group toolbar-search">
-                <input type="search" class="toolbar-search-input" placeholder="Search..." aria-label="Search JSON">
+                <input type="search" class="toolbar-search-input" placeholder="Search keys or values..." aria-label="Search JSON">
             </div>
             ` : ''}
 
             <div class="toolbar-group toolbar-actions">
                 <button class="toolbar-btn" data-action="expand-all" title="Expand all nodes" aria-label="Expand all">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>Expand</span>
                 </button>
                 <button class="toolbar-btn" data-action="collapse-all" title="Collapse all nodes" aria-label="Collapse all">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8h10"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>Collapse</span>
                 </button>
-                <button class="toolbar-btn" data-action="theme" title="Toggle theme" aria-label="Toggle theme">
-                    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12V2z"/></svg>
+                <button class="toolbar-btn" data-action="theme" title="Toggle light/dark theme" aria-label="Toggle theme">
+                    <svg width="16" height="16" viewBox="0 0 16 16" class="theme-icon">
+                        ${this.options.theme === 'light' ? `
+                            <circle cx="8" cy="8" r="4" fill="currentColor"/>
+                            <line x1="8" y1="1" x2="8" y2="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="8" y1="14" x2="8" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="1" y1="8" x2="2" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="14" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="3" y1="3" x2="4" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="12" y1="12" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="13" y1="3" x2="12" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="4" y1="12" x2="3" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        ` : `
+                            <path d="M14 8c0-3.314-2.686-6-6-6C4.686 2 2 4.686 2 8s2.686 6 6 6c3.314 0 6-2.686 6-6z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M14 8c0 3.314-2.686 6-6 6V2c3.314 0 6 2.686 6 6z" fill="currentColor"/>
+                        `}
+                    </svg>
                 </button>
             </div>
         `;
@@ -306,25 +363,30 @@ class SmliserJsonEditor {
      * @private
      */
     _buildViews() {
-        const viewsContainer = document.createElement('div');
-        viewsContainer.className = 'json-editor-views';
+        const viewsContainer        = document.createElement('div');
+        viewsContainer.className    = 'json-editor-views';
 
         // Tree view
-        this.treeView = document.createElement('div');
+        this.treeView           = document.createElement('div');
         this.treeView.className = 'json-editor-tree-view';
         this.treeView.setAttribute('role', 'tree');
         this.treeView.setAttribute('aria-label', 'JSON tree view');
         viewsContainer.appendChild(this.treeView);
 
         // Code view
-        this.codeView = document.createElement('div');
+        this.codeView           = document.createElement('div');
         this.codeView.className = 'json-editor-code-view';
         
-        const codeTextarea = document.createElement('textarea');
-        codeTextarea.className = 'json-editor-code-textarea';
+        const codeTextarea      = document.createElement('textarea');
+        codeTextarea.className  = 'json-editor-code-textarea';
         codeTextarea.setAttribute('spellcheck', 'false');
         codeTextarea.setAttribute('aria-label', 'JSON code editor');
-        codeTextarea.readOnly = this.options.readOnly;
+        codeTextarea.placeholder = 'Enter or paste JSON here...';
+        
+        // Allow editing unless explicitly read-only
+        if (this.options.readOnly) {
+            codeTextarea.readOnly = true;
+        }
         
         this.codeView.appendChild(codeTextarea);
         viewsContainer.appendChild(this.codeView);
@@ -596,7 +658,15 @@ class SmliserJsonEditor {
         if (!this.options.readOnly) {
             headerHTML += `
                 <div class="tree-actions">
-                    <button class="tree-action-btn" data-action="edit" title="Edit" aria-label="Edit value">
+                    ${key !== 'root' && type !== 'array' ? `
+                    <button class="tree-action-btn" data-action="edit-key" title="Edit key name" aria-label="Edit key">
+                        <svg width="14" height="14">
+                            <path d="M10 2l2 2-6 6H4V8z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M8 4l2 2" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </button>
+                    ` : ''}
+                    <button class="tree-action-btn" data-action="edit" title="Edit value" aria-label="Edit value">
                         <svg width="14" height="14"><path d="M2 10l6-6 2 2-6 6H2z"/></svg>
                     </button>
                     ${key !== 'root' ? `
@@ -698,13 +768,16 @@ class SmliserJsonEditor {
     }
 
     /**
-     * Handle node actions (edit, delete, add)
+     * Handle node actions (edit, delete, add, edit-key)
      * @private
      */
     async _handleNodeAction(action, path, key, value) {
         switch (action) {
             case 'edit':
                 await this._editNode(path, key, value);
+                break;
+            case 'edit-key':
+                await this._editNodeKey(path, key);
                 break;
             case 'delete':
                 await this._deleteNode(path);
@@ -727,6 +800,58 @@ class SmliserJsonEditor {
         
         if (newValue !== null && newValue !== undefined) {
             this._setValueAtPath(path, newValue);
+        }
+    }
+
+    /**
+     * Edit node key (rename object property)
+     * @private
+     */
+    async _editNodeKey(path, currentKey) {
+        const newKey = await SmliserModal.prompt({
+            title: 'Rename Property',
+            message: 'Enter new property name:',
+            defaultValue: currentKey,
+            placeholder: 'propertyName',
+            required: true,
+            validator: (value) => {
+                if (!value.trim()) return 'Property name is required';
+                if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(value)) {
+                    return 'Invalid property name (use letters, numbers, _ or $)';
+                }
+                
+                // Check if key already exists in parent
+                const parentPath = path.split('.').slice(0, -1).join('.');
+                const parent = this._getValueAtPath(parentPath);
+                
+                if (parent && typeof parent === 'object' && !Array.isArray(parent)) {
+                    if (value !== currentKey && value in parent) {
+                        return 'Property name already exists';
+                    }
+                }
+                
+                return null;
+            }
+        });
+
+        if (newKey && newKey !== currentKey) {
+            // Get the value at current path
+            const value = this._getValueAtPath(path);
+            
+            // Get parent object
+            const parentPath = path.split('.').slice(0, -1).join('.');
+            const parent = parentPath ? this._getValueAtPath(parentPath) : this.currentData;
+            
+            // Create new data with renamed key
+            const newData = this._cloneDeep(this.currentData);
+            const newParent = parentPath ? this._getValueAtPath(parentPath, newData) : newData;
+            
+            // Delete old key and add new key
+            delete newParent[currentKey];
+            newParent[newKey] = value;
+            
+            // Update data
+            this._updateData(newData, true);
         }
     }
 
@@ -1117,11 +1242,19 @@ class SmliserJsonEditor {
 
     /**
      * Load file
+     * 
+     * @param {File} file
      * @private
      */
     async _loadFile(file) {
         return new Promise((resolve, reject) => {
-            const reader = new FileReader();
+            if ( ! file.type.includes( 'application/json' ) ) {
+                this._handleError( 'File must be a JSON file.' );
+                reject();
+                return;
+
+            }
+            const reader    = new FileReader();
 
             reader.onload = async (e) => {
                 try {
@@ -1148,21 +1281,32 @@ class SmliserJsonEditor {
 
     /**
      * Export to file
-     * @param {string} filename - Output filename
+     * @param {string} filename - Output filename (optional, uses input field value if not provided)
      * @returns {Promise<void>}
      */
-    async exportToFile(filename = 'app.json') {
-        const jsonString = await this.getJSON(true);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+    async exportToFile( filename = null ) {
+        // Get filename from toolbar input if not provided
+        if (!filename) {
+            const filenameInput = this.toolbar?.querySelector('.toolbar-filename-input');
+            filename = filenameInput?.value?.trim() || 'data.json';
+            
+            // Ensure .json extension
+            if ( ! filename.endsWith( '.json' ) ) {
+                filename += '.json';
+            }
+        }
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
+        const jsonString    = await this.getJSON(true);
+        const blob          = new Blob([jsonString], { type: 'application/json' });
+        const url           = URL.createObjectURL(blob);
+
+        const a             = document.createElement('a');
+        a.href              = url;
+        a.download          = filename;
         a.click();
 
         URL.revokeObjectURL(url);
-        await SmliserModal.success('File exported successfully');
+        await SmliserModal.success( `File "${filename}" downloaded successfully` );
     }
 
     /**
@@ -1191,8 +1335,8 @@ class SmliserJsonEditor {
             await this.setJSON(text);
             await SmliserModal.success('Pasted from clipboard');
         } catch (e) {
-            // this._handleError('Failed to paste from clipboard', e);
-            // throw e;
+            this._handleError('Failed to paste from clipboard', e);
+            throw e;
         }
     }
 
@@ -1327,6 +1471,28 @@ class SmliserJsonEditor {
         const newTheme = this.options.theme === 'light' ? 'dark' : 'light';
         this.options.theme = newTheme;
         this.container.className = this.container.className.replace(/theme-\w+/, `theme-${newTheme}`);
+        
+        // Update theme icon
+        const themeBtn = this.toolbar?.querySelector('[data-action="theme"]');
+        if (themeBtn) {
+            const icon = themeBtn.querySelector('.theme-icon');
+            if (icon) {
+                icon.innerHTML = newTheme === 'light' ? `
+                    <circle cx="8" cy="8" r="4" fill="currentColor"/>
+                    <line x1="8" y1="1" x2="8" y2="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="8" y1="14" x2="8" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="1" y1="8" x2="2" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="14" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="3" y1="3" x2="4" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="12" y1="12" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="13" y1="3" x2="12" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="4" y1="12" x2="3" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                ` : `
+                    <path d="M14 8c0-3.314-2.686-6-6-6C4.686 2 2 4.686 2 8s2.686 6 6 6c3.314 0 6-2.686 6-6z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M14 8c0 3.314-2.686 6-6 6V2c3.314 0 6 2.686 6 6z" fill="currentColor"/>
+                `;
+            }
+        }
     }
 
     /**
@@ -1521,9 +1687,9 @@ class SmliserJsonEditor {
      */
     _formatBytes(bytes) {
         if (bytes === 0) return '0 B';
-        const k = 1024;
+        const k     = 1024;
         const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        const i     = Math.floor(Math.log(bytes) / Math.log(k));
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
     }
 
