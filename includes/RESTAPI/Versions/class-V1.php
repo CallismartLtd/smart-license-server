@@ -34,7 +34,7 @@ class V1 implements RESTInterface {
     /**
      * Asset type regex.
      */
-    const ASSET_TYPE_REGEX = '(?P<asset_type>icon|banner|screenshot|screenshots)';
+    const ASSET_TYPE_REGEX = '(?P<asset_type>(?:cover|icon|banner|screenshot)s?)';
 
     /**
      * Asset name regex.
@@ -111,12 +111,29 @@ class V1 implements RESTInterface {
     /** 
      * Route to  operations on an applications' assets.
      * @example ```POST
-     *  /repository/plugin/smart-woo-pro/assets/screenshots
+     *  /repository/plugin/smart-woo-pro/assets/
      * ```
      * 
      * @var string
      */
-    private static $app_assets_type_route = '/repository/' . self::APP_ROUTE_REGEX . '/assets/' . self::ASSET_TYPE_REGEX;
+    const APP_ASSETS_ROUTE_BASE = '/repository/' . self::APP_ROUTE_REGEX . '/assets/';
+    /** 
+     * Route to  operations on an applications' assets.
+     * @example ```POST
+     *  /repository/plugin/smart-woo-pro/assets/banners
+     * ```
+     * 
+     * @var string
+     */
+    const APP_ASSETS_TYPE_ROUTE = self::APP_ASSETS_ROUTE_BASE . self::ASSET_TYPE_REGEX;
+
+    /**
+     * Route to a single application asset file.
+     * 
+     * @example `PUT`
+     * /respository/theme/astra/assets/screenshots/screenshot
+     */
+    const APP_ASSET_TYPE_ROUTE  = self::APP_ASSETS_TYPE_ROUTE . '/' . self::ASSET_NAME_REGEX;
 
 
     /**
@@ -336,7 +353,7 @@ class V1 implements RESTInterface {
 
                 // App asset routes.
                 array(
-                    'route'         => self::$app_assets_type_route,
+                    'route'         => self::APP_ASSETS_TYPE_ROUTE,
                     'methods'       => array( 'POST' ),
                     'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'upload_app_assets' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'assets_management_guard' ),
@@ -346,9 +363,19 @@ class V1 implements RESTInterface {
                 ),
 
                 array(
-                    'route'         => self::$app_assets_type_route . '/' . self::ASSET_NAME_REGEX,
+                    'route'         => self::APP_ASSET_TYPE_ROUTE,
                     'methods'       => array( 'PUT' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'replace_app_asset' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'update_app_asset' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'assets_management_guard' ),
+                    'args'          => [],
+                    'category'      => 'repository',
+                    'name'          => 'Create or Replace a Single App Asset'
+                ),
+
+                array(
+                    'route'         => self::APP_ASSETS_ROUTE_BASE . self::ASSET_NAME_REGEX,
+                    'methods'       => array( 'DELETE' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'delete_app_asset' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'assets_management_guard' ),
                     'args'          => [],
                     'category'      => 'repository',

@@ -703,7 +703,16 @@ class ServiceAccount implements ActorInterface {
 
         // Hydrate ServiceAccount.
         $sa = static::get_self_by( 'identifier', $payload['sa_id'], SMLISER_SERVICE_ACCOUNTS_TABLE );
-        if ( ! $sa || ! $sa->can_authenticate() ) {
+        
+        if ( ! $sa ) {
+            throw new Exception( 
+                'invalid_credentials',
+                'Invalid api key credentials.',
+                ['status' => 401]
+            );
+        }
+        
+        if ( ! $sa->can_authenticate() ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
                 'service_account_disabled',
                 'Service account not active',

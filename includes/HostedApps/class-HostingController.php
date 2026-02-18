@@ -343,10 +343,10 @@ class HostingController {
 
             // static::check_app_ownership( $app );
 
-            $asset_file = $request->get_files( 'asset_files' );
+            $asset_file = $request->get_files( 'asset_file' );
             
             if ( ! $asset_file || ! ( $asset_file->count() > 0 ) ) {
-                throw new RequestException( 'invalid_input', 'Upload at least one asset using "asset_files" key in your file parameter name.' );
+                throw new RequestException( 'invalid_input', 'Upload at least one asset using "asset_file" or "asset_file[]" key in your file parameter name.' );
             }
 
             $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
@@ -355,7 +355,13 @@ class HostingController {
                 throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
             }
             
-            $result = $repo_class->safe_asset_upload( $app_slug, $asset_file, $asset_type, $asset_name );
+            if ( $request->isPost() ) {
+                $result = $repo_class->safe_assets_upload( $app_slug, $asset_file, $asset_type );
+
+            } else {
+
+                $result = $repo_class->put_app_asset( $app_slug, $asset_file->get(0), $asset_type );
+            }
 
             \smliser_cache()->clear();
             
@@ -382,41 +388,69 @@ class HostingController {
      */
     public static function app_asset_delete( Request $request ) {
         try {
-            static::check_permissions( ['hosted_apps.delete'] );
+            static::check_permissions( 'hosted_apps.delete_assets' );
 
             $app_type   = $request->get( 'app_type' );
             $app_slug   = $request->get( 'app_slug' );
             $asset_name = $request->get( 'asset_name' );
 
-            if ( empty( $app_type ) || empty( $app_slug ) || empty( $asset_name ) ) {
-                throw new RequestException( 'missing_data', 'Application type, slug, and asset name are required.' );
+            $missing    = [];
+            foreach ( \compact( 'app_slug', 'app_type' ) as $key => $value ) {
+                if ( empty( $value ) ) {
+                    $missing[] = $key;
+                }
             }
+
+            if ( ! empty( $missing ) ) {
+                throw new RequestException(
+                    'required_param',
+                    sprintf(
+                        'Missing required parameters: %s',
+                        implode( ', ', $missing )
+                    ),
+                    ['status' => 400]
+                );
+            }
+
+            unset( $missing );
 
             if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
                 throw new RequestException(
                     'invalid_input',
-                    sprintf( 'The app type "%s" is not supported', $app_type )
+                    sprintf( 'The app type "%s" is not supported', $app_type ),
+                    ['status' => 400]
                 );
             }
 
             $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
+            
             if ( ! $repo_class ) {
-                throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
+                throw new RequestException(
+                    'internal_server_error',
+                    'Unable to resolve repository class.',
+                    ['status' => 500]
+                );
             }
 
             $result = $repo_class->delete_asset( $app_slug, $asset_name );
 
             if ( is_smliser_error( $result ) ) {
-                throw new RequestException( $result->get_error_code() ?: 'asset_deletion_failed', $result->get_error_message() );
+                throw new RequestException(
+                    $result->get_error_code() ?: 'asset_deletion_failed',
+                    $result->get_error_message(),
+                    $result->get_error_data()
+                );
             }
+
             \smliser_cache()->clear();
+
             $data       = array( 'message' => 'Asset deleted successfully.' );
             $response   = [
                 'success'   => true,
                 'data'      => $data
             ];
 
-            return ( new Response( 200, array(), smliser_safe_json_encode( $response ) ) )
+            return ( new Response( 200, array(), $response ) )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
 
         } catch ( RequestException $e ) {

@@ -58,7 +58,7 @@ abstract class Repository {
     /**
      * Allowed image extensions.
      */
-    const ALLOWED_IMAGE_EXTENSIONS = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp' ];
+    const ALLOWED_IMAGE_EXTENSIONS = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif' ];
 
     /**
      * Allowed icon names.
@@ -363,7 +363,7 @@ abstract class Repository {
      *      }
      * }
      */
-    public function safe_asset_upload( string $slug, UploadedFileCollection $files, string $asset_type ) : array {
+    public function safe_assets_upload( string $slug, UploadedFileCollection $files, string $asset_type ) : array {
         $result = [
             'uploaded'  => [],
             'failed'    => []
@@ -391,25 +391,25 @@ abstract class Repository {
             $has_error  = false;
 
             if ( ! $file->is_upload_successful() ) {
-                $result['failed'][$file->get_name( false )]['partial_upload']   = 'Upload was not success.';
+                $result['failed'][$file->get_name()]['partial_upload']   = 'Upload was not success.';
                 $has_error                                      = true;
             }
 
             if ( ! $file->is_uploaded_file() ) {
-                $result['failed'][$file->get_name( false )]['invalid_http_upload']   = 'File is not a valid HTTP uploaded file.';
-                $has_error                                      = true;
+                $result['failed'][$file->get_name()]['invalid_http_upload']   = 'File is not a valid HTTP uploaded file.';
+                $has_error  = true;
             }
 
             if ( ! $file->is_moveable() ) {
-                $result['failed'][$file->get_name( false )]['filesystem_error']   = 'Asset cannot be reliably moved to the repository.';
-                $has_error                                      = true;
+                $result['failed'][$file->get_name()]['filesystem_error']   = 'Asset cannot be reliably moved to the repository.';
+                $has_error  = true;
             }
 
             $asset_name = $this->validate_app_asset( $file, $asset_type, $assets_dir );
 
             if ( is_smliser_error( $asset_name ) ) {
-                $result['failed'][$file->get_name( false )][$asset_name->get_error_code()]   = $asset_name->get_error_message();
-                $has_error                                      = true;
+                $result['failed'][$file->get_name()][$asset_name->get_error_code()]   = $asset_name->get_error_message();
+                $has_error  = true;
             }
 
             if ( $has_error ) {
@@ -417,13 +417,13 @@ abstract class Repository {
             }
 
             try {
-                $path       = $file->move( $assets_dir, $asset_name );
+                $path       = $file->move( $assets_dir, $asset_name ); // No override.
                 $app_type   = $this->current_dir;
                 $app_slug   = $slug;
                 $asset_name = basename( $path );
                 $raw_url    = smliser_get_asset_url( $app_type, $app_slug, $asset_name );
                 $asset_url  = ( new URL( $raw_url ) )
-                ->add_query_param( 'ver', \microtime() )->get_href();
+                ->add_query_param( 'ver', $this->filemtime( $path ) )->get_href();
 
                 $result['uploaded'][$file->get_client_name()] = \compact( 'app_slug', 'app_type', 'asset_name', 'asset_url' );
             } catch( Exception $e ) {
@@ -433,6 +433,61 @@ abstract class Repository {
         }
 
         return $result;
+    }
+
+    /**
+     * Safely put or replace an asset in the app's asset.
+     * 
+     * @param string $app_slug The app slug.
+     * @param UploadedFile $file The type of asset.
+     * @param string $asset_type
+     */
+    public function put_app_asset( string $app_slug, UploadedFile $file, string $asset_type ) : array|Exception {
+        try {
+            $app_slug   = $this->real_slug( $app_slug );
+            $base_path  = $this->enter_slug( $app_slug );
+            $assets_dir = FileSystemHelper::join_path( $base_path, '/assets' );
+
+            if ( ! $assets_dir ) {
+                throw new FileSystemException( 'Malformed assets directory.' );
+            }
+
+            if ( ! $this->is_dir( $assets_dir ) && ! $this->mkdir( $assets_dir, FS_CHMOD_DIR, true ) ) {
+                throw new FileSystemException( 'Unable to create asset directory.' );
+            }
+
+            if ( ! $file->is_moveable() ) {
+                throw new FileSystemException( $file->get_error_message() );
+            }
+
+            $asset_name = $this->validate_app_asset( $file, $asset_type, $assets_dir );
+
+            if ( is_smliser_error( $asset_name ) ) {
+                throw new FileSystemException( $asset_name->get_error_message() );
+            }
+
+            if ( 'screenshot' === $asset_type ) {
+                $file_name  = $file->get_name( false );
+                if ( \str_starts_with( $file_name, 'screenshot-' ) ) {
+                    $removable  = FileSystemHelper::join_path( $assets_dir, $file_name );
+                    $pattern    = sprintf( '%s.*{%s}', $removable, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
+                    $identicals = glob( $pattern, \GLOB_BRACE );
+
+                    array_map( [$this, 'delete'], (array) $identicals );
+                }
+            }
+
+            $path       = $file->move( $assets_dir, $asset_name, true );
+            $app_type   = $this->current_dir;
+            $asset_name = basename( $path );
+            $raw_url    = smliser_get_asset_url( $app_type, $app_slug, $asset_name );
+            $asset_url  = ( new URL( $raw_url ) )
+            ->add_query_param( 'ver', $this->filemtime( $path ) )->get_href();
+
+            return compact( 'app_slug', 'app_type', 'asset_name', 'asset_url' );
+        } catch ( FileSystemException $e ) {
+            return $e;
+        }
     }
 
     /**
@@ -457,6 +512,35 @@ abstract class Repository {
         }
 
         return $real_slug;
+    }
+
+    /**
+     * Validate image.
+     * 
+     * @param string $filename Absolute path to the image file.
+     * @return bool|Exception
+     */
+    protected function is_valid_image( string $filename ) : bool|Exception {
+        $ext    = FileSystemHelper::get_canonical_extension( $filename );
+
+        if ( ! $ext ) {
+            return new Exception( 'repo_error', 'The extension for the for this image could not be trusted.', [ 'status' => 400 ] );
+        }
+
+        if ( ! in_array( $ext, static::ALLOWED_IMAGE_EXTENSIONS, true ) ) {
+            return new Exception(
+                'file_ext_error',
+                sprintf( 'Icon file must be one of: %s', implode( ', ', static::ALLOWED_IMAGE_EXTENSIONS ) ),
+            );
+        }
+
+        $image_content  = $this->get_contents( $filename );
+        
+        if ( preg_match( '/<(script|php|eval|iframe|object|embed|form|input|button|link|style)[^>]*>/i', $image_content ) ) {
+            return new Exception( 'malicious_content', 'Potentially malicious content detected in the image.' );
+        }
+
+        return true;
     }
 
     /**
@@ -606,9 +690,9 @@ abstract class Repository {
      * @param string $dir The directory to search.
      * @return string
      */
-    public function find_next_screenshot_name( string $dir )  {
+    public function find_next_screenshot_name( string $dir, ?string $target = null )  {
         $path           = FileSystemHelper::join_path( $dir, 'screenshot' );
-        $pattern        = $path . '-*.{' . implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) . '}';
+        $pattern        = $path . '*.{' . implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) . '}';
         $screenshots    = glob( $pattern, GLOB_BRACE );
         $indexes        = [];
 
@@ -654,18 +738,6 @@ abstract class Repository {
      * @param string $type The application type.
      */
     abstract public function get_assets( string $slug, string $type );
-
-    /**
-     * Upload an asset for a given hosted application.
-     * 
-     * @abstract
-     * @param string $app_slug The application slug.
-     * @param array $asset_file The uploaded file ($_FILES format).
-     * @param string $asset_type The asset type (e.g., screenshot, banner).
-     * @param string $asset_name The preferred asset filename.
-     * @return string|Exception The asset path or Exception on failure.
-     */
-    abstract public function upload_asset( string $app_slug, array $asset_file, string $asset_type, string $asset_name );
 
     /**
      * Get the content of an app.json json file
@@ -862,21 +934,41 @@ abstract class Repository {
      * Delete an app asset from the repository
      * 
      * @param string $slug     App slug (e.g., "my-plugin").
-     * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
      * @param string $filename The filename to delete.
      *
      * @return true|Exception True on success, Exception on failure.
      */
     public function delete_asset( $slug, $filename ) {
-        $path = $this->get_asset_path( $slug, $filename );
+        
+        $original_filename  = $filename;
+        $filename           = FileSystemHelper::remove_extension( $filename );
+
+        foreach ( static::ALLOWED_IMAGE_EXTENSIONS as $ext ) {
+            $file   = $filename . '.' . $ext;
+            $path   = $this->get_asset_path( $slug, $file );
+
+            if ( ! is_smliser_error( $path ) ) {
+                break;
+            }
+
+        }
 
         if ( is_smliser_error( $path ) ) {
+            if ( 'asset_not_found' === $path->get_error_code() ) {
+                return new Exception(
+                    'file_not_found',
+                    sprintf( '%s was not found.', $original_filename ),
+                    ['status' => 404]
+                );
+            }
+
             return $path;
         }
 
         if ( ! $this->delete( $path ) ) {
             return new Exception( 'unable_to_delete', sprintf( 'Unable to delete the file %s', $filename ), [ 'status', 500 ] );
         }
+
         return true;
     }
 }

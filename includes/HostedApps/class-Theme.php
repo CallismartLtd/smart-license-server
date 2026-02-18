@@ -352,7 +352,7 @@ class Theme extends AbstractHostedApp {
         /**
          * Screenshots
          */
-        $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'additional_screenshots' ));
+        $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
 
         /**
          * Set short description

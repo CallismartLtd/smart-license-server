@@ -27,6 +27,11 @@ class PluginRepository extends Repository {
     use WPRepoUtils;
 
     /**
+     * Allowed plugin banner names.
+     */
+    const ALLOWED_BANNER_NAMES  = [ 'low'  => 'banner-772x250', 'high' => 'banner-1544x500' ];
+
+    /**
      * Our readme parser class.
      * 
      * @var MDParser $parser
@@ -141,142 +146,57 @@ class PluginRepository extends Repository {
     }
 
     /**
-     * Upload a plugins' asset (banner, icon, or screenshots) to the plugin repository.
-     *
-     * @param string $slug     Plugin slug (e.g., "my-plugin").
-     * @param array  $file     Uploaded file ($_FILES format).
-     * @param string $type     Asset type: 'banner', 'icon', 'screenshot'.
-     * @param string $filename Optional specific filename (for replacing/updating).
-     *
-     * @return string|Exception Relative path to stored asset or Exception on failure.
-     */
-    public function upload_asset( string $slug, array $file, string $type, string $filename = '' ) {
-        // Validate upload
-        if ( ! is_uploaded_file( $file['tmp_name'] ?? '' ) ) {
-            return new Exception( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );
-        }
-
-        if ( ! FileSystemHelper::is_image( $file['tmp_name'] ) ) {
-            return new Exception( 'invalid_type', 'Only images are allowed.', [ 'status' => 400 ] );
-        }
-
-        $slug = $this->real_slug( $slug );
-
-        // Attempt to enter the plugin slug dir.
-        try {
-            $path = $this->enter_slug( $slug );
-        } catch ( FileSystemException $e ) {
-            return new Exception( 
-                'invalid_slug', 
-                $e->get_error_message(),
-                [ 'status' => 400 ] 
-            );
-        }
-
-        $asset_dir = FileSystemHelper::join_path( $path, 'assets/' );
-
-        if ( ! $this->is_dir( $asset_dir ) && ! $this->mkdir( $asset_dir, FS_CHMOD_DIR ) ) {
-            return new Exception( 'repo_error', 'Unable to create asset directory.', [ 'status' => 500 ] );
-        }
-
-        $ext    = FileSystemHelper::get_canonical_extension( $file['tmp_name'] );
-
-        if ( ! $ext ) {
-            return new Exception( 'repo_error', 'The extension for the for this image could not be trusted.', [ 'status' => 400 ] );
-        }
-
-        // Enforce naming rules.
-        switch ( $type ) {
-            case 'banner':
-                $allowed_names = [ 'banner-772x250', 'banner-1544x500' ];
-
-                if ( ! in_array( pathinfo( $file['name'], PATHINFO_FILENAME ), $allowed_names, true ) 
-                    || ! in_array( $ext, [ 'png', 'gif', 'svg' ], true ) ) {
-                    return new Exception(
-                        'invalid_banner_name',
-                        'Banner must be named banner-772x250 or banner-1544x500 and be a PNG, GIF, or SVG.',
-                        [ 'status' => 400 ]
-                    );
-                }
-                $target_name = strtolower( pathinfo( $file['name'], PATHINFO_FILENAME ) . '.' . $ext );
-                break;
-
-            case 'icon':
-                $allowed_names = [ 'icon-128x128', 'icon-256x256', 'icon' ];
-                if ( ! in_array( pathinfo( $file['name'], PATHINFO_FILENAME ), $allowed_names, true ) 
-                    || ! in_array( $ext, [ 'png', 'gif', 'svg', 'webp' ], true ) ) {
-                    return new Exception(
-                        'invalid_icon_name',
-                        'Icon must follow these naming convention: icon, icon-128x128 or icon-256x256 and be a PNG, GIF, or SVG file.',
-                        [ 'status' => 400 ]
-                    );
-                }
-                $target_name = strtolower( pathinfo( $file['name'], PATHINFO_FILENAME ) . '.' . $ext );
-                break;
-
-            case 'screenshot':
-                $allowed_exts = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp' ];
-
-                if ( ! in_array( $ext, $allowed_exts, true ) ) {
-                    return new Exception(
-                        'invalid_screenshot_type',
-                        'Screenshots must be PNG, JPG, JPEG, GIF, WEBP or SVG.',
-                        [ 'status' => 400 ]
-                    );
-                }
-
-                if ( ! empty( $filename ) ) {
-                    if ( preg_match( '/screenshot-(\d+)\./', $filename, $m ) ) {
-                        $target_name = sprintf( 'screenshot-%d.%s', $m[1], $ext );
-                    } else {
-                        return new Exception(
-                            'invalid_screenshot_name',
-                            'Screenshots must be named screenshot-{index} with a valid image extension.',
-                            [ 'status' => 400 ]
-                        );
-                    }
-                } else {
-                    // Auto-generate next index
-                    $existing = glob( $asset_dir . 'screenshot-*.{png,jpg,jpeg,webp,gif,svg}', GLOB_BRACE );
-                    $indexes  = [];
-
-                    foreach ( $existing as $shot ) {
-                        if ( preg_match( '/screenshot-(\d+)\./', basename( $shot ), $m ) ) {
-                            $indexes[] = (int) $m[1];
-                        }
-                    }
-
-                    $next_index  = empty( $indexes ) ? 1 : ( max( $indexes ) + 1 );
-                    $target_name = sprintf( 'screenshot-%d.%s', $next_index, $ext );
-                }
-                break;
-
-            default:
-                return new Exception( 'invalid_type', 'Unsupported asset type.', [ 'status' => 400 ] );
-        }
-
-        // Final destination
-        $dest_path = FileSystemHelper::join_path( $asset_dir, $target_name );
-
-        // Move uploaded file
-        if ( ! $this->rename( $file['tmp_name'], $dest_path ) ) {
-            return new Exception( 'move_failed', 'Failed to save uploaded asset.', [ 'status' => 500 ] );
-        }
-        @$this->chmod( $dest_path, FS_CHMOD_FILE );
-
-    
-        return smliser_get_asset_url( 'plugin', $slug, $target_name );
-    }
-
-    /**
      * Validate names and types of asset that can be uploaded for a theme.
      * 
      * @param UploadedFile $file The uploaded file instance.
      * @param string $type       The asset type.
-     * @return FileSystemException|string On error, file name otherwise.
+     * @return Exception|string On error, file name otherwise.
      */
-    public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : FileSystemException|string {
-        return '';
+    public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
+        $ext        = $file->get_canonical_extension();
+        $validation = $this->is_valid_image( $file->get_tmp_path() );
+
+        if ( is_smliser_error( $validation ) ) {
+            return $validation;
+        }
+
+        switch ( $type ) {
+            case 'banner':
+            case 'banners':
+
+                if ( ! in_array( $file->get_name( false ), static::ALLOWED_BANNER_NAMES, true ) ) {
+                    return new Exception( 'filename_error', sprintf( 'Banner name must be one of: %s', implode( ', ', static::ALLOWED_BANNER_NAMES ) ) );
+                }
+        
+                return $file->get_name();
+
+            case 'icon':
+                $allowed    = in_array( $file->get_name( false ), static::ALLOWED_ICON_NAMES, true );
+                if ( ! $allowed ) {
+                    return new Exception(
+                        'filename_error',
+                        sprintf( 'Icon name must be one of: %s', implode( ', ', static::ALLOWED_ICON_NAMES ) )
+                    );
+                }
+
+                return $file->get_name();
+
+            case 'screenshots':
+            case 'screenshot':
+                if ( preg_match( '/screenshot-(\d+)/', $file->get_name(), $m ) ) {
+                    $screenshot = sprintf( 'screenshot-%d.%s', $m[1], $ext );
+                    
+                } else {
+                    // Auto-generate next index.
+                    $screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
+                }
+
+                return $screenshot;
+
+            default:
+                return new Exception( 'invalid_type', 'Plugins only supports banners, icon, screenshots as asset type.', [ 'status' => 400 ] );
+        }
+        
     }
 
     /**
@@ -299,7 +219,7 @@ class PluginRepository extends Repository {
         }
 
         $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
-
+        
         if ( ! $this->is_dir( $assets_dir ) ) {
             return [];
         }
@@ -307,74 +227,72 @@ class PluginRepository extends Repository {
         switch ( $type ) {
             case 'banners':
                 $urls = [];
-                foreach ( [
-                    'low'  => 'banner-772x250',
-                    'high' => 'banner-1544x500',
-                ] as $key => $basename ) {
-                    $pattern = $assets_dir . $basename . '.{png,gif,svg}';
-                    $matches = glob( $pattern, GLOB_BRACE );
+                foreach ( [ 'low'  => 'banner-772x250', 'high' => 'banner-1544x500' ] as $key => $basename ) {
+                    $path       = FileSystemHelper::join_path( $assets_dir, $basename );
+                    $pattern    = sprintf( '%s.*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
+                    $matches    = glob( $pattern, GLOB_BRACE );
                     $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
                         ? smliser_get_asset_url( 'plugin', $slug, basename( $matches[0] ) )
                         : '';
                 }
+                
                 return $urls;
 
             case 'icons':
                 $urls = [];
-
-                // Check the usual sized icons
-                foreach ( [
-                    '1x' => 'icon-128x128',
-                    '2x' => 'icon-256x256',
-                ] as $key => $basename ) {
-                    $pattern = $assets_dir . $basename . '.{png,gif,webp,svg}';
-                    $matches = glob( $pattern, GLOB_BRACE );
+                // Check the usual sized icons.
+                foreach ( ['1x' => 'icon-128x128', '2x' => 'icon-256x256' ] as $key => $basename ) {
+                    $path       = FileSystemHelper::join_path( $assets_dir, $basename );
+                    $pattern    = sprintf( '%s.*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
+                    $matches    = glob( $pattern, GLOB_BRACE );
                     $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
                         ? smliser_get_asset_url( 'plugin', $slug, basename( $matches[0] ) )
                         : '';
                 }
 
-                // Check for universal icon.* and use it as fallback for 1x if no 128x128 exists
-                $universal  = $assets_dir . 'icon.{png,gif,webp,svg}';
-                $matches    = glob( $universal, GLOB_BRACE );
-                if ( $matches && $this->is_file( $matches[0] ) && empty( $urls['1x'] ) ) {
-                    $urls['1x'] = smliser_get_asset_url( 'plugin', $slug, \basename( $matches[0] ) );
-                }
+                // Check for universal icon.* and use it as fallback for 1x if no 128x128 exists.
+                $icon_path      = FileSystemHelper::join_path( $assets_dir, 'icon' );
+                $icon_pattern   = sprintf( '%s.*{%s}', $icon_path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
+                $icon_matches   = glob( $icon_pattern, GLOB_BRACE );
+                
+                if ( empty( $urls['1x'] ) && ! empty( $icon_matches ) ) {
+                    foreach ( $icon_matches as $icon ) {
+                        if ( $this->is_file( $icon ) ) {
+                            $urls['1x'] = smliser_get_asset_url( 'plugin', $slug, basename( $icon ) );
+                            break;
+                        }
 
+                    }
+                }
+                
                 return $urls;
 
             case 'screenshots':
-                $pattern = $assets_dir . 'screenshot-*.{png,jpg,jpeg,gif,webp,svg}';
-                $files   = glob( $pattern, GLOB_BRACE );
+                $path       = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
+                $pattern    = sprintf( '%s-*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
+                $files      = glob( $pattern, GLOB_BRACE );
                 
-                break;
+                usort( $files, function( $a, $b ) {
+                    return strnatcmp( basename( $a ), basename( $b ) );
+                } );
 
+                $indexed = [];
+                foreach ( $files as $file_path ) {
+                    $basename = basename( $file_path );
+                    $url      = smliser_get_asset_url( 'plugin', $slug, $basename );
+
+                    if ( preg_match( '/screenshot-(\d+)\./i', $basename, $m ) ) {
+                        $indexed[ (int) $m[1] ] = $url;
+                    } else {
+                        $indexed[] = $url;
+                    }
+                }
+
+                ksort( $indexed );
+                return $indexed;
             default:
                 return [];
         }
-
-        // Screenshots: indexed results.
-        if ( 'screenshots' === $type && $files ) {
-            usort( $files, function( $a, $b ) {
-                return strnatcmp( basename( $a ), basename( $b ) );
-            } );
-
-            $indexed = [];
-            foreach ( $files as $file_path ) {
-                $basename = basename( $file_path );
-                $url      = smliser_get_asset_url( 'plugin', $slug, $basename );
-
-                if ( preg_match( '/screenshot-(\d+)\./i', $basename, $m ) ) {
-                    $indexed[ (int) $m[1] ] = $url;
-                } else {
-                    $indexed[] = $url;
-                }
-            }
-            ksort( $indexed );
-            return $indexed;
-        }
-
-        return [];
     }
 
     /**
@@ -722,9 +640,9 @@ class PluginRepository extends Repository {
             return [];
         }
 
-        $metadata = [];
-        $lines    = preg_split( '/\r\n|\r|\n/', $readme_contents );
-        $first_line_processed = false;
+        $metadata               = [];
+        $lines                  = preg_split( '/\r\n|\r|\n/', $readme_contents );
+        $first_line_processed   = false;
 
         foreach ( $lines as $line ) {
             $line = trim( $line );

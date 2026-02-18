@@ -17,6 +17,9 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\Utils\MDParser;
 
+use function defined, is_smliser_error, in_array, sprintf, basename, is_string, dirname, preg_match,
+trim, str_replace, smliser_md_parser;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 class ThemeRepository extends Repository {
@@ -32,7 +35,7 @@ class ThemeRepository extends Repository {
     /**
      * Allowed additional screenshots file extensions.
      */
-    const ALLOWED_SCREENSHOTS_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
+    const ALLOWED_THEME_SCREENSHOT_EXTS = ['png', 'gif', 'avif', 'webp', 'jpg', 'jpeg'];
 
     /**
      * Constructor.
@@ -41,7 +44,7 @@ class ThemeRepository extends Repository {
      */
     public function __construct() {
         parent::__construct( 'themes' );
-        $this->parser = \smliser_md_parser();
+        $this->parser = smliser_md_parser();
     }
 
     /**
@@ -148,119 +151,42 @@ class ThemeRepository extends Repository {
     }
 
     /**
-     * Upload a themes' assets (eg. screenshot, screenshots) to the theme repository.
-     * 
-     * @param string $slug Theme slug.
-     * @param array $file Uploaded file ($_FILES format).
-     * @param string $type The type of asset (e.g., 'screenshots').
-     * @param string $filename Desired filename within the asset type directory.
-     * @return string|Exception Relative path to stored asset on success, Exception on failure.
-     */
-    public function upload_asset( string $slug, array $file, string $type, string $filename = '' ) {
-        // Validate upload
-        if ( ! is_uploaded_file( $file['tmp_name'] ?? '' ) ) {
-            return new Exception( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );
-        }
-
-        if ( ! FileSystemHelper::is_image( $file['tmp_name'] ) ) {
-            return new Exception( 'invalid_type', 'Only images are allowed.', [ 'status' => 400 ] );
-        }
-
-        $slug = $this->real_slug( $slug );
-
-        // Enter theme slug directory.
-        try {
-            $path = $this->enter_slug( $slug );
-        } catch ( FileSystemException $e ) {
-            return new Exception( 
-                'invalid_slug', 
-                $e->get_error_message(),
-                [ 'status' => 400 ] 
-            );
-        }
-
-        $asset_dir = FileSystemHelper::join_path( $path, 'assets/' );
-
-        if ( ! $this->is_dir( $asset_dir ) && ! $this->mkdir( $asset_dir, FS_CHMOD_DIR, true ) ) {
-            return new Exception( 'repo_error', 'Unable to create asset directory.', [ 'status' => 500 ] );
-        }
-
-        $ext    = FileSystemHelper::get_canonical_extension( $file['tmp_name'] );
-
-        if ( ! $ext ) {
-            return new Exception( 'repo_error', 'The extension for the for this image could not be trusted.', [ 'status' => 400 ] );
-        }
-
-        // Upload individual asset type.
-        // We support main screenshot.png and additional screenshots.
-        switch ( $type ) {
-            case 'screenshot':
-                // Only png image is allowed for main screenshot.
-                if ( 'png' !== strtolower( $ext ) ) {
-                    return new Exception( 'invalid_type', 'The main screenshot must be a PNG image.', [ 'status' => 400 ] );
-                }
-
-                $filename = 'screenshot.png';
-                break;
-            case 'additional_screenshots':
-                $allowed_exts = self::ALLOWED_SCREENSHOTS_EXT;
-                if ( ! in_array( strtolower( $ext ), $allowed_exts, true ) ) {
-                    return new Exception( 'invalid_type', 'Invalid image type for additional screenshot.', [ 'status' => 400 ] );
-                }
-
-                if ( ! empty( $filename ) ) {
-                    if ( preg_match( '/screenshot-(\d+)\./', $filename, $m ) ) {
-                        $filename = sprintf( 'screenshot-%d.%s', $m[1], $ext );
-                    } else {
-                        return new Exception(
-                            'invalid_screenshot_name',
-                            'Screenshots must be named screenshot-{index} with a valid image extension.',
-                            [ 'status' => 400 ]
-                        );
-                    }
-                } else {
-                    // Auto-generate next index.
-                    $pattern        = FileSystemHelper::join_path( $asset_dir, 'screenshot-*.{' . implode( ',', $allowed_exts ) . '}' );
-                    $screenshots    = glob( $pattern, GLOB_BRACE );
-                    $indexes        = [];
-
-                    foreach ( $screenshots as $screenshot ) {
-                        if ( preg_match( '/screenshot-(\d+)\./', basename( $screenshot ), $m ) ) {
-                            $indexes[] = (int) $m[1];
-                        }
-                    }
-
-                    $next_index  = empty( $indexes ) ? 1 : ( max( $indexes ) + 1 );
-                    $filename = sprintf( 'screenshot-%d.%s', $next_index, $ext );
-
-                }
-                break;
-
-            default:
-                return new Exception( 'invalid_type', 'Only screenshot.png and additional theme screenshot images are allowed', [ 'status' => 400 ] );
-        }
-
-        $target_path = FileSystemHelper::join_path( $asset_dir, $filename );
-
-        if ( ! $this->rename( $file['tmp_name'], $target_path ) ) {
-            return new Exception( 'upload_failed', 'Failed to move uploaded file.', [ 'status' => 500 ] );
-        }
-
-        @$this->chmod( $target_path, FS_CHMOD_FILE );
-
-        return smliser_get_asset_url( 'theme', $slug, \basename( $target_path ) );
-        
-    }
-
-    /**
      * Validate names and types of asset that can be uploaded for a theme.
      * 
      * @param UploadedFile $file The uploaded file instance.
      * @param string $type       The asset type.
-     * @return FileSystemException|string On error, file name otherwise.
+     * @return Exception|string On error, file name otherwise.
      */
-    public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : FileSystemException|string {
-        return '';
+    public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
+        $ext    = $file->get_canonical_extension();
+        $validation = $this->is_valid_image( $file->get_tmp_path() );
+
+        if ( is_smliser_error( $validation ) ) {
+            return $validation;
+        }
+
+        switch ( $type ) {
+            case 'screenshot':
+                if ( ! in_array( $ext, static::ALLOWED_THEME_SCREENSHOT_EXTS, true ) ) {
+                    return new Exception( 'invalid_type', sprintf( 'Main theme screenshot must be one of: %s', implode( ', ', static::ALLOWED_THEME_SCREENSHOT_EXTS ) ) );
+                }
+
+                return sprintf( 'screenshot.%s', $ext );
+            case 'screenshots':
+                if ( preg_match( '/screenshot-(\d+)/', $file->get_name(), $m ) ) {
+                    $screenshot = sprintf( 'screenshot-%d.%s', $m[1], $ext );
+                    
+                } else {
+                    // Auto-generate next index.
+                    $screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
+                }
+
+                return $screenshot;
+
+            default:
+                return new Exception( 'invalid_type', 'Themes only supports screenshot and screenshots as asset type.', [ 'status' => 400 ] );
+        }
+
     }
 
     /**
@@ -290,16 +216,23 @@ class ThemeRepository extends Repository {
 
         switch ( $type ) {
             case 'screenshot':
-                $screenshot = FileSystemHelper::join_path( $assets_dir, 'screenshot.png' );
-
-                if ( $this->exists( $screenshot ) ) {
-                    return \smliser_get_asset_url( 'theme', $slug, \basename( $screenshot ) );
+                // screenshot.{ext}.
+                $path           = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
+                $pattern        = sprintf( '%s.{%s}', $path, implode( ',', static::ALLOWED_THEME_SCREENSHOT_EXTS ) );
+                $screenshots    = glob( $pattern, \GLOB_BRACE );
+                
+                foreach( $screenshots as $screenshot ) {
+                    if ( $this->is_file( $screenshot ) ) {
+                        return smliser_get_asset_url( 'theme', $slug, basename( $screenshot ) );
+                    }
                 }
-
+                
                 return '';
 
-            case 'additional_screenshots':
-                $pattern        = FileSystemHelper::join_path( $assets_dir, 'screenshot-*.{' . implode( ',', self::ALLOWED_SCREENSHOTS_EXT ) . '}' );
+            case 'screenshots':
+                // screenshot-{index}.{ext}.
+                $path           = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
+                $pattern        = sprintf( '%s-*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
                 $screenshots    = glob( $pattern, GLOB_BRACE );
                 
                 usort( $screenshots, function( $a, $b ) {
@@ -323,7 +256,6 @@ class ThemeRepository extends Repository {
                 ksort( $urls );
 
                 return $urls;
-                break;
 
             default:
                 return [];

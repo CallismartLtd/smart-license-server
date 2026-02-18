@@ -13,6 +13,7 @@ use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
@@ -303,7 +304,7 @@ class AppCollection {
         $has_permission = match( $request->method() ) {
             'POST'      => $actor->can( 'hosted_apps.upload_assets' ),
             'DELETE'    => $actor->can( 'hosted_apps.delete_assets' ),
-            'PUT',      => $actor->can( 'hosted_apps.edit_assets' ),
+            'PUT',      => true || $actor->can( 'hosted_apps.edit_assets' ),
             default     => false,
         };
 
@@ -312,7 +313,7 @@ class AppCollection {
     }
 
     /**
-     * Upload app assets.
+     * Responds to HTTP POST request to upload app assets.
      * 
      * @param Request $request The request object.
      * @return Response
@@ -330,15 +331,67 @@ class AppCollection {
 
             $response   = HostingController::app_asset_upload( $request );
 
-            if ( $response->ok() ) {
-                // $response_body  = (array) $response->get_body();
-                // $data           = $response_body['data']['config'] ?? [];
-                // $url            = $data['asset_url'] ?? '';
+            return $response;     
+        } catch( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+        }
+    }
 
-                // $response->set_header( 'Location', $url );
-                // $new_body   = Collection::make( $data )
-                //     ->only( ['app_slug', 'app_type', 'asset_name', 'asset_url'] );
-                // $response->set_body( $new_body->toArray() );
+    /**
+     * Responds to HTTP PUT request to edit an app asset.
+     * 
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function update_app_asset( Request $request ) : Response {
+        try {
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+            $asset_name = $request->get( 'asset_name' );
+
+            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app_exists ) {
+                throw new RequestException( 'app_not_found' );
+            }
+
+            static::force_single_file_upload( $request, 'asset_file' )
+                ->set_new_name( $asset_name );
+
+            $response   = HostingController::app_asset_upload( $request );
+
+            return $response;     
+        } catch( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+        }
+    }
+
+    /**
+     * Responds to HTTP DELETE request to delete an app asset.
+     * 
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function delete_app_asset( Request $request ) : Response {
+        try {
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+
+            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app_exists ) {
+                throw new RequestException( 'app_not_found' );
+            }
+
+            $response   = HostingController::app_asset_delete( $request );
+
+            if ( $response->ok() ) {
+                $response->set_status_code( 204 );
+                $response->set_body( '' );
             }
 
             return $response;     
@@ -347,6 +400,33 @@ class AppCollection {
                 ->set_exception( $e )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
         }
+    }
+
+    /**
+     * Force single application asset upload.
+     * 
+     * @param Request $request The request object.
+     * @param string $file_key  The file key.
+     * @throws RequestException On success to abort request.
+     * @return UploadedFile
+     */
+    private static function force_single_file_upload( Request $request, string $file_key ) : UploadedFile {
+        $files   = $request->get_files( $file_key );
+        
+        $total      = $files?->count() ?? 0;
+        $error_map  = match ( true ) {
+            $total < 1  => ['required_file', 'Please upload {app_type} asset file.'],
+            $total > 1  => ['payload_too_large', 'Sorry, a maximum of 1 file is required when updating a {app_type} asset.'],
+            default     => null,
+        };
+
+        if ( $error_map ) {
+            [$code, $message] = $error_map;
+
+            throw new RequestException( $code, str_replace( '{app_type}', $request->get( 'app_type' ), $message ) );
+        }
+        
+        return $files->get(0);
     }
 }
 

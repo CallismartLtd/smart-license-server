@@ -322,7 +322,7 @@ final class UploadedFile {
      *
      * @throws Exception
      */
-    public function move( string $directory, ?string $filename = null ) : string {
+    public function move( string $directory, ?string $filename = '', ?bool $overwrite = false ) : string {
 
         if ( ! $this->is_moveable() ) {
             throw new Exception(
@@ -333,32 +333,28 @@ final class UploadedFile {
 
         $safe_directory = FileSystemHelper::join_path( $directory );
 
-        if ( is_smliser_error( $safe_directory ) ) {
-            throw $safe_directory;
+        if ( ! $safe_directory ) {
+            throw new Exception( 'malicious_directory', 'The provided directory name is malicious.' );
         }
 
         if ( ! $this->fs->is_dir( $safe_directory ) ) {
             $this->fs->mkdir( $safe_directory, FS_CHMOD_DIR );
         }
 
-        $filename = $filename ?: $this->get_name();
+        $filename       = $filename ? FileSystemHelper::remove_extension( $filename ) : $this->get_name( false );
+        $pathname       = FileSystemHelper::join_path( $safe_directory, $filename );
+        $destination    = sprintf( '%s.%s', $pathname, $this->get_canonical_extension() );
 
-        $destination = FileSystemHelper::join_path(
-            $safe_directory,
-            $filename
-        );
+        if ( ! $this->fs->move( $this->get_tmp_path(), $destination, $overwrite ) ) {
+            $message    = 'Failed to move uploaded file';
+            if ( ! $overwrite ) {
+                $message .= ' likely due to duplicate file entry';
+            }
 
-        if ( is_smliser_error( $destination ) ) {
-            throw $destination;
-        }
-
-        if ( ! $this->fs->move( $this->get_tmp_path(), $destination, true ) ) {
+            $message .= '.';
             throw new Exception(
                 'upload_move_failed',
-                sprintf(
-                    'Failed to move uploaded %s.',
-                    $this->key
-                )
+                sprintf( '%s %s.', $message, $this->key )
             );
         }
 

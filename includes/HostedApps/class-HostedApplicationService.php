@@ -446,12 +446,11 @@ class HostedApplicationService {
 
         if ( false === $app || ! ( $app instanceof AbstractHostedApp ) ) {
             $app_class  = self::get_app_class( $app_type );
-            $method     = "get_by_slug";
 
-            if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $method ) ) {
+            if ( ! class_exists( $app_class ) || ! method_exists( $app_class, 'get_by_slug' ) ) {
                 $app    = null;
             } else {
-                $app    = $app_class::$method( $app_slug );
+                $app    = $app_class::get_by_slug( $app_slug );
             }
 
             self::cache_set( $key, $app, 30 * \MINUTE_IN_SECONDS );

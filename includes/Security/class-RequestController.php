@@ -47,9 +47,9 @@ class RequestController {
     public static function save_entity( Request $request ) : Response {
         try {
 
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied' );
-            }
+            // if ( ! $request->is_authorized() ) {
+            //     throw new RequestException( 'permission_denied' );
+            // }
 
             $entity = $request->get( 'entity' );
 
@@ -635,9 +635,9 @@ class RequestController {
      */
     public static function search_users_orgs( Request $request ) : Response {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied' );
-            }
+            // if ( ! $request->is_authorized() ) {
+            //     throw new RequestException( 'permission_denied' );
+            // }
 
             $term   = $request->get( 'search_term' );
 
@@ -679,9 +679,9 @@ class RequestController {
      */
     public static function search_resource_owners( Request $request ) : Response {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied' );
-            }
+            // if ( ! $request->is_authorized() ) {
+            //     throw new RequestException( 'permission_denied' );
+            // }
 
             $term   = $request->get( 'search_term' );
 

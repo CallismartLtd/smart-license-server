@@ -1104,7 +1104,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
 
         $value = is_serialized( $result ) ? unserialize( $result ) : $result;
 
-        $this->meta_data[ $meta_key ] = $value;
+        $this->meta_data[ $meta_key ] = $value ?? $default_to;
 
         return $value;
     }

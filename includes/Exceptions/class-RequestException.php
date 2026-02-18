@@ -59,6 +59,12 @@ class RequestException extends Exception {
             'title'   => 'Type Mismatch',
             'message' => 'A parameter has an unexpected type or format.'
         ],
+
+        'payload_too_large' => [
+            'status'  => 413,
+            'title'   => 'Payload Too Large',
+            'message' => 'The request payload exceeded the maximum required size.'
+        ],
         'unsupported_media_type' => [
             'status'  => 415,
             'title'   => 'Unsupported Media Type',

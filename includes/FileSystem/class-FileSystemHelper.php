@@ -522,86 +522,102 @@ class FileSystemHelper {
     }
 
     /**
-     * Sanitize and normalize a filesystem path (no dependencies).
+     * Sanitize and normalize a filesystem path.
      *
-     * - Prevents directory traversal ("..")
-     * - Blocks encoded traversal (%2e%2e etc.)
-     * - Blocks unicode traversal
-     * - Normalizes slashes
-     * - Cross-platform (Linux + Windows)
-     * - Allows only safe filename characters
-     * - Preserves absolute paths
+     * Prevents directory traversal, encoded traversal, null bytes, and unsafe characters.
+     * Supports absolute paths on Linux (/foo) and Windows (C:/foo).
      *
-     * @param string $path
-     * @return string|SmartLicenseServer\Exceptions\Exception
+     * @param  string $path
+     * @return string|Exception
      */
-    public static function sanitize_path( $path ) {
-
-        if ( ! is_string( $path ) || trim( $path ) === '' ) {
+    public static function sanitize_path( string $path ): string|Exception {
+        if ( trim( $path ) === '' ) {
             return new Exception( 'invalid_path', 'Path must be a non-empty string.' );
         }
 
-        // Normalize slashes early.
-        $path = str_replace( array( '\\', '/' ), '/', $path );
-
-        // Determine absolute paths: "/var/", "C:/var/"
-        $is_windows_abs = (bool) preg_match( '#^[A-Za-z]:/#', $path );
-        $is_linux_abs   = str_starts_with( $path, '/' );
-
-        // Extract drive letter if present.
-        $drive = '';
-        if ( $is_windows_abs ) {
-            $drive = substr( $path, 0, 2 ); // e.g., "C:"
-            $path  = substr( $path, 2 );    // remove drive prefix
+        if ( strpos( $path, "\0" ) !== false ) {
+            return new Exception( 'invalid_path', 'Null bytes are not allowed.' );
         }
 
-        // Split into segments.
-        $parts = explode( '/', $path );
-        $safe  = array();
+        // Catch encoded traversal attempts on raw input: %2e, %252e, &#46;, &#x2e; etc.
+        if ( preg_match( '/(%[0-9a-fA-F]{2}|&#\d+;|&#x[0-9a-fA-F]+;)/i', $path ) ) {
+            return new Exception( 'invalid_path', 'Encoded characters are not allowed.' );
+        }
 
-        foreach ( $parts as $part ) {
-            $part = trim( $part );
+        $path                   = str_replace( '\\', '/', $path );
+        [ $prefix, $remainder ] = self::extract_path_prefix( $path );
+        $segments               = self::parse_segments( $remainder );
 
-            // Skip empty / dot segments.
-            if ( $part === '' || $part === '.' ) {
+        if ( $segments instanceof Exception ) {
+            return $segments;
+        }
+
+        return $prefix . implode( '/', $segments );
+    }
+
+    /**
+     * Detect and strip an absolute path prefix (Linux or Windows).
+     *
+     * @param  string $path
+     * @return array{ string, string } [ prefix, remainder ]
+     */
+    private static function extract_path_prefix( string $path ): array {
+        // Windows absolute path: C:/, D:/, etc.
+        if ( preg_match( '#^([A-Za-z]:/)(.*)#', $path, $m ) ) {
+            return [ $m[1], $m[2] ];
+        }
+
+        // Linux absolute path.
+        if ( str_starts_with( $path, '/' ) ) {
+            return [ '/', ltrim( $path, '/' ) ];
+        }
+
+        return [ '', $path ];
+    }
+
+    /**
+     * Validate and collect safe path segments.
+     *
+     * Rejects traversal sequences, dot-only segments, trailing dots, and unsafe characters.
+     *
+     * @param  string $path
+     * @return list<string>|Exception
+     */
+    private static function parse_segments( string $path ): array|Exception {
+        $safe = [];
+
+        foreach ( explode( '/', $path ) as $segment ) {
+            $segment = trim( $segment );
+
+            // Skip empty and current-directory markers.
+            if ( $segment === '' || $segment === '.' ) {
                 continue;
             }
 
-            // Block directory traversal.
-            if ( $part === '..' ) {
-                return new Exception( 'invalid_path', 'Parent directory references not allowed.' );
+            // Block any segment containing ".." (e.g., "..", "wp-content..", "..foo").
+            if ( str_contains( $segment, '..' ) ) {
+                return new Exception( 'invalid_path', 'Directory traversal sequences are not allowed.' );
             }
 
-            // Disallow encoded characters.
-            if ( preg_match( '/(%|&#)/i', $part ) ) {
-                return new Exception( 'invalid_path', 'Encoded characters are not allowed.' );
+            // Block dot-only segments (catches "...", "....", etc. not caught above).
+            if ( preg_match( '/^\.+$/', $segment ) ) {
+                return new Exception( 'invalid_path', 'Dot-only path segments are not allowed.' );
             }
 
-            // Allow safe characters only.
-            // You can expand allowed characters if needed.
-            if ( ! preg_match( '/^[A-Za-z0-9._-]+$/', $part ) ) {
-                return new Exception( 'invalid_chars', "Illegal characters in path segment: {$part}" );
+            // Block trailing dots ("wp-content.", "file.png." etc.).
+            if ( str_ends_with( $segment, '.' ) ) {
+                return new Exception( 'invalid_path', 'Path segments may not end with a dot.' );
             }
 
-            $safe[] = $part;
+            // Allowlist: must start with alphanumeric or underscore, followed by safe characters.
+            if ( ! preg_match( '/^[A-Za-z0-9_][A-Za-z0-9._\-]*$/', $segment ) ) {
+                return new Exception( 'invalid_chars', "Illegal characters in path segment: {$segment}" );
+            }
+
+            $safe[] = $segment;
         }
 
-        // Rebuild the path.
-        $normalized = implode( '/', $safe );
-
-        // Restore absolute prefix.
-        if ( $is_windows_abs ) {
-            $normalized = $drive . '/' . $normalized;
-        } elseif ( $is_linux_abs ) {
-            $normalized = '/' . $normalized;
-        }
-
-        // Null byte check.
-        if ( strpos( $normalized, "\0" ) !== false ) {
-            return new Exception( 'invalid_path', 'Null bytes not allowed.' );
-        }
-
-        return $normalized;
+        return $safe;
     }
 
     /**

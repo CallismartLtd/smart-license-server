@@ -139,7 +139,7 @@ $assets = array(
         'total'     => $app->get_screenshot_url() ? 1 : 0
     ),
 
-    'additional_screenshots' => array(
+    'screenshots' => array(
         'title'     => 'Additional Screenshots',
         'limit'     => 10,
         'images'    => $screenshots,

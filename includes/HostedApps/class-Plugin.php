@@ -147,7 +147,7 @@ class Plugin extends AbstractHostedApp {
     public function set_screenshots( array $screenshots ) {
         foreach ( $screenshots as $key => &$screenshot ) {
             if ( isset( $screenshot['src'] ) ) {
-                $screenshot['src'] = esc_url_raw( $screenshot['src'] );
+                $screenshot['src'] = self::sanitize_web_url( $screenshot['src'] );
             }
 
             if ( isset( $screenshot['caption'] ) ) {
@@ -371,7 +371,8 @@ class Plugin extends AbstractHostedApp {
         $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
         $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
         $self->set_support_url( $self->get_meta( 'support_url', '' ) );
-        $self->set_homepage( $self->get_meta( 'homepage_url', '' ) );
+        
+        $self->set_homepage( $self->get_meta( 'homepage_url' ) ?? '' );
 
         return $self;
     }

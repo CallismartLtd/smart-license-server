@@ -18,6 +18,9 @@ use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\HostedApps\Software;
 use ZipArchive;
 
+use function sprintf, defined, in_array, is_smliser_error, smliser_md_parser, explode, implode,
+dirname, basename, json_decode, json_last_error, smliser_safe_json_encode;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -39,7 +42,7 @@ class SoftwareRepository extends Repository {
      */
     public function __construct() {
         parent::__construct( 'software' );
-        $this->parser = \smliser_md_parser();
+        $this->parser = smliser_md_parser();
     }
 
     /**
@@ -68,7 +71,7 @@ class SoftwareRepository extends Repository {
             );
         }
 
-        $software_zip   = $this->path( \sprintf( '%s.zip', $slug ) );
+        $software_zip   = $this->path( sprintf( '%s.zip', $slug ) );
 
         if ( ! $this->exists( $software_zip ) ) {
             return new Exception(
@@ -142,120 +145,6 @@ class SoftwareRepository extends Repository {
     }
 
     /**
-     * Upload a software assets to the software repository.
-     * 
-     * @param string $slug Software slug.
-     * @param array $file Uploaded file ($_FILES format).
-     * @param string $type The type of asset (e.g. cover, 'screenshots').
-     * @param string $filename Desired filename within the asset type directory.
-     * @return string|Exception Relative path to stored asset on success, Exception on failure.
-     */
-    public function upload_asset( string $slug, array $file, string $type, string $filename = '' ) {
-        // Validate upload
-        if ( ! is_uploaded_file( $file['tmp_name'] ?? '' ) ) {
-            return new Exception( 'invalid_upload', 'Invalid uploaded file.', [ 'status' => 400 ] );
-        }
-
-        if ( ! FileSystemHelper::is_image( $file['tmp_name'] ) ) {
-            return new Exception( 'invalid_type', 'Only images are allowed.', [ 'status' => 400 ] );
-        }
-
-        $slug = $this->real_slug( $slug );
-
-        // Enter theme slug directory.
-        try {
-            $path = $this->enter_slug( $slug );
-        } catch ( FileSystemException $e ) {
-            return new Exception( 
-                'invalid_slug', 
-                $e->get_error_message(),
-                [ 'status' => 400 ] 
-            );
-        }
-
-        $asset_dir = FileSystemHelper::join_path( $path, 'assets/' );
-
-        if ( ! $this->is_dir( $asset_dir ) && ! $this->mkdir( $asset_dir, FS_CHMOD_DIR, true ) ) {
-            return new Exception( 'repo_error', 'Unable to create asset directory.', [ 'status' => 500 ] );
-        }
-
-        $ext    = FileSystemHelper::get_canonical_extension( $file['tmp_name'] );
-
-        if ( ! $ext ) {
-            return new Exception( 'repo_error', 'The extension for the for this image could not be trusted.', [ 'status' => 400 ] );
-        }
-
-        // Upload individual asset type.
-        // Only icon, cover and screenshots are allowed.
-        switch ( $type ) {
-            case 'icon':
-                $allowed_names = [ 'icon-128x128', 'icon-256x256', 'icon' ];
-                if ( ! in_array( pathinfo( $file['name'], PATHINFO_FILENAME ), $allowed_names, true ) 
-                    || ! in_array( $ext, static::ALLOWED_IMAGE_EXTENSIONS, true ) ) {
-                    return new Exception(
-                        'invalid_icon_name',
-                        'Icon must follow these naming convention: icon, icon-128x128 or icon-256x256 and be a PNG, GIF, or SVG file.',
-                        [ 'status' => 400 ]
-                    );
-                }
-                $target_name = strtolower( pathinfo( $file['name'], PATHINFO_FILENAME ) . '.' . $ext );
-                break;
-            case 'cover':
-                $target_name = 'cover.' . $ext;
-                break;
-            case 'screenshot':
-                if ( ! in_array( $ext, static::ALLOWED_IMAGE_EXTENSIONS, true ) ) {
-                    return new Exception(
-                        'invalid_screenshot_type',
-                        'Screenshots must be PNG, JPG, JPEG, GIF, WEBP or SVG.',
-                        [ 'status' => 400 ]
-                    );
-                }
-
-                if ( ! empty( $filename ) ) {
-                    if ( preg_match( '/screenshot-(\d+)\./', $filename, $m ) ) {
-                        $target_name = sprintf( 'screenshot-%d.%s', $m[1], $ext );
-                    } else {
-                        return new Exception(
-                            'invalid_screenshot_name',
-                            'Screenshots must be named screenshot-{index} with a valid image extension.',
-                            [ 'status' => 400 ]
-                        );
-                    }
-                } else {
-                    // Auto-generate next index.
-                    $existing = glob( $asset_dir . 'screenshot-*.' . implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ), GLOB_BRACE );
-                    $indexes  = [];
-
-                    foreach ( $existing as $shot ) {
-                        if ( preg_match( '/screenshot-(\d+)\./', basename( $shot ), $m ) ) {
-                            $indexes[] = (int) $m[1];
-                        }
-                    }
-
-                    $next_index  = empty( $indexes ) ? 1 : ( max( $indexes ) + 1 );
-                    $target_name = sprintf( 'screenshot-%d.%s', $next_index, $ext );
-                }
-                break;
-
-            default:
-                return new Exception( 'invalid_type', 'Unsupported asset type.', [ 'status' => 400 ] );
-        }
-
-        // Final destination
-        $dest_path = FileSystemHelper::join_path( $asset_dir, $target_name );
-
-        // Move uploaded file
-        if ( ! $this->rename( $file['tmp_name'], $dest_path ) ) {
-            return new Exception( 'move_failed', 'Failed to save uploaded asset.', [ 'status' => 500 ] );
-        }
-        @$this->chmod( $dest_path, FS_CHMOD_FILE );
-
-    
-        return smliser_get_asset_url( 'software', $slug, $target_name );
-    }
-
-    /**
      * Validate names and types of asset that can be uploaded for a software.
      * 
      * @param UploadedFile $file The uploaded file instance.
@@ -263,17 +152,11 @@ class SoftwareRepository extends Repository {
      * @return Exception|string On error, file name otherwise.
      */
     public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
-        $ext    = $file->get_canonical_extension();
+        $ext        = $file->get_canonical_extension();
+        $validation = $this->is_valid_image( $file->get_tmp_path() );
 
-        if ( ! $ext ) {
-            return new Exception( 'repo_error', 'The extension for the for this image could not be trusted.', [ 'status' => 400 ] );
-        }
-
-        if ( ! in_array( $ext, static::ALLOWED_IMAGE_EXTENSIONS, true ) ) {
-            return new Exception(
-                'file_ext_error',
-                sprintf( 'Icon file must be one of: %s', implode( ', ', static::ALLOWED_IMAGE_EXTENSIONS ) ),
-            );
+        if ( is_smliser_error( $validation ) ) {
+            return $validation;
         }
 
         // Only icon, cover and screenshots are allowed.
@@ -291,16 +174,18 @@ class SoftwareRepository extends Repository {
             case 'cover':
                 return sprintf( 'cover.%s', $ext );
             case 'screenshot':
-                if ( preg_match( '/screenshot-(\d+)\./', $file->get_name( false ), $m ) ) {
-                    return sprintf( 'screenshot-%d.%s', $m[1], $ext );
-                    
-                } else {
-                    // Auto-generate next index.
-                    return sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
+            case 'screenshots':
+                $existing_name  = null;
+                if ( preg_match( '/screenshot-(\d+)/', $file->get_name(), $m ) ) {
+                    $existing_name = sprintf( 'screenshot-%d', $m[1] ); 
                 }
 
+                // Auto-generate next index.
+                $screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir, $existing_name ), $ext );
+                return $screenshot;
+
             default:
-                return new Exception( 'invalid_type', 'Unsupported asset type.', [ 'status' => 400 ] );
+                return new Exception( 'invalid_type', 'Software only supports icon, cover and screenshots as asset type.', [ 'status' => 400 ] );
         }
     }
 
@@ -334,7 +219,8 @@ class SoftwareRepository extends Repository {
                 $possible_icons = [ 'icon-128x128', 'icon-256x256', 'icon' ];
 
                 foreach ( $possible_icons as $icon_name ) {
-                    $pattern = $assets_dir . $icon_name . '.{' . implode( ',', $possible_exts ) . '}';
+                    $path       = FileSystemHelper::join_path( $assets_dir, $icon_name );
+                    $pattern    = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
                     $icon_files = glob( $pattern, GLOB_BRACE );
 
                     foreach ( $icon_files as $icon ) {
@@ -345,18 +231,28 @@ class SoftwareRepository extends Repository {
                 return $icons;
 
             case 'cover':
-                $cover_files    = glob( $assets_dir . 'cover.{' . implode( ',', $possible_exts ) . '}', GLOB_BRACE );
+                $path           = FileSystemHelper::join_path( $assets_dir, 'cover' );
+                $pattern        = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
+                $cover_files    = glob( $pattern, GLOB_BRACE );
                 if ( empty( $cover_files ) ) {
                     return '';
                 }
-                $cover          = \reset( $cover_files );
-                return smliser_get_asset_url( 'software', $slug, basename( $cover ) );
+                
+                foreach ( $cover_files as $cover ) {
+                    if ( $this->is_file( $cover ) ) {
+                        return smliser_get_asset_url( 'software', $slug, basename( $cover ) );
+                    }
+                }
 
+                return '';
+                
             case 'screenshots':
-                $screenshot_files = glob( $assets_dir . 'screenshot-*.{' . implode( ',', $possible_exts ) . '}', GLOB_BRACE );
-                $screenshots = [];
+                $path           = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
+                $pattern        = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
+                $files          = glob( $pattern, GLOB_BRACE );
+                $screenshots    = [];
 
-                foreach ( $screenshot_files as $screenshot ) {
+                foreach ( $files as $screenshot ) {
                     $screenshots[] = smliser_get_asset_url( 'software', $slug, basename( $screenshot ) );
                 }
 
@@ -389,9 +285,9 @@ class SoftwareRepository extends Repository {
         }
 
         $contents   = $this->get_contents( $app_json_path );
-        $data       = \json_decode( $contents, true );
+        $data       = json_decode( $contents, true );
 
-        if ( \json_last_error() === JSON_ERROR_NONE && is_array( $data ) ) {
+        if ( json_last_error() === JSON_ERROR_NONE && is_array( $data ) ) {
             return $data;
         }
 
@@ -421,7 +317,7 @@ class SoftwareRepository extends Repository {
         $file_path  = FileSystemHelper::join_path( $base_dir, 'app.json' );
 
         $flags      = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
-        $json       = \smliser_safe_json_encode( $manifest, $flags );
+        $json       = smliser_safe_json_encode( $manifest, $flags );
 
         $this->put_contents( $file_path, $json );
 
