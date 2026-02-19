@@ -53,10 +53,12 @@ class Cache {
      *
      * @return Cache
      */
-    public static function instance(): Cache {
-        if ( self::$instance === null ) {
-            self::$instance = new self( static::detect_adapter() );
+    public static function instance( ?CacheAdapterInterface $c = null ): Cache {
+        if ( is_null( self::$instance ) ) {
+            $c  = $c ?? static::detect_adapter();
+            self::$instance = new self( $c );
         }
+
         return self::$instance;
     }
 

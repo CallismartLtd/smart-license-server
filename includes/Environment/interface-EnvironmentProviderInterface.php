@@ -5,7 +5,7 @@
  * @author Callistus Nwachukwu
  */
 
-namespace SmartLicenseServer;
+namespace SmartLicenseServer\Environment;
 
 /**
  * Defines the contracts every environment adapter most follow to fully load this application.

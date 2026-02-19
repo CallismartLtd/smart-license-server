@@ -12,10 +12,8 @@
 
 namespace SmartLicenseServer\FileSystem;
 
+use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
-use SmartLicenseServer\FileSystem\Adapters\FlysystemAdapter;
-use SmartLicenseServer\FileSystem\Adapters\LaravelFileSystemAdapter;
-use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -45,7 +43,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @method int|false filemtime(string $path) Gets file modification time
  * @method array|false stat(string $path) Gives information about a file
  * @method bool readfile(string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576) Efficiently outputs the contents of a file.
- * @method object get_fs() Get the underlying filesytem object
  */
 class FileSystem {
 
@@ -99,7 +96,9 @@ class FileSystem {
      * @throws \RuntimeException If no suitable filesystem adapter can be resolved.
      */
     protected static function detect_adapter(): FileSystemAdapterInterface {
-
+        if ( class_exists( DirectFileSystem::class ) ) {
+            return new DirectFileSystem;
+        }
         /**
          * ------------------------------------------------------------
          * No viable filesystem available

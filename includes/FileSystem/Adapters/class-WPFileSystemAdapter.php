@@ -55,15 +55,6 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
     }
 
     /**
-     * Get the underlying WP_Filesystem handler.
-     *
-     * @return WP_Filesystem_Base|null
-     */
-    public function get_fs(): ?WP_Filesystem_Base {
-        return $this->fs;
-    }
-
-    /**
      * Check if a path is a directory.
      *
      * @param string $path Absolute path.
@@ -124,13 +115,22 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if stream wrapper, false otherwise.
      */
     public function is_stream( mixed $thing ): bool {
+
+        if ( ! is_string( $thing ) ) {
+            return false;
+        }
+
         $scheme_separator = strpos( $thing, '://' );
+
         if ( false === $scheme_separator ) {
             return false;
         }
-        $stream = substr( $thing, 0, $scheme_separator );
-        return in_array( $stream, stream_get_wrappers(), true );
+
+        $scheme = substr( $thing, 0, $scheme_separator );
+
+        return in_array( $scheme, stream_get_wrappers(), true );
     }
+
 
     /**
      * Get file contents.

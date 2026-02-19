@@ -210,9 +210,4 @@ interface FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ): bool;
-
-    /**
-     * Get the underlining filesystem adapter instance.
-     */
-    public function get_fs() : mixed;
 }

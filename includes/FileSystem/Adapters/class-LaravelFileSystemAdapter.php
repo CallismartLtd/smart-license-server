@@ -422,11 +422,4 @@ class LaravelFileSystemAdapter implements FileSystemAdapterInterface {
             return false;
         }
     }
-
-    /**
-     * Get the underlining filesystem adapter instance.
-     */
-    public function get_fs() : mixed {
-        return $this->fs;
-    }
 }

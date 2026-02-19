@@ -324,7 +324,7 @@ class Config {
     /**
      * Include files
      */
-    public function include() {
+    public function bootstrap_files() {
         require_once SMLISER_PATH . 'vendor/autoload.php';
 
         require_once SMLISER_PATH . 'includes/Utils/conditional-functions.php';

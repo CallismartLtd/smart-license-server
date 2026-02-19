@@ -48,18 +48,11 @@ class InMemoryCacheAdapter implements CacheAdapterInterface {
      * @return mixed|false
      */
     public function get( string $key ): mixed {
-        if ( ! isset( $this->cache[ $key ] ) ) {
+        if ( ! $this->has( $key ) ) {
             return false;
         }
 
-        $entry = $this->cache[ $key ];
-
-        if ( $entry['expires'] !== 0 && $entry['expires'] < time() ) {
-            unset( $this->cache[ $key ] );
-            return false;
-        }
-
-        return $entry['value'];
+        return $this->cache[ $key ]['value'];
     }
 
     /**
@@ -88,7 +81,7 @@ class InMemoryCacheAdapter implements CacheAdapterInterface {
 
         $entry = $this->cache[ $key ];
         if ( $entry['expires'] !== 0 && $entry['expires'] < time() ) {
-            unset( $this->cache[ $key ] ); // Clean up while we're at it
+            unset( $this->cache[ $key ] ); // Clean up while we're at it.
             return false;
         }
 

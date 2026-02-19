@@ -12,7 +12,7 @@ use SmartLicenseServer\Admin\Menu;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\WPDBAdapter;
-use SmartLicenseServer\EnvironmentProviderInterface;
+use SmartLicenseServer\Environment\EnvironmentProviderInterface;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Monetization\DownloadToken;
@@ -41,12 +41,12 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         
         parent::instance( compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir' ) );
         FileSystem::instance( new WPFileSystemAdapter );
-        // Database::instance( new WPDBAdapter() );
-
+        Database::instance( new WPDBAdapter() );
         new RESTAPI( new V1 );
+
         $scriptManager  = new ScriptManager;
 
-        add_action( 'plugins_loaded', array( $this, 'include' ) );
+        add_action( 'plugins_loaded', array( $this, 'bootstrap_files' ) );
         add_action( 'admin_menu', [Menu::class, 'register_menus'] );
         add_action( 'admin_menu', [Menu::class, 'modify_sw_menu'], 999 );
 
@@ -112,7 +112,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
      * @return void
      */
     public function check_filesystem_errors() {
-        $fs = FileSystem::instance()->get_fs();
+        $fs = FileSystem::instance();
 
         if ( ! \property_exists( $fs, 'error' ) ) {
             return;
