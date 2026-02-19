@@ -100,18 +100,18 @@ class Database {
             'charset'   => function_exists('smliser_settings_adapter') ? \smliser_settings_adapter()->get( 'db_charset', 'utf8mb4' ) : 'utf8mb4',
         ];
 
-        if ( defined( 'DB_TYPE' ) && 'sqlite' === constant( 'DB_TYPE' ) && class_exists( 'SQLite3' ) ) {
-            return new SqliteAdapter( [
-                'database' => defined( 'DB_FILE' ) ? constant( 'DB_TYPE' )  : $config['database']
-            ] );
-        }
-
         if ( class_exists( PDO::class ) && in_array( 'mysql', PDO::getAvailableDrivers() ) ) {
             return new PdoAdapter( $config );
         }
 
         if ( class_exists( 'mysqli' ) ) {
             return new MysqliAdapter( $config );
+        }
+        
+        if ( defined( 'DB_TYPE' ) && 'sqlite' === constant( 'DB_TYPE' ) && class_exists( 'SQLite3' ) ) {
+            return new SqliteAdapter( [
+                'database' => defined( 'DB_FILE' ) ? constant( 'DB_TYPE' )  : $config['database']
+            ] );
         }
         
         throw new \Exception( 'No supported database adapter found or initialized.' );
