@@ -7,8 +7,9 @@
  * @package Smliser\classes
  * @since 1.0.0
  */
-namespace SmartLicenseServer;
+namespace SmartLicenseServer\Environment\WordPress;
 
+use SmartLicenseServer\Config;
 use SmartLicenseServer\Database\Schema\DBTables;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;

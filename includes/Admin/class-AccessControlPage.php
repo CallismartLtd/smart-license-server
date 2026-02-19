@@ -845,7 +845,7 @@ class AccessControlPage {
                     'title'     => 'Security & access control documentation',
                     'label'     => 'Documentation',
                     'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=doc' ),
-                    'icon'      => 'ti ti-document',
+                    'icon'      => 'ti ti-file-type-doc',
                     'active'    => $tab === 'doc'
                 ),
             )

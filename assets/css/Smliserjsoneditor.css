@@ -206,6 +206,8 @@
 .theme-light .tree-key { 
     color: var(--sje-light-key); 
     font-weight: 700;
+    max-width: 75%;
+    overflow-x: auto;
 }
 .theme-light .tree-separator {
     color: var(--sje-light-text-primary);
@@ -759,6 +761,9 @@
     gap: var(--sje-spacing-xs);
     margin-left: auto;
     padding-left: var(--sje-spacing-md);
+    position: absolute;
+    right: 10px;
+    background-color: #000000c1;
 }
 
 .json-tree-header:hover .tree-actions {
@@ -1146,6 +1151,7 @@
 .json-tree-node {
     animation: fadeIn 1s ease;
     margin: 10px 5px;
+    position: relative;
 }
 
 /* ============================================================================

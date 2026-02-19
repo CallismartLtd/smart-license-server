@@ -35,13 +35,6 @@ class WPDBAdapter implements DatabaseAdapterInterface {
     protected $last_error = null;
 
     /**
-     * Last executed query
-     * 
-     * @var string
-     */
-    protected $last_query = '';
-
-    /**
      * Last inserted ID.
      *
      * @var int|null
@@ -119,7 +112,6 @@ class WPDBAdapter implements DatabaseAdapterInterface {
     public function query( $query, array $params = [] ) {
         $prepared           = $this->prepare( $query, $params );
         $result             = $this->wpdb->query( $prepared );
-        $this->last_query   = $this->wpdb->last_query;
 
         if ( $result === false ) {
             $this->last_error = $this->wpdb->last_error;
@@ -141,7 +133,6 @@ class WPDBAdapter implements DatabaseAdapterInterface {
     public function get_row( $query, array $params = [] ) {
         $prepared           = $this->prepare( $query, $params );
         $row                = $this->wpdb->get_row( $prepared, ARRAY_A );
-        $this->last_query   = $this->wpdb->last_query;
 
         if ( null === $row && $this->wpdb->last_error ) {
             $this->last_error = $this->wpdb->last_error;
@@ -161,7 +152,6 @@ class WPDBAdapter implements DatabaseAdapterInterface {
     public function get_results( $query, array $params = [] ) {
         $prepared           = $this->prepare( $query, $params );
         $rows               = $this->wpdb->get_results( $prepared, ARRAY_A );
-        $this->last_query   = $this->wpdb->last_query;
 
         if ( $rows === null && $this->wpdb->last_error ) {
             $this->last_error = $this->wpdb->last_error;
@@ -180,10 +170,8 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      * @return mixed|null The first column of the first row, or null if none.
      */
     public function get_var( $query, array $params = [] ) {
-        $prepared = $this->prepare( $query, $params );
-
-        $var                = $this->wpdb->get_var( $prepared );
-        $this->last_query   = $this->wpdb->last_query;
+        $prepared   = $this->prepare( $query, $params );
+        $var        = $this->wpdb->get_var( $prepared );
 
         if ( null === $var && $this->wpdb->last_error ) {
             $this->last_error = $this->wpdb->last_error;
@@ -201,9 +189,9 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      * @return array List of column values, or empty array if none found.
      */
     public function get_col( $query, array $params = [] ) {
-        $prepared           = $this->prepare( $query, $params );
-        $col                = $this->wpdb->get_col( $prepared );
-        $this->last_query   = $this->wpdb->last_query;
+        $prepared   = $this->prepare( $query, $params );
+        $col    = $this->wpdb->get_col( $prepared );
+
         if ( $col === null && $this->wpdb->last_error ) {
             $this->last_error = $this->wpdb->last_error;
             return [];
@@ -221,8 +209,8 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      * @return int|false The inserted record ID on success, false on failure.
      */
     public function insert( $table, array $data ) {
-        $result             = $this->wpdb->insert( $table, $data );
-        $this->last_query   = $this->wpdb->last_query;
+        $result = $this->wpdb->insert( $table, $data );
+
         if ( false === $result ) {
             $this->last_error = $this->wpdb->last_error;
             return false;
@@ -243,8 +231,8 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      * @return int|false Number of affected rows, or false on failure.
      */
     public function update( $table, array $data, array $where ) {
-        $result             = $this->wpdb->update( $table, $data, $where );
-        $this->last_query   = $this->wpdb->last_query;
+        $result = $this->wpdb->update( $table, $data, $where );
+
         if ( false === $result ) {
             $this->last_error = $this->wpdb->last_error;
         }
@@ -261,8 +249,8 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      * @return int|false Number of affected rows, or false on failure.
      */
     public function delete( $table, array $where ) {
-        $result             = $this->wpdb->delete( $table, $where );
-        $this->last_query   = $this->wpdb->last_query;
+        $result = $this->wpdb->delete( $table, $where );
+
         if ( false === $result ) {
             $this->last_error = $this->wpdb->last_error;
         }
@@ -286,15 +274,6 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      */
     public function get_last_error() {
         return $this->last_error;
-    }
-
-    /**
-     * Get last executed query
-     * 
-     * @return string
-     */
-    public function get_last_query() : string {
-        return $this->last_query;
     }
 
     protected function prepare( string $query, array $params = [] ) : string {

@@ -77,10 +77,12 @@ class FileSystem {
      *
      * @return FileSystem
      */
-    public static function instance(): FileSystem {
-        if ( self::$instance === null ) {
-            self::$instance = new self( static::detect_adapter() );
+    public static function instance( ?FileSystemAdapterInterface $fs = null ): FileSystem {
+        if ( is_null( self::$instance ) ) {
+            $fs = $fs ?? static::detect_adapter();
+            self::$instance = new self( $fs );
         }
+
         return self::$instance;
     }
 
@@ -100,39 +102,6 @@ class FileSystem {
 
         /**
          * ------------------------------------------------------------
-         * WordPress Environment
-         * ------------------------------------------------------------
-         */
-        if ( defined( 'ABSPATH' ) && function_exists( 'apply_filters' ) ) {
-            return new WPFileSystemAdapter();
-        }
-
-        /**
-         * ------------------------------------------------------------
-         * Laravel Environment
-         * ------------------------------------------------------------
-         */
-        if (
-            class_exists( \Illuminate\Foundation\Application::class ) &&
-            function_exists( 'app' ) &&
-            app()->bound( 'filesystem' )
-        ) {
-            return new LaravelFileSystemAdapter( app( 'filesystem' ) );
-        }
-
-        /**
-         * ------------------------------------------------------------
-         * Flysystem Fallback (Explicit Configuration Required)
-         * ------------------------------------------------------------
-         */
-        if ( static::has_flysystem_config() ) {
-            return new FlysystemAdapter(
-                static::build_flysystem_instance()
-            );
-        }
-
-        /**
-         * ------------------------------------------------------------
          * No viable filesystem available
          * ------------------------------------------------------------
          */
@@ -141,212 +110,6 @@ class FileSystem {
             'Ensure WordPress, Laravel, or a configured Flysystem instance is available.'
         );
     }
-
-
-    /**
-     * Get the underlying adapter instance.
-     *
-     * @return FileSystemAdapterInterface
-     */
-    public function get_adapter(): FileSystemAdapterInterface {
-        return $this->adapter;
-    }
-
-    /**
-     * Determine whether Flysystem has been configured for use.
-     *
-     * @return bool
-     */
-    protected static function has_flysystem_config(): bool {
-        return class_exists( \League\Flysystem\Filesystem::class );
-    }
-
-    /**
-     * Build and return a Flysystem instance.
-     *
-     * Flysystem is treated as an explicit fallback filesystem and must be
-     * configured ahead of time. No automatic driver guessing is performed.
-     *
-     * Supported drivers:
-     * - local
-     * - sftp
-     * - s3
-     *
-     * @return \League\Flysystem\Filesystem
-     *
-     * @throws \RuntimeException If Flysystem is misconfigured or unsupported.
-     */
-    protected static function build_flysystem_instance(): \League\Flysystem\Filesystem {
-
-        if ( ! class_exists( \League\Flysystem\Filesystem::class ) ) {
-            throw new \RuntimeException( 'Flysystem is not installed.' );
-        }
-
-        $config = static::get_flysystem_config();
-
-        if ( empty( $config['driver'] ) ) {
-            throw new \RuntimeException( 'Flysystem driver not specified.' );
-        }
-
-        switch ( $config['driver'] ) {
-
-            /**
-             * ------------------------------------------------------------
-             * Local Driver
-             * ------------------------------------------------------------
-             */
-            case 'local':
-
-                if ( empty( $config['root'] ) ) {
-                    throw new \RuntimeException( 'Local Flysystem driver requires a root path.' );
-                }
-
-                if ( ! is_dir( $config['root'] ) || ! is_writable( $config['root'] ) ) {
-                    throw new \RuntimeException(
-                        sprintf( 'Local filesystem path "%s" is not writable.', $config['root'] )
-                    );
-                }
-
-                $adapter = new \League\Flysystem\Local\LocalFilesystemAdapter(
-                    $config['root']
-                );
-                break;
-
-            /**
-             * ------------------------------------------------------------
-             * SFTP Driver
-             * ------------------------------------------------------------
-             */
-            case 'sftp':
-
-                foreach ( [ 'host', 'username', 'root' ] as $key ) {
-                    if ( empty( $config[ $key ] ) ) {
-                        throw new \RuntimeException(
-                            sprintf( 'SFTP Flysystem driver requires "%s".', $key )
-                        );
-                    }
-                }
-
-                $adapter = new \League\Flysystem\Sftp\SftpAdapter(
-                    \League\Flysystem\Sftp\SftpConnectionProvider::fromArray( $config )
-                );
-                break;
-
-            /**
-             * ------------------------------------------------------------
-             * S3 Driver
-             * ------------------------------------------------------------
-             */
-            case 's3':
-
-                foreach ( [ 'key', 'secret', 'region', 'bucket' ] as $key ) {
-                    if ( empty( $config[ $key ] ) ) {
-                        throw new \RuntimeException(
-                            sprintf( 'S3 Flysystem driver requires "%s".', $key )
-                        );
-                    }
-                }
-
-                $client = new \Aws\S3\S3Client( [
-                    'credentials' => [
-                        'key'    => $config['key'],
-                        'secret' => $config['secret'],
-                    ],
-                    'region'  => $config['region'],
-                    'version' => 'latest',
-                ] );
-
-                $adapter = new \League\Flysystem\AwsS3V3\AwsS3V3Adapter(
-                    $client,
-                    $config['bucket'],
-                    $config['prefix'] ?? ''
-                );
-                break;
-
-            default:
-                throw new \RuntimeException(
-                    sprintf( 'Unsupported Flysystem driver "%s".', $config['driver'] )
-                );
-        }
-
-        return new \League\Flysystem\Filesystem( $adapter );
-    }
-
-    /**
-     * Retrieve Flysystem configuration.
-     *
-     * Returns a normalized configuration array for Flysystem.
-     * The configuration is determined based on defined constants, in priority order:
-     *
-     * 1. SMLISER_FLYSYSTEM_CONFIG_CUSTOM  — User-defined custom configuration.
-     * 2. SMLISER_FLYSYSTEM_CONFIG_S3      — Predefined S3 config.
-     * 3. SMLISER_FLYSYSTEM_CONFIG_SFTP    — Predefined SFTP config.
-     * 4. SMLISER_FLYSYSTEM_CONFIG_LOCAL   — Predefined Local config.
-     *
-     * If none of these constants exist, the method returns a **default local filesystem config**:
-     * ```
-     * [
-     *     'driver' => 'local',
-     *     'root'   => SMLISER_ABSPATH,
-     * ]
-     * ```
-     *
-     * **Notes on constants:**
-     *
-     * - SMLISER_FLYSYSTEM_CONFIG_CUSTOM
-     *   Full normalized Flysystem config array as described in Flysystem docs.
-     *
-     * - SMLISER_FLYSYSTEM_CONFIG_S3
-     *   Must contain at least:
-     *     - driver => 's3'
-     *     - key
-     *     - secret
-     *     - region
-     *     - bucket
-     *     - prefix (optional)
-     *
-     * - SMLISER_FLYSYSTEM_CONFIG_SFTP
-     *   Must contain at least:
-     *     - driver => 'sftp'
-     *     - host
-     *     - username
-     *     - password (or privateKey)
-     *     - root
-     *     - port (optional, default 22)
-     *
-     * - SMLISER_FLYSYSTEM_CONFIG_LOCAL
-     *   Must contain at least:
-     *     - driver => 'local'
-     *     - root
-     *
-     * @return array Normalized Flysystem configuration.
-     */
-    protected static function get_flysystem_config(): array {
-
-        if ( defined( 'SMLISER_FLYSYSTEM_CONFIG_CUSTOM' ) ) {
-            return \constant( 'SMLISER_FLYSYSTEM_CONFIG_CUSTOM' );
-        }
-
-        if ( defined( 'SMLISER_FLYSYSTEM_CONFIG_S3' ) ) {
-            return \constant( 'SMLISER_FLYSYSTEM_CONFIG_S3' );
-        }
-
-        if ( defined( 'SMLISER_FLYSYSTEM_CONFIG_SFTP' ) ) {
-            return \constant( 'SMLISER_FLYSYSTEM_CONFIG_SFTP' );
-        }
-
-        if ( defined( 'SMLISER_FLYSYSTEM_CONFIG_LOCAL' ) ) {
-            return \constant( 'SMLISER_FLYSYSTEM_CONFIG_LOCAL' );
-        }
-
-        // Fallback to direct local filesystem
-        return [
-            'driver' => 'local',
-            'root'   => \constant( 'SMLISER_ABSPATH' ),
-        ];
-    }
-
-
 
     /**
      * Proxy method calls to the underlying adapter.

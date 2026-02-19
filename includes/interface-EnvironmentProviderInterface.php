@@ -17,7 +17,12 @@ interface EnvironmentProviderInterface {
     public function load_monetization_providers();
 
     /**
-     * Database upgrade request parser
+     * Get the website URL.
      */
-    // public static function parse_database_migration_request();
+    public static function url() : string;
+
+    /**
+     * Get the URL for the assets directory.
+     */
+    public static function assets_url() : string;
 }

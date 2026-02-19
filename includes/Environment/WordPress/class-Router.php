@@ -17,7 +17,7 @@ use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostingController;
-use SmartLicenseServer\Installer;
+use SmartLicenseServer\Environment\WordPress\Installer;
 use SmartLicenseServer\Messaging\MessageController;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Monetization\License;
@@ -76,7 +76,6 @@ class Router implements RouterInterface {
         if ( isset( $handler_map[$trigger] ) ) {
             $callback   = $handler_map[$trigger];
             is_callable( $callback ) && $callback();
-
         }        
     }
 
@@ -601,7 +600,7 @@ class Router implements RouterInterface {
         }
 
         if ( Installer::install() )  {
-            Installer::db_migrate( $repo_version );   
+            Installer::db_migrate( $repo_version );
         }
 
         \smliser_settings_adapter()->set( 'smliser_repo_version', SMLISER_VER );

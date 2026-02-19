@@ -153,7 +153,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
             return false;
         }
 
-        // Store insert ID if this was an INSERT operation
+        // Store insert ID if this was an INSERT operation.
         if ( stripos( trim( $query ), 'INSERT' ) === 0 ) {
             $this->insert_id = $this->sqlite->lastInsertRowID();
         }

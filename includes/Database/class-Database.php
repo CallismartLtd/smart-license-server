@@ -70,9 +70,9 @@ class Database {
      *
      * @return Database
      */
-    public static function instance() {
-        if ( null === self::$instance ) {
-            $adapter            = static::detect_environment();
+    public static function instance( ?DatabaseAdapterInterface $db = null ) {
+        if ( is_null( self::$instance ) ) {
+            $adapter            = $db ?? static::detect_environment();
             static::$instance   = new static( $adapter );
         }
 
@@ -86,9 +86,6 @@ class Database {
      * @throws \Exception If no supported adapter can be initialized.
      */
     protected static function detect_environment() {
-        if ( defined( 'ABSPATH' ) && class_exists( \wpdb::class ) && isset( $GLOBALS['wpdb'] ) ) {
-            return new WPDBAdapter();
-        }
 
         if ( class_exists( 'Illuminate\Support\Facades\DB' ) ) {
             return new LaravelAdapter();
