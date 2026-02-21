@@ -1127,10 +1127,11 @@ document.addEventListener( 'DOMContentLoaded', function() {
     }
 
     if ( deleteBtn ) {
-        deleteBtn.addEventListener( 'click', function( event ) {
-            const userConfirmed = confirm( 'You are about to delete this license, be careful action cannot be reversed' );
-            if ( ! userConfirmed ) {
-                event.preventDefault();
+        deleteBtn.addEventListener( 'click', async ( event ) => {
+            event.preventDefault();
+            const userConfirmed = await SmliserModal.confirm( 'You are about to delete this license, be careful action cannot be reversed' );
+            if ( userConfirmed && deleteBtn.href ) {
+                window.location.href    = deleteBtn.href;
             }
         });
     }
@@ -1391,7 +1392,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
     if ( appActionsBtn.length ) {
         appActionsBtn.forEach( actionBtn => {
-            actionBtn.addEventListener('click', (e)=>{
+            actionBtn.addEventListener('click', async (e)=>{
                 e.preventDefault();
                 let requestArgs    = StringUtils.JSONparse( actionBtn.getAttribute( 'data-action-args' ) );
                 
@@ -1402,7 +1403,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
 
                 if ( 'trash' === requestArgs.status ) {
                     let message     = `You are about to trash this ${requestArgs.type}, it will be automatically deleted after 60 days. Are you sure you want to proceed?`;
-                    let confirmed   = confirm( message );
+                    let confirmed   = await SmliserModal.confirm( message );
                     
                     if ( ! confirmed ) {
                         return;
@@ -1431,7 +1432,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                                 window.location.href = responseData.data.redirect_url;
                             }, 3000);
                         } else {
-                            smliserNotify(`Error: ${responseData.data.message}`, 6000);
+                            smliserNotify(`Error: ${responseData.data.message}`, 6000 );
 
                         }
                     });
@@ -1509,110 +1510,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
             new Chart(canvas.getContext('2d'), chartConfig);
         });
     }
-    
-    if ( apiKeyForm ) {
-        let spinnerOverlay = document.querySelector( '.spinner-overlay' );
-        apiKeyForm.addEventListener('submit', ( e ) => {
-            e.preventDefault();
-            spinnerOverlay.classList.add('show');
-            
-            let formData = new FormData( apiKeyForm );
-            formData.append( 'action', 'smliser_key_generate' );
-            formData.append( 'security', smliser_var.nonce );
-            fetch( smliser_var.ajaxURL, {
-                method: 'POST',
-                body: formData,
-            }).then( response => {
-                if ( ! response.ok ) {
-                    throw new Error( response.statusText );
-                }
-                return response.json();
-            }).then( response => {
-                if (response.success) {
-                    let consumer_public = response.data ? response.data.consumer_public : '';
-                    let consumer_secret = response.data ? response.data.consumer_secret : '';
-                    let description = response.data ? response.data.description : '';
 
-                    // Create a div to display the credentials
-                    var credentialsDiv = document.createElement('div');
-                    credentialsDiv.style.border = '1px solid #ccc';
-                    credentialsDiv.style.borderRadius = '9px';
-                    credentialsDiv.style.padding = '10px';
-                    credentialsDiv.style.margin = '20px auto';
-                    credentialsDiv.style.backgroundColor = '#fff';
-                    credentialsDiv.style.width = '50%';
-
-                    var htmlContent = '<h2 style="text-align:center;">API Credentials</h2>';
-                    htmlContent += '<p><strong>Description:</strong> ' + description + '</p>';
-                    htmlContent += '<p><strong>Consumer Public:</strong> ' + consumer_public + '  <span onclick="smliserCopyToClipboard(\'' + consumer_public + '\')" class="dashicons dashicons-admin-page"></span></p>';
-                    htmlContent += '<p><strong>Consumer Secret:</strong> ' + consumer_secret + '  <span onclick="smliserCopyToClipboard(\'' + consumer_secret + '\')" class="dashicons dashicons-admin-page"></span></p>';
-                    htmlContent += '<p><strong>Note:</strong> This is the last time these credentials will be revealed. Please copy and save them securely.</p>';
-
-                    credentialsDiv.innerHTML = htmlContent;
-                    jQuery( credentialsDiv ).hide();
-                    jQuery ( apiKeyForm ).fadeOut( 'slow', () =>{
-                        apiKeyForm.parentNode.insertBefore( credentialsDiv, apiKeyForm.nextSibling );
-                        jQuery( credentialsDiv ).fadeIn( 'slow' );
-                    })
-                    
-                } else {
-                    var errorMessage = response.data && response.data.message ? response.data.message : 'An unknown error occurred.';
-                    console.error(errorMessage);
-                    smliserNotify( errorMessage, 3000 );
-                }
-            }).catch( error => {
-                console.error(error);
-                
-            }).finally( () => {
-                spinnerOverlay.classList.remove('show');
-                apiKeyForm.reset();
-            });
-        });
-    }
-
-    if ( revokeBtns ) {
-        let spinnerOverlay = document.querySelector( '.spinner-overlay' );
-        revokeBtns.forEach( function( revokeBtn ){
-            let apiKeyId = revokeBtn.getAttribute( 'data-key-id' );
-
-            revokeBtn.addEventListener( 'click', () => {
-                const userConfirmed = confirm( 'You are about to revoke this license, connected app will not be able to access resource on this server, be careful action cannot be reversed' );
-                if ( ! userConfirmed ) {
-                    return;
-                }
-                spinnerOverlay.classList.add('show');
-                let url = new URL( smliser_var.ajaxURL );
-                url.searchParams.set( 'action', 'smliser_revoke_key' );
-                url.searchParams.set( 'security', smliser_var.nonce );
-                url.searchParams.set( 'api_key_id', apiKeyId );
-
-                fetch( url, {
-                    method: 'GET',
-                }).then( response =>{
-                    if ( ! response.ok ) {
-                        throw new Error( response.statusText );
-                    }
-                    return response.json();
-                }).then( responseJson =>{
-                    if ( responseJson.success ) {
-                        let feedback = responseJson.data ? responseJson.data.message : '';
-                        smliserNotify(feedback, 3000);
-                        location.reload();
-                    } else {
-                        let errorMessage = responseJson.data && responseJson.data.message ? responseJson.data.message : 'An unknown error occurred.';
-                        console.log( errorMessage );
-                        smliserNotify(errorMessage, 3000);
-                    }
-                }).catch( error =>{
-                    console.error(error); // Log detailed error information
-                    
-                }).finally( () =>{
-                    spinnerOverlay.classList.remove('show');
-                });
-            });
-        } );
-    }
-    
     if ( monetizationUI ) {
         let tierModal   = document.querySelector( '.smliser-admin-modal.pricing-tier' );
         let tierForm    = document.querySelector( '#tier-form' );
@@ -1707,9 +1605,10 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 tierForm.querySelector( '#features' ).value     = Array.isArray( tier.features ) ? tier.features.join(', ') : ( tier.features || '' );
             },
 
-            deleteTier: ( json ) => {
+            deleteTier: async ( json ) => {
                 let tier = StringUtils.JSONparse( json );
-                if ( confirm( `Are you sure you want to delete tier "${tier.name}"?` ) ) {
+                const confirmed = SmliserModal.confirm( `Are you sure you want to delete tier "${tier.name}"?` );
+                if ( confirmed ) {
                     const payLoad = new FormData();
                     payLoad.set( 'action', 'smliser_delete_monetization_tier' );
                     payLoad.set( 'security', smliser_var.nonce );
@@ -2035,8 +1934,9 @@ document.addEventListener( 'DOMContentLoaded', function() {
     if ( allLicenseDomain ) {
         allLicenseDomain.addEventListener( 'click', async e => {
             const deleteBtn = e.target.closest( '.remove' );
+            const confirmed = await SmliserModal.confirm( 'Are you sure you want to remove this domain?' );
 
-            if ( ! deleteBtn || ! confirm( 'Are you sure you want to remove this domain?' )) return;
+            if ( ! deleteBtn || ! confirmed ) return;
 
             const domain    = e.target.closest( '[data-domain-value]' )?.getAttribute( 'data-domain-value' );
 
@@ -2156,7 +2056,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 const addnewMemberBtn   = e.target.closest( '.smliser-add-member-to-org-btn' );
                 const editMemberBtn     = e.target.closest( '.button.edit-member' );
                 const deleteMemberBtn   = e.target.closest( '.button.delete-member' );
-                const clickedBtn    = addnewMemberBtn ?? editMemberBtn ?? deleteMemberBtn;
+                const clickedBtn        = addnewMemberBtn ?? editMemberBtn ?? deleteMemberBtn;
                 
                 qv.set( 'org_id', qv.get( 'id' ) );
 
@@ -2170,10 +2070,23 @@ document.addEventListener( 'DOMContentLoaded', function() {
                 }
 
                 if ( clickedBtn ) {
-                    let spinner = showSpinner( '.smliser-spinner', true );
                     clickedBtn.disabled = true;
 
-                    if ( clickedBtn === deleteMemberBtn && confirm( 'Are you sure you want to remove the selected member from this organization?' ) ) {
+                    if ( clickedBtn === deleteMemberBtn ) {
+                        const confirmed = await SmliserModal.confirm(
+                            {
+                                confirmText: 'Yes',
+                                cancelText: 'No',
+                                message: 'Are you sure you want to remove the selected member from this organization?',
+                                title: 'Confirm Member Removal'
+                            }
+                        );
+                        
+                        if ( ! confirmed ) {
+                            clickedBtn.disabled = false;
+                            return;
+                        }
+                        
                         const url   = new URL( smliser_var.ajaxURL );
 
                         url.searchParams.set( 'action', 'smliser_delete_org_member' );
@@ -2181,6 +2094,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                         url.searchParams.set( 'organization_id', qv.get( 'org_id' ) );
                         url.searchParams.set( 'member_id', deleteMemberBtn.dataset.memberId );
                         url.searchParams.set( 'action', 'smliser_delete_org_member' );
+                        let spinner = showSpinner( '.smliser-spinner', true );
 
                         try {
                             const response  = await smliserFetchJSON( url.href );
@@ -2206,6 +2120,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                         return;
                     }
 
+                    showSpinner( '.smliser-spinner', true );
                     qv.delete( 'id' );
                     const url   = new URL( window.location );
                     url.search  = qv.toString();

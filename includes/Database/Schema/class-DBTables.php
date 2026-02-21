@@ -384,6 +384,21 @@ final class DBTables {
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'INDEX organization_member_id (member_id)',
                 'INDEX organization_id (organization_id)',
+            ),
+
+            /**
+             * Identity federation lookup table.
+             */
+            SMLISER_IDENTITY_FEDERATION_TABLE       => array(
+                'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'user_id BIGINT(20) UNSIGNED NOT NULL',
+                'issuer VARCHAR(300) NOT NULL',
+                'external_id VARCHAR(512) NOT NULL',
+                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP',
+                'INDEX smliser_idfed_user_id (user_id)',
+                'INDEX smliser_idfed_issuer (issuer)',
+                'INDEX smliser_idfed_external_id (external_id)',
+
             )
         );
     }

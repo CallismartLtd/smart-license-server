@@ -13,7 +13,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * The Guard is responsible for resolving the relationship between the Actor 
  * and the specific Resource Owner targeted by a Request.
  */
-final class SecurityGuard {
+final class Guard {
 
     /**
      * The current principal instance for this request.

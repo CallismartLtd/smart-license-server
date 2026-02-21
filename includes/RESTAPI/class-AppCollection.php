@@ -10,7 +10,6 @@ namespace SmartLicenseServer\RESTAPI;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Cache\CacheAwareTrait;
-use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\UploadedFile;
@@ -18,7 +17,7 @@ use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostingController;
-use SmartLicenseServer\Security\Context\SecurityGuard;
+use SmartLicenseServer\Security\Context\Guard;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -55,7 +54,7 @@ class AppCollection {
             return new RequestException( 'method_not_allowed' );
         }
 
-        $actor  = SecurityGuard::get_principal();
+        $actor  = Guard::get_principal();
 
         if ( ! $actor ) {
             // Actor is not authenticated, return 401 response code.
@@ -288,7 +287,7 @@ class AppCollection {
             return new RequestException( 'method_not_allowed' );
         }
 
-        $actor  = SecurityGuard::get_principal();
+        $actor  = Guard::get_principal();
 
         if ( ! $actor ) {
             // Actor is not authenticated, return 401 response code.

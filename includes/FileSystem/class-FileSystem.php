@@ -20,7 +20,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * FileSystem singleton.
  *
- * Automatically detects the environment and uses the correct FileSystem adapter.
+ * Automatically detects the environment and uses the correct FileSystem adapter by default.
  *
  * @method bool is_dir(string $path) Tells whether the filename is a directory.
  * @method bool is_file(string $path) Tells whether the filename is a regular file.
@@ -128,4 +128,77 @@ class FileSystem {
             sprintf( 'Method %s::%s does not exist.', get_class( $this->adapter ), $method )
         );
     }
+
+    /**
+     * Test one or more directories for read/write access.
+     *
+     * Uses the underlying adapter where possible.
+     *
+     * @param string|array $dirs A single path or an array of directories to test.
+     * @return array An associative array where key = dir path, value = [
+     *               'readable' => bool,
+     *               'writable' => bool,
+     *               'error'    => string|null
+     *             ]
+     */
+    public function test_dirs_read_write( string|array $dirs ): array {
+
+        if ( is_string( $dirs ) ) {
+            $dirs = [ $dirs ];
+        }
+
+        $results = [];
+
+        foreach ( $dirs as $dir ) {
+            $dir = rtrim( $dir, "/\\" );
+            $readable  = false;
+            $writable  = false;
+            $error_msg = null;
+
+            // Check readability using adapter if available
+            if ( method_exists( $this->adapter, 'is_readable' ) ) {
+                $readable = $this->adapter->is_readable( $dir );
+            } else {
+                $readable = is_readable( $dir );
+            }
+
+            if ( $readable ) {
+                // Check writability using adapter if possible
+                $writable = false;
+                $tmpFile = $dir . DIRECTORY_SEPARATOR . uniqid( 'test_', true ) . '.tmp';
+
+                try {
+                    if ( method_exists( $this->adapter, 'put_contents' ) ) {
+                        $writable = $this->adapter->put_contents( $tmpFile, 'test' );
+                    } else {
+                        $fp = @fopen( $tmpFile, 'w' );
+                        if ( false !== $fp ) {
+                            fwrite( $fp, 'test' );
+                            fclose( $fp );
+                            $writable = true;
+                        }
+                    }
+                } catch ( \Throwable $e ) {
+                    $error_msg = $e->getMessage();
+                } finally {
+                    @unlink( $tmpFile );
+                }
+
+                if ( ! $writable && ! $error_msg ) {
+                    $error_msg = 'Cannot write to directory';
+                }
+            } else {
+                $error_msg = 'Directory not readable';
+            }
+
+            $results[ $dir ] = [
+                'readable' => $readable,
+                'writable' => $writable,
+                'error'    => $error_msg,
+            ];
+        }
+
+        return $results;
+    }
+
 }

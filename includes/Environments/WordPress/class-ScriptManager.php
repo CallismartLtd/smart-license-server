@@ -3,10 +3,10 @@
  * Script manager class file.
  * 
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Environment\WordPress
+ * @package SmartLicenseServer\Environments\WordPress
  */
 
-namespace SmartLicenseServer\Environment\WordPress;
+namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Security\Permission\Capability;
 use SmartLicenseServer\Security\Permission\Role;

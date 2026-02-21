@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\Environment
  */
 
-namespace SmartLicenseServer\Environment;
+namespace SmartLicenseServer\Environments;
 
 /**
  * Defines the contracts for routing request parsers.

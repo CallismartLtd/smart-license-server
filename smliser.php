@@ -10,7 +10,7 @@
 
 namespace SmartLicenseServer;
 
-use SmartLicenseServer\Environment\WordPress\SetUp;
+use SmartLicenseServer\Environments\WordPress\SetUp;
 
 defined( 'ABSPATH' ) || exit;
 

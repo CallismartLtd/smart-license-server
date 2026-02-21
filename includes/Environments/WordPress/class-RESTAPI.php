@@ -3,10 +3,10 @@
  * WordPress REST API configuration class file.
  * 
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Environment\WordPress
+ * @package SmartLicenseServer\Environments\WordPress
  */
 
-namespace SmartLicenseServer\Environment\WordPress;
+namespace SmartLicenseServer\Environments\WordPress;
 
 use ArgumentCountError;
 use SmartLicenseServer\Core\MultipartRequestParser;
@@ -20,7 +20,7 @@ use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Principal;
-use SmartLicenseServer\Security\Context\SecurityGuard;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use WP_Error;
 use WP_REST_Request;
@@ -327,6 +327,8 @@ class RESTAPI implements RESTProviderInterface {
      * Perform Authentication using our security and access control policy.
      * 
      * Authentication method is by the HTTP authorization bearer <TOKEN>.
+     * 
+     * This method is call in the `rest_authentication_errors` filter.
      *
      * @return bool|\WP_Error|null
      */
@@ -394,7 +396,7 @@ class RESTAPI implements RESTProviderInterface {
 
             $principal = new Principal( $actor, $role, $owner );
 
-            SecurityGuard::set_principal( $principal );
+            Guard::set_principal( $principal );
 
             return true;
 

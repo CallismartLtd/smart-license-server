@@ -7,7 +7,7 @@
  * @package Smliser\classes
  * @since 1.0.0
  */
-namespace SmartLicenseServer\Environment\WordPress;
+namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Database\Schema\DBTables;

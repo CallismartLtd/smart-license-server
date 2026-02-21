@@ -6,13 +6,13 @@
  * @package SmartLicenseServer\Environment
  */
 
-namespace SmartLicenseServer\Environment\WordPress;
+namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Admin\Menu;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\WPDBAdapter;
-use SmartLicenseServer\Environment\EnvironmentProviderInterface;
+use SmartLicenseServer\Environments\EnvironmentProviderInterface;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Monetization\DownloadToken;
@@ -44,9 +44,11 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         Database::instance( new WPDBAdapter() );
         new RESTAPI( new V1 );
 
+        $auth           = new IdentityService;
         $scriptManager  = new ScriptManager;
 
         add_action( 'plugins_loaded', array( $this, 'bootstrap_files' ) );
+        add_action( 'set_current_user', [$auth, 'authenticate'] );
         add_action( 'admin_menu', [Menu::class, 'register_menus'] );
         add_action( 'admin_menu', [Menu::class, 'modify_sw_menu'], 999 );
 
@@ -107,37 +109,94 @@ class SetUp extends Config implements EnvironmentProviderInterface {
     }
 
     /**
-     * Check filesystem permissions and print admin notice if not writable.
-     * 
+     * Check key filesystem directories for read/write access and print admin notice if not writable.
+     *
+     * Uses a transient to avoid repeated expensive filesystem checks.
+     *
      * @return void
      */
-    public function check_filesystem_errors() {
-        $fs = FileSystem::instance();
+    public function check_filesystem_errors(): void {
+        $transient_key  = 'smliser_fs_check_results';
+        $cached_results = get_transient( $transient_key );
 
-        if ( ! \property_exists( $fs, 'error' ) ) {
+        if ( false === $cached_results ) {
+            $dirs_to_check = [
+                \SMLISER_REPO_DIR,
+                \SMLISER_UPLOADS_DIR,
+                \SMLISER_PLUGINS_REPO_DIR,
+                \SMLISER_THEMES_REPO_DIR,
+                \SMLISER_SOFTWARE_REPO_DIR,
+            ];
+
+            $cached_results = FileSystem::instance()->test_dirs_read_write( $dirs_to_check );
+            set_transient( $transient_key, $cached_results, HOUR_IN_SECONDS );
+        }
+
+        $errors = [];
+
+        foreach ( $cached_results as $dir => $status ) {
+            $issues = [];
+
+            if ( ! $status['readable'] ) {
+                $issues[] = __( 'not readable', 'smliser' );
+            }
+            if ( ! $status['writable'] ) {
+                $issues[] = __( 'not writable', 'smliser' );
+            }
+
+            if ( ! empty( $issues ) ) {
+                $errors[ $dir ] = $issues;
+            }
+        }
+
+        if ( empty( $errors ) ) {
             return;
         }
 
-        /** @var \WP_Error $wp_error */
-        $wp_error       = $fs->errors;
-
-        if ( $wp_error->has_errors() ) {
-            $error_messages = $wp_error->get_error_messages();
-            $messages_html = '';
-            foreach ( $error_messages as $message ) {
-                $messages_html .= '<code>' . esc_html( $message ) . '</code><br />';
+        $rows = '';
+        foreach ( $errors as $dir => $issues ) {
+            $badge_html = '';
+            foreach ( $issues as $issue ) {
+                $badge_html .= sprintf(
+                    '<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:3px;background:#b32d2e;color:#fff;font-size:11px;font-weight:600;vertical-align:middle;">%s</span>',
+                    esc_html( $issue )
+                );
             }
 
-            wp_admin_notice( 
-                sprintf(
-                    __( '%s Filesystem Error: <br/> %s Please ensure the WordPress filesystem is properly configured and writable.', 'smliser' ),
-                    SMLISER_APP_NAME,
-                    $messages_html
-                ),
-                'error'
+            $rows .= sprintf(
+                '<tr><td style="padding:4px 0;font-family:monospace;font-size:13px;color:#3c434a;">%s</td><td style="padding:4px 0 4px 12px;white-space:nowrap;">%s</td></tr>',
+                esc_html( $dir ),
+                $badge_html
             );
-
         }
+
+        $dir_count = count( $errors );
+        $heading   = sprintf(
+            /* translators: 1: Plugin name, 2: Number of affected directories */
+            _n(
+                '%1$s detected a filesystem permission problem in %2$d directory.',
+                '%1$s detected filesystem permission problems in %2$d directories.',
+                $dir_count,
+                'smliser'
+            ),
+            '<strong>' . esc_html( SMLISER_APP_NAME ) . '</strong>',
+            $dir_count
+        );
+
+        $message = sprintf(
+            '<p>%s</p>
+            <table style="border-collapse:collapse;margin:4px 0 8px;">%s</table>
+            <p style="margin:0;">%s</p>',
+            $heading,
+            $rows,
+            sprintf(
+                /* translators: %s: chmod command example */
+                __( 'Please check directory ownership and permissions. You may need to run %s or contact your hosting provider.', 'smliser' ),
+                '<code>chmod -R 755</code>'
+            )
+        );
+
+        wp_admin_notice( $message, [ 'type' => 'error', 'dismissible' => true ] );
     }
 
     /**
@@ -178,7 +237,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
     /**
      * Sets up custom routes.
      */
-    public function route_register() {
+    public function route_register() :void {
         $repo_base_url = \smliser_settings_adapter()->get( 'smliser_repo_base_perma', 'repository' );
     
         add_rewrite_rule(

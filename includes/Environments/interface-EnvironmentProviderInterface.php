@@ -1,11 +1,11 @@
 <?php
 /**
- * Smart License Server Environment Provider Interface file
+ * Smart License Server Environment Provider Interface file.
  * 
  * @author Callistus Nwachukwu
  */
 
-namespace SmartLicenseServer\Environment;
+namespace SmartLicenseServer\Environments;
 
 /**
  * Defines the contracts every environment adapter most follow to fully load this application.
@@ -25,4 +25,18 @@ interface EnvironmentProviderInterface {
      * Get the URL for the assets directory.
      */
     public static function assets_url() : string;
+
+    /**
+     * Check key filesystem directories for read/write access.
+     *
+     * Uses a transient to avoid repeated expensive filesystem checks.
+     *
+     * @return void
+     */
+    public function check_filesystem_errors(): void;
+
+    /**
+     * Sets up custom routes.
+     */
+    public function route_register() :void;
 }

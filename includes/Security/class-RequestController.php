@@ -9,7 +9,6 @@
 namespace SmartLicenseServer\Security;
 
 use InvalidArgumentException;
-use Mpdf\Tag\S;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;

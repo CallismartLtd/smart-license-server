@@ -6,18 +6,18 @@
  * @package SmartLicenseServer\Environment
  */
 
-namespace SmartLicenseServer\Environment\WordPress;
+namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Environment\RouterInterface;
+use SmartLicenseServer\Environments\RouterInterface;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostingController;
-use SmartLicenseServer\Environment\WordPress\Installer;
+use SmartLicenseServer\Environments\WordPress\Installer;
 use SmartLicenseServer\Messaging\MessageController;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Monetization\License;
@@ -571,10 +571,9 @@ class Router implements RouterInterface {
         }
     
         $request    = new Request([
-            'slug'          => \smliser_get_query_param( 'slug' ),
-            'type'          => \smliser_get_query_param( 'type' ),
-            'status'        => \smliser_get_query_param( 'status' ),
-            'is_authorized' => true,
+            'app_slug'          => \smliser_get_query_param( 'slug' ),
+            'app_type'          => \smliser_get_query_param( 'type' ),
+            'app_status'        => \smliser_get_query_param( 'status' ),
         ]);
 
         $response   = HostingController::change_app_status( $request );

@@ -18,7 +18,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\HostedApps\Theme;
 use SmartLicenseServer\HostedApps\Software;
-use SmartLicenseServer\Security\Context\SecurityGuard;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use WP_REST_Server;
 
@@ -37,7 +37,7 @@ class HostingController {
      * @throws RequestException When actor is unauthenticated.
      */
     private static function check_permissions( ...$perms ) {
-        $principal      = SecurityGuard::get_principal();
+        $principal      = Guard::get_principal();
 
         if ( ! $principal ) {
             throw new RequestException( 'missing_auth' );
@@ -53,12 +53,18 @@ class HostingController {
      * 
      * @param HostedAppsInterface $app.
      */
-    private static function check_app_ownership( HostedAppsInterface $app ) {
-        $principal      = SecurityGuard::get_principal();
+    private static function check_app_ownership( HostedAppsInterface $app ) : void {
+        if ( ! $app->get_owner_id() ) {
+            return;
+        }
+
+        $principal      = Guard::get_principal();
 
         if ( ! $principal ) {
             throw new RequestException( 'missing_auth' );
         }
+
+        pp( $principal->get_owner() );
 
         if ( ! $principal->get_owner()->owns_app( $app ) ) {
             throw new RequestException( 'unuathorized_app_access' );
@@ -157,7 +163,7 @@ class HostingController {
             } else if ( $request->hasValue( 'app_owner_id' ) ) {
                 $app->set_owner_id( $request->get( 'app_owner_id' ) );
             } else {
-                $app->set_owner_id( SecurityGuard::get_principal()?->get_owner()->get_id() ?? 0 );
+                $app->set_owner_id( Guard::get_principal()?->get_owner()->get_id() ?? 0 );
             }
 
             $result = $app->save();
@@ -234,7 +240,7 @@ class HostingController {
         return true;
     }
 
-     /**
+    /**
      * Update software
      *
      * @param Software $software
@@ -341,7 +347,7 @@ class HostingController {
                 throw new RequestException( 'app_not_found' );
             }
 
-            // static::check_app_ownership( $app );
+            static::check_app_ownership( $app );
 
             $asset_file = $request->get_files( 'asset_file' );
             
@@ -478,6 +484,8 @@ class HostingController {
                 throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found', $app_type, $app_slug ), array( 'status' => 404 ) );
             }
 
+            static::check_app_ownership( $app );
+
             $status             = $request->get( 'app_status' );
             $knowned_statuses   = array_keys( $app->get_statuses() );
 
@@ -486,6 +494,10 @@ class HostingController {
             }
 
             $old_status = $app->get_status();
+            if ( $old_status === $status ) {
+                throw new RequestException( 'precondition_failed', sprintf( 'Status is already "%s".', $status ) );
+            }
+            
             $app->set_status( $status );
             $saved  = $app->save();
 

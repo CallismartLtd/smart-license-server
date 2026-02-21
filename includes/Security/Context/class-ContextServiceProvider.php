@@ -379,6 +379,22 @@ class ContextServiceProvider {
     }
 
     /**
+     * Get the default owner entity this user object represents.
+     * 
+     * @param User $user The user object.
+     * @return Owner|null The owner instance or null when the user is not a resource owner
+     */
+    public static function get_default_owner( User $user ) : ?Owner {
+        $db     = smliser_dbclass();
+        $table  = SMLISER_OWNERS_TABLE;
+
+        $sql    = "SELECT `id` FROM {$table} WHERE `subject_id` = ? AND `type` = ?";
+        $id     = (int) $db->get_var( $sql, [$user->get_id(), Owner::TYPE_INDIVIDUAL] );
+
+        return Owner::get_by_id( $id );
+    }
+
+    /**
      * Get either the organization or the individual user associated with a
      * resource owner object.
      * 
@@ -389,7 +405,7 @@ class ContextServiceProvider {
 
         return match( $owner->get_type() ) {
             Owner::TYPE_ORGANIZATION    => Organization::get_by_id( $owner->get_id() ),
-            Owner::TYPE_INDIVIDUAL      => User::get_by_id( $owner->get_id() ),
+            Owner::TYPE_INDIVIDUAL      => User::get_by_id( $owner->get_subject_id() ),
             default                     => null
         };
     }

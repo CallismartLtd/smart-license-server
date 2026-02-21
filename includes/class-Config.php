@@ -46,56 +46,56 @@ class Config {
          *
          * Dynamically generated using the configured database prefix.
          *
-         * @var string
+         * @var string `smliser_licenses.`
          */
         define( 'SMLISER_LICENSE_TABLE', $parsed_config['db_prefix'] . 'smliser_licenses' );
 
         /**
          * License metadata database table name.
          *
-         * @var string
+         * @var string `smliser_license_meta.`
          */
         define( 'SMLISER_LICENSE_META_TABLE', $parsed_config['db_prefix'] . 'smliser_license_meta' );
 
         /**
          * Plugins database table name.
          *
-         * @var string
+         * @var string `smliser_plugins.`
          */
         define( 'SMLISER_PLUGINS_TABLE', $parsed_config['db_prefix'] . 'smliser_plugins' );
 
         /**
          * Plugin metadata database table name.
          *
-         * @var string
+         * @var string `smliser_plugin_meta.`
          */
         define( 'SMLISER_PLUGINS_META_TABLE', $parsed_config['db_prefix'] . 'smliser_plugin_meta' );
 
         /**
          * Themes database table name.
          *
-         * @var string
+         * @var string `smliser_themes.`
          */
         define( 'SMLISER_THEMES_TABLE', $parsed_config['db_prefix'] . 'smliser_themes' );
 
         /**
          * Theme metadata database table name.
          *
-         * @var string
+         * @var string `smliser_theme_meta.`
          */
         define( 'SMLISER_THEMES_META_TABLE', $parsed_config['db_prefix'] . 'smliser_theme_meta' );
 
         /**
          * Software database table name.
          *
-         * @var string
+         * @var string `smliser_software.`
          */
         define( 'SMLISER_SOFTWARE_TABLE', $parsed_config['db_prefix'] . 'smliser_software' );
 
         /**
          * Software metadata database table name.
          *
-         * @var string
+         * @var string `smliser_software_meta.`
          */
         define( 'SMLISER_SOFTWARE_META_TABLE', $parsed_config['db_prefix'] . 'smliser_software_meta' );
 
@@ -103,128 +103,135 @@ class Config {
          * API credentials database table name.
          * 
          * @deprecated 0.2.0
-         * @var string
+         * @var string `smliser_api_creds.`
          */
         define( 'SMLISER_API_CRED_TABLE', $parsed_config['db_prefix'] . 'smliser_api_creds' );
 
         /**
          * Item download token database table name.
          *
-         * @var string
+         * @var string `smliser_item_download_token.`
          */
         define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $parsed_config['db_prefix'] . 'smliser_item_download_token' );
 
         /**
          * Application download token database table name.
          *
-         * @var string
+         * @var string `smliser_app_download_tokens.`
          */
         define( 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE', $parsed_config['db_prefix'] . 'smliser_app_download_tokens' );
 
         /**
          * Monetization records database table name.
          *
-         * @var string
+         * @var string `smliser_monetization.`
          */
         define( 'SMLISER_MONETIZATION_TABLE', $parsed_config['db_prefix'] . 'smliser_monetization' );
 
         /**
          * Pricing tiers database table name.
          *
-         * @var string
+         * @var string `smliser_pricing_tiers.`
          */
         define( 'SMLISER_PRICING_TIER_TABLE', $parsed_config['db_prefix'] . 'smliser_pricing_tiers' );
 
         /**
          * Bulk messages database table name.
          *
-         * @var string
+         * @var string `smliser_bulk_messages.`
          */
         define( 'SMLISER_BULK_MESSAGES_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages' );
 
         /**
          * Bulk message to application mapping database table name.
          *
-         * @var string
+         * @var string `smliser_bulk_messages_apps.`
          */
         define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages_apps' );
 
         /**
          * Plugin options database table name.
          *
-         * @var string
+         * @var string `smliser_options.`
          */
         define( 'SMLISER_OPTIONS_TABLE', $parsed_config['db_prefix'] . 'smliser_options' );
 
         /**
          * Analytics event logs database table name.
          *
-         * @var string
+         * @var string `smliser_analytics_log.`
          */
         define( 'SMLISER_ANALYTICS_LOGS_TABLE', $parsed_config['db_prefix'] . 'smliser_analytics_log' );
 
         /**
          * Daily analytics aggregation database table name.
          *
-         * @var string
+         * @var string `smliser_analytics_daily.`
          */
         define( 'SMLISER_ANALYTICS_DAILY_TABLE', $parsed_config['db_prefix'] . 'smliser_analytics_daily' );
 
         /**
          * Resource owners database table name.
          *
-         * @var string
+         * @var string `smliser_resource_owners.`
          */
         define( 'SMLISER_OWNERS_TABLE', $parsed_config['db_prefix'] . 'smliser_resource_owners' );
 
         /**
          * Internal users database table name.
          *
-         * @var string
+         * @var string `smliser_users.`
          */
         define( 'SMLISER_USERS_TABLE', $parsed_config['db_prefix'] . 'smliser_users' );
 
         /**
          * Service accounts database table name.
          *
-         * @var string
+         * @var string `smliser_service_accounts.`
          */
         define( 'SMLISER_SERVICE_ACCOUNTS_TABLE', $parsed_config['db_prefix'] . 'smliser_service_accounts' );
 
         /**
          * Roles database table name.
          *
-         * @var string
+         * @var string `smliser_roles.`
          */
         define( 'SMLISER_ROLES_TABLE', $parsed_config['db_prefix'] . 'smliser_roles' );
 
         /**
          * Roles database table name.
          *
-         * @var string
+         * @var string `smliser_role_caps.`
          */
         define( 'SMLISER_ROLE_CAPABILITIES_TABLE', $parsed_config['db_prefix'] . 'smliser_role_caps' );
 
         /**
          * Roles to principals database table name.
          *
-         * @var string
+         * @var string `smliser_principal_roles.`
          */
         define( 'SMLISER_ROLE_ASSIGNMENT_TABLE', $parsed_config['db_prefix'] . 'smliser_principal_roles' );
 
         /**
          * Organizations database table name.
          *
-         * @var string
+         * @var string `smliser_organizations.`
          */
         define( 'SMLISER_ORGANIZATIONS_TABLE', $parsed_config['db_prefix'] . 'smliser_organizations' );
 
         /**
          * Organization members database table name.
          *
-         * @var string
+         * @var string `smliser_organization_members.`
          */
         define( 'SMLISER_ORGANIZATION_MEMBERS_TABLE', $parsed_config['db_prefix'] . 'smliser_organization_members' );
+        
+        /**
+         * Identity provider map database table name.
+         *
+         * @var string `smliser_identity_provider_lookup.`
+         */
+        define( 'SMLISER_IDENTITY_FEDERATION_TABLE', $parsed_config['db_prefix'] . 'smliser_identity_provider_lookup' );
 
         /**
          * Absolute path to the Smart License Server repository root directory.
