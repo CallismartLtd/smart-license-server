@@ -41,7 +41,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         
         parent::instance( compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir' ) );
         FileSystem::instance( new WPFileSystemAdapter );
-        Database::instance( new WPDBAdapter() );
+        Database::instance( new WPDBAdapter( $GLOBALS['wpdb'] ) );
         new RESTAPI( new V1 );
 
         $auth           = new IdentityService;

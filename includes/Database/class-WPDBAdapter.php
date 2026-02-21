@@ -48,8 +48,8 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      *
      * @param \wpdb|null $wpdb Optional. Custom wpdb instance. Defaults to global $wpdb.
      */
-    public function __construct( $wpdb = null ) {
-        $this->wpdb = $wpdb ?? $GLOBALS['wpdb'];
+    public function __construct( $wpdb ) {
+        $this->wpdb = $wpdb;
     }
 
     /**
