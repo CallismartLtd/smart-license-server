@@ -10,6 +10,8 @@
 
 namespace SmartLicenseServer\Database;
 
+use wpdb;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -23,9 +25,9 @@ class WPDBAdapter implements DatabaseAdapterInterface {
     /**
      * Global $wpdb instance.
      *
-     * @var \wpdb
+     * @var wpdb
      */
-    protected $wpdb;
+    protected wpdb $wpdb;
 
     /**
      * Last executed error message.
@@ -46,7 +48,7 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      *
      * Initializes the adapter with the global $wpdb instance.
      *
-     * @param \wpdb|null $wpdb Optional. Custom wpdb instance. Defaults to global $wpdb.
+     * @param wpdb $wpdb Optional. Custom wpdb instance. Defaults to global $wpdb.
      */
     public function __construct( $wpdb ) {
         $this->wpdb = $wpdb;
