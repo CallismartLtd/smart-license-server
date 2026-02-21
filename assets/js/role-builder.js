@@ -7,13 +7,14 @@ class RoleBuilder {
      *     This element MUST exist in the document before instantiation.
      *
      * @param {Object} data
-     *     Canonical role and capability definitions.
+     *     Role and capability definitions.
      *
      *     Structure:
      *     {
      *         roles: {
      *             [roleKey: string]: {
      *                 label: string,
+     *                 is_canonical: boolean,
      *                 capabilities: string[]
      *             }
      *         },
@@ -30,21 +31,32 @@ class RoleBuilder {
      *
      *     Structure:
      *     {
-     *         key?: string|null,          // Existing role key (if canonical)
-     *         name: string,               // Human-readable role name
-     *         capabilities: string[]      // List of assigned capability identifiers
+     *         slug: string,           // Machine-readable role identifier
+     *         label: string,          // Human-readable role name
+     *         is_canonical: boolean,  // Whether this role is a locked system role
+     *         capabilities: string[]  // List of assigned capability identifiers
      *     }
      *
      *     Behavior:
-     *     - If `key` matches a predefined role, that preset is selected and locked.
-     *     - If no matching preset exists, the role is treated as a custom role.
+     *     - If `is_canonical` is true, the UI is locked: name, slug, and
+     *       capability checkboxes are all disabled.
+     *     - If `is_canonical` is false, the role is fully editable regardless
+     *       of whether its slug matches a dropdown option.
      */
     constructor( container, data, initialRole = null ) {
-        this.container  = container;
-        this.data       = data;
+        this.container = container;
+        this.data      = data;
 
-        this.activeRole = null;
-        this.isPreset   = false;
+        /**
+         * Whether the currently loaded role is canonical (locked).
+         * This is the single authoritative flag driving all lock/unlock
+         * decisions in the UI. It is derived exclusively from `is_canonical`
+         * on the role data — never inferred from dropdown state or other
+         * heuristics.
+         *
+         * @type {boolean}
+         */
+        this.isLocked = false;
 
         this.render();
         this.bindEvents();
@@ -53,6 +65,10 @@ class RoleBuilder {
             this.loadRole( initialRole );
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Rendering
+    // -------------------------------------------------------------------------
 
     render() {
         this.container.classList.add('smliser-role-builder');
@@ -119,7 +135,19 @@ class RoleBuilder {
                 aria-labelledby="rb-capabilities-title"
                 aria-live="polite"
             >
-                <h3 id="rb-capabilities-title">Capabilities</h3>
+                <div class="rb-capabilities-header">
+                    <h3 id="rb-capabilities-title">Capabilities</h3>
+                    <label class="rb-select-all-global" for="rb-select-all">
+                        <input
+                            type="checkbox"
+                            id="rb-select-all"
+                            class="rb-select-all-checkbox"
+                            aria-label="Select all capabilities"
+                            autocomplete="off"
+                        />
+                        <span>Select all</span>
+                    </label>
+                </div>
 
                 <div class="rb-capabilities">
                     ${this.renderCapabilities()}
@@ -140,7 +168,8 @@ class RoleBuilder {
         return Object.entries( this.data.capabilities )
             .map( ([ domain, caps ]) => {
 
-                const fieldsetId = `rb-domain-${domain}`;
+                const fieldsetId  = `rb-domain-${domain}`;
+                const selectAllId = `rb-select-all-${domain}`;
 
                 return `
                 <fieldset
@@ -150,15 +179,23 @@ class RoleBuilder {
                     aria-labelledby="${fieldsetId}-legend"
                 >
                     <legend id="${fieldsetId}-legend">
-                        ${this.humanize(domain)}
+                        <span>${this.humanize(domain)}</span>
+                        <label class="rb-select-all-domain" for="${selectAllId}">
+                            <input
+                                type="checkbox"
+                                id="${selectAllId}"
+                                class="rb-select-all-domain-checkbox"
+                                data-domain="${domain}"
+                                aria-label="Select all ${this.humanize(domain)} capabilities"
+                                autocomplete="off"
+                            />
+                            <span>All</span>
+                        </label>
                     </legend>
 
-                    ${Object.entries( caps ).map(
-                        ([ cap, label ]) => {
-
-                            const inputId = `cap-${cap}`;
-
-                            return `
+                    ${Object.entries( caps ).map( ([ cap, label ]) => {
+                        const inputId = `cap-${cap}`;
+                        return `
                             <label class="rb-cap" for="${inputId}">
                                 <input
                                     id="${inputId}"
@@ -171,155 +208,151 @@ class RoleBuilder {
                                 <span>${label}</span>
                             </label>
                         `;
-                        }
-                    ).join('')}
+                    }).join('')}
                 </fieldset>
             `;
-            }).join('');
+        }).join('');
     }
+
+    // -------------------------------------------------------------------------
+    // Events
+    // -------------------------------------------------------------------------
 
     bindEvents() {
         this.container
             .querySelector('.rb-role-select')
-            .addEventListener('change', e => this.selectRole( e.target.value ) );
+            .addEventListener('change', e => this.onPresetChange( e.target.value ) );
 
         this.container
             .querySelector('.rb-role-name')
-            .addEventListener('input', this.enableCustomRole.bind(this) );
+            .addEventListener('input', () => {
+                // Typing in the name field always means the user is customising,
+                // so reset the preset dropdown to "Custom role".
+                this.container.querySelector('.rb-role-select').value = '';
+            });
 
         this.container
             .querySelector('.rb-role-slug')
-            .addEventListener('input', e => e.target.value = e.target.value.toLowerCase() );
+            .addEventListener('input', e => {
+                e.target.value = e.target.value.toLowerCase();
+            });
 
         this.container
             .querySelector('.rb-role-slug')
-            .addEventListener('blur', e => this.formatRoleSlug( e.target.value, true ) );
+            .addEventListener('blur', e => this.setRoleSlug( e.target.value, true ) );
 
+        this.container
+            .querySelector('#rb-select-all')
+            .addEventListener('change', e => this.handleSelectAll( e.target.checked ) );
+
+        // Delegated listener for domain select-all and individual capability checkboxes.
         this.container.addEventListener('change', e => {
+            if ( e.target.matches('.rb-select-all-domain-checkbox') ) {
+                this.handleDomainSelectAll( e.target.dataset.domain, e.target.checked );
+                return;
+            }
+
             if ( e.target.matches('input[type="checkbox"]') ) {
                 e.target.setAttribute(
                     'aria-checked',
                     e.target.checked ? 'true' : 'false'
                 );
+
+                this.updateSelectAllStates();
             }
         });
     }
 
-    selectRole( roleKey ) {
+    // -------------------------------------------------------------------------
+    // Preset dropdown handler
+    // -------------------------------------------------------------------------
+
+    /**
+     * Handle a change on the preset dropdown.
+     * Looks up the selected role and applies it; locks only if canonical.
+     *
+     * @param {string} roleKey  Selected option value. Empty string = custom role.
+     */
+    onPresetChange( roleKey ) {
         this.resetCapabilities();
 
         if ( ! roleKey ) {
-            this.enableCustomRole();
+            this.applyLock( false );
             this.setRoleName( '' );
-
-            this.formatRoleSlug( '' );
+            this.setRoleSlug( '' );
             return;
         }
 
         const role = this.data.roles[ roleKey ];
 
-        this.activeRole = roleKey;
-        this.isPreset   = true;
-
         this.setRoleName( role.label );
+        this.setRoleSlug( roleKey );
         this.checkCapabilities( role.capabilities );
-        this.lockCapabilities();
-        this.setLockedState( true );
-        this.formatRoleSlug( roleKey );
+        this.applyLock( role.is_canonical );
+        this.updateSelectAllStates();
     }
 
-    enableCustomRole() {
-        this.activeRole = null;
-        this.isPreset   = false;
+    // -------------------------------------------------------------------------
+    // Lock / unlock — single unified point of control
+    // -------------------------------------------------------------------------
 
-        this.unlockCapabilities();
-        this.setLockedState( false );
-    }
+    /**
+     * Apply or remove the locked state across the entire UI.
+     *
+     * This is the **only** method that should mutate `this.isLocked` or
+     * touch disabled/aria-disabled on fields and capabilities. All other
+     * methods that previously had lock-related side-effects now delegate
+     * here instead.
+     *
+     * @param {boolean} locked  True to lock (canonical role), false to unlock.
+     */
+    applyLock( locked ) {
+        this.isLocked = locked;
 
-    setRoleName( name ) {
-        const input = this.container.querySelector('.rb-role-name');
+        // Fields
+        const nameInput = this.container.querySelector('.rb-role-name');
+        const slugInput = this.container.querySelector('.rb-role-slug');
 
-        input.value    = name ? name : '';
-        input.disabled = this.isPreset;
-
-        input.setAttribute(
-            'aria-disabled',
-            this.isPreset ? 'true' : 'false'
-        );
-    }
-
-    checkCapabilities( capabilities ) {
-        capabilities?.forEach( cap => {
-            const checkbox = this.container.querySelector(
-                `input[value="${cap}"]`
-            );
-
-            if ( checkbox ) {
-                checkbox.checked = true;
-                checkbox.setAttribute('aria-checked', 'true');
-            }
+        [ nameInput, slugInput ].forEach( input => {
+            input.disabled = locked;
+            input.setAttribute('aria-disabled', locked ? 'true' : 'false');
         });
-    }
 
-    resetCapabilities() {
+        // Capability checkboxes (including select-all controls)
         this.container
-            .querySelectorAll('.rb-capabilities input[type=checkbox]')
+            .querySelectorAll('.rb-capabilities input[type="checkbox"]')
             .forEach( cb => {
-                cb.checked = false;
-                cb.setAttribute('aria-checked', 'false');
+                cb.disabled = locked;
+                cb.setAttribute('aria-disabled', locked ? 'true' : 'false');
             });
-    }
 
-    lockCapabilities() {
-        this.toggleCapabilities( true );
-    }
-
-    unlockCapabilities() {
-        this.toggleCapabilities( false );
-    }
-
-    toggleCapabilities( disabled ) {
-        this.container
-            .querySelectorAll('.rb-capabilities input[type=checkbox]')
-            .forEach( cb => {
-                cb.disabled = disabled;
-                cb.setAttribute(
-                    'aria-disabled',
-                    disabled ? 'true' : 'false'
-                );
-            });
-    }
-
-    setLockedState( locked ) {
+        // Container state attribute (drives CSS locked overlay)
         this.container.dataset.locked = locked ? 'true' : 'false';
-
-        this.container.setAttribute(
-            'aria-busy',
-            locked ? 'true' : 'false'
-        );
+        this.container.setAttribute('aria-busy', locked ? 'true' : 'false');
     }
 
-    getValue() {
-        return {
-            roleSlug: this.container.querySelector( '.rb-role-slug' ).value,
-            roleLabel: this.container.querySelector( '.rb-role-name' ).value,
-            capabilities: Array.from(
-                this.container.querySelectorAll(
-                    '.rb-capabilities input:checked'
-                )
-            ).map( cb => cb.value )
-        };
+    // -------------------------------------------------------------------------
+    // Field setters
+    // -------------------------------------------------------------------------
+
+    /**
+     * Set the role name input value.
+     * Does not touch disabled state — that is exclusively managed by applyLock.
+     *
+     * @param {string} name
+     */
+    setRoleName( name ) {
+        this.container.querySelector('.rb-role-name').value = name ?? '';
     }
 
-    humanize( str ) {
-        return str
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, c => c.toUpperCase());
-    }
-
-    formatRoleSlug( slug, isFinal = false ) {
-        const input = this.container.querySelector( '.rb-role-slug' );
-
+    /**
+     * Set and format the role slug input value.
+     * Does not touch disabled state — that is exclusively managed by applyLock.
+     *
+     * @param {string}  slug
+     * @param {boolean} [isFinal=false]  When true, strips leading/trailing/duplicate underscores.
+     */
+    setRoleSlug( slug, isFinal = false ) {
         if ( slug ) {
             slug = slug
                 .toLowerCase()
@@ -333,44 +366,224 @@ class RoleBuilder {
             }
         }
 
-        input.value = slug ? slug: '';
-        input.disabled = this.isPreset;
-
-        input.setAttribute(
-            'aria-disabled',
-            this.isPreset ? 'true' : 'false'
-        );
+        this.container.querySelector('.rb-role-slug').value = slug ?? '';
     }
 
+    // -------------------------------------------------------------------------
+    // Capabilities
+    // -------------------------------------------------------------------------
+
+    /**
+     * Check capability checkboxes matching the given list.
+     *
+     * @param {string[]} capabilities
+     */
+    checkCapabilities( capabilities ) {
+        capabilities?.forEach( cap => {
+            const checkbox = this.container.querySelector( `input[value="${cap}"]` );
+
+            if ( checkbox ) {
+                checkbox.checked = true;
+                checkbox.setAttribute('aria-checked', 'true');
+            }
+        });
+    }
+
+    /**
+     * Uncheck all capability checkboxes and clear indeterminate state.
+     */
+    resetCapabilities() {
+        this.container
+            .querySelectorAll('.rb-capabilities input[type="checkbox"]')
+            .forEach( cb => {
+                cb.checked       = false;
+                cb.indeterminate = false;
+                cb.setAttribute('aria-checked', 'false');
+            });
+    }
+
+    /**
+     * Toggle all capability checkboxes (excluding select-all controls).
+     *
+     * @param {boolean} checked
+     */
+    handleSelectAll( checked ) {
+        this.container
+            .querySelectorAll('.rb-capabilities input[type="checkbox"]:not(.rb-select-all-domain-checkbox)')
+            .forEach( cb => {
+                if ( ! cb.disabled ) {
+                    cb.checked = checked;
+                    cb.setAttribute('aria-checked', checked ? 'true' : 'false');
+                }
+            });
+
+        this.container
+            .querySelectorAll('.rb-select-all-domain-checkbox')
+            .forEach( cb => {
+                if ( ! cb.disabled ) {
+                    cb.checked       = checked;
+                    cb.indeterminate = false;
+                }
+            });
+    }
+
+    /**
+     * Toggle all capability checkboxes within a specific domain.
+     *
+     * @param {string}  domain
+     * @param {boolean} checked
+     */
+    handleDomainSelectAll( domain, checked ) {
+        const fieldset = this.container.querySelector( `.rb-domain[data-domain="${domain}"]` );
+
+        if ( ! fieldset ) return;
+
+        fieldset
+            .querySelectorAll('input[type="checkbox"]:not(.rb-select-all-domain-checkbox)')
+            .forEach( cb => {
+                if ( ! cb.disabled ) {
+                    cb.checked = checked;
+                    cb.setAttribute('aria-checked', checked ? 'true' : 'false');
+                }
+            });
+
+        this.updateSelectAllStates();
+    }
+
+    /**
+     * Recalculate checked/indeterminate states for all select-all controls
+     * based on the current state of the capability checkboxes.
+     */
+    updateSelectAllStates() {
+        let totalCaps    = 0;
+        let totalChecked = 0;
+
+        this.container.querySelectorAll('.rb-domain').forEach( fieldset => {
+            const caps     = Array.from(
+                fieldset.querySelectorAll('input[type="checkbox"]:not(.rb-select-all-domain-checkbox)')
+            );
+            const checked  = caps.filter( cb => cb.checked );
+            const domainCb = fieldset.querySelector('.rb-select-all-domain-checkbox');
+
+            totalCaps    += caps.length;
+            totalChecked += checked.length;
+
+            if ( domainCb ) {
+                domainCb.checked       = checked.length === caps.length && caps.length > 0;
+                domainCb.indeterminate = checked.length > 0 && checked.length < caps.length;
+            }
+        });
+
+        const globalCb = this.container.querySelector('#rb-select-all');
+
+        if ( globalCb ) {
+            globalCb.checked       = totalChecked === totalCaps && totalCaps > 0;
+            globalCb.indeterminate = totalChecked > 0 && totalChecked < totalCaps;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Load existing role
+    // -------------------------------------------------------------------------
+
+    /**
+     * Populate the UI from an existing role object.
+     *
+     * Lock state is determined solely by `roleData.is_canonical`. A role
+     * whose slug matches a dropdown option but is not canonical will be
+     * loaded as fully editable.
+     *
+     * @param {Object}   roleData
+     * @param {string}   roleData.slug
+     * @param {string}   roleData.label
+     * @param {boolean}  roleData.is_canonical
+     * @param {string[]} roleData.capabilities
+     */
     loadRole( roleData ) {
         this.resetCapabilities();
 
-        const roleSelect = this.container.querySelector( '.rb-role-select' );
+        const roleSelect = this.container.querySelector('.rb-role-select');
 
+        // If canonical, try to match a preset by capabilities so the dropdown
+        // reflects the correct option even if slugs differ.
         if ( roleData.is_canonical ) {
             const presetKey = this.findMatchingPreset( roleData.capabilities );
 
             if ( presetKey ) {
                 roleSelect.value = presetKey;
-                this.selectRole( presetKey );
+                this.setRoleName( this.data.roles[ presetKey ].label );
+                this.setRoleSlug( presetKey );
+                this.checkCapabilities( roleData.capabilities );
+                this.applyLock( true );
+                this.updateSelectAllStates();
                 return;
             }
         }
 
-        if ( roleSelect.querySelector( `option[value="${roleData.slug}"]` ) ) {
-            this.selectRole( roleData.slug );
-            roleSelect.value = roleData.slug;
-            return;
-        }
-
-        roleSelect.value = '';
-        this.enableCustomRole();
+        // Point the dropdown at the matching option if one exists, otherwise
+        // fall back to "Custom role". Either way, lock state comes from is_canonical.
+        const matchingOption = roleSelect.querySelector( `option[value="${roleData.slug}"]` );
+        roleSelect.value     = matchingOption ? roleData.slug : '';
 
         this.setRoleName( roleData.label );
-        this.formatRoleSlug( roleData.slug );
+        this.setRoleSlug( roleData.slug );
         this.checkCapabilities( roleData.capabilities );
+        this.applyLock( roleData.is_canonical );
+        this.updateSelectAllStates();
     }
 
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return the current form values.
+     *
+     * @returns {{ roleSlug: string, roleLabel: string, capabilities: string[] }}
+     */
+    getValue() {
+        return {
+            roleSlug:     this.container.querySelector('.rb-role-slug').value,
+            roleLabel:    this.container.querySelector('.rb-role-name').value,
+            capabilities: Array.from(
+                this.container.querySelectorAll(
+                    '.rb-capabilities input:checked:not(.rb-select-all-domain-checkbox):not(#rb-select-all)'
+                )
+            ).map( cb => cb.value )
+        };
+    }
+
+    /**
+     * Convert a snake_case string to Title Case.
+     *
+     * @param   {string} str
+     * @returns {string}
+     */
+    humanize( str ) {
+        return str
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    /**
+     * @deprecated Use setRoleSlug() directly.
+     *
+     * Retained as a thin wrapper so any external callers that previously
+     * referenced formatRoleSlug() continue to work without modification.
+     *
+     * @param {string}  slug
+     * @param {boolean} [isFinal=false]
+     */
+    formatRoleSlug( slug, isFinal = false ) {
+        this.setRoleSlug( slug, isFinal );
+    }
+
+    /**
+     * Find a preset role key whose capability set exactly matches the given list.
+     *
+     * @param   {string[]} capabilities
+     * @returns {string|null}  Matching preset key, or null if none found.
+     */
     findMatchingPreset( capabilities ) {
         const sorted = [ ...capabilities ].sort().join('|');
 

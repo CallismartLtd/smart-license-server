@@ -11,6 +11,8 @@
 
 namespace SmartLicenseServer\Security\Permission;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -417,7 +419,7 @@ class Role {
         $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
         $existing       = static::get_by_slug( $this->get_slug() );
         $capabilities   = array_values( array_unique( $this->get_capabilities() ) );
-        $now            = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $now            = new DateTimeImmutable('now', new DateTimeZone('UTC'));
 
         if ( ! $existing ) {
             $roles_data = [
@@ -452,7 +454,7 @@ class Role {
 
         $cap_id = $db->get_var(
             "SELECT `id` FROM {$caps_table} WHERE `role_id` = ?", 
-            [$this->get_id() ]
+            [$this->get_id()]
         );
 
         if ( $cap_id ) {

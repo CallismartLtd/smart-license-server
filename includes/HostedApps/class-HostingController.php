@@ -10,17 +10,15 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\HostedApps\Theme;
 use SmartLicenseServer\HostedApps\Software;
 use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
-use WP_REST_Server;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -28,48 +26,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Software Hosting Controller handles HTTP request and response for hosted applications.
  */
 class HostingController {
-    use SanitizeAwareTrait;
+    use SanitizeAwareTrait, SecurityAwareTrait;
 
-    /**
-     * Check minimum required permissions.
-     * 
-     * @param string[] $perms
-     * @throws RequestException When actor is unauthenticated.
-     */
-    private static function check_permissions( ...$perms ) {
-        $principal      = Guard::get_principal();
-
-        if ( ! $principal ) {
-            throw new RequestException( 'missing_auth' );
-        }
-
-        if ( ! empty( $perms ) && ! $principal->can_any( $perms ) ) {
-            throw new RequestException( 'unauthorized_scope' );
-        }
-    }
-
-    /**
-     * Tells whether the current principal owns or has permission to work on the app.
-     * 
-     * @param HostedAppsInterface $app.
-     */
-    private static function check_app_ownership( HostedAppsInterface $app ) : void {
-        if ( ! $app->get_owner_id() ) {
-            return;
-        }
-
-        $principal      = Guard::get_principal();
-
-        if ( ! $principal ) {
-            throw new RequestException( 'missing_auth' );
-        }
-
-        pp( $principal->get_owner() );
-
-        if ( ! $principal->get_owner()->owns_app( $app ) ) {
-            throw new RequestException( 'unuathorized_app_access' );
-        }
-    }
     /*
     |---------------------------
     | CREATE OPERATION METHODS
@@ -77,7 +35,7 @@ class HostingController {
     */
 
     /**
-     * Ajax callback method to handle app form submission.
+     * Responds to requests to create or update an application.
      * 
      * @param Request $request
      */
@@ -116,9 +74,7 @@ class HostingController {
                 throw new RequestException( 'invalid_input', 'Sorry there is no app matching the provided slug or ID.' , array( 'status' => 404 ) );
             }
 
-            if ( $app->exists() ) {
-                static::check_app_ownership( $app );
-            }
+            static::check_app_ownership( $app );
 
             $name   = $request->get( 'app_name', null );
 
@@ -365,7 +321,8 @@ class HostingController {
                 $result = $repo_class->safe_assets_upload( $app_slug, $asset_file, $asset_type );
 
             } else {
-
+                static::check_permissions( 'hosted_apps.edit_assets' );
+                
                 $result = $repo_class->put_app_asset( $app_slug, $asset_file->get(0), $asset_type );
             }
 

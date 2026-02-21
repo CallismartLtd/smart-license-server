@@ -110,7 +110,6 @@ class Router implements RouterInterface {
             'user_agent'        => smliser_get_user_agent(),
             'request_time'      => time(),
             'client_ip'         => smliser_get_client_ip(),
-            'is_authorized'     => true // For public download, monetized app download permission checked by controller.
         ]);
 
         $response = FileRequestController::get_application_zip_file( $request );
@@ -144,7 +143,6 @@ class Router implements RouterInterface {
         $request = new FileRequest([
             'app_type'      => $type,
             'app_id'        => $id,
-            'is_authorized' => current_user_can( 'install_plugins' )
         ]);
 
         $response = FileRequestController::get_admin_application_zip_file( $request );
@@ -169,7 +167,6 @@ class Router implements RouterInterface {
             'user_agent'        => smliser_get_user_agent(),
             'request_time'      => time(),
             'client_ip'         => smliser_get_client_ip(),
-            'is_authorized'     => current_user_can( 'manage_options' ),
             'issuer'            => $settings->get( 'smliser_company_name', get_bloginfo( 'name' ) ),
             'terms_url'         => $settings->get( 'smliser_license_term_url', 'https://callismart.com.ng/terms/' )
         ]);
@@ -195,7 +192,6 @@ class Router implements RouterInterface {
             'user_agent'    => smliser_get_user_agent(),
             'request_time'  => time(),
             'client_ip'     => smliser_get_client_ip(),
-            'is_authorized' => true
         ]);
 
         $response = FileRequestController::get_app_static_asset( $request );
@@ -221,7 +217,6 @@ class Router implements RouterInterface {
             'user_agent'    => smliser_get_user_agent(),
             'request_time'  => time(),
             'client_ip'     => smliser_get_client_ip(),
-            'is_authorized' => true // Public access to uploads dir files
         ]);
 
         $response = FileRequestController::get_uploads_dir_asset( $request );
@@ -250,7 +245,6 @@ class Router implements RouterInterface {
             'user_agent'    => smliser_get_user_agent(),
             'request_time'  => time(),
             'client_ip'     => smliser_get_client_ip(),
-            'is_authorized' => current_user_can( 'manage_options' )
         ]);
 
         $response = FileRequestController::get_proxy_asset( $request );
@@ -276,7 +270,6 @@ class Router implements RouterInterface {
 
         // Construct the FileRequest object.
         $request = new Request([
-            'is_authorized'                 => current_user_can( 'manage_options' ),
             'app_type'                      => smliser_get_post_param( 'app_type', null ),
             'app_id'                        => smliser_get_post_param( 'app_id', 0 ),
             'app_name'                      => smliser_get_post_param( 'app_name', null ),
@@ -314,8 +307,7 @@ class Router implements RouterInterface {
             throw new RequestException( 'invalid_nonce', 'This action failed basic security check.' );
         }
 
-        $is_authorized = current_user_can( 'manage_options' );
-        if ( ! $is_authorized ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
             throw new RequestException( 'permission_denied', 'You do not have the required permission to perform this operation.' );
         }
         
@@ -353,13 +345,11 @@ class Router implements RouterInterface {
             throw new RequestException( 'invalid_nonce', 'This action failed basic security check.' );
         }
 
-        $is_authorized = current_user_can( 'manage_options' );
-        if ( ! $is_authorized ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
             throw new RequestException( 'permission_denied', 'You do not have the required permission to perform this operation.' );
         }
 
         $request = new Request([
-            'is_authorized' => $is_authorized,
             'app_type'      => smliser_get_post_param( 'app_type' ),
             'app_slug'      => smliser_get_post_param( 'app_slug' ),
             'asset_name'    => smliser_get_post_param( 'asset_name' ),
@@ -382,7 +372,6 @@ class Router implements RouterInterface {
         }
 
         $request    = new Request([
-            'is_authorized'         => current_user_can( 'manage_options' ),
             'license_id'            => smliser_get_post_param( 'license_id', 0 ),
             'user_id'               => smliser_get_post_param( 'user_id', 0 ),
             'service_id'            => smliser_get_post_param( 'service_id' ),
@@ -425,7 +414,6 @@ class Router implements RouterInterface {
         $request    = new Request([
             'ids'           => smliser_get_request_param( 'ids', [] ),
             'bulk_action'   => smliser_get_request_param( 'bulk_action', '' ),
-            'is_authorized' => current_user_can( 'manage_options' ),
             'user_agent'    => smliser_get_user_agent(),
             'request_time'  => time(),
             'client_ip'     => smliser_get_client_ip(),
@@ -465,7 +453,6 @@ class Router implements RouterInterface {
         }
 
         $request = new Request([
-            'is_authorized'     => current_user_can( 'manage_options' ),
             'monetization_id'   => smliser_get_post_param( 'monetization_id', 0 ),
             'app_id'           => smliser_get_post_param( 'app_id', 0 ),
             'tier_id'           => smliser_get_post_param( 'tier_id', 0 ),
@@ -621,7 +608,6 @@ class Router implements RouterInterface {
 
         $request    = new Request([
             'provider_id'   => \smliser_get_post_param( 'provider_id' ),
-            'is_authorized' => true
 
         ]);
 
@@ -649,7 +635,6 @@ class Router implements RouterInterface {
         $request    = new Request([
             'monetization_id'   => \smliser_get_post_param( 'monetization_id' ),
             'enabled'           => \smliser_get_post_param( 'enabled' ),
-            'is_authorized'     => true
 
         ]);
 
@@ -675,7 +660,6 @@ class Router implements RouterInterface {
         $request    = new Request([
             'provider_id'   => smliser_get_query_param( 'provider_id' ),
             'product_id'    => smliser_get_query_param( 'product_id' ),
-            'is_authorized' => true
         ]);
 
         $response   = Controller::get_provider_product( $request );
@@ -701,8 +685,6 @@ class Router implements RouterInterface {
         $request    = new Request([
             'monetization_id'   => \smliser_get_post_param( 'monetization_id', 0 ),
             'tier_id'           => \smliser_get_post_param( 'tier_id', 0 ),
-            'is_authorized'     => true
-
         ]);
 
         $response   = Controller::delete_monetization_tier( $request );
@@ -728,8 +710,6 @@ class Router implements RouterInterface {
         $request    = new Request([
             'license_id'    => \smliser_get_query_param( 'license_id', 0 ),
             'domain'        => \smliser_get_query_param( 'domain' ),
-            'is_authorized' => true
-
         ]);
 
         $response   = Controller::uninstall_domain_from_license( $request );
@@ -756,8 +736,6 @@ class Router implements RouterInterface {
             'subject'       => \smliser_get_post_param( 'subject' ),
             'message_body'  => \wp_kses_post( $_POST['message_body'] ?? '' ),
             'message_id'    => \smliser_get_post_param( 'message_id', 0 ),
-            'is_authorized' => true
-
         ]);
 
         $assocs_apps    = smliser_get_post_param( 'associated_apps', [] );
@@ -832,7 +810,6 @@ class Router implements RouterInterface {
             'capabilities'      => smliser_get_request_param( 'capabilities', [] ),
             'entity'            => $entity,
             'avatar'            => isset( $_FILES['avatar'] ) && UPLOAD_ERR_OK === $_FILES['avatar']['error'] ? $_FILES['avatar'] : null,
-            'is_authorized'     => true,
         ]);
 
         $method = 'organization_member' === $request->get( 'entity' ) ? 'save_organization_member' : 'save_entity';
@@ -895,7 +872,6 @@ class Router implements RouterInterface {
             'search_term'   => smliser_get_request_param( 'search' ),
             'status'        => smliser_get_request_param( 'status', 'active' ),
             'types'         => smliser_get_request_param( 'types', Owner::get_allowed_owner_types() ),
-            'is_authorized' => is_super_admin()
         ]);
 
         if ( 'owner_subjects' === $entity ) {

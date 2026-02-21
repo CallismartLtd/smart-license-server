@@ -8,7 +8,6 @@
 
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
-use SimplePie\File;
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
@@ -31,9 +30,7 @@ class FileRequestController {
      */
     public static function get_application_zip_file( FileRequest $request ): FileResponse {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new FileRequestException( 'user_not_authorized', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
-            }
+
             $app_type = $request->get( 'app_type' );
             $app_slug = $request->get( 'app_slug' );
             $token    = $request->get( 'download_token' );
@@ -95,9 +92,7 @@ class FileRequestController {
      */
     public static function get_admin_application_zip_file( FileRequest $request ): FileResponse {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new FileRequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
-            }
+            
 
             $app_type   = $request->get( 'app_type', '' );
             $app_class  = HostedApplicationService::get_app_class( $app_type );
@@ -140,10 +135,7 @@ class FileRequestController {
      */
     public static function get_proxy_asset( FileRequest $request ) {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new FileRequestException( 'unauthorized_request', 'You do not have the required permission to perform this operation' , array( 'status' => 403 ) );
-            }
-
+            
             $asset_url  = $request->get( 'asset_url' );
 
             if ( ! $asset_url ) {

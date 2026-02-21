@@ -13,8 +13,6 @@
 
 namespace SmartLicenseServer\Security\Permission;
 
-use SmartLicenseServer\Exceptions\Exception;
-
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 final class DefaultRoles {
@@ -30,18 +28,70 @@ final class DefaultRoles {
     protected static array $roles = [
 
         /**
-         * Super Administrator.
+         * System Administrator.
          *
          * Full unrestricted access.
          * Automatically inherits ALL registered capabilities.
          */
-        'super_admin' => [
-            'label'         => 'Super Administrator',
+        'system_admin' => [
+            'label'         => 'System Administrator',
             'is_canonical'  => true,
-            'slug'          => 'super_admin',
+            'slug'          => 'system_admin',
             'capabilities'  => [ self::class, 'all_capabilities' ],
         ],
 
+        /**
+         * Resource Owner.
+         *
+         * Owns hosted applications.
+         */
+        'resource_owner' => [
+            'label'         => 'Resource Owner',
+            'is_canonical'  => true,
+            'slug'          => 'resource_owner',
+            'capabilities'  => [
+                // Hosted applications.
+                'hosted_apps.create',
+                'hosted_apps.update',
+                'hosted_apps.delete',
+                'hosted_apps.change_status',
+                'hosted_apps.upload_assets',
+                'hosted_apps.edit_assets',
+                'hosted_apps.delete_assets',
+                'hosted_apps.access_files',
+                
+                'security.user.invite',
+
+                // Monetization.
+                'monetization.pricing.create',
+                'monetization.pricing.update',
+                'monetization.pricing.delete',
+
+                'monetization.license.create',
+                'monetization.license.update',
+                'monetization.license.revoke',
+                'monetization.license.issue',
+                'monetization.license.delete',
+
+                // Visibility.
+                'repository.view',
+                'repository.download',
+                'analytics.view',
+
+                // Security.
+                'security.organization.create',
+                'security.organization.update',
+                'security.organization.delete',
+                'security.organization.view',
+
+                'security.service_account.create',
+                'security.service_account.update',
+                'security.service_account.delete',
+                'security.service_account.view',
+
+                'security.user.invite'
+            ],
+        ],
         /**
          * Resource Administrator.
          *
@@ -169,7 +219,12 @@ final class DefaultRoles {
     /**
      * Get all default role definitions.
      *
-     * @return array<string, array{label:string, capabilities:string[]}>
+     * @return array<string, array{
+     *      label:string, 
+     *      capabilities:string[],
+     *      is_canonical: bool,
+     *      slug: string
+     * }>
      */
     public static function all() : array {
         $roles = [];

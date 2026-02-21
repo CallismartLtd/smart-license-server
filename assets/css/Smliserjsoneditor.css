@@ -1149,7 +1149,6 @@
 }
 
 .json-tree-node {
-    animation: fadeIn 1s ease;
     margin: 10px 5px;
     position: relative;
 }

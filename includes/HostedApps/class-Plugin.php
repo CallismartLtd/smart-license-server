@@ -8,11 +8,8 @@
 
 namespace SmartLicenseServer\HostedApps;
 
-use DateTimeImmutable;
-use DateTimeZone;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
-use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;

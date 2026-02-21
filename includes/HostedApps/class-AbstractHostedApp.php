@@ -844,8 +844,6 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     abstract protected function get_meta_foreign_key() : string;
     
-    // abstract public function save() : true|Exception;
-
     /**
      * Get an instance of this class from an array
      * @param array $data
@@ -897,7 +895,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $data['updated_at']  = $now->format( 'Y-m-d H:i:s' );
 
         if ( $this->get_id() ) {
-            if ( ! is_string( $file ) ) {
+            if ( ( $file instanceof UploadedFile ) && $file->is_upload_successful() ) {
                 $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
                 
                 if ( is_smliser_error( $slug ) ) {
@@ -914,7 +912,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             $result = $db->update( $table, $data, array( 'id' => absint( $this->get_id() ) ) );
 
         } else {
-            if ( is_string( $file ) ) {
+            if ( ! ( $file instanceof UploadedFile ) || ! $file->is_upload_successful() ) {
                 return new Exception( 'required_file', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
             }
 

@@ -25,7 +25,7 @@ final class Capability {
     protected static array $capabilities = [
 
         /**
-         * Hosted Applications (Plugin, Theme, Software)
+         * Hosted Applications (Plugin, Theme, Software).
          */
         'hosted_apps' => [
             'hosted_apps.create'            => 'Create hosted applications',
@@ -81,13 +81,30 @@ final class Capability {
          */
         'security' => [
             'security.owner.create'             => 'Create owners',
+            'security.owner.update'             => 'Update owners',
+            'security.owner.delete'             => 'Delete owners',
+            'security.owner.view'               => 'View owners',
+            
             'security.organization.create'      => 'Create organizations',
+            'security.organization.update'      => 'Update organizations',
+            'security.organization.delete'      => 'Delete organizations',
+            'security.organization.view'        => 'View organizations',
+
             'security.user.create'              => 'Create users',
+            'security.user.update'              => 'Update users',
+            'security.user.delete'              => 'Delete users',
+            'security.user.view'                => 'View users',
+            'security.user.invite'              => 'Invite users',
+
             'security.service_account.create'   => 'Create service accounts',
+            'security.service_account.update'   => 'Update service accounts',
+            'security.service_account.delete'   => 'Delete service accounts',
+            'security.service_account.view'     => 'View service accounts',
 
             'security.role.create'              => 'Create roles',
             'security.role.update'              => 'Update roles',
             'security.role.delete'              => 'Delete roles',
+            'security.role.assign'              => 'Assign roles',
 
             'security.capability.assign'        => 'Assign capabilities to roles',
         ],

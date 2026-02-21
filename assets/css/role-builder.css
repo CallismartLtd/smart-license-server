@@ -51,9 +51,37 @@
     margin-top: 24px;
 }
 
-.rb-capabilities-wrapper h3 {
-    margin: 0 0 12px;
+/* Capabilities header row: title + global select-all */
+.rb-capabilities-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 15px;
+}
+
+.rb-capabilities-header h3 {
+    margin: 0;
     font-size: 16px;
+}
+
+/* Global select-all label */
+.rb-select-all-global {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d2327;
+    cursor: pointer;
+    user-select: none;
+}
+
+.rb-select-all-global input[type="checkbox"] {
+    margin: 0;
+}
+
+.rb-select-all-global:hover span {
+    color: #000000;
 }
 
 /* Capability panel */
@@ -76,10 +104,36 @@
     margin-bottom: 0;
 }
 
+/* Legend: domain title + per-domain select-all side by side */
 .rb-domain legend {
     padding: 0 6px;
     font-weight: 600;
     color: #1d2327;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Per-domain select-all label */
+.rb-select-all-domain {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #646970;
+    cursor: pointer;
+    user-select: none;
+    border-left: 1px solid #dcdcde;
+    padding-left: 10px;
+}
+
+.rb-select-all-domain input[type="checkbox"] {
+    margin: 0;
+}
+
+.rb-select-all-domain:hover span {
+    color: #2271b1;
 }
 
 /* Capability item */
@@ -116,8 +170,17 @@
     color: #646970;
 }
 
+/* Hide select-all controls when role is locked */
+.smliser-role-builder[data-locked="true"] .rb-select-all-global,
+.smliser-role-builder[data-locked="true"] .rb-select-all-domain {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 /* Disabled checkboxes */
-.rb-cap input[type="checkbox"]:disabled {
+.rb-cap input[type="checkbox"]:disabled,
+.rb-select-all-domain-checkbox:disabled,
+.rb-select-all-checkbox:disabled {
     cursor: not-allowed;
 }
 

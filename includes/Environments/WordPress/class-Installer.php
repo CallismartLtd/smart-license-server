@@ -133,16 +133,9 @@ class Installer {
         foreach ( $default_roles as $slug => $roledata ) {
             $role   = new Role;
 
-            foreach ( $roledata as $k => $v ) {
-                $setter = "set_{$k}";
-
-                if ( ! is_callable( [$role, $setter] ) ) {
-                    continue;
-                }
-
-                $role->$setter( $v );
-            }
-            
+            $role->set_capabilities( $roledata['capabilities'] );   
+            $role->set_label( $roledata['label'] );
+            $role->set_is_canonical( $roledata['is_canonical'] );         
             $role->set_slug( $slug );
 
             try {

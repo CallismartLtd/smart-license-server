@@ -109,8 +109,6 @@ class AccessControlPage {
         $_status_keys   = array_values( $_user_statuses );
         $_statuses      = array_combine( $_status_keys, $_status_titles );
 
-        $role           = $user ? [] : '';
-
         $form_fields    = array(
             array(
                 'label' => '',
@@ -241,6 +239,8 @@ class AccessControlPage {
             $role       = $collection->toArray();
 
             unset( $collection );
+        } else {
+            $role = null;
         }
 
         include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
@@ -379,7 +379,7 @@ class AccessControlPage {
             sprintf( '%s:%s', $member->get_type(), $member->get_id() ) => $member->get_display_name()
         ] : [];
 
-        $role   = $member ? $member->get_role()?->to_array() : [];
+        $role   = $member ? $member->get_role()?->to_array() : null;
 
         $form_fields = array(
             array(
@@ -646,7 +646,7 @@ class AccessControlPage {
         $_status_keys   = array_values( $_sa_statuses );
         $_statuses      = array_combine( $_status_keys, $_status_titles );
         $owner_option   = [];
-        $role           = '';
+        $role           = null;
 
         if ( $sa_acc ) {
             $owner      = $sa_acc->get_owner();

@@ -8,7 +8,6 @@
 
 namespace SmartLicenseServer\HostedApps;
 
-use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\SoftwareRepository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;

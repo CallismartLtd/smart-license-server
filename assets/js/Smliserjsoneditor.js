@@ -182,13 +182,14 @@ class SmliserJsonEditor {
      */
     _buildUI() {
         // Create container
-        this.container = document.createElement('div');
-        this.container.className = `smliser-json-editor theme-${this.options.theme} mode-${this.currentMode}`;
+        this.container              = document.createElement('div');
+        this.container.className    = `smliser-json-editor theme-${this.options.theme} mode-${this.currentMode}`;
+        this.container.tabIndex     = '0';
         this.container.id = this.id;
         this.container.setAttribute('role', 'application');
         this.container.setAttribute('aria-label', 'JSON Editor');
 
-        // Build toolbar
+        // Build toolbar.
         if (this.options.showToolbar) {
             this._buildToolbar();
         }
@@ -447,7 +448,7 @@ class SmliserJsonEditor {
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (!this.container.contains(document.activeElement)) return;
+            if ( ! this.container.contains( document.activeElement ) ) return;
             this._handleKeyboardShortcuts(e);
         });
 

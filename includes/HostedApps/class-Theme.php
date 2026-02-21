@@ -8,9 +8,6 @@
 
 namespace SmartLicenseServer\HostedApps;
 
-use DateTimeImmutable;
-use DateTimeZone;
-use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\ThemeRepository;
