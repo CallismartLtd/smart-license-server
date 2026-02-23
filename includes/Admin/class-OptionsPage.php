@@ -24,7 +24,6 @@ class OptionsPage {
 
         );
         
-        echo wp_kses_post( smliser_sub_menu_nav( $tabs, 'Settings', 'smliser-options', $tab, 'tab' ) );
         switch( $tab ) {
             case 'pages':
                 self::pages_options();
