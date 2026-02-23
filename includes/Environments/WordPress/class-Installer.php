@@ -282,17 +282,33 @@ class Installer {
     public static function licenses_table_modify_column_020() {
         $db             = \smliser_dbclass();
         $table          = \SMLISER_LICENSE_TABLE;
-        $column_exists  = $db->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'user_id'" );
+        $user_id_exists = $db->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'user_id'" );
         
-        if ( ! $column_exists ) {
-            return;
+        if ( $user_id_exists ) {
+            $sql    = "ALTER TABLE `{$table}` CHANGE `user_id` `licensee_fullname` VARCHAR(512) DEFAULT NULL";
+            $db->query( $sql );
         }
 
-        $sql    = "ALTER TABLE `{$table}` CHANGE `user_id` `licensee_fullname` VARCHAR(512) DEFAULT NULL";
+        $has_created_at = $db->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'created_at'" );
 
-        $db->query( $sql );
+        if ( ! $has_created_at ) {
+            $sql    = "ALTER TABLE `{$table}` ADD `created_at` DATETIME DEFAULT NULL";
+            $db->query( $sql );
+        }
         
+        $has_updated_at = $db->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'updated_at'" );
 
+        if ( ! $has_updated_at ) {
+            $sql    = "ALTER TABLE `{$table}` ADD `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP";
+            $db->query( $sql );
+        }
+
+        // Modify the start_date and end_date columns to become datetime.
+        $sql    = "ALTER TABLE `{$table}` CHANGE `start_date` `start_date` DATETIME DEFAULT NULL";
+        $db->query( $sql );
+
+        $sql    = "ALTER TABLE `{$table}` CHANGE `end_date` `end_date` DATETIME DEFAULT NULL";
+        $db->query( $sql );
 
     }
 
