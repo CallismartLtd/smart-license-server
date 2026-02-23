@@ -58,7 +58,8 @@ class LicensePage {
      * Add license page
      */
     private static function add_license_page() {
-        include_once SMLISER_PATH . 'templates/admin/license/license-add.php';
+        $form_fields    = static::get_form_fields();
+        include_once SMLISER_PATH . 'templates/admin/license/license-form.php';
     }
 
     /**
@@ -66,10 +67,11 @@ class LicensePage {
      */
     private static function edit_license_page() : void {
 
-        $license_id = smliser_get_query_param( 'license_id' );        
-        $license    = License::get_by_id( $license_id );
-        $user_id    = ! empty( $license ) ? $license->get_user_id() : 0;
-        include_once SMLISER_PATH . 'templates/admin/license/license-edit.php';
+        $license_id     = smliser_get_query_param( 'license_id' );        
+        $license        = License::get_by_id( $license_id );
+        
+        $form_fields    = static::get_form_fields( $license );
+        include_once SMLISER_PATH . 'templates/admin/license/license-form.php';
     
     }
 
@@ -82,8 +84,7 @@ class LicensePage {
 
         $license    = License::get_by_id( $license_id );
         if ( ! empty( $license ) ) {
-            $user               = get_userdata( $license->get_user_id() );
-            $client_fullname    = $user ? $user->first_name . ' ' . $user->last_name : 'Guest';
+            $client_fullname    = $license->get_licensee_fullname();
             $licensed_app       = $license->get_app();
             $delete_url         = new URL( admin_url( 'admin-post.php' ) );
 
@@ -109,7 +110,8 @@ class LicensePage {
      * @return array
      */
     protected static function get_menu_args() : array {
-        $tab    = \smliser_get_query_param( 'tab' );
+        $tab        = \smliser_get_query_param( 'tab' );
+        $license_id = \smliser_get_query_param( 'license_id' );
         $title  = match ( $tab ) {
             'logs'      => 'License Activity Logs',
             'add-new'   => 'Add new license',
@@ -118,7 +120,7 @@ class LicensePage {
             default     => 'No title'
         };
 
-        return array(
+        $args   = array(
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Licenses',
@@ -138,6 +140,20 @@ class LicensePage {
                 )
             )
         );
+
+        if ( $license_id ) {
+            \array_unshift(
+                $args['actions'],
+                array(
+                    'title' => 'View license',
+                    'label' => 'View license',
+                    'url'   => \smliser_license_admin_action_page( 'view', $license_id ),
+                    'icon'  => 'dashicons dashicons-visibility'
+                )
+            );
+        }
+
+        return $args;
     }
 
     /**
@@ -147,13 +163,105 @@ class LicensePage {
      * @return array
      */
     protected static function get_form_fields( ?License $license = null ) : array {
+        $app_prop           = $license ? sprintf( '%s', str_replace( '/', ':', $license->get_app_prop() ) ) : '';
+        $_license_statuses  = License::get_allowed_statuses();
+        $_status_titles     = array_map( 'ucwords', array_values( $_license_statuses ) );
+        $_status_keys       = array_values( $_license_statuses );
+        $_statuses          = array_combine( $_status_keys, $_status_titles );
+        
         return array(
             array(
-                'label' => 'Client Name',
+                'label' => 'License ID',
                 'input' => array(
+                    'type'  => 'hidden',
+                    'name'  => 'license_id',
+                    'value' => $license?->get_id() ?? 0,
+                )
+            ),
+            array(
+                'label' => 'Licensee Name',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'licensee_fullname',
+                    'value' => $license?->get_licensee_fullname() ?? '',
+                    'attr'  => array(
+                        'aria-label'    => 'Licensee full name'
+                    )
 
                 )
-            )
+            ),
+
+            array(
+                'label' => 'Service ID',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'service_id',
+                    'value' => $license?->get_service_id() ?? '',
+                    'attr'  => array(
+                        'aria-label'    => 'Enter Service ID'
+                    )
+                )
+            ),
+            array(
+                'label' => 'Hosted Application',
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'app_prop',
+                    'value' => $app_prop,
+                    'attr'  => array(
+                        'aria-label'    => 'Select hosted application.',
+                        'class'         => 'license-app-select'
+                    ),
+                    'options'   => $app_prop ?[$app_prop => $license->get_app()->get_name()] : []
+                )
+            ),
+            array(
+                'label' => 'Status',
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'status',
+                    'value' => $license?->get_status( 'edit' ) ?? '',
+                    'attr'  => array(
+                        'aria-label'    => 'Select license status.'
+                    ),
+                    'options'   => ['' => 'Automatic Calculation'] + $_statuses
+                )
+            ),
+            array(
+                'label' => 'Maximum Domains',
+                'input' => array(
+                    'type'  => 'number',
+                    'name'  => 'max_allowed_domains',
+                    'value' => $license?->get_max_allowed_domains( 'edit' ) ?? '',
+                    'attr'  => array(
+                        'aria-label'    => 'Maximum domains',
+                        'title'         => 'Enter the maximum number of domains allowed to install this license.'
+                    )
+                )
+            ),
+            array(
+                'label' => 'Start Date',
+                'input' => array(
+                    'type'  => 'datetime-local',
+                    'name'  => 'start_date',
+                    'value' => $license?->get_start_date()?->format( 'Y-m-d H:i:s' ) ?? '',
+                    'attr'  => array(
+                        'aria-label'    => 'Enter license start date.'
+                    )
+                )
+            ),
+
+            array(
+                'label' => 'End Date',
+                'input' => array(
+                    'type'  => 'datetime-local',
+                    'name'  => 'end_date',
+                    'value' => $license?->get_end_date()?->format( 'Y-m-d H:i:s' ) ?? '',
+                    'attr'  => array(
+                        'aria-label'    => 'Enter license end date.'
+                    )
+                )
+            ),
         );
     }
     
