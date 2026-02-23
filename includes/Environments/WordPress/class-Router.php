@@ -365,32 +365,43 @@ class Router implements RouterInterface {
      * Parse license save form request
      */
     public static function parse_save_license_request() : void {
-        if ( ! wp_verify_nonce( smliser_get_post_param( 'smliser_nonce_field' ), 'smliser_nonce_field' ) ) {
-            wp_safe_redirect( smliser_license_admin_action_page() );
-            exit;
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error(
+                array(
+                    'message'   => 'CSRF verification error, please refresh the current page.'
+                )
+            );
         }
 
         $request    = new Request([
             'license_id'            => smliser_get_post_param( 'license_id', 0 ),
-            'user_id'               => smliser_get_post_param( 'user_id', 0 ),
+            'licensee_fullname'     => smliser_get_post_param( 'licensee_fullname', '' ),
             'service_id'            => smliser_get_post_param( 'service_id' ),
             'status'                => smliser_get_post_param( 'status' ),
             'start_date'            => smliser_get_post_param( 'start_date' ),
             'end_date'              => smliser_get_post_param( 'end_date' ),
-            'app_prop'              => smliser_get_post_param( 'app_prop' ),
-            'max_allowed_domains'   => smliser_get_post_param( 'allowed_sites', -1 ),
+            'max_allowed_domains'   => smliser_get_post_param( 'max_allowed_domains', -1 ),
         ]);
+
+        $app_prop   = (string) smliser_get_post_param( 'app_prop' );
+
+        if ( \str_contains( $app_prop, ':' ) ) {
+            [$app_type, $app_slug] = explode( ':', $app_prop, 2 );
+            $request->set( 'app_type', $app_type );
+            $request->set( 'app_slug', $app_slug );
+        }
 
         $response   = Controller::save_license( $request );
 
         if ( $response->ok() ) {
-            $license_id = $response->get_response_data()->get( 'license' )->get_id();
+            $redirect_url   = $response->get_header( 'Location' );
+            $response->remove_header( 'Location' );
 
-            $url    = new URL( smliser_license_admin_action_page( 'edit', $license_id ) );
-            $url->add_query_param( 'message', 'Saved' );
-            $response->set_header( 'Location', $url->get_href() );
-        } else {
-            $response->set_header( 'Location', smliser_license_admin_action_page() );
+            $body   = (array) $response->get_body();
+
+            $body['redirect_url']   = $redirect_url;
+            $response->set_body( $body );
+
         }
 
         $response->send();
