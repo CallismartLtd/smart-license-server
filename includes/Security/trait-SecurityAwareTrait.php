@@ -51,6 +51,10 @@ trait SecurityAwareTrait {
             throw new RequestException( 'missing_auth' );
         }
 
+        if ( static::is_system_admin() ) {
+            return;
+        }
+
         if ( ! $principal->get_owner()->owns_app( $app ) ) {
             throw new RequestException( 'unuathorized_app_access' );
         }
@@ -61,7 +65,7 @@ trait SecurityAwareTrait {
      * 
      * @throws RequestException On failure.
      */
-    private static function is_system_admin() {
+    private static function is_system_admin() : bool {
         $principal      = Guard::get_principal();
 
         if ( ! $principal ) {
@@ -71,5 +75,7 @@ trait SecurityAwareTrait {
         if ( ! $principal->is( 'system_admin' ) ) {
             throw new RequestException( 'unauthorized_scope' );
         }
+
+        return true;
     }
 }

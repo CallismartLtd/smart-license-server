@@ -11,7 +11,9 @@ namespace SmartLicenseServer\Messaging;
 
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\SecurityAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -19,6 +21,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * The bulk messaging controller class
  */
 class MessageController {
+    use SecurityAwareTrait;
     /**
      * Savw a bulk message.
      * 
@@ -27,9 +30,7 @@ class MessageController {
      */
     public static function save_bulk_message( Request $request ) : Response {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied' );
-            }
+            static::is_system_admin();
 
             $subject    = $request->get( 'subject' );
 
@@ -93,9 +94,7 @@ class MessageController {
      */
     public static function bulk_message_action( Request $request ) : Response {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied', 'Sorry, you do not have the required permission to perform this action.' );
-            }
+            static::is_system_admin();
 
             $message_ids    = $request->get( 'ids', [] );
             $action         = $request->get( 'bulk_action', '' );
@@ -120,9 +119,11 @@ class MessageController {
                     }
             }
 
-            $request->set( 'message', \sprintf( '%s affected!', $affected ) );
+            $url    = smliser_bulk_messages_page();
+            $url->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
+
             $response = ( new Response( 200, [], '' ) )
-                ->set_response_data( $request );
+                ->set_header( 'Location', $url->get_href() );
 
             \smliser_cache()->clear();
             return $response;

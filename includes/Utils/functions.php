@@ -69,6 +69,18 @@ function smliser_repo_page() {
 }
 
 /**
+ * Bulk messages URL
+ */
+function smliser_bulk_messages_page() : URL {
+    $url    = new URL( admin_url() );
+    $url->add_query_params([
+        'page'  => 'smliser-bulk-message'
+    ]);
+
+    return $url;
+}
+
+/**
  * Not found container
  * 
  * @param string $text Message to show
@@ -85,39 +97,8 @@ function smliser_not_found_container( $text ) {
 }
 
 /**
- * Submenu navigation button tab function
- *
- * @param array  $tabs         An associative array of tabs (tab_slug => tab title).
- * @param string $title        The title of the current submenu page.
- * @param string $page_slug    The admin menu/submenu slug.
- * @param string $current_tab  The current tab parameter for the submenu page.
- * @param string $query_var    The query variable.
+ * Tells whether the given string is an empty date.
  */
-function smliser_sub_menu_nav( $tabs, $title, $page_slug, $current_tab, $query_var ) {
-	$output  = '<div class="wrap">';
-    $dashicon= ( 'Settings' === $title ) ? '<span class="dashicons dashicons-admin-generic"></span>' : '';
-	$output .= '<h1 class="wp-heading-inline">' . esc_html( $title ) . ' '. $dashicon . '</h1>';
-	$output .= '<nav class="nav-tab-wrapper">';
-
-	foreach ( $tabs as $tab_slug => $tab_title ) {
-		$active_class = ( $current_tab === $tab_slug ) ? 'nav-tab-active' : '';
-
-		if ( '' === $tab_slug ) {
-			$output      .= "<a href='" . esc_url( admin_url( 'admin.php?page=' . $page_slug ) ) . "' class='nav-tab $active_class'>$tab_title</a>";
-
-		} else {
-			$output      .= "<a href='" . esc_url( add_query_arg( $query_var, $tab_slug, admin_url( 'admin.php?page=' . $page_slug ) ) ) . "' class='nav-tab $active_class'>$tab_title</a>";
-
-		}
-	}
-
-	$output .= '</nav>';
-	$output .= '</div>';
-
-	return $output;
-}
-
-
 function smliser_is_empty_date( $date_string ) {
     // Trim the date string to remove any surrounding whitespace
     $date_string = trim( $date_string );

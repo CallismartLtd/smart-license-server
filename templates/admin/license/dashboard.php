@@ -48,7 +48,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 <tr>
                     <th><input type="checkbox" id="smliser-select-all"></th>
                     <th><?php echo esc_html__( 'License ID', 'smliser' ); ?></th>
-                    <th><?php echo esc_html__( 'Client Name', 'smliser' ); ?></th>
+                    <th><?php echo esc_html__( 'Licensee Name', 'smliser' ); ?></th>
                     <th><?php echo esc_html__( 'License Key', 'smliser' ); ?></th>
                     <th><?php echo esc_html__( 'Service ID', 'smliser' ); ?></th>
                     <th><?php echo esc_html__( 'Licensed App', 'smliser' ); ?></th>
@@ -58,8 +58,6 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 <tbody>
         
                     <?php foreach ( $licenses as $license ) :
-                        $user               = get_userdata( $license->get_user_id() );
-                        $client_full_name   = ( -1 === $license->get_user_id() ) ? 'N/A' : ( is_object( $user ) ? $user->first_name . ' ' . $user->last_name : 'Guest' );
                         ?>        
                         <tr>
                             <td><input type="checkbox" class="smliser-license-checkbox" name="ids[]" value="<?php echo esc_attr( $license->get_id() ); ?>"> </td>
@@ -70,7 +68,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                                 </p>
                             </td>
                         
-                            <td><?php echo esc_html( $client_full_name ); ?></td>
+                            <td><?php echo esc_html( $license->get_licensee_fullname() ); ?></td>
                             <td>
                                 <div class="smliser-license-obfuscation">
                                     <div class="smliser-license-obfuscation_data">
@@ -83,7 +81,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                                             <?php echo $license->get_partial_key(); ?>
                                         </span>
                                     </div>
-                                    <input type="checkbox" id="<?php echo esc_html( $license->get_start_date() ); ?>" class="smliser-licence-key-visibility-toggle smliser-tooltip" title="toggle visibility">
+                                    <input type="checkbox" id="<?php echo absint( microtime( true ) ); ?>" class="smliser-licence-key-visibility-toggle smliser-tooltip" title="toggle visibility">
                                 </div>
                             </td>
                             <td><?php echo esc_html( $license->get_service_id() ); ?></td>

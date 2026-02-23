@@ -98,7 +98,7 @@ class Licenses {
                 'service_id'        => $service_id,
                 'download_token'    => smliser_generate_item_token( $license, 2 * DAY_IN_SECONDS ),
                 'token_expiry'      => gmdate( 'Y-m-d', time() + ( 2 * DAY_IN_SECONDS ) ),
-                'license_expiry'    => $license->get_end_date()?: \gmdate( 'Y-m-d', \strtotime( '+15 years' ) )
+                'license_expiry'    => $license->get_end_date()?->format( 'Y-m-d' ) ?? \gmdate( 'Y-m-d', \strtotime( '+15 years' ) )
             )
         );
 
@@ -326,7 +326,7 @@ class Licenses {
             'data' => array(
                 'license' => array(
                     'status'        => $license->get_status(),
-                    'expiry_date'   => $license->get_end_date()
+                    'expiry_date'   => $license->get_end_date()?->format( 'Y-m-d' ) ?? \gmdate( 'Y-m-d', \strtotime( '+15 years' ) )
                 ),
                 'token_validity'    => \is_smliser_error( $token_validity ) ? 'Invalid' : 'Valid',                
             )

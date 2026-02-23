@@ -32,11 +32,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                 <h2>Info</h2>
                 <p><span class="dashicons dashicons-database-view"></span> License ID: <?php echo esc_html( absint( $license->get_id() ) ) ?></p>
                 <p><span class="dashicons dashicons-yes-alt"></span> Status: <?php echo esc_html( $license->get_status() ) ?></p>
-                <p>
-                    <a href="<?php echo esc_url( get_edit_user_link( absint( $license->get_user_id() ) ) ) ?>">
-                        <span class="dashicons dashicons-businessman"></span> Client: <?php echo esc_html( $client_fullname ) ?>
-                    </a>
-                </p>
+                <p><span class="dashicons dashicons-businessman"></span> Client: <?php echo esc_html( $client_fullname ) ?></p>
             </div>
 
             <div class="smliser-admin-view-page-header-child">
@@ -122,12 +118,12 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
                     <tr>
                         <th>Start Date</th>
-                        <td><?php echo esc_html( smliser_check_and_format( $license->get_start_date() ) ); ?></td>
+                        <td><?php echo esc_html( $license->get_start_date()?->format( \smliser_datetime_format() ) ?? 'N/A' ); ?></td>
                     </tr>
 
                     <tr>
                         <th>End Date</th>
-                        <td><?php echo esc_html( smliser_check_and_format( $license->get_end_date() ) ); ?></td>
+                        <td><?php echo esc_html( $license->get_end_date()?->format( \smliser_datetime_format() ) ?? 'N/A' ); ?></td>
                     </tr>
 
                     <tr>

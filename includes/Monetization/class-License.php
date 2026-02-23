@@ -9,12 +9,15 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Utils\CommonQueryTrait;
+use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -24,7 +27,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  */
 class License {
-    use CacheAwareTrait, CommonQueryTrait, SanitizeAwareTrait;
+    use CacheAwareTrait, CommonQueryTrait, SanitizeAwareTrait, DatePropertyAwareTrait;
     /**
      * The license ID
      * 
@@ -81,16 +84,30 @@ class License {
     /**
      * The license commencement date.
      * 
-     * @var string $start_date
+     * @var DateTimeImmutable $start_date
      */
-    protected $start_date = '';
+    protected ?DateTimeImmutable $start_date = null;
 
     /**
      * The end date of the license.
      * 
-     * @var string  $end_date
+     * @var DateTimeImmutable  $end_date
      */
-    protected $end_date   = '';
+    protected ?DateTimeImmutable $end_date   = null;
+
+    /**
+     * Creation date.
+     * 
+     * @var DateTimeImmutable $created_at
+     */
+    protected ?DateTimeImmutable $created_at = null;
+
+    /**
+     * Update date.
+     * 
+     * @var DateTimeImmutable $updated_at
+     */
+    protected ?DateTimeImmutable $updated_at = null;
 
     /**
      * Number of allowed domains that can request license activation.
@@ -224,9 +241,7 @@ class License {
      * @return static
      */
     public function set_start_date( $start_date ) : static {
-        $this->start_date = static::sanitize_date( $start_date, '', \smliser_datetime_format() );
-    
-        return $this;
+        return $this->set_date_prop( $start_date, 'start_date' );
     }
 
     /**
@@ -236,9 +251,7 @@ class License {
      * @return static
      */
     public function set_end_date( $end_date ) : static {
-        $this->end_date = static::sanitize_date( $end_date, '', \smliser_datetime_format() );
-
-        return $this;
+        return $this->set_date_prop( $end_date, 'end_date' );
     }
 
     /**
@@ -283,6 +296,24 @@ class License {
         }
 
         return $this;
+    }
+
+    /**
+     * Set date created
+     * 
+     * @param string|DateTimeImmutable $date
+     */
+    public function set_created_at( string|DateTimeImmutable $date ) : static {
+        return $this->set_date_prop( $date, 'created_at' );
+    }
+
+    /**
+     * Set date updated
+     * 
+     * @param string|DateTimeImmutable $date
+     */
+    public function set_updated_at( mixed $date ) : static {
+        return $this->set_date_prop( $date, 'updated_at' );
     }
 
     /**
@@ -385,8 +416,8 @@ class License {
         }
 
         $now      = \time();
-        $start_ts = ! empty( $start ) ? strtotime( $start ) : 0;
-        $end_ts   = strtotime( $end );
+        $start_ts = $start?->getTimestamp() ?? 0;
+        $end_ts   = $end->getTimestamp();
 
         // If start defined and now is before start -> pending.
         if ( $start_ts > 0 && $now < $start_ts ) {
@@ -406,19 +437,37 @@ class License {
     /**
      * Get the license start date
      * 
-     * @return string $start_date
+     * @return DateTimeImmutable|null $start_date
      */
-    public function get_start_date() {
+    public function get_start_date() : ?DateTimeImmutable {
         return $this->start_date;
     }
 
     /**
      * Get the license end date
      * 
-     * @return string $end_date
+     * @return DateTimeImmutable|null $end_date
      */
-    public function get_end_date() {
+    public function get_end_date(): ?DateTimeImmutable {
         return $this->end_date;
+    }
+
+    /**
+     * Get date created.
+     * 
+     * @return DateTimeImmutable|null
+     */
+    public function get_created_at() : ?DateTimeImmutable {
+        return $this->created_at;
+    }
+
+    /**
+     * Get date updated.
+     * 
+     * @return DateTimeImmutable|null
+     */
+    public function get_updated_at() : ?DateTimeImmutable {
+        return $this->updated_at;
     }
 
     /**
@@ -569,19 +618,26 @@ class License {
         $db         = smliser_dbclass();
         $table      = \SMLISER_LICENSE_TABLE;
         $meta_table = \SMLISER_LICENSE_META_TABLE;
+        $now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
-        $data       = $this->to_array();
-        $meta_data  = $data['meta_data'];
-        $app_prop   = $this->get_app_prop( 'view' );
+        $data       = array(
+            'licensee_fullname'     => $this->get_licensee_fullname(),
+            'service_id'            => $this->get_service_id(),
+            'app_prop'              => $this->get_app_prop( 'view' ),
+            'max_allowed_domains'   => $this->get_max_allowed_domains(),
+            'status'                => $this->get_status( 'edit' ),
+            'start_date'            => $this->get_start_date()?->format( 'Y-m-d H:i:s' ),
+            'end_date'              => $this->get_end_date()?->format( 'Y-m-d H:i:s' ),
+            'updated_at'            => $now->format( 'Y-m-d H:i:s' ),
 
-        unset( $data['app'], $data['meta_data'], $data['app_prop'] );
+        );
 
-        $license_data   = array_merge( $data, compact( 'app_prop' ) );
+        $meta_data  = $this->get_meta_data();
+
 
         if ( $this->exists() ) {
-            unset( $license_data['license_key'] );
-
-            $updated        = $db->update( $table, $license_data, ['id' => $this->id] );
+            $updated        = $db->update( $table, $data, ['id' => $this->id] );
+            $this->set_updated_at( $now );
             $updated_meta   = 0;
 
             foreach ( $meta_data as $k => $v ) {
@@ -609,11 +665,16 @@ class License {
             $result = ( false !== $updated ) || ( $updated_meta > 0 );
 
         } else {
-            $license_data['license_key'] = $this->generate_license_key();
-            $inserted       = $db->insert( $table, $license_data );
+            $data['license_key']    = $this->generate_license_key();
+            $data['created_at']     = $now->format( 'Y-m-d H:i:s' );
+            $inserted               = $db->insert( $table, $data );
+
             $inserted_meta  = 0;
             if ( $inserted ) {
                 $this->set_id( $db->get_insert_id() );
+                $this->set_license_key( $data['license_key'] );
+                $this->set_created_at( $now );
+                $this->set_updated_at( $now );
 
                 foreach ( $meta_data as $k => $v ) {
                     $metadata  = [
@@ -625,7 +686,6 @@ class License {
 
                     $done && $inserted_meta++;
                 }
-                
             }
             
             $result = ( false !== $inserted ) || ( $inserted_meta > 0 );
@@ -715,7 +775,7 @@ class License {
      */
     public static function from_array( $data ) : static {
         $static = new static();
-        $static->set_id( $data['id'] ?? '' );
+        $static->set_id( $data['id'] ?? 0 );
         $static->set_licensee_fullname( $data['licensee_fullname'] ?? '' );
         $static->set_service_id( $data['service_id'] ?? '' );
         $static->set_license_key( $data['license_key'] ?? '' );
@@ -1075,6 +1135,22 @@ class License {
      */
     public function exists() : bool {
         return (bool) $this->get_id();
+    }
+
+    /**
+     * Get allowed statuses
+     */
+    public static function get_allowed_statuses() {
+        return array(
+            static::STATUS_ACTIVE,
+            static::STATUS_DEACTIVATED,
+            static::STATUS_EXPIRED,
+            static::STATUS_INACTIVE,
+            static::STATUS_LIFETIME,
+            static::STATUS_PENDING,
+            static::STATUS_REVOKED,
+            static::STATUS_SUSPENDED,
+        );
     }
 
 }

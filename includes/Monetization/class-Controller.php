@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Security\SecurityAwareTrait;
@@ -268,7 +269,6 @@ class Controller {
     public static function save_license( Request $request ) : Response {
         try {
             $id                     = $request->get( 'license_id' );
-            $user_id                = $request->get( 'user_id' );
             $service_id             = $request->get( 'service_id' );
             $status                 = $request->get( 'status' );
             $start_date             = $request->get( 'start_date' );
@@ -276,6 +276,7 @@ class Controller {
             $app_type               = $request->get( 'app_type', '' );
             $app_slug               = $request->get( 'app_slug', '' );
             $max_allowed_domains    = $request->get( 'max_allowed_domains', -1 );
+            $licensee_fullname      = $request->get( 'licensee_fullname' );
 
             if ( '' === $max_allowed_domains ) {
                 $max_allowed_domains = -1;
@@ -289,10 +290,16 @@ class Controller {
                 $app_prop   = '';
             }
 
-            $data       = compact( 'id', 'user_id', 'service_id', 'max_allowed_domains', 'service_id', 'status', 'start_date', 'end_date', 'app_prop' );
-            $license    = License::from_array( $data );
+            $data   = compact(
+                'id', 'service_id', 'max_allowed_domains',
+                'service_id', 'status', 'start_date', 'end_date', 'app_prop',
+                'licensee_fullname'
+            );
 
-            if ( $license->get_id() ) {
+            $license        = License::from_array( $data );
+            $license_exists = $license->exists();
+
+            if ( $license_exists ) {
                 static::check_permissions( 'monetization.license.update' );
             } else {
                 static::check_permissions( 'monetization.license.create' );
@@ -302,8 +309,6 @@ class Controller {
             if ( $app ) {
                 static::check_app_ownership( $app );
                 static::check_permissions( 'monetization.license.issue' );
-            } else {
-                throw new RequestException( 'app_not_found' );
             }
 
             if ( ! $license->save() ) {
@@ -312,8 +317,18 @@ class Controller {
 
             $request->set( 'license', $license );
 
-            $response = new Response();
-            $response->set_response_data( $request );
+            $response_data   = [
+                'success'   => true,
+                'message'   => sprintf( 'License %s successfully.', $license_exists ? 'Updated' : 'Created' ),
+                'license'   => $license->to_array()
+            ];
+            $code   = $license_exists ? 200 : 201;
+            $url    = new URL( smliser_license_admin_action_page( 'edit', $license->get_id() ) );
+            $url->add_query_param( 'message', 'Saved' );
+
+            $response = new Response( $code, [], $response_data );
+            $response->set_header( 'Content-Type', 'application/json; charset=utf-8' )
+            ->set_header( 'Location', $url->get_href() );
 
             return $response;
         } catch ( RequestException $e ) {
@@ -329,32 +344,42 @@ class Controller {
      * @return Response
      */
     public static function license_bulk_action( Request $request ) : Response {
-        $license_ids    = $request->get( 'ids', [] );
-        $action         = $request->get( 'bulk_action' );
-        $affected       = 0;
+        try {
+            // Only system admin can run bulk action.
+            static::is_system_admin();
 
-        foreach( (array) $license_ids as $id ) {
-            $license    = License::get_by_id( $id );
+            $license_ids    = $request->get( 'ids', [] );
+            $action         = $request->get( 'bulk_action' );
+            $affected       = 0;
 
-            if ( ! $license ) {
-                continue;
+            foreach( (array) $license_ids as $id ) {
+                $license    = License::get_by_id( $id );
+
+                if ( ! $license ) {
+                    continue;
+                }
+
+                if ( 'delete' === strtolower( $action ) ) {
+                    $license->delete() && $affected++;
+                    continue;
+                }
+
+                $license->set_status( $action );
+                $license->save() && $affected++;
             }
 
-            if ( 'delete' === strtolower( $action ) ) {
-                $license->delete() && $affected++;
-                continue;
-            }
+            $url    = new URL( smliser_license_page() );
+            $url->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
+            
+            $response = ( new Response( 200, [], '' ) )
+                ->set_header( 'Location', $url->get_href() );
 
-            $license->set_status( $action );
-            $license->save() && $affected++;
+            return $response;            
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e );
         }
 
-        $request->set( 'message', \sprintf( '%s affected!', $affected ) );
-        $request->set( 'redirect_url', smliser_license_page() );
-        $response = ( new Response( 200, [], '' ) )
-            ->set_response_data( $request );
-
-        return $response;
     }
 
     /**

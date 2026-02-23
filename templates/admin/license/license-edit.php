@@ -31,7 +31,7 @@ defined( 'SMLISER_ABSPATH' ) ||  exit;
                 wp_dropdown_users(
                     array(
                         'name'              => 'user_i',
-                        'selected'          => $selected_user ? $selected_user->ID : '',
+                        'selected'          => '',
                         'show_option_none'  => esc_html__( 'Select a client', 'smliser' ),
                         'option_none_value' => -1,
                         'class'             => 'smliser-form-input',
