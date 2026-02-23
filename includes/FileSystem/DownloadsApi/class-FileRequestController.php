@@ -283,19 +283,21 @@ class FileRequestController {
     protected static function generate_license_document( $license, Settings $settingsAPI ): string {
         $license_key    = $license->get_license_key();
         $service_id     = $license->get_service_id();
-        $issued         = $license->get_start_date();
+        $date_issued    = $license->get_start_date();
         $expiry         = $license->get_end_date();
         $status         = $license->get_status();
         $max_domains    = $license->get_max_allowed_domains();
+        $licensee       = $license->get_licensee_fullname();
         $today          = gmdate( 'F j, Y g:i:s a' );
         $issuer         = $settingsAPI->get( 'license_issuer', SMLISER_APP_NAME, true );
         $terms_url      = $settingsAPI->get( 'terms_url', '', true );
         $app_id         = $license->get_app_id();
 
-        $document = <<<EOT
+        $document = <<<LICENSE
         ========================================
         SOFTWARE LICENSE CERTIFICATE
         Issued by:  {$issuer}
+        Licensee:   {$licensee}
         ========================================
         ----------------------------------------
         License Details
@@ -308,7 +310,7 @@ class FileRequestController {
         ----------------------------------------
         License Validity
         ----------------------------------------
-        Start Date:     {$issued}
+        Start Date:     {$date_issued}
         End Date:       {$expiry}
         Allowed Sites:  {$max_domains}
 
@@ -335,7 +337,7 @@ class FileRequestController {
         Issued By:          {$issuer}
         Auto Generated On:  {$today}
         ========================================
-        EOT;
+        LICENSE;
 
         return $document;
     }
