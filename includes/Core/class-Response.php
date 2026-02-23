@@ -684,9 +684,13 @@ class Response {
 	/**
 	 * Get the response data
 	 * 
-	 * @return Request
+	 * @return Request|null
 	 */
-	public function get_response_data() : Request {
+	public function get_response_data() : ?Request {
+		if ( ! isset( $this->response_data ) ) {
+			return null;
+		}
+
 		return $this->response_data;
 	}
 
