@@ -571,6 +571,8 @@ button.smliser-upload-btn {
   gap: 5px;
 }
 .smliser-form-label-row input[type="text"],
+.smliser-form-label-row input[type="number"],
+.smliser-form-label-row input[type="date"],
 .smliser-form-label-row select,
 .app-uploader-form-row input[type="text"],
 .app-uploader-form-row select {
@@ -1361,4 +1363,60 @@ button.smliser-add-member-to-org-btn[type="button"]:active {
         padding: 15px;
         margin-bottom: 20px;
     }
+}
+
+.smliser-license-form {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.smliser-license-form .smliser-spinner {
+  position: absolute;
+
+}
+
+.smliser-submit-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+
+	padding: 5px 16px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+
+	background-color: #2271b1;
+	color: #ffffff;
+
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.4;
+	text-decoration: none;
+
+	cursor: pointer;
+	transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.05s ease-in-out;
+}
+
+.smliser-submit-button:hover {
+	background-color: #135e96;
+}
+
+.smliser-submit-button:focus {
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.3);
+}
+
+.smliser-submit-button:active {
+	transform: translateY(1px);
+}
+
+.smliser-submit-button:disabled,
+.smliser-submit-button.is-disabled {
+	background-color: #a7aaad;
+	cursor: not-allowed;
+	box-shadow: none;
+	transform: none;
 }
