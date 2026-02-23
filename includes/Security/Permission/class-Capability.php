@@ -94,6 +94,9 @@ final class Capability {
             'security.organization.update'      => 'Update organizations',
             'security.organization.delete'      => 'Delete organizations',
             'security.organization.view'        => 'View organizations',
+            'security.organization.add_members'  => 'Add members to organizations',
+            'security.organization.update_members'  => 'Update organization members',
+            'security.organization.remove_members'  => 'Remove members from organizations',
 
             'security.user.create'              => 'Create users',
             'security.user.update'              => 'Update users',

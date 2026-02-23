@@ -36,7 +36,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * This controller is used to CRUD requests for security entities.
  */
 class RequestController {
-    use SanitizeAwareTrait;
+    use SanitizeAwareTrait, SecurityAwareTrait;
     /**
      * Process request to create or update a security entity.
      * 
@@ -46,17 +46,12 @@ class RequestController {
     public static function save_entity( Request $request ) : Response {
         try {
 
-            // if ( ! $request->is_authorized() ) {
-            //     throw new RequestException( 'permission_denied' );
-            // }
-
             $entity = $request->get( 'entity' );
 
             if ( ! $entity ) {
                 throw new RequestException( 'required_param', 'Please provide the security entity.' );
             }
 
-            /** @var Owner|Organization|User|ServiceAccount|Role|null $class */
             $class  = ContextServiceProvider::get_entity_classname( $entity );
 
             if ( ! $class ) {
@@ -123,12 +118,27 @@ class RequestController {
                 throw new RequestException( 'required_param', 'Please provide the security entity.' );
             }
 
-            /** @var Owner|Organization|User|ServiceAccount|null $class */
             $class  = ContextServiceProvider::get_entity_classname( $entity );
 
             if ( ! $class ) {
                 throw new RequestException( 'required_param', 'This provided security entity is not supported.', ['status' => 400] );
             }
+
+            $permission_domain =   match( strtolower( $entity ) ) {
+                Owner::TYPE_INDIVIDUAL, 'user'      => 'user',
+                Owner::TYPE_ORGANIZATION            => 'organization',
+                'serviceaccount', 'service_account' => 'service_account',
+                'owner'                             => 'owner',
+                default                             => null
+            };
+
+            if ( ! $permission_domain ) {
+                throw new RequestException( 'precondition_failed' );
+            }
+
+            $cap    = sprintf( 'security.%s.delete', $permission_domain );
+
+            static::check_permissions( $cap );
 
             $id     = $request->get( 'id' );
 
@@ -137,7 +147,6 @@ class RequestController {
             if ( ! $ent_object ) {
                 $ent_object = new $class;
             }
-
 
             $result    = ContextServiceProvider::delete_entity( $ent_object );
 
@@ -189,6 +198,12 @@ class RequestController {
                     throw new RequestException( 'email_exists' );
                 }
 
+            }
+
+            if ( ! $user->exists() ) {
+                static::check_permissions( 'security.user.create' );
+            } else {
+                static::check_permissions( 'security.user.update' );
             }
 
             $display_name   = $request->get( 'display_name' );
@@ -305,6 +320,12 @@ class RequestController {
             
             $account_exists = $sa_acc->exists();
 
+            if ( $account_exists ) {
+                static::check_permissions( 'security.service_account.update' );
+            } else {
+                static::check_permissions( 'security.service_account.create' );
+            }
+
             if ( ! $sa_acc->save() ) {
                 throw new RequestException( 'database_error', 'Unable to save service account', ['status' => 500] );
             }
@@ -368,11 +389,14 @@ class RequestController {
             }
 
             if ( ! $organization->exists() ) {
+                static::check_permissions( 'security.organization.create' );
                 if ( $request->isEmpty( 'slug' ) ) {
                     $request->set( 'slug', strtolower( str_replace( [' ', '-'], ['_', '_'], $display_name ) ) );
                 }
 
                 $organization->set_slug( $request->get( 'slug' ) );
+            } else {
+                static::check_permissions( 'security.organization.update' );
             }
 
             $organization->set_display_name( $display_name )
@@ -443,10 +467,13 @@ class RequestController {
             $member     = $organization->get_members()->get( $member_id );
 
             if ( ! $member ) {
+                static::check_permissions( 'security.organization.add_members' );
                 $collection = Collection::make( ['role' => $role ] );
                 $member = new OrganizationMember( $subject, $collection );
 
                 $organization->get_members()->add( $member );
+            } else {
+                static::check_permissions( 'security.organization.update_members' );
             }
 
             ContextServiceProvider::save_organization_member( $member, $organization, $role );
@@ -554,7 +581,13 @@ class RequestController {
             $owner->set_name( $owner_name )
                 ->set_subject_id( $subject_id )
                 ->set_status( $status )
-                ->set_type( $owner_type );
+            ->set_type( $owner_type );
+
+            if ( $owner->exists() ) {
+                static::check_permissions( 'security.owner.update' );
+            } else {
+                static::check_permissions( 'security.owner.create' );
+            }
 
             if ( ! $owner->save() ) {
                 throw new RequestException(
@@ -605,9 +638,12 @@ class RequestController {
         $subject    = $request->get( 'subject', null );
 
         if ( ! $role ) {
+            static::check_permissions( 'security.role.create' );
             $role = ( new Role() )
             ->set_slug( $role_slug );
 
+        } else {
+            static::check_permissions( 'security.role.update' );
         }
 
         $role->set_label( $role_label )
@@ -634,9 +670,7 @@ class RequestController {
      */
     public static function search_users_orgs( Request $request ) : Response {
         try {
-            // if ( ! $request->is_authorized() ) {
-            //     throw new RequestException( 'permission_denied' );
-            // }
+            static::is_system_admin();
 
             $term   = $request->get( 'search_term' );
 
@@ -678,9 +712,7 @@ class RequestController {
      */
     public static function search_resource_owners( Request $request ) : Response {
         try {
-            // if ( ! $request->is_authorized() ) {
-            //     throw new RequestException( 'permission_denied' );
-            // }
+            static::is_system_admin();
 
             $term   = $request->get( 'search_term' );
 
@@ -720,6 +752,8 @@ class RequestController {
      */
     public static function delete_org_member( Request $request ): Response {
         try {
+            static::check_permissions( 'security.organization.remove_members' );
+
             $org_id     = static::sanitize_int( $request->get( 'organization_id' ) );
             $member_id  = static::sanitize_int( $request->get( 'member_id' ) );
 
