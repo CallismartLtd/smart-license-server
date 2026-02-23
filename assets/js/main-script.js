@@ -924,8 +924,6 @@ document.addEventListener( 'DOMContentLoaded', function() {
     /**@type {HTMLInputElement} Select all checkbox */
     let selectAllCheckbox       = document.querySelector('#smliser-select-all');
     let dashboardPage           = document.querySelector( '.smliser-admin-dashboard-template.overview' );
-    let apiKeyForm              = document.getElementById('smliser-api-key-generation-form');
-    let revokeBtns              = document.querySelectorAll( '.smliser-revoke-btn' );
     let monetizationUI          = document.querySelector( '.smliser-monetization-ui' );
     let optionForms             = document.querySelectorAll( 'form.smliser-options-form' );
     const bulkMessageForm       = document.querySelector( 'form.smliser-compose-message-container' );
@@ -937,6 +935,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const roleBuilderEl         = document.querySelector( '#smliser-role-builder' );
     const avatarUploadFields    = document.querySelectorAll( '.smliser-avatar-upload' );
     const generatePasswordBtn   = document.querySelector( '#smliser-generate-password' );
+    const licenseForm           = document.querySelector( '.smliser-license-form' );
 
     /** @type {HTMLFormElement} */
     const accessControlForm     = document.querySelector( '.smliser-access-control-form' );
@@ -1136,7 +1135,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-    if ( tokenBtn ) {
+    if ( tokenBtn ) { // @todo: Refactor to use SmliserModal && support multiple app type
         let licenseId           = tokenBtn.getAttribute( 'data-license-id' );
         let pluginName          = tokenBtn.getAttribute( 'data-plugin-name' );
         let contentContainer    = document.getElementById( 'ajaxContentContainer' );
@@ -1259,7 +1258,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-    if (searchInput) {
+    if (searchInput) { // @todo refactor with ajax rendering
         let tableRows = document.querySelectorAll('.smliser-table tbody tr');
         let tableBody = document.querySelector('.smliser-table tbody');
         searchInput.addEventListener('input', function () {
@@ -2242,7 +2241,7 @@ document.addEventListener( 'DOMContentLoaded', function() {
                             `${apiKeyData.api_key}`,
                             `------------------------------------`,
                             `Note: This key provides access to your service account. Do not share it.`
-                        ].join('\n');
+                        ].join('\r\n');
 
                         const blob = new Blob([fileContent], { type: 'text/plain' });
                         const url = window.URL.createObjectURL(blob);
@@ -2495,4 +2494,40 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
+    if ( licenseForm ) {
+        licenseForm.addEventListener( 'submit', e => {
+            e.preventDefault();
+          
+            const spinner   = showSpinner( '.smliser-spinner', true );
+            const payLoad   = new FormData( e.target.closest( 'form' ) );
+            const url       = new URL( smliser_var.ajaxURL );
+            url.searchParams.set( 'action', 'smliser_save_license' );
+            url.searchParams.set( 'security', smliser_var.nonce );
+            smliserFetch( url.href,
+                {
+                    credentials: 'same-origin',
+                    method: 'POST',
+                    responseType: 'json',
+                    body: payLoad
+                }
+            ).then( async response => {
+                if ( response.success ) {
+                    await SmliserModal.success( response.message );
+
+                    const url   = response?.redirect_url;
+                    if ( ! url ) return;
+
+                    window.location.href    = url;
+                }
+            }).catch( async error => {
+                SmliserModal.error( error.message );
+
+            }).finally( () => {
+                removeSpinner( spinner );
+            })
+            
+            
+
+        })
+    }
 });
