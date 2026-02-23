@@ -56,7 +56,7 @@ class Router implements RouterInterface {
             'smliser_remove_licensed_domain'                => [__CLASS__, 'parse_licensed_domain_removal_request'],
             'smliser_app_asset_upload'                      => [__CLASS__, 'parse_app_asset_upload_request'],
             'smliser_app_asset_delete'                      => [__CLASS__, 'parse_app_asset_delete_request'],
-            'smliser_save_monetization_tier'                => [__CLASS__, 'parse_monetization_tier_form'],
+            'smliser_save_monetization_tier'                => [__CLASS__, 'parse_monetization_tier_form_request'],
             'smliser_bulk_action'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_all_actions'                           => [__CLASS__, 'parse_bulk_action_request'],
             'smliser_generate_download_token'               => [__CLASS__, 'parse_download_token_generation_request'],
@@ -163,7 +163,6 @@ class Router implements RouterInterface {
         $request = new FileRequest([
             'license_id'        => absint( get_query_var( 'license_id' ) ),
             'download_token'    => smliser_get_query_param( 'download_token' ),
-            'authorization'     => smliser_get_authorization_header(),
             'user_agent'        => smliser_get_user_agent(),
             'request_time'      => time(),
             'client_ip'         => smliser_get_client_ip(),
@@ -389,11 +388,12 @@ class Router implements RouterInterface {
 
             $url    = new URL( smliser_license_admin_action_page( 'edit', $license_id ) );
             $url->add_query_param( 'message', 'Saved' );
-            wp_safe_redirect( $url->__toString() );
-            exit;
+            $response->set_header( 'Location', $url->get_href() );
+        } else {
+            $response->set_header( 'Location', smliser_license_admin_action_page() );
         }
 
-        wp_safe_redirect( smliser_license_admin_action_page() );
+        $response->send();
         exit;
     }
 
@@ -424,22 +424,10 @@ class Router implements RouterInterface {
             $request->set( 'ids', self::normalize_app_ids_form_input( (array) $ids ) );
         }
 
-        /** @var Response $response */
+        /** @var \SmartLicenseServer\Core\Response $response */
         $response   = \call_user_func( $handler, $request );
 
-        if ( $response->ok() ) {
-            $target = $request->get( 'redirect_url' ) ?? \wp_get_referer();
-            $url    = new URL( $target );
-            $url->add_query_param( 'message', $response->get_response_data()->get( 'message' ) );
-            wp_safe_redirect( $url->get_href() );
-            exit;
-        }
-
-        $target = wp_get_referer();
-        $url    = new URL( $target );
-        $error_message   = $response->has_errors() ? $response->get_exception()->get_error_message() : 'Bulk action failed';
-        $url->add_query_param( 'message', $error_message );
-        wp_safe_redirect( $url->get_href() );
+        $response->send();
         exit;
     }
 
@@ -471,6 +459,7 @@ class Router implements RouterInterface {
         $response = Controller::save_monetization( $request );
 
         $response->send();
+        exit;
     }
 
     /**
@@ -814,7 +803,7 @@ class Router implements RouterInterface {
 
         $method = 'organization_member' === $request->get( 'entity' ) ? 'save_organization_member' : 'save_entity';
 
-        /** @var Response $response */
+        /** @var \SmartLicenseServer\Core\Response $response */
         $response   = RequestController::$method( $request );
 
         $response->send();

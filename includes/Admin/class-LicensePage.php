@@ -32,10 +32,10 @@ class LicensePage {
                 self::edit_license_page();
                 break;
             case 'view':
-                self::license_view();
+                self::view_license_page();
                 break;
             case 'logs':
-                self::logs_page();
+                self::license_logs_page();
                 break;
             default:
             self::dashboard();
@@ -46,9 +46,9 @@ class LicensePage {
     /**
      * The license page dashbard
      */
-    private static function dashboard() {
+    private static function dashboard() : void {
         $licenses   = License::get_all();
-        $add_url     = smliser_license_admin_action_page( 'add-new' );
+        $add_url    = smliser_license_admin_action_page( 'add-new' );
     
         include_once SMLISER_PATH . 'templates/admin/license/dashboard.php';
     
@@ -64,7 +64,7 @@ class LicensePage {
     /**
      * License edit page
      */
-    private static function edit_license_page() {
+    private static function edit_license_page() : void {
 
         $license_id = smliser_get_query_param( 'license_id' );        
         $license    = License::get_by_id( $license_id );
@@ -76,7 +76,7 @@ class LicensePage {
     /**
      * License view page
      */
-    private static function license_view() {
+    private static function view_license_page() : void {
         $license_id         = smliser_get_query_param( 'license_id' );
         $route_descriptions = V1::describe_routes('license');   
 
@@ -97,9 +97,64 @@ class LicensePage {
     /**
      * License activation log page.
      */
-    private static function logs_page() {
+    private static function license_logs_page() : void {
         $all_tasks  = RepositoryAnalytics::get_license_activity_logs();
 
         include_once SMLISER_PATH . 'templates/admin/license/logs.php';
     }
+
+    /**
+     * Get args for admin menu.
+     * 
+     * @return array
+     */
+    protected static function get_menu_args() : array {
+        $tab    = \smliser_get_query_param( 'tab' );
+        $title  = match ( $tab ) {
+            'logs'      => 'License Activity Logs',
+            'add-new'   => 'Add new license',
+            'edit'      => 'Edit license',
+            'view'      => 'View License',
+            default     => 'No title'
+        };
+
+        return array(
+            'breadcrumbs'   => array(
+                array(
+                    'label' => 'Licenses',
+                    'url'   => admin_url( 'admin.php?page=licenses' ),
+                    'icon'  => 'dashicons dashicons-admin-home'
+                ),
+                array(
+                    'label' => $title,
+                )
+            ),
+            'actions'   => array(
+                array(
+                    'title' => 'Settings',
+                    'label' => 'Settings',
+                    'url'   => admin_url( 'admin.php?page=smliser-options'),
+                    'icon'  => 'dashicons dashicons-admin-generic'
+                )
+            )
+        );
+    }
+
+    /**
+     * Get license form fields.
+     * 
+     * @param License|null
+     * @return array
+     */
+    protected static function get_form_fields( ?License $license = null ) : array {
+        return array(
+            array(
+                'label' => 'Client Name',
+                'input' => array(
+
+                )
+            )
+        );
+    }
+    
 }

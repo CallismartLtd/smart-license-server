@@ -10,6 +10,7 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
@@ -53,10 +54,10 @@ class HostingController {
                 throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , array( 'status' => 400 ) );
             }
             
-            $app_id     = $request->get( 'app_id', 0 );
-            $app_slug   = $request->get( 'app_slug' );
-            $app_class  = HostedApplicationService::get_app_class( $app_type );
-            
+            $app_id     = static::sanitize_int( $request->get( 'app_id', 0 ) );
+            $app_slug   = static::sanitize_text( $request->get( 'app_slug' ) );
+            $app_class  = HostedApplicationService::get_app_class( static::sanitize_text( $app_type ) );
+
             $init_method    = $app_id ? "get_{$app_type}" : "get_by_slug";
             $arg            = $app_id ? $app_id : $app_slug;
 
@@ -322,7 +323,7 @@ class HostingController {
 
             } else {
                 static::check_permissions( 'hosted_apps.edit_assets' );
-                
+
                 $result = $repo_class->put_app_asset( $app_slug, $asset_file->get(0), $asset_type );
             }
 
@@ -384,6 +385,14 @@ class HostingController {
                     ['status' => 400]
                 );
             }
+
+            $app    = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app ) {
+                throw new RequestException( 'app_not_found' );
+            }
+
+            static::check_app_ownership( $app );
 
             $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
             
@@ -510,40 +519,57 @@ class HostingController {
      * @return Response
      */
     public static function app_bulk_action( Request $request ) : Response {
-        $app_ids    = $request->get( 'ids', [] );
-        $action     = $request->get( 'bulk_action' );
-        $affected   = 0;
+        try {
+            static::is_system_admin();
 
-        foreach( (array) $app_ids as $data ) {
-            $type   = $data['app_type'] ?? '';
-            $slug   = $data['app_slug'] ?? '';
+            $app_ids    = $request->get( 'ids', [] );
+            $action     = $request->get( 'bulk_action' );
+            $affected   = 0;
 
-            if ( empty( $type ) || empty( $slug ) ) {
-                continue;
+            foreach( (array) $app_ids as $data ) {
+                $type   = $data['app_type'] ?? '';
+                $slug   = $data['app_slug'] ?? '';
+
+                if ( empty( $type ) || empty( $slug ) ) {
+                    continue;
+                }
+
+                $app    = HostedApplicationService::get_app_by_slug( $type, $slug );
+
+                if ( ! $app ) {
+                    continue;
+                }
+
+                if ( 'delete' === strtolower( $action ) ) {
+                    $app->delete() && $affected++;
+                    continue;
+                }
+
+                $app->set_status( $action );
+                $app->save() && $affected++;
             }
 
-            $app    = HostedApplicationService::get_app_by_slug( $type, $slug );
+            $url = new URL( smliser_repo_page() );
+            $url->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
-            if ( ! $app ) {
-                continue;
-            }
+            $response = ( new Response( 200, [], '' ) )
+                ->set_response_data( $request )
+                ->set_header( 'Location', $url->get_href() );
 
-            if ( 'delete' === strtolower( $action ) ) {
-                $app->delete() && $affected++;
-                continue;
-            }
+            \smliser_cache()->clear();
+            return $response;
+        } catch ( Exception $e ) {
+            $url = new URL( smliser_repo_page() );
+            $url->add_query_param(
+                'message', 
+                \sprintf( 'Error: %s', $e->get_error_message() )
+            );
 
-            $app->set_status( $action );
-            $app->save() && $affected++;
+            return ( new Response() )
+                ->set_header( 'Location', $url->get_href() );
+                
         }
 
-        $request->set( 'message', \sprintf( '%s affected!', $affected ) );
-        $request->set( 'redirect_url', \smliser_repo_page() );
-        $response = ( new Response( 200, [], '' ) )
-            ->set_response_data( $request );
-
-        \smliser_cache()->clear();
-        return $response;
     }
 
 }

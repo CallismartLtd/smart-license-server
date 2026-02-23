@@ -15,6 +15,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Utils\CommonQueryTrait;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 /**
@@ -23,7 +24,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  */
 class License {
-    use CacheAwareTrait, CommonQueryTrait;
+    use CacheAwareTrait, CommonQueryTrait, SanitizeAwareTrait;
     /**
      * The license ID
      * 
@@ -32,11 +33,11 @@ class License {
     protected $id = 0;
 
     /**
-     * The ID of user associated with this license
+     * The full name of the licensee.
      * 
-     * @var int $user_id
+     * @var string $licensee_fullname
      */
-    protected $user_id    = 0;
+    protected string $licensee_fullname = '';
 
     /**
      * The license key
@@ -132,22 +133,22 @@ class License {
      * Set the license ID.
      * 
      * @param int $id
-     * @return self
+     * @return static
      */
-    public function set_id( $id ) : self {
-        $this->id = max( 0, intval( $id ) );
+    public function set_id( $id ) : static {
+        $this->id = static::sanitize_int( $id );
 
         return $this;
     }
 
     /**
-     * Set the the ID of the user associated with the license
+     * Set licensee full name.
      * 
-     * @param int $user_id The user ID, pass 0 for guest license.
-     * @return self
+     * @param string $name
+     * @return static
      */
-    public function set_user_id( $user_id ) : self {
-        $this->user_id = max( 0, intval( $user_id ) );
+    public function set_licensee_fullname( $name ) : static {
+        $this->licensee_fullname = static::sanitize_text( $name );
 
         return $this;
     }
@@ -156,10 +157,10 @@ class License {
      * Set the license key
      *
      * @param string $value
-     * @return self
+     * @return static
      */
-    public function set_license_key( $value ) : self {
-        $this->license_key = \sanitize_text_field( unslash( $value ) );
+    public function set_license_key( $value ) : static {
+        $this->license_key = static::sanitize_text( $value );
 
         return $this;
     }
@@ -168,10 +169,10 @@ class License {
      * Set the service ID for this license
      * 
      * @param string $service_id The service ID for this license.
-     * @return self
+     * @return static
      */
-    public function set_service_id( $service_id ) : self {
-        $this->service_id = \sanitize_text_field( \unslash( $service_id ) );
+    public function set_service_id( $service_id ) : static {
+        $this->service_id = static::sanitize_text( $service_id );
 
         return $this;
     }
@@ -181,11 +182,11 @@ class License {
      * 
      * @param string $app_type  The app type
      * @param string $app_slug  The app slug.
-     * @return self
+     * @return static
      */
-    public function set_app_prop( string $app_type, string $app_slug ) : self{
-        $this->app_prop['type'] = $app_type;
-        $this->app_prop['slug'] = $app_slug;
+    public function set_app_prop( string $app_type, string $app_slug ) : static {
+        $this->app_prop['type'] = static::sanitize_text( $app_type );
+        $this->app_prop['slug'] = static::sanitize_text( $app_slug );
 
         return $this;
     }
@@ -194,9 +195,9 @@ class License {
      * Set the app this license is issued to.
      * 
      * @param AbstractHostedApp $app
-     * @return self
+     * @return static
      */
-    public function set_app( AbstractHostedApp $app ) : self {
+    public function set_app( AbstractHostedApp $app ) : static {
         $this->app = $app;
 
         $this->set_app_prop( $app->get_type(), $app->get_slug() );
@@ -208,9 +209,9 @@ class License {
      * Set license status.
      * 
      * @param string $status
-     * @return self
+     * @return static
      */
-    public function set_status( $status ) : self {
+    public function set_status( $status ) : static {
         $this->status = $status;
 
         return $this;
@@ -220,11 +221,11 @@ class License {
      * Set the license start date
      * 
      * @param string $start_date
-     * @return self
+     * @return static
      */
-    public function set_start_date( $start_date ) : self {
-        $this->start_date = '0000-00-00' === $start_date ? '' : $start_date;
-
+    public function set_start_date( $start_date ) : static {
+        $this->start_date = static::sanitize_date( $start_date, '', \smliser_datetime_format() );
+    
         return $this;
     }
 
@@ -232,10 +233,10 @@ class License {
      * Set the license end date
      * 
      * @param string $end_date
-     * @return self
+     * @return static
      */
-    public function set_end_date( $end_date ) : self {
-        $this->end_date = '0000-00-00' === $end_date ? '' : $end_date;
+    public function set_end_date( $end_date ) : static {
+        $this->end_date = static::sanitize_date( $end_date, '', \smliser_datetime_format() );
 
         return $this;
     }
@@ -244,9 +245,9 @@ class License {
      * Set the maximum allowed domains that can request license activation.
      * 
      * @param int $number_of_domains
-     * @return self
+     * @return static
      */
-    public function set_max_allowed_domains( $number_of_domains ) : self {
+    public function set_max_allowed_domains( $number_of_domains ) : static {
         $this->max_allowed_domains = max( -1, intval( $number_of_domains ) );
 
         return $this;
@@ -257,10 +258,10 @@ class License {
      * 
      * @param string $meta_name The name of the meta data to set.
      * @param mixed $meta_value The value of the meta data.
-     * @return self
+     * @return static
      */
-    public function set_meta( $meta_name, $meta_value ) : self {
-        $this->meta_data[\sanitize_key( $meta_name )]    = \unslash( $meta_value );
+    public function set_meta( $meta_name, $meta_value ) : static {
+        $this->meta_data[static::sanitize_key( $meta_name )]    = static::sanitize_auto( $meta_value );
 
         return $this;
     }
@@ -269,9 +270,9 @@ class License {
      * Set the entire meta data of this license
      * 
      * @param array $meta_data
-     * @return self
+     * @return static
      */
-    public function set_meta_data( array $meta_data ) : self {
+    public function set_meta_data( array $meta_data ) : static {
 
         foreach( $meta_data as $name => $value ) {
             if ( \is_numeric( $name ) ) {
@@ -304,8 +305,8 @@ class License {
      * 
      * @return int
      */
-    public function get_user_id() {
-        return $this->user_id;
+    public function get_licensee_fullname() {
+        return $this->licensee_fullname;
     }
 
     /**
@@ -380,7 +381,7 @@ class License {
 
         // Lifetime when there is no end date.
         if ( empty( $end ) ) {
-            return self::STATUS_LIFETIME;
+            return static::STATUS_LIFETIME;
         }
 
         $now      = \time();
@@ -389,16 +390,16 @@ class License {
 
         // If start defined and now is before start -> pending.
         if ( $start_ts > 0 && $now < $start_ts ) {
-            return self::STATUS_PENDING;
+            return static::STATUS_PENDING;
         }
 
         // If now is after end -> expired.
         if ( $now > $end_ts ) {
-            return self::STATUS_EXPIRED;
+            return static::STATUS_EXPIRED;
         }
 
         // Otherwise we are within the active window.
-        return self::STATUS_ACTIVE;
+        return static::STATUS_ACTIVE;
     }
 
 
@@ -477,14 +478,14 @@ class License {
      * 
      * @param string $service_id The service ID associated with the licence
      * @param string $license_key   The license key
-     * @return self|null
+     * @return static|null
      */
-    public static function get_license( $service_id, $license_key ) : ?self {
-        $key    = self::make_cache_key( __METHOD__, [$service_id, $license_key] );
+    public static function get_license( $service_id, $license_key ) : ?static {
+        $key    = static::make_cache_key( __METHOD__, [$service_id, $license_key] );
 
-        $result = self::cache_get( $key );
+        $result = static::cache_get( $key );
 
-        if ( false === $result || ! ( $result instanceof self ) ) {
+        if ( false === $result || ! ( $result instanceof static ) ) {
             $db     = \smliser_dbclass();
             $table  = \SMLISER_LICENSE_TABLE;
             $sql    = "SELECT * FROM {$table} WHERE `service_id` = ? AND `license_key` = ?";
@@ -493,12 +494,12 @@ class License {
             $data = $db->get_row( $sql, $params );
             
             if ( $data ) {
-                $result =  self::from_array( $data );
+                $result =  static::from_array( $data );
             } else {
                 $result = null;
             }
 
-            self::cache_set( $key, $result, 30 * \MINUTE_IN_SECONDS );
+            static::cache_set( $key, $result, 30 * \MINUTE_IN_SECONDS );
         }
 
         return $result;
@@ -509,18 +510,18 @@ class License {
      * Get license by ID
      * 
      * @param int $id
-     * @return self|null
+     * @return static|null
      */
-    public static function get_by_id( $id ) : ?self {
-        $key    = self::make_cache_key( __METHOD__, [$id] );
+    public static function get_by_id( $id ) : ?static {
+        $key    = static::make_cache_key( __METHOD__, [$id] );
 
-        $license = self::cache_get( $key );
+        $license = static::cache_get( $key );
 
-        if ( false === $license || ! ( $license instanceof self ) ) {
+        if ( false === $license || ! ( $license instanceof static ) ) {
             $table      = SMLISER_LICENSE_TABLE;
-            $license    = self::get_self_by_id( $id, $table );
+            $license    = static::get_self_by_id( $id, $table );
 
-            self::cache_set( $key, $license, 30 * \MINUTE_IN_SECONDS );
+            static::cache_set( $key, $license, 30 * \MINUTE_IN_SECONDS );
         }
 
         return $license;
@@ -531,11 +532,11 @@ class License {
      * 
      * @param int $page     The current pagination number.
      * @param int $limit    The number of license object to return.
-     * @return self[]
+     * @return static[]
      */
     public static function get_all( int $page = 1, int $limit = 30 ) : array {
-        $key        = self::make_cache_key( __METHOD__, [$page, $limit] );
-        $licenses   = self::cache_get( $key );
+        $key        = static::make_cache_key( __METHOD__, [$page, $limit] );
+        $licenses   = static::cache_get( $key );
 
         if ( false === $licenses ) {
             $db         = smliser_dbclass();
@@ -549,11 +550,11 @@ class License {
             
             if ( ! empty( $results ) ) {
                 foreach ( $results as $result ) {
-                    $licenses[] = self::from_array( $result );
+                    $licenses[] = static::from_array( $result );
                 }
             }
             
-            self::cache_set( $key, $licenses, 30 * \MINUTE_IN_SECONDS );
+            static::cache_set( $key, $licenses, 30 * \MINUTE_IN_SECONDS );
         }
 
         return $licenses;
@@ -577,8 +578,7 @@ class License {
 
         $license_data   = array_merge( $data, compact( 'app_prop' ) );
 
-        
-        if ( $this->id ) {
+        if ( $this->exists() ) {
             unset( $license_data['license_key'] );
 
             $updated        = $db->update( $table, $license_data, ['id' => $this->id] );
@@ -631,7 +631,7 @@ class License {
             $result = ( false !== $inserted ) || ( $inserted_meta > 0 );
         }
 
-        self::cache_clear();
+        static::cache_clear();
 
         return false !== $result;
 
@@ -640,9 +640,9 @@ class License {
     /**
      * Load the metadata from the database
      *
-     * @return self
+     * @return static
      */
-    public function load_meta() : self {
+    public function load_meta() : static {
         $db         = smliser_dbclass();
         $table      = SMLISER_LICENSE_META_TABLE;
         $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `license_id` = ?";
@@ -682,7 +682,7 @@ class License {
             $db->delete( $meta_table, ['license_id' => $this->id] );
         }
 
-        self::cache_clear();
+        static::cache_clear();
 
         return false !== $deleted;
     }
@@ -713,16 +713,16 @@ class License {
      * 
      * @param array $data   Associative array containing result from database
      */
-    public static function from_array( $data ) : self {
-        $self = new self();
-        $self->set_id( $data['id'] ?? '' );
-        $self->set_user_id( $data['user_id'] ?? 0 );
-        $self->set_service_id( $data['service_id'] ?? '' );
-        $self->set_license_key( $data['license_key'] ?? '' );
-        $self->set_status( $data['status'] ?? '' );
-        $self->set_start_date( $data['start_date'] ?? '' );
-        $self->set_end_date( $data['end_date'] ?? '' );
-        $self->set_max_allowed_domains( $data['max_allowed_domains'] ?? 0 );
+    public static function from_array( $data ) : static {
+        $static = new static();
+        $static->set_id( $data['id'] ?? '' );
+        $static->set_licensee_fullname( $data['licensee_fullname'] ?? '' );
+        $static->set_service_id( $data['service_id'] ?? '' );
+        $static->set_license_key( $data['license_key'] ?? '' );
+        $static->set_status( $data['status'] ?? '' );
+        $static->set_start_date( $data['start_date'] ?? '' );
+        $static->set_end_date( $data['end_date'] ?? '' );
+        $static->set_max_allowed_domains( $data['max_allowed_domains'] ?? 0 );
 
         if ( ! empty( $data['app_prop'] ) && preg_match( '#^[^/]+/[^/]+$#', (string) $data['app_prop'] ) ) {
             list( $app_type, $app_slug ) = explode( '/', $data['app_prop'], 2 );
@@ -733,13 +733,13 @@ class License {
                 /** @var AbstractHostedApp|null $app */
                 $app = $app_class::$method( $app_slug );
 
-                ( $app instanceof AbstractHostedApp ) && $self->set_app( $app );
+                ( $app instanceof AbstractHostedApp ) && $static->set_app( $app );
             }
         }
 
-        $self->load_meta();
+        $static->load_meta();
 
-        return $self;
+        return $static;
     }
 
     /**
@@ -884,7 +884,7 @@ class License {
      * @return bool
      */
     public function is_deactivated() : bool {
-        return strtolower( $this->get_status() === self::STATUS_DEACTIVATED );
+        return strtolower( $this->get_status() === static::STATUS_DEACTIVATED );
     }
 
     /**
@@ -897,7 +897,7 @@ class License {
         if ( ! $this->is_issued() ) {
             return new Exception(
                 'license_error',
-                'Invalid license request.',
+                'License is not issued to any application.',
                 array( 'status' => 400 )
             );
         }
@@ -914,28 +914,28 @@ class License {
 
         switch ( $status ) {
 
-            case self::STATUS_EXPIRED:
+            case static::STATUS_EXPIRED:
                 return new Exception(
                     'license_expired',
                     'This license has expired. Please renew it.',
                     array( 'status' => 403 )
                 );
 
-            case self::STATUS_SUSPENDED:
+            case static::STATUS_SUSPENDED:
                 return new Exception(
                     'license_suspended',
                     'This license has been suspended. Please contact support.',
                     array( 'status' => 403 )
                 );
 
-            case self::STATUS_REVOKED:
+            case static::STATUS_REVOKED:
                 return new Exception(
                     'license_revoked',
                     'This license has been revoked. Please contact support.',
                     array( 'status' => 403 )
                 );
 
-            case self::STATUS_DEACTIVATED:
+            case static::STATUS_DEACTIVATED:
                 return new Exception(
                     'license_deactivated',
                     'This license has been deactivated. Please reactivate it.',
@@ -1066,6 +1066,15 @@ class License {
         }
 
         return $new_key;
+    }
+
+    /**
+     * Tells if a license exists.
+     * 
+     * @return bool
+     */
+    public function exists() : bool {
+        return (bool) $this->get_id();
     }
 
 }

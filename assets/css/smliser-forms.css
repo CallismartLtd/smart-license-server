@@ -34,8 +34,9 @@
   background-color: #ffffff;
   padding: 20px;
   margin: 20px auto;
-  margin-right: 20px;
   border-radius: 9px;
+  max-width: 900px;
+  width: 90%;
 
 }
   

@@ -46,7 +46,7 @@ final class DBTables {
              */
             SMLISER_LICENSE_TABLE   => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-                'user_id MEDIUMINT(9) DEFAULT NULL',
+                'licensee_fullname VARCHAR(512) DEFAULT NULL',
                 'license_key VARCHAR(300) NOT NULL UNIQUE',
                 'service_id VARCHAR(300) NOT NULL',
                 'app_prop VARCHAR(600) DEFAULT NULL',

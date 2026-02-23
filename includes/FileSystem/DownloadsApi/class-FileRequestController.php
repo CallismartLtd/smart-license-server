@@ -9,10 +9,13 @@
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Security\SecurityAwareTrait;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -21,7 +24,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Resource download handler for Smart License Server.
  */
 class FileRequestController {
-    use SanitizeAwareTrait;
+    use SanitizeAwareTrait, SecurityAwareTrait;
     /**
      * Process and serve download request for a hosted application zip file.
      *
@@ -48,17 +51,13 @@ class FileRequestController {
             if ( ! $app ) {
                 throw new FileRequestException( 'app_not_found' );
             }
+
             
             if ( $app->is_monetized() ) {
 
-                // Try to find token in Authorization header if missing from query.
                 if ( empty( $token ) ) {
-                    $auth_header = $request->get( 'authorization' );
-                    if ( $auth_header && str_starts_with( strtolower($auth_header), 'bearer ' ) ) {
-                        $parts = explode( ' ', $auth_header );
-                        $token = self::sanitize_text( $parts[1] ?? '' ); 
-                        $request->set( 'download_token', $token );
-                    }
+                    $token = $request->bearerToken();
+                    $request->set( 'download_token', $token );
                 }
 
                 if ( empty( $token ) ) {
@@ -92,26 +91,13 @@ class FileRequestController {
      */
     public static function get_admin_application_zip_file( FileRequest $request ): FileResponse {
         try {
-            
+            static::is_system_admin();
 
             $app_type   = $request->get( 'app_type', '' );
-            $app_class  = HostedApplicationService::get_app_class( $app_type );
-            $method     = "get_{$app_type}";
-
-            if ( ! \method_exists( $app_class, $method ) ) {
-                // Uses FileRequestException with error slug 'invalid_app_type_method'
-                throw new FileRequestException( 'invalid_app_type_method' );
-            }
-
-            $id = $request->get( 'app_id' );
-
-            /**
-             * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $app
-             */
-            $app = $app_class::$method( $id );
+            $id         = $request->get( 'app_id' );
+            $app        = HostedApplicationService::get_app_by_id( $app_type, $id );
 
             if ( ! $app ) {
-                // Uses FileRequestException with error slug 'app_not_found'
                 throw new FileRequestException( 'app_not_found' );
             }
 
@@ -135,11 +121,16 @@ class FileRequestController {
      */
     public static function get_proxy_asset( FileRequest $request ) {
         try {
-            
             $asset_url  = $request->get( 'asset_url' );
 
             if ( ! $asset_url ) {
                 throw new FileRequestException( 'missing_parameter', 'Asset URL is required.', ['status' => 400] );
+            }
+
+            $url    = new URL( $asset_url );
+
+            if ( ! $url->is_valid( true ) ) {
+                throw new FileRequestException( 'malformed_request', 'The provided URL is not valid.' );
             }
             
             $file       = smliser_download_url( $asset_url );
@@ -247,27 +238,19 @@ class FileRequestController {
                 throw new FileRequestException( 'file_not_found' );
             }
 
-            if ( ! $request->is_authorized() ) {
-                // Token extraction and verification
-                if ( empty( $token ) ) {
-                    $auth_header = $request->get( 'authorization' );
-                    if ( $auth_header && str_starts_with( strtolower( $auth_header ), 'bearer ' ) ) {
-                        $parts = explode( ' ', $auth_header, 2 );
-                        $token = self::sanitize_text(  $parts[1] ?? '' ); 
-                        $request->set( 'download_token', $token );
-                    }
-                }
-
-                if ( empty( $token ) ) {
-                    throw new FileRequestException( 'license_payment_required' );
-                }
-
-                if ( \is_smliser_error( smliser_verify_item_token( $token, $license->get_app() ) ) ) {
-                    throw new FileRequestException( 'invalid_token' );
-                }
+            if ( empty( $token ) ) {
+                $token  = $request->bearerToken();
             }
 
-            $document = self::generate_license_document( $license, $request );
+            if ( empty( $token ) ) {
+                throw new FileRequestException( 'license_payment_required' );
+            }
+
+            if ( \is_smliser_error( smliser_verify_item_token( $token, $license->get_app() ) ) ) {
+                throw new FileRequestException( 'invalid_token' );
+            }
+            
+            $document = self::generate_license_document( $license, smliser_settings_adapter() );
 
             $file_props = [
                 'type'         => 'document',
@@ -294,19 +277,19 @@ class FileRequestController {
      * Generates a textual license certificate for a given license and request context.
      *
      * @param License $license   License object.
-     * @param FileRequest $request Request context (used for issuer, terms URL, etc.).
+     * @param Settings Settings API instance (used for issuer, terms URL, etc.).
      * @return string The formatted license document.
      */
-    protected static function generate_license_document( $license, FileRequest $request ): string {
+    protected static function generate_license_document( $license, Settings $settingsAPI ): string {
         $license_key    = $license->get_license_key();
         $service_id     = $license->get_service_id();
         $issued         = $license->get_start_date();
         $expiry         = $license->get_end_date();
         $status         = $license->get_status();
         $max_domains    = $license->get_max_allowed_domains();
-        $today          = date( 'F j, Y g:i:s a' );
-        $issuer         = $request->get( 'issuer', SMLISER_APP_NAME );
-        $terms_url      = $request->get( 'terms_url', '#' );
+        $today          = gmdate( 'F j, Y g:i:s a' );
+        $issuer         = $settingsAPI->get( 'license_issuer', SMLISER_APP_NAME, true );
+        $terms_url      = $settingsAPI->get( 'terms_url', '', true );
         $app_id         = $license->get_app_id();
 
         $document = <<<EOT

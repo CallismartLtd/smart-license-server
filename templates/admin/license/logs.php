@@ -14,28 +14,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu(
-        [
-            'breadcrumbs'   => array(
-                array(
-                    'label' => 'Licenses',
-                    'url'   => admin_url( 'admin.php?page=licenses' ),
-                    'icon'  => 'dashicons dashicons-admin-home'
-                ),
-                array(
-                    'label' => 'License Activity Logs',
-                )
-            ),
-            'actions'   => array(
-                array(
-                    'title' => 'Settings',
-                    'label' => 'Settings',
-                    'url'   => admin_url( 'admin.php?page=smliser-options'),
-                    'icon'  => 'dashicons dashicons-admin-generic'
-                )
-            )
-        ]
-    ); ?>
+    <?php Menu::print_admin_top_menu( self::get_menu_args() ); ?>
 
     <div class="smliser-admin-body">
         <p>Logs over three months are automatically deleted</p>

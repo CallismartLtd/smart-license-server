@@ -409,4 +409,13 @@ class PricingTier {
         return $data;
     }
 
+    /**
+     * Tells whether a tier exists.
+     * 
+     * @return bool
+     */
+    public function exists() : bool {
+        return (bool) $this->get_id();
+    }
+
 }

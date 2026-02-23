@@ -39,6 +39,7 @@ class Installer {
             [__CLASS__, 'migrate_bulk_message_table_020'],
             [__CLASS__, 'add_apps_owner_id_020'],
             [__CLASS__, 'change_last_updated_column_020'],
+            [__CLASS__, 'licenses_table_modify_column_020']
         )
 
     );
@@ -262,8 +263,8 @@ class Installer {
         $tables = [\SMLISER_SOFTWARE_TABLE, \SMLISER_PLUGINS_TABLE, \SMLISER_THEMES_TABLE];
 
         foreach ( $tables as $table ) {
-            $table_exists   = $db->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'last_updated'" );
-            if ( ! $table_exists ) {
+            $column_exists   = $db->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'last_updated'" );
+            if ( ! $column_exists ) {
                 continue;
             }
 
@@ -271,6 +272,26 @@ class Installer {
 
             $db->query( $sql );            
         }
+
+
+    }
+
+    /**
+     * Change the user_id column of the licenses table to `licensee_fullname`
+     */
+    public static function licenses_table_modify_column_020() {
+        $db             = \smliser_dbclass();
+        $table          = \SMLISER_LICENSE_TABLE;
+        $column_exists  = $db->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'user_id'" );
+        
+        if ( ! $column_exists ) {
+            return;
+        }
+
+        $sql    = "ALTER TABLE `{$table}` CHANGE `user_id` `licensee_fullname` VARCHAR(512) DEFAULT NULL";
+
+        $db->query( $sql );
+        
 
 
     }

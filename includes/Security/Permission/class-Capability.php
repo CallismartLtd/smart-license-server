@@ -42,16 +42,21 @@ final class Capability {
          * Monetization & Licensing
          */
         'monetization' => [
-            'monetization.pricing.create'       => 'Create pricing tiers',
-            'monetization.pricing.update'       => 'Update pricing tiers',
-            'monetization.pricing.delete'       => 'Delete pricing tiers',
+            'monetization.create'                   => 'Create app monetization',
+            'monetization.update'                   => 'Update app monetization',
+            'monetization.delete'                   => 'Delete app monetization',
+            'monetization.change_status'            => 'Change the status of app monetization',
+            'monetization.pricing.create'           => 'Create monetization pricing tiers',
+            'monetization.pricing.update'           => 'Update monetization pricing tiers',
+            'monetization.pricing.delete'           => 'Delete monetization pricing tiers',
 
-            'monetization.license.create'       => 'Create licenses',
-            'monetization.license.update'       => 'Update licenses',
-            'monetization.license.revoke'       => 'Revoke licenses',
-            'monetization.license.deactivate'   => 'Deactivate licenses',
-            'monetization.license.delete'       => 'Delete licenses',
-            'monetization.license.issue'        => 'Issue licenses',
+            'monetization.license.create'           => 'Create licenses',
+            'monetization.license.update'           => 'Update licenses',
+            'monetization.license.revoke'           => 'Revoke licenses',
+            'monetization.license.deactivate'       => 'Deactivate licenses',
+            'monetization.license.delete'           => 'Delete licenses',
+            'monetization.license.issue'            => 'Issue licenses',
+            'monetization.license.uninstall_domain' => 'Uninstall domain from license',
         ],
 
         /**

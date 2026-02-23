@@ -262,37 +262,68 @@ trait SanitizeAwareTrait {
     */
 
     /**
-     * Sanitize date string to Y-m-d format.
-     * 
-     * @param string $value The date string.
-     * @param string|null $default Default value for invalid dates.
-     * @return string|null Formatted date or default.
+     * Sanitize a date string to a given format.
+     *
+     * Handles:
+     * - MySQL DATE and DATETIME
+     * - Unix timestamps
+     * - Zero dates (0000-00-00)
+     * - Invalid calendar dates
+     *
+     * @param string      $value   Raw date value.
+     * @param string|null $default Default return value if invalid.
+     * @param string      $format  Output format. Default Y-m-d.
+     * @return string|null
      */
-    protected static function sanitize_date( string $value, ?string $default = null ): ?string {
-        $timestamp = strtotime( $value );
-        
-        if ( false === $timestamp ) {
-            return $default;
-        }
-        
-        return gmdate( 'Y-m-d', $timestamp );
-    }
+    protected static function sanitize_date( string $value, ?string $default = null, string $format = 'Y-m-d' ): ?string {
 
-    /**
-     * Sanitize datetime string to Y-m-d H:i:s format.
-     * 
-     * @param string $value The datetime string.
-     * @param string|null $default Default value for invalid datetimes.
-     * @return string|null Formatted datetime or default.
-     */
-    protected static function sanitize_datetime( string $value, ?string $default = null ): ?string {
-        $timestamp = strtotime( $value );
-        
-        if ( false === $timestamp ) {
+        $value = trim( $value );
+
+        if ( '' === $value ) {
             return $default;
         }
-        
-        return gmdate( 'Y-m-d H:i:s', $timestamp );
+
+        /*
+        * Handle MySQL zero date values explicitly.
+        */
+        if ( '0000-00-00' === $value || '0000-00-00 00:00:00' === $value ) {
+            return $default;
+        }
+
+        /*
+        * Handle pure numeric timestamps.
+        */
+        if ( ctype_digit( $value ) ) {
+            $timestamp = (int) $value;
+
+            if ( $timestamp <= 0 ) {
+                return $default;
+            }
+
+            return gmdate( $format, $timestamp );
+        }
+
+        /*
+        * Attempt strict parsing using DateTime.
+        */
+        try {
+            $date = new \DateTime( $value, new \DateTimeZone( 'UTC' ) );
+
+            /*
+            * Validate that the parsed date matches input components
+            * (prevents invalid dates like 2025-02-31 silently rolling over).
+            */
+            $parsed = $date->format( 'Y-m-d H:i:s' );
+
+            if ( false === strtotime( $parsed ) ) {
+                return $default;
+            }
+
+            return $date->format( $format );
+
+        } catch ( \Exception $e ) {
+            return $default;
+        }
     }
 
     /**

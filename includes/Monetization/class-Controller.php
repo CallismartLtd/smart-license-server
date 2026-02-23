@@ -13,6 +13,9 @@ namespace SmartLicenseServer\Monetization;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\Security\SecurityAwareTrait;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -20,6 +23,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Handles all requests related to software monetization
  */
 class Controller {
+    use SecurityAwareTrait, SanitizeAwareTrait;
     /**
      * Handles save monetization request by consuming a portable Request object.
      * 
@@ -28,11 +32,6 @@ class Controller {
      */
     public static function save_monetization( Request $request ): Response {
         try {
-            // Authorization Check (Defense-in-depth: Adapter should enforce this, but we check the flag)
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'unauthorized_access', 'You do not have permission to perform this action', array( 'status' => 403 ) );
-            }
-
             $monetization_id = $request->get( 'monetization_id', 0 );
             $app_id         = $request->get( 'app_id', 0 );
             $tier_id         = $request->get( 'tier_id', 0 );
@@ -62,24 +61,46 @@ class Controller {
                 throw new RequestException( 'invalid_provider', 'The selected monetization provider does not exist.', array( 'field_id' => 'provider_id', 'status' => 400 ) );
             }
 
-            $monetization = Monetization::get_by_app( $app_type, $app_id ) ?: new Monetization();
-            $monetization->set_app_id( $app_id )
-                        ->set_app_type( $app_type );
+            $app    = HostedApplicationService::get_app_by_id( $app_type, $app_id );
 
-            $pricing_tier = PricingTier::get_by_id( $tier_id ) ?: new PricingTier();
+            if ( ! $app ) {
+                throw new RequestException( 'app_not_found' );
+            }
+
+            static::check_app_ownership( $app );
+
+            $monetization = Monetization::get_by_app( $app->get_type(), $app->get_id() ) ?: new Monetization();
+
+            if ( ! $monetization->exists() ) {
+                static::check_permissions( 'monetization.create' );
+
+                $monetization->set_app_id( $app_id )
+                    ->set_app_type( $app_type );
+            } else {
+                static::check_permissions( 'monetization.update' );
+            }
+            
+            $pricing_tier = PricingTier::get_by_id( $tier_id ) ?? new PricingTier();
+
+            if ( $pricing_tier->exists() ) {
+                static::check_permissions( 'monetization.pricing.update' );
+            } else {
+                static::check_permissions( 'monetization.pricing.create' );
+            }
+
             $pricing_tier->set_monetization_id( $monetization_id )
-                        ->set_id( $tier_id )
-                        ->set_name( $tier_name )
-                        ->set_product_id( $product_id )
-                        ->set_billing_cycle( $billing_cycle )
-                        ->set_provider_id( $provider_id )
-                        ->set_max_sites( $max_sites )
-                        ->set_features( $features_array );
+                ->set_id( $tier_id )
+                ->set_name( $tier_name )
+                ->set_product_id( $product_id )
+                ->set_billing_cycle( $billing_cycle )
+                ->set_provider_id( $provider_id )
+                ->set_max_sites( $max_sites )
+                ->set_features( $features_array );
 
             $monetization->add_tier( $pricing_tier );
 
             if ( $monetization->save() ) {
-                // Success response: return portable Response object
+
                 $response_data = [ 'success' => true, 'data' => [ 'message' => 'Saved' ] ];
                 return ( new Response( 200, [], smliser_safe_json_encode( $response_data ) ) )
                     ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
@@ -102,9 +123,7 @@ class Controller {
      */
     public static function delete_monetization_tier( Request $request ) : Response {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied' );
-            }
+            static::check_permissions( 'monetization.pricing.delete' );
             
             $monetization_id = $request->get( 'monetization_id', 0 );
             $tier_id         = $request->get( 'tier_id', 0 );
@@ -123,7 +142,11 @@ class Controller {
                 throw new RequestException( 'resource_not_found', __( 'Monetization not found.', 'smliser' ), ['status' => 404] );
             }
 
+            $app    = $monetization->get_app();
+            if ( $app ) static::check_app_ownership( $app );
+            
             $deleted = $monetization->delete_tier( $tier_id );
+
             if ( ! $deleted ) {
                 throw new RequestException( 'resource_not_found', __( 'Failed to delete the pricing tier, please try again.', 'smliser' ), ['status' => 500] );
             }
@@ -140,17 +163,13 @@ class Controller {
 
     /**
      * Handle request to fetch provider product data.
-     *
+     * 
      * @param Request $request
      * @return Response
      */
     public static function get_provider_product( Request $request ) : Response {
 
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'unauthorized_access', 'You do not have permission to perform this action', array( 'status' => 403 ) );
-            }
-            
             $provider_id = $request->get( 'provider_id' );
             $product_id  = $request->get( 'product_id' );
 
@@ -200,16 +219,16 @@ class Controller {
     /**
      * Handle monetization status toggling
      * 
-     * @param Resquest $request
+     * @param Request $request
      */
     public static function toggle_monetization( Request $request ) : Response {
 
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied' );
-            }
+            
+            static::check_permissions( 'change_status' );
+
             $monetization_id = $request->get( 'monetization_id' );
-            $enabled         = $request->get( 'enabled' );
+            $enabled         = $request->getTyped( 'enabled', 'boolean', false );
 
             if ( ! $monetization_id ) {
                 throw new RequestException( 'invalid_input', __( 'This monetization does not exist yet, please add a pricing tier first.', 'smliser' ), ['status' => 400] );
@@ -220,6 +239,10 @@ class Controller {
             if ( ! $monetization ) {
                 throw new RequestException( 'resource_not_found', __( 'Monetization not found.', 'smliser' ), ['status' => 404] );
             }
+
+            $app    = $monetization->get_app();
+
+            if ( $app ) static::check_app_ownership( $app );
 
             $monetization->set_enabled( $enabled );
             $monetization->save();
@@ -244,18 +267,14 @@ class Controller {
      */
     public static function save_license( Request $request ) : Response {
         try {
-
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied' );
-            }
-
             $id                     = $request->get( 'license_id' );
             $user_id                = $request->get( 'user_id' );
             $service_id             = $request->get( 'service_id' );
             $status                 = $request->get( 'status' );
             $start_date             = $request->get( 'start_date' );
             $end_date               = $request->get( 'end_date' );
-            $app_prop               = $request->get( 'app_prop', '' );
+            $app_type               = $request->get( 'app_type', '' );
+            $app_slug               = $request->get( 'app_slug', '' );
             $max_allowed_domains    = $request->get( 'max_allowed_domains', -1 );
 
             if ( '' === $max_allowed_domains ) {
@@ -264,13 +283,28 @@ class Controller {
                 $max_allowed_domains = -1;
             }
 
-            if ( ! empty( $app_prop ) ) {
-                $app_prop   = \str_replace( ':', '/', $app_prop );
+            if ( ! empty( $app_slug ) && ! empty( $app_type ) ) {
+                $app_prop   = sprintf( '%s/%s', $app_type, $app_slug );
+            } else {
+                $app_prop   = '';
             }
 
             $data       = compact( 'id', 'user_id', 'service_id', 'max_allowed_domains', 'service_id', 'status', 'start_date', 'end_date', 'app_prop' );
-            
             $license    = License::from_array( $data );
+
+            if ( $license->get_id() ) {
+                static::check_permissions( 'monetization.license.update' );
+            } else {
+                static::check_permissions( 'monetization.license.create' );
+            }
+
+            $app    = $license->get_app();
+            if ( $app ) {
+                static::check_app_ownership( $app );
+                static::check_permissions( 'monetization.license.issue' );
+            } else {
+                throw new RequestException( 'app_not_found' );
+            }
 
             if ( ! $license->save() ) {
                 throw new RequestException( 'license_error', 'Unable to save the license' );
@@ -332,9 +366,7 @@ class Controller {
 
         try {
 
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied' );
-            }
+            static::is_system_admin();
             
             $provider_id = $request->get( 'provider_id', null );
 
@@ -373,9 +405,7 @@ class Controller {
      */
     public static function uninstall_domain_from_license( Request $request ) : Response {
         try {
-            if ( ! $request->is_authorized() ) {
-                throw new RequestException( 'permission_denied' );
-            }
+            static::check_permissions( 'monetization.license.uninstall_domain' );
 
             $license_id = $request->get( 'license_id' );
             $domain     = $request->get( 'domain' );
@@ -393,6 +423,10 @@ class Controller {
             if ( ! $license ) {
                 throw new RequestException( 'resource_not_found', __( 'This license does not exist.', 'smliser' ), ['status' => 404] );
             }
+
+            $app    = $license->get_app();
+
+            if ( $app ) static::check_app_ownership( $app );
 
             if ( $license->is_new_domain( $domain ) ) {
                 throw new RequestException( 'is_new_domain', __( 'The domain provided does not exist in this license.', 'smliser' ), ['status' => 404] );

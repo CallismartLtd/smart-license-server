@@ -42,6 +42,12 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 final class Principal {
     /**
+     * System administrator role key.
+     */
+    private const SYS_ADMIN = 'system_admin';
+
+    
+    /**
      * The underlying actor implementation (User or Service Account).
      * @var ActorInterface
      */
@@ -74,6 +80,16 @@ final class Principal {
     }
 
     /**
+     * Check the role of the principal.
+     * 
+     * @param string $role_slug
+     * @return bool
+     */
+    public function is( string $role_slug ) : bool {
+        return $role_slug === $this->role->get_slug();
+    }
+
+    /**
      * Check if the principal has the permission to perform a specific action.
      *
      * This method validates the capability against the system registry. If the 
@@ -82,6 +98,10 @@ final class Principal {
      * @return bool True if permitted, false otherwise.
      */
     public function can( string $capability ) : bool {
+        if ( $this->is( self::SYS_ADMIN ) ) {
+            return true;
+        }
+
         try {
             Capability::assert_exists( $capability );
         } catch ( InvalidArgumentException $e ) {
@@ -98,6 +118,9 @@ final class Principal {
      * @return bool
      */
     public function can_any( array $capabilities ) : bool {
+        if ( $this->is( self::SYS_ADMIN ) ) {
+            return true;
+        }
 
         if ( empty( $capabilities ) ) {
             return false;
@@ -119,6 +142,9 @@ final class Principal {
      * @return bool
      */
     public function can_all( array $capabilities ) : bool {
+        if ( $this->is( self::SYS_ADMIN ) ) {
+            return true;
+        }
 
         if ( empty( $capabilities ) ) {
             return false;
@@ -165,15 +191,32 @@ final class Principal {
      * @param array  $args   Method arguments.
      * @return mixed
      *
-     * @throws BadMethodCallException If method does not exist on the actor.
+     * @throws BadMethodCallException If method does not exist or bad mutator methis is called
+     * on the actor.
      */
     public function __call( string $method, array $args ) {
+
+        // Block mutator methods.
+        if ( str_starts_with( $method, 'set' ) ) {
+            throw new BadMethodCallException(
+                sprintf(
+                    'Mutator method %s::%s cannot be called via Principal.',
+                    get_class( $this->actor ),
+                    $method
+                )
+            );
+        }
+
         if ( method_exists( $this->actor, $method ) ) {
             return $this->actor->$method( ...$args );
         }
 
         throw new BadMethodCallException(
-            sprintf( 'Method %s::%s does not exist.', get_class( $this->actor ), $method )
+            sprintf(
+                'Method %s::%s does not exist.',
+                get_class( $this->actor ),
+                $method
+            )
         );
     }
 }
