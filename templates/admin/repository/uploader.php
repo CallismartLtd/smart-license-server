@@ -131,41 +131,97 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
         <button type="submit" class="button authoritatively"><?php printf( 'Save %s', esc_html( $type_title ) ); ?></button>
     </form>
 </div>
-<?php if( 'edit' === smliser_get_query_param( 'tab' ) ) : ?>
-    <div class="smliser-admin-modal app-asset-uploader hidden">
+<?php if ( 'edit' === smliser_get_query_param( 'tab' ) ) : ?>
+    <div class="smliser-admin-modal app-asset-uploader hidden" role="dialog" aria-modal="true" aria-labelledby="modal-header" aria-describedby="modal-description">
         <div class="smliser-admin-modal_content">
-            <span class="dashicons dashicons-dismiss remove-modal" title="remove" data-action="closeModal"></span>
+
+            <span
+                class="dashicons dashicons-dismiss remove-modal"
+                title="Close"
+                data-action="closeModal"
+                role="button"
+                aria-label="Close modal"
+                tabindex="0"
+            ></span>
+
             <h2 id="modal-header">Asset Uploader</h2>
-            <em id="modal-description">You can choose to upload from your device, Wordpress gallery or a URL</em>
+            <em id="modal-description">
+                Upload from your device, WordPress gallery, or a URL.
+                Multiple files are supported where the asset limit allows.
+            </em>
 
             <div class="app-asset-uploader-body">
+
+                <!-- {{-- Single-image preview (shown when exactly one image is staged) --}} -->
                 <div class="app-asset-uploader-body_uploaded-asset">
                     <div class="app-asset-uploader-placeholder">
                         <span class="dashicons dashicons-format-image"></span>
+                        <p class="app-asset-uploader-placeholder_hint">No image selected</p>
                     </div>
 
                     <div class="app-asset-uploader-uploaded-image">
-                        <span class="dashicons dashicons-dismiss clear-uploaded" title="Clear selected image" data-action="resetModal"></span>
-                        <img src="" alt="uploaded image" id="currentImage">
+                        <span
+                            class="dashicons dashicons-dismiss clear-uploaded"
+                            title="Clear selected image"
+                            data-action="resetModal"
+                            role="button"
+                            aria-label="Clear selected image"
+                            tabindex="0"
+                        ></span>
+                        <img src="" alt="Uploaded image preview" id="currentImage">
                     </div>
-                    <button type="button" class="button smliser-nav-btn" id="upload-image" data-action="uploadToRepository"><span class="dashicons dashicons-cloud-upload"></span> Upload to repository</button>
+
+                    <button
+                        type="button"
+                        class="button smliser-nav-btn"
+                        id="upload-image"
+                        data-action="uploadToRepository"
+                    >
+                        <span class="dashicons dashicons-cloud-upload"></span>
+                        Upload to repository
+                    </button>
                 </div>
+
+                <!-- {{-- Multi-file thumbnail strip (injected by JS when > 1 file is staged) --}} -->
+                <div class="smliser-multi-preview"></div>
 
                 <div class="smliser-spinner modal"></div>
-                <input type="url" id="app-uploader-asset-url-input" placeholder="Enter image url">
-                <input type="file" id="app-uploader-asset-file-input" accept="image/png, image/jpeg, .png, .jpg, .jpeg, .gif" class="hidden">
-                
+
+                <input
+                    type="url"
+                    id="app-uploader-asset-url-input"
+                    placeholder="Enter image URL"
+                    aria-label="Image URL"
+                >
+
+                <!-- {{--
+                    Multiple attribute is toggled at runtime by AppUploader.openModal()
+                    based on the remaining slot count for the current asset type.
+                --}} -->
+                <input
+                    type="file"
+                    id="app-uploader-asset-file-input"
+                    accept="image/png, image/jpeg, image/gif, .png, .jpg, .jpeg, .gif"
+                    class="hidden"
+                    aria-label="Select image file(s)"
+                >
+
                 <div class="app-asset-uploader-buttons-container">
-                    <button type="button" class="button smliser-nav-btn" id="upload-from-device" data-action="uploadFromDevice"><span class="dashicons dashicons-open-folder"></span> Upload file from device</button>
-                    <button type="button" class="button smliser-nav-btn" id="upload-from-wp" data-action="uploadFromWpGallery"><span class="dashicons dashicons-format-gallery"></span> Upload file from Gallery</button>
-                    <button type="button" class="button smliser-nav-btn" id="upload-from-url" data-action="uploadFromUrl"><span class="dashicons dashicons-admin-links"></span> Upload file from URL</button>
+                    <button type="button" class="button smliser-nav-btn" id="upload-from-device" data-action="uploadFromDevice">
+                        <span class="dashicons dashicons-open-folder"></span>
+                        Upload from device
+                    </button>
+                    <button type="button" class="button smliser-nav-btn" id="upload-from-wp" data-action="uploadFromWpGallery">
+                        <span class="dashicons dashicons-format-gallery"></span>
+                        Upload from Gallery
+                    </button>
+                    <button type="button" class="button smliser-nav-btn" id="upload-from-url" data-action="uploadFromUrl">
+                        <span class="dashicons dashicons-admin-links"></span>
+                        Upload from URL
+                    </button>
                 </div>
 
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
-<?php
-    wp_enqueue_media();
-    wp_enqueue_script( 'smliser-apps-uploader' ); 
-?>
+            </div><!-- /.app-asset-uploader-body -->
+        </div><!-- /.smliser-admin-modal_content -->
+    </div><!-- /.smliser-admin-modal -->
+<?php endif;

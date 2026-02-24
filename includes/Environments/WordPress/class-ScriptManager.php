@@ -29,6 +29,13 @@ final class ScriptManager {
                 'media' => 'all'
                 
             ),
+            'smliser-apps-uploader'   => array(
+                'src'   => SetUp::assets_url() . 'css/apps-uploader.css',
+                'deps'  => array(),
+                'ver'   => SMLISER_VER,
+                'media' => 'all'
+                
+            ),
             'smliser-form-styles'   => array(
                 'src'   => SetUp::assets_url() . 'css/smliser-forms.css',
                 'deps'  => array(),
@@ -179,6 +186,8 @@ final class ScriptManager {
         }
 
         if ( 'smart-license-server_page_repository' === $s ) {
+            wp_enqueue_media();
+            wp_enqueue_script( 'smliser-apps-uploader' );
             wp_enqueue_script( 'smliser-nanojson' );
             wp_enqueue_script( 'smliser-admin-repository' );
         }
@@ -224,6 +233,7 @@ final class ScriptManager {
         }
 
         if ( 'smart-license-server_page_repository' === $s ) {
+            wp_enqueue_style( 'smliser-apps-uploader' );
             wp_enqueue_style( 'smliser-nanojson' );
         }
 

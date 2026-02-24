@@ -47,6 +47,8 @@ class SmliserJsonEditor {
      * @param {string|HTMLElement} target - CSS selector or DOM element
      * @param {Object} options - Configuration options
      * @param {*} options.data - Initial JSON data
+     * @param {string} options.title - Editor title (optional)
+     * @param {string} options.description - Editor description (optional)
      * @param {string} options.mode - Editor mode: 'tree' or 'code' (default: 'tree')
      * @param {string} options.theme - Theme: 'light' or 'dark' (default: 'light')
      * @param {boolean} options.readOnly - Read-only mode (default: false)
@@ -76,6 +78,8 @@ class SmliserJsonEditor {
         // Options
         this.options = {
             data: null,
+            title: null,
+            description: null,
             mode: 'tree',
             theme: 'light',
             readOnly: false,
@@ -182,25 +186,29 @@ class SmliserJsonEditor {
      */
     _buildUI() {
         // Create container
-        this.container              = document.createElement('div');
-        this.container.className    = `smliser-json-editor theme-${this.options.theme} mode-${this.currentMode}`;
-        this.container.tabIndex     = '0';
+        this.container = document.createElement('div');
+        this.container.className = `smliser-json-editor theme-${this.options.theme} mode-${this.currentMode}`;
         this.container.id = this.id;
         this.container.setAttribute('role', 'application');
         this.container.setAttribute('aria-label', 'JSON Editor');
 
-        // Build toolbar.
+        // Build header (title and description)
+        if (this.options.title || this.options.description) {
+            this._buildHeader();
+        }
+
+        // Build toolbar
         if (this.options.showToolbar) {
             this._buildToolbar();
         }
 
-        // Build views.
+        // Build views
         this._buildViews();
 
         // Build status bar
         this._buildStatusBar();
 
-        // Replace target or append.
+        // Replace target or append
         if (this.targetElement.tagName === 'TEXTAREA') {
             this.targetElement.style.display = 'none';
             this.targetElement.parentNode.insertBefore(this.container, this.targetElement.nextSibling);
@@ -208,6 +216,31 @@ class SmliserJsonEditor {
             this.targetElement.innerHTML = '';
             this.targetElement.appendChild(this.container);
         }
+    }
+
+    /**
+     * Build header with title and description
+     * @private
+     */
+    _buildHeader() {
+        const header = document.createElement('div');
+        header.className = 'json-editor-header';
+
+        if (this.options.title) {
+            const titleElement = document.createElement('h2');
+            titleElement.className = 'json-editor-header-title';
+            titleElement.textContent = this.options.title;
+            header.appendChild(titleElement);
+        }
+
+        if (this.options.description) {
+            const descElement = document.createElement('p');
+            descElement.className = 'json-editor-header-description';
+            descElement.textContent = this.options.description;
+            header.appendChild(descElement);
+        }
+
+        this.container.appendChild(header);
     }
 
     /**
@@ -364,26 +397,25 @@ class SmliserJsonEditor {
      * @private
      */
     _buildViews() {
-        const viewsContainer        = document.createElement('div');
-        viewsContainer.className    = 'json-editor-views';
+        const viewsContainer = document.createElement('div');
+        viewsContainer.className = 'json-editor-views';
 
         // Tree view
-        this.treeView           = document.createElement('div');
+        this.treeView = document.createElement('div');
         this.treeView.className = 'json-editor-tree-view';
         this.treeView.setAttribute('role', 'tree');
         this.treeView.setAttribute('aria-label', 'JSON tree view');
         viewsContainer.appendChild(this.treeView);
 
         // Code view
-        this.codeView           = document.createElement('div');
+        this.codeView = document.createElement('div');
         this.codeView.className = 'json-editor-code-view';
         
-        const codeTextarea      = document.createElement('textarea');
-        codeTextarea.className  = 'json-editor-code-textarea';
+        const codeTextarea = document.createElement('textarea');
+        codeTextarea.className = 'json-editor-code-textarea';
         codeTextarea.setAttribute('spellcheck', 'false');
         codeTextarea.setAttribute('aria-label', 'JSON code editor');
         codeTextarea.placeholder = 'Enter or paste JSON here...';
-        
         // Allow editing unless explicitly read-only
         if (this.options.readOnly) {
             codeTextarea.readOnly = true;
@@ -448,7 +480,7 @@ class SmliserJsonEditor {
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if ( ! this.container.contains( document.activeElement ) ) return;
+            if (!this.container.contains(document.activeElement)) return;
             this._handleKeyboardShortcuts(e);
         });
 
@@ -1243,19 +1275,11 @@ class SmliserJsonEditor {
 
     /**
      * Load file
-     * 
-     * @param {File} file
      * @private
      */
     async _loadFile(file) {
         return new Promise((resolve, reject) => {
-            if ( ! file.type.includes( 'application/json' ) ) {
-                this._handleError( 'File must be a JSON file.' );
-                reject();
-                return;
-
-            }
-            const reader    = new FileReader();
+            const reader = new FileReader();
 
             reader.onload = async (e) => {
                 try {
@@ -1285,29 +1309,29 @@ class SmliserJsonEditor {
      * @param {string} filename - Output filename (optional, uses input field value if not provided)
      * @returns {Promise<void>}
      */
-    async exportToFile( filename = null ) {
+    async exportToFile(filename = null) {
         // Get filename from toolbar input if not provided
         if (!filename) {
             const filenameInput = this.toolbar?.querySelector('.toolbar-filename-input');
             filename = filenameInput?.value?.trim() || 'data.json';
             
             // Ensure .json extension
-            if ( ! filename.endsWith( '.json' ) ) {
+            if (!filename.endsWith('.json')) {
                 filename += '.json';
             }
         }
 
-        const jsonString    = await this.getJSON(true);
-        const blob          = new Blob([jsonString], { type: 'application/json' });
-        const url           = URL.createObjectURL(blob);
+        const jsonString = await this.getJSON(true);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
 
-        const a             = document.createElement('a');
-        a.href              = url;
-        a.download          = filename;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
         a.click();
 
         URL.revokeObjectURL(url);
-        await SmliserModal.success( `File "${filename}" downloaded successfully` );
+        await SmliserModal.success(`File "${filename}" downloaded successfully`);
     }
 
     /**
@@ -1509,6 +1533,92 @@ class SmliserJsonEditor {
     }
 
     /**
+     * Set editor title
+     * @param {string} title - New title
+     * @returns {SmliserJsonEditor}
+     */
+    setTitle(title) {
+        this.options.title = title;
+        
+        const titleElement = this.container.querySelector('.json-editor-header-title');
+        
+        if (title) {
+            if (titleElement) {
+                // Update existing title
+                titleElement.textContent = title;
+            } else {
+                // Create header if it doesn't exist
+                let header = this.container.querySelector('.json-editor-header');
+                if (!header) {
+                    header = document.createElement('div');
+                    header.className = 'json-editor-header';
+                    this.container.insertBefore(header, this.container.firstChild);
+                }
+                
+                const titleEl = document.createElement('h2');
+                titleEl.className = 'json-editor-header-title';
+                titleEl.textContent = title;
+                header.insertBefore(titleEl, header.firstChild);
+            }
+        } else if (titleElement) {
+            // Remove title if set to null/empty
+            titleElement.remove();
+            
+            // Remove header if both title and description are gone
+            const header = this.container.querySelector('.json-editor-header');
+            const descElement = this.container.querySelector('.json-editor-header-description');
+            if (header && !descElement) {
+                header.remove();
+            }
+        }
+        
+        return this;
+    }
+
+    /**
+     * Set editor description
+     * @param {string} description - New description
+     * @returns {SmliserJsonEditor}
+     */
+    setDescription(description) {
+        this.options.description = description;
+        
+        const descElement = this.container.querySelector('.json-editor-header-description');
+        
+        if (description) {
+            if (descElement) {
+                // Update existing description
+                descElement.textContent = description;
+            } else {
+                // Create header if it doesn't exist
+                let header = this.container.querySelector('.json-editor-header');
+                if (!header) {
+                    header = document.createElement('div');
+                    header.className = 'json-editor-header';
+                    this.container.insertBefore(header, this.container.firstChild);
+                }
+                
+                const descEl = document.createElement('p');
+                descEl.className = 'json-editor-header-description';
+                descEl.textContent = description;
+                header.appendChild(descEl);
+            }
+        } else if (descElement) {
+            // Remove description if set to null/empty
+            descElement.remove();
+            
+            // Remove header if both title and description are gone
+            const header = this.container.querySelector('.json-editor-header');
+            const titleElement = this.container.querySelector('.json-editor-header-title');
+            if (header && !titleElement) {
+                header.remove();
+            }
+        }
+        
+        return this;
+    }
+
+    /**
      * Register event handler
      * @param {string} event - Event name
      * @param {Function} handler - Handler function
@@ -1688,9 +1798,9 @@ class SmliserJsonEditor {
      */
     _formatBytes(bytes) {
         if (bytes === 0) return '0 B';
-        const k     = 1024;
+        const k = 1024;
         const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i     = Math.floor(Math.log(bytes) / Math.log(k));
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
     }
 

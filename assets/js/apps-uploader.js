@@ -1,141 +1,208 @@
 /**
  * Application Uploader Class
- * 
+ *
  * Handles plugin/theme ZIP uploads and asset management (banners, icons, screenshots).
- * 
+ * Supports single and multiple file uploads.
+ *
  * @class AppUploader
  */
 class AppUploader {
-    /**
-     * Initialize the app uploader.
-     */
+
+    // =========================================================================
+    // Static Constants
+    // =========================================================================
+
+    static ACTIONS = Object.freeze({
+        OPEN_MODAL          : 'openModal',
+        CLOSE_MODAL         : 'closeModal',
+        RESET_MODAL         : 'resetModal',
+        UPLOAD_FROM_DEVICE  : 'uploadFromDevice',
+        UPLOAD_FROM_WP      : 'uploadFromWpGallery',
+        UPLOAD_FROM_URL     : 'uploadFromUrl',
+        UPLOAD_TO_REPO      : 'uploadToRepository',
+        DELETE_IMAGE        : 'deleteImage',
+        EDIT_IMAGE          : 'editImage',
+    });
+
+    static SELECTORS = Object.freeze({
+        FORM                    : '#appUploaderForm',
+        MODAL                   : '.smliser-admin-modal.app-asset-uploader',
+        ASSETS_CONTAINER        : '.app-uploader-below-section_assets',
+        UPLOAD_TO_REPO_BTN      : '#upload-image',
+        FILE_INPUT              : '#app-uploader-asset-file-input',
+        URL_INPUT               : '#app-uploader-asset-url-input',
+        IMAGE_UPLOADER_BODY     : '.app-asset-uploader-body_uploaded-asset',
+        IMAGE_PREVIEW           : '#currentImage',
+        JSON_TEXTAREA           : '.smliser-json-textarea',
+        ZIP_UPLOAD_BTN          : '.smliser-upload-btn',
+        ZIP_FILE_INFO           : '.smliser-file-info',
+        ZIP_SUBMIT_BTN          : 'button[type="submit"]',
+        ZIP_FILE_INPUT          : '#smliser-file-input',
+        ZIP_DROP_ZONE           : '.smliser-form-file-row',
+        ZIP_CLEAR_BTN           : '.smliser-file-remove',
+        CLICKABLE_ACTIONS       : '.delete-image, .remove-modal, .clear-uploaded, #upload-image, #upload-from-device, #upload-from-wp, #upload-from-url, .smliser-uploader-add-image, .edit-image',
+    });
+
+    // =========================================================================
+    // Constructor & Initialization
+    // =========================================================================
+
     constructor() {
-        // Main form elements
-        this.appUploaderForm    = document.querySelector( '#appUploaderForm' );
-        this.queryParam         = new URLSearchParams( window.location.search );
-        
-        // Asset modal elements
-        this.appAssetUploadModal    = document.querySelector( '.smliser-admin-modal.app-asset-uploader' );
-        this.assetsContainer        = this.appUploaderForm?.querySelector( '.app-uploader-below-section_assets' );
-        this.uploadToRepoButton     = this.appAssetUploadModal?.querySelector( '#upload-image' );
-        
-        // Asset uploader elements
-        this.imageFileInput                 = document.querySelector( '#app-uploader-asset-file-input' );
-        this.imageUrlInput                  = document.querySelector( '#app-uploader-asset-url-input' );
-        this.assetImageUploaderContainer    = document.querySelector( '.app-asset-uploader-body_uploaded-asset' );
-        this.imagePreview                   = document.querySelector( '#currentImage' );
-        this.appJosnTextarea                = this.appUploaderForm.querySelector( '.smliser-json-textarea' );
-        
-        // State management
-        this.currentImage   = null;
-        this.currentConfig  = new Map();
-        
-        // Initialize
+        this._bindElements();
+        this._initState();
         this.init();
     }
-    
+
     /**
-     * Initialize all event listeners and features.
+     * Bind all DOM elements to instance properties.
+     */
+    _bindElements() {
+        const qs = ( sel, ctx = document ) => ctx.querySelector( sel );
+
+        this.appUploaderForm            = qs( AppUploader.SELECTORS.FORM );
+        this.queryParam                 = new URLSearchParams( window.location.search );
+
+        // Asset modal
+        this.appAssetUploadModal        = qs( AppUploader.SELECTORS.MODAL );
+        this.assetsContainer            = this.appUploaderForm?.querySelector( AppUploader.SELECTORS.ASSETS_CONTAINER );
+        this.uploadToRepoButton         = this.appAssetUploadModal?.querySelector( AppUploader.SELECTORS.UPLOAD_TO_REPO_BTN );
+
+        // Asset uploader inputs & preview
+        this.imageFileInput             = qs( AppUploader.SELECTORS.FILE_INPUT );
+        this.imageUrlInput              = qs( AppUploader.SELECTORS.URL_INPUT );
+        this.assetImageUploaderContainer= qs( AppUploader.SELECTORS.IMAGE_UPLOADER_BODY );
+        this.imagePreview               = qs( AppUploader.SELECTORS.IMAGE_PREVIEW );
+        this.appJsonTextarea            = this.appUploaderForm?.querySelector( AppUploader.SELECTORS.JSON_TEXTAREA );
+    }
+
+    /**
+     * Initialize reactive state.
+     */
+    _initState() {
+        this.currentFiles   = [];   // Supports multiple files
+        this.currentConfig  = new Map();
+        this.editor         = null;
+    }
+
+    /**
+     * Entry point — wire up all subsystems.
      */
     init() {
         if ( this.appUploaderForm ) {
-            this.initFileUploader();
+            this._initFileUploader();
         }
-        
-        this.initAssetUploader();
 
-        if ( this.appJosnTextarea ) {
-            this.mountNanoEditor();
+        this._initAssetUploader();
+
+        if ( this.appJsonTextarea ) {
+            this._mountNanoEditor();
         }
-        
     }
-    
+
+    // =========================================================================
+    // ZIP File Uploader
+    // =========================================================================
+
     /**
-     * Initialize the main file uploader (ZIP files for plugins/themes).
+     * Initialize the main ZIP file uploader.
      */
-    initFileUploader() {
-        const uploadBtn = document.querySelector( '.smliser-upload-btn' );
-        const fileInfo = document.querySelector( '.smliser-file-info' );
-        const submitBtn = this.appUploaderForm.querySelector( 'button[type="submit"]' );
-        const fileInput = document.querySelector( '#smliser-file-input' );
-        const originalText = fileInfo.textContent;
-        const appFileDropZone = document.querySelector( '.smliser-form-file-row' );
-        const clearFileInputBtn = document.querySelector( '.smliser-file-remove' );
-        
-        // Click upload button
+    _initFileUploader() {
+        const uploadBtn     = document.querySelector( AppUploader.SELECTORS.ZIP_UPLOAD_BTN );
+        const fileInfo      = document.querySelector( AppUploader.SELECTORS.ZIP_FILE_INFO );
+        const submitBtn     = this.appUploaderForm.querySelector( AppUploader.SELECTORS.ZIP_SUBMIT_BTN );
+        const fileInput     = document.querySelector( AppUploader.SELECTORS.ZIP_FILE_INPUT );
+        const dropZone      = document.querySelector( AppUploader.SELECTORS.ZIP_DROP_ZONE );
+        const clearBtn      = document.querySelector( AppUploader.SELECTORS.ZIP_CLEAR_BTN );
+        const originalText  = fileInfo.textContent;
+
+        fileInput.setAttribute( 'accept', '.zip' );
+
         uploadBtn.addEventListener( 'click', () => fileInput.click() );
-        
-        // Clear file input
-        clearFileInputBtn.addEventListener( 'click', () => {
-            fileInput.value = '';
-            fileInfo.innerHTML = '<span>No file selected.</span>';
-            clearFileInputBtn.classList.add( 'smliser-hide' );
+
+        clearBtn.addEventListener( 'click', () => {
+            fileInput.value     = '';
+            fileInfo.innerHTML  = '<span>No file selected.</span>';
+            clearBtn.classList.add( 'smliser-hide' );
             uploadBtn.classList.remove( 'smliser-hide' );
         });
-        
-        // Set accept attribute
-        fileInput.setAttribute( 'accept', '.zip' );
-        
-        // File input change
-        fileInput.addEventListener( 'change', ( event ) => {
-            const file = event.target.files[0];
-            if ( file ) {
-                const maxUploadSize = parseFloat( fileInfo.getAttribute( 'wp-max-upload-size' ) );
-                const fileSizeMB = ( file.size / 1024 / 1024 ).toFixed( 2 );
-                
-                fileInfo.innerHTML = `
-                    <table class="widefat fixed striped">
-                        <tr>
-                            <th>File Name:</th>
-                            <td>${file.name}</td>
-                        </tr>
-                        <tr>
-                            <th>File Size:</th>
-                            <td>
-                                ${fileSizeMB} MB 
-                                ${maxUploadSize < fileSizeMB
-                                    ? `<span class="dashicons dashicons-no" style="color: red;" title="File size exceeds the maximum upload limit of ${maxUploadSize} MB"></span>`
-                                    : `<span class="dashicons dashicons-yes" style="color: green;" title="File size is within the acceptable limit"></span>`
-                                }
-                            </td>
-                        </tr>
-                    </table>
-                `;
-                
-                clearFileInputBtn.classList.remove( 'smliser-hide' );
-                uploadBtn.classList.add( 'smliser-hide' );
-                
-                if ( maxUploadSize < fileSizeMB ) {
-                    smliserNotify( 'The uploaded file is higher than the max_upload_size, this server cannot process this request', 6000 );
-                }
-            } else {
-                fileInfo.innerHTML = originalText;
-            }
+
+        fileInput.addEventListener( 'change', ( e ) => {
+            this._handleZipFileChange( e, fileInfo, clearBtn, uploadBtn );
         });
-        
-        // Submit validation
-        submitBtn.addEventListener( 'click', (e) => {
-            if ( this.queryParam.get( 'tab' ) === 'add-new' && fileInput.files.length === 0 ) {
-                e.preventDefault();
-                const appType = StringUtils.ucfirst( this.queryParam.get( 'type' ) );
-                smliserNotify( `A ${appType} file is required.`, 5000 );
-            }
+
+        submitBtn.addEventListener( 'click', ( e ) => {
+            this._validateZipSubmit( e, fileInput );
         });
-        
-        // Form submission
-        this.appUploaderForm.addEventListener( 'submit', (e) => this.handleFormSubmit( e ) );
-        
-        // Drag and drop
-        this.initDragAndDrop( appFileDropZone, fileInput, fileInfo, originalText );
+
+        this.appUploaderForm.addEventListener( 'submit', ( e ) => this._handleFormSubmit( e ) );
+
+        this._initDragAndDrop( dropZone, fileInput, fileInfo, originalText );
     }
-    
+
     /**
-     * Initialize drag and drop functionality.
+     * Handle ZIP file selection change.
      */
-    initDragAndDrop( dropZone, fileInput, fileInfo, originalText ) {
-        dropZone.addEventListener( 'dragover', (e) => {
+    _handleZipFileChange( e, fileInfo, clearBtn, uploadBtn ) {
+        const file = e.target.files[0];
+
+        if ( ! file ) {
+            fileInfo.innerHTML = '<span>No file selected.</span>';
+            return;
+        }
+
+        const maxUploadSize = parseFloat( fileInfo.getAttribute( 'wp-max-upload-size' ) );
+        const fileSizeMB    = ( file.size / 1024 / 1024 ).toFixed( 2 );
+        const exceedsLimit  = maxUploadSize < fileSizeMB;
+
+        fileInfo.innerHTML = `
+            <table class="widefat fixed striped">
+                <tr>
+                    <th>File Name:</th>
+                    <td>${ file.name }</td>
+                </tr>
+                <tr>
+                    <th>File Size:</th>
+                    <td>
+                        ${ fileSizeMB } MB
+                        <span
+                            class="dashicons ${ exceedsLimit ? 'dashicons-no' : 'dashicons-yes' }"
+                            style="color: ${ exceedsLimit ? 'red' : 'green' };"
+                            title="${ exceedsLimit
+                                ? `File size exceeds the maximum upload limit of ${ maxUploadSize } MB`
+                                : 'File size is within the acceptable limit'
+                            }"
+                        ></span>
+                    </td>
+                </tr>
+            </table>
+        `;
+
+        clearBtn.classList.remove( 'smliser-hide' );
+        uploadBtn.classList.add( 'smliser-hide' );
+
+        if ( exceedsLimit ) {
+            smliserNotify( 'The uploaded file exceeds the max_upload_size; this server cannot process this request.', 6000 );
+        }
+    }
+
+    /**
+     * Validate ZIP form before submission.
+     */
+    _validateZipSubmit( e, fileInput ) {
+        if ( this.queryParam.get( 'tab' ) === 'add-new' && fileInput.files.length === 0 ) {
             e.preventDefault();
-            
+            const appType = StringUtils.ucfirst( this.queryParam.get( 'type' ) );
+            smliserNotify( `A ${ appType } file is required.`, 5000 );
+        }
+    }
+
+    /**
+     * Initialize drag-and-drop for ZIP upload zone.
+     */
+    _initDragAndDrop( dropZone, fileInput, fileInfo, originalText ) {
+        dropZone.addEventListener( 'dragover', ( e ) => {
+            e.preventDefault();
+
             if ( e.dataTransfer.types.includes( 'Files' ) ) {
                 e.dataTransfer.dropEffect = 'copy';
                 dropZone.classList.add( 'active' );
@@ -145,679 +212,901 @@ class AppUploader {
                 fileInfo.innerHTML = originalText;
             }
         });
-        
+
         dropZone.addEventListener( 'dragleave', () => {
             dropZone.classList.remove( 'active' );
             fileInfo.innerHTML = originalText;
         });
-        
-        dropZone.addEventListener( 'drop', (e) => {
+
+        dropZone.addEventListener( 'drop', ( e ) => {
             e.preventDefault();
             dropZone.classList.remove( 'active' );
-            
-            if (e.dataTransfer.types.includes( 'Files' ) ) {
-                const files = e.dataTransfer.files;
+
+            if ( e.dataTransfer.types.includes( 'Files' ) ) {
                 const dataTransfer = new DataTransfer();
-                dataTransfer.items.add( files[0] );
+                dataTransfer.items.add( e.dataTransfer.files[0] );
                 fileInput.files = dataTransfer.files;
                 fileInput.dispatchEvent( new Event( 'change' ) );
             }
         });
     }
-    
+
+    // =========================================================================
+    // Form Submission
+    // =========================================================================
+
     /**
-     * Handle form submission.
-     * 
-     * @param {Event} e The event object.
+     * Handle main form AJAX submission.
      */
-    async handleFormSubmit(e) {
+    async _handleFormSubmit( e ) {
         e.preventDefault();
 
-        const submitter = e.submitter;
+        if ( ! e.submitter?.classList.contains( 'authoritatively' ) ) return;
 
-        if ( ! submitter?.classList.contains( 'authoritatively' ) ) {
-            return;
-        }
-        
         const payLoad = new FormData( e.currentTarget );
-        payLoad.set( 'security', smliser_var.nonce );        
-        
+        payLoad.set( 'security', smliser_var.nonce );
+
         if ( this.editor ) {
             const jsonBlob = new Blob( [this.editor.json], { type: 'application/json' } );
-            const jsonFile = new File( [jsonBlob], 'app.json', { type: 'application/json' } );    
-            
-            payLoad.set( 'app_json_file', jsonFile );         
+            payLoad.set( 'app_json_file', new File( [jsonBlob], 'app.json', { type: 'application/json' } ) );
         }
 
         const spinner = showSpinner( '.smliser-spinner', true );
-        
+
         try {
             const response = await fetch( smliser_var.ajaxURL, {
-                method: 'POST',
-                credentials: 'same-origin',
-                body: payLoad
+                method      : 'POST',
+                credentials : 'same-origin',
+                body        : payLoad,
             });
-            
-            if ( ! response.ok ) {
-                const contentType = response.headers.get( 'Content-Type' );
-                let errorMessage = 'Something went wrong!';
-                
-                if ( contentType.includes( 'application/json' ) ) {
-                    const data = await response.json();
-                    errorMessage = data?.data?.message || errorMessage;
-                } else {
-                    errorMessage = await response.text();
-                }
-                
-                throw new Error( errorMessage );
+
+            const data = await this._parseResponse( response );
+
+            if ( ! data.success ) {
+                throw new Error( data.data.message );
             }
-            
-            const responseJson = await response.json();
-            
-            if ( ! responseJson.success ) {
-                throw new Error( responseJson.data.message );
-            }
-            
-            smliserNotify( responseJson?.data?.message ?? 'Saved', 6000 );
-            setTimeout(() => {
-                window.location.href = responseJson.data.redirect_url;
+
+            smliserNotify( data?.data?.message ?? 'Saved', 6000 );
+
+            setTimeout( () => {
+                window.location.href = data.data.redirect_url;
             }, 6000 );
+
         } catch ( error ) {
             smliserNotify( error.message, 10000 );
         } finally {
             removeSpinner( spinner );
         }
     }
-    
+
+    // =========================================================================
+    // Asset Uploader — Event Wiring
+    // =========================================================================
+
     /**
-     * Initialize asset uploader (banners, icons, screenshots).
+     * Wire up all asset-uploader related events.
      */
-    initAssetUploader() {
+    _initAssetUploader() {
         if ( ! this.appAssetUploadModal ) return;
-        
-        // Modal click handler.
-        this.appAssetUploadModal.addEventListener( 'click', (e) => this.handleClickAction(e) );
-        
-        // Assets container click handler.
-        this.assetsContainer?.addEventListener( 'click', (e) => this.handleClickAction(e) );
-        
-        // Image file input change.
-        this.imageFileInput?.addEventListener( 'change', (e) => this.processUploadedImage(e) );
-        
-        // Image URL input events.
-        this.imageUrlInput?.addEventListener( 'input', (e) => e.target.setCustomValidity( '' ) );
-        this.imageUrlInput?.addEventListener( 'blur', (e) => this.manageInputFocus(e) );
-        this.imageUrlInput?.addEventListener( 'focus', (e) => this.manageInputFocus(e) );
-        
+
+        // Delegated click handlers
+        this.appAssetUploadModal.addEventListener( 'click', ( e ) => this._handleClickAction( e ) );
+        this.assetsContainer?.addEventListener( 'click', ( e ) => this._handleClickAction( e ) );
+
+        // File input — supports multiple files
+        this.imageFileInput?.addEventListener( 'change', ( e ) => this._processUploadedImages( e ) );
+
+        // URL input lifecycle
+        this.imageUrlInput?.addEventListener( 'input',  ( e ) => e.target.setCustomValidity( '' ) );
+        this.imageUrlInput?.addEventListener( 'blur',   ( e ) => this._manageInputFocus( e ) );
+        this.imageUrlInput?.addEventListener( 'focus',  ( e ) => this._manageInputFocus( e ) );
+
+        // Fullscreen preview on double-click
         this.imagePreview?.addEventListener( 'dblclick', () => this.imagePreview.requestFullscreen() );
-        
-        // Image preview src change observer.
-        this.imagePreview?.addEventListener( 'srcChanged', (e) => {
-            const { oldSrc, newSrc } = e.detail;
-            if ( oldSrc !== newSrc ) {
+
+        // Re-enable upload button when image src changes
+        this.imagePreview?.addEventListener( 'srcChanged', ( e ) => {
+            if ( e.detail.oldSrc !== e.detail.newSrc ) {
                 this.uploadToRepoButton?.removeAttribute( 'disabled' );
             }
         });
     }
-    
+
     /**
-     * Handle click actions on buttons.
+     * Delegated click dispatcher for all action buttons.
      */
-    handleClickAction(e) {
-        if (e.target === this.appAssetUploadModal) {
+    _handleClickAction( e ) {
+        // Clicking the modal backdrop closes it
+        if ( e.target === this.appAssetUploadModal ) {
             this.closeModal();
             return;
         }
-        
-        const clickedBtn = e.target.closest( '.delete-image, .remove-modal, .clear-uploaded, #upload-image, #upload-from-device, #upload-from-wp, #upload-from-url, .smliser-uploader-add-image, .edit-image' );
-        const action = clickedBtn ? clickedBtn.getAttribute( 'data-action' ) : null;
-        
+
+        const btn       = e.target.closest( AppUploader.SELECTORS.CLICKABLE_ACTIONS );
+        const action    = btn?.getAttribute( 'data-action' );
+
         if ( ! action ) return;
-        
-        const config = StringUtils.JSONparse( decodeURIComponent( clickedBtn.getAttribute( 'data-config' ) ) );
-        
-        // Call the appropriate method
-        switch ( action) {
-            case 'openModal':
-                this.openModal( config );
-                break;
-            case 'closeModal':
-                this.closeModal();
-                break;
-            case 'uploadFromDevice':
-                this.uploadFromDevice();
-                break;
-            case 'uploadFromWpGallery':
-                this.uploadFromWpGallery();
-                break;
-            case 'uploadFromUrl':
-                this.uploadFromUrl( config, clickedBtn );
-                break;
-            case 'uploadToRepository':
-                this.uploadToRepository( config, clickedBtn );
-                break;
-            case 'deleteImage':
-                this.deleteImage( config, clickedBtn );
-                break;
-        }
+
+        const config = StringUtils.JSONparse( decodeURIComponent( btn.getAttribute( 'data-config' ) ) );
+
+        const actionMap = {
+            [ AppUploader.ACTIONS.OPEN_MODAL        ]: () => this.openModal( config ),
+            [ AppUploader.ACTIONS.CLOSE_MODAL       ]: () => this.closeModal(),
+            [ AppUploader.ACTIONS.RESET_MODAL       ]: () => this.resetModal(),
+            [ AppUploader.ACTIONS.UPLOAD_FROM_DEVICE]: () => this._uploadFromDevice(),
+            [ AppUploader.ACTIONS.UPLOAD_FROM_WP    ]: () => this._uploadFromWpGallery(),
+            [ AppUploader.ACTIONS.UPLOAD_FROM_URL   ]: () => this._uploadFromUrl( config, btn ),
+            [ AppUploader.ACTIONS.UPLOAD_TO_REPO    ]: () => this.uploadToRepository( config, btn ),
+            [ AppUploader.ACTIONS.DELETE_IMAGE      ]: () => this._deleteImage( config, btn ),
+        };
+
+        actionMap[ action ]?.();
     }
-    
+
+    // =========================================================================
+    // Modal Lifecycle
+    // =========================================================================
+
     /**
-     * Open the asset upload modal.
+     * Open the asset upload modal and configure it for the given asset type.
      */
-    openModal( json ) {
-        this.appAssetUploadModal.classList.remove( 'hidden' );
-        
-        const totalImages = document.querySelectorAll( `.app-uploader-asset-container.${json?.asset_type} img` ).length;
-        const addButton = document.querySelector( `.app-uploader-asset-container.${json?.asset_type} .smliser-uploader-add-image` );
-        
-        this.currentConfig.set( 'total_images', totalImages );
-        this.currentConfig.set( 'add_button', addButton );
-        
-        if ( json ) {
-            this.currentConfig.set( 'app_slug', json.app_slug );
-            this.currentConfig.set( 'app_type', json.app_type );
-            this.currentConfig.set( 'asset_name', json.asset_name ?? '' );
-            this.currentConfig.set( 'asset_type', json.asset_type ?? '' );
-            this.currentConfig.set( 'limit', json.limit );
-            
-            if ( json.asset_url ) {
-                this.assetImageUploaderContainer.classList.add( 'has-image' );
-                this.imagePreview.src = json.asset_url;
-                this.uploadToRepoButton.setAttribute( 'disabled', true );
-                this.currentConfig.set( 'observer', this.observeImageSrcChange( this.imagePreview ) );
-            }
-            
-            if ( totalImages >= json.limit ) {
-                addButton.classList.add( 'smliser-hide' );
-                this.closeModal();
-                smliserNotify( `limit for ${StringUtils.ucfirst( json.asset_type )} has been reached.`, 5000 );
+    openModal( config ) {
+        if ( ! config ) return;
+
+        const totalImages   = document.querySelectorAll( `.app-uploader-asset-container.${ config.asset_type } img` ).length;
+        const addButton     = document.querySelector( `.app-uploader-asset-container.${ config.asset_type } .smliser-uploader-add-image` );
+
+        // Persist config
+        this.currentConfig.set( 'total_images',  totalImages );
+        this.currentConfig.set( 'add_button',    addButton );
+        this.currentConfig.set( 'app_slug',      config.app_slug );
+        this.currentConfig.set( 'app_type',      config.app_type );
+        this.currentConfig.set( 'asset_name',    config.asset_name ?? '' );
+        this.currentConfig.set( 'asset_type',    config.asset_type ?? '' );
+        this.currentConfig.set( 'limit',         config.limit );
+
+        // Multi-upload: allow multiple file selection when limit allows more than one
+        if ( this.imageFileInput ) {
+            const remaining = config.limit - totalImages;
+            if ( remaining > 1 ) {
+                this.imageFileInput.setAttribute( 'multiple', true );
             } else {
-                addButton.classList.remove( 'smliser-hide' );
+                this.imageFileInput.removeAttribute( 'multiple' );
             }
         }
+
+        // Pre-populate if editing an existing asset
+        if ( config.asset_url ) {
+            this.assetImageUploaderContainer.classList.add( 'has-image' );
+            this.imagePreview.src = config.asset_url;
+            this.uploadToRepoButton.setAttribute( 'disabled', true );
+            this.currentConfig.set( 'observer', this._observeImageSrcChange( this.imagePreview ) );
+        }
+
+        // Enforce limit
+        if ( totalImages >= config.limit ) {
+            addButton?.classList.add( 'smliser-hide' );
+            smliserNotify( `Limit for ${ StringUtils.ucfirst( config.asset_type ) } has been reached.`, 5000 );
+            return;
+        }
+
+        addButton?.classList.remove( 'smliser-hide' );
+        this.appAssetUploadModal.classList.remove( 'hidden' );
     }
-    
+
     /**
-     * Close the asset upload modal.
+     * Close the modal and fully reset state.
      */
     closeModal() {
         this.resetModal( true );
         this.appAssetUploadModal.classList.add( 'hidden' );
     }
-    
+
     /**
-     * Reset modal state.
+     * Reset modal UI and optionally clear configuration state.
+     *
+     * @param {boolean} all  When true, also clears the currentConfig map.
      */
     resetModal( all = false ) {
-        this.assetImageUploaderContainer.classList.remove( 'has-image' );
-        this.currentImage = null;
-        this.imageFileInput.value = '';
-        this.imageUrlInput.value = '';
-        
+        this._clearPreviewState();
+        this.currentFiles           = [];
+        this.imageFileInput.value   = '';
+        this.imageUrlInput.value    = '';
+
         if ( all ) {
             this.currentConfig.get( 'observer' )?.disconnect();
             this.currentConfig.clear();
         }
     }
-    
+
+    // =========================================================================
+    // Asset Upload Sources
+    // =========================================================================
+
     /**
-     * Upload from device.
+     * Trigger the hidden file input (supports multiple files).
      */
-    uploadFromDevice() {
+    _uploadFromDevice() {
         this.imageFileInput.click();
     }
-    
+
     /**
-     * Upload from WordPress media gallery.
+     * Open the WordPress media gallery picker.
      */
-    uploadFromWpGallery() {
+    _uploadFromWpGallery() {
         const frame = wp.media({
-            title: 'Select an Image',
-            button: { text: 'Use this image' },
-            library: { type: 'image' },
-            multiple: false
+            title   : 'Select an Image',
+            button  : { text: 'Use this image' },
+            library : { type: 'image' },
+            multiple: false,
         });
-        
+
         frame.on( 'select', async () => {
             const attachment = frame.state().get( 'selection' ).first().toJSON();
-            
-            if ( ! attachment || ! attachment.url ) {
+
+            if ( ! attachment?.url ) {
                 smliserNotify( 'No image selected', 5000 );
                 return;
             }
-            
-            const image = await this.processFromUrl( attachment.url );
-            
-            if ( ! image ) {
-                console.warn( 'Image not processed' );
-                return;
-            }
-            
-            this.currentImage = image;
-            this.showImagePreview( this.currentImage );
+
+            const image = await this._processFromUrl( attachment.url );
+            if ( ! image ) return;
+
+            this.currentFiles = [ image ];
+            this._showImagePreview( image );
         });
-        
+
         frame.open();
     }
-    
+
     /**
-     * Upload from URL.
+     * Fetch and stage an image from a remote URL.
      */
-    async uploadFromUrl( json, clickedBtn ) {
-        if ( ! this.imageUrlInput.classList.contains( 'is-active' )) {
+    async _uploadFromUrl( config, btn ) {
+        if ( ! this.imageUrlInput.classList.contains( 'is-active' ) ) {
             this.imageUrlInput.focus();
             return;
         }
-        
-        if ( ! this.imageUrlInput.value.trim().length ) {
+
+        const urlValue = this.imageUrlInput.value.trim();
+        if ( ! urlValue ) return;
+
+        try {
+            new URL( urlValue );
+        } catch {
+            this.imageUrlInput.setCustomValidity( 'Please enter a valid URL.' );
+            this.imageUrlInput.reportValidity();
             return;
         }
-        
-        try {
-            new URL( this.imageUrlInput.value );
-        } catch ( error ) {
-            // Invalid URL
-        }
-        
+
         if ( ! this.imageUrlInput.checkValidity() ) {
             this.imageUrlInput.reportValidity();
             return;
         }
-        
-        clickedBtn.setAttribute( 'disabled', true );
-        
+
+        btn.setAttribute( 'disabled', true );
+
         try {
-            const image = await this.processFromUrl( this.imageUrlInput.value.trim() );
-            if (!image) {
-                console.warn( 'Image not fetched' );
-                return;
-            }
-            
-            this.currentImage = image;
-            this.showImagePreview( this.currentImage );
+            const image = await this._processFromUrl( urlValue );
+            if ( ! image ) return;
+
+            this.currentFiles = [ image ];
+            this._showImagePreview( image );
         } finally {
-            clickedBtn.removeAttribute( 'disabled' );
+            btn.removeAttribute( 'disabled' );
         }
     }
-    
+
+    // =========================================================================
+    // Multi-File Processing
+    // =========================================================================
+
     /**
-     * Process uploaded image.
+     * Process one or more uploaded image files from the file input.
      */
-    async processUploadedImage(e) {
-        let image = e.target.files[0];
-        if (!image) {
+    async _processUploadedImages( e ) {
+        const files = Array.from( e.target.files );
+        if ( ! files.length ) {
             this.resetModal();
             return;
         }
-        
-        const shouldConvert = () => {
+
+        const limit         = this.currentConfig.get( 'limit' ) ?? 1;
+        const totalImages   = this.currentConfig.get( 'total_images' ) ?? 0;
+        const remaining     = limit - totalImages;
+        const filesToProcess= files.slice( 0, remaining );
+
+        if ( files.length > remaining ) {
+            smliserNotify( `Only ${ remaining } more image(s) can be added. Extra files were ignored.`, 5000 );
+        }
+
+        // Always wipe previous preview state before rendering the new selection
+        // so stale images / strip thumbnails never bleed through.
+        this._clearPreviewState();
+
+        const processed = await Promise.all(
+            filesToProcess.map( ( file ) => this._maybeConvertToPng( file ) )
+        );
+
+        this.currentFiles = processed.filter( Boolean );
+
+        if ( this.currentFiles.length === 1 ) {
+            this._showImagePreview( this.currentFiles[0] );
+        } else if ( this.currentFiles.length > 1 ) {
+            this._showMultiFilePreview( this.currentFiles );
+        }
+    }
+
+    /**
+     * Wipe all preview UI back to a clean slate without touching currentConfig.
+     * Called before rendering a fresh file selection so no stale state bleeds through.
+     */
+    _clearPreviewState() {
+        // Hide the single-preview area and blank its <img>
+        this.assetImageUploaderContainer.classList.remove( 'has-image' );
+        this.imagePreview.src = '';
+        this.imagePreview.removeAttribute( 'src' );
+
+        // Clear the multi-file strip
+        const strip = document.querySelector( '.smliser-multi-preview' );
+        if ( strip ) strip.innerHTML = '';
+
+        // Disable the upload button until something is staged again
+        this.uploadToRepoButton?.setAttribute( 'disabled', true );
+    }
+
+    /**
+     * Convert a file to PNG if required by asset type/app type rules.
+     *
+     * @param {File|Blob} file
+     * @returns {Promise<File>}
+     */
+    async _maybeConvertToPng( file ) {
+        const assetType = this.currentConfig.get( 'asset_type' );
+        const appType   = this.currentConfig.get( 'app_type' );
+        const needsPng  = appType === 'theme' && assetType === 'screenshot';
+
+        if ( needsPng && ! file.type.includes( 'image/png' ) ) {
+            const converted = await this._convertToPng( file );
+            smliserNotify( `"${ file.name }" has been converted to PNG.`, 4000 );
+            return converted;
+        }
+
+        return file;
+    }
+
+    /**
+     * Fetch an image from a URL via the server-side proxy.
+     *
+     * @param {string} imageUrl
+     * @returns {Promise<File|null>}
+     */
+    async _processFromUrl( imageUrl ) {
+        const endpoint = new URL( `${ smliser_var.admin_url }admin-post.php` );
+        endpoint.searchParams.set( 'action',    'smliser_download_image' );
+        endpoint.searchParams.set( 'image_url', imageUrl );
+        endpoint.searchParams.set( 'security',  smliser_var.nonce );
+
+        const spinner = showSpinner( '.smliser-spinner.modal' );
+
+        try {
+            const response      = await fetch( endpoint.href );
+            const contentType   = response.headers.get( 'Content-Type' );
+
+            if ( ! response.ok ) {
+                const text          = await response.text();
+                const errorMessage  = text.length < 5000 ? text : response.statusText;
+                throw new Error( `Image fetch failed: ${ errorMessage }` );
+            }
+
+            const blob      = await response.blob();
+            const fileName  = imageUrl.split( '/' ).pop() ?? 'image.png';
+
             const assetType = this.currentConfig.get( 'asset_type' );
             const appType   = this.currentConfig.get( 'app_type' );
-            return ( appType === 'theme' ) && ( assetType === 'screenshot' );
-        };
-        
-        if ( ! image.type.includes( 'image/png' ) && shouldConvert() ) {
-            image = await this.convertToPng( image );
-            smliserNotify( 'Image has been converted to PNG', 5000 );
-        }
-        
-        this.currentImage = image;
-        this.showImagePreview( this.currentImage );
-    }
-    
-    /**
-     * Process image from URL.
-     */
-    async processFromUrl( imageUrl ) {
-        const ajaxEndpoint = new URL( `${smliser_var.admin_url}admin-post.php` );
-        ajaxEndpoint.searchParams.set( 'action', 'smliser_download_image' );
-        ajaxEndpoint.searchParams.set( 'image_url', imageUrl );
-        ajaxEndpoint.searchParams.set( 'security', smliser_var.nonce );
-        
-        const spinner = showSpinner( '.smliser-spinner.modal' );
-        try {
-            const response = await fetch( ajaxEndpoint.href );
-            const contentType = response.headers.get( 'Content-Type' );
-            
-            if ( ! response.ok ) {
-                let errorMessage = response.statusText;
-                let text = await response.text();
-                
-                if ( text.length < 5000 ) {
-                    errorMessage = text;
-                }
-                
-                throw new Error( `Image fetch failed: ${errorMessage}` );
+            const needsPng  = appType === 'theme' && assetType === 'screenshot';
+
+            if ( needsPng && ! contentType.includes( 'image/png' ) ) {
+                const converted = await this._convertToPng( blob, fileName );
+                smliserNotify( 'Image has been converted to PNG.', 5000 );
+                return converted;
             }
-            
-            const blob = await response.blob();
-            const fileName = imageUrl.split( '/' ).pop() ?? 'image.png';
-            
-            const shouldConvert = () => {
-                const assetType = this.currentConfig.get( 'asset_type' );
-                const appType = this.currentConfig.get( 'app_type' );
-                return ( appType === 'theme' ) && ( assetType === 'screenshot' );
-            };
-            
-            if ( ! contentType.includes( 'image/png' ) && shouldConvert() ) {
-                const image = await this.convertToPng( blob, fileName );
-                smliserNotify( 'Image has been converted to PNG', 5000 );
-                return image;
-            }
-            
-            return new File( [blob], fileName, { type: 'image/png' } );
+
+            return new File( [blob], fileName, { type: blob.type || 'image/png' } );
+
         } catch ( error ) {
             smliserNotify( error.message, 10000 );
+            return null;
         } finally {
             removeSpinner( spinner );
         }
-        
-        return null;
     }
-    
+
+    // =========================================================================
+    // Image Preview
+    // =========================================================================
+
     /**
-     * Show image preview.
+     * Render a single-image preview in the modal.
+     *
+     * @param {File} file
      */
-    showImagePreview( file ) {
-        const fileReader = new FileReader();
-        fileReader.onload = (e) => {
+    _showImagePreview( file ) {
+        const reader    = new FileReader();
+        reader.onload   = ( e ) => {
             this.imagePreview.src = e.target.result;
             this.assetImageUploaderContainer.classList.add( 'has-image' );
             this.uploadToRepoButton.removeAttribute( 'disabled' );
         };
-        
-        fileReader.readAsDataURL( file );
+        reader.readAsDataURL( file );
     }
-    
+
     /**
-     * Convert image to PNG.
+     * Render a multi-file thumbnail strip when more than one file is staged.
+     *
+     * - The main preview always shows the currently selected thumb (first by default).
+     * - Clicking any thumb swaps it into the main preview (with fullscreen support).
+     * - The active thumb is highlighted with an `is-active` class.
+     *
+     * @param {File[]} files
      */
-    convertToPng( blob, outputName = 'converted.png' ) {
-        return new Promise(( resolve, reject ) => {
-            const img = new Image();
-            const url = URL.createObjectURL( blob );
-            
-            img.onload = () => {
-                const canvas = document.createElement( 'canvas' );
-                canvas.width = img.width;
-                canvas.height = img.height;
-                
-                const ctx = canvas.getContext( '2d' );
-                ctx.drawImage( img, 0, 0 );
-                
-                canvas.toBlob(( pngBlob ) => {
-                    if ( ! pngBlob ) {
-                        reject( new Error( 'Canvas export failed' ) );
+    _showMultiFilePreview( files ) {
+        let strip = document.querySelector( '.smliser-multi-preview' );
+
+        if ( ! strip ) {
+            strip           = document.createElement( 'div' );
+            strip.className = 'smliser-multi-preview';
+            this.assetImageUploaderContainer.after( strip );
+        }
+
+        strip.innerHTML = '';
+
+        /**
+         * Swap the main preview to show the given file and mark its thumb active.
+         *
+         * @param {File}        file
+         * @param {HTMLElement} thumbEl
+         */
+        const activateThumb = ( file, thumbEl ) => {
+            // Update main preview
+            this._showImagePreview( file );
+
+            // Shift the active marker
+            strip.querySelectorAll( '.smliser-multi-preview_thumb' ).forEach( ( t ) => {
+                t.classList.remove( 'is-active' );
+            });
+            thumbEl.classList.add( 'is-active' );
+        };
+
+        files.forEach( ( file, renderIndex ) => {
+            const reader    = new FileReader();
+            reader.onload   = ( e ) => {
+                const thumb         = document.createElement( 'div' );
+                thumb.className     = 'smliser-multi-preview_thumb';
+                thumb.setAttribute( 'title', 'Click to preview' );
+                thumb.innerHTML     = `
+                    <img src="${ e.target.result }" alt="${ file.name }">
+                    <span class="smliser-multi-preview_name">${ file.name }</span>
+                    <button type="button" class="smliser-multi-preview_remove" title="Remove this file">✕</button>
+                `;
+
+                // Click anywhere on the thumb (except the remove button) → send to main preview
+                thumb.addEventListener( 'click', ( e ) => {
+                    if ( e.target.closest( '.smliser-multi-preview_remove' ) ) return;
+                    activateThumb( file, thumb );
+                });
+
+                // Remove button
+                thumb.querySelector( '.smliser-multi-preview_remove' ).addEventListener( 'click', ( e ) => {
+                    e.stopPropagation();
+
+                    const liveIndex = this.currentFiles.indexOf( file );
+                    if ( liveIndex === -1 ) return;
+
+                    this.currentFiles.splice( liveIndex, 1 );
+                    thumb.remove();
+
+                    if ( this.currentFiles.length === 0 ) {
+                        this.resetModal();
                         return;
                     }
-                    
-                    resolve( new File( [pngBlob], outputName, { type: 'image/png' } ) );
-                }, 'image/png' );
-                
-                URL.revokeObjectURL( url );
+
+                    if ( this.currentFiles.length === 1 ) {
+                        // Drop back to single-image mode
+                        strip.innerHTML = '';
+                        this._showImagePreview( this.currentFiles[0] );
+                        return;
+                    }
+
+                    // More than one file remains — if the removed thumb was active,
+                    // activate the first thumb in the strip automatically.
+                    const wasActive = thumb.classList.contains( 'is-active' );
+                    if ( wasActive ) {
+                        const firstThumb = strip.querySelector( '.smliser-multi-preview_thumb' );
+                        if ( firstThumb ) {
+                            const firstFile = this.currentFiles[0];
+                            activateThumb( firstFile, firstThumb );
+                        }
+                    }
+                });
+
+                strip.appendChild( thumb );
+
+                // Auto-activate the very first thumb once it is rendered
+                if ( renderIndex === 0 ) {
+                    activateThumb( file, thumb );
+                }
             };
-            
-            img.onerror = () => reject( new Error( 'Invalid image file' ) );
-            img.src = url;
+
+            reader.readAsDataURL( file );
         });
+
+        this.uploadToRepoButton.removeAttribute( 'disabled' );
     }
-    
+
+    // =========================================================================
+    // Repository Upload & Asset Management
+    // =========================================================================
+
     /**
-     * Upload to repository.
+     * Upload all staged files to the server in a single batch request.
+     *
+     * Server response shape:
+     * {
+     *   success : true,
+     *   result  : {
+     *     uploaded : { [filename]: { app_slug, app_type, asset_name, asset_url } },
+     *     failed   : { [filename]: { [error_key]: "message" } }  // or []
+     *   }
+     * }
      */
-    async uploadToRepository( json, clickedBtn ) {
-        if ( ! this.currentImage ) {
-            smliserNotify( 'Please upload an image.', 3000 );
+    async uploadToRepository( config, btn ) {
+        if ( ! this.currentFiles.length ) {
+            smliserNotify( 'Please select at least one image.', 3000 );
             return;
         }
-        
-        clickedBtn.setAttribute( 'disabled', true );
-        const container = document.querySelector( `.app-uploader-asset-container.${this.currentConfig.get( 'asset_type' )}` );
-        
-        const url = new URL( smliser_var.ajaxURL );
-        url.searchParams.set( 'action', 'smliser_app_asset_upload' );
-        url.searchParams.set( 'security', smliser_var.nonce );
-        
-        const payLoad = new FormData();
-        payLoad.set( 'app_slug', this.currentConfig?.get( 'app_slug' ) );
-        payLoad.set( 'app_type', this.currentConfig?.get( 'app_type' ) );
-        payLoad.set( 'asset_name', this.currentConfig?.get( 'asset_name' ) );
-        payLoad.set( 'asset_type', this.currentConfig?.get( 'asset_type' ) );
-        payLoad.set( 'asset_file', this.currentImage );
-        
-        const spinner = showSpinner( '.smliser-spinner.modal', true );
+
+        btn.setAttribute( 'disabled', true );
+
+        const assetType = this.currentConfig.get( 'asset_type' );
+        const container = document.querySelector( `.app-uploader-asset-container.${ assetType }` );
+        const spinner   = showSpinner( '.smliser-spinner.modal', true );
+
         try {
-            const response = await fetch( url, {
-                method: 'POST',
-                body: payLoad,
-                credentials: 'same-origin'
+            const url = new URL( smliser_var.ajaxURL );
+            url.searchParams.set( 'action',   'smliser_app_asset_upload' );
+            url.searchParams.set( 'security', smliser_var.nonce );
+
+            const payLoad = new FormData();
+            payLoad.set( 'app_slug',   this.currentConfig.get( 'app_slug' ) );
+            payLoad.set( 'app_type',   this.currentConfig.get( 'app_type' ) );
+            payLoad.set( 'asset_name', this.currentConfig.get( 'asset_name' ) );
+            payLoad.set( 'asset_type', assetType );
+
+            // Append all files under the same key so the server receives an array
+            this.currentFiles.forEach( ( file ) => payLoad.append( 'asset_file[]', file ) );
+
+            const response  = await fetch( url.href, {
+                method      : 'POST',
+                body        : payLoad,
+                credentials : 'same-origin',
             });
-            
-            if ( ! response.ok ) {
-                const contentType = response.headers.get( 'Content-Type' );
-                let errorMessage = 'Something went wrong!';
-                
-                if ( contentType.includes( 'application/json' ) ) {
-                    const data = await response.json();
-                    errorMessage = data?.data?.message || errorMessage;
-                } else {
-                    errorMessage = await response.text();
-                }
-                
-                throw new Error( errorMessage );
-            }
-            
-            const data = await response.json();
-            
+
+            const data = await this._parseResponse( response );
+
             if ( ! data.success ) {
-                throw new Error( data?.data?.message || 'Unable to upload image' );
+                throw new Error( data?.result?.message ?? 'Upload request failed.' );
             }
-            
-            const configJson    = data.data.config;
-            const new_image_url = configJson.asset_url;
-            const existingImage = this.currentConfig.get( 'asset_name' );
-            
-            if (existingImage) {
-                const imageEl = document.querySelector( `#${existingImage.split( '.' )[0]}` );
-                imageEl.setAttribute( 'src', new_image_url );
-            } else {
-                this.addNewImageToContainer( container, configJson, new_image_url );
-            }
-            
-            this.resetModal();
-            this.closeModal();
-        } catch (error) {
+
+            this._processBatchResult( data.result, container );
+
+        } catch ( error ) {
             smliserNotify( error.message, 20000 );
             console.error( error );
         } finally {
             removeSpinner( spinner );
-            clickedBtn.removeAttribute( 'disabled' );
+            btn.removeAttribute( 'disabled' );
         }
     }
-    
+
     /**
-     * Add new image to container.
+     * Process the batch upload result: inject successful uploads into the DOM
+     * and surface per-file failure messages to the user.
+     *
+     * @param {{ uploaded: Object, failed: Object|Array }} result
+     * @param {HTMLElement} container
      */
-    addNewImageToContainer( container, configJson, new_image_url ) {
-        const imageContainer        = document.createElement( 'div' );
-        imageContainer.className    = 'app-uploader-image-preview';
-        const imageName = new_image_url.split( '/' ).pop();
-        
-        imageContainer.innerHTML = `
-            <img src="${new_image_url}" alt="${imageName}" title="${imageName}">
+    _processBatchResult( result, container ) {
+        const uploaded  = result.uploaded ?? {};
+        const failed    = result.failed ?? {};
+
+        const uploadedEntries   = Object.entries( uploaded );
+        const failedEntries     = Object.entries( failed );
+        const existingName      = this.currentConfig.get( 'asset_name' );
+
+        // ── Successes ──────────────────────────────────────────────────────────
+        uploadedEntries.forEach( ( [ , assetConfig ] ) => {
+            const { asset_url: newImageUrl } = assetConfig;
+
+            if ( existingName ) {
+                // Edit mode: swap the src of the existing <img> in place
+                const imageEl = document.querySelector( `#${ existingName.split( '.' )[0] }` );
+                imageEl?.setAttribute( 'src', newImageUrl );
+            } else {
+                this._addNewImageToContainer( container, assetConfig, newImageUrl );
+            }
+        });
+
+        // ── Failures ───────────────────────────────────────────────────────────
+        failedEntries.forEach( ( [ filename, errors ] ) => {
+            const messages = Object.values( errors ).join( ' ' );
+            smliserNotify( `"${ filename }": ${ messages }`, 12000 );
+            console.warn( `Asset upload failed — ${ filename }:`, errors );
+        });
+
+        // ── Summary & modal teardown ───────────────────────────────────────────
+        const uploadCount   = uploadedEntries.length;
+        const failCount     = failedEntries.length;
+
+        if ( uploadCount > 0 && failCount === 0 ) {
+            // All succeeded — close silently
+            this.resetModal();
+            this.closeModal();
+        } else if ( uploadCount > 0 && failCount > 0 ) {
+            // Partial success — close but leave the user informed via the notices above
+            smliserNotify( `${ uploadCount } uploaded, ${ failCount } failed. See details above.`, 8000 );
+            this.resetModal();
+            this.closeModal();
+        }
+        // If uploadCount === 0 (all failed), keep the modal open so the user can correct and retry
+    }
+
+    /**
+     * Inject a newly uploaded image card into the assets container.
+     */
+    _addNewImageToContainer( container, configJson, imageUrl ) {
+        const imageName     = imageUrl.split( '/' ).pop();
+        const card          = document.createElement( 'div' );
+        card.className      = 'app-uploader-image-preview';
+
+        card.innerHTML = `
+            <img src="${ imageUrl }" alt="${ imageName }" title="${ imageName }">
             <div class="app-uploader-image-preview_edit">
-                <span class="dashicons dashicons-edit edit-image" data-config="${encodeURIComponent( JSON.stringify( configJson ))}" data-action="openModal" title="Edit"></span>
-                <span class="dashicons dashicons-trash delete-image" data-config="${encodeURIComponent( JSON.stringify( configJson ))}" data-action="deleteImage" title="Delete"></span>
+                <span
+                    class="dashicons dashicons-edit edit-image"
+                    data-config="${ encodeURIComponent( JSON.stringify( configJson ) ) }"
+                    data-action="openModal"
+                    title="Edit"
+                ></span>
+                <span
+                    class="dashicons dashicons-trash delete-image"
+                    data-config="${ encodeURIComponent( JSON.stringify( configJson ) ) }"
+                    data-action="deleteImage"
+                    title="Delete"
+                ></span>
             </div>
         `;
-        
+
+        const assetType     = this.currentConfig.get( 'asset_type' );
+        const limit         = this.currentConfig.get( 'limit' );
         const addButtonMore = this.currentConfig.get( 'add_button' );
-        const title = this.currentConfig.get( 'asset_type' );
-        const limit = this.currentConfig.get( 'limit' );
-        
-        setTimeout(() => {
+
+        setTimeout( () => {
             const target    = container.querySelector( '.app-uploader-asset-container_images' );
-            const addButton = target.querySelector( '.smliser-uploader-add-image' );
-            
-            target.insertBefore( imageContainer, addButton );
-            const totalImages = document.querySelectorAll( `.app-uploader-asset-container.${title} img` ).length;
-            
-            if ( totalImages >= limit ) {
-                addButtonMore.classList.add( 'smliser-hide' );
-                this.closeModal();
-                smliserNotify( `limit for ${StringUtils.ucfirst( title )} has been reached.`, 5000 );
+            const addBtn    = target?.querySelector( '.smliser-uploader-add-image' );
+            target?.insertBefore( card, addBtn );
+
+            const total = document.querySelectorAll( `.app-uploader-asset-container.${ assetType } img` ).length;
+
+            if ( total >= limit ) {
+                addButtonMore?.classList.add( 'smliser-hide' );
+                smliserNotify( `Limit for ${ StringUtils.ucfirst( assetType ) } has been reached.`, 5000 );
             } else {
-                addButtonMore.classList.remove( 'smliser-hide' );
+                addButtonMore?.classList.remove( 'smliser-hide' );
             }
-        }, 400);
+        }, 400 );
     }
-    
+
     /**
-     * Delete image.
+     * Delete an existing asset image.
      */
-    async deleteImage( json, clickedBtn ) {
-        const confirmed = confirm( `Are you sure to delete ${json.asset_name ?? 'this image'}? This action cannot be reversed` );
+    async _deleteImage( config, btn ) {
+        const confirmed = confirm( `Are you sure you want to delete ${ config.asset_name ?? 'this image' }? This action cannot be reversed.` );
         if ( ! confirmed ) return;
-        
+
         const payLoad = new FormData();
-        
-        for ( const key in json ) {
-            payLoad.set( key, json[key] );
-        }
-        
-        payLoad.set( 'action', 'smliser_app_asset_delete' );
+        Object.entries( config ).forEach( ( [key, val] ) => payLoad.set( key, val ) );
+        payLoad.set( 'action',   'smliser_app_asset_delete' );
         payLoad.set( 'security', smliser_var.nonce );
-        
-        clickedBtn.setAttribute( 'disabled', true );
-        
+
+        btn.setAttribute( 'disabled', true );
+
         try {
-            const response = await fetch( smliser_var.ajaxURL, {
-                method: 'POST',
-                body: payLoad,
-                credentials: 'same-origin'
+            const response  = await fetch( smliser_var.ajaxURL, {
+                method      : 'POST',
+                body        : payLoad,
+                credentials : 'same-origin',
             });
-            
-            const contentType = response.headers.get( 'Content-Type' );
-            
-            if ( ! response.ok ) {
-                const isJson = contentType.includes( 'application/json' );
-                const data = isJson ? await response.json() : await response.text();
-                const errorMessage = data?.data?.message ?? data;
-                
-                throw new Error( errorMessage );
+
+            const data = await this._parseResponse( response );
+
+            if ( ! data.success ) {
+                throw new Error( data.data?.message ?? `Unable to delete ${ config.asset_name }.` );
             }
-            
-            const responseJson = await response.json();
-            
-            if ( ! responseJson.success ) {
-                throw new Error( responseJson.data?.message ?? `unable to delete ${json.asset_name}` );
-            }
-            
-            smliserNotify( responseJson.data?.message, 3000 );
-            
-            const target = clickedBtn.closest( '.app-uploader-image-preview' );
-            jQuery( target).fadeOut( 'slow', () => {
-                target.remove();
-            });
+
+            smliserNotify( data.data?.message, 3000 );
+
+            const card = btn.closest( '.app-uploader-image-preview' );
+            jQuery( card ).fadeOut( 'slow', () => card.remove() );
+
         } catch ( error ) {
             smliserNotify( error.message, 10000 );
+        } finally {
+            btn.removeAttribute( 'disabled' );
         }
-        
-        const totalImages = document.querySelectorAll( `.app-uploader-asset-container.${json?.asset_type} img` ).length;
-        const addButton = document.querySelector( `.app-uploader-asset-container.${json?.asset_type} .smliser-uploader-add-image` );
-        
-        if ( totalImages >= json.limit ) {
-            addButton.classList.add( 'smliser-hide' );
-            this.closeModal();
-            smliserNotify( `limit for ${StringUtils.ucfirst( json.asset_type )} has been reached.`, 3000 );
+
+        // Refresh add-button visibility after deletion
+        const total     = document.querySelectorAll( `.app-uploader-asset-container.${ config.asset_type } img` ).length;
+        const addButton = document.querySelector( `.app-uploader-asset-container.${ config.asset_type } .smliser-uploader-add-image` );
+
+        if ( total >= config.limit ) {
+            addButton?.classList.add( 'smliser-hide' );
         } else {
-            addButton.classList.remove( 'smliser-hide' );
+            addButton?.classList.remove( 'smliser-hide' );
         }
     }
-    
+
+    // =========================================================================
+    // Utilities
+    // =========================================================================
+
     /**
-     * Manage input focus state.
+     * Parse a fetch Response, handling both JSON and plain-text error bodies.
+     *
+     * The server may wrap error detail under `data.message` (WP ajax standard)
+     * or under `result.message` (this API's batch envelope) — we check both.
+     *
+     * @param {Response} response
+     * @returns {Promise<object>}
      */
-    manageInputFocus(e) {
+    async _parseResponse( response ) {
+        const contentType = response.headers.get( 'Content-Type' ) ?? '';
+
+        if ( ! response.ok ) {
+            let errorMessage = 'Something went wrong!';
+
+            if ( contentType.includes( 'application/json' ) ) {
+                const body      = await response.json();
+                errorMessage    = body?.result?.message
+                               ?? body?.data?.message
+                               ?? errorMessage;
+            } else {
+                errorMessage = await response.text();
+            }
+
+            throw new Error( errorMessage );
+        }
+
+        return response.json();
+    }
+
+    /**
+     * Convert any image Blob/File to PNG using an offscreen Canvas.
+     *
+     * @param {Blob|File}   blob
+     * @param {string}      outputName
+     * @returns {Promise<File>}
+     */
+    _convertToPng( blob, outputName = 'converted.png' ) {
+        return new Promise( ( resolve, reject ) => {
+            const img   = new Image();
+            const url   = URL.createObjectURL( blob );
+
+            img.onload = () => {
+                const canvas    = document.createElement( 'canvas' );
+                canvas.width    = img.width;
+                canvas.height   = img.height;
+
+                canvas.getContext( '2d' ).drawImage( img, 0, 0 );
+
+                canvas.toBlob( ( pngBlob ) => {
+                    URL.revokeObjectURL( url );
+
+                    if ( ! pngBlob ) {
+                        reject( new Error( 'Canvas PNG export failed.' ) );
+                        return;
+                    }
+
+                    resolve( new File( [pngBlob], outputName, { type: 'image/png' } ) );
+                }, 'image/png' );
+            };
+
+            img.onerror = () => {
+                URL.revokeObjectURL( url );
+                reject( new Error( 'Invalid image file.' ) );
+            };
+
+            img.src = url;
+        });
+    }
+
+    /**
+     * Toggle the `is-active` class on a URL input based on whether it has a value.
+     */
+    _manageInputFocus( e ) {
         const input = e.target;
-        
-        if ( input.value.trim().length ) {
-            input.classList.add( 'is-active' );
-        } else {
-            input.classList.remove( 'is-active' );
-        }
+        input.classList.toggle( 'is-active', input.value.trim().length > 0 );
     }
-    
+
     /**
-     * Observe image src changes.
+     * Observe `src` attribute mutations on an <img> element and emit a custom
+     * `srcChanged` event when the value changes.
+     *
+     * @param {HTMLImageElement} img
+     * @returns {MutationObserver}
      */
-    observeImageSrcChange( img ) {
-        const observer = new MutationObserver( mutations => {
+    _observeImageSrcChange( img ) {
+        const observer = new MutationObserver( ( mutations ) => {
             for ( const mutation of mutations ) {
-                if ( mutation.type === "attributes" && mutation.attributeName === "src" ) {
-                    const event = new CustomEvent( "srcChanged", {
-                        detail: {
-                            oldSrc: mutation.oldValue,
-                            newSrc: img.src
-                        }
-                    });
-                    img.dispatchEvent( event );
+                if ( mutation.type === 'attributes' && mutation.attributeName === 'src' ) {
+                    img.dispatchEvent( new CustomEvent( 'srcChanged', {
+                        detail: { oldSrc: mutation.oldValue, newSrc: img.src },
+                    }));
                 }
             }
         });
-        
+
         observer.observe( img, {
-            attributes: true,
-            attributeFilter: ["src"],
-            attributeOldValue: true
+            attributes         : true,
+            attributeFilter    : ['src'],
+            attributeOldValue  : true,
         });
-        
+
         return observer;
     }
 
+    // =========================================================================
+    // JSON Editor
+    // =========================================================================
+
     /**
-     * Mount nanoeditor
+     * Mount the nano JSON editor over the raw textarea.
      */
-    mountNanoEditor() {
-        const textarea          = this.appJosnTextarea;
+    _mountNanoEditor() {
+        const textarea          = this.appJsonTextarea;
         const textareaParent    = textarea.parentElement;
         const editorFrame       = document.createElement( 'div' );
-
         editorFrame.id          = 'smliser-appjson-editor';
 
-        let jsonData            = {};
-
+        let jsonData = {};
         try {
             jsonData = StringUtils.JSONparse( textarea.value );
-        } catch (error) {
+        } catch {
             jsonData = {};
         }
 
         textareaParent.parentElement.appendChild( editorFrame );
 
-        const preventButtonFormSubmission = () => {
-            editorFrame.querySelectorAll( 'button' ).forEach( btn => btn.setAttribute( 'type', 'button' ) );
-        }
+        const lockButtons = () => {
+            editorFrame.querySelectorAll( 'button' ).forEach( ( btn ) => btn.setAttribute( 'type', 'button' ) );
+        };
 
         this.editor = new JSONEditor({
-            id: editorFrame.id,
-            title: "APP JSON Editor",
-            description: "Edit your application's JSON file (app.json). Values in this file will be served in the REST API response.",
-            json: jsonData,
-            when: {
-                rendered: preventButtonFormSubmission,
-                updated: preventButtonFormSubmission
-            }
+            id          : editorFrame.id,
+            title       : 'APP JSON Editor',
+            description : "Edit your application's JSON file (app.json). Values in this file will be served in the REST API response.",
+            json        : jsonData,
+            when        : { rendered: lockButtons, updated: lockButtons },
         });
-        
-        preventButtonFormSubmission();
+
+        lockButtons();
         textarea.setAttribute( 'disabled', true );
         textareaParent.classList.add( 'json-mounted' );
     }
 }
 
-// Initialize when DOM is ready
-document.addEventListener( 'DOMContentLoaded', () => {
-    new AppUploader();
-});
+// =========================================================================
+// Bootstrap
+// =========================================================================
+
+document.addEventListener( 'DOMContentLoaded', () => new AppUploader() );

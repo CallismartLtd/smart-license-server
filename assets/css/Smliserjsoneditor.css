@@ -307,6 +307,40 @@
    TOOLBAR - ENHANCED WITH BETTER CONTRAST
    ========================================================================= */
 
+/* Header with title and description */
+.json-editor-header {
+    padding: var(--sje-spacing-xl) var(--sje-spacing-xl) var(--sje-spacing-lg);
+    border-bottom: var(--sje-border-width) solid var(--sje-light-border);
+}
+
+.theme-dark .json-editor-header {
+    border-bottom-color: var(--sje-dark-border-strong);
+}
+
+.json-editor-header-title {
+    margin: 0 0 var(--sje-spacing-sm) 0;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: var(--sje-line-height-tight);
+    color: var(--sje-light-text-primary);
+}
+
+.theme-dark .json-editor-header-title {
+    color: var(--sje-dark-text-primary);
+}
+
+.json-editor-header-description {
+    margin: 0;
+    font-size: var(--sje-font-size-base);
+    line-height: var(--sje-line-height-normal);
+    color: var(--sje-light-text-secondary);
+    font-weight: 400;
+}
+
+.theme-dark .json-editor-header-description {
+    color: var(--sje-dark-text-secondary);
+}
+
 .json-editor-toolbar {
     display: flex;
     align-items: center;
@@ -541,7 +575,8 @@
 
 /* Tree nodes with improved spacing */
 .json-tree-node {
-    margin: 2px 0;
+    margin: 10px 5px;
+    position: relative;
     line-height: var(--sje-line-height-relaxed);
 }
 
@@ -763,7 +798,13 @@
     padding-left: var(--sje-spacing-md);
     position: absolute;
     right: 10px;
-    background-color: #000000c1;
+    background-color: rgba(0, 0, 0, 0.75);
+    border-radius: var(--sje-border-radius-sm);
+    padding: var(--sje-spacing-xs);
+}
+
+.theme-dark .tree-actions {
+    background-color: rgba(0, 0, 0, 0.85);
 }
 
 .json-tree-header:hover .tree-actions {
@@ -1146,11 +1187,6 @@
         opacity: 1;
         transform: translateY(0);
     }
-}
-
-.json-tree-node {
-    margin: 10px 5px;
-    position: relative;
 }
 
 /* ============================================================================

@@ -208,7 +208,7 @@ class SoftwareRepository extends Repository {
         $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
         if ( ! $this->is_dir( $assets_dir ) ) {
-             return ( 'cover' === $type ) ? '' : [];
+            return ( 'cover' === $type ) ? '' : [];
         }
 
         $possible_exts  = static::ALLOWED_IMAGE_EXTENSIONS;
@@ -248,10 +248,10 @@ class SoftwareRepository extends Repository {
                 
             case 'screenshots':
                 $path           = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
-                $pattern        = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
+                $pattern        = sprintf( '%s-*.{%s}', $path, implode( ',', $possible_exts ) );
                 $files          = glob( $pattern, GLOB_BRACE );
                 $screenshots    = [];
-
+                
                 foreach ( $files as $screenshot ) {
                     $screenshots[] = smliser_get_asset_url( 'software', $slug, basename( $screenshot ) );
                 }
