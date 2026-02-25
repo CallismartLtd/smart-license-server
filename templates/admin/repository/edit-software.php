@@ -92,19 +92,16 @@ $screenshots = $app->get_screenshots();
 $assets = array(
     'icon' => array(
         'title'     => 'Icons',
-        'limit'     => 2,
         'images'    => $app->get_icons(),
         'total'     => count( array_filter( $app->get_icons() ) )
     ),
     'cover' => array(
         'title'     => 'Cover',
-        'limit'     => 1,
         'images'    => [$app->get_cover()],
         'total'     => count( array_filter( (array) $app->get_cover() ) )
     ),
     'screenshot' => array(
         'title'     => 'Screenshots',
-        'limit'     => 10,
         'images'    => $screenshots,
         'total'     => count( array_filter( $screenshots ) )
     ),

@@ -8,6 +8,7 @@
  */
 
 use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\FileSystem\Repository;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -98,7 +99,8 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                                             'app_slug'      => $app->get_slug(),
                                             'app_type'      => $app->get_type(),
                                             'asset_name'    => $asset_name,
-                                            'asset_url'     => $url
+                                            'asset_url'     => $url,
+                                            'context'       => 'edit'
                                         ]);  
                                     ?>
                                         <div class="app-uploader-image-preview">
@@ -114,11 +116,11 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                                     'asset_type'    => $key,
                                     'app_slug'      => $app->get_slug(),
                                     'app_type'      => $app->get_type(),
-                                    'limit'         => $data['limit']
+                                    'context'       => 'add_new'
                                     
                                 ])
                                 ?>    
-                                <div class="smliser-uploader-add-image <?php echo esc_attr( ( $data['total'] < $data['limit'] ) ? '' : 'smliser-hide' ) ?>" data-action="openModal" data-config="<?php echo urlencode( $config ) ?>">
+                                <div class="smliser-uploader-add-image" data-action="openModal" data-config="<?php echo urlencode( $config ) ?>">
                                     <span class="dashicons dashicons-plus"></span>
                                 </div>             
                             </div>
@@ -201,7 +203,7 @@ $max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
                 <input
                     type="file"
                     id="app-uploader-asset-file-input"
-                    accept="image/png, image/jpeg, image/gif, .png, .jpg, .jpeg, .gif"
+                    accept="image/*"
                     class="hidden"
                     aria-label="Select image file(s)"
                 >

@@ -11,6 +11,23 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 $title          = sprintf( 'Edit Theme: %s', $app->get_name() );
 $other_fields   = array(
     array(
+        'label' => __( 'App.json File', 'smliser' ),
+        'input' => array(
+            'type'  => 'textarea',
+            'name'  => 'app_json_content',
+            'value' => smliser_safe_json_encode(
+                $app->get_manifest(),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            ),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'class' => 'smliser-json-textarea',
+                'readonly' => true
+            )
+        )
+    ),
+    
+    array(
         'label' => __( 'Required PHP Version', 'smliser' ),
         'input' => array(
             'type'  => 'text',
@@ -134,14 +151,12 @@ $screenshots = $app->get_screenshots();
 $assets = array(
     'screenshot' => array(
         'title'     => 'Screenshot',
-        'limit'     => 1,
         'images'    => $app->get_screenshot_url() ? [$app->get_screenshot_url()] : [],
         'total'     => $app->get_screenshot_url() ? 1 : 0
     ),
 
     'screenshots' => array(
         'title'     => 'Additional Screenshots',
-        'limit'     => 10,
         'images'    => $screenshots,
         'total'    => count( array_filter( $screenshots ) )
     ),

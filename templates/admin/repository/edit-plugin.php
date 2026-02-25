@@ -94,7 +94,22 @@ $other_fields   = array(
         )
     ),
 
-
+    array(
+        'label' => __( 'App.json File', 'smliser' ),
+        'input' => array(
+            'type'  => 'textarea',
+            'name'  => 'app_json_content',
+            'value' => smliser_safe_json_encode(
+                $app->get_manifest(),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            ),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'class' => 'smliser-json-textarea',
+                'readonly' => true
+            )
+        )
+    ),
 );
 
 $screenshots = [];
@@ -107,23 +122,19 @@ foreach( $app->get_screenshots() as $screenshot ) {
 $assets = array(
     'icon' => array(
         'title'     => 'Icons',
-        'limit'     => 2,
         'images'    => $app->get_icons(),
         'total'    => count( array_filter( $app->get_icons() ) )
     ),
     'banner' => array(
         'title'     => 'Banners',
-        'limit'     => 2,
         'images'    => $app->get_banners(),
         'total'     => count( array_filter( $app->get_banners() ) )
     ),
     'screenshot' => array(
         'title'     => 'Screenshots',
-        'limit'     => 10,
         'images'    => $screenshots,
-        'total'    => count( array_filter( $screenshots ) )
+        'total'     => count( array_filter( $screenshots ) )
     ),
 );
-
 
 include SMLISER_PATH . 'templates/admin/repository/uploader.php';

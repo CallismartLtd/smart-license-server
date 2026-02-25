@@ -175,13 +175,13 @@ class SoftwareRepository extends Repository {
                 return sprintf( 'cover.%s', $ext );
             case 'screenshot':
             case 'screenshots':
-                $existing_name  = null;
                 if ( preg_match( '/screenshot-(\d+)/', $file->get_name(), $m ) ) {
-                    $existing_name = sprintf( 'screenshot-%d', $m[1] ); 
+                    $screenshot = sprintf( 'screenshot-%d.%s', $m[1], $ext ); 
+                } else {
+                    // Auto-generate next index.
+                    $screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
                 }
 
-                // Auto-generate next index.
-                $screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir, $existing_name ), $ext );
                 return $screenshot;
 
             default:

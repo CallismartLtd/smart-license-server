@@ -418,14 +418,14 @@ abstract class Repository {
 
             try {
                 $path       = $file->move( $assets_dir, $asset_name ); // No override.
-                $app_type   = $this->current_dir;
+                $app_type   = rtrim( $this->current_dir, 's' ); // "plugins" => "plugin"
                 $app_slug   = $slug;
                 $asset_name = basename( $path );
                 $raw_url    = smliser_get_asset_url( $app_type, $app_slug, $asset_name );
                 $asset_url  = ( new URL( $raw_url ) )
                 ->add_query_param( 'ver', $this->filemtime( $path ) )->get_href();
 
-                $result['uploaded'][$file->get_client_name()] = \compact( 'app_slug', 'app_type', 'asset_name', 'asset_url' );
+                $result['uploaded'][$file->get_client_name()] = \compact( 'app_slug', 'app_type', 'asset_name', 'asset_url', 'asset_type' );
             } catch( Exception $e ) {
                 $result['failed'][$file->get_client_name()][]   = $e->get_error_message();
             }
@@ -472,7 +472,6 @@ abstract class Repository {
                     $removable  = FileSystemHelper::join_path( $assets_dir, $file_name );
                     $pattern    = sprintf( '%s.*{%s}', $removable, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
                     $identicals = glob( $pattern, \GLOB_BRACE );
-
                     array_map( [$this, 'delete'], (array) $identicals );
                 }
             }
@@ -484,7 +483,7 @@ abstract class Repository {
             $asset_url  = ( new URL( $raw_url ) )
             ->add_query_param( 'ver', $this->filemtime( $path ) )->get_href();
 
-            return compact( 'app_slug', 'app_type', 'asset_name', 'asset_url' );
+            return compact( 'app_slug', 'app_type', 'asset_name', 'asset_url', 'asset_type' );
         } catch ( FileSystemException $e ) {
             return $e;
         }
@@ -690,7 +689,7 @@ abstract class Repository {
      * @param string $dir The directory to search.
      * @return string
      */
-    public function find_next_screenshot_name( string $dir, ?string $target = null )  {
+    public function find_next_screenshot_name( string $dir )  {
         $path           = FileSystemHelper::join_path( $dir, 'screenshot' );
         $pattern        = $path . '*.{' . implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) . '}';
         $screenshots    = glob( $pattern, GLOB_BRACE );

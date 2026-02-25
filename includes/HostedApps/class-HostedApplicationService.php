@@ -588,6 +588,13 @@ class HostedApplicationService {
             return null;
         }
 
+        $type = match( strtolower( $type ) ) {
+            'plugin', 'plugins' => 'Plugin',
+            'theme', 'themes'   => 'Theme',
+            'software'          => 'Software',
+            default             => $type,
+        };
+
         $class = 'SmartLicenseServer\\FileSystem\\' . ucfirst( $type ) . 'Repository';
 
         if ( class_exists( $class, true ) ) {

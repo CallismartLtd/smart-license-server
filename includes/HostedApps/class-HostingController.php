@@ -169,6 +169,20 @@ class HostingController {
             return new RequestException( 'message', 'Wrong plugin object passed' );
         }
 
+        $manifest   = $request->get_file( 'app_json_file' );
+
+        // Manifest file for WordPress plugins are optional, if valid manifest file is uploaded,
+        // update the plugin manifest.
+        if ( $manifest && $manifest->is_upload_successful() ) {
+            $plugin_manifest = static::extract_app_json_content( $request );
+
+            if ( $plugin_manifest instanceof RequestException ) {
+                return $plugin_manifest;
+            }
+
+            $plugin->set_manifest( $plugin_manifest );
+        }
+
         $plugin->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
         $plugin->update_meta( 'support_url', $request->get( 'app_support_url' ) );
         $plugin->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
@@ -188,6 +202,20 @@ class HostingController {
             return new RequestException( 'message', 'Wrong theme object passed' );
         }
 
+        // Manifest file for WordPress themes are optional, if valid manifest file is uploaded,
+        // update the theme manifest.
+        $manifest   = $request->get_file( 'app_json_file' );
+
+        if ( $manifest && $manifest->is_upload_successful() ) {
+            $theme_manifest = static::extract_app_json_content( $request );
+
+            if ( $theme_manifest instanceof RequestException ) {
+                return $theme_manifest;
+            }
+
+            $theme->set_manifest( $theme_manifest );
+        }
+    
         $theme->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
         $theme->update_meta( 'support_url', $request->get( 'app_support_url' ) );
         $theme->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
@@ -213,6 +241,28 @@ class HostingController {
             );
         }
 
+        $manifest   = static::extract_app_json_content( $request );
+
+        // Manifest file is required during software update.
+        if ( $manifest instanceof RequestException ) {
+            return $manifest;
+        }
+
+        $software->set_manifest( $manifest );
+        $software->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
+        $software->update_meta( 'support_url', $request->get( 'app_support_url' ) );
+        $software->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
+        $software->update_meta( 'documentation_url', $request->get( 'app_documentation_url', null ) );
+        return true;
+    }
+
+    /**
+     * Helper method to extract the app.json file contents from the request.
+     * 
+     * @param Request $request The request object.
+     * @return RequestException|array Returns the app.json contents as an associative array on success, or a RequestException on failure.
+     */
+    private static function extract_app_json_content( Request $request ) : RequestException|array {
         $uploaded_json = $request->get_file( 'app_json_file' );
 
         if ( ! $uploaded_json || ! $uploaded_json->is_upload_successful() ) {
@@ -248,12 +298,7 @@ class HostingController {
             return new RequestException( 'invalid_app_json', 'Invalid app.json file. JSON could not be parsed.' );
         }
 
-        $software->set_manifest( self::sanitize_deep( $manifest ) );
-        $software->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
-        $software->update_meta( 'support_url', $request->get( 'app_support_url' ) );
-        $software->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
-        $software->update_meta( 'documentation_url', $request->get( 'app_documentation_url', null ) );
-        return true;
+        return (array) static::sanitize_deep( $manifest );
     }
 
     /**

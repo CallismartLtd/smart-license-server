@@ -78,6 +78,13 @@ final class ScriptManager {
                 'media' => 'all'
                 
             ),
+
+            'smliser-json-editor'   => array(
+                'src'   => SetUp::assets_url() . 'css/smliser-json-editor.css',
+                'deps'  => array( 'smliser-styles', 'smliser-modal' ),
+                'ver'   => SMLISER_VER,
+                'media' => 'all',
+            )
         );
     }
 
@@ -143,6 +150,13 @@ final class ScriptManager {
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
+
+            'smliser-json-editor'    => array(
+                'src'       => SetUp::assets_url() . 'js/smliser-json-editor.js',
+                'deps'      => array( 'jquery', 'smliser-script', 'smliser-modal' ),
+                'ver'       => SMLISER_VER,
+                'footer'    => true
+            )
         );
     }
 
@@ -188,7 +202,7 @@ final class ScriptManager {
         if ( 'smart-license-server_page_repository' === $s ) {
             wp_enqueue_media();
             wp_enqueue_script( 'smliser-apps-uploader' );
-            wp_enqueue_script( 'smliser-nanojson' );
+            wp_enqueue_script( 'smliser-json-editor' );
             wp_enqueue_script( 'smliser-admin-repository' );
         }
 
@@ -234,7 +248,7 @@ final class ScriptManager {
 
         if ( 'smart-license-server_page_repository' === $s ) {
             wp_enqueue_style( 'smliser-apps-uploader' );
-            wp_enqueue_style( 'smliser-nanojson' );
+            wp_enqueue_style( 'smliser-json-editor' );
         }
 
         if ( is_admin() ) {

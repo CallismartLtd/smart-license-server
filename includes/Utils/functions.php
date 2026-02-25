@@ -1536,34 +1536,6 @@ function smliser_md_parser() {
 }
 
 /**
- * Build default WordPress app.json manifest data
- * 
- * @param \SmartLicenseServer\HostedApps\AbstractHostedApp $app The application instance.
- * @param array $metadata The app metadata.
- */
-function smliser_build_wp_manifest( AbstractHostedApp $app, array $metadata ) {
-    $min_ver        = $metadata['requires_at_least'] ?? '';
-    $max_ver        = $metadata['tested_up_to'] ?? '';
-    $type           = strtolower( $app->get_type() );
-    $name_key       = sprintf( '%s_name', $type );
-    $version_key    = ( $app instanceof Plugin ) ? 'stable_tag' : 'version';
-    return array(
-        'name'          => $metadata[$name_key] ?? '',
-        'slug'          => $app->get_slug(),
-        'version'       => $metadata[$version_key ] ?? $app->get_meta( 'version' ),
-        'type'          => \sprintf( 'wordpress-%s', $type ),
-        'platforms'     => ['WordPress'],
-        'tech_stack'    => ['PHP', 'JavaScript'],
-        'tested'        => $max_ver,
-        'requires'  => array(
-            'Wordpress' => \sprintf( '%s +', $min_ver ),
-            'PHP'       => \sprintf( ' %s +', $metadata['requires_php'] ?? '7.4' ),
-        ),
-        
-    );
-}
-
-/**
  * Get current page URL.
  *
  * Returns an empty string if it cannot generate a URL.
