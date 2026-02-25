@@ -95,7 +95,7 @@ class AppUploader {
         this._initAssetUploader();
 
         if ( this.appJsonTextarea ) {
-            this._mountNanoEditor();
+            this.#mountJsonEditor();
         }
     }
 
@@ -247,8 +247,12 @@ class AppUploader {
         payLoad.set( 'security', smliser_var.nonce );
 
         if ( this.editor ) {
-            const jsonBlob = new Blob( [this.editor.json], { type: 'application/json' } );
-            payLoad.set( 'app_json_file', new File( [jsonBlob], 'app.json', { type: 'application/json' } ) );
+            const jsonString    = await this.editor.getJSON( true );
+            const jsonFile      = new File( [jsonString], 'app.json', { 
+                type: 'application/json',
+                lastModified: this.editor.lastModified ?? Date.now(),
+            });
+            payLoad.set( 'app_json_file', jsonFile );
         }
 
         const spinner = showSpinner( '.smliser-spinner', true );
@@ -355,25 +359,17 @@ class AppUploader {
 
         const totalImages   = document.querySelectorAll( `.app-uploader-asset-container.${ config.asset_type } img` ).length;
         const addButton     = document.querySelector( `.app-uploader-asset-container.${ config.asset_type } .smliser-uploader-add-image` );
-
+        
         // Persist config
-        this.currentConfig.set( 'total_images',  totalImages );
-        this.currentConfig.set( 'add_button',    addButton );
-        this.currentConfig.set( 'app_slug',      config.app_slug );
-        this.currentConfig.set( 'app_type',      config.app_type );
-        this.currentConfig.set( 'asset_name',    config.asset_name ?? '' );
-        this.currentConfig.set( 'asset_type',    config.asset_type ?? '' );
-        this.currentConfig.set( 'limit',         config.limit );
+        this.currentConfig.set( 'total_images', totalImages );
+        this.currentConfig.set( 'add_button', addButton );
+        this.currentConfig.set( 'app_slug', config.app_slug );
+        this.currentConfig.set( 'app_type', config.app_type );
+        this.currentConfig.set( 'asset_name', config.asset_name ?? '' );
+        this.currentConfig.set( 'asset_type', config.asset_type ?? '' );
+        this.currentConfig.set( 'context', config.context );
 
-        // Multi-upload: allow multiple file selection when limit allows more than one
-        if ( this.imageFileInput ) {
-            const remaining = config.limit - totalImages;
-            if ( remaining > 1 ) {
-                this.imageFileInput.setAttribute( 'multiple', true );
-            } else {
-                this.imageFileInput.removeAttribute( 'multiple' );
-            }
-        }
+        this.imageFileInput.setAttribute( 'multiple', true );
 
         // Pre-populate if editing an existing asset
         if ( config.asset_url ) {
@@ -381,16 +377,8 @@ class AppUploader {
             this.imagePreview.src = config.asset_url;
             this.uploadToRepoButton.setAttribute( 'disabled', true );
             this.currentConfig.set( 'observer', this._observeImageSrcChange( this.imagePreview ) );
-        }
-
-        // Enforce limit
-        if ( totalImages >= config.limit ) {
-            addButton?.classList.add( 'smliser-hide' );
-            smliserNotify( `Limit for ${ StringUtils.ucfirst( config.asset_type ) } has been reached.`, 5000 );
-            return;
-        }
-
-        addButton?.classList.remove( 'smliser-hide' );
+        }        
+        
         this.appAssetUploadModal.classList.remove( 'hidden' );
     }
 
@@ -511,14 +499,7 @@ class AppUploader {
             return;
         }
 
-        const limit         = this.currentConfig.get( 'limit' ) ?? 1;
-        const totalImages   = this.currentConfig.get( 'total_images' ) ?? 0;
-        const remaining     = limit - totalImages;
-        const filesToProcess= files.slice( 0, remaining );
-
-        if ( files.length > remaining ) {
-            smliserNotify( `Only ${ remaining } more image(s) can be added. Extra files were ignored.`, 5000 );
-        }
+        const filesToProcess    = files;
 
         // Always wipe previous preview state before rendering the new selection
         // so stale images / strip thumbnails never bleed through.
@@ -769,6 +750,12 @@ class AppUploader {
         btn.setAttribute( 'disabled', true );
 
         const assetType = this.currentConfig.get( 'asset_type' );
+
+        if ( ! assetType ) {
+            await SmliserModal.error( 'Asset type was not set correctly.' );
+            return;
+        }
+
         const container = document.querySelector( `.app-uploader-asset-container.${ assetType }` );
         const spinner   = showSpinner( '.smliser-spinner.modal', true );
 
@@ -785,9 +772,11 @@ class AppUploader {
 
             // Append all files under the same key so the server receives an array
             this.currentFiles.forEach( ( file ) => payLoad.append( 'asset_file[]', file ) );
+            const context   = this.currentConfig.get( 'context' );
+            const method    = 'edit' === context ? 'PATCH' : 'POST';
 
             const response  = await fetch( url.href, {
-                method      : 'POST',
+                method      : method,
                 body        : payLoad,
                 credentials : 'same-origin',
             });
@@ -820,24 +809,28 @@ class AppUploader {
         const uploaded  = result.uploaded ?? {};
         const failed    = result.failed ?? {};
 
-        const uploadedEntries   = Object.entries( uploaded );
-        const failedEntries     = Object.entries( failed );
-        const existingName      = this.currentConfig.get( 'asset_name' );
+        const uploadedEntries       = Object.entries( uploaded );
+        const failedEntries         = Object.entries( failed );
+        const existingName          = this.currentConfig.get( 'asset_name' );
+        const existingImageSelector = `#${ existingName.split( '.' )[0] }`;
 
-        // ── Successes ──────────────────────────────────────────────────────────
+        // ── Bulk Successes ──────────────────────────────────────────────────────────
         uploadedEntries.forEach( ( [ , assetConfig ] ) => {
             const { asset_url: newImageUrl } = assetConfig;
+            assetConfig.context = 'edit';
 
             if ( existingName ) {
                 // Edit mode: swap the src of the existing <img> in place
-                const imageEl = document.querySelector( `#${ existingName.split( '.' )[0] }` );
+                const imageEl = document.querySelector( existingImageSelector );
                 imageEl?.setAttribute( 'src', newImageUrl );
             } else {
+                // New upload, make an ID.
+                assetConfig.imageID = assetConfig.asset_name?.split( '.' )[0];
                 this._addNewImageToContainer( container, assetConfig, newImageUrl );
             }
         });
 
-        // ── Failures ───────────────────────────────────────────────────────────
+        // ── Bulk Failures ───────────────────────────────────────────────────────────
         failedEntries.forEach( ( [ filename, errors ] ) => {
             const messages = Object.values( errors ).join( ' ' );
             smliserNotify( `"${ filename }": ${ messages }`, 12000 );
@@ -858,6 +851,24 @@ class AppUploader {
             this.resetModal();
             this.closeModal();
         }
+        
+        if ( 'edit' === this.currentConfig.get( 'context' ) ) {
+            // This is a PATCH request.
+            const { asset_url: newImageUrl } = result;
+            
+            const imageEl = document.querySelector( existingImageSelector );            
+            
+            imageEl?.setAttribute( 'src', newImageUrl );
+            const configEl  = imageEl?.parentElement.querySelector( '.edit-image[data-config]' );
+            if ( configEl ) {
+                const assetConfig   = result;
+                assetConfig.context = 'edit';
+                configEl.setAttribute( 'data-config', encodeURIComponent( JSON.stringify( assetConfig ) ));
+            }
+
+            this.resetModal();
+            this.closeModal();
+        }
         // If uploadCount === 0 (all failed), keep the modal open so the user can correct and retry
     }
 
@@ -867,10 +878,11 @@ class AppUploader {
     _addNewImageToContainer( container, configJson, imageUrl ) {
         const imageName     = imageUrl.split( '/' ).pop();
         const card          = document.createElement( 'div' );
-        card.className      = 'app-uploader-image-preview';
+        const imageID       = configJson.imageID;
+        card.className      = 'app-uploader-image-preview';        
 
         card.innerHTML = `
-            <img src="${ imageUrl }" alt="${ imageName }" title="${ imageName }">
+            <img src="${ imageUrl }" alt="${ imageName }" title="${ imageName }" id="${imageID}">
             <div class="app-uploader-image-preview_edit">
                 <span
                     class="dashicons dashicons-edit edit-image"
@@ -887,23 +899,11 @@ class AppUploader {
             </div>
         `;
 
-        const assetType     = this.currentConfig.get( 'asset_type' );
-        const limit         = this.currentConfig.get( 'limit' );
-        const addButtonMore = this.currentConfig.get( 'add_button' );
-
         setTimeout( () => {
             const target    = container.querySelector( '.app-uploader-asset-container_images' );
             const addBtn    = target?.querySelector( '.smliser-uploader-add-image' );
             target?.insertBefore( card, addBtn );
-
-            const total = document.querySelectorAll( `.app-uploader-asset-container.${ assetType } img` ).length;
-
-            if ( total >= limit ) {
-                addButtonMore?.classList.add( 'smliser-hide' );
-                smliserNotify( `Limit for ${ StringUtils.ucfirst( assetType ) } has been reached.`, 5000 );
-            } else {
-                addButtonMore?.classList.remove( 'smliser-hide' );
-            }
+           
         }, 400 );
     }
 
@@ -946,14 +946,9 @@ class AppUploader {
         }
 
         // Refresh add-button visibility after deletion
-        const total     = document.querySelectorAll( `.app-uploader-asset-container.${ config.asset_type } img` ).length;
         const addButton = document.querySelector( `.app-uploader-asset-container.${ config.asset_type } .smliser-uploader-add-image` );
 
-        if ( total >= config.limit ) {
-            addButton?.classList.add( 'smliser-hide' );
-        } else {
-            addButton?.classList.remove( 'smliser-hide' );
-        }
+        addButton?.classList.remove( 'smliser-hide' );
     }
 
     // =========================================================================
@@ -1070,13 +1065,16 @@ class AppUploader {
     // =========================================================================
 
     /**
-     * Mount the nano JSON editor over the raw textarea.
+     * Mount the SmliserJSONEditor over the raw textarea.
      */
-    _mountNanoEditor() {
+    #mountJsonEditor() {
         const textarea          = this.appJsonTextarea;
         const textareaParent    = textarea.parentElement;
         const editorFrame       = document.createElement( 'div' );
         editorFrame.id          = 'smliser-appjson-editor';
+
+        textarea.setAttribute( 'disabled', true );
+        textareaParent.classList.add( 'json-mounted' );
 
         let jsonData = {};
         try {
@@ -1087,21 +1085,14 @@ class AppUploader {
 
         textareaParent.parentElement.appendChild( editorFrame );
 
-        const lockButtons = () => {
-            editorFrame.querySelectorAll( 'button' ).forEach( ( btn ) => btn.setAttribute( 'type', 'button' ) );
-        };
-
-        this.editor = new JSONEditor({
-            id          : editorFrame.id,
-            title       : 'APP JSON Editor',
-            description : "Edit your application's JSON file (app.json). Values in this file will be served in the REST API response.",
-            json        : jsonData,
-            when        : { rendered: lockButtons, updated: lockButtons },
+        this.editor = new SmliserJsonEditor( editorFrame, {
+            title: 'APP JSON Editor',
+            description: "Edit your application's JSON file (app.json). Values in this file will be served in the REST API response.",
+            data: jsonData,
+            autoFocus: false
         });
 
-        lockButtons();
-        textarea.setAttribute( 'disabled', true );
-        textareaParent.classList.add( 'json-mounted' );
+        this.editor.expandAll();
     }
 }
 
