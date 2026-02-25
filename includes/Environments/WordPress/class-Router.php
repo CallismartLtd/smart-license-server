@@ -303,20 +303,16 @@ class Router implements RouterInterface {
      */
     public static function parse_app_asset_upload_request() : void {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
-            throw new RequestException( 'invalid_nonce', 'This action failed basic security check.' );
+            smliser_send_json_error( array( 'message' => 'This action failed basic security check' ), 401 );
         }
 
-        $asset_file = $_FILES['asset_file'];
+        $request = new Request();
 
-        $request = new Request([
-            'app_type'      => smliser_get_post_param( 'app_type' ),
-            'app_slug'      => smliser_get_post_param( 'app_slug' ),
-            'asset_type'    => smliser_get_post_param( 'asset_type' ),
-            'asset_name'    => smliser_get_post_param( 'asset_name', '' ),
-            'user_agent'    => smliser_get_user_agent(),
-            'request_time'  => time(),
-            'client_ip'     => smliser_get_client_ip(),
-        ]);
+        if ( $request->isPatch() || $request->isPut() ) {
+            $asset_name = $request->get( 'asset_name' );
+
+            $request->get_file( 'asset_file' )->set_new_name( (string) $asset_name );
+        }
 
         $response = HostingController::app_asset_upload( $request );        
         $response->send();
