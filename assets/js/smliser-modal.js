@@ -258,6 +258,8 @@ class SmliserModal {
      */
     _manageFocus() {
         this.previousFocus = document.activeElement;
+
+        this.previousFocus.blur();
         
         const focusableElements = this._getFocusableElements();
         if ( focusableElements.length > 0 ) {
@@ -642,7 +644,6 @@ class SmliserModal {
             confirmBtn.className = `smliser-btn ${config.danger ? 'smliser-btn-danger' : config.confirmClass}`;
             confirmBtn.textContent = config.confirmText;
             confirmBtn.type = 'button';
-            confirmBtn.setAttribute( 'autofocus', 'true' );
             
             footerContent.appendChild( cancelBtn );
             footerContent.appendChild( confirmBtn );
@@ -750,8 +751,7 @@ class SmliserModal {
             const okBtn         = document.createElement( 'button' );
             okBtn.className     = `smliser-btn ${config.buttonClass}`;
             okBtn.textContent   = config.buttonText;
-            okBtn.type = 'button';
-            okBtn.setAttribute( 'autofocus', 'true' );
+            okBtn.type          = 'button';
             
             footerContent.appendChild( okBtn );
 

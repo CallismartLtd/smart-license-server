@@ -65,13 +65,13 @@ class SmliserJsonEditor {
      * @param {Function} options.onError - Error callback
      * @param {Object} options.customButtons - Custom toolbar buttons
      */
-    constructor(target, options = {}) {
+    constructor( target, options = {} ) {
         // Target element
         this.targetElement = typeof target === 'string' 
-            ? document.querySelector(target) 
+            ? document.querySelector( target ) 
             : target;
 
-        if (!this.targetElement) {
+        if ( ! this.targetElement ) {
             throw new Error('SmliserJsonEditor: Target element not found');
         }
 
@@ -99,21 +99,21 @@ class SmliserJsonEditor {
         };
 
         // State
-        this.currentData = null;
-        this.currentMode = this.options.mode;
-        this.history = [];
-        this.historyIndex = -1;
-        this.isValid = true;
-        this.validationErrors = [];
-        this.searchTerm = '';
-        this.expandedPaths = new Set();
+        this.currentData        = null;
+        this.currentMode        = this.options.mode;
+        this.history            = [];
+        this.historyIndex       = -1;
+        this.isValid            = true;
+        this.validationErrors   = [];
+        this.searchTerm         = '';
+        this.expandedPaths      = new Set();
 
         // UI Elements
-        this.container = null;
-        this.toolbar = null;
-        this.treeView = null;
-        this.codeView = null;
-        this.statusBar = null;
+        this.container          = null;
+        this.toolbar            = null;
+        this.treeView           = null;
+        this.codeView           = null;
+        this.statusBar          = null;
 
         // Event handlers
         this.eventHandlers = {
@@ -135,21 +135,17 @@ class SmliserJsonEditor {
      * @private
      */
     _init() {
-        // Validate and set initial data
         this._setInitialData();
 
-        // Build UI
         this._buildUI();
 
-        // Setup event listeners
         this._setupEventListeners();
 
-        // Render initial view
         this._render();
 
         // Add to history
-        if (this.options.enableUndo) {
-            this._addToHistory(this.currentData);
+        if ( this.options.enableUndo ) {
+            this._addToHistory( this.currentData );
         }
     }
 
@@ -161,14 +157,14 @@ class SmliserJsonEditor {
         let data = this.options.data;
 
         // Try to parse textarea value if target is textarea
-        if (this.targetElement.tagName === 'TEXTAREA' && !data) {
+        if ( this.targetElement.tagName === 'TEXTAREA' && ! data ) {
             const textValue = this.targetElement.value.trim();
-            if (textValue) {
+            if ( textValue ) {
                 try {
-                    data = JSON.parse(textValue);
+                    data = JSON.parse( textValue );
                 } catch (e) {
                     data = {};
-                    this._handleError('Invalid JSON in textarea', e);
+                    this._handleError( 'Invalid JSON in textarea', e );
                 }
             }
         }
@@ -186,19 +182,20 @@ class SmliserJsonEditor {
      */
     _buildUI() {
         // Create container
-        this.container = document.createElement('div');
-        this.container.className = `smliser-json-editor theme-${this.options.theme} mode-${this.currentMode}`;
-        this.container.id = this.id;
-        this.container.setAttribute('role', 'application');
-        this.container.setAttribute('aria-label', 'JSON Editor');
+        this.container              = document.createElement( 'div' );
+        this.container.className    = `smliser-json-editor theme-${this.options.theme} mode-${this.currentMode}`;
+        this.container.id           = this.id;
+        this.container.tabIndex     = "0";
+        this.container.setAttribute( 'role', 'application' );
+        this.container.setAttribute( 'aria-label', 'JSON Editor' );
 
         // Build header (title and description)
-        if (this.options.title || this.options.description) {
+        if ( this.options.title || this.options.description ) {
             this._buildHeader();
         }
 
         // Build toolbar
-        if (this.options.showToolbar) {
+        if ( this.options.showToolbar ) {
             this._buildToolbar();
         }
 
@@ -209,13 +206,15 @@ class SmliserJsonEditor {
         this._buildStatusBar();
 
         // Replace target or append
-        if (this.targetElement.tagName === 'TEXTAREA') {
+        if ( this.targetElement.tagName === 'TEXTAREA' ) {
             this.targetElement.style.display = 'none';
-            this.targetElement.parentNode.insertBefore(this.container, this.targetElement.nextSibling);
+            this.targetElement.parentNode.insertBefore( this.container, this.targetElement.nextSibling );
         } else {
             this.targetElement.innerHTML = '';
-            this.targetElement.appendChild(this.container);
+            this.targetElement.appendChild( this.container );
         }
+
+        this.container.focus();
     }
 
     /**
@@ -223,24 +222,24 @@ class SmliserJsonEditor {
      * @private
      */
     _buildHeader() {
-        const header = document.createElement('div');
+        const header = document.createElement( 'div' );
         header.className = 'json-editor-header';
 
-        if (this.options.title) {
-            const titleElement = document.createElement('h2');
-            titleElement.className = 'json-editor-header-title';
-            titleElement.textContent = this.options.title;
-            header.appendChild(titleElement);
+        if ( this.options.title ) {
+            const titleElement          = document.createElement( 'h2' );
+            titleElement.className      = 'json-editor-header-title';
+            titleElement.textContent    = this.options.title;
+            header.appendChild( titleElement );
         }
 
-        if (this.options.description) {
-            const descElement = document.createElement('p');
-            descElement.className = 'json-editor-header-description';
+        if ( this.options.description ) {
+            const descElement       = document.createElement( 'p' );
+            descElement.className   = 'json-editor-header-description';
             descElement.textContent = this.options.description;
-            header.appendChild(descElement);
+            header.appendChild( descElement );
         }
 
-        this.container.appendChild(header);
+        this.container.appendChild( header );
     }
 
     /**
@@ -248,10 +247,10 @@ class SmliserJsonEditor {
      * @private
      */
     _buildToolbar() {
-        this.toolbar = document.createElement('div');
-        this.toolbar.className = 'json-editor-toolbar';
-        this.toolbar.setAttribute('role', 'toolbar');
-        this.toolbar.setAttribute('aria-label', 'Editor toolbar');
+        this.toolbar            = document.createElement( 'div' );
+        this.toolbar.className  = 'json-editor-toolbar';
+        this.toolbar.setAttribute( 'role', 'toolbar' );
+        this.toolbar.setAttribute( 'aria-label', 'Editor toolbar' );
 
         const toolbarHTML = `
             <div class="toolbar-group">
@@ -389,7 +388,7 @@ class SmliserJsonEditor {
         `;
 
         this.toolbar.innerHTML = toolbarHTML;
-        this.container.appendChild(this.toolbar);
+        this.container.appendChild( this.toolbar );
     }
 
     /**
@@ -397,34 +396,34 @@ class SmliserJsonEditor {
      * @private
      */
     _buildViews() {
-        const viewsContainer = document.createElement('div');
-        viewsContainer.className = 'json-editor-views';
+        const viewsContainer        = document.createElement( 'div' );
+        viewsContainer.className    = 'json-editor-views';
 
         // Tree view
-        this.treeView = document.createElement('div');
+        this.treeView           = document.createElement( 'div' );
         this.treeView.className = 'json-editor-tree-view';
-        this.treeView.setAttribute('role', 'tree');
-        this.treeView.setAttribute('aria-label', 'JSON tree view');
+        this.treeView.setAttribute( 'role', 'tree' );
+        this.treeView.setAttribute( 'aria-label', 'JSON tree view' );
         viewsContainer.appendChild(this.treeView);
 
         // Code view
-        this.codeView = document.createElement('div');
+        this.codeView           = document.createElement( 'div' );
         this.codeView.className = 'json-editor-code-view';
         
-        const codeTextarea = document.createElement('textarea');
-        codeTextarea.className = 'json-editor-code-textarea';
-        codeTextarea.setAttribute('spellcheck', 'false');
-        codeTextarea.setAttribute('aria-label', 'JSON code editor');
+        const codeTextarea      = document.createElement( 'textarea' );
+        codeTextarea.className  = 'json-editor-code-textarea';
+        codeTextarea.setAttribute( 'spellcheck', 'false' );
+        codeTextarea.setAttribute( 'aria-label', 'JSON code editor' );
         codeTextarea.placeholder = 'Enter or paste JSON here...';
         // Allow editing unless explicitly read-only
-        if (this.options.readOnly) {
+        if ( this.options.readOnly ) {
             codeTextarea.readOnly = true;
         }
         
-        this.codeView.appendChild(codeTextarea);
-        viewsContainer.appendChild(this.codeView);
+        this.codeView.appendChild( codeTextarea );
+        viewsContainer.appendChild( this.codeView );
 
-        this.container.appendChild(viewsContainer);
+        this.container.appendChild( viewsContainer );
     }
 
     /**
@@ -432,10 +431,10 @@ class SmliserJsonEditor {
      * @private
      */
     _buildStatusBar() {
-        this.statusBar = document.createElement('div');
-        this.statusBar.className = 'json-editor-status-bar';
-        this.statusBar.setAttribute('role', 'status');
-        this.statusBar.setAttribute('aria-live', 'polite');
+        this.statusBar              = document.createElement( 'div' );
+        this.statusBar.className    = 'json-editor-status-bar';
+        this.statusBar.setAttribute( 'role', 'status' );
+        this.statusBar.setAttribute( 'aria-live', 'polite' );
 
         this.statusBar.innerHTML = `
             <span class="status-item status-valid"></span>
@@ -443,7 +442,7 @@ class SmliserJsonEditor {
             <span class="status-item status-keys"></span>
         `;
 
-        this.container.appendChild(this.statusBar);
+        this.container.appendChild( this.statusBar );
         this._updateStatusBar();
     }
 
@@ -453,51 +452,51 @@ class SmliserJsonEditor {
      */
     _setupEventListeners() {
         // Toolbar actions
-        this.toolbar?.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-action]');
-            if (!btn) return;
+        this.toolbar?.addEventListener( 'click', (e) => {
+            const btn = e.target.closest( '[data-action]' );
+            if ( ! btn ) return;
 
             const action = btn.dataset.action;
-            this._handleToolbarAction(action);
+            this._handleToolbarAction( action );
         });
 
         // Search input
-        const searchInput = this.toolbar?.querySelector('.toolbar-search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
+        const searchInput = this.toolbar?.querySelector( '.toolbar-search-input' );
+        if ( searchInput ) {
+            searchInput.addEventListener( 'input', (e) => {
                 this.searchTerm = e.target.value;
                 this._render();
             });
         }
 
         // Code view textarea
-        const codeTextarea = this.codeView?.querySelector('textarea');
+        const codeTextarea = this.codeView?.querySelector( 'textarea' );
         if (codeTextarea) {
-            codeTextarea.addEventListener('input', () => {
+            codeTextarea.addEventListener( 'input', () => {
                 this._handleCodeChange();
             });
         }
 
         // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (!this.container.contains(document.activeElement)) return;
-            this._handleKeyboardShortcuts(e);
+        document.addEventListener( 'keydown', (e) => {
+            if (!this.container.contains( document.activeElement ) ) return;
+            this._handleKeyboardShortcuts( e );
         });
 
         // File drop
-        this.container.addEventListener('dragover', (e) => {
+        this.container.addEventListener( 'dragover', (e) => {
             e.preventDefault();
-            this.container.classList.add('drag-over');
+            this.container.classList.add( 'drag-over' );
         });
 
-        this.container.addEventListener('dragleave', () => {
-            this.container.classList.remove('drag-over');
+        this.container.addEventListener( 'dragleave', () => {
+            this.container.classList.remove( 'drag-over' );
         });
 
-        this.container.addEventListener('drop', (e) => {
+        this.container.addEventListener( 'drop', (e) => {
             e.preventDefault();
-            this.container.classList.remove('drag-over');
-            this._handleFileDrop(e);
+            this.container.classList.remove( 'drag-over' );
+            this._handleFileDrop( e );
         });
     }
 
@@ -505,8 +504,8 @@ class SmliserJsonEditor {
      * Handle toolbar actions
      * @private
      */
-    async _handleToolbarAction(action) {
-        switch (action) {
+    async _handleToolbarAction( action ) {
+        switch ( action ) {
             case 'import':
                 await this.importFromFile();
                 break;
@@ -535,10 +534,10 @@ class SmliserJsonEditor {
                 this.toggleSortKeys();
                 break;
             case 'mode-tree':
-                this.setMode('tree');
+                this.setMode( 'tree' );
                 break;
             case 'mode-code':
-                this.setMode('code');
+                this.setMode( 'code' );
                 break;
             case 'expand-all':
                 this.expandAll();
@@ -556,24 +555,24 @@ class SmliserJsonEditor {
      * Handle keyboard shortcuts
      * @private
      */
-    _handleKeyboardShortcuts(e) {
+    _handleKeyboardShortcuts( e ) {
         const ctrl = e.ctrlKey || e.metaKey;
 
-        if (ctrl && e.key === 'z' && !e.shiftKey) {
+        if ( ctrl && e.key === 'z' && !e.shiftKey ) {
             e.preventDefault();
             this.undo();
-        } else if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        } else if ( ctrl && (e.key === 'y' || ( e.key === 'z' && e.shiftKey ) ) ) {
             e.preventDefault();
             this.redo();
-        } else if (ctrl && e.key === 's') {
+        } else if ( ctrl && e.key === 's' ) {
             e.preventDefault();
             this.exportToFile();
-        } else if (ctrl && e.key === 'o') {
+        } else if ( ctrl && e.key === 'o' ) {
             e.preventDefault();
             this.importFromFile();
-        } else if (ctrl && e.key === 'f') {
+        } else if ( ctrl && e.key === 'f' ) {
             e.preventDefault();
-            this.toolbar?.querySelector('.toolbar-search-input')?.focus();
+            this.toolbar?.querySelector( '.toolbar-search-input' )?.focus();
         }
     }
 
@@ -582,16 +581,16 @@ class SmliserJsonEditor {
      * @private
      */
     _handleCodeChange() {
-        const codeTextarea = this.codeView.querySelector('textarea');
+        const codeTextarea = this.codeView.querySelector( 'textarea' );
         const code = codeTextarea.value;
 
         try {
-            const parsed = JSON.parse(code);
-            this._updateData(parsed, true);
+            const parsed = JSON.parse( code );
+            this._updateData( parsed, true );
         } catch (e) {
             // Invalid JSON - show error but don't update
-            this.isValid = false;
-            this.validationErrors = [e.message];
+            this.isValid            = false;
+            this.validationErrors   = [e.message];
             this._updateStatusBar();
         }
     }
@@ -604,13 +603,13 @@ class SmliserJsonEditor {
         const files = e.dataTransfer.files;
         if (files.length === 0) return;
 
-        const file = files[0];
-        if (!file.name.endsWith('.json')) {
-            this._handleError('Please drop a JSON file');
+        const file  = files[0];
+        if ( ! file.name.endsWith( '.json' ) ) {
+            this._handleError( 'Please drop a JSON file' );
             return;
         }
 
-        await this._loadFile(file);
+        await this.#_loadFile( file );
     }
 
     /**
@@ -618,7 +617,7 @@ class SmliserJsonEditor {
      * @private
      */
     _render() {
-        if (this.currentMode === 'tree') {
+        if ( this.currentMode === 'tree' ) {
             this._renderTreeView();
         } else {
             this._renderCodeView();
@@ -635,38 +634,38 @@ class SmliserJsonEditor {
     _renderTreeView() {
         this.treeView.innerHTML = '';
         
-        const tree = this._buildTreeNode(this.currentData, '', 'root');
-        this.treeView.appendChild(tree);
+        const tree = this._buildTreeNode( this.currentData, '', 'root' );
+        this.treeView.appendChild( tree );
     }
 
     /**
      * Build tree node recursively
      * @private
      */
-    _buildTreeNode(value, path, key, isLast = true) {
-        const node = document.createElement('div');
-        node.className = 'json-tree-node';
-        node.dataset.path = path;
+    _buildTreeNode( value, path, key, isLast = true ) {
+        const node          = document.createElement( 'div' );
+        node.className      = 'json-tree-node';
+        node.dataset.path   = path;
 
-        const type = this._getType(value);
-        const isExpandable = type === 'object' || type === 'array';
-        const isExpanded = this.expandedPaths.has(path);
-        const matchesSearch = this.searchTerm ? this._matchesSearch(key, value) : true;
+        const type          = this._getType( value );
+        const isExpandable  = type === 'object' || type === 'array';
+        const isExpanded    = this.expandedPaths.has( path );
+        const matchesSearch = this.searchTerm ? this._matchesSearch( key, value ) : true;
 
-        if (!matchesSearch && !this._hasMatchingChildren(value)) {
+        if ( ! matchesSearch && !this._hasMatchingChildren( value ) ) {
             node.style.display = 'none';
         }
 
         // Node header
-        const header = document.createElement('div');
-        header.className = `json-tree-header type-${type} ${matchesSearch ? 'highlight' : ''}`;
-        header.setAttribute('role', 'treeitem');
-        header.setAttribute('aria-expanded', isExpandable ? isExpanded : null);
+        const header        = document.createElement( 'div' );
+        header.className    = `json-tree-header type-${type} ${matchesSearch ? 'highlight' : ''}`;
+        header.setAttribute( 'role', 'treeitem' );
+        header.setAttribute( 'aria-expanded', isExpandable ? isExpanded : null );
 
         let headerHTML = '';
 
         // Expand/collapse button
-        if (isExpandable) {
+        if ( isExpandable ) {
             headerHTML += `
                 <button class="tree-toggle" aria-label="${isExpanded ? 'Collapse' : 'Expand'}">
                     <svg width="12" height="12" class="icon-${isExpanded ? 'expanded' : 'collapsed'}">
@@ -680,15 +679,15 @@ class SmliserJsonEditor {
 
         // Key
         if (key !== 'root') {
-            headerHTML += `<span class="tree-key">"${this._escapeHtml(key)}"</span>`;
+            headerHTML += `<span class="tree-key">"${this._escapeHtml( key )}"</span>`;
             headerHTML += '<span class="tree-separator">:</span>';
         }
 
         // Value preview
-        headerHTML += `<span class="tree-value ${type}">${this._getValuePreview(value, type)}</span>`;
+        headerHTML += `<span class="tree-value ${type}">${this._getValuePreview( value, type )}</span>`;
 
         // Actions (only if not read-only)
-        if (!this.options.readOnly) {
+        if ( ! this.options.readOnly ) {
             headerHTML += `
                 <div class="tree-actions">
                     ${key !== 'root' && type !== 'array' ? `
@@ -717,48 +716,48 @@ class SmliserJsonEditor {
         }
 
         header.innerHTML = headerHTML;
-        node.appendChild(header);
+        node.appendChild( header );
 
         // Children (if expanded)
         if (isExpandable && isExpanded) {
-            const children = document.createElement('div');
+            const children = document.createElement( 'div' );
             children.className = 'json-tree-children';
-            children.setAttribute('role', 'group');
+            children.setAttribute( 'role', 'group' );
 
-            if (type === 'array') {
-                value.forEach((item, index) => {
-                    const childPath = path ? `${path}.${index}` : String(index);
-                    const childNode = this._buildTreeNode(item, childPath, String(index), index === value.length - 1);
-                    children.appendChild(childNode);
+            if ( type === 'array' ) {
+                value.forEach( ( item, index ) => {
+                    const childPath = path ? `${path}.${index}` : String( index );
+                    const childNode = this._buildTreeNode( item, childPath, String( index ), index === value.length - 1 );
+                    children.appendChild( childNode );
                 });
-            } else if (type === 'object') {
-                const keys = this.options.sortKeys ? Object.keys(value).sort() : Object.keys(value);
-                keys.forEach((k, index) => {
+            } else if ( type === 'object' ) {
+                const keys = this.options.sortKeys ? Object.keys( value ).sort() : Object.keys( value );
+                keys.forEach( ( k, index ) => {
                     const childPath = path ? `${path}.${k}` : k;
-                    const childNode = this._buildTreeNode(value[k], childPath, k, index === keys.length - 1);
-                    children.appendChild(childNode);
+                    const childNode = this._buildTreeNode( value[k], childPath, k, index === keys.length - 1 );
+                    children.appendChild( childNode );
                 });
             }
 
-            node.appendChild(children);
+            node.appendChild( children );
         }
 
         // Event handlers
-        const toggleBtn = header.querySelector('.tree-toggle');
+        const toggleBtn = header.querySelector( '.tree-toggle' );
         if (toggleBtn) {
-            toggleBtn.addEventListener('click', (e) => {
+            toggleBtn.addEventListener( 'click', (e) => {
                 e.stopPropagation();
-                this._toggleNode(path);
+                this._toggleNode( path );
             });
         }
 
         // Action buttons
-        const actionBtns = header.querySelectorAll('.tree-action-btn');
-        actionBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        const actionBtns    = header.querySelectorAll( '.tree-action-btn' );
+        actionBtns.forEach( btn => {
+            btn.addEventListener( 'click', (e) => {
                 e.stopPropagation();
                 const action = btn.dataset.action;
-                this._handleNodeAction(action, path, key, value);
+                this._handleNodeAction( action, path, key, value );
             });
         });
 
@@ -769,21 +768,21 @@ class SmliserJsonEditor {
      * Get value preview for tree view
      * @private
      */
-    _getValuePreview(value, type) {
+    _getValuePreview( value, type ) {
         switch (type) {
             case 'string':
-                return `"${this._escapeHtml(value)}"`;
+                return `"${this._escapeHtml( value )}"`;
             case 'number':
             case 'boolean':
-                return String(value);
+                return String( value );
             case 'null':
                 return 'null';
             case 'array':
                 return `Array(${value.length})`;
             case 'object':
-                return `Object{${Object.keys(value).length}}`;
+                return `Object{${Object.keys( value ).length}}`;
             default:
-                return String(value);
+                return String( value );
         }
     }
 
@@ -791,11 +790,11 @@ class SmliserJsonEditor {
      * Toggle node expand/collapse
      * @private
      */
-    _toggleNode(path) {
-        if (this.expandedPaths.has(path)) {
-            this.expandedPaths.delete(path);
+    _toggleNode( path ) {
+        if ( this.expandedPaths.has( path ) ) {
+            this.expandedPaths.delete( path );
         } else {
-            this.expandedPaths.add(path);
+            this.expandedPaths.add( path );
         }
         this._render();
     }
@@ -804,19 +803,19 @@ class SmliserJsonEditor {
      * Handle node actions (edit, delete, add, edit-key)
      * @private
      */
-    async _handleNodeAction(action, path, key, value) {
-        switch (action) {
+    async _handleNodeAction( action, path, key, value ) {
+        switch ( action ) {
             case 'edit':
-                await this._editNode(path, key, value);
+                await this._editNode( path, key, value );
                 break;
             case 'edit-key':
-                await this._editNodeKey(path, key);
+                await this._editNodeKey( path, key );
                 break;
             case 'delete':
-                await this._deleteNode(path);
+                await this._deleteNode( path );
                 break;
             case 'add':
-                await this._addToNode(path, value);
+                await this._addToNode( path, value );
                 break;
         }
     }
@@ -825,14 +824,14 @@ class SmliserJsonEditor {
      * Edit node value
      * @private
      */
-    async _editNode(path, key, value) {
-        const type = this._getType(value);
+    async _editNode( path, key, value ) {
+        const type = this._getType( value );
         
         // Create inline editor based on type
-        const newValue = await this._showValueEditor(key, value, type);
+        const newValue = await this._showValueEditor( key, value, type );
         
-        if (newValue !== null && newValue !== undefined) {
-            this._setValueAtPath(path, newValue);
+        if ( newValue !== null && newValue !== undefined ) {
+            this._setValueAtPath( path, newValue );
         }
     }
 
@@ -840,7 +839,7 @@ class SmliserJsonEditor {
      * Edit node key (rename object property)
      * @private
      */
-    async _editNodeKey(path, currentKey) {
+    async _editNodeKey( path, currentKey ) {
         const newKey = await SmliserModal.prompt({
             title: 'Rename Property',
             message: 'Enter new property name:',
@@ -854,11 +853,11 @@ class SmliserJsonEditor {
                 }
                 
                 // Check if key already exists in parent
-                const parentPath = path.split('.').slice(0, -1).join('.');
-                const parent = this._getValueAtPath(parentPath);
+                const parentPath = path.split( '.' ).slice( 0, -1 ).join( '.' );
+                const parent = this._getValueAtPath( parentPath );
                 
-                if (parent && typeof parent === 'object' && !Array.isArray(parent)) {
-                    if (value !== currentKey && value in parent) {
+                if ( parent && typeof parent === 'object' && ! Array.isArray( parent ) ) {
+                    if ( value !== currentKey && value in parent ) {
                         return 'Property name already exists';
                     }
                 }
@@ -867,24 +866,20 @@ class SmliserJsonEditor {
             }
         });
 
-        if (newKey && newKey !== currentKey) {
+        if ( newKey && newKey !== currentKey ) {
             // Get the value at current path
-            const value = this._getValueAtPath(path);
-            
-            // Get parent object
-            const parentPath = path.split('.').slice(0, -1).join('.');
-            const parent = parentPath ? this._getValueAtPath(parentPath) : this.currentData;
-            
-            // Create new data with renamed key
-            const newData = this._cloneDeep(this.currentData);
-            const newParent = parentPath ? this._getValueAtPath(parentPath, newData) : newData;
+            const value         = this._getValueAtPath( path );
+            const parentPath    = path.split('.').slice(0, -1).join('.');
+            const parent        = parentPath ? this._getValueAtPath( parentPath ) : this.currentData;
+            const newData       = this._cloneDeep( this.currentData );
+            const newParent     = parentPath ? this._getValueAtPath( parentPath, newData ) : newData;
             
             // Delete old key and add new key
             delete newParent[currentKey];
             newParent[newKey] = value;
             
             // Update data
-            this._updateData(newData, true);
+            this._updateData( newData, true );
         }
     }
 
@@ -892,11 +887,11 @@ class SmliserJsonEditor {
      * Show value editor dialog
      * @private
      */
-    async _showValueEditor(key, currentValue, currentType) {
-        return new Promise((resolve) => {
+    async _showValueEditor( key, currentValue, currentType ) {
+        return new Promise( (resolve ) => {
             // Use SmliserModal for editing
-            const bodyContent = document.createElement('div');
-            bodyContent.className = 'json-editor-edit-dialog';
+            const bodyContent       = document.createElement( 'div' );
+            bodyContent.className   = 'json-editor-edit-dialog';
             
             bodyContent.innerHTML = `
                 <div class="edit-field">
@@ -912,24 +907,24 @@ class SmliserJsonEditor {
                 </div>
                 <div class="edit-field">
                     <label>Value:</label>
-                    <textarea class="edit-value-input" rows="4">${this._formatValueForEdit(currentValue, currentType)}</textarea>
+                    <textarea class="edit-value-input" rows="4">${this._formatValueForEdit( currentValue, currentType )}</textarea>
                 </div>
                 <div class="edit-error" style="display: none;"></div>
             `;
 
-            const footerContent = document.createElement('div');
+            const footerContent     = document.createElement( 'div' );
             footerContent.className = 'smliser-dialog-buttons';
             
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'smliser-btn smliser-btn-secondary';
-            cancelBtn.textContent = 'Cancel';
+            const cancelBtn         = document.createElement( 'button' );
+            cancelBtn.className     = 'smliser-btn smliser-btn-secondary';
+            cancelBtn.textContent   = 'Cancel';
             
-            const saveBtn = document.createElement('button');
-            saveBtn.className = 'smliser-btn smliser-btn-primary';
-            saveBtn.textContent = 'Save';
+            const saveBtn           = document.createElement( 'button' );
+            saveBtn.className       = 'smliser-btn smliser-btn-primary';
+            saveBtn.textContent     = 'Save';
             
-            footerContent.appendChild(cancelBtn);
-            footerContent.appendChild(saveBtn);
+            footerContent.appendChild( cancelBtn );
+            footerContent.appendChild( saveBtn );
 
             const modal = new SmliserModal({
                 title: `Edit: ${key}`,
@@ -938,26 +933,26 @@ class SmliserJsonEditor {
                 width: '500px'
             });
 
-            const typeSelect = bodyContent.querySelector('.edit-type-select');
-            const valueInput = bodyContent.querySelector('.edit-value-input');
-            const errorDiv = bodyContent.querySelector('.edit-error');
+            const typeSelect    = bodyContent.querySelector( '.edit-type-select' );
+            const valueInput    = bodyContent.querySelector( '.edit-value-input' );
+            const errorDiv      = bodyContent.querySelector( '.edit-error' );
 
             const handleSave = async () => {
-                const selectedType = typeSelect.value;
-                const inputValue = valueInput.value.trim();
+                const selectedType  = typeSelect.value;
+                const inputValue    = valueInput.value.trim();
 
                 try {
-                    const newValue = this._parseValueByType(inputValue, selectedType);
+                    const newValue = this._parseValueByType( inputValue, selectedType );
                     await modal.destroy();
-                    resolve(newValue);
+                    resolve( newValue );
                 } catch (e) {
-                    errorDiv.textContent = e.message;
-                    errorDiv.style.display = 'block';
+                    errorDiv.textContent    = e.message;
+                    errorDiv.style.display  = 'block';
                 }
             };
 
-            saveBtn.addEventListener('click', handleSave);
-            cancelBtn.addEventListener('click', async () => {
+            saveBtn.addEventListener( 'click', handleSave );
+            cancelBtn.addEventListener( 'click', async () => {
                 await modal.destroy();
                 resolve(null);
             });
@@ -970,38 +965,38 @@ class SmliserJsonEditor {
      * Format value for editing
      * @private
      */
-    _formatValueForEdit(value, type) {
-        if (type === 'string') return value;
-        if (type === 'null') return '';
-        if (type === 'object' || type === 'array') {
-            return JSON.stringify(value, null, 2);
+    _formatValueForEdit( value, type ) {
+        if ( type === 'string' ) return value;
+        if ( type === 'null' ) return '';
+        if ( type === 'object' || type === 'array' ) {
+            return JSON.stringify( value, null, 2 );
         }
-        return String(value);
+        return String( value );
     }
 
     /**
      * Parse value by type
      * @private
      */
-    _parseValueByType(input, type) {
-        switch (type) {
+    _parseValueByType( input, type ) {
+        switch ( type ) {
             case 'string':
                 return input;
             case 'number':
-                const num = Number(input);
-                if (isNaN(num)) throw new Error('Invalid number');
+                const num = Number( input );
+                if ( isNaN( num ) ) throw new Error( 'Invalid number' );
                 return num;
             case 'boolean':
-                if (input.toLowerCase() === 'true') return true;
-                if (input.toLowerCase() === 'false') return false;
-                throw new Error('Invalid boolean (use true or false)');
+                if ( input.toLowerCase() === 'true' ) return true;
+                if ( input.toLowerCase() === 'false' ) return false;
+                throw new Error( 'Invalid boolean (use true or false)' );
             case 'null':
                 return null;
             case 'array':
             case 'object':
-                return JSON.parse(input);
+                return JSON.parse( input );
             default:
-                throw new Error('Unknown type');
+                throw new Error( 'Unknown type' );
         }
     }
 
@@ -1009,14 +1004,14 @@ class SmliserJsonEditor {
      * Delete node
      * @private
      */
-    async _deleteNode(path) {
+    async _deleteNode( path ) {
         const confirmed = await SmliserModal.confirm({
             message: 'Delete this item?',
             danger: true
         });
 
-        if (confirmed) {
-            this._deleteAtPath(path);
+        if ( confirmed ) {
+            this._deleteAtPath( path );
         }
     }
 
@@ -1024,24 +1019,24 @@ class SmliserJsonEditor {
      * Add item to node
      * @private
      */
-    async _addToNode(path, parentValue) {
-        const isArray = Array.isArray(parentValue);
+    async _addToNode( path, parentValue ) {
+        const isArray = Array.isArray( parentValue );
         
-        const key = isArray ? String(parentValue.length) : await this._promptForKey();
-        if (!key && !isArray) return;
+        const key = isArray ? String( parentValue.length ) : await this._promptForKey();
+        if ( ! key && ! isArray ) return;
 
-        const value = await this._showValueEditor(key, '', 'string');
-        if (value !== null && value !== undefined) {
-            const newData = this._cloneDeep(this.currentData);
-            const parent = this._getValueAtPath(path, newData);
+        const value = await this._showValueEditor( key, '', 'string' );
+        if ( value !== null && value !== undefined ) {
+            const newData   = this._cloneDeep( this.currentData );
+            const parent    = this._getValueAtPath( path, newData );
             
-            if (isArray) {
-                parent.push(value);
+            if ( isArray ) {
+                parent.push( value );
             } else {
                 parent[key] = value;
             }
 
-            this._updateData(newData, true);
+            this._updateData( newData, true );
         }
     }
 
@@ -1054,9 +1049,9 @@ class SmliserJsonEditor {
             title: 'New Property',
             message: 'Enter property name:',
             placeholder: 'propertyName',
-            validator: (value) => {
-                if (!value.trim()) return 'Property name is required';
-                if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(value)) {
+            validator: ( value ) => {
+                if ( ! value.trim() ) return 'Property name is required';
+                if ( !/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test( value ) ) {
                     return 'Invalid property name';
                 }
                 return null;
@@ -1069,7 +1064,7 @@ class SmliserJsonEditor {
      * @private
      */
     _renderCodeView() {
-        const textarea = this.codeView.querySelector('textarea');
+        const textarea  = this.codeView.querySelector( 'textarea' );
         const formatted = JSON.stringify(
             this.currentData, 
             null, 
@@ -1083,28 +1078,28 @@ class SmliserJsonEditor {
      * @private
      */
     _updateStatusBar() {
-        const validItem = this.statusBar.querySelector('.status-valid');
-        const sizeItem = this.statusBar.querySelector('.status-size');
-        const keysItem = this.statusBar.querySelector('.status-keys');
+        const validItem = this.statusBar.querySelector( '.status-valid' );
+        const sizeItem = this.statusBar.querySelector( '.status-size' );
+        const keysItem = this.statusBar.querySelector( '.status-keys' );
 
         // Validation status
-        if (this.isValid) {
+        if ( this.isValid ) {
             validItem.innerHTML = '<span class="status-icon status-success">✓</span> Valid JSON';
             validItem.className = 'status-item status-valid valid';
         } else {
             validItem.innerHTML = '<span class="status-icon status-error">✗</span> Invalid JSON';
             validItem.className = 'status-item status-valid invalid';
-            validItem.title = this.validationErrors.join(', ');
+            validItem.title = this.validationErrors.join( ', ' );
         }
 
         // Size
-        const jsonStr = JSON.stringify(this.currentData);
-        const bytes = new Blob([jsonStr]).size;
-        sizeItem.textContent = this._formatBytes(bytes);
+        const jsonStr           = JSON.stringify( this.currentData );
+        const bytes             = new Blob([jsonStr]).size;
+        sizeItem.textContent    = this._formatBytes( bytes );
 
         // Key count
-        const count = this._countKeys(this.currentData);
-        keysItem.textContent = `${count} ${count === 1 ? 'key' : 'keys'}`;
+        const count             = this._countKeys( this .currentData);
+        keysItem.textContent    = `${count} ${count === 1 ? 'key' : 'keys'}`;
     }
 
     /**
@@ -1113,37 +1108,32 @@ class SmliserJsonEditor {
      */
     _updateToolbarState() {
         // Undo/redo
-        const undoBtn = this.toolbar?.querySelector('[data-action="undo"]');
-        const redoBtn = this.toolbar?.querySelector('[data-action="redo"]');
+        const undoBtn = this.toolbar?.querySelector( '[data-action="undo"]' );
+        const redoBtn = this.toolbar?.querySelector( '[data-action="redo"]' );
 
-        if (undoBtn) undoBtn.disabled = this.historyIndex <= 0;
-        if (redoBtn) redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+        if ( undoBtn ) undoBtn.disabled = this.historyIndex <= 0;
+        if ( redoBtn ) redoBtn.disabled = this.historyIndex >= this.history.length - 1;
     }
 
     /**
      * Update data and trigger change event
      * @private
      */
-    _updateData(newData, addToHistory = true) {
+    _updateData( newData, addToHistory = true ) {
         this.currentData = newData;
-
-        // Validate
         this._validate();
 
-        // Add to history
-        if (addToHistory && this.options.enableUndo) {
-            this._addToHistory(newData);
+        if ( addToHistory && this.options.enableUndo ) {
+            this._addToHistory( newData );
         }
 
         // Update textarea if present
-        if (this.targetElement.tagName === 'TEXTAREA') {
-            this.targetElement.value = JSON.stringify(newData, null, 2);
+        if ( this.targetElement.tagName === 'TEXTAREA' ) {
+            this.targetElement.value    = JSON.stringify( newData, null, 2 );
         }
 
-        // Trigger change event
-        this._triggerEvent('change', newData);
+        this._triggerEvent( 'change', newData );
 
-        // Re-render
         this._render();
     }
 
@@ -1152,12 +1142,12 @@ class SmliserJsonEditor {
      * @private
      */
     _validate() {
-        this.validationErrors = [];
-        this.isValid = true;
+        this.validationErrors   = [];
+        this.isValid            = true;
 
         try {
             // Try to stringify (will fail for circular refs, etc)
-            JSON.stringify(this.currentData);
+            JSON.stringify( this.currentData );
 
             // Custom validator
             if (this.options.validator) {
@@ -1169,10 +1159,10 @@ class SmliserJsonEditor {
             }
         } catch (e) {
             this.isValid = false;
-            this.validationErrors.push(e.message);
+            this.validationErrors.push( e.message );
         }
 
-        this._triggerEvent('validate', { 
+        this._triggerEvent( 'validate', { 
             isValid: this.isValid, 
             errors: this.validationErrors 
         });
@@ -1184,10 +1174,10 @@ class SmliserJsonEditor {
      */
     _addToHistory(data) {
         // Remove any history after current index
-        this.history = this.history.slice(0, this.historyIndex + 1);
+        this.history = this.history.slice( 0, this.historyIndex + 1 );
 
         // Add new state
-        this.history.push(this._cloneDeep(data));
+        this.history.push(this._cloneDeep( data ) );
 
         // Limit history size
         if (this.history.length > this.options.maxHistorySize) {
@@ -1206,7 +1196,7 @@ class SmliserJsonEditor {
      * @returns {Promise<*>}
      */
     async getData() {
-        return Promise.resolve(this._cloneDeep(this.currentData));
+        return Promise.resolve(this._cloneDeep( this.currentData ));
     }
 
     /**
@@ -1216,7 +1206,7 @@ class SmliserJsonEditor {
      */
     async setData(data) {
         this._updateData(data, true);
-        return Promise.resolve();
+        return Promise.resolve( true );
     }
 
     /**
@@ -1224,9 +1214,9 @@ class SmliserJsonEditor {
      * @param {boolean} pretty - Format with indentation
      * @returns {Promise<string>}
      */
-    async getJSON(pretty = true) {
+    async getJSON( pretty = true) {
         const indent = pretty ? this.options.indentSize : 0;
-        return Promise.resolve(JSON.stringify(this.currentData, null, indent));
+        return Promise.resolve( JSON.stringify( this.currentData, null, indent ) );
     }
 
     /**
@@ -1236,11 +1226,10 @@ class SmliserJsonEditor {
      */
     async setJSON(jsonString) {
         try {
-            const parsed = JSON.parse(jsonString);
-            await this.setData(parsed);
+            const parsed = JSON.parse( jsonString );
+            return await this.setData( parsed );
         } catch (e) {
-            this._handleError('Invalid JSON string', e);
-            throw e;
+            this._handleError( 'Invalid JSON string', e );
         }
     }
 
@@ -1249,20 +1238,20 @@ class SmliserJsonEditor {
      * @returns {Promise<void>}
      */
     async importFromFile() {
-        return new Promise((resolve, reject) => {
-            const input = document.createElement('input');
+        return new Promise( ( resolve, reject ) => {
+            const input = document.createElement( 'input' );
             input.type = 'file';
             input.accept = '.json,application/json';
 
-            input.addEventListener('change', async (e) => {
+            input.addEventListener( 'change', async (e) => {
                 const file = e.target.files[0];
-                if (!file) {
+                if ( ! file ) {
                     resolve();
                     return;
                 }
 
                 try {
-                    await this._loadFile(file);
+                    await this.#_loadFile( file );
                     resolve();
                 } catch (e) {
                     reject(e);
@@ -1277,31 +1266,18 @@ class SmliserJsonEditor {
      * Load file
      * @private
      */
-    async _loadFile(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = async (e) => {
-                try {
-                    const text = e.target.result;
-                    const parsed = JSON.parse(text);
-                    await this.setData(parsed);
-                    await SmliserModal.success('File imported successfully');
-                    resolve();
-                } catch (err) {
-                    this._handleError('Failed to parse JSON file', err);
-                    reject(err);
-                }
-            };
-
-            reader.onerror = () => {
-                const err = new Error('Failed to read file');
-                this._handleError(err.message, err);
-                reject(err);
-            };
-
-            reader.readAsText(file);
-        });
+    async #_loadFile( file ) {
+        try {
+            // Blob.text() is generally more optimized than FileReader
+            const text      = await file.text(); 
+            const parsed    = JSON.parse( text );
+            
+            await this.setData( parsed );
+            await SmliserModal.success( 'File imported successfully' );
+        } catch (err) {
+            this._handleError( 'Failed to parse or load JSON file', err);
+            throw err;
+        }
     }
 
     /**
@@ -1311,27 +1287,27 @@ class SmliserJsonEditor {
      */
     async exportToFile(filename = null) {
         // Get filename from toolbar input if not provided
-        if (!filename) {
-            const filenameInput = this.toolbar?.querySelector('.toolbar-filename-input');
+        if ( ! filename ) {
+            const filenameInput = this.toolbar?.querySelector( '.toolbar-filename-input' );
             filename = filenameInput?.value?.trim() || 'data.json';
             
             // Ensure .json extension
-            if (!filename.endsWith('.json')) {
+            if ( ! filename.endsWith( '.json' ) ) {
                 filename += '.json';
             }
         }
 
-        const jsonString = await this.getJSON(true);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+        const jsonString    = await this.getJSON(true);
+        const blob          = new Blob( [jsonString], { type: 'application/json' } );
+        const url           = URL.createObjectURL(blob);
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
+        const a             = document.createElement( 'a' );
+        a.href              = url;
+        a.download          = filename;
         a.click();
 
-        URL.revokeObjectURL(url);
-        await SmliserModal.success(`File "${filename}" downloaded successfully`);
+        URL.revokeObjectURL( url );
+        await SmliserModal.success( `File "${filename}" downloaded successfully` );
     }
 
     /**
@@ -1339,14 +1315,13 @@ class SmliserJsonEditor {
      * @returns {Promise<void>}
      */
     async copyToClipboard() {
-        const jsonString = await this.getJSON(true);
+        const jsonString = await this.getJSON( true );
 
         try {
-            await navigator.clipboard.writeText(jsonString);
-            await SmliserModal.success('Copied to clipboard');
-        } catch (e) {
-            this._handleError('Failed to copy to clipboard', e);
-            throw e;
+            await navigator.clipboard.writeText( jsonString );
+            await SmliserModal.success( 'Copied to clipboard' );
+        } catch (e) {            
+            this._handleError( 'Failed to copy to clipboard', e );
         }
     }
 
@@ -1356,12 +1331,20 @@ class SmliserJsonEditor {
      */
     async pasteFromClipboard() {
         try {
-            const text = await navigator.clipboard.readText();
-            await this.setJSON(text);
-            await SmliserModal.success('Pasted from clipboard');
+            const text      = await navigator.clipboard.readText();
+            const success   = await this.setJSON( text );
+            if ( success ) {
+                await SmliserModal.success( 'Pasted from clipboard' );
+            }
+            
         } catch (e) {
-            this._handleError('Failed to paste from clipboard', e);
-            throw e;
+            let errorMessage    = 'Failed to paste from clipboard';
+
+            if ( e && e.name === 'NotAllowedError' ) {
+                errorMessage = 'Clipboard permission was blocked. Please allow access or paste manually.';
+            }
+            
+            this._handleError( errorMessage, e );
         }
     }
 
@@ -1369,9 +1352,9 @@ class SmliserJsonEditor {
      * Undo last change
      */
     undo() {
-        if (this.historyIndex > 0) {
+        if ( this.historyIndex > 0 ) {
             this.historyIndex--;
-            this.currentData = this._cloneDeep(this.history[this.historyIndex]);
+            this.currentData = this._cloneDeep( this.history[this.historyIndex] );
             this._render();
             this._triggerEvent('change', this.currentData);
         }
@@ -1381,11 +1364,11 @@ class SmliserJsonEditor {
      * Redo last undone change
      */
     redo() {
-        if (this.historyIndex < this.history.length - 1) {
+        if ( this.historyIndex < this.history.length - 1 ) {
             this.historyIndex++;
-            this.currentData = this._cloneDeep(this.history[this.historyIndex]);
+            this.currentData = this._cloneDeep( this.history[this.historyIndex] );
             this._render();
-            this._triggerEvent('change', this.currentData);
+            this._triggerEvent( 'change', this.currentData );
         }
     }
 
@@ -1393,7 +1376,7 @@ class SmliserJsonEditor {
      * Format JSON (prettify)
      */
     format() {
-        if (this.currentMode === 'code') {
+        if ( this.currentMode === 'code' ) {
             this._renderCodeView();
         }
     }
@@ -1402,9 +1385,9 @@ class SmliserJsonEditor {
      * Compact JSON (minimize)
      */
     compact() {
-        if (this.currentMode === 'code') {
-            const textarea = this.codeView.querySelector('textarea');
-            textarea.value = JSON.stringify(this.currentData);
+        if ( this.currentMode === 'code' ) {
+            const textarea = this.codeView.querySelector( 'textarea' );
+            textarea.value = JSON.stringify( this.currentData );
         }
     }
 
@@ -1414,9 +1397,9 @@ class SmliserJsonEditor {
     toggleSortKeys() {
         this.options.sortKeys = !this.options.sortKeys;
         
-        const sortBtn = this.toolbar?.querySelector('[data-action="sort"]');
-        if (sortBtn) {
-            sortBtn.classList.toggle('active', this.options.sortKeys);
+        const sortBtn = this.toolbar?.querySelector( '[data-action="sort"]' );
+        if ( sortBtn ) {
+            sortBtn.classList.toggle( 'active', this.options.sortKeys );
         }
 
         this._render();
@@ -1426,34 +1409,34 @@ class SmliserJsonEditor {
      * Set editor mode
      * @param {string} mode - 'tree' or 'code'
      */
-    setMode(mode) {
-        if (mode !== 'tree' && mode !== 'code') return;
+    setMode( mode ) {
+        if ( mode !== 'tree' && mode !== 'code' ) return;
 
-        this.currentMode = mode;
-        this.container.className = this.container.className.replace(/mode-\w+/, `mode-${mode}`);
+        this.currentMode            = mode;
+        this.container.className    = this.container.className.replace( /mode-\w+/, `mode-${mode}` );
 
         // Update toolbar
-        const treeBtn = this.toolbar?.querySelector('[data-action="mode-tree"]');
-        const codeBtn = this.toolbar?.querySelector('[data-action="mode-code"]');
+        const treeBtn   = this.toolbar?.querySelector( '[data-action="mode-tree"]' );
+        const codeBtn   = this.toolbar?.querySelector( '[data-action="mode-code"]' );
 
-        if (treeBtn) {
-            treeBtn.classList.toggle('active', mode === 'tree');
-            treeBtn.setAttribute('aria-checked', mode === 'tree');
+        if ( treeBtn ) {
+            treeBtn.classList.toggle( 'active', mode === 'tree' );
+            treeBtn.setAttribute( 'aria-checked', mode === 'tree' );
         }
-        if (codeBtn) {
-            codeBtn.classList.toggle('active', mode === 'code');
-            codeBtn.setAttribute('aria-checked', mode === 'code');
+        if ( codeBtn ) {
+            codeBtn.classList.toggle( 'active', mode === 'code' );
+            codeBtn.setAttribute( 'aria-checked', mode === 'code' );
         }
 
         this._render();
-        this._triggerEvent('modeChange', mode);
+        this._triggerEvent( 'modeChange', mode );
     }
 
     /**
      * Expand all nodes
      */
     expandAll() {
-        this._expandAllPaths(this.currentData, '');
+        this._expandAllPaths( this.currentData, '' );
         this._render();
     }
 
@@ -1461,8 +1444,8 @@ class SmliserJsonEditor {
      * Expand all paths recursively
      * @private
      */
-    _expandAllPaths(obj, path) {
-        this.expandedPaths.add(path);
+    _expandAllPaths( obj, path ) {
+        this.expandedPaths.add( path );
 
         if (Array.isArray(obj)) {
             obj.forEach((item, index) => {
@@ -1796,11 +1779,11 @@ class SmliserJsonEditor {
      * Format bytes
      * @private
      */
-    _formatBytes(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
+    _formatBytes( bytes ) {
+        if ( bytes === 0 ) return '0 B';
+        const k     = 1024;
         const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        const i     = Math.floor(Math.log(bytes) / Math.log(k));
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
     }
 
@@ -1808,8 +1791,8 @@ class SmliserJsonEditor {
      * Escape HTML
      * @private
      */
-    _escapeHtml(text) {
-        const div = document.createElement('div');
+    _escapeHtml( text ) {
+        const div       = document.createElement( 'div' );
         div.textContent = text;
         return div.innerHTML;
     }
@@ -1818,12 +1801,12 @@ class SmliserJsonEditor {
      * Check if matches search
      * @private
      */
-    _matchesSearch(key, value) {
-        if (!this.searchTerm) return true;
+    _matchesSearch( key, value ) {
+        if ( ! this.searchTerm ) return true;
 
-        const term = this.searchTerm.toLowerCase();
-        const keyMatch = String(key).toLowerCase().includes(term);
-        const valueMatch = String(value).toLowerCase().includes(term);
+        const term          = this.searchTerm.toLowerCase();
+        const keyMatch      = String( key ).toLowerCase().includes( term );
+        const valueMatch    = String(value).toLowerCase().includes( term );
 
         return keyMatch || valueMatch;
     }
@@ -1832,17 +1815,17 @@ class SmliserJsonEditor {
      * Check if has matching children
      * @private
      */
-    _hasMatchingChildren(obj) {
-        if (typeof obj !== 'object' || obj === null) return false;
+    _hasMatchingChildren( obj ) {
+        if ( typeof obj !== 'object' || obj === null ) return false;
 
-        if (Array.isArray(obj)) {
-            return obj.some((item, index) => 
-                this._matchesSearch(index, item) || this._hasMatchingChildren(item)
+        if ( Array.isArray( obj ) ) {
+            return obj.some( ( item, index ) => 
+                this._matchesSearch( index, item ) || this._hasMatchingChildren( item )
             );
         }
 
-        return Object.keys(obj).some(key => 
-            this._matchesSearch(key, obj[key]) || this._hasMatchingChildren(obj[key])
+        return Object.keys( obj ).some( key => 
+            this._matchesSearch( key, obj[key] ) || this._hasMatchingChildren( obj[key] )
         );
     }
 
@@ -1850,12 +1833,10 @@ class SmliserJsonEditor {
      * Handle error
      * @private
      */
-    _handleError(message, error = null) {
-        console.error('SmliserJsonEditor:', message, error);
-        
-        this._triggerEvent('error', { message, error });
+    _handleError( message, error = null ) {        
+        this._triggerEvent( 'error', { message, error } );
 
-        SmliserModal.error(message);
+        SmliserModal.error( message );
     }
 }
 

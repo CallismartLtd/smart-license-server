@@ -71,8 +71,8 @@ final class ScriptManager {
                 'media' => 'all'
                 
             ),
-            'smliser-app-modal'    => array(
-                'src'   => SetUp::assets_url() . 'css/app-modal.css',
+            'smliser-modal'    => array(
+                'src'   => SetUp::assets_url() . 'css/smliser-modal.css',
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
@@ -137,8 +137,8 @@ final class ScriptManager {
                 'footer'    => true
             ),
 
-            'smliser-app-modal'    => array(
-                'src'       => SetUp::assets_url() . 'js/app-modal.js',
+            'smliser-modal'    => array(
+                'src'       => SetUp::assets_url() . 'js/smliser-modal.js',
                 'deps'      => array('jquery' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
@@ -171,7 +171,7 @@ final class ScriptManager {
         wp_enqueue_script( 'smliser-script' );
         
         if ( is_admin() ) {
-            wp_enqueue_script( 'smliser-app-modal' );
+            wp_enqueue_script( 'smliser-modal' );
         }
         if ( is_admin() && 'toplevel_page_smliser-admin' === $s || 'smart-license-server_page_repository' === $s ) {
             wp_enqueue_script( 'smliser-chart' );
@@ -221,7 +221,7 @@ final class ScriptManager {
         wp_enqueue_style( 'smliser-form-styles' );
     
         if ( is_admin() ) {
-            wp_enqueue_style( 'smliser-app-modal' );
+            wp_enqueue_style( 'smliser-modal' );
         }
 
         if ( 'smart-license-server_page_smliser-bulk-message' === $s 
