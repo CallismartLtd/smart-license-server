@@ -1222,6 +1222,27 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         return Owner::get_by_id( $this->get_owner_id() );
     }
 
+    /**
+     * Hydrate object from DB row with only core fields.
+     * Does NOT load meta, assets, sections, or files.
+     *
+     * @param array $row Associative array from DB.
+     * @return static
+     */
+    public static function from_array_minimal( array $row ): static {
+        $self = new static();
+
+        $self->set_id( $row['id'] ?? 0 );
+        $self->set_name( $row['name'] ?? '' );
+        $self->set_slug( $row['slug'] ?? '' );
+        $self->set_author( $row['author'] ?? '' );
+        $self->set_status( $row['status'] ?? self::STATUS_ACTIVE );
+        $self->set_download_url( (string) ($row['download_link'] ?? '') );
+        $self->set_created_at( $row['created_at'] ?? '' );
+        $self->set_updated_at( $row['updated_at'] ?? '' );
+
+        return $self;
+    }
     /*
     |------------------------
     | SHARED CONDITIONAL METHODS

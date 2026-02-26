@@ -318,14 +318,14 @@ class HostedApplicationService {
      * @param array $args {
      *     Optional. Arguments to filter results.
      *
-     *     @type string $term   Search term to match against name, slug, or author. Required.
+     *     @type string $term   Search term to match against name, slug, or author. Default empty.
      *     @type int    $page   Current page number. Default 1.
      *     @type int    $limit  Number of items per page. Default 20.
      *     @type string $status Application status filter. Default 'active'.
      *     @type array  $types  List of types to query. Default all ['plugin','theme','software'].
      * }
      * @return array {
-     *     @type array $items      Instantiated application objects.
+     *     @type array $items      Instantiated application objects (minimal/core fields only).
      *     @type array $pagination Pagination info (page, limit, total, total_pages).
      * }
      */
@@ -339,21 +339,22 @@ class HostedApplicationService {
             'status' => AbstractHostedApp::STATUS_ACTIVE,
             'types'  => self::$allowed_app_types,
         );
-        $args       = parse_args( $args, $defaults );
-        $term       = sanitize_text_field( $args['term'] );
-        $page       = max( 1, (int) $args['page'] );
-        $limit      = max( 1, (int) $args['limit'] );
-        $offset     = $db->calculate_query_offset( $page, $limit );
-        $status     = $args['status'];
-        $types      = array_filter( (array) $args['types'] );
-        $key        = self::make_cache_key( __METHOD__, \compact( 'term', 'page', 'limit', 'status', 'types' ) );
+        $args   = parse_args( $args, $defaults );
+        $term   = sanitize_text_field( $args['term'] );
+        $page   = max( 1, (int) $args['page'] );
+        $limit  = max( 1, (int) $args['limit'] );
+        $offset = $db->calculate_query_offset( $page, $limit );
+        $status = $args['status'];
+        $types  = array_filter( (array) $args['types'] );
+        $key    = self::make_cache_key( __METHOD__, compact( 'term', 'page', 'limit', 'status', 'types' ) );
 
-        $results    = self::cache_get( $key );
+        $results = self::cache_get( $key );
 
         if ( false === $results ) {
+
             if ( empty( $term ) || empty( $types ) ) {
-                $results    = array(
-                    'items'      => array(),
+                $results = array(
+                    'items' => array(),
                     'pagination' => array(
                         'page'        => $page,
                         'limit'       => $limit,
@@ -362,10 +363,10 @@ class HostedApplicationService {
                     ),
                 );
             } else {
-                $like        = '%' . $term . '%';
-                $sql_parts   = [];
-                $count_parts = [];
-                $params_sql  = [];
+                $like         = '%' . $term . '%';
+                $sql_parts    = [];
+                $count_parts  = [];
+                $params_sql   = [];
                 $params_count = [];
 
                 foreach ( $types as $type ) {
@@ -382,10 +383,12 @@ class HostedApplicationService {
                         default:
                             continue 2;
                     }
-                   
-                    // Query for fetching IDs
-                    $sql_parts[]    = "SELECT id, '{$type}' AS type, updated_at FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
-                    $params_sql     = array_merge( $params_sql, [ $status, $like, $like, $like ] );
+
+                    // Query for fetching core fields
+                    $sql_parts[] = "SELECT id, name, slug, author, status, download_link, created_at, updated_at, '{$type}' AS type
+                                    FROM {$table} 
+                                    WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
+                    $params_sql  = array_merge( $params_sql, [ $status, $like, $like, $like ] );
 
                     // Query for counting matches
                     $count_parts[]  = "SELECT COUNT(*) AS total FROM {$table} WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
@@ -397,37 +400,35 @@ class HostedApplicationService {
                 $query_sql  = "{$union_sql} ORDER BY updated_at DESC LIMIT ? OFFSET ?";
                 $params_sql = array_merge( $params_sql, [ $limit, $offset ] );
 
-                // Fetch rows via adapter
+                // Fetch rows
                 $rows = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS apps", $params_sql, ARRAY_A );
 
-                // Aggregate count.
+                // Aggregate count
                 $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
-                $total = (int) $db->get_var( $count_sql, $params_count );
+                $total     = (int) $db->get_var( $count_sql, $params_count );
 
-                // Instantiate app objects
+                // Hydrate objects using the new minimal/core method
                 $objects = [];
                 foreach ( $rows as $row ) {
-                    $class  = self::get_app_class( $row['type'] );
-                    $method = "get_" . $row['type'];
+                    $class = self::get_app_class( $row['type'] );
 
-                    if ( method_exists( $class, $method ) ) {
-                        $objects[] = $class::$method( (int) $row['id'] );
+                    if ( method_exists( $class, 'from_array_minimal' ) ) {
+                        $objects[] = $class::from_array_minimal( $row );
                     }
                 }
 
-                $results    = array(
-                    'items'      => $objects,
+                $results = array(
+                    'items' => $objects,
                     'pagination' => array(
                         'page'        => $page,
                         'limit'       => $limit,
                         'total'       => $total,
                         'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
                     ),
-                );                
+                );
             }
 
-
-            self::cache_set( $key, $results, 30 * \MINUTE_IN_SECONDS );
+            self::cache_set( $key, $results, 30 * MINUTE_IN_SECONDS );
         }
 
         return $results;
