@@ -72,6 +72,10 @@ class Licenses {
         if ( $access_denied  ) {
             $error = is_smliser_error( $status_access ) ? $status_access : $domain_access;
 
+            if ( ! ( $error instanceof RequestException ) ) {
+                $error = new RequestException( $error->get_error_code(), $error->get_error_message(), $error->get_error_data() );
+            }
+
             return $error;
         }
 

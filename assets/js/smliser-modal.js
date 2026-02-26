@@ -192,6 +192,11 @@ class SmliserModal {
                 }
             };
         }
+
+        this.backdrop.addEventListener( 'submit', async (e) => {
+            e.preventDefault()
+            await this._triggerEvent( 'onSubmit' );
+        })
     }
 
     /**
@@ -422,6 +427,25 @@ class SmliserModal {
         this.bodyElement.innerHTML = '';
         this._setContent( this.bodyElement, content );
         return this;
+    }
+
+    /**
+     * Get the body element.
+     * 
+     * @param {string} selector - The selector for any element in the body, 
+     * the entire body element will be returned if nothing is passed. 
+     */
+    getBody( selector = '' ) {
+        if ( ! selector ) {
+            return this.bodyElement;
+        }
+
+        try {
+            return this.bodyElement.querySelector( selector );
+        } catch (error) {
+            return null;
+            
+        }
     }
 
     /**

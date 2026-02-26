@@ -652,6 +652,18 @@ function smliser_get_download_slug() {
     return apply_filters( 'smliser_download_slug', 'downloads' );
 }
 
+/**
+ * Get document download URL
+ * 
+ * @param int $id The document ID
+ * @return URL
+ */
+function smliser_document_download_url( int $id = 0 ) : URL {
+    $downloads_slug = smliser_get_download_slug();
+    $path           = implode( '/', [$downloads_slug,'document', $id] );
+
+    return new URL( site_url( $path ) );
+}
 
 /**
  * Retrieve the Authorization header from the client request.

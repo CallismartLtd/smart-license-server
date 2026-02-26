@@ -524,7 +524,15 @@ class Router implements RouterInterface {
 
         $token  = \smliser_generate_item_token( $license, $expiry );
 
-        smliser_send_json_success( array( 'token' => $token ) );
+        smliser_send_json_success([
+            'token'                 => $token,
+            'licensee_fullname'     => $license->get_licensee_fullname(),
+            'document_download_url' => smliser_document_download_url( $license->get_id() )
+                ->add_query_param( 'download_token', $token )
+                ->get_href(),
+            'expiry'    => gmdate( smliser_datetime_format(), time() + $expiry ),
+
+        ]);
 
     }
 

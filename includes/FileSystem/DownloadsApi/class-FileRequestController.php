@@ -259,6 +259,7 @@ class FileRequestController {
                 'content_type' => 'text/plain',
             ];
 
+
             return new FileResponse( $document, $file_props );
 
         } catch ( FileRequestException $e ) {
@@ -283,8 +284,8 @@ class FileRequestController {
     protected static function generate_license_document( $license, Settings $settingsAPI ): string {
         $license_key    = $license->get_license_key();
         $service_id     = $license->get_service_id();
-        $date_issued    = $license->get_start_date();
-        $expiry         = $license->get_end_date();
+        $date_issued    = $license->get_start_date()->format( \smliser_datetime_format() );
+        $expiry         = $license->get_end_date()->format( \smliser_datetime_format() );
         $status         = $license->get_status();
         $max_domains    = $license->get_max_allowed_domains();
         $licensee       = $license->get_licensee_fullname();

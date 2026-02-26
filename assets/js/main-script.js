@@ -916,8 +916,8 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
     });
 }
 
-document.addEventListener( 'DOMContentLoaded', function() {
-    let tokenBtn                = document.getElementById( 'smliserDownloadTokenBtn' );
+document.addEventListener( 'DOMContentLoaded', async function() {
+    let licenseDownloadTokenBtn = document.querySelector( '.smliser-generate-download-token-btn' );
     let licenseKeyContainers    = document.querySelectorAll( '.smliser-license-obfuscation' );
     let searchInput             = document.getElementById('smliser-search');
     let tooltips                = document.querySelectorAll( '.smliser-form-description, .smliser-tooltip' );
@@ -1141,104 +1141,207 @@ document.addEventListener( 'DOMContentLoaded', function() {
         });
     }
 
-    if ( tokenBtn ) { // @todo: Refactor to use SmliserModal && support multiple app type
-        let licenseId           = tokenBtn.getAttribute( 'data-license-id' );
-        let pluginName          = tokenBtn.getAttribute( 'data-plugin-name' );
-        let contentContainer    = document.getElementById( 'ajaxContentContainer' );
-        let templateContainer   = document.createElement( 'div' );
-        templateContainer.classList.add( 'smliser-gen-token-form-container' )
-
-        let bodyContent = `
-        <div class="smliser-token-body" id="smliser-token-body">
-            <span id="remove">&times;</span>
-            <h2>Generate Download Token</h2>
-            <hr>
-
-            <span class="smliser-loader" style="display: none; color:#000000;" id="spinner"></span>
+    if ( licenseDownloadTokenBtn ) {
+        const config    = StringUtils.JSONparse( licenseDownloadTokenBtn.getAttribute( 'data-args' ) );
         
-            <p>The token will be valid to download "<strong>${pluginName}</strong>", token will expire in 10 days if no expiry date is selected</p>
-            <div id="smliserNewToken"></div>
-            <div class="smliser-token-expiry-field" id="formBody">
-                <label for="expiryDate">Choose Expiry Date</label>
-                <input type="date" id="expiryDate" />
-            </div>
-            <button id="createToken" class="button action smliser-nav-btn">generate token</button>
-        </div>`;
-        templateContainer.innerHTML = bodyContent;
-        jQuery( contentContainer ).hide();
-        contentContainer.appendChild( templateContainer );
+        if ( ! config ) return;
+        const licenseID = config.license_id;
+        const appName   = config.app_name;
+        const modalBody     = document.createElement( 'form' );
+        modalBody.className = 'smliser-license-download-token-form';
+        modalBody.id        = 'licenseDownloadTokenForm';
         
-        tokenBtn.addEventListener( 'click', (event) => {
-            event.preventDefault();
-            jQuery( contentContainer ).fadeIn();
-            
-        });
+        const licenseInput  = document.createElement( 'input' );
+        licenseInput.type   = 'hidden';
+        licenseInput.name   = 'license_id';
+        licenseInput.value  = licenseID;
+        
+        const expiryLabel       = document.createElement( 'label' );
+        expiryLabel.textContent = 'Token Expiry (optional)';
+        expiryLabel.setAttribute( 'for', 'expiryDate' );
+        expiryLabel.className   = 'smliser-form-label-row';
 
-        let removeBtn       = document.getElementById( 'remove' );
-        let createTokenBtn  = document.getElementById( 'createToken' );
-        
-        let removeModal = () =>{
-            jQuery( contentContainer ).fadeOut();
+        const expiryInput       = document.createElement( 'input' );
+        expiryInput.type        = 'datetime-local';
+        expiryInput.name        = 'expiry';
+        expiryInput.id          = 'expiryDate';
+        expiryInput.className   = 'smliser-input';
+        expiryInput.setAttribute( 'smliser-date-picker', 'date' );
+
+        const description           = document.createElement( 'em' );
+        description.textContent     = 'Download tokens allow clients to download the application monetized under this license without exposing the primary license key. If expiry is not set, If expiry is not set, token will be valid for 24 hours by default.';
+
+        modalBody.appendChild( licenseInput );
+        expiryLabel.appendChild( expiryInput );
+        modalBody.appendChild( description );
+        modalBody.appendChild( expiryLabel );
+
+        const footerContent     = document.createElement( 'div' );
+        footerContent.className = 'smliser-dialog-buttons';
+        const submitBtn         = document.createElement( 'button' );
+        submitBtn.type          = 'submit';
+        submitBtn.className     = 'smliser-btn';
+        submitBtn.textContent   = 'Generate Token';
+
+        submitBtn.setAttribute( 'form', modalBody.id );
+
+        footerContent.appendChild( submitBtn );
+        let title = `Generate Download Token`;
+
+        if ( appName ) {
+            title += ` for ${appName}`;
         }
 
-        removeBtn.addEventListener( 'click', removeModal );
+        let picker = null;
 
-        createTokenBtn.addEventListener( 'click', (event) => {
-            event.preventDefault();
-            let spinner = document.getElementById('spinner');
-            
-            let expiryDate = document.getElementById( 'expiryDate' ).value;
-            
-            spinner.setAttribute( 'style', 'display: block; border: 5px dotted #000' );
+        const modal     = new SmliserModal({
+            title: title,
+            body: modalBody,
+            showCloseButton: true,
+            closeOnBackdropClick: false,
+            animation: true,
+            closeOnEscape: true,
+            footer: footerContent,
+            maxWidth: '600px'
+        });
 
-            if ( ! expiryDate ) {
-                expiryDate = '';
+        modal.on( 'afterOpen', () => {
+            if ( ! picker ) {
+                picker  = CallismartDatePicker.mountAll();
             }
-            let url = new URL( smliser_var.ajaxURL );
-            let payLoad = new FormData();
-            payLoad.set( 'action', 'smliser_generate_download_token' );
-            payLoad.set( 'security', smliser_var.nonce );
-            payLoad.set( 'expiry', expiryDate );
-            payLoad.set( 'license_id', licenseId );
-
-            fetch( url, {
-                method: 'POST',
-                body: payLoad,
-            }).then( response => {
-                if ( ! response.ok ) {
-                    throw new Error( response.statusText );
-                }
-                return response.json();
-            }).then( data => {
-                if ( data.success ) {
-                    downloadToken = data.data.token;
-                    var credentialsDiv = document.createElement('div');
-                    credentialsDiv.classList.add( 'smliser-token-body' );
-                    credentialsDiv.classList.add( 'added' );
-                    let htmlContent = `<p><strong>New token:</strong> ${downloadToken} <span class="dashicons dashicons-admin-page"></span></p>`;
-                    htmlContent += '<p><strong>Note:</strong> This is the last time this token will be revealed. Please copy and save it securely.</p>';
-                    credentialsDiv.innerHTML = htmlContent;
-
-                    jQuery( '#smliserNewToken' ).html( credentialsDiv );
-                    document.getElementById( 'formBody' ).remove();
-                    createTokenBtn.remove();
-                    
-                    let copyButton = credentialsDiv.querySelector( 'span.dashicons' );
-                    copyButton.addEventListener( 'click', () =>{
-                        smliserCopyToClipboard( downloadToken );
-                    });
-                    
-                } else {
-                    let errorMessage = data.data && data.data.message ? data.data.message : 'An error occurred';
-                    smliserNotify(errorMessage, 5000);
-                }
-            }).catch(error => {
-                smliserNotify(error.message || 'An unexpected error occurred', 5000);
-            }).finally(() => {
-                spinner.setAttribute( 'style', 'display: none;' );
-            });
             
         });
+
+        modal.on( 'onSubmit', async (e) => {            
+            if ( ! config.is_issued ) {
+                await SmliserModal.error( 'Download token can only be generated for issued licenses' );
+                return;
+            }
+
+            let url         = new URL( smliser_var.ajaxURL );
+            const payLoad   = new FormData( e.getBody( 'form' ) );
+            payLoad.set( 'action', 'smliser_generate_download_token' );
+            payLoad.set( 'security', smliser_var.nonce );
+
+            const response  = await smliserFetchJSON( url, {
+                method: 'POST',
+                body: payLoad
+            });
+
+            if ( response.success ) {
+                const token = response?.data?.token;
+
+                if ( ! token ) {
+                    console.warn( 'Unable to get API key Data' );
+                    return;                        
+                }
+
+                const newModalBody     = document.createElement( 'div' );
+                newModalBody.className = 'smliser-api-key-delivery';
+
+                const warning       = document.createElement( 'div' );
+                warning.className   = 'smliser-api-key-warning';
+                const strong        = document.createElement( 'strong' );
+                strong.textContent  = 'Important: ';
+                warning.append( strong, document.createTextNode( 'Copy this token now. For security, we cannot show it to you again.' ) );
+
+                const label         = document.createElement( 'span' );
+                label.className     = 'smliser-api-key-label';
+                label.textContent   = 'License ID: ';
+                const code          = document.createElement( 'code' );
+                code.textContent    = licenseID;
+                label.appendChild( code );
+
+                const keyDisplay        = document.createElement( 'div' );
+                keyDisplay.className    = 'smliser-api-key-display';
+                keyDisplay.textContent  = token;
+
+                newModalBody.append( warning, label, keyDisplay );
+
+                const footerContainer                   = document.createElement( 'div' );
+                footerContainer.className               = 'smliser-modal-footer-api-actions';
+                footerContainer.style.display           = 'flex';
+                footerContainer.style.justifyContent    = 'space-between';
+                footerContainer.style.alignItems        = 'center';
+                footerContainer.style.width             = '100%';
+
+                const creationInfo          = document.createElement( 'span' );
+                creationInfo.style.fontSize = '12px';
+                creationInfo.style.color    = '#666';
+                creationInfo.textContent    = `License issued to: ${response?.data?.licensee_fullname ?? 'N/A'}`;
+
+                const btnGroup              = document.createElement( 'div' );
+                btnGroup.style.display      = 'flex';
+                btnGroup.style.gap          = '10px';
+
+                const downloadBtn           = document.createElement( 'button' );
+                downloadBtn.className       = 'button';
+                downloadBtn.textContent     = 'Download License File';
+
+                const copyBtn               = document.createElement( 'button' );
+                copyBtn.className           = 'smliser-copy-btn';
+                copyBtn.textContent         = 'Copy Key';
+
+                btnGroup.append( downloadBtn, copyBtn );
+                footerContainer.append( creationInfo, btnGroup );
+
+                modal.setBody( newModalBody )
+                .setFooter( footerContainer )
+                .setTitle( 'Download Token Generated' );
+
+                copyBtn.addEventListener( 'click', () => {
+                    navigator.clipboard.writeText( token ).then( () => {
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout( () => { copyBtn.textContent = originalText; }, 2000 );
+                    });
+                });
+
+                downloadBtn.addEventListener( 'click', async () => {
+
+                    try {
+                        /**
+                         * @type {Blob}
+                         */
+                        let blob      = await smliserFetchBlob( response.data.document_download_url );
+
+                        // Apend token data to the text file.
+                        const tokenData = [
+                            '\r\n',
+                            `Download Token: ${token}`, 
+                            `Token Expiry: ${response?.data?.expiry ?? '24 hours from now'}`,
+                        ].join('\r\n');
+
+                        const tokenBlob = new Blob([tokenData], { type: 'text/plain' });
+                        blob            = new Blob([blob, tokenBlob], { type: 'text/plain' });
+                        const url       = window.URL.createObjectURL(blob);
+                        const a         = document.createElement('a');
+                        const filename  = response.data.licensee_fullname.replace(/\s+/g, '-').toLowerCase();
+                        
+                        a.href = url;
+                        a.download = `${filename}-license-${Date.now()}.txt`;
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        setTimeout( () => { window.URL.revokeObjectURL(url) }, 400 );
+                        document.body.removeChild(a);                        
+                    } catch( error ) {
+                        await SmliserModal.error( error.message, 'Download Failed' );
+                    }
+
+                });
+
+                modal.open().then( () => downloadBtn.focus() );
+                return;
+            }
+
+        });
+
+        licenseDownloadTokenBtn.addEventListener( 'click', async e => {
+            e.preventDefault()
+            modal.open();
+        })
+        
     }
 
     if ( licenseKeyContainers.length ) {

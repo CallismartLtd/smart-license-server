@@ -121,6 +121,7 @@
   box-sizing: border-box;
   outline: none;
   width: 100%;
+  min-height: 36px;
 }
 
 /* Focus ring driven by the theme accent so it's consistent when the

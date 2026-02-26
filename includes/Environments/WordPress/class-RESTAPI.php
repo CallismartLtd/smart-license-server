@@ -362,8 +362,9 @@ class RESTAPI implements RESTProviderInterface {
             return null;
         }
 
-        if ( $this->is_license_endpoint() ) {
+        if ( $this->is_license_endpoint() || $this->is_reauthentication_route() ) {
             // License endpoints uses license key for authentication.
+            // Reauthentication route is used to reauthenticate download token requests, which also uses license key for authentication.
             return null;
         }
 
@@ -614,5 +615,19 @@ class RESTAPI implements RESTProviderInterface {
         }
         
         return (bool) preg_match( '#/license-[^/]+#', $this->current_route );
+    }
+
+    /**
+     * Tells whether the current route is a reauthention route.
+     * 
+     * @return bool
+     */
+    protected function is_reauthentication_route() : bool {
+        if ( ! isset( $this->current_route ) ) {
+            $this->guess_route();
+        }
+        
+        return (bool) preg_match( '#/download-token-reauthentication/#', $this->current_route );
+
     }
 }

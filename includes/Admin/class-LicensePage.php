@@ -59,6 +59,7 @@ class LicensePage {
      */
     private static function add_license_page() {
         $form_fields    = static::get_form_fields();
+        $tab            = \smliser_get_query_param( 'tab' );
         include_once SMLISER_PATH . 'templates/admin/license/license-form.php';
     }
 
@@ -69,6 +70,7 @@ class LicensePage {
 
         $license_id     = smliser_get_query_param( 'license_id' );        
         $license        = License::get_by_id( $license_id );
+        $tab            = \smliser_get_query_param( 'tab' );
         
         $form_fields    = static::get_form_fields( $license );
         include_once SMLISER_PATH . 'templates/admin/license/license-form.php';
@@ -83,16 +85,16 @@ class LicensePage {
         $route_descriptions = V1::describe_routes('license');   
 
         $license    = License::get_by_id( $license_id );
+        $licensed_app   = $license?->get_app();
         if ( $license ) {
             $client_fullname    = $license->get_licensee_fullname();
-            $licensed_app       = $license->get_app();
             $delete_url         = new URL( admin_url( 'admin-post.php' ) );
 
             $delete_url->add_query_params( ['action' => 'smliser_all_actions', 'real_action' => 'delete', 'context' => 'license', 'license_ids' => $license_id] );
             $delete_link    = wp_nonce_url( $delete_url->get_href(), 'smliser_nonce', 'smliser_nonce' );    
         }
 
-        include_once SMLISER_PATH . 'templates/admin/license/license-admin-view.php';    
+        include_once SMLISER_PATH . 'templates/admin/license/view-license.php';    
     }
 
     /**
@@ -116,7 +118,7 @@ class LicensePage {
             'logs'      => 'License Activity Logs',
             'add-new'   => 'Add new license',
             'edit'      => 'Edit license',
-            'view'      => 'View License',
+            'view'      => 'License Details',
             default     => 'No title'
         };
 
@@ -140,23 +142,6 @@ class LicensePage {
                 )
             )
         );
-
-        if ( $license_id ) {
-            $page   = match ( $tab ) {
-                'edit'  => 'edit',
-                'view'  => 'view',
-                default => ''
-            };
-            \array_unshift(
-                $args['actions'],
-                array(
-                    'title' => sprintf( '%s License', ucwords( $page )  ),
-                    'label' => 'View license',
-                    'url'   => \smliser_license_admin_action_page( $page, $license_id ),
-                    'icon'  => 'dashicons dashicons-visibility'
-                )
-            );
-        }
 
         return $args;
     }

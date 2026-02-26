@@ -5,10 +5,26 @@
 
 use SmartLicenseServer\Admin\Menu;
 
-defined( 'SMLISER_ABSPATH' ) ||  exit; ?>
+defined( 'SMLISER_ABSPATH' ) ||  exit; 
+
+/** @var array $args */
+$args   = self::get_menu_args();
+
+if ( 'add-new' !== $tab ) {
+    \array_unshift(
+        $args['actions'],
+        array(
+            'title' => 'View License',
+            'label' => 'View license',
+            'url'   => \smliser_license_admin_action_page( 'view', $license_id ),
+            'icon'  => 'dashicons dashicons-edit'
+        )
+    );
+}
+?>
 
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( self::get_menu_args() ); ?>
+    <?php Menu::print_admin_top_menu( $args ); ?>
 
     <form class="smliser-form-container smliser-license-form">
         <?php foreach( $form_fields as $field ) : ?>
