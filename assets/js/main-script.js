@@ -752,7 +752,7 @@ const StringUtils = {
 };
 
 /**
- * App section via select2
+ * App search via select2 with proper infinite scroll
  * 
  * @param {Element} selectEl 
  */
@@ -762,36 +762,40 @@ function smliserSelect2AppSelect( selectEl ) {
         return;     
     }
 
-    const prepareArgs = ( params ) => {
-        return {
-            search: params.term
-        };
-    };
+    // Convert Select2 params into query args
+    const prepareArgs = ( params, _ ) => ({
+        search: params.term || '',
+        page: params.page || 1,
+    });
 
-    const processResults = ( data ) => {
+    const processResults = ( data, params ) => {
+        params.page = params.page || 1;
 
-        // Group apps by type (plugin, theme, etc.)
+        if ( !Array.isArray(data.apps) ) data.apps = [];
+
+        // Group apps by type
         const grouped = {};
-
         data.apps.forEach( app => {
-            if ( ! grouped[ app.type ] ) {
-                grouped[ app.type ] = [];
-            }
-
+            if ( ! grouped[ app.type ] ) grouped[ app.type ] = [];
             grouped[ app.type ].push({
-                id: `${app.type}:${app.slug}`, // unique id combining both
+                id: `${app.type}:${app.slug}`,
                 text: app.name,
                 type: app.type,
             });
         });
 
-        // Convert to Select2’s optgroup structure
+        // Convert to Select2 optgroup structure
         const results = Object.keys( grouped ).map( type => ({
             text: type.charAt(0).toUpperCase() + type.slice(1),
             children: grouped[ type ]
         }));
 
-        return { results };
+        return {
+            results,
+            pagination: {
+                more: (data.pagination?.total_pages ?? 0) > params.page
+            }
+        };
     };
 
     jQuery( selectEl ).select2({
@@ -799,25 +803,26 @@ function smliserSelect2AppSelect( selectEl ) {
         ajax: {
             url: smliser_var.app_search_api,
             dataType: 'json',
-            delay: 1000,
+            delay: 100,
             data: prepareArgs,
             processResults: processResults,
             cache: true,
         },
         allowClear: true,
         minimumInputLength: 1,
+        width: '100%',
     });    
 }
 
 /**
- * Search security entities using select2.
+ * Search security entities using select2 with pagination.
  * 
  * @param {Element} selectEl
  * @param {Object} options
  */
 function smliserSearchSecurityEntities( selectEl, options = {} ) {
     if ( ! ( selectEl instanceof HTMLElement ) ) {
-        console.warn( 'Could not instantiate app selection, invalid html element' );
+        console.warn( 'Could not instantiate entity selection, invalid html element' );
         return;     
     }
 
@@ -829,41 +834,45 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
 
     options = { ...defaults, ...options };
 
-    const prepareArgs = ( params ) => {
-        return {
-            search: params.term,
-            types: options.types
-        };
-    };
+    const prepareArgs = ( params ) => ({
+        search: params.term || '',
+        types: options.types,
+        page: params.page || 1 // <-- send current page for Select2 pagination
+    });
 
-    const processResults = ( data ) => {        
-        // Group entities by type (individuals and organizations)
+    const processResults = ( data, params ) => {
+        params.page = params.page || 1;
+
+        if ( !Array.isArray(data.items) ) data.items = [];
+
+        // Group entities by type (individuals, organizations)
         const grouped = {};
-
-        data?.items?.forEach( entity => {
-            if ( ! grouped[ entity.type ] ) {
-                grouped[ entity.type ] = [];
-            }
-
+        data.items.forEach( entity => {
+            if ( ! grouped[ entity.type ] ) grouped[ entity.type ] = [];
             grouped[ entity.type ].push({
                 id: `${entity.type}:${entity.id}`,
                 text: entity?.name ?? entity?.display_name ?? 'No name',
                 type: entity.type,
                 avatar: entity?.avatar
             });
-        });        
+        });
 
-        // Convert to Select2’s optgroup structure
+        // Convert to Select2 optgroup structure
         const results = Object.keys( grouped ).map( type => ({
-            text: StringUtils.ucwords(type),
+            text: type.charAt(0).toUpperCase() + type.slice(1),
             children: grouped[ type ]
         }));
-        
-        return { results };
+
+        return {
+            results,
+            pagination: {
+                more: (data.pagination?.total_pages ?? 0) > params.page
+            }
+        };
     };
 
-    const $select2  = jQuery( selectEl );
-    const url       = new URL( smliser_var.ajaxURL );
+    const $select2 = jQuery( selectEl );
+    const url      = new URL( smliser_var.ajaxURL );
 
     url.searchParams.set( 'action', 'smliser_admin_security_entity_search' );
     url.searchParams.set( 'security', smliser_var.nonce );
@@ -882,34 +891,29 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
         allowClear: true,
         minimumInputLength: 2,
         width: '100%',
-        
     });
 
-    const ownerTypeInput    = $select2.closest( 'form' ).find( '#owner_type' );
-    const nameInput         = $select2.closest( 'form' ).find( '#name' );
-    const avatarOnly        = $select2.closest( 'form' ).find( '.smliser-avatar-upload_image-preview.avatar-only' );
-    const defaultValue      = ownerTypeInput.val();
-    
-    $select2.on( 'select2:select select2:unselect', e => {
-        const param         = e.params;
-        const data          = param?.data;
-        const entityType    = data?.type;
+    const ownerTypeInput = $select2.closest('form').find('#owner_type');
+    const nameInput      = $select2.closest('form').find('#name');
+    const avatarOnly     = $select2.closest('form').find('.smliser-avatar-upload_image-preview.avatar-only');
+    const defaultValue   = ownerTypeInput.val();
+
+    $select2.on('select2:select select2:unselect', e => {
+        const data = e.params?.data;
 
         if ( ownerTypeInput.length ) {
-            ownerTypeInput.val( param.data.selected ? entityType : defaultValue );
+            ownerTypeInput.val(e.params.data.selected ? data.type : defaultValue);
 
-            if ( ( param.data.selected && nameInput ) && ! nameInput.val() ) {
-                nameInput.val( param.data.text );
+            if ( e.params.data.selected && nameInput.length && !nameInput.val() ) {
+                nameInput.val(data.text);
             }
         }
 
-        if ( avatarOnly && data.avatar ) {
-            avatarOnly.attr( 'src', data.avatar );
-            avatarOnly.attr( 'title', data.text );
+        if ( avatarOnly.length && data?.avatar ) {
+            avatarOnly.attr('src', data.avatar);
+            avatarOnly.attr('title', data.text);
         }        
-                    
-    }); 
-
+    });
 }
 
 document.addEventListener( 'DOMContentLoaded', function() {
@@ -947,6 +951,8 @@ document.addEventListener( 'DOMContentLoaded', function() {
     const deleteEntities        = document.querySelectorAll( '.smliser-delete-entity' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
+
+    CallismartDatePicker.mountAll();
     
     if ( usersSearch ) {
         const options = {

@@ -197,8 +197,8 @@
 }
 
 .rb-field input[type="text"]:read-only {
-  background-color: #fafafa;
-  opacity: .9;
+    background-color: #fafafa;
+    opacity: .9;
 }
 
 /* ---------- Responsive ---------- */

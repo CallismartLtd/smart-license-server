@@ -242,6 +242,7 @@
 
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
+
     .smliser-modal-backdrop,
     .smliser-modal,
     .smliser-modal-close,
@@ -373,8 +374,15 @@
 }
 
 @keyframes smliser-dialog-icon-bounce {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 .smliser-dialog-icon.info {
@@ -573,9 +581,19 @@
 }
 
 @keyframes smliser-dialog-shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
 }
 
 /* ==============================================
@@ -619,7 +637,7 @@
     .smliser-dialog-icon {
         animation: none;
     }
-    
+
     .smliser-btn {
         transition: none;
     }

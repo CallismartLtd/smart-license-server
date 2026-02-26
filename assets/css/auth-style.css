@@ -4,6 +4,7 @@
     margin: 0;
     padding: 0;
 }
+
 .smliser-auth-content {
     background-color: #ffffff;
     border: #0000ff solid;
@@ -12,25 +13,26 @@
     min-height: 550px;
     margin: 20px auto;
     max-width: 750px;
-    
-}
-.smliser-auth-content .smliser-auth-img img{
-    background-color: #f1f1f1;
-    max-width: 50%;
-    margin: 20px 0 5px 25%; 
+
 }
 
-.smliser-auth-content h2{
+.smliser-auth-content .smliser-auth-img img {
+    background-color: #f1f1f1;
+    max-width: 50%;
+    margin: 20px 0 5px 25%;
+}
+
+.smliser-auth-content h2 {
     font-size: 18px;
     padding: 10px;
 }
 
-.smliser-auth-content p{
+.smliser-auth-content p {
     font-size: 14px;
     padding: 10px;
 }
 
-.smliser-auth-content ul li{
+.smliser-auth-content ul li {
     font-size: 14px;
     padding: 10px;
     list-style-type: circle;
@@ -43,17 +45,17 @@
     margin: 20px auto;
 }
 
-.smliser-auth-avater p a{
+.smliser-auth-avater p a {
     margin-left: 20px;
     font-weight: bold;
-    
+
 }
 
 .smliser-auth-consent_btn-container {
     display: flex;
     justify-content: space-between;
     margin: 40px 10px 20px 10px;
-    
+
     height: 80px;
 }
 
@@ -63,6 +65,7 @@
     font-weight: bold;
     width: 40%;
 }
+
 .smliser-oauth-login-form {
     background-color: #f1f1f1;
     border-radius: 9px;
@@ -78,6 +81,7 @@
     margin: 20px 15px 0 20px;
 
 }
+
 .smliser-oauth-form-label {
     font-size: 16px;
     font-weight: bold;
@@ -85,7 +89,7 @@
 }
 
 .smliser-login-input {
-    
+
     width: 100%;
     border-color: blue;
     background-color: #ffffff;
@@ -98,9 +102,9 @@
 .smliser-submit-btn-container {
     text-align: center;
     margin-top: 10px;
-    
-    
-    
+
+
+
 }
 
 .smliser-submit-btn-container button {
