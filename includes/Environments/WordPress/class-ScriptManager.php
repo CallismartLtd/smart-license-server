@@ -84,6 +84,13 @@ final class ScriptManager {
                 'deps'  => array( 'smliser-styles', 'smliser-modal' ),
                 'ver'   => SMLISER_VER,
                 'media' => 'all',
+            ),
+
+            'smliser-datetime-picker'   => array(
+                'src'   => SetUp::assets_url() . 'css/smliser-datetime-picker.css',
+                'deps'  => array(),
+                'ver'   => SMLISER_VER,
+                'media' => 'all'
             )
         );
     }
@@ -156,6 +163,13 @@ final class ScriptManager {
                 'deps'      => array( 'jquery', 'smliser-script', 'smliser-modal' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
+            ),
+
+            'smliser-datetime-picker'   => array(
+                'src'       => Setup::assets_url() . 'js/smliser-datetime-picker.js',
+                'deps'      => array(),
+                'ver'       => SMLISER_VER,
+                'footer'    => true,
             )
         );
     }
@@ -182,6 +196,7 @@ final class ScriptManager {
      * Enqueues Scripts
      */
     public function enqueue_scripts( $s ) {
+        wp_enqueue_script( 'smliser-datetime-picker' );
         wp_enqueue_script( 'smliser-script' );
         
         if ( is_admin() ) {
@@ -231,6 +246,7 @@ final class ScriptManager {
      * Load styles
      */
     public function enqueue_styles( $s ) {
+        wp_enqueue_style( 'smliser-datetime-picker' );
         wp_enqueue_style( 'smliser-styles' );
         wp_enqueue_style( 'smliser-form-styles' );
     

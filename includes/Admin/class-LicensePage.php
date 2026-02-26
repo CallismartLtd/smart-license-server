@@ -83,7 +83,7 @@ class LicensePage {
         $route_descriptions = V1::describe_routes('license');   
 
         $license    = License::get_by_id( $license_id );
-        if ( ! empty( $license ) ) {
+        if ( $license ) {
             $client_fullname    = $license->get_licensee_fullname();
             $licensed_app       = $license->get_app();
             $delete_url         = new URL( admin_url( 'admin-post.php' ) );
@@ -142,12 +142,17 @@ class LicensePage {
         );
 
         if ( $license_id ) {
+            $page   = match ( $tab ) {
+                'edit'  => 'edit',
+                'view'  => 'view',
+                default => ''
+            };
             \array_unshift(
                 $args['actions'],
                 array(
-                    'title' => 'View license',
+                    'title' => sprintf( '%s License', ucwords( $page )  ),
                     'label' => 'View license',
-                    'url'   => \smliser_license_admin_action_page( 'view', $license_id ),
+                    'url'   => \smliser_license_admin_action_page( $page, $license_id ),
                     'icon'  => 'dashicons dashicons-visibility'
                 )
             );
@@ -246,7 +251,8 @@ class LicensePage {
                     'name'  => 'start_date',
                     'value' => $license?->get_start_date()?->format( 'Y-m-d H:i:s' ) ?? '',
                     'attr'  => array(
-                        'aria-label'    => 'Enter license start date.'
+                        'aria-label'    => 'Enter license start date.',
+                        'smliser-date-picker'   => 'datetime'
                     )
                 )
             ),
@@ -258,7 +264,8 @@ class LicensePage {
                     'name'  => 'end_date',
                     'value' => $license?->get_end_date()?->format( 'Y-m-d H:i:s' ) ?? '',
                     'attr'  => array(
-                        'aria-label'    => 'Enter license end date.'
+                        'aria-label'            => 'Enter license end date.',
+                        'smliser-date-picker'   => 'datetime'
                     )
                 )
             ),

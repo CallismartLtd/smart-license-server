@@ -116,45 +116,6 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
             </table>
         </form>
 
-        <p class="smliser-table-count">
-            <?php echo absint( $pagination['total'] ); ?> 
-            item<?php echo ( $pagination['total'] > 1 ? 's' : '' ); ?>
-        </p>
-
-        <?php if ( $pagination['total_pages'] > 1 ) : ?>
-            <div class="smliser-tablenav-pages">
-                <span class="smliser-displaying-num">
-                    <?php printf( __( 'Page %d of %d', 'smliser' ), $pagination['page'], $pagination['total_pages'] ); ?>
-                </span>
-
-                <span class="smliser-pagination-links">
-                    <?php
-                    $base_url  = remove_query_arg( array( 'paged', 'limit' ) );
-                    $prev_page = max( 1, $pagination['page'] - 1 );
-                    $next_page = min( $pagination['total_pages'], $pagination['page'] + 1 );
-
-                    // Previous
-                    if ( $pagination['page'] > 1 ) {
-                        echo '<a class="prev-page button" href="' . esc_url( add_query_arg( array( 'paged' => $prev_page, 'limit' => $pagination['limit'] ), $base_url ) ) . '">&laquo;</a>';
-                    } else {
-                        echo '<span class="smliser-navspan button disabled">&laquo;</span>';
-                    }
-
-                    // Page numbers
-                    for ( $i = 1; $i <= $pagination['total_pages']; $i++ ) {
-                        $class = ( $i === $pagination['page'] ) ? 'button current' : 'button';
-                        echo '<a class="' . esc_attr( $class ) . '" href="' . esc_url( add_query_arg( array( 'paged' => $i, 'limit' => $pagination['limit'] ), $base_url ) ) . '">' . $i . '</a>';
-                    }
-
-                    // Next
-                    if ( $pagination['page'] < $pagination['total_pages'] ) {
-                        echo '<a class="next-page button" href="' . esc_url( add_query_arg( array( 'paged' => $next_page, 'limit' => $pagination['limit'] ), $base_url ) ) . '">&raquo;</a>';
-                    } else {
-                        echo '<span class="smliser-navspan button disabled">&raquo;</span>';
-                    }
-                    ?>
-                </span>
-            </div>
-        <?php endif; ?>
+        <?php smliser_render_pagination( $pagination ); ?>
     <?php endif; ?>
 </div>

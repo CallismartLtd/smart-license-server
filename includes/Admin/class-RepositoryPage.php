@@ -49,7 +49,7 @@ class RepositoryPage {
     private static function dashboard() {
         $args = array(
             'page'      => smliser_get_query_param( 'paged', 1 ),
-            'limit'     => smliser_get_query_param( 'limit', 25 ),
+            'limit'     => smliser_get_query_param( 'limit', 10 ),
         );
 
         $type   = smliser_get_query_param( 'type', null );

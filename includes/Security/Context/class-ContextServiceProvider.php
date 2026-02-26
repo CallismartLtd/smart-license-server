@@ -45,83 +45,153 @@ class ContextServiceProvider {
      * Search security entities across multiple db tables with pagination.
      *
      * @param array $args {
-     *     Optional. Arguments to filter results.
-     *
-     *     @type string $term   Search term to match against name, slug. Required.
+     *     @type string $term   Search term. Required.
      *     @type int    $page   Current page number. Default 1.
      *     @type int    $limit  Number of items per page. Default 20.
-     *     @type string $status Entity status filter. Default 'active'.
-     *     @type array  $types  List of types to query. Default all ['plugin','theme','software'].
+     *     @type array  $types  Entity types.
      * }
-     * @return array {
-     *     @type array $items      Instantiated entity objects.
-     *     @type array $pagination Pagination info (page, limit, total, total_pages).
-     * }
+     * @return array
      */
     public static function search( array $args = array() ) {
         $db = smliser_dbclass();
 
         $defaults = array(
-            'term'   => '',
-            'page'   => 1,
-            'limit'  => 20,
-            'types'  => Owner::get_allowed_owner_types()
+            'search_term'   => '',
+            'page'          => 1,
+            'limit'         => 20,
+            'types'         => Owner::get_allowed_owner_types(),
         );
 
         $args   = parse_args( $args, $defaults );
-        $term   = self::sanitize_text( $args['term'] );
+        $term   = self::sanitize_text( $args['search_term'] );
         $page   = max( 1, (int) $args['page'] );
         $limit  = max( 1, (int) $args['limit'] );
         $offset = $db->calculate_query_offset( $page, $limit );
         $types  = array_filter( (array) $args['types'] );
 
         if ( empty( $term ) || empty( $types ) ) {
-            return [
-                'items'      => [],
-                'pagination' => [ 'page' => $page, 'limit' => $limit, 'total' => 0, 'total_pages' => 0 ]
-            ];
+            return array(
+                'items'      => array(),
+                'pagination' => array(
+                    'page'        => $page,
+                    'limit'       => $limit,
+                    'total'       => 0,
+                    'total_pages' => 0,
+                ),
+            );
         }
 
-        $like         = '%' . $term . '%';
-        $sql_parts    = [];
-        $count_parts  = [];
-        $params_sql   = [];
-        $params_count = [];
+        $like         = $term . '%';
+        $sql_parts    = array();
+        $count_parts  = array();
+        $params       = array();
+        $count_params = array();
 
         foreach ( $types as $type ) {
+
             $table = match ( $type ) {
                 Owner::TYPE_ORGANIZATION => SMLISER_ORGANIZATIONS_TABLE,
                 Owner::TYPE_INDIVIDUAL   => SMLISER_USERS_TABLE,
-                default                  => null
+                default                  => null,
             };
 
-            if ( ! $table ) continue;
-            $sql_parts[]   = "( SELECT `id`, '{$type}' AS type, `updated_at` 
-                            FROM `{$table}` 
-                            WHERE `display_name` LIKE ? 
-                            ORDER BY `updated_at` DESC 
-                            LIMIT {$limit} OFFSET {$offset} )";
-            $params_sql[]  = $like;
+            if ( ! $table ) {
+                continue;
+            }
 
-            $count_parts[] = "SELECT COUNT(*) AS total FROM `{$table}` WHERE `display_name` LIKE ?";
-            $params_count[] = $like;
+            if ( Owner::TYPE_ORGANIZATION === $type ) {
+
+                $sql_parts[] = "
+                    SELECT 
+                        id,
+                        '{$type}' AS type,
+                        display_name,
+                        slug,
+                        NULL AS email,
+                        NULL AS status,
+                        created_at,
+                        updated_at
+                    FROM {$table}
+                    WHERE display_name LIKE ?
+                ";
+
+            } elseif ( Owner::TYPE_INDIVIDUAL === $type ) {
+
+                $sql_parts[] = "
+                    SELECT 
+                        id,
+                        '{$type}' AS type,
+                        display_name,
+                        NULL AS slug,
+                        email,
+                        status,
+                        created_at,
+                        updated_at
+                    FROM {$table}
+                    WHERE display_name LIKE ?
+                ";
+            }
+
+            $count_parts[] = "
+                SELECT COUNT(*) AS total
+                FROM {$table}
+                WHERE display_name LIKE ?
+            ";
+
+            $params[]       = $like;
+            $count_params[] = $like;
         }
 
-        // Fetch Items: Merge subqueries and re-sort the final slice.
-        $union_sql = implode( " UNION ALL ", $sql_parts );
-        $final_sql = "{$union_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET 0";
-        $rows      = $db->get_results( $final_sql, array_merge( $params_sql, [ $limit ] ) );
+        if ( empty( $sql_parts ) ) {
+            return array(
+                'items'      => array(),
+                'pagination' => array(
+                    'page'        => $page,
+                    'limit'       => $limit,
+                    'total'       => 0,
+                    'total_pages' => 0,
+                ),
+            );
+        }
 
-        // Aggregate Count.
-        $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
-        $total     = (int) $db->get_var( $count_sql, $params_count );
-        
-        // Instantiate Objects.
-        $objects = [];
+        /**
+         * Global UNION
+         */
+        $union_sql = implode( ' UNION ALL ', $sql_parts );
+
+        $final_sql = "
+            SELECT *
+            FROM ( {$union_sql} ) AS combined
+            ORDER BY updated_at DESC
+            LIMIT ? OFFSET ?
+        ";
+
+        $rows = $db->get_results(
+            $final_sql,
+            array_merge( $params, array( $limit, $offset ) )
+        );
+
+        /**
+         * Global count
+         */
+        $count_sql = "
+            SELECT SUM(total)
+            FROM ( " . implode( ' UNION ALL ', $count_parts ) . " ) AS counts
+        ";
+
+        $total = (int) $db->get_var( $count_sql, $count_params );
+
+        /**
+         * Immediate hydration
+         */
+        $objects = array();
+
         foreach ( $rows as $row ) {
-            $class  = self::get_entity_classname( $row['type'] );
-            if ( $class && method_exists( $class, 'get_by_id' ) ) {
-                $objects[] = $class::get_by_id( (int) $row['id'] );
+
+            $class = self::get_entity_classname( $row['type'] );
+
+            if ( $class && method_exists( $class, 'from_array' ) ) {
+                $objects[] = $class::from_array( $row );
             }
         }
 
@@ -131,7 +201,7 @@ class ContextServiceProvider {
                 'page'        => $page,
                 'limit'       => $limit,
                 'total'       => $total,
-                'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
+                'total_pages' => $limit > 0 ? (int) ceil( $total / $limit ) : 0,
             ),
         );
     }
@@ -172,27 +242,18 @@ class ContextServiceProvider {
 
         // Focus strictly on display_name and type (logical search)
         if ( ! empty( $term ) ) {
-            $like = '%' . $term . '%';
+            $like = $term . '%';
             $where_clauses[] = "( `name` LIKE ? OR `type` LIKE ? )";
             $params = array_merge( $params, [ $like, $like ] );
         }
 
         $where_sql = ! empty( $where_clauses ) ? ' WHERE ' . implode( ' AND ', $where_clauses ) : '';
-        $sql  = "SELECT `id` FROM `{$table}` {$where_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET ?";
+        $sql  = "SELECT * FROM `{$table}` {$where_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET ?";
         $rows = $db->get_results( $sql, array_merge( $params, [ $limit, $offset ] ) );
 
         // Get total count
-        $total = (int) $db->get_var( "SELECT COUNT(`id`) FROM `{$table}` {$where_sql}", $params );
-
-        $owners = [];
-        if ( ! empty( $rows ) ) {
-            foreach ( $rows as $row ) {
-                $owner = Owner::get_by_id( (int) $row['id'] );
-                if ( $owner instanceof Owner ) {
-                    $owners[] = $owner;
-                }
-            }
-        }
+        $total  = (int) $db->get_var( "SELECT COUNT(`id`) FROM `{$table}` {$where_sql}", $params );
+        $owners = array_map( [Owner::class, 'from_array'], $rows );
 
         return [
             'items'      => $owners,

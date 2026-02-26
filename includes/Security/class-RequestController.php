@@ -672,16 +672,16 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $term   = $request->get( 'search_term' );
+            $search_term   = $request->get( 'search_term' );
 
-            if ( empty( $term ) ) {
+            if ( empty( $search_term ) ) {
                 throw new RequestException( 'required_param', 'Missing parameter "search".' );
             }
 
             $types  = (array) $request->get( 'types', [] );
             $status = (string) $request->get( 'status', 'active' );
 
-            $args   = compact( 'term', 'types', 'status' );
+            $args   = compact( 'search_term', 'types', 'status' );
 
             $results    = ContextServiceProvider::search( $args );
             $data       = Collection::make( $results['items'] )->map( 'smliser_value_to_array' );
