@@ -187,7 +187,7 @@ class RepositoryPage {
             'buttons'           => [
                 [
                     'text'  => 'Repository',
-                    'url'   => $url->__toString(),
+                    'url'   => $url->get_href(),
                     'icon'  => 'ti ti-home',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -195,7 +195,7 @@ class RepositoryPage {
 
                 [
                     'text'  => 'Monetization',
-                    'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->__toString(),
+                    'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->get_href(),
                     'icon'  => 'ti ti-cash-register',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -203,7 +203,7 @@ class RepositoryPage {
 
                 [
                     'text'  => sprintf( 'Edit %s', ucfirst( $app->get_type() ) ),
-                    'url'   => $url->add_query_param( 'tab', 'edit' )->__toString(),
+                    'url'   => $url->add_query_params( ['tab' => 'edit', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->get_href(),
                     'icon'  => 'ti ti-edit',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -275,7 +275,6 @@ class RepositoryPage {
         $url->remove_query_param( 'message' );
 
         include_once SMLISER_PATH . 'templates/admin/monetization.php';
-        
     }
 
     /**
@@ -290,6 +289,18 @@ class RepositoryPage {
             'theme'     => 'style.css',
             default     => 'app.json'
         };
+
+        $owner_option  = [];
+
+        if ( $app && $owner = $app->get_owner() ) {
+            $owner_option  = [
+                sprintf( '%s:%s', $owner->get_type(), $owner->get_id() ) => $owner->get_name()
+                
+            ];
+        }
+
+        $statuses   = array_filter( AbstractHostedApp::STATUSES, fn( $v ) => $v !== AbstractHostedApp::STATUS_TRASH );
+
         return array(
             array(
                 'label' => __( 'Name', 'smliser' ),
@@ -344,6 +355,34 @@ class RepositoryPage {
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off'
                     )
+                )
+            ),
+            array(
+                'label' => __( 'Owner', 'smliser' ),
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'app_owner_id',
+                    'value' => key( $owner_option ),
+                    'class' => 'app-uploader-form-row',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    ),
+                    'options'   => $owner_option
+                ),
+            ),
+            array(
+                'label' => __( 'Status', 'smliser' ),
+                'input' => array(
+                    'type'  => 'select',
+                    'name'  => 'app_status',
+                    'value' => $app ? $app->get_status() : 'active',
+                    'class' => 'app-uploader-form-row',
+                    'attr'  => array(
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    ),
+                    'options'   => array_map( 'ucfirst', $statuses )
                 )
             ),
         );

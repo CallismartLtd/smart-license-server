@@ -270,10 +270,11 @@ class SoftwareRepository extends Repository {
      * @return array
      */
     public function get_app_dot_json( $software ) : array {
-        $slug = $this->real_slug( $software->get_slug() );
-
         try {
+            
+            $slug = $this->real_slug( $software->get_slug() );
             $base_dir =$this->enter_slug( $slug );
+
         } catch ( FileSystemException $e ) {
             return $this->regenerate_app_dot_json( $software );
         }
@@ -312,8 +313,13 @@ class SoftwareRepository extends Repository {
         $manifest   = $software->get_manifest();
         $manifest   = $defaults + $manifest;
 
-        $slug       = $this->real_slug( $software->get_slug() );
-        $base_dir   = $this->enter_slug( $slug );
+        try {
+            $slug       = $this->real_slug( $software->get_slug() );
+            $base_dir   = $this->enter_slug( $slug );            
+        } catch( FileSystemException $e ) {
+            return $manifest;
+        }
+
         $file_path  = FileSystemHelper::join_path( $base_dir, 'app.json' );
 
         $flags      = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;

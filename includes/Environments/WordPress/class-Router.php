@@ -284,11 +284,9 @@ class Router implements RouterInterface {
             'app_preview_url'               => smliser_get_post_param( 'app_preview_url', null ),
             'app_documentation_url'         => smliser_get_post_param( 'app_documentation_url', null ),
             'app_external_repository_url'   => smliser_get_post_param( 'app_external_repository_url', null ),
-            'app_zip_file'                  => isset( $_FILES['app_zip_file'] ) && UPLOAD_ERR_OK === $_FILES['app_zip_file']['error'] ? $_FILES['app_zip_file'] : null,
-            'app_json_file'                 => $_FILES['app_json_file'] ?? null,
-            'user_agent'                    => smliser_get_user_agent(),
-            'request_time'                  => time(),
-            'client_ip'                     => smliser_get_client_ip(),
+            'app_status'                    => smliser_get_post_param( 'app_status', null ),
+            'app_owner_id'                  => smliser_get_post_param( 'app_owner_id', null ),
+
         ]);
 
         $response   = HostingController::save_app( $request );
@@ -544,10 +542,6 @@ class Router implements RouterInterface {
     public static function parse_app_status_action_request() : void {
         if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
             \smliser_send_json_error( array( 'message' => 'Invalid CSRF token, please refresh current page.' ) );
-        }
-
-        if ( ! current_user_can( 'install_plugins' ) ) {
-            \smliser_send_json_error( array( 'message' => 'You do not have the required permission to do this.') );
         }
     
         $request    = new Request([

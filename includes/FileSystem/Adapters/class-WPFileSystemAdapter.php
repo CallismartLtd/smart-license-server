@@ -205,11 +205,6 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             $path = $parts[1];
         }
 
-        $path = \smliser_sanitize_path( $path );
-        if ( \is_smliser_error( $path ) ) {
-            return false;
-        }
-
         if ( $stream_wrapper !== null ) {
             $path = $stream_wrapper . '://' . $path;
         }

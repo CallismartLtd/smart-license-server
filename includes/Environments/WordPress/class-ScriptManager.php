@@ -197,6 +197,7 @@ final class ScriptManager {
      */
     public function enqueue_scripts( $s ) {
         wp_enqueue_script( 'smliser-datetime-picker' );
+        wp_enqueue_script( 'select2' );
         wp_enqueue_script( 'smliser-script' );
         
         if ( is_admin() ) {
@@ -204,14 +205,6 @@ final class ScriptManager {
         }
         if ( is_admin() && 'toplevel_page_smliser-admin' === $s || 'smart-license-server_page_repository' === $s ) {
             wp_enqueue_script( 'smliser-chart' );
-        }
-
-        if ( 'smart-license-server_page_smliser-bulk-message' === $s 
-            || 'smart-license-server_page_licenses' === $s 
-            || 'smart-license-server_page_smliser-access-control' === $s 
-            
-            ) {
-            wp_enqueue_script( 'select2' );
         }
 
         if ( 'smart-license-server_page_repository' === $s ) {
@@ -247,19 +240,12 @@ final class ScriptManager {
      */
     public function enqueue_styles( $s ) {
         wp_enqueue_style( 'smliser-datetime-picker' );
+        wp_enqueue_style( 'select2' );
         wp_enqueue_style( 'smliser-styles' );
         wp_enqueue_style( 'smliser-form-styles' );
     
         if ( is_admin() ) {
             wp_enqueue_style( 'smliser-modal' );
-        }
-
-        if ( 'smart-license-server_page_smliser-bulk-message' === $s 
-            || 'smart-license-server_page_licenses' === $s
-            || 'smart-license-server_page_smliser-access-control' === $s 
-            
-        ) {
-            wp_enqueue_style( 'select2' );
         }
 
         if ( 'smart-license-server_page_repository' === $s ) {

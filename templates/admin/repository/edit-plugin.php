@@ -35,7 +35,7 @@ $other_fields   = array(
                 'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
                 'readonly'      => true,
-                'title'         => 'Use plugin readme.txt file to edit the minimum WordPress version required to install the plugin'
+                'title'         => 'Use plugin readme.txt file to edit the minimum WordPress version required to install this plugin'
             )
         )
     ),
@@ -106,7 +106,8 @@ $other_fields   = array(
             'class' => 'app-uploader-form-row',
             'attr'  => array(
                 'class' => 'smliser-json-textarea',
-                'readonly' => true
+                'readonly' => true,
+                'data-editor-description' => 'Edit the plugin\'s app.json file. Certain fields are automatically generated from the plugin readme.txt file and cannot be overridden here.'
             )
         )
     ),

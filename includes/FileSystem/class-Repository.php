@@ -590,7 +590,11 @@ abstract class Repository {
      * @return bool True on success, false on failure.
      */
     public function queue_app_for_deletion( string $slug ) {
-        $trash_dir = FileSystemHelper::join_path( $this->base_dir, self::TRASH_DIR );
+        // FileSystemHelper::join_path() will not join `.trash` with the base dir to prevent 
+        // accidental misuse, so we concatenate manually here.
+        $trash_dir = $this->base_dir . DIRECTORY_SEPARATOR . self::TRASH_DIR;
+
+        $slug = $this->real_slug( $slug );
 
         // Ensure trash base exists.
         if ( ! $this->is_dir( $trash_dir ) && ! $this->mkdir( $trash_dir, FS_CHMOD_DIR, true ) ) {
@@ -599,20 +603,20 @@ abstract class Repository {
 
         $app_dir     = $this->path( $slug );
         $app_type    = $this->current_dir;
-        $destination = FileSystemHelper::join_path( $trash_dir, $app_type, $slug );
+        $destination = implode( DIRECTORY_SEPARATOR, [$trash_dir, $app_type, $slug] );
 
         // Ensure destination folder exists.
         if ( ! $this->is_dir( $destination ) && ! $this->mkdir( $destination, FS_CHMOD_DIR, true ) ) {
-            return false;
+            return 'false';
         }
 
         // Move application files.
         if ( ! $this->move( $app_dir, $destination, true ) ) {
-            return false;
+            return 'false';
         }
 
         // Write timestamp file for cleanup.
-        $timestamp_file = FileSystemHelper::join_path( $destination, self::TRASH_METADATA_FILE );
+        $timestamp_file = implode( DIRECTORY_SEPARATOR, [$destination, self::TRASH_METADATA_FILE] );
 
         if ( ! $this->put_contents( $timestamp_file, (string) time() ) ) {
             return false;
@@ -628,7 +632,7 @@ abstract class Repository {
      * @return true|Exception True on success, Exception on failure.
      */
     public function restore_from_trash( string $slug ) {
-        if ( empty( $slug ) ) {
+        if ( '' === $slug ) {
             return new Exception( 
                 'invalid_slug', 
                 'The application slug cannot be empty',
@@ -656,9 +660,11 @@ abstract class Repository {
      * @return bool True on success, false on failure.
      */
     public function restore_queued_deletion( string $slug ) {
+        // FileSystemHelper::join_path() will not join `.trash` with the base dir to prevent 
+        // accidental misuse, so we concatenate manually here.
         $type      = $this->current_dir;
-        $trash_dir = FileSystemHelper::join_path( $this->base_dir, self::TRASH_DIR, $type, $slug );
-        $dest_dir  = FileSystemHelper::join_path( $this->base_dir, $type, $slug );
+        $trash_dir = implode( DIRECTORY_SEPARATOR, [$this->base_dir, self::TRASH_DIR, $type, $slug] );
+        $dest_dir  = implode( DIRECTORY_SEPARATOR, [$this->base_dir, $type, $slug] );
 
         if ( ! $this->is_dir( $trash_dir ) ) {
             return false;
@@ -673,7 +679,7 @@ abstract class Repository {
         }
 
         // Remove timestamp file if it exists.
-        $timestamp_file = FileSystemHelper::join_path( $dest_dir, self::TRASH_METADATA_FILE );
+        $timestamp_file = implode( DIRECTORY_SEPARATOR, [$dest_dir, self::TRASH_METADATA_FILE] );
         if ( $this->exists( $timestamp_file ) ) {
             $this->delete( $timestamp_file );
         }

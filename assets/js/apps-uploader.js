@@ -1083,11 +1083,11 @@ class AppUploader {
             jsonData = {};
         }
 
-        textareaParent.parentElement.appendChild( editorFrame );
+        textareaParent.parentElement.appendChild( editorFrame );        
 
         this.editor = new SmliserJsonEditor( editorFrame, {
             title: 'APP JSON Editor',
-            description: "Edit your application's JSON file (app.json). Values in this file will be served in the REST API response.",
+            description: textarea.dataset.editorDescription ?? "Edit your application's JSON file (app.json). Values in this file will be served in the REST API response.",
             data: jsonData,
             autoFocus: false
         });

@@ -116,6 +116,10 @@ class HostingController {
                 if ( is_smliser_error( $updated ) ) {
                     throw $updated;
                 }
+
+                if ( static::is_system_admin() && $request->hasValue( 'app_owner_id' ) ) {
+                    $app->set_owner_id( $request->get( 'app_owner_id' ) );
+                }
                 
             } else if ( $request->hasValue( 'app_owner_id' ) ) {
                 $app->set_owner_id( $request->get( 'app_owner_id' ) );
@@ -528,10 +532,10 @@ class HostingController {
 
                 if ( $old_status === AbstractHostedApp::STATUS_TRASH && $status !== AbstractHostedApp::STATUS_TRASH ) {
                     // Restoring from trash.
-                    @$repo_class->restore_from_trash( $app->get_slug() );
+                    $repo_class->restore_from_trash( $app->get_slug() );
                 } elseif ( $status === AbstractHostedApp::STATUS_TRASH ) {
                     // Moving to trash.
-                    @$repo_class->queue_app_for_deletion( $app->get_slug() );
+                    $repo_class->queue_app_for_deletion( $app->get_slug() );
                 }
 
             }

@@ -837,13 +837,13 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
     const prepareArgs = ( params ) => ({
         search: params.term || '',
         types: options.types,
-        page: params.page || 1 // <-- send current page for Select2 pagination
+        page: params.page || 1
     });
 
     const processResults = ( data, params ) => {
         params.page = params.page || 1;
 
-        if ( !Array.isArray(data.items) ) data.items = [];
+        if ( ! Array.isArray(data.items) ) data.items = [];
 
         // Group entities by type (individuals, organizations)
         const grouped = {};
@@ -947,7 +947,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     /** @type {HTMLSelectElement} */
     const usersSearch           = document.querySelector( '#user_id' );
     /** @type {HTMLSelectElement} */
-    const ownersSearch          = document.querySelector( '#owner_id' );
+    const ownersSearch          = document.querySelector( '#owner_id, #app_owner_id' );
     const deleteEntities        = document.querySelectorAll( '.smliser-delete-entity' );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
@@ -991,6 +991,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             entityType: 'resource_owners',
             placeholder: 'Search for resource owners...'
         };
+
         smliserSearchSecurityEntities( ownersSearch, options );
     }
 

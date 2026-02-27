@@ -32,20 +32,21 @@ trait WPRepoUtils {
     public function get_app_dot_json( $app ) : array {
 
         try {
-            $resolved = $this->resolve_app_manifest( $app );
+            $slug       = $this->real_slug( $app->get_slug() );
+            $base_dir   = $this->enter_slug( $slug );
+                        
         } catch ( FileSystemException $e ) {
-            // Slug directory does not exist yet — return canonical manifest
-            return $this->build_app_manifest( $app );
+            // Slug directory does not exist yet — return canonical manifest.
+            return $this->regenerate_app_dot_json( $app );
         }
 
-        $file_path = $resolved['file_path'];
-        $default   = $resolved['manifest'];
+        $app_json_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
 
-        if ( ! $this->exists( $file_path ) ) {
-            return $this->write_app_json_file( $file_path, $default );
+        if ( ! $this->exists( $app_json_path ) ) {
+            return $this->regenerate_app_dot_json( $app );
         }
 
-        $json = $this->get_contents( $file_path );
+        $json = $this->get_contents( $app_json_path );
         $data = \json_decode( $json, true );
 
         if ( \json_last_error() === JSON_ERROR_NONE && is_array( $data ) ) {
@@ -53,7 +54,7 @@ trait WPRepoUtils {
         }
 
         // Repair corrupted or unreadable file
-        return $this->write_app_json_file( $file_path, $default );
+        return $this->regenerate_app_dot_json( $app );
     }
 
     /**
@@ -67,55 +68,22 @@ trait WPRepoUtils {
      * @throws TypeError When $app is not a Plugin or Theme.
      */
     public function regenerate_app_dot_json( $app ) : array {
-        $resolved = $this->resolve_app_manifest( $app );
+        $manifest   = $this->build_app_manifest( $app );
 
-        return $this->write_app_json_file(
-            $resolved['file_path'],
-            $resolved['manifest']
-        );
-    }
-
-    /**
-     * Resolve app.json file path and canonical manifest.
-     *
-     * @param Plugin|Theme $app
-     * @return array {
-     *     @type string $file_path
-     *     @type array  $manifest
-     * }
-     *
-     * @throws TypeError
-     */
-    protected function resolve_app_manifest( $app ) : array {
-
-        if ( ! ( $app instanceof Plugin || $app instanceof Theme ) ) {
-            throw new TypeError( sprintf(
-                '%s #1 ($app) must be an instance of %s or %s, %s given',
-                __METHOD__,
-                Plugin::class,
-                Theme::class,
-                is_object( $app ) ? get_class( $app ) : gettype( $app )
-            ) );
-        }
-
-        $slug      = $this->real_slug( $app->get_slug() );
-        $manifest  = $this->build_app_manifest( $app, $slug );
-        
         try {
-            $base_dir  = $this->enter_slug( $slug );
+            $slug       = $app->get_slug();
+            $base_dir   = $this->enter_slug( $slug);
         } catch( FileSystemException $e ) {
-            return array(
-                'file_path' => '',
-                'manifest'  => $manifest,
-            );
+            return $manifest;
         }
-        
-        $file_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
 
-        return array(
-            'file_path' => $file_path,
-            'manifest'  => $manifest,
-        );
+        $app_json_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
+
+
+        $this->write_app_json_file( $app_json_path, $manifest );
+
+        return $manifest;
+
     }
 
     /**
@@ -125,14 +93,13 @@ trait WPRepoUtils {
      * @param string|null  $slug Optional resolved slug.
      * @return array
      */
-    protected function build_app_manifest( $app, ?string $slug = null ) : array {
-        $slug               = $slug ?? $this->real_slug( $app->get_slug() );
+    protected function build_app_manifest( Plugin|Theme $app ) : array {
+        $slug               = $app->get_slug();
         $metadata           = $this->get_metadata( $slug );
         $defaults           = $this->default_manifest( $app, $metadata );
         $current_manifest   = $app->get_manifest();
-
-        $manifest = array_merge( $defaults, is_array( $current_manifest ) ? $current_manifest : [] );
-
+        $manifest           = $defaults + $current_manifest;
+        
         return $manifest;
     }
 
@@ -166,7 +133,7 @@ trait WPRepoUtils {
         $name_key       = sprintf( '%s_name', $type );
         $version_key    = ( $app instanceof Plugin ) ? 'stable_tag' : 'version';
         return array(
-            'name'          => $metadata[$name_key] ?? '',
+            'name'          => $metadata[$name_key] ?? $app->get_name(),
             'slug'          => $app->get_slug(),
             'version'       => $metadata[$version_key] ?? $app->get_meta( 'version' ),
             'type'          => \sprintf( 'wordpress-%s', $type ),

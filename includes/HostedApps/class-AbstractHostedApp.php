@@ -869,10 +869,6 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return bool|Exception
      */
     final public function save() : bool|Exception {
-        if ( ! $this->get_id() ) {
-            return false;
-        }
-
         $db         = smliser_dbclass();
         $table      = static::get_db_table();
         $file       = $this->file;
@@ -939,8 +935,6 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $repo_class->regenerate_app_dot_json( $this );
 
         return ( false !== $result ) ? true : new Exception( 'db_insert_error', $db->get_last_error() );
-
-
     }
 
     /**

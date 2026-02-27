@@ -22,7 +22,8 @@ $other_fields   = array(
             'class' => 'app-uploader-form-row',
             'attr'  => array(
                 'class' => 'smliser-json-textarea',
-                'readonly' => true
+                'readonly' => true,
+                'data-editor-description' => 'Edit the theme\'s app.json file. Certain fields are automatically generated from the theme style.css file and cannot be overridden here.'
             )
         )
     ),
@@ -38,7 +39,7 @@ $other_fields   = array(
                 'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
                 'readonly'      => true,
-                'title'         => 'Use theme style.css file to edit the minimum PHP version required to install the theme'
+                'title'         => 'Use theme style.css file to edit the minimum PHP version required to install this theme'
             )
         )
     ),
@@ -54,7 +55,7 @@ $other_fields   = array(
                 'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
                 'readonly'      => true,
-                'title'         => 'Use theme style.css file to edit the minimum WordPress version required to install the theme'
+                'title'         => 'Use theme style.css file to edit the minimum WordPress version required to install this theme'
             )
         )
     ),

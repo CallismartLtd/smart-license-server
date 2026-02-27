@@ -190,7 +190,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                     <h3>
                         <i class="<?php echo esc_attr( $data['icon'] ?? 'dashicons dashicons-chart-bar' ) ?>"></i>
                         <?php echo esc_html( $heading ); ?>
-                        <!-- <?php esc_html_e( 'Analytics (30 Days)', 'smliser' ); ?> -->
                     </h3>
                     <div class="smliser-sidebar-content">
                         <?php echo ( $data['content'] ?? '' ); ?>

@@ -12,23 +12,6 @@ $title  = sprintf( 'Edit Software: %s', $app->get_name() );
 
 $other_fields = array(
     array(
-        'label' => __( 'App.json File', 'smliser' ),
-        'input' => array(
-            'type'  => 'textarea',
-            'name'  => 'app_json_content',
-            'value' => smliser_safe_json_encode(
-                $app->get_manifest(),
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
-            ),
-            'class' => 'app-uploader-form-row',
-            'attr'  => array(
-                'class' => 'smliser-json-textarea',
-                'readonly' => true
-            )
-        )
-    ),
-
-    array(
         'label' => __( 'Support URL', 'smliser' ),
         'input' => array(
             'type'  => 'text',
@@ -81,6 +64,22 @@ $other_fields = array(
                 'autocomplete' => 'off',
                 'spellcheck'   => 'off',
                 'placeholder'  => 'Optional – link to software documentation'
+            )
+        )
+    ),
+    array(
+        'label' => __( 'App.json File', 'smliser' ),
+        'input' => array(
+            'type'  => 'textarea',
+            'name'  => 'app_json_content',
+            'value' => smliser_safe_json_encode(
+                $app->get_manifest(),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            ),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'class' => 'smliser-json-textarea',
+                'readonly' => true
             )
         )
     ),

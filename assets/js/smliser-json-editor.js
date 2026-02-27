@@ -59,6 +59,7 @@ class SmliserJsonEditor {
             onChange: null,
             onError: null,
             customButtons: {},
+            autoFocus: true,
             ...options
         };
 
@@ -154,7 +155,9 @@ class SmliserJsonEditor {
             this.targetElement.appendChild( this.container );
         }
 
-        this.container.focus();
+        if ( this.options.autoFocus ) {
+            this.container.focus();
+        }
         this._setupResizeObserver();
     }
 
