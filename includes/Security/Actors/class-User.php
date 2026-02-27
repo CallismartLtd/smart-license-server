@@ -365,7 +365,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * 
      * @return self[]
      */
-    public static function get_all(int $page, int $limit ) : array {
+    public static function get_all( int $page, int $limit ) : array {
         return self::get_all_self( SMLISER_USERS_TABLE, $page, $limit );
     }
 

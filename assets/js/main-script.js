@@ -1209,7 +1209,6 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             if ( ! picker ) {
                 picker  = CallismartDatePicker.mountAll();
             }
-            
         });
 
         modal.on( 'onSubmit', async (e) => {            
@@ -1332,6 +1331,9 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 });
 
                 modal.open().then( () => downloadBtn.focus() );
+                modal.on( 'afterClose', () => {
+                    window.location.reload();
+                });
                 return;
             }
 

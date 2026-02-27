@@ -33,10 +33,8 @@ if ( empty( $object ) ) {
 }
 
 $app = $object->get_app();
-$view_url   = clone( $url );
-$view_url->add_query_params( [ 'tab' => 'view', 'app_id' => $id, 'type' => $app_type] );
-$edit_url = clone $view_url;
-$edit_url->add_query_param( 'tab', 'edit' );
+$view_url   = $url->add_query_param( 'tab', 'view' )->add_query_params( [ 'app_id' => $id, 'type' => $app_type ] );
+$edit_url   = $url->add_query_param( 'tab', 'edit' )->add_query_params( [ 'app_id' => $id, 'type' => $app_type ] );
 ?>
 
 <h1>Software Monetization</h1>

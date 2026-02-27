@@ -1,9 +1,13 @@
 <?php
 /**
- * Mutable URL Object Class
+ * Immutable URL Object Class
  *
  * Provides an object-oriented API for parsing and manipulating URLs,
  * including query parameter management, origin extraction, and validation.
+ *
+ * Each mutator method returns a new URL instance, leaving the original
+ * unchanged. This makes it safe to derive multiple URL variants from
+ * the same base object without defensive cloning at the call site.
  *
  * @package SmartLicenseServer\Core
  * @author  Callistus
@@ -19,9 +23,12 @@ class URL {
     /**
      * URL components parsed by parse_url().
      *
+     * Private to enforce immutability — all mutations go through
+     * the clone-and-return pattern in the mutator methods.
+     *
      * @var array
      */
-    protected $components = [];
+    private array $components = [];
 
     /*----------------------------------------------------------
      * CONSTRUCTOR
@@ -49,7 +56,7 @@ class URL {
      * @param string $url The URL string to parse.
      * @return array URL components (scheme, host, path, query, etc.)
      */
-    protected function parse_components( string $url ): array {
+    private function parse_components( string $url ): array {
         $url = trim( $url );
 
         if ( preg_match( '#^(localhost|127\.0\.0\.1)#', $url ) ) {
@@ -58,6 +65,21 @@ class URL {
 
         $components = parse_url( $url );
         return $components ?: [];
+    }
+
+    /**
+     * Return a new instance with the given components array.
+     *
+     * Central helper used by all mutators to produce a new immutable
+     * instance instead of modifying $this.
+     *
+     * @param array $components New components to apply.
+     * @return self
+     */
+    private function with_components( array $components ): self {
+        $clone             = clone $this;
+        $clone->components = $components;
+        return $clone;
     }
 
     /*----------------------------------------------------------
@@ -184,119 +206,133 @@ class URL {
     }
 
     /*----------------------------------------------------------
-     * SETTERS / MUTATORS
+     * MUTATORS
+     *
+     * Every method here returns a NEW instance with the requested
+     * change applied. The original instance is never modified.
      *---------------------------------------------------------*/
 
     /**
-     * Set or replace the URL scheme.
+     * Return a new instance with the given scheme.
      *
      * @param string $scheme URL scheme (http, https, ftp, etc.).
      * @return self
      */
     public function set_scheme( string $scheme ): self {
-        $this->components['scheme'] = rtrim( strtolower( $scheme ), '://' );
-        return $this;
+        $components           = $this->components;
+        $components['scheme'] = rtrim( strtolower( $scheme ), '://' );
+        return $this->with_components( $components );
     }
 
     /**
-     * Set or replace the URL path.
+     * Return a new instance with the given path.
      *
      * @param string $path New path.
      * @return self
      */
     public function set_path( string $path ): self {
-        $this->components['path'] = '/' . ltrim( $path, '/' );
-        return $this;
+        $components         = $this->components;
+        $components['path'] = '/' . ltrim( $path, '/' );
+        return $this->with_components( $components );
     }
 
     /**
-     * Append the URL path
-     * 
-     * @param string $pathname
+     * Return a new instance with the given path segment appended.
+     *
+     * @param string $pathname Path segment to append.
      * @return self
      */
-    public function append_path( $pathname ) : self {
-        $this->components['path'] .= sprintf( '/%s', ltrim( $pathname, '/' ) );
-
-        return $this;
+    public function append_path( string $pathname ): self {
+        $components         = $this->components;
+        $components['path'] = ( $components['path'] ?? '' ) . '/' . ltrim( $pathname, '/' );
+        return $this->with_components( $components );
     }
 
     /**
-     * Set or replace the URL fragment/hash.
+     * Return a new instance with the given fragment/hash.
      *
      * @param string $hash New fragment (with or without '#').
      * @return self
      */
     public function set_hash( string $hash ): self {
-        $this->components['fragment'] = ltrim( $hash, '#' );
-        return $this;
+        $components              = $this->components;
+        $components['fragment']  = ltrim( $hash, '#' );
+        return $this->with_components( $components );
     }
 
     /**
-     * Add or update a single query parameter.
+     * Return a new instance with the given query parameter added or updated.
      *
      * @param string $key   Parameter name.
      * @param mixed  $value Parameter value.
      * @return self
      */
     public function add_query_param( string $key, $value ): self {
-        $params = $this->get_query_params();
-        $params[ $key ] = $value;
-        $this->components['query'] = http_build_query( $params );
-        return $this;
+        $params        = $this->get_query_params();
+        $params[ $key] = $value;
+
+        $components          = $this->components;
+        $components['query'] = http_build_query( $params );
+        return $this->with_components( $components );
     }
 
     /**
-     * Add or update multiple query parameters at once.
+     * Return a new instance with the given query parameters merged in.
      *
      * @param array $params Associative array of parameters.
      * @return self
      */
     public function add_query_params( array $params ): self {
         $merged = array_merge( $this->get_query_params(), $params );
-        $this->components['query'] = http_build_query( $merged );
-        return $this;
+
+        $components          = $this->components;
+        $components['query'] = http_build_query( $merged );
+        return $this->with_components( $components );
     }
 
     /**
-     * Set or replace the URL port.
+     * Return a new instance with the given port set.
      *
      * @param int $port Port number (1–65535).
      * @return self
+     * @throws \InvalidArgumentException If the port is out of range.
      */
     public function set_port( int $port ): self {
         if ( $port < 1 || $port > 65535 ) {
             throw new \InvalidArgumentException( 'Invalid port number.' );
         }
 
-        $this->components['port'] = $port;
-        return $this;
+        $components         = $this->components;
+        $components['port'] = $port;
+        return $this->with_components( $components );
     }
 
     /**
-     * Set the URL username.
+     * Return a new instance with the given username set.
      *
      * @param string $user Username.
      * @return self
      */
     public function set_user( string $user ): self {
-        $this->components['user'] = rawurlencode( $user );
-        return $this;
+        $components         = $this->components;
+        $components['user'] = rawurlencode( $user );
+        return $this->with_components( $components );
     }
 
     /**
-     * Set the URL password.
+     * Return a new instance with the given password set.
      *
      * @param string $pass Password.
      * @return self
      */
     public function set_pass( string $pass ): self {
-        $this->components['pass'] = rawurlencode( $pass );
-        return $this;
+        $components         = $this->components;
+        $components['pass'] = rawurlencode( $pass );
+        return $this->with_components( $components );
     }
 
     /**
-     * Set URL credentials (user + password).
+     * Return a new instance with the given credentials set.
      *
      * @param string $user Username.
      * @param string $pass Password.
@@ -307,17 +343,18 @@ class URL {
     }
 
     /**
-     * Remove URL credentials.
+     * Return a new instance with credentials removed.
      *
      * @return self
      */
     public function remove_credentials(): self {
-        unset( $this->components['user'], $this->components['pass'] );
-        return $this;
-    }    
+        $components = $this->components;
+        unset( $components['user'], $components['pass'] );
+        return $this->with_components( $components );
+    }
 
     /**
-     * Remove one or more query parameters.
+     * Return a new instance with the given query parameter(s) removed.
      *
      * @param string|array $keys Parameter key(s) to remove.
      * @return self
@@ -327,48 +364,54 @@ class URL {
         foreach ( (array) $keys as $key ) {
             unset( $params[ $key ] );
         }
-        $this->components['query'] = http_build_query( $params );
-        return $this;
+
+        $components          = $this->components;
+        $components['query'] = http_build_query( $params );
+        return $this->with_components( $components );
     }
 
     /**
-     * Remove the port from the URL.
+     * Return a new instance with the port removed.
      *
      * @return self
      */
     public function remove_port(): self {
-        unset( $this->components['port'] );
-        return $this;
+        $components = $this->components;
+        unset( $components['port'] );
+        return $this->with_components( $components );
     }
 
     /**
-     * Remove the URL username.
+     * Return a new instance with the username removed.
      *
      * @return self
      */
     public function remove_user(): self {
-        unset( $this->components['user'] );
-        return $this;
+        $components = $this->components;
+        unset( $components['user'] );
+        return $this->with_components( $components );
     }
 
     /**
-     * Remove the URL password.
+     * Return a new instance with the password removed.
      *
      * @return self
      */
     public function remove_pass(): self {
-        unset( $this->components['pass'] );
-        return $this;
+        $components = $this->components;
+        unset( $components['pass'] );
+        return $this->with_components( $components );
     }
 
     /*----------------------------------------------------------
-    * VALIDATION
-    *---------------------------------------------------------*/
+     * VALIDATION
+     *---------------------------------------------------------*/
 
     /**
      * Validate the URL.
      *
-     * Performs a basic syntax check, and optionally checks if the host exists via DNS.
+     * Performs a basic syntax check, and optionally checks if the host
+     * exists via DNS.
      *
      * @param bool $dns_check Whether to perform DNS lookup for the host. Default false.
      * @return bool True if valid (and host exists if $dns_check is true), false otherwise.
@@ -376,12 +419,10 @@ class URL {
     public function validate( bool $dns_check = false ): bool {
         $href = $this->get_href();
 
-        // Basic URL syntax check.
         if ( ! filter_var( $href, FILTER_VALIDATE_URL ) ) {
             return false;
         }
 
-        // Optional DNS check.
         if ( $dns_check ) {
             $host = $this->get_host();
             if ( empty( $host ) || ! checkdnsrr( $host, 'A' ) ) {
@@ -393,11 +434,12 @@ class URL {
     }
 
     /**
-     * Tells wether the url is valid
-     * 
+     * Check whether the URL is valid.
+     *
      * @param bool $dns_check Whether to perform DNS lookup for the host. Default false.
+     * @return bool
      */
-    public function is_valid( $dns_check = false ) : bool {
+    public function is_valid( bool $dns_check = false ): bool {
         return true === $this->validate( $dns_check );
     }
 
@@ -417,7 +459,7 @@ class URL {
      */
     public function is_localhost(): bool {
         $host = $this->get_host();
-        return in_array( $host, ['localhost', '127.0.0.1', '::1'], true );
+        return in_array( $host, [ 'localhost', '127.0.0.1', '::1' ], true );
     }
 
     /**
@@ -435,7 +477,7 @@ class URL {
             return true;
         }
 
-        if ( filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) && strpos( $host, 'fc') === 0 ) {
+        if ( filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) && strpos( $host, 'fc' ) === 0 ) {
             return true;
         }
 
@@ -443,14 +485,16 @@ class URL {
     }
 
     /**
-     * Check whether the url has scheme
+     * Check whether the URL has a scheme.
+     *
+     * @return bool
      */
-    public function has_scheme() : bool {
+    public function has_scheme(): bool {
         return isset( $this->components['scheme'] );
     }
 
     /**
-     * Check if URL has a port explicitly defined.
+     * Check if the URL has a port explicitly defined.
      *
      * @return bool True if port is set, false otherwise.
      */
@@ -464,8 +508,7 @@ class URL {
      * @return bool True if there is at least one query parameter, false otherwise.
      */
     public function has_query(): bool {
-        $params = $this->get_query_params();
-        return ! empty( $params );
+        return ! empty( $this->get_query_params() );
     }
 
     /**
@@ -478,14 +521,13 @@ class URL {
     }
 
     /**
-     * Check if a query parameter exists.
+     * Check if a specific query parameter exists.
      *
      * @param string $key Query parameter name.
      * @return bool True if exists, false otherwise.
      */
     public function has_query_param( string $key ): bool {
-        $params = $this->get_query_params();
-        return array_key_exists( $key, $params );
+        return array_key_exists( $key, $this->get_query_params() );
     }
 
     /**
@@ -516,7 +558,7 @@ class URL {
      * @param array $c URL components.
      * @return string Reconstructed URL.
      */
-    protected static function build_url( array $c ): string {
+    private static function build_url( array $c ): string {
         $url = '';
 
         if ( isset( $c['scheme'] ) ) {
@@ -555,40 +597,39 @@ class URL {
     }
 
     /**
-     * Sanitize and normalize the URL components.
+     * Return a new sanitized instance.
      *
-     * This method cleans unsafe characters, normalizes casing,
-     * encodes query parameters safely, and ensures the URL is
-     * structurally consistent without altering its intent.
+     * Cleans unsafe characters, normalizes casing, encodes query
+     * parameters safely, and ensures structural consistency — without
+     * altering the original instance.
      *
      * @return self
      */
     public function sanitize(): self {
+        $c = $this->components;
 
-        // Normalize scheme
-        if ( isset( $this->components['scheme'] ) ) {
-            $this->components['scheme'] = strtolower(
-                preg_replace( '/[^a-z0-9+\-.]/i', '', $this->components['scheme'] )
+        // Normalize scheme.
+        if ( isset( $c['scheme'] ) ) {
+            $c['scheme'] = strtolower(
+                preg_replace( '/[^a-z0-9+\-.]/i', '', $c['scheme'] )
             );
         }
 
-        // Normalize host
-        if ( isset( $this->components['host'] ) ) {
-            $this->components['host'] = strtolower(
-                trim( $this->components['host'] )
-            );
+        // Normalize host.
+        if ( isset( $c['host'] ) ) {
+            $c['host'] = strtolower( trim( $c['host'] ) );
         }
 
-        // Normalize path
-        if ( isset( $this->components['path'] ) ) {
-            $path = preg_replace( '#/+#', '/', $this->components['path'] );
-            $path = preg_replace( '/[\x00-\x1F\x7F]/u', '', $path );
-            $this->components['path'] = $path === '' ? '/' : $path;
+        // Normalize path.
+        if ( isset( $c['path'] ) ) {
+            $path       = preg_replace( '#/+#', '/', $c['path'] );
+            $path       = preg_replace( '/[\x00-\x1F\x7F]/u', '', $path );
+            $c['path']  = $path === '' ? '/' : $path;
         }
 
-        // Sanitize query parameters
-        if ( isset( $this->components['query'] ) && $this->components['query'] !== '' ) {
-            parse_str( $this->components['query'], $params );
+        // Sanitize query parameters.
+        if ( isset( $c['query'] ) && $c['query'] !== '' ) {
+            parse_str( $c['query'], $params );
 
             $clean = [];
             foreach ( $params as $key => $value ) {
@@ -605,34 +646,30 @@ class URL {
                 }
             }
 
-            $this->components['query'] = http_build_query(
-                $clean,
-                '',
-                '&',
-                PHP_QUERY_RFC3986
+            $c['query'] = http_build_query( $clean, '', '&', PHP_QUERY_RFC3986 );
+        }
+
+        // Normalize fragment.
+        if ( isset( $c['fragment'] ) ) {
+            $c['fragment'] = rawurlencode(
+                preg_replace( '/[\x00-\x1F\x7F]/u', '', $c['fragment'] )
             );
         }
 
-        // Normalize fragment
-        if ( isset( $this->components['fragment'] ) ) {
-            $this->components['fragment'] = rawurlencode(
-                preg_replace( '/[\x00-\x1F\x7F]/u', '', $this->components['fragment'] )
-            );
-        }
-
-        // Remove invalid port
-        if ( isset( $this->components['port'] ) ) {
-            $port = (int) $this->components['port'];
+        // Remove invalid port.
+        if ( isset( $c['port'] ) ) {
+            $port = (int) $c['port'];
             if ( $port < 1 || $port > 65535 ) {
-                unset( $this->components['port'] );
+                unset( $c['port'] );
             }
         }
 
-        return $this;
+        return $this->with_components( $c );
     }
 
     /**
      * Get the basename of the URL path.
+     *
      * @return string|null Basename or null if path is not set.
      */
     public function basename(): ?string {
@@ -644,30 +681,25 @@ class URL {
         return basename( $path );
     }
 
-    /*
-    |------------------------
-    | DEBUG UTILITY METHODS
-    |------------------------
-    */
+    /*----------------------------------------------------------
+     * DEBUG
+     *---------------------------------------------------------*/
 
     /**
      * Dump all URL properties and their current state.
-     * 
-     * Provides a comprehensive view of all URL components, validation states,
-     * and computed properties for debugging and inspection purposes.
      *
-     * @param bool $return Whether to return the dump as array instead of printing. Default false.
+     * Provides a comprehensive view of all URL components, validation
+     * states, and computed properties for debugging and inspection.
+     *
      * @return array
      */
-    public function dump() {
-        $dump = [
-            // Core URL
+    public function dump(): array {
+        return [
             'url' => [
                 'full_url' => $this->get_href(),
                 'origin'   => $this->get_origin(),
             ],
-            
-            // Components
+
             'components' => [
                 'scheme'   => $this->get_scheme(),
                 'host'     => $this->get_host(),
@@ -678,20 +710,17 @@ class URL {
                 'query'    => $this->components['query'] ?? null,
                 'fragment' => $this->get_hash(),
             ],
-            
-            // Query Parameters
+
             'query_params' => $this->get_query_params(),
-            
-            // Validation & State
+
             'validation' => [
-                'is_valid'       => $this->is_valid(),
-                'is_valid_dns'   => $this->is_valid( true ),
-                'is_ssl'         => $this->is_ssl(),
-                'is_localhost'   => $this->is_localhost(),
-                'is_private_ip'  => $this->is_private_ip(),
+                'is_valid'      => $this->is_valid(),
+                'is_valid_dns'  => $this->is_valid( true ),
+                'is_ssl'        => $this->is_ssl(),
+                'is_localhost'  => $this->is_localhost(),
+                'is_private_ip' => $this->is_private_ip(),
             ],
-            
-            // Presence Checks
+
             'has' => [
                 'scheme'      => $this->has_scheme(),
                 'port'        => $this->has_port(),
@@ -699,11 +728,8 @@ class URL {
                 'query'       => $this->has_query(),
                 'fragment'    => $this->has_fragment(),
             ],
-            
-            // Raw Components
+
             'raw_components' => $this->components,
         ];
-    
-        return $dump;
     }
 }

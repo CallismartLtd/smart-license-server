@@ -57,7 +57,8 @@ class RepositoryPage {
             $args['types']   = $type;
         }
 
-        $status = \smliser_get_query_param( 'status', AbstractHostedApp::STATUS_ACTIVE );
+        $status     = \smliser_get_query_param( 'status', AbstractHostedApp::STATUS_ACTIVE );
+        $has_status = (bool) smliser_get_query_param( 'status', false );
 
         if ( $status ) {
             $args['status'] = $status;
@@ -65,9 +66,18 @@ class RepositoryPage {
 
         $result     = HostedApplicationService::get_apps( $args );
 
-        $apps       = $result['items'];
-        $pagination = $result['pagination'];
-        $add_url    = smliser_admin_repo_tab( 'add-new' );
+        $apps           = $result['items'];
+        $pagination     = $result['pagination'];
+        $current_url    = smliser_get_current_url()->remove_query_param( 'message' );
+        $add_url        = $current_url
+        ->add_query_param( 'tab', 'add-new' )
+        ->remove_query_param( ['status'] );
+
+        $page_title = \sprintf( '%s Repository', ucfirst( (string) $type ) );
+
+        if ( $has_status ) {
+            $page_title = sprintf( 'Status: %s', $status );
+        }
 
         include SMLISER_PATH . 'templates/admin/repository/dashboard.php';
 
@@ -114,6 +124,7 @@ class RepositoryPage {
         if ( ! $app ) {
             smliser_abort_request( smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
         }
+
         $app_action = array(
             'title' => 'View App',
             'label' => 'View App',
@@ -157,9 +168,14 @@ class RepositoryPage {
 
         $repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
 
-        $url            = new URL( admin_url( 'admin.php?page=repository' ) );
-        $download_url   = new URL( admin_url( 'admin-post.php' ) );
-        $download_url->add_query_params([ 'action' => 'smliser_admin_download', 'type' => $app->get_type(), 'id' => $app->get_id(), 'download_token' => wp_create_nonce( 'smliser_download_token' )] );
+        $url                    = new URL( admin_url( 'admin.php?page=repository' ) );
+        $download_actions       = [
+            'action' => 'smliser_admin_download',
+            'type'   => $app->get_type(),
+            'id'     => $app->get_id(),
+            'download_token' => wp_create_nonce( 'smliser_download_token' )
+        ];
+        $download_url           = ( new URL( admin_url( 'admin-post.php' ) ) )->add_query_params( $download_actions);
         $last_updated_string    = sprintf( '%s ago', smliser_readable_duration( time() - strtotime( $app->get_last_updated() ) ) );
         $file_size              = FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) );
 
@@ -256,6 +272,7 @@ class RepositoryPage {
      */
     private static function monetization_page() {
         $url    = new URL( admin_url( 'admin.php?page=repository' ) );
+        $url->remove_query_param( 'message' );
 
         include_once SMLISER_PATH . 'templates/admin/monetization.php';
         

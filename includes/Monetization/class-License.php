@@ -72,7 +72,7 @@ class License {
      * 
      * @var AbstractHostedApp
      */
-    protected $app;
+    protected ?AbstractHostedApp $app;
 
     /**
      * The status of the license.
@@ -211,13 +211,15 @@ class License {
     /**
      * Set the app this license is issued to.
      * 
-     * @param AbstractHostedApp $app
+     * @param AbstractHostedApp|null $app
      * @return static
      */
-    public function set_app( AbstractHostedApp $app ) : static {
+    public function set_app( ?AbstractHostedApp $app ) : static {
         $this->app = $app;
 
-        $this->set_app_prop( $app->get_type(), $app->get_slug() );
+        if ( $app instanceof AbstractHostedApp ) {
+            $this->set_app_prop( $app->get_type(), $app->get_slug() );
+        }
 
         return $this;
     }
@@ -377,9 +379,32 @@ class License {
     /**
      * Get the app this license is issued to.
      * 
-     * @return AbstractHostedApp $app
+     * Intentionally lazy loaded because the app instance is not always required
+     * when working with licenses. This is to optimize performance by avoiding unnecessary 
+     * loading of app instances.
+     * 
+     * @return AbstractHostedApp|null $app
      */
-    public function get_app() {
+    public function get_app() : ?AbstractHostedApp {
+
+        if ( ! isset( $this->app ) ) {
+            if ( count( $this->get_app_prop() ) !== 2 ) {
+                return null;
+            }
+
+            $app    = null;
+            [$app_type, $app_slug] = $this->get_app_prop();
+            $app_class  = HostedApplicationService::get_app_class( $app_type );
+            $method     = "get_by_slug";
+
+            if ( \class_exists( $app_class ) && \method_exists( $app_class, $method ) ) {
+                /** @var AbstractHostedApp|null $app */
+                $app = $app_class::$method( $app_slug );
+            }
+
+            $this->set_app( $app );
+        }
+
         return $this->app;
     }
 
@@ -577,36 +602,69 @@ class License {
     }
 
     /**
-     * Get all licenses from the database
-     * 
-     * @param int $page     The current pagination number.
-     * @param int $limit    The number of license object to return.
-     * @return static[]
+     * Get all licenses with pagination support.
+     *
+     * @param int $page  Current page number.
+     * @param int $limit Items per page.
+     *
+     * @return array {
+     *     @type static[] $items
+     *     @type array    $pagination
+     * }
      */
     public static function get_all( int $page = 1, int $limit = 30 ) : array {
-        $key        = static::make_cache_key( __METHOD__, [$page, $limit] );
-        $licenses   = static::cache_get( $key );
 
-        if ( false === $licenses ) {
-            $db         = smliser_dbclass();
-            $table      = \SMLISER_LICENSE_TABLE;
-            $licenses   = [];
+        $page  = max( 1, $page );
+        $limit = max( 1, $limit );
 
-            $offset     = $db->calculate_query_offset( $page, $limit );
-            $sql        = "SELECT * FROM {$table} LIMIT {$limit} OFFSET {$offset}";
+        $key  = static::make_cache_key( __METHOD__, array( $page, $limit ) );
+        $data = static::cache_get( $key );
 
-            $results    = $db->get_results( $sql );
-            
-            if ( ! empty( $results ) ) {
-                foreach ( $results as $result ) {
-                    $licenses[] = static::from_array( $result );
-                }
-            }
-            
-            static::cache_set( $key, $licenses, 30 * \MINUTE_IN_SECONDS );
+        if ( false !== $data ) {
+            return $data;
         }
 
-        return $licenses;
+        $db     = smliser_dbclass();
+        $table  = \SMLISER_LICENSE_TABLE;
+        $offset = $db->calculate_query_offset( $page, $limit );
+
+        /**
+         * Fetch paginated rows
+         */
+        $sql    = "SELECT * FROM {$table} ORDER BY id DESC LIMIT ? OFFSET ?";
+        $rows   = $db->get_results( $sql, [$limit, $offset]);
+
+        $items = array();
+
+        if ( ! empty( $rows ) ) {
+            foreach ( $rows as $row ) {
+                $items[] = static::from_array( $row );
+            }
+        }
+
+        /**
+         * Fetch total count
+         */
+        $count_sql = "SELECT COUNT(*) FROM {$table}";
+        $total     = (int) $db->get_var( $count_sql );
+
+        $result = array(
+            'items'      => $items,
+            'pagination' => array(
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => $total,
+                'total_pages' => $limit > 0 ? (int) ceil( $total / $limit ) : 0,
+            ),
+        );
+
+        static::cache_set(
+            $key,
+            $result,
+            30 * \MINUTE_IN_SECONDS
+        );
+
+        return $result;
     }
 
     /**
@@ -786,15 +844,7 @@ class License {
 
         if ( ! empty( $data['app_prop'] ) && preg_match( '#^[^/]+/[^/]+$#', (string) $data['app_prop'] ) ) {
             list( $app_type, $app_slug ) = explode( '/', $data['app_prop'], 2 );
-            $app_class  = HostedApplicationService::get_app_class( $app_type );
-            $method     = "get_by_slug";
-
-            if ( \class_exists( $app_class ) && \method_exists( $app_class, $method ) ) {
-                /** @var AbstractHostedApp|null $app */
-                $app = $app_class::$method( $app_slug );
-
-                ( $app instanceof AbstractHostedApp ) && $static->set_app( $app );
-            }
+            $static->set_app_prop( $app_type, $app_slug );
         }
 
         $static->load_meta();

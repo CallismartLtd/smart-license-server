@@ -47,8 +47,12 @@ class LicensePage {
      * The license page dashbard
      */
     private static function dashboard() : void {
-        $licenses   = License::get_all();
-        $add_url    = smliser_license_admin_action_page( 'add-new' );
+        $limit          = \smliser_get_query_param( 'limit', 20 );
+        $page           = \smliser_get_query_param( 'paged', 1 );
+        $license_data   = License::get_all( $page, $limit );
+        $licenses       = $license_data['items'] ?? [];
+        $pagination     = $license_data['pagination'] ?? [];
+        $add_url        = smliser_license_admin_action_page( 'add-new' );
     
         include_once SMLISER_PATH . 'templates/admin/license/dashboard.php';
     
@@ -119,7 +123,7 @@ class LicensePage {
             'add-new'   => 'Add new license',
             'edit'      => 'Edit license',
             'view'      => 'License Details',
-            default     => 'No title'
+            default     => 'Licenses'
         };
 
         $args   = array(

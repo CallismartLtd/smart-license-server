@@ -516,7 +516,7 @@ class HostedApplicationService {
         $args = parse_args( $args, $defaults );
 
         $status = $args['status'];
-        $types  = (array) $args['types'];
+        $types  = empty( $args['types'] ) ? self::$allowed_app_types : (array) $args['types'];
 
         $key = self::make_cache_key( __METHOD__, \compact( 'status', 'types' ) );
 

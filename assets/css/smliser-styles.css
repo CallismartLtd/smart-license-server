@@ -144,37 +144,105 @@ input[type="checkbox"].smliser-licence-key-visibility-toggle {
 /* Table Styles */
 .smliser-table-wrapper {
     overflow-x: auto;
+    margin: 10px auto;
+    padding: 10px;
 }
 
 .smliser-table {
-    width: 90%;
+    width: 100%;
     border-collapse: collapse;
-    border-radius: 9px;
-    margin: 20px auto;
-    background-color: #fff;
-    box-shadow: 0 10px 10px rgba(3, 1, 2, 0.2);
-    overflow: hidden;
+    min-width: 600px;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #1a1a1a;
+    background: #ffffff;
 }
 
-.smliser-table th,
-.smliser-table td {
-    padding: 20px;
-    text-align: center;
-    border-bottom: 1px solid #dddddd;
+/* Header styling */
+.smliser-table thead tr {
+    background-color: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    text-align: left;
 }
 
 .smliser-table th {
-    background-color: #4928be;
-    color: #15ff00;
-    font-weight: bold;
-    height: 35px;
-    padding: 35px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: #64748b;
 }
 
-.smliser-table:hover {
-    background-color: #ffffff;
-    box-shadow: none;
+/* Body styling */
+.smliser-table td {
+    padding: 10px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.95rem;
+    vertical-align: middle;
+}
 
+/* Hover effect for better row tracking */
+.smliser-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.smliser-table tbody tr:hover {
+    background-color: #f1f5f9;
+}
+
+/* Last row shouldn't have a border */
+.smliser-table tbody tr:last-of-type {
+    border-bottom: none;
+}
+
+.smliser-status-filter {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 10px 0;
+    padding: 0;
+    list-style: none;
+    text-transform: capitalize;
+}
+.smliser-status-filter .smliser-status-item {
+    margin: 0;
+}
+
+.smliser-status-filter .smliser-status-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1d2327;
+    transition: all 0.15s ease-in-out;
+}
+
+.smliser-status-filter .smliser-status-link:hover {
+    background: #fff;
+    color: #135e96;
+}
+
+/* Count */
+.smliser-status-filter .smliser-status-count {
+    opacity: 0.7;
+    font-weight: 400;
+}
+
+.smliser-status-filter .smliser-status-link.is-active {
+    background: #2271b1;
+    color: #ffffff;
+}
+
+.smliser-status-filter .smliser-status-link.is-active .smliser-status-count {
+    opacity: 0.9;
+}
+
+.smliser-status-filter .smliser-status-link:focus {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
 }
 
 .smliser-table-count {
@@ -212,43 +280,6 @@ input[type="checkbox"].smliser-licence-key-visibility-toggle {
     color: #6b5500;
 }
 
-
-/* Responsive Styles for mobile devices */
-@media only screen and (min-width: 320px) and (max-width: 720px) {
-
-    .smliser-table {
-        width: 90%;
-        max-width: 100%;
-        /* Adjusted to take full width on small screens */
-        box-shadow: 0 10px 10px rgba(3, 1, 2, 0.2);
-        overflow-x: auto;
-        /* Added to enable horizontal scrolling if needed */
-    }
-
-    .smliser-table thead,
-    .smliser-table tbody,
-    .smliser-table th,
-    .smliser-table td,
-    .smliser-table tr {
-        display: block;
-    }
-
-    .smliser-table tbody tr {
-        margin-bottom: 10px;
-        border: 1px solid #ddd;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-    }
-
-    .smliser-table tbody td {
-        text-align: left;
-        padding: 15px;
-        border-bottom: 1px solid #ddd;
-        width: 100%;
-        /* Make the cells take full width */
-    }
-}
 
 /* Ensure the edit link is hidden by default */
 .smliser-edit-link {
