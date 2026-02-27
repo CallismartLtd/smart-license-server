@@ -303,34 +303,41 @@ class SoftwareRepository extends Repository {
      * @return array
      */
     public function regenerate_app_dot_json( $software ) : array {
-        $defaults   = [
-            'name'                  => $software->get_name(),
-            'slug'                  => $software->get_slug(),
-            'version'               => $software->get_version(),
-            'short_description'     => $software->get_short_description(),
+
+        $defaults = [
+            'name'              => $software->get_name(),
+            'slug'              => $software->get_slug(),
+            'version'           => $software->get_version(),
+            'short_description' => $software->get_short_description(),
         ];
 
-        $manifest   = $software->get_manifest();
-        $manifest   = $defaults + $manifest;
+        $current = $software->get_manifest();
+
+        // Allow overrides and additional fields.
+        $manifest = array_merge( $defaults, $current );
+
+        // Enforce canonical identity fields.
+        foreach ( [ 'name', 'slug', 'version' ] as $key ) {
+            $manifest[ $key ] = $defaults[ $key ];
+        }
 
         try {
-            $slug       = $this->real_slug( $software->get_slug() );
-            $base_dir   = $this->enter_slug( $slug );            
-        } catch( FileSystemException $e ) {
+            $slug     = $this->real_slug( $software->get_slug() );
+            $base_dir = $this->enter_slug( $slug );
+        } catch ( FileSystemException $e ) {
             return $manifest;
         }
 
-        $file_path  = FileSystemHelper::join_path( $base_dir, 'app.json' );
+        $file_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
 
-        $flags      = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
-        $json       = smliser_safe_json_encode( $manifest, $flags );
+        $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
+        $json  = smliser_safe_json_encode( $manifest, $flags );
 
         $this->put_contents( $file_path, $json );
 
         return $manifest;
-
     }
-
+    
     /**
      * Get description from readm.md file.
      * 

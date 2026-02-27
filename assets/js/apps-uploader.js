@@ -911,7 +911,7 @@ class AppUploader {
      * Delete an existing asset image.
      */
     async _deleteImage( config, btn ) {
-        const confirmed = confirm( `Are you sure you want to delete ${ config.asset_name ?? 'this image' }? This action cannot be reversed.` );
+        const confirmed = await SmliserModal.confirm( `Are you sure you want to delete ${ config.asset_name ?? 'this image' }? This action cannot be reversed.` );
         if ( ! confirmed ) return;
 
         const payLoad = new FormData();

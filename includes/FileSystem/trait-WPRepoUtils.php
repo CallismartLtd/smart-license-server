@@ -17,6 +17,12 @@ use SmartLicenseServer\HostedApps\Theme;
 use TypeError;
 
 trait WPRepoUtils {
+    private const IMMUTABLE_MANIFEST_KEYS = [
+        'name',
+        'slug',
+        'version',
+        'type',
+    ];
 
     /**
      * Get the content of an app's app.json file.
@@ -94,12 +100,26 @@ trait WPRepoUtils {
      * @return array
      */
     protected function build_app_manifest( Plugin|Theme $app ) : array {
-        $slug               = $app->get_slug();
-        $metadata           = $this->get_metadata( $slug );
-        $defaults           = $this->default_manifest( $app, $metadata );
-        $current_manifest   = $app->get_manifest();
-        $manifest           = $defaults + $current_manifest;
-        
+
+        $slug             = $app->get_slug();
+        $metadata         = $this->get_metadata( $slug );
+        $defaults         = $this->default_manifest( $app, $metadata );
+        $current_manifest = $app->get_manifest();
+
+        $current_manifest = is_array( $current_manifest )
+            ? $current_manifest
+            : array();
+
+        // Allow overrides
+        $manifest = array_merge( $defaults, $current_manifest );
+
+        // Enforce canonical keys.
+        foreach ( self::IMMUTABLE_MANIFEST_KEYS as $key ) {
+            if ( array_key_exists( $key, $defaults ) ) {
+                $manifest[ $key ] = $defaults[ $key ];
+            }
+        }
+
         return $manifest;
     }
 
