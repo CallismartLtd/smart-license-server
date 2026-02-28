@@ -769,7 +769,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
     
 
     $base_url   = $base_url ? new URL( $base_url ) : smliser_get_current_url();
-    $base_url   = $base_url->remove_query_param( array( $page_param, 'limit' ) );
+    $base_url   = $base_url->remove_query_param( $page_param, 'limit' );
     $prev_page  = max( 1, $page - 1 );
     $next_page  = min( $total_pages, $page + 1 );
 

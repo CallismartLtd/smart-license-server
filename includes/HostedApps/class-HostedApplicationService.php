@@ -610,7 +610,7 @@ class HostedApplicationService {
      * 
      * @return array
      */
-    public function get_allowed_app_types() {
+    public static function get_allowed_app_types() {
         return self::$allowed_app_types;
     }
 

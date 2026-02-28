@@ -12,40 +12,22 @@ use SmartLicenseServer\FileSystem\Repository;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-$max_upload_size_bytes = wp_max_upload_size();
-$max_upload_size_mb = $max_upload_size_bytes / 1024 / 1024;
+$max_upload_size_bytes  = wp_max_upload_size();
+$max_upload_size_mb     = $max_upload_size_bytes / 1024 / 1024;
+$args                   = self::get_menu_args( isset( $app ) ? $app : null );
+
+if ( ! isset( $app ) ) {
+    unset(
+        $args['actions'][0], 
+        $args['actions'][1], 
+        $args['actions'][2]
+    );
+}
+
 ?>
 
 <div class="application-uploader-page">
-    <?php Menu::print_admin_top_menu(
-        [
-            'breadcrumbs'   => array(
-                array(
-                    'label' => 'Repository',
-                    'url'   => admin_url( 'admin.php?page=repository' ),
-                    'icon'  => 'ti ti-home-filled'
-                ),
-
-                array(
-                    'label' => smliser_pluralize( $type ),
-                    'url'   => admin_url( 'admin.php?page=repository&type=' . $type ),
-                    'icon'  => 'ti ti-folder-open'
-                ),
-                array(
-                    'label' => $title
-                )
-            ),
-            'actions'   => array(
-                $app_action,
-                array(
-                    'title' => 'Settings',
-                    'label' => 'Settings',
-                    'url'   => admin_url( 'admin.php?page=smliser-options'),
-                    'icon'  => 'dashicons dashicons-admin-generic'
-                )
-            )
-        ]
-    ); ?>
+    <?php Menu::print_admin_top_menu( $args ); ?>
  
 
     <form action="" class="app-uploader-form" id="appUploaderForm">

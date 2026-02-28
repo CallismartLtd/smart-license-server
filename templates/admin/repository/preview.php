@@ -15,47 +15,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 
 <div class="smliser-admin-repository-template repo-page">
-    <?php Menu::print_admin_top_menu(
-        [
-            'breadcrumbs'   => array(
-                array(
-                    'label' => 'Repository',
-                    'url'   => admin_url( 'admin.php?page=repository' ),
-                    'icon'  => 'ti ti-home-filled'
-                ),
-
-                array(
-                    'label' => smliser_pluralize( $app->get_type() ),
-                    'url'   => admin_url( 'admin.php?page=repository&type=' . $app->get_type() ),
-                    'icon'  => 'ti ti-folder-open'
-                ),
-                array(
-                    'label' => $template_header['name']
-                )
-            ),
-            'actions'   => array(
-                array(
-                    'title' => 'Edit App',
-                    'label' => 'Edit',
-                    'url'   => smliser_get_current_url()->add_query_params( 
-                        array(
-                            'app_id'    => $app->get_id(), 
-                            'type'      => $app->get_type(),
-                            'tab'       => 'edit' 
-                        ) 
-                    ),
-                    'icon'  => 'ti ti-edit'
-                ),
-
-                array(
-                    'title' => 'Settings',
-                    'label' => 'Settings',
-                    'url'   => admin_url( 'admin.php?page=smliser-options'),
-                    'icon'  => 'dashicons dashicons-admin-generic'
-                )
-            )
-        ]
-    ); ?>
+    <?php Menu::print_admin_top_menu( self::get_menu_args( isset( $app ) ? $app : null ) ); ?>
 
     <!-- Hero Section -->
     <section class="smliser-hero-section">

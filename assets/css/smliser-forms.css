@@ -1319,3 +1319,23 @@ li.smliser-org-member .smliser-org-member_header img {
   box-shadow: none;
   transform: none;
 }
+.smliser-app-search-page {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.smliser-app-search-form {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  align-items: center;
+}
+
+.smliser-app-search-form input[type="search"],
+.smliser-app-search-form select,
+.smliser-app-search-form button[type="submit"] {
+  border: solid 1px #dcdcde;
+  border-radius: 4px;
+  height: 40px;
+}

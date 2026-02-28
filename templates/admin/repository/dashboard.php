@@ -23,8 +23,15 @@ $menu_args  = array(
         array(
             'title' => 'Repository',
             'label' => 'Repository',
-            'url'   => $current_url ->remove_query_param( ['tab', 'type', 'status'] )->get_href()
+            'url'   => $current_url ->remove_query_param( 'tab', 'type', 'status' )->get_href()
         ),
+
+        array(
+            'title' => sprintf( '%s Repository', (string) $type ),
+            'label' => ucfirst( (string) $type ),
+            'url'   => $current_url->remove_query_param( 'tab', 'status' )->get_href()
+        ),
+
         array(
             'label' => $page_title
         )
@@ -35,35 +42,41 @@ $menu_args  = array(
             'title'     => 'Upload New Application',
             'label'     => 'Upload New',
             'url'       => $add_url->get_href(),
-            'icon'      => 'ti ti-upload'
+            'icon'      => 'ti ti-upload',
         ),
 
         array(
-            'title' => 'Plugin Repository',
-            'label' => 'Plugins',
-            'url'   => $current_url ->add_query_param( 'type', 'plugin' )->get_href(),
-            'icon'  => 'ti ti-plug'
+            'title'     => 'Plugin Repository',
+            'label'     => 'Plugins',
+            'url'       => $current_url->add_query_param( 'type', 'plugin' )->get_href(),
+            'icon'      => 'ti ti-plug',
+            'active'    => 'plugin' === $type
         ),
         
         array(
-            'title' => 'Theme Repository',
-            'label' => 'Themes',
-            'url'   => $current_url ->add_query_param( 'type', 'theme' )->get_href(),
-            'icon'  => 'ti ti-palette'
+            'title'     => 'Theme Repository',
+            'label'     => 'Themes',
+            'url'       => $current_url->add_query_param( 'type', 'theme' )->get_href(),
+            'icon'      => 'ti ti-palette',
+            'active'    => 'theme' === $type
         ),
         
         array(
-            'title' => 'Software Repository',
-            'label' => 'Software',
-            'url'   => $current_url ->add_query_param( 'type', 'software' )->get_href(),
-            'icon'  => 'ti ti-device-desktop-code'
+            'title'     => 'Software Repository',
+            'label'     => 'Software',
+            'url'       => $current_url->add_query_param( 'type', 'software' )->get_href(),
+            'icon'      => 'ti ti-device-desktop-code',
+            'active'    => 'software' === $type
         ),
-        
     )
 );
 
 if ( count( $current_url ->get_query_params() ) === 1 ) {
     unset( $menu_args['breadcrumbs'][0] ); // Remove the home link on home page.
+}
+
+if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_param( 'status' ) && ! $type ) ) {
+    unset( $menu_args['breadcrumbs'][1] );
 }
 ?>
 <div class="smliser-admin-page">
@@ -109,19 +122,18 @@ if ( count( $current_url ->get_query_params() ) === 1 ) {
         <br class="clear" />
 
         <?php if ( empty( $apps ) ) : ?>
-            <?php 
-                $type_name  = $type ? $type : 'app';
-                $upload_url = smliser_admin_repo_tab( 'add-new', array( 'type' => $type ) );
-                echo wp_kses_post( 
-                        smliser_not_found_container(
-                        sprintf( 'Your %1$s %2$s repository is empty, upload your first %1$s <a href="%3$s">here</a>.',
-                            esc_html( $type_name ), 
-                            esc_html( $status ?? '' ),
-                            esc_url( $upload_url )
-                        )
-                    )
+            <?php if ( ! $current_url->has_query_param( 'status' ) ) :
+                $type_name  = $type ? $type : 'application';
+                $message    = sprintf( 
+                    'No app found in the repository, upload your first %1$s <a href="%3$s">here</a>.',
+                    esc_html( $type_name ), 
+                    esc_html( $status ?? '' ),
+                    esc_url( $add_url->get_href() )
                 );
-            ?>           
+            else:
+                $message    = 'No app found matching this status';
+            endif; ?>
+                <?php echo smliser_not_found_container( $message ); ?>       
         <?php else: ?>
 
             <form id="smliser-bulk-action-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -136,9 +148,7 @@ if ( count( $current_url ->get_query_params() ) === 1 ) {
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
                     </div>
-                    <div class="smliser-search-box">
-                        <input type="search" id="smliser-search" class="smliser-search-input" placeholder="<?php echo esc_attr__( 'Search Applications', 'smliser' ); ?>">
-                    </div>
+                    <a href="<?php echo esc_url( $current_url->remove_query_param( 'type', 'status' )->add_query_param( 'tab', 'search' ) ); ?>" class="smliser-btn smliser-btn-white">Search Repository</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">

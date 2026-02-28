@@ -359,7 +359,7 @@ class URL {
      * @param string|array $keys Parameter key(s) to remove.
      * @return self
      */
-    public function remove_query_param( $keys ): self {
+    public function remove_query_param( ...$keys ): self {
         $params = $this->get_query_params();
         foreach ( (array) $keys as $key ) {
             unset( $params[ $key ] );

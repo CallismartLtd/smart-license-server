@@ -13,6 +13,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
+use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 
 /**
@@ -38,6 +39,9 @@ class RepositoryPage {
             case 'monetization':
                 self::monetization_page();
                 break;
+            case 'search':
+                self::search_page();
+                break;
             default:
             self::dashboard();
         }
@@ -53,6 +57,7 @@ class RepositoryPage {
         );
 
         $type   = smliser_get_query_param( 'type', null );
+        $tab    = smliser_get_query_param( 'tab', '' );
         if ( $type ) {
             $args['types']   = $type;
         }
@@ -68,10 +73,10 @@ class RepositoryPage {
 
         $apps           = $result['items'];
         $pagination     = $result['pagination'];
-        $current_url    = smliser_get_current_url()->remove_query_param( 'message' );
+        $current_url    = smliser_get_current_url()->remove_query_param( 'message', 'tab' );
         $add_url        = $current_url
         ->add_query_param( 'tab', 'add-new' )
-        ->remove_query_param( ['status'] );
+        ->remove_query_param( 'status' );
 
         $page_title = \sprintf( '%s Repository', ucfirst( (string) $type ) );
 
@@ -81,6 +86,96 @@ class RepositoryPage {
 
         include SMLISER_PATH . 'templates/admin/repository/dashboard.php';
 
+    }
+
+    /**
+     * Page to search the entire repository.
+     */
+    private static function search_page() {
+        $illigal        = ['app_search', 'tab', 'search_status', 's', 'app_types', 'message', 'type', 'status'];
+        $current_url    = smliser_get_current_url()->remove_query_param( ...$illigal );
+        $add_url        = $current_url
+        ->add_query_param( 'tab', 'add-new' )
+        ->remove_query_param( 'status' );
+        $post_url   = $current_url->add_query_param( 'tab', 'search' );
+        $app_types  = HostedApplicationService::get_allowed_app_types();
+        $limit      = smliser_get_query_param( 'limit', 10 );
+        $page       = smliser_get_query_param( 'paged', 1 );
+        $app_data   = [
+            'items' => [], 
+            'pagination' => [
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => 0,
+                'total_pages' => 0,
+            ]
+        ];
+        
+        if ( \smliser_get_query_param( 'app_search', false ) ) {
+           
+            $types          = (string) \smliser_get_request_param( 'app_types', '' );
+            $types          = str_contains( $types, '|' ) ? explode( '|', $types ) : (array) $types;
+            $search_term    = \smliser_get_request_param( 'app_search', '' );
+            $search_status  = \smliser_get_request_param( 'search_status', 'active' );
+            $post_url       = $post_url->add_query_param( 's', $search_term );
+
+            $app_data   = HostedApplicationService::search_apps([
+                'page'  => $page,
+                'term'  => $search_term,
+                'status'    => $search_status,
+                'types'     => $types,
+                'limit'     => $limit
+            ]);
+        }
+
+        $apps       = $app_data['items'];
+        $pagination = $app_data['pagination'];
+
+        $menu_args  = array(
+            'breadcrumbs'   => array(
+                array(
+                    'title' => 'Repository',
+                    'label' => 'Repository',
+                    'url'   => $current_url ->remove_query_param( 'tab', 'type', 'status' )->get_href()
+                ),
+
+                array(
+                    'label' => 'Search Repository'
+                )
+            ),
+
+            'actions'   => array(
+                array(
+                    'title'     => 'Upload New Application',
+                    'label'     => 'Upload New',
+                    'url'       => $add_url->get_href(),
+                    'icon'      => 'ti ti-upload',
+                ),
+
+                array(
+                    'title'     => 'Plugin Repository',
+                    'label'     => 'Plugins',
+                    'url'       => $current_url->add_query_param( 'type', 'plugin' )->get_href(),
+                    'icon'      => 'ti ti-plug',
+                ),
+                
+                array(
+                    'title'     => 'Theme Repository',
+                    'label'     => 'Themes',
+                    'url'       => $current_url->add_query_param( 'type', 'theme' )->get_href(),
+                    'icon'      => 'ti ti-palette',
+                ),
+                
+                array(
+                    'title'     => 'Software Repository',
+                    'label'     => 'Software',
+                    'url'       => $current_url->add_query_param( 'type', 'software' )->get_href(),
+                    'icon'      => 'ti ti-device-desktop-code',
+                ),
+            )
+        );
+        
+        include SMLISER_PATH . 'templates/admin/repository/search.php';
     }
 
     /**
@@ -100,9 +195,7 @@ class RepositoryPage {
         $app_action = array(
             'title' => 'Repository',
             'label' => 'Repository',
-            'url'   => smliser_get_current_url()->remove_query_param( 
-                array( 'app_id', 'type', 'tab' )
-            ),
+            'url'   => smliser_get_current_url()->remove_query_param(  'app_id', 'type', 'tab' ),
             'icon'  => 'ti ti-arrow-back'
         );
         include_once $app_upload_page;
@@ -116,13 +209,15 @@ class RepositoryPage {
         $type   = smliser_get_query_param( 'type' );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) );
+            return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
-            smliser_abort_request( smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page() ) ) );
+            return;
         }
 
         $app_action = array(
@@ -151,19 +246,22 @@ class RepositoryPage {
         $type   = smliser_get_query_param( 'type' );
         
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) );
+            return;
         }
 
         $file   = \sprintf( '%s/templates/admin/repository/view-%s.php', SMLISER_PATH, $type );
 
         if ( ! file_exists( $file ) ) {
-            smliser_abort_request( smliser_not_found_container( sprintf( 'This application type "%s" edit file does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" edit file does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) );
+            return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
 
         if ( ! $app ) {
-            smliser_abort_request( smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) ), 'Invalid App Type' );
+            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page() ) ) );
+            return;
         }
 
         $repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
@@ -388,6 +486,94 @@ class RepositoryPage {
         );
     }
 
+    /**
+     * Get page menu args
+     * 
+     * @param HostedAppsInterface|null $app
+     * @return array
+     */
+    protected static function get_menu_args( ?HostedAppsInterface $app = null ) : array {
+        $tab        = smliser_get_query_param( 'tab', '' );
+        $app_type   = \ucfirst( $app?->get_type() ?? smliser_get_query_param( 'type', '' ) );
+        $app_name   = $app?->get_name() ?? '';
+
+        $title  = match( $tab ) {
+            'monetization'  => sprintf( '%s Monetization', $app_type ),
+            'edit'          => sprintf( 'Edit %s: %s', $app_type, $app_name ),
+            'view'          => $app_name,
+            'add-new'       => 'Add New',
+            default         => ''
+        };
+        
+        return [
+            'breadcrumbs'   => array(
+                array(
+                    'label' => 'Repository',
+                    'url'   => admin_url( 'admin.php?page=repository' ),
+                    'icon'  => 'ti ti-home-filled'
+                ),
+
+                array(
+                    'label' => smliser_pluralize( $app?->get_type() ?? $app_type ),
+                    'url'   => admin_url( 'admin.php?page=repository&type=' . $app?->get_type() ?? '' ),
+                    'icon'  => 'ti ti-folder-open'
+                ),
+                array(
+                    'label' => $title
+                )
+            ),
+            'actions'   => array(
+                array(
+                    'title' => 'Edit App',
+                    'label' => 'Edit',
+                    'url'   => smliser_get_current_url()->add_query_params( 
+                        array(
+                            'app_id'    => $app?->get_id() ?? 0, 
+                            'type'      => $app?->get_type() ?? $app_type,
+                            'tab'       => 'edit' 
+                        ) 
+                    ),
+                    'icon'  => 'ti ti-edit',
+                    'active'    => 'edit' === $tab
+                ),
+
+                array(
+                    'title' => 'View App',
+                    'label' => 'View',
+                    'url'   => smliser_get_current_url()->add_query_params( 
+                        array(
+                            'app_id'    => $app?->get_id() ?? 0, 
+                            'type'      => $app?->get_type() ?? '',
+                            'tab'       => 'view' 
+                        ) 
+                    ),
+                    'icon'  => 'ti ti-eye',
+                    'active'    => 'view' === $tab
+                ),
+
+                array(
+                    'title' => 'App monetization',
+                    'label' => 'Monetization',
+                    'url'   => smliser_get_current_url()->add_query_params( 
+                        array(
+                            'app_id'    => $app?->get_id() ?? 0, 
+                            'type'      => $app?->get_type() ?? '',
+                            'tab'       => 'monetization' 
+                        ) 
+                    ),
+                    'icon'  => 'ti ti-eye',
+                    'active'    => 'monetization' === $tab
+                ),
+
+                array(
+                    'title' => 'Settings',
+                    'label' => 'Settings',
+                    'url'   => admin_url( 'admin.php?page=smliser-options'),
+                    'icon'  => 'dashicons dashicons-admin-generic'
+                )
+            )
+        ];
+    }
 
     /**
      * Build the INFO list (common to all hosted apps)

@@ -364,20 +364,17 @@ tr:hover:has(.smliser-edit-link) .smliser-edit-link,
 
 /********************** Data Not Found Container ***************/
 .smliser-not-found-container {
-    margin: 20px auto;
+    margin: 10px auto;
     background-color: #fff;
     box-shadow: 1px 1px 10px rgba(0 0 0 /7%);
-    min-height: 60px;
-    max-width: 95%;
     border-left: 5px solid #c4c4f1;
+    border-radius: 4px;
+    padding: 10px 15px;
 }
 
 .smliser-not-found-container p {
     text-align: center;
     font-weight: bold;
-    padding: 10px 15px;
-    width: 50%;
-    margin: 10px auto;
 }
 
 /*************************** Admin view page ******************/
