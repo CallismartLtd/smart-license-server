@@ -363,28 +363,32 @@ class HostedApplicationService {
                     ),
                 );
             } else {
-                $like         = '%' . $term . '%';
-                $sql_parts    = [];
-                $count_parts  = [];
-                $params_sql   = [];
-                $params_count = [];
+                $like           = '%' . $term . '%';
+                $sql_parts      = [];
+                $count_parts    = [];
+                $params_sql     = [];
+                $params_count   = [];
+                $has_table      = false;
 
                 foreach ( $types as $type ) {
                     switch ( $type ) {
                         case 'plugin':
                             $table = SMLISER_PLUGINS_TABLE;
+                            $has_table  = true;
                             break;
                         case 'theme':
                             $table = SMLISER_THEMES_TABLE;
+                            $has_table  = true;
                             break;
                         case 'software':
                             $table = SMLISER_SOFTWARE_TABLE;
+                            $has_table  = true;
                             break;
                         default:
                             continue 2;
                     }
 
-                    // Query for fetching core fields
+                    // Query for fetching core fields.
                     $sql_parts[] = "SELECT id, name, slug, author, status, download_link, created_at, updated_at, '{$type}' AS type
                                     FROM {$table} 
                                     WHERE status = ? AND ( name LIKE ? OR slug LIKE ? OR author LIKE ? )";
@@ -395,30 +399,36 @@ class HostedApplicationService {
                     $params_count   = array_merge( $params_count, [ $status, $like, $like, $like ] );
                 }
 
-                // Build union query
+                if ( ! $has_table ) {
+                    return array(
+                        'items' => array(),
+                        'pagination' => array(
+                            'page'        => $page,
+                            'limit'       => $limit,
+                            'total'       => 0,
+                            'total_pages' => 0,
+                        ),
+                    );
+                }
+
+                // Build union query.
                 $union_sql  = implode( " UNION ALL ", $sql_parts );
                 $query_sql  = "{$union_sql} ORDER BY updated_at DESC LIMIT ? OFFSET ?";
                 $params_sql = array_merge( $params_sql, [ $limit, $offset ] );
 
-                // Fetch rows
-                $rows = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS apps", $params_sql, ARRAY_A );
+                $rows       = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS apps", $params_sql, ARRAY_A );
+                $count_sql  = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
+                $total      = (int) $db->get_var( $count_sql, $params_count );
 
-                // Aggregate count
-                $count_sql = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
-                $total     = (int) $db->get_var( $count_sql, $params_count );
-
-                // Hydrate objects using the new minimal/core method
-                $objects = [];
-                foreach ( $rows as $row ) {
-                    $class = self::get_app_class( $row['type'] );
-
-                    if ( method_exists( $class, 'from_array_minimal' ) ) {
-                        $objects[] = $class::from_array_minimal( $row );
-                    }
+                // Hydrate objects using the new minimal/core method.
+                foreach ( $rows as &$row ) {
+                    $class  = self::get_app_class( $row['type'] );
+                    $row    = $class::from_array_minimal( $row );
+                    
                 }
 
                 $results = array(
-                    'items' => $objects,
+                    'items' => $rows,
                     'pagination' => array(
                         'page'        => $page,
                         'limit'       => $limit,

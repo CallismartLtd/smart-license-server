@@ -689,7 +689,7 @@ button.smliser-upload-btn {
   background-color: #fff;
   box-shadow: 0 10px 10px rgba(3, 1, 2, 0.2);
   border-radius: 8px;
-
+  margin: 20px auto;
 }
 
 .smliser-compose-message-container_left {

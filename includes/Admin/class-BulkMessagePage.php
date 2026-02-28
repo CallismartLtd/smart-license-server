@@ -43,7 +43,7 @@ class BulkMessagePage {
      */
     private static function dashboard() {
         $messages   = BulkMessages::get_all();
-        $route_descriptions = V1::describe_routes('bulk-messages');   
+        $menu_args  = static::get_menu_args();
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/dashboard.php';
     
     }
@@ -60,7 +60,7 @@ class BulkMessagePage {
      */
     private static function edit_message_page() {
         $message_id = smliser_get_query_param( 'msg_id' );
-        
+        $menu_args  = static::get_menu_args();
         $message    = BulkMessages::get_message( $message_id );
    
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/edit.php';
@@ -76,5 +76,49 @@ class BulkMessagePage {
 
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/delete.php';
        
+    }
+
+    /**
+     * Get page menu args
+     * 
+     * @return array
+     */
+    protected static function get_menu_args() : array {
+        $tab    = smliser_get_query_param( 'tab', '' );
+        $title  = match( $tab ) {
+            'edit'          => 'Edit Bulk Message',
+            'compose-new'   => 'Compose Bulk Message',
+            default         => 'Bulk Messages'
+        };
+        
+        return [
+            'breadcrumbs'   => array(
+                array(
+                    'label' => 'Repository',
+                    'url'   => admin_url( 'admin.php?page=smliser-bulk-message' ),
+                    'icon'  => 'ti ti-home-filled'
+                ),
+
+                array(
+                    'label' => $title
+                )
+            ),
+            'actions'   => array(
+                array(
+                    'title' => 'Compose new message',
+                    'label' => 'Compose New',
+                    'url'   => smliser_get_current_url()->add_query_param( 'tab', 'compose-new' ),
+                    'icon'  => 'ti ti-plus',
+                    'active'    => 'compose-new' === $tab
+                ),
+
+                array(
+                    'title' => 'Settings',
+                    'label' => 'Settings',
+                    'url'   => admin_url( 'admin.php?page=smliser-options'),
+                    'icon'  => 'dashicons dashicons-admin-generic'
+                )
+            )
+        ];
     }
 }

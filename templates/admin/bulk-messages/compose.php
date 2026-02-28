@@ -6,10 +6,12 @@
  * @package SmartLicenseServer\templates
  */
 
+use SmartLicenseServer\Admin\Menu;
+
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <div class="smliser-admin-page">
-    <h1><?php esc_html_e( 'Compose Bulk Message', 'smliser' ); ?></h1>
+    <?php Menu::print_admin_top_menu( static::get_menu_args() ); ?>
 
     <form class="smliser-compose-message-container">
         <div class="smliser-compose-message-container_left">

@@ -6,15 +6,15 @@
  * @package SmartLicenseServer\templates
  */
 
+use SmartLicenseServer\Admin\Menu;
+
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <div class="smliser-admin-page">
-    <h1><?php esc_html_e( 'Edit Bulk Message', 'smliser' ); ?></h1>
-
+    <?php Menu::print_admin_top_menu( static::get_menu_args() ); ?>
     <?php if ( empty( $message ) ) : ?>
         <?php echo smliser_not_found_container( __( 'Invalid or deleted message', 'smliser' ) ); // phpcs:ignore ?>
     <?php else : ?>
-
         <form class="smliser-compose-message-container">
             <div class="smliser-compose-message-container_left">
                 <div class="smliser-compose-message-form-row">

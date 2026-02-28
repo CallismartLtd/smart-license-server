@@ -93,6 +93,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            <?php smliser_render_pagination( $pagination ); ?>
         </div>
     </div>
 </div>

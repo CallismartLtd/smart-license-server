@@ -113,7 +113,7 @@ class RepositoryPage {
         
         if ( \smliser_get_query_param( 'app_search', false ) ) {
            
-            $types          = (string) \smliser_get_request_param( 'app_types', '' );
+            $types          = \rawurldecode( $_GET['app_types'] );
             $types          = str_contains( $types, '|' ) ? explode( '|', $types ) : (array) $types;
             $search_term    = \smliser_get_request_param( 'app_search', '' );
             $search_status  = \smliser_get_request_param( 'search_status', 'active' );
