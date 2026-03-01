@@ -1325,17 +1325,18 @@ li.smliser-org-member .smliser-org-member_header img {
   gap: 15px;
 }
 
-.smliser-app-search-form {
+.smliser-admin-search {
   display: flex;
   flex-direction: row;
   gap: 5px;
   align-items: center;
 }
 
-.smliser-app-search-form input[type="search"],
-.smliser-app-search-form select,
-.smliser-app-search-form button[type="submit"] {
+.smliser-admin-search input[type="search"],
+.smliser-admin-search select,
+.smliser-admin-search button[type="submit"] {
   border: solid 1px #dcdcde;
   border-radius: 4px;
   height: 40px;
+  line-height: 3;
 }

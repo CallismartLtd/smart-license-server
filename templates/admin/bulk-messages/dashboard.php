@@ -29,9 +29,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
                     </div>
-                    <div class="smliser-search-box">
-                        <input type="search" id="smliser-search" name="search_term" class="smliser-search-input" placeholder="<?php echo esc_attr__( 'Search messages', 'smliser' ); ?>">
-                    </div>
+                    <a href="<?php echo esc_url( $current_url->add_query_param( 'tab', 'search' ) ); ?>" class="smliser-btn smliser-btn-white">Search Messages</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">
@@ -39,14 +37,14 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 <?php wp_nonce_field( 'smliser_table_nonce', 'smliser_table_nonce'); ?>
                 <table class="widefat striped">
                     <thead>
-                    <tr>
-                        <th><input type="checkbox" id="smliser-select-all"></th>
-                        <th><?php echo esc_html__( 'ID', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Message ID', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Subject', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Body', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Apps', 'smliser' ); ?></th>
-                    </tr>
+                        <tr>
+                            <th><input type="checkbox" id="smliser-select-all"></th>
+                            <th><?php echo esc_html__( 'ID', 'smliser' ); ?></th>
+                            <th><?php echo esc_html__( 'Message ID', 'smliser' ); ?></th>
+                            <th><?php echo esc_html__( 'Subject', 'smliser' ); ?></th>
+                            <th><?php echo esc_html__( 'Body', 'smliser' ); ?></th>
+                            <th><?php echo esc_html__( 'Apps', 'smliser' ); ?></th>
+                        </tr>
                     </thead>
                     <tbody>
             
@@ -56,8 +54,8 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                                 <td class="smliser-edit-row">
                                     <?php echo esc_html( $message->get_id() ); ?>
                                     <p class="smliser-edit-link">
-                                        <a href="<?php echo esc_url( add_query_arg( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ), admin_url( 'admin.php?page=smliser-bulk-message' ) ) ); ?>">Edit</a>
-                                        <a href="<?php echo esc_url( add_query_arg( array( 'tab' => 'delete', 'msg_id' => $message->get_message_id() ), admin_url( 'admin.php?page=smliser-bulk-message' ) ) ); ?>">Delete</a>
+                                        <a href="<?php echo esc_url( $current_url->add_query_params( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ) ) ); ?>">Edit</a>
+                                        <a href="#" role="button" class="smliser-delete-message">Delete</a>
                                     </p>
                                 </td>
                             
@@ -70,7 +68,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                     </tbody>
                 </table>
             </form>
-            <p class="smliser-table-count"><?php echo absint( count( $messages ) ); ?> item<?php echo ( count( $messages ) > 1 ? 's': '' ); ?></p>
+            <?php smliser_render_pagination( $pagination ); ?>
         <?php endif; ?>
     </div>
 </div>

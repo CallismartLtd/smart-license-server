@@ -29,8 +29,8 @@ class BulkMessagePage {
             case 'edit':
                 self::edit_message_page();
                 break;
-            case 'delete':
-                self::delete_page();
+            case 'search':
+                self::search_page();
                 break;
             default:
             self::dashboard();
@@ -42,8 +42,11 @@ class BulkMessagePage {
      * Bulk messages page dashbard.
      */
     private static function dashboard() {
-        $messages   = BulkMessages::get_all();
-        $menu_args  = static::get_menu_args();
+        $msg_data       = BulkMessages::get_all();
+        $messages       = $msg_data['items'] ?? [];
+        $pagination     = $msg_data['pagination'] ?? [];
+        $current_url    = smliser_get_current_url();
+        $menu_args      = static::get_menu_args();
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/dashboard.php';
     
     }
@@ -67,14 +70,19 @@ class BulkMessagePage {
     }
 
     /**
-     * Delete a given message.
+     * Search messages page.
      */
-    private static function delete_page() {
-        $message_id = smliser_get_query_param( 'msg_id' );
-        
-        $message    = BulkMessages::get_message( $message_id );
+    private static function search_page() {
+        $current_url    = smliser_get_current_url();
+        $menu_args      = static::get_menu_args();
+        $search         = \smliser_get_query_param( 'msg_search' );
+        $page           = \smliser_get_query_param( 'paged', 1 );
+        $limit          = \smliser_get_query_param( 'limit', 10 );
+        $msg_data       = BulkMessages::search( \compact( 'page', 'search', 'limit' ) );
+        $messages       = $msg_data['items'] ?? [];
+        $pagination     = $msg_data['pagination'] ?? [];
 
-        include_once SMLISER_PATH . 'templates/admin/bulk-messages/delete.php';
+        include_once SMLISER_PATH . 'templates/admin/bulk-messages/search.php';
        
     }
 
@@ -88,6 +96,7 @@ class BulkMessagePage {
         $title  = match( $tab ) {
             'edit'          => 'Edit Bulk Message',
             'compose-new'   => 'Compose Bulk Message',
+            'search'        => 'Search Bulk Messages',
             default         => 'Bulk Messages'
         };
         

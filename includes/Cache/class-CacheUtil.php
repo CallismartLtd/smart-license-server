@@ -28,7 +28,7 @@ final class CacheUtil {
         return sprintf(
             'smliser:%s:%s',
             $method,
-            md5( wp_json_encode( $normalized ) )
+            md5( \smliser_safe_json_encode( $normalized ) )
         );
     }
 

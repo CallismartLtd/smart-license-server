@@ -363,10 +363,17 @@ class BulkMessages {
     /**
      * Get all bulk messages.
      *
-     * @param array $args
-     * @return self[]
+     * @param array $args {
+     *     @type int $page  Page number.
+     *     @type int $limit Items per page.
+     * }
+     * @return array {
+     *     @type self[] $items
+     *     @type array  $pagination
+     * }
      */
     public static function get_all( $args = array() ) {
+
         $db = \smliser_dbclass();
 
         $defaults = array(
@@ -376,21 +383,41 @@ class BulkMessages {
 
         $args = parse_args( $args, $defaults );
 
-        $offset = ( $args['page'] - 1 ) * $args['limit'];
+        $page  = max( 1, (int) $args['page'] );
+        $limit = max( 1, (int) $args['limit'] );
+        $offset = $db->calculate_query_offset( $page, $limit );
 
         $table = SMLISER_BULK_MESSAGES_TABLE;
 
-        $sql = "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        $params = [$args['limit'], $offset];
-        
-        $results    = $db->get_results( $sql, $params );
-        $messages   = array();
+        // Get total count first
+        $count_sql = "SELECT COUNT(*) FROM {$table}";
+        $total     = (int) $db->get_var( $count_sql );
 
-        foreach ( $results as $result ) {
-            $messages[] = self::from_array( $result );
+        $total_pages = $limit > 0
+            ? (int) ceil( $total / $limit )
+            : 0;
+
+        // Get paginated results
+        $sql    = "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $params = array( $limit, $offset );
+
+        $results = $db->get_results( $sql, $params );
+
+        $items = array();
+
+        foreach ( $results as $row ) {
+            $items[] = self::from_array( $row );
         }
 
-        return $messages;
+        return array(
+            'items'      => $items,
+            'pagination' => array(
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => $total,
+                'total_pages' => $total_pages,
+            ),
+        );
     }
 
     /**
@@ -405,7 +432,7 @@ class BulkMessages {
 
         $table = SMLISER_BULK_MESSAGES_TABLE;
 
-        $query  = "SELECT * FROM {$table} WHERE `id` = ? OR `message_id` = ?";
+        $query  = "SELECT * FROM {$table} WHERE `id` = ? OR `message_id` = ? LIMIT 1";
         $result = $db->get_row( $query, [ $id_or_message_id, $id_or_message_id ] );
 
         if ( ! empty( $result ) ) {
@@ -418,10 +445,19 @@ class BulkMessages {
     /**
      * Get messages for a specific app.
      *
-     * @param array $args
-     * @return array
+     * @param array $args {
+     *     @type string $app_type App type.
+     *     @type string $app_slug App slug.
+     *     @type int    $page     Page number.
+     *     @type int    $limit    Items per page.
+     * }
+     * @return array {
+     *     @type self[] $items
+     *     @type array  $pagination
+     * }
      */
     public static function get_for_app( $args = array() ) {
+
         $db = \smliser_dbclass();
 
         $defaults = array(
@@ -430,39 +466,86 @@ class BulkMessages {
             'page'     => 1,
             'limit'    => 20,
         );
+
         $args = parse_args( $args, $defaults );
 
-        $offset = ( $args['page'] - 1 ) * $args['limit'];
+        $page  = max( 1, (int) $args['page'] );
+        $limit = max( 1, (int) $args['limit'] );
+        $offset = ( $page - 1 ) * $limit;
 
-        $msg_table          = SMLISER_BULK_MESSAGES_TABLE;
-        $msgs_apps_table    = SMLISER_BULK_MESSAGES_APPS_TABLE;
+        $app_type = (string) $args['app_type'];
+        $app_slug = (string) $args['app_slug'];
 
-        $sql = "SELECT m.* FROM {$msg_table} m
-            INNER JOIN {$msgs_apps_table} a ON m.message_id = a.message_id
-            WHERE a.app_type = ? AND a.app_slug = ?
+        $msg_table       = SMLISER_BULK_MESSAGES_TABLE;
+        $msgs_apps_table = SMLISER_BULK_MESSAGES_APPS_TABLE;
+
+        // ---- Total count query ----
+        $count_sql = "
+            SELECT COUNT(*)
+            FROM {$msg_table} m
+            INNER JOIN {$msgs_apps_table} a
+                ON m.message_id = a.message_id
+            WHERE a.app_type = ?
+            AND a.app_slug = ?
+        ";
+
+        $total = (int) $db->get_var( $count_sql, array( $app_type, $app_slug ) );
+
+        $total_pages = $limit > 0
+            ? (int) ceil( $total / $limit )
+            : 0;
+
+        // ---- Paginated results ----
+        $sql = "
+            SELECT m.*
+            FROM {$msg_table} m
+            INNER JOIN {$msgs_apps_table} a
+                ON m.message_id = a.message_id
+            WHERE a.app_type = ?
+            AND a.app_slug = ?
             ORDER BY m.created_at DESC
-            LIMIT %d OFFSET ?";
-        $params = [$args['app_type'], $args['app_slug'], $args['limit'], $offset];
-        
+            LIMIT ? OFFSET ?
+        ";
 
-        return $db->get_results( $sql, $params );
+        $results = $db->get_results(
+            $sql,
+            array( $app_type, $app_slug, $limit, $offset )
+        );
+
+        $items = array();
+
+        foreach ( $results as $row ) {
+            $items[] = self::from_array( $row );
+        }
+
+        return array(
+            'items'      => $items,
+            'pagination' => array(
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => $total,
+                'total_pages' => $total_pages,
+            ),
+        );
     }
 
     /**
      * Get messages for one or more app slugs, optionally filtered by app type(s).
      *
      * @param array $args {
-     *     Optional. Arguments for filtering results.
-     *
-     *     @type array|string $app_slugs One or more app slugs to search for.
-     *     @type array|string $app_types Optional. One or more app types (e.g., 'plugin', 'theme').
-     *     @type int          $page      Page number. Default 1.
-     *     @type int          $limit     Number of results per page. Default 20.
+     *     @type array|string $app_slugs One or more app slugs.
+     *     @type array|string $app_types Optional. One or more app types.
+     *     @type int          $page      Page number.
+     *     @type int          $limit     Results per page.
      * }
      *
-     * @return self[] Array of Bulk_Messages objects.
+     * @return array {
+     *     @type self[] $items
+     *     @type array  $pagination
+     * }
      */
     public static function get_for_slugs( $args = array() ) {
+
         $db = \smliser_dbclass();
 
         $defaults = array(
@@ -471,58 +554,164 @@ class BulkMessages {
             'page'      => 1,
             'limit'     => 20,
         );
+
         $args = parse_args( $args, $defaults );
 
-        $app_slugs = (array) $args['app_slugs'];
-        $app_types = (array) $args['app_types'];
+        $app_slugs = array_filter( (array) $args['app_slugs'] );
+        $app_types = array_filter( (array) $args['app_types'] );
+
+        $page  = max( 1, (int) $args['page'] );
+        $limit = max( 1, (int) $args['limit'] );
+        $offset = ( $page - 1 ) * $limit;
 
         if ( empty( $app_slugs ) ) {
-            return array();
+            return array(
+                'items'      => array(),
+                'pagination' => array(
+                    'page'        => $page,
+                    'limit'       => $limit,
+                    'total'       => 0,
+                    'total_pages' => 0,
+                ),
+            );
         }
 
-        $offset         = ( $args['page'] - 1 ) * $args['limit'];
-        $msg_table      = SMLISER_BULK_MESSAGES_TABLE;
-        $assoc_table    = SMLISER_BULK_MESSAGES_APPS_TABLE;
+        $msg_table   = SMLISER_BULK_MESSAGES_TABLE;
+        $assoc_table = SMLISER_BULK_MESSAGES_APPS_TABLE;
 
-        // Build WHERE clause dynamically.
-        $where = array();
+        // ---- WHERE builder ----
+        $where  = array();
         $params = array();
 
-        // Add slugs condition.
-        $slug_placeholders = implode( ',', array_fill( 0, count( $app_slugs ), '?' ) );
-        $where[] = "a.app_slug IN ($slug_placeholders)";
-        $params = array_merge( $params, $app_slugs );
+        // Slugs condition
+        $slug_placeholders = implode(
+            ',',
+            array_fill( 0, count( $app_slugs ), '?' )
+        );
 
-        // Add app type condition if provided.
+        $where[] = "a.app_slug IN ( {$slug_placeholders} )";
+        $params  = array_merge( $params, $app_slugs );
+
+        // App types condition (optional)
         if ( ! empty( $app_types ) ) {
-            $type_placeholders = implode( ',', array_fill( 0, count( $app_types ), '?' ) );
-            $where[] = "a.app_type IN ($type_placeholders)";
-            $params = array_merge( $params, $app_types );
+            $type_placeholders = implode(
+                ',',
+                array_fill( 0, count( $app_types ), '?' )
+            );
+
+            $where[] = "a.app_type IN ( {$type_placeholders} )";
+            $params  = array_merge( $params, $app_types );
         }
 
         $where_sql = implode( ' AND ', $where );
 
-        $sql = "SELECT DISTINCT m.* FROM {$msg_table} m
-            INNER JOIN {$assoc_table} a ON m.message_id = a.message_id
+        // ---- COUNT query ----
+        $count_sql = "
+            SELECT COUNT( DISTINCT m.message_id )
+            FROM {$msg_table} m
+            INNER JOIN {$assoc_table} a
+                ON m.message_id = a.message_id
+            WHERE {$where_sql}
+        ";
+
+        $total = (int) $db->get_var( $count_sql, $params );
+
+        $total_pages = (int) ceil( $total / $limit );
+
+        // ---- Paginated query ----
+        $sql = "
+            SELECT DISTINCT m.*
+            FROM {$msg_table} m
+            INNER JOIN {$assoc_table} a
+                ON m.message_id = a.message_id
             WHERE {$where_sql}
             ORDER BY m.created_at DESC
             LIMIT ? OFFSET ?
         ";
 
-        $params[] = absint( $args['limit'] );
-        $params[] = absint( $offset );
+        $query_params   = $params;
+        $query_params[] = $limit;
+        $query_params[] = $offset;
 
-        $results  = $db->get_results( $sql, $params );
+        $results = $db->get_results( $sql, $query_params );
 
-        $messages = array();
-        foreach ( $results as $result ) {
-            $messages[] = self::from_array( $result );
+        $items = array();
+
+        foreach ( $results as $row ) {
+            $items[] = self::from_array( $row );
         }
 
-        return $messages;
+        return array(
+            'items'      => $items,
+            'pagination' => array(
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => $total,
+                'total_pages' => $total_pages,
+            ),
+        );
     }
 
+    /**
+     * Search bulk messages.
+     *
+     * @param array $args {
+     *     @type string $search Optional search keyword (subject or message_id).
+     *     @type int    $page   Page number.
+     *     @type int    $limit  Results per page.
+     * }
+     *
+     * @return array {
+     *     @type self[] $items
+     *     @type array  $pagination
+     * }
+     */
+    public static function search( $args = array() ) {
 
+        $db = \smliser_dbclass();
+
+        $defaults = array(
+            'search' => '',
+            'page'   => 1,
+            'limit'  => 20,
+        );
+
+        $args = parse_args( $args, $defaults );
+
+        $search = trim( (string) $args['search'] );
+        $page   = max( 1, (int) $args['page'] );
+        $limit  = max( 1, (int) $args['limit'] );
+        $offset = ( $page - 1 ) * $limit;
+
+        $table = SMLISER_BULK_MESSAGES_TABLE;
+
+        $where_sql  = "WHERE `subject` LIKE ? OR `message_id` LIKE ?";
+        $like       = $search . '%';
+        $params     = array( $like, $like );
+
+        // ---- Total count ----
+        $total = (int) $db->get_var( "SELECT COUNT(*) FROM {$table} {$where_sql}", $params );
+        $total_pages = (int) ceil( $total / $limit );
+
+        // ---- Paginated query ----
+        $sql = "SELECT * FROM {$table} {$where_sql} ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $results = $db->get_results( $sql, $params );
+        $items   = array_map( [self::class, 'from_array'], $results );
+
+        return array(
+            'items'      => $items,
+            'pagination' => array(
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => $total,
+                'total_pages' => $total_pages,
+            ),
+        );
+    }
+    
     /**
      * Delete a message and its associations.
      */

@@ -250,6 +250,7 @@ final class DBTables {
                 'is_read TINYINT(1) DEFAULT 0',
                 'INDEX smliser_bulk_msg_created_at (created_at)',
                 'INDEX smliser_bulk_msg_updated_at (updated_at)',
+                'INDEX smliser_msg_id_lookup (message_id)',
             ),
 
             /**

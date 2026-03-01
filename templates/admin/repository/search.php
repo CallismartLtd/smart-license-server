@@ -13,8 +13,6 @@
  */
 
 use SmartLicenseServer\Admin\Menu;
-use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-admin-page">
@@ -26,7 +24,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
         <?php endif; ?>
 
         <div class="smliser-app-search-page smliser-table-wrapper">
-            <form class="smliser-app-search-form" method="GET" action="<?php echo esc_url( $current_url->get_href() ) ?>">
+            <form class="smliser-admin-search" method="GET" action="<?php echo esc_url( $current_url->get_href() ) ?>">
                 <input type="hidden" name="page" value="repository">
                 <input type="hidden" name="tab" value="search">
                 <select name="app_types" id="app_types" class="smliser-app-type-select">
