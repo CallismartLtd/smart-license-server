@@ -101,4 +101,11 @@ interface RESTInterface {
      * Describe routes by category or all routes.
      */
     public static function describe_routes( ?string $category = null ) : array;
+
+    /**
+     * REST API namespace
+     * 
+     * @return string
+     */
+    public function namespace() : string;
 }

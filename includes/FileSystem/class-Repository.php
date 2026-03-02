@@ -783,7 +783,7 @@ abstract class Repository {
      * @return true|Exception True on success, Exception instance on failure.
      */
     public static function make_default_directories() {
-        $fs = FileSystem::instance();
+        $fs = smliser_filesystem();
 
         $directories = [
             'repository' => SMLISER_REPO_DIR,

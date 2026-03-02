@@ -9,38 +9,169 @@
 
 namespace SmartLicenseServer;
 
+use PDO;
 use RuntimeException;
+use SmartLicenseServer\Cache\ApcuCacheAdapter;
+use SmartLicenseServer\Cache\Cache;
+use SmartLicenseServer\Cache\CacheAdapterInterface;
+use SmartLicenseServer\Cache\InMemoryCacheAdapter;
+use SmartLicenseServer\Cache\LaravelCacheAdapter;
+use SmartLicenseServer\Database\Database;
+use SmartLicenseServer\Database\DatabaseAdapterInterface;
+use SmartLicenseServer\Database\LaravelAdapter;
+use SmartLicenseServer\Database\MysqliAdapter;
+use SmartLicenseServer\Database\PdoAdapter;
+use SmartLicenseServer\Database\SqliteAdapter;
+use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
+use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
+use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\RESTAPI\RESTProviderInterface;
+use SmartLicenseServer\SettingsAPI\Options;
+use SmartLicenseServer\SettingsAPI\Settings;
+use SmartLicenseServer\SettingsAPI\SettingsStorageInterface;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class Config {
-
-    /** 
-     * REST API Route namespace.
+abstract class Config {
+    /**
+     * The current REST API Service Provider
      * 
-     * @var string
+     * @var RESTProviderInterface $rest_provider
      */
-    protected $rest_api_namespace  = 'smliser/v1';
-
-    /** 
-     * Instance of current class.
-     * 
-     * @var self
-     */
-    private static $instance = null;
+    protected RESTProviderInterface $rest_provider;
 
     /**
-     * Class constructor.
+     * The cache adapter.
+     * 
+     * @var CacheAdapterInterface $cacheAdapter
+     */
+    protected CacheAdapterInterface $cacheAdapter;
+
+    /**
+     * Settings API adapter.
+     * 
+     * @var SettingsStorageInterface $settingsStorage
+     */
+    protected SettingsStorageInterface $settingsStorage;
+
+    /**
+     * Filesystem API
+     * 
+     * @var FileSystemAdapterInterface filesystemAdapter
+     */
+    protected FileSystemAdapterInterface $filesystemAdapter;
+
+    /**
+     * The database API adapter.
+     */
+    protected DatabaseAdapterInterface $dbadapter;
+
+    /**
+     * The cache API.
+     */
+    protected Cache $cache;
+
+    /**
+     * Environment configuration data.
+     * 
+     * @var array $env
+     */
+    protected ?array $env;
+
+    /**
+     * The database API abstraction.
+     * 
+     * Database $database
+     */
+    protected Database $database;
+
+    /**
+     * The filesystem API abstraction.
+     */
+    protected FileSystem $filesystem;
+
+    /**
+     * The settings API abstraction.
+     */
+    protected Settings $settings;
+
+    /**
+     * Environment configuration setup.
      * 
      * @param array $config Array of configuration options
      */
-    private function __construct( array $config ) {
-        $parsed_config  = self::parse_config( $config );
+    protected function setup( array $config ) {
+        $this->parse_config( $config );
+        $this->setProps();
+        $this->declareGlobalConstants();
+        $this->setGlobalDBAdapter();
+        $this->setGlobalFileSystemAdapter();
+        $this->setGlobalCacheAdapter();
+        $this->setGlobalSettingsAdapter();
 
-        if ( ! $parsed_config ) {
-            throw new RuntimeException( \sprintf( '%s Configuration is invalid', SMLISER_APP_NAME ) );
+    }
+
+    /**
+     * Parse environment configuration file to ensure that required variables are set.
+     * 
+     * @param array $env_config The configuration options from the environment adapter.
+     */
+    private function parse_config( $env_config ) : void {
+        $default_config = array(
+            'db_prefix'             => '',
+            'absolute_path'         => '',
+            'repo_path'             => '',
+            'uploads_dir'           => '',
+            'filesystem_adapter'    => null,
+            'cache_adapter'         => null,
+            'settings_adapter'      => null,
+            'database_adapter'      => null,
+            'rest_api_provider'     => null,
+
+        );
+
+        $parsed_config  = array_intersect_key( array_merge( $default_config, $env_config ), $default_config );
+        $missing_config = [];
+
+        foreach ( $parsed_config as $key => $value ) {
+            if ( empty( $value ) ) {
+                $missing_config[]   = $key;
+            }
         }
 
+        if ( ! empty( $missing_config ) ) {
+            $message    = \sprintf( '%s environment has missing required configuration(s): %s',
+                \SMLISER_APP_NAME,
+                \implode( ', ', $missing_config )
+            );
+
+            throw new RuntimeException( $message );
+        }
+
+        $this->env  = $parsed_config;
+    }
+
+    /**
+     * Sets up the class properties.
+     */
+    private function setProps() : void {
+        $prop_map   = [
+            'filesystem_adapter'    => 'filesystemAdapter',
+            'cache_adapter'         => 'cacheAdapter',
+            'settings_adapter'      => 'settingsStorage',
+            'database_adapter'      => 'dbadapter',
+            'rest_api_provider'     => 'rest_provider',
+        ];
+
+        foreach ( $prop_map as $env_k => $prop_k ) {
+            $this->{$prop_k}    = $this->env[$env_k];
+        }
+    }
+
+    /**
+     * Declare global constants.
+     */
+    private function declareGlobalConstants() : void {
         /**
          * Licenses database table name.
          *
@@ -48,56 +179,56 @@ class Config {
          *
          * @var string `smliser_licenses.`
          */
-        define( 'SMLISER_LICENSE_TABLE', $parsed_config['db_prefix'] . 'smliser_licenses' );
+        define( 'SMLISER_LICENSE_TABLE', $this->env['db_prefix'] . 'smliser_licenses' );
 
         /**
          * License metadata database table name.
          *
          * @var string `smliser_license_meta.`
          */
-        define( 'SMLISER_LICENSE_META_TABLE', $parsed_config['db_prefix'] . 'smliser_license_meta' );
+        define( 'SMLISER_LICENSE_META_TABLE', $this->env['db_prefix'] . 'smliser_license_meta' );
 
         /**
          * Plugins database table name.
          *
          * @var string `smliser_plugins.`
          */
-        define( 'SMLISER_PLUGINS_TABLE', $parsed_config['db_prefix'] . 'smliser_plugins' );
+        define( 'SMLISER_PLUGINS_TABLE', $this->env['db_prefix'] . 'smliser_plugins' );
 
         /**
          * Plugin metadata database table name.
          *
          * @var string `smliser_plugin_meta.`
          */
-        define( 'SMLISER_PLUGINS_META_TABLE', $parsed_config['db_prefix'] . 'smliser_plugin_meta' );
+        define( 'SMLISER_PLUGINS_META_TABLE', $this->env['db_prefix'] . 'smliser_plugin_meta' );
 
         /**
          * Themes database table name.
          *
          * @var string `smliser_themes.`
          */
-        define( 'SMLISER_THEMES_TABLE', $parsed_config['db_prefix'] . 'smliser_themes' );
+        define( 'SMLISER_THEMES_TABLE', $this->env['db_prefix'] . 'smliser_themes' );
 
         /**
          * Theme metadata database table name.
          *
          * @var string `smliser_theme_meta.`
          */
-        define( 'SMLISER_THEMES_META_TABLE', $parsed_config['db_prefix'] . 'smliser_theme_meta' );
+        define( 'SMLISER_THEMES_META_TABLE', $this->env['db_prefix'] . 'smliser_theme_meta' );
 
         /**
          * Software database table name.
          *
          * @var string `smliser_software.`
          */
-        define( 'SMLISER_SOFTWARE_TABLE', $parsed_config['db_prefix'] . 'smliser_software' );
+        define( 'SMLISER_SOFTWARE_TABLE', $this->env['db_prefix'] . 'smliser_software' );
 
         /**
          * Software metadata database table name.
          *
          * @var string `smliser_software_meta.`
          */
-        define( 'SMLISER_SOFTWARE_META_TABLE', $parsed_config['db_prefix'] . 'smliser_software_meta' );
+        define( 'SMLISER_SOFTWARE_META_TABLE', $this->env['db_prefix'] . 'smliser_software_meta' );
 
         /**
          * API credentials database table name.
@@ -105,133 +236,133 @@ class Config {
          * @deprecated 0.2.0
          * @var string `smliser_api_creds.`
          */
-        define( 'SMLISER_API_CRED_TABLE', $parsed_config['db_prefix'] . 'smliser_api_creds' );
+        define( 'SMLISER_API_CRED_TABLE', $this->env['db_prefix'] . 'smliser_api_creds' );
 
         /**
          * Item download token database table name.
          *
          * @var string `smliser_item_download_token.`
          */
-        define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $parsed_config['db_prefix'] . 'smliser_item_download_token' );
+        define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $this->env['db_prefix'] . 'smliser_item_download_token' );
 
         /**
          * Application download token database table name.
          *
          * @var string `smliser_app_download_tokens.`
          */
-        define( 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE', $parsed_config['db_prefix'] . 'smliser_app_download_tokens' );
+        define( 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE', $this->env['db_prefix'] . 'smliser_app_download_tokens' );
 
         /**
          * Monetization records database table name.
          *
          * @var string `smliser_monetization.`
          */
-        define( 'SMLISER_MONETIZATION_TABLE', $parsed_config['db_prefix'] . 'smliser_monetization' );
+        define( 'SMLISER_MONETIZATION_TABLE', $this->env['db_prefix'] . 'smliser_monetization' );
 
         /**
          * Pricing tiers database table name.
          *
          * @var string `smliser_pricing_tiers.`
          */
-        define( 'SMLISER_PRICING_TIER_TABLE', $parsed_config['db_prefix'] . 'smliser_pricing_tiers' );
+        define( 'SMLISER_PRICING_TIER_TABLE', $this->env['db_prefix'] . 'smliser_pricing_tiers' );
 
         /**
          * Bulk messages database table name.
          *
          * @var string `smliser_bulk_messages.`
          */
-        define( 'SMLISER_BULK_MESSAGES_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages' );
+        define( 'SMLISER_BULK_MESSAGES_TABLE', $this->env['db_prefix'] . 'smliser_bulk_messages' );
 
         /**
          * Bulk message to application mapping database table name.
          *
          * @var string `smliser_bulk_messages_apps.`
          */
-        define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $parsed_config['db_prefix'] . 'smliser_bulk_messages_apps' );
+        define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $this->env['db_prefix'] . 'smliser_bulk_messages_apps' );
 
         /**
          * Plugin options database table name.
          *
          * @var string `smliser_options.`
          */
-        define( 'SMLISER_OPTIONS_TABLE', $parsed_config['db_prefix'] . 'smliser_options' );
+        define( 'SMLISER_OPTIONS_TABLE', $this->env['db_prefix'] . 'smliser_options' );
 
         /**
          * Analytics event logs database table name.
          *
          * @var string `smliser_analytics_log.`
          */
-        define( 'SMLISER_ANALYTICS_LOGS_TABLE', $parsed_config['db_prefix'] . 'smliser_analytics_log' );
+        define( 'SMLISER_ANALYTICS_LOGS_TABLE', $this->env['db_prefix'] . 'smliser_analytics_log' );
 
         /**
          * Daily analytics aggregation database table name.
          *
          * @var string `smliser_analytics_daily.`
          */
-        define( 'SMLISER_ANALYTICS_DAILY_TABLE', $parsed_config['db_prefix'] . 'smliser_analytics_daily' );
+        define( 'SMLISER_ANALYTICS_DAILY_TABLE', $this->env['db_prefix'] . 'smliser_analytics_daily' );
 
         /**
          * Resource owners database table name.
          *
          * @var string `smliser_resource_owners.`
          */
-        define( 'SMLISER_OWNERS_TABLE', $parsed_config['db_prefix'] . 'smliser_resource_owners' );
+        define( 'SMLISER_OWNERS_TABLE', $this->env['db_prefix'] . 'smliser_resource_owners' );
 
         /**
          * Internal users database table name.
          *
          * @var string `smliser_users.`
          */
-        define( 'SMLISER_USERS_TABLE', $parsed_config['db_prefix'] . 'smliser_users' );
+        define( 'SMLISER_USERS_TABLE', $this->env['db_prefix'] . 'smliser_users' );
 
         /**
          * Service accounts database table name.
          *
          * @var string `smliser_service_accounts.`
          */
-        define( 'SMLISER_SERVICE_ACCOUNTS_TABLE', $parsed_config['db_prefix'] . 'smliser_service_accounts' );
+        define( 'SMLISER_SERVICE_ACCOUNTS_TABLE', $this->env['db_prefix'] . 'smliser_service_accounts' );
 
         /**
          * Roles database table name.
          *
          * @var string `smliser_roles.`
          */
-        define( 'SMLISER_ROLES_TABLE', $parsed_config['db_prefix'] . 'smliser_roles' );
+        define( 'SMLISER_ROLES_TABLE', $this->env['db_prefix'] . 'smliser_roles' );
 
         /**
          * Roles database table name.
          *
          * @var string `smliser_role_caps.`
          */
-        define( 'SMLISER_ROLE_CAPABILITIES_TABLE', $parsed_config['db_prefix'] . 'smliser_role_caps' );
+        define( 'SMLISER_ROLE_CAPABILITIES_TABLE', $this->env['db_prefix'] . 'smliser_role_caps' );
 
         /**
          * Roles to principals database table name.
          *
          * @var string `smliser_principal_roles.`
          */
-        define( 'SMLISER_ROLE_ASSIGNMENT_TABLE', $parsed_config['db_prefix'] . 'smliser_principal_roles' );
+        define( 'SMLISER_ROLE_ASSIGNMENT_TABLE', $this->env['db_prefix'] . 'smliser_principal_roles' );
 
         /**
          * Organizations database table name.
          *
          * @var string `smliser_organizations.`
          */
-        define( 'SMLISER_ORGANIZATIONS_TABLE', $parsed_config['db_prefix'] . 'smliser_organizations' );
+        define( 'SMLISER_ORGANIZATIONS_TABLE', $this->env['db_prefix'] . 'smliser_organizations' );
 
         /**
          * Organization members database table name.
          *
          * @var string `smliser_organization_members.`
          */
-        define( 'SMLISER_ORGANIZATION_MEMBERS_TABLE', $parsed_config['db_prefix'] . 'smliser_organization_members' );
+        define( 'SMLISER_ORGANIZATION_MEMBERS_TABLE', $this->env['db_prefix'] . 'smliser_organization_members' );
         
         /**
          * Identity provider map database table name.
          *
          * @var string `smliser_identity_provider_lookup.`
          */
-        define( 'SMLISER_IDENTITY_FEDERATION_TABLE', $parsed_config['db_prefix'] . 'smliser_identity_provider_lookup' );
+        define( 'SMLISER_IDENTITY_FEDERATION_TABLE', $this->env['db_prefix'] . 'smliser_identity_provider_lookup' );
 
         /**
          * Absolute path to the Smart License Server repository root directory.
@@ -240,7 +371,7 @@ class Config {
          *
          * @var string
          */
-        define( 'SMLISER_NEW_REPO_DIR', $parsed_config['repo_path'] . '/smliser-repo' );
+        define( 'SMLISER_NEW_REPO_DIR', $this->env['repo_path'] . '/smliser-repo' );
 
         /**
          * Alias for the Smart License Server repository root directory.
@@ -275,57 +406,127 @@ class Config {
          * 
          * @var string
          */
-        define( 'SMLISER_UPLOADS_DIR', $parsed_config['uploads_dir'] . '/smliser-uploads' );
+        define( 'SMLISER_UPLOADS_DIR', $this->env['uploads_dir'] . '/smliser-uploads' );
 
         /**
          * Temporary file prefix
          */
-        define( 'SMLISER_UPLOAD_TMP_PREFIX', 'smliser_mp_' );
+        define( 'SMLISER_UPLOAD_TMP_PREFIX', 'smliser_tmp_' );
 
     }
 
     /**
-     * Instanciate the current class.
-     * @return self
+     * Sets up the global database adapter
      */
-    public static function instance( array $config = [] ) {
-        if ( is_null( self::$instance ) ) {
-            self::$instance = new self( $config );
-        }
-
-        return self::$instance;
-    }
-
-    /**
-     * Parse environment configuration file to ensure that required variables are set.
-     * 
-     * @param array $env_config The configuration options from the environment adapter.
-     */
-    private static function parse_config( $env_config ) {
-        $default_config = array(
-            'db_prefix'     => '',
-            'absolute_path' => '',
-            'repo_path'     => '',
-            'uploads_dir'   => ''
-
-        );
-
-        $parsed_config  = array_intersect_key( array_merge( $default_config, $env_config ), $default_config );
-
-        foreach ( $parsed_config as $value ) {
-            if ( empty( $value ) ) {
-                return false;
+    protected function setGlobalDBAdapter() : void {
+        if ( ! isset( $this->dbadapter ) ) {
+            if ( class_exists( 'Illuminate\Support\Facades\DB' ) ) {
+                $this->dbadapter    = new LaravelAdapter();
             }
 
-            return $parsed_config;
+            // Common configuration for standard PHP environments
+            $config = [
+                'host'      => defined('DB_HOST') ? DB_HOST : 'localhost',
+                'username'  => defined('DB_USER') ? DB_USER : 'root',
+                'password'  => defined('DB_PASSWORD') ? DB_PASSWORD : '',
+                'database'  => defined('DB_NAME') ? DB_NAME : '',
+                'charset'   => function_exists('smliser_settings_adapter') ? \smliser_settings_adapter()->get( 'db_charset', 'utf8mb4' ) : 'utf8mb4',
+            ];
+
+            if ( class_exists( PDO::class ) && in_array( 'mysql', PDO::getAvailableDrivers() ) ) {
+                $this->dbadapter    = new PdoAdapter( $config );
+            }
+
+            if ( class_exists( 'mysqli' ) ) {
+                $this->dbadapter    = new MysqliAdapter( $config );
+            }
+            
+            if ( defined( 'DB_TYPE' ) && 'sqlite' === constant( 'DB_TYPE' ) && class_exists( 'SQLite3' ) ) {
+                $this->dbadapter    = new SqliteAdapter( [
+                    'database' => defined( 'DB_FILE' ) ? constant( 'DB_TYPE' )  : $config['database']
+                ] );
+            }
+            
+            throw new \Exception( 'No supported database adapter found or initialized.' );            
         }
+        
+        $this->database = new Database( $this->dbadapter );
+    }
+
+    /**
+     * Sets up the global filesystem adapter
+     */
+    protected function setGlobalFileSystemAdapter() : void {
+        if ( ! isset( $this->filesystemAdapter ) ) {
+            $this->filesystemAdapter = new DirectFileSystem;
+        }
+
+        $this->filesystem    = new FileSystem( $this->filesystemAdapter );
+
+    }
+
+    /**
+     * Sets up the global cache adapter
+     */
+    protected function setGlobalCacheAdapter() : void {
+        if ( ! isset( $this->cacheAdapter ) ) {
+            // APCu (fast native PHP cache) if available and enabled.
+            if ( extension_loaded( 'apcu' ) && ini_get( 'apc.enabled' ) ) {
+                $this->cacheAdapter = new ApcuCacheAdapter();
+            } else {
+                // Default to in-memory cache.
+                $this->cacheAdapter = new InMemoryCacheAdapter();
+            }
+        }
+
+        $this->cache    = new Cache( $this->cacheAdapter );
+
+    }
+
+    /**
+     * Sets up the global settings adapter
+     */
+    protected function setGlobalSettingsAdapter() : void {
+        if ( ! isset( $this->settingsStorage ) ) {
+            $this->settingsStorage = new Options( $this->database );
+        }
+
+        $this->settings = new Settings( $this->settingsStorage );
     }
 
     /**
      * Get the namespace
      */
-    public function namespace() {
-        return static::instance()->rest_api_namespace;
+    public function rest_namespace() {
+        return $this->rest_provider->get_namespace();
+    }
+
+    /**
+     * Get the database instance.
+     */
+    public function database() : Database {
+        return $this->database;
+    }
+
+    /**
+     * Get the filesystem abstraction instance.
+     */
+    public function filesystem() : FileSystem {
+        return $this->filesystem;
+    }
+
+    /**
+     * Get the cache instance
+     */
+    public function cache() : Cache {
+        return $this->cache;
+    }
+
+    /**
+     * Get the settings API instance.
+     */
+    public function settings() : Settings {
+        return $this->settings;
     }
 
     /**
@@ -340,5 +541,18 @@ class Config {
         require_once SMLISER_PATH . 'includes/Utils/formating-functions.php';
               
     }
+
+    /*
+    |-----------------------
+    | ABSTRACT METHODS
+    |-----------------------
+    */
+
+    /**
+     * Get the instance of the configuration
+     * 
+     * @return static
+     */
+    abstract public static function instance() : static;
 }
 

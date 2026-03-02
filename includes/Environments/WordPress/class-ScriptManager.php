@@ -224,7 +224,7 @@ final class ScriptManager {
             'admin_url'         => admin_url(),
             'wp_spinner_gif'    => admin_url( 'images/spinner.gif' ),
             'wp_spinner_gif_2x' => admin_url( 'images/spinner-2x.gif' ),
-            'app_search_api'    => rest_url( SetUp::instance()->namespace() . '/repository/' ),
+            'app_search_api'    => rest_url( SetUp::instance()->rest_namespace() . '/repository/' ),
             'default_roles'     => [
                 'roles'         => Role::all( true ),
                 'capabilities'  => Capability::get_caps()

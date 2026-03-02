@@ -50,13 +50,12 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                                     <?php echo esc_html( $message->get_id() ); ?>
                                     <p class="smliser-edit-link">
                                         <a href="<?php echo esc_url( $current_url->add_query_params( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ) ) ); ?>">Edit</a>
-                                        <a href="#" role="button" class="smliser-delete-message">Delete</a>
                                     </p>
                                 </td>
                             
                                 <td><?php echo esc_html( $message->get_message_id() ); ?></td>
                                 <td><?php echo esc_html( $message->get_subject() ); ?></td>
-                                <td><?php echo esc_html( wp_trim_words( $message->get_body(), 5 ) ); ?></td>
+                                <td><?php echo esc_html( smliser_trim_words( $message->get_body(), 5 ) ); ?></td>
                                 <td><?php echo esc_html( $message->print_associated_apps_summary() ); ?></td>
                             </tr>
                         <?php endforeach; ?>

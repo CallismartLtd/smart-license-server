@@ -44,49 +44,9 @@ class Cache {
      *
      * @param CacheAdapterInterface $adapter The cache adapter instance.
      */
-    private function __construct( CacheAdapterInterface $adapter ) {
+    public function __construct( CacheAdapterInterface $adapter ) {
         $this->adapter = $adapter;
     }
-
-    /**
-     * Get the singleton instance.
-     *
-     * @return Cache
-     */
-    public static function instance( ?CacheAdapterInterface $c = null ): Cache {
-        if ( is_null( self::$instance ) ) {
-            $c  = $c ?? static::detect_adapter();
-            self::$instance = new self( $c );
-        }
-
-        return self::$instance;
-    }
-
-    /**
-     * Detect environment and select appropriate cache adapter.
-     *
-     * @return CacheAdapterInterface
-     */
-    protected static function detect_adapter(): CacheAdapterInterface {
-        // APCu (fast native PHP cache) if available and enabled.
-        // if ( extension_loaded( 'apcu' ) && ini_get( 'apc.enabled' ) ) {
-        //     return new ApcuCacheAdapter();
-        // }
-
-        // WordPress.
-        if ( defined( 'ABSPATH' ) && function_exists( 'wp_cache_init' ) ) {
-            return new WPCacheAdapter();
-        }
-
-        // Laravel.
-        if ( class_exists( 'Illuminate\Support\Facades\Cache' ) ) {
-            return new LaravelCacheAdapter();
-        }
-
-        // Default to in-memory cache.
-        return new InMemoryCacheAdapter();
-    }
-
 
     /**
      * Get the underlying adapter instance.

@@ -65,7 +65,7 @@ final class UploadedFile {
     public function __construct( ?array $file, string $key = 'file', $fs = null ) {
         $this->file = $file;
         $this->key  = $key;
-        $this->fs   = $fs ?? FileSystem::instance();
+        $this->fs   = $fs ?? smliser_filesystem();
     }
 
     /**

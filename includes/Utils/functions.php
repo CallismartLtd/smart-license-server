@@ -10,8 +10,10 @@
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Environments\WordPress\SetUp;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
@@ -1403,7 +1405,16 @@ function smliser_download_with_fopen( $url, $timeout ) {
  * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
  */
 function smliser_dbclass() : \SmartLicenseServer\Database\Database {
-    return \SmartLicenseServer\Database\Database::instance();
+    return SetUp::instance()->database();
+}
+
+/**
+ * Get the filesystem abstraction class
+ * 
+ * @return FileSystem
+ */
+function smliser_filesystem() : FileSystem {
+    return Setup::instance()->filesystem();
 }
 
 /**
@@ -1412,7 +1423,29 @@ function smliser_dbclass() : \SmartLicenseServer\Database\Database {
  * @return SmartLicenseServer\SettingsAPI\Settings
  */
 function smliser_settings_adapter() : SmartLicenseServer\SettingsAPI\Settings {
-    return SmartLicenseServer\SettingsAPI\Settings::instance();
+    return Setup::instance()->settings();
+}
+
+/**
+ * Get the cache singleton instance.
+ *
+ * @return \SmartLicenseServer\Cache\Cache Singleton instance of the Cache class.
+ */
+function smliser_cache() : \SmartLicenseServer\Cache\Cache {
+    return SetUp::instance()->cache();
+}
+
+/**
+ * Returns the singleton instance of the parser.
+ *
+ * @return MDParser
+ */
+function smliser_md_parser() {
+	static $instance = null;
+	if ( null === $instance ) {
+		$instance = new MDParser();
+	}
+	return $instance;
 }
 
 /**
@@ -1444,15 +1477,6 @@ function smliser_get_repo_url( $path = '' ) {
     }
 
     return $base_url;
-}
-
-/**
- * Get the cache singleton instance.
- *
- * @return \SmartLicenseServer\Cache\Cache Singleton instance of the Cache class.
- */
-function smliser_cache() : \SmartLicenseServer\Cache\Cache {
-    return \SmartLicenseServer\Cache\Cache::instance();
 }
 
 /**
@@ -1530,21 +1554,6 @@ function smliser_avatar_url( string $filename_hash, string $type ) : string {
 
     $avatar_url = smliser_uploads_url( $path );
     return $avatar_url;
-}
-
-
-
-/**
- * Returns the singleton instance of the parser.
- *
- * @return MDParser
- */
-function smliser_md_parser() {
-	static $instance = null;
-	if ( null === $instance ) {
-		$instance = new MDParser();
-	}
-	return $instance;
 }
 
 /**

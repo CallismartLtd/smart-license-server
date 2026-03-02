@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Environments\WordPress\RESTAPI;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -113,7 +114,7 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
             'API DOC',
             'manage_options',
             'smliser-doc',
-            array( V1::class, 'html_index' )
+            array( RESTAPI::class, 'index_rest_doc' )
         );
 
         self::$accounts_page_id = add_submenu_page(
@@ -138,7 +139,7 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
     /**
      * Rename First menu item to Dashboard.
      */
-    public static function modify_sw_menu() {
+    public static function submenu_index_name() {
         global $submenu;
 
         if ( isset( $submenu['smliser-admin'] ) ) {

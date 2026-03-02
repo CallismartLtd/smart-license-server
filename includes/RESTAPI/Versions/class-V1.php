@@ -41,7 +41,6 @@ class V1 implements RESTInterface {
      */
     const ASSET_NAME_REGEX = '(?P<asset_name>[a-zA-Z0-9_-]+)';
 
-
     /** 
      * REST API Route namespace.
      * 
@@ -247,7 +246,7 @@ class V1 implements RESTInterface {
                 // License Deactivation Route
                 array(
                     'route'         => self::$deactivation_route,
-                    'methods'       => array( 'PUT', 'POST', 'PATCH' ),
+                    'methods'       => array( 'POST' ),
                     'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_response' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_permission' ),
                     'args'          => self::get_license_deactivation_args(),
@@ -258,7 +257,7 @@ class V1 implements RESTInterface {
                 // License Uninstallation Route.
                 array(
                     'route'         => self::$license_uninstallation_route,
-                    'methods'       => array( 'PUT', 'POST', 'PATCH' ),
+                    'methods'       => array( 'POST' ),
                     'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_response' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_permission' ),
                     'args'          => self::get_license_uninstallation_args(),
@@ -418,6 +417,10 @@ class V1 implements RESTInterface {
         );
     }
 
+    public function namespace() : string {
+        return static::$namespace;
+    }
+
     /**
      * Get license activation route arguments.
      * 
@@ -438,7 +441,7 @@ class V1 implements RESTInterface {
             'domain' => array(
                 'required'    => true,
                 'type'        => 'string',
-                'description' => 'The ID of the item associated with the license.',
+                'description' => 'The URL of the website where the license is being activated.',
             ),
         );
     }
@@ -534,12 +537,12 @@ class V1 implements RESTInterface {
             'id' => array(
                 'required'    => false,
                 'type'        => 'integer',
-                'description' => sprintf( 'The %s ID', $type ),
+                'description' => sprintf( 'The %1$s ID. Optional when %1$s slug is provided.', $type ),
             ),
             'slug' => array(
                 'required'    => false,
                 'type'        => 'string',
-                'description' => sprintf( 'The %1$s slug eg. %2$s', $type, $eg_slug ),
+                'description' => sprintf( 'The %1$s slug eg. %2$s. Optional when %1$s ID is provided.', $type, $eg_slug ),
             ),
         );
     }
@@ -571,12 +574,12 @@ class V1 implements RESTInterface {
             'app_slugs' => array(
                 'required'    => false,
                 'type'        => 'array',
-                'description' => 'An array of app slugs to filter by.',
+                'description' => 'An array of app slugs to filter by (eg., [\'smart-woo-service-invoicing\', \'woocommerce\', \'astra\'].',
             ),
             'app_types' => array(
                 'required'    => false,
                 'type'        => 'array',
-                'description' => 'An array of app types to filter by (e.g., plugin, theme).',
+                'description' => 'An array of app types to filter by (e.g., [\'plugin\', \'theme\']).',
             ),
         );
     }
@@ -867,25 +870,5 @@ class V1 implements RESTInterface {
      */
     private static function esc_js( $text ) {
         return addslashes( $text );
-    }
-
-    /**
-     * Render a html index of REST API documentation page
-     */
-    public static function html_index() {
-        ?>
-            <div class="smliser-admin-api-description-section">
-                <h2 class="heading">REST API Documentation</h2>
-                <div class="smliser-api-base-url">
-                    <strong>Base URL:</strong>
-                    <code><?php echo esc_url( rest_url() ); ?></code>
-                </div>
-                
-                <?php foreach ( self::describe_routes() as $path => $html ) : 
-                    echo $html;
-                endforeach; ?>
-            </div>
-    
-        <?php
     }
 }

@@ -28,4 +28,11 @@ interface RESTProviderInterface {
      * Authenticate the current principal/actor
      */
     public function authenticate();
+
+    /**
+     * Get the REST namespace.
+     * 
+     * @return string
+     */
+    public function get_namespace() : string;
 }

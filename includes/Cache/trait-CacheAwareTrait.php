@@ -33,7 +33,7 @@ trait CacheAwareTrait {
      * @return mixed|null
      */
     protected static function cache_get( string $key ) {
-        return Cache::instance()->get( $key );
+        return smliser_cache()->get( $key );
     }
 
     /**
@@ -45,7 +45,7 @@ trait CacheAwareTrait {
      * @return bool
      */
     protected static function cache_set( string $key, $value, int $ttl = 0 ) : bool {
-        return Cache::instance()->set( $key, $value, $ttl );
+        return smliser_cache()->set( $key, $value, $ttl );
     }
 
     /**
@@ -55,7 +55,7 @@ trait CacheAwareTrait {
      * @return bool
      */
     protected static function cache_delete( string $key ) : bool {
-        return Cache::instance()->delete( $key );
+        return smliser_cache()->delete( $key );
     }
 
     /**
@@ -64,6 +64,6 @@ trait CacheAwareTrait {
      * @return bool
      */
     protected static function cache_clear() : bool {
-        return Cache::instance()->clear();
+        return smliser_cache()->clear();
     }
 }

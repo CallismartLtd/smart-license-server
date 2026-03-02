@@ -37,6 +37,9 @@ class LicensePage {
             case 'logs':
                 self::license_logs_page();
                 break;
+            case 'search':
+                self::search_page();
+                break;    
             default:
             self::dashboard();
         }
@@ -47,14 +50,47 @@ class LicensePage {
      * The license page dashbard
      */
     private static function dashboard() : void {
+        $current_url    = smliser_get_current_url();
         $limit          = \smliser_get_query_param( 'limit', 20 );
         $page           = \smliser_get_query_param( 'paged', 1 );
-        $license_data   = License::get_all( $page, $limit );
+
+        if ( $search_term = \smliser_get_query_param( 'search_term' ) ) {
+            $license_data   = License::search([
+                'search_term'   => $search_term,
+                'limit'         => $limit,
+                'page'          => $page
+            ]);
+        } else {
+            $license_data   = License::get_all( $page, $limit );
+        }
+        
         $licenses       = $license_data['items'] ?? [];
         $pagination     = $license_data['pagination'] ?? [];
         $add_url        = smliser_license_admin_action_page( 'add-new' );
     
         include_once SMLISER_PATH . 'templates/admin/license/dashboard.php';
+    
+    }
+
+    /**
+     * The license page dashbard
+     */
+    private static function search_page() : void {
+        $current_url    = smliser_get_current_url();
+        $limit          = \smliser_get_query_param( 'limit', 20 );
+        $page           = \smliser_get_query_param( 'paged', 1 );
+        $search_term    = \smliser_get_query_param( 'search_term' );
+
+        $license_data   = License::search([
+            'search_term'   => $search_term,
+            'limit'         => $limit,
+            'page'          => $page
+        ]);
+        $licenses       = $license_data['items'] ?? [];
+        $pagination     = $license_data['pagination'] ?? [];
+        $add_url        = smliser_license_admin_action_page( 'add-new' );
+    
+        include_once SMLISER_PATH . 'templates/admin/license/search.php';
     
     }
 
@@ -123,6 +159,7 @@ class LicensePage {
             'add-new'   => 'Add new license',
             'edit'      => 'Edit license',
             'view'      => 'License Details',
+            'search'    => 'Search Licenses',
             default     => 'Licenses'
         };
 
@@ -157,7 +194,7 @@ class LicensePage {
      * @return array
      */
     protected static function get_form_fields( ?License $license = null ) : array {
-        $app_prop           = $license ? sprintf( '%s', str_replace( '/', ':', $license->get_app_prop() ) ) : '';
+        $app_prop           = $license && $license->get_app() ? sprintf( '%s', str_replace( '/', ':', $license->get_app_prop() ) ) : '';
         $_license_statuses  = License::get_allowed_statuses();
         $_status_titles     = array_map( 'ucwords', array_values( $_license_statuses ) );
         $_status_keys       = array_values( $_license_statuses );

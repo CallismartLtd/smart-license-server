@@ -22,7 +22,7 @@ trait FileSystemAwareTrait {
      * @return FileSystem
      */
     public function fs(): FileSystem {
-        return FileSystem::instance();
+        return smliser_filesystem();
     }
 
     // Core checks.

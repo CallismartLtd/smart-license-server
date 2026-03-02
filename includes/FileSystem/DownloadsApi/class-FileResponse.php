@@ -74,7 +74,7 @@ class FileResponse extends Response {
         if ( ! empty( $options['type'] ) ) {
             $this->repo_class   = HostedApplicationService::get_app_repository_class( (string) $options['type'] );
         } else {
-            $this->repo_class = FileSystem::instance();
+            $this->repo_class = smliser_filesystem();
         }
         
         if ( $this->has_errors() ) {

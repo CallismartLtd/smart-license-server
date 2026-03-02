@@ -28,16 +28,9 @@ namespace SmartLicenseServer\SettingsAPI;
 class Settings {
 
     /**
-     * The single instance of the Settings manager.
+     * The active settings adapter (must implement SettingsStorageInterface).
      *
-     * @var Settings|null
-     */
-    private static $instance = null;
-
-    /**
-     * The active settings adapter (must implement SettingsInterface).
-     *
-     * @var SettingsInterface
+     * @var SettingsStorageInterface
      */
     protected $adapter;
 
@@ -45,21 +38,8 @@ class Settings {
      * Private constructor to enforce the Singleton pattern.
      * Initializes the correct adapter based on environment detection.
      */
-    private function __construct() {
-        $this->adapter = $this->init_adapter();
-    }
-
-    /**
-     * Gets the single instance of the Settings Manager.
-     *
-     * @return Settings
-     */
-    public static function instance(): Settings {
-        if ( is_null( self::$instance ) ) {
-            self::$instance = new self();
-        }
-
-        return self::$instance;
+    public function __construct( SettingsStorageInterface $storage ) {
+        $this->adapter = $storage;
     }
 
     /**
@@ -96,25 +76,5 @@ class Settings {
         throw new \BadMethodCallException(
             sprintf( 'Method %s::%s does not exist.', get_class( $this->adapter ), $method )
         );
-    }
-
-    /**
-     * Get the settings adapter class
-     * 
-     * @return AbstractSettings
-     */
-    public function get_adapter() : AbstractSettings {
-        return $this->adapter;
-    }
-
-    /**
-     * Initialize the settings API.
-     */
-    private function init_adapter() {
-        if ( defined( 'ABSPATH' ) ) {
-            return new WPSettingsAdapter;
-        }
-        
-        return new Options( \smliser_dbclass() );
     }
 }

@@ -45,14 +45,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @method bool readfile(string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576) Efficiently outputs the contents of a file.
  */
 class FileSystem {
-
-    /**
-     * Singleton instance.
-     *
-     * @var FileSystem|null
-     */
-    protected static ?FileSystem $instance = null;
-
     /**
      * The active filesystem adapter.
      *
@@ -65,49 +57,8 @@ class FileSystem {
      *
      * @param FileSystemAdapterInterface $adapter The adapter instance.
      */
-    private function __construct( FileSystemAdapterInterface $adapter ) {
+    public function __construct( FileSystemAdapterInterface $adapter ) {
         $this->adapter = $adapter;
-    }
-
-    /**
-     * Get the singleton instance.
-     *
-     * @return FileSystem
-     */
-    public static function instance( ?FileSystemAdapterInterface $fs = null ): FileSystem {
-        if ( is_null( self::$instance ) ) {
-            $fs = $fs ?? static::detect_adapter();
-            self::$instance = new self( $fs );
-        }
-
-        return self::$instance;
-    }
-
-    /**
-     * Detect the environment and return the appropriate filesystem adapter.
-     *
-     * Adapter priority:
-     * 1. WordPress (WP_Filesystem)
-     * 2. Laravel (Illuminate Filesystem)
-     * 3. Flysystem (explicitly configured fallback)
-     *
-     * @return FileSystemAdapterInterface
-     *
-     * @throws \RuntimeException If no suitable filesystem adapter can be resolved.
-     */
-    protected static function detect_adapter(): FileSystemAdapterInterface {
-        if ( class_exists( DirectFileSystem::class ) ) {
-            return new DirectFileSystem;
-        }
-        /**
-         * ------------------------------------------------------------
-         * No viable filesystem available
-         * ------------------------------------------------------------
-         */
-        throw new \RuntimeException(
-            'No supported filesystem adapter could be resolved. ' .
-            'Ensure WordPress, Laravel, or a configured Flysystem instance is available.'
-        );
     }
 
     /**

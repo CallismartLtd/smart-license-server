@@ -58,12 +58,7 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
                     </div>
-                    <div class="smliser-search-box">
-                        <input 
-                            type="search" id="smliser-search" class="smliser-search-input"
-                            placeholder="<?php echo esc_attr__( 'Search Licenses', 'smliser' ); ?>"
-                        />
-                    </div>
+                    <a href="<?php echo esc_url( $current_url->add_query_param( 'tab', 'search' ) ); ?>" class="smliser-btn smliser-btn-white">Search Licenses</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">

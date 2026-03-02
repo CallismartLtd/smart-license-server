@@ -856,3 +856,28 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
     <?php endif; ?>
     <?php
 }
+
+/**
+ * Trim words to a specified number of words.
+ * 
+ * @param string $text The text to trim.
+ * @param int $num The number of words to trim to.
+ * @param string $more The string to append to indicate more.
+ */
+function smliser_trim_words( string $text, int $num = 50, ?string $more = null ) {
+    if ( ! $more ) {
+        $more = '&hellip;';
+    }
+
+    $text   = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $text );
+	$text   = strip_tags( $text );
+    $words  = preg_split( "/[\n\r\t ]+/", $text, $num + 1, PREG_SPLIT_NO_EMPTY );
+
+    if ( count( (array) $words ) > $num ) {
+        array_pop( $words );
+    }
+
+    $text   = implode( ' ', $words );
+    
+    return $text . $more;
+}

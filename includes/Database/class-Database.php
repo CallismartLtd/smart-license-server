@@ -55,75 +55,12 @@ class Database {
     protected $adapter;
 
     /**
-     * Private constructor.
+     * Class constructor.
      *
      * @param DatabaseAdapterInterface $adapter Database adapter instance.
      */
-    private function __construct( DatabaseAdapterInterface $adapter ) {
+    public function __construct( DatabaseAdapterInterface $adapter ) {
         $this->adapter = $adapter;
-    }
-
-    /**
-     * Initialize and get the database instance.
-     *
-     * Automatically detects the current environment and chooses the appropriate adapter.
-     *
-     * @return Database
-     */
-    public static function instance( ?DatabaseAdapterInterface $db = null ) {
-        if ( is_null( self::$instance ) ) {
-            $adapter            = $db ?? static::detect_environment();
-            static::$instance   = new static( $adapter );
-        }
-
-        return static::$instance;
-    }
-
-    /**
-     * Detect the environment and return a suitable adapter.
-     *
-     * @return DatabaseAdapterInterface
-     * @throws \Exception If no supported adapter can be initialized.
-     */
-    protected static function detect_environment() {
-
-        if ( class_exists( 'Illuminate\Support\Facades\DB' ) ) {
-            return new LaravelAdapter();
-        }
-
-        // Common configuration for standard PHP environments
-        $config = [
-            'host'      => defined('DB_HOST') ? DB_HOST : 'localhost',
-            'username'  => defined('DB_USER') ? DB_USER : 'root',
-            'password'  => defined('DB_PASSWORD') ? DB_PASSWORD : '',
-            'database'  => defined('DB_NAME') ? DB_NAME : '',
-            'charset'   => function_exists('smliser_settings_adapter') ? \smliser_settings_adapter()->get( 'db_charset', 'utf8mb4' ) : 'utf8mb4',
-        ];
-
-        if ( class_exists( PDO::class ) && in_array( 'mysql', PDO::getAvailableDrivers() ) ) {
-            return new PdoAdapter( $config );
-        }
-
-        if ( class_exists( 'mysqli' ) ) {
-            return new MysqliAdapter( $config );
-        }
-        
-        if ( defined( 'DB_TYPE' ) && 'sqlite' === constant( 'DB_TYPE' ) && class_exists( 'SQLite3' ) ) {
-            return new SqliteAdapter( [
-                'database' => defined( 'DB_FILE' ) ? constant( 'DB_TYPE' )  : $config['database']
-            ] );
-        }
-        
-        throw new \Exception( 'No supported database adapter found or initialized.' );
-    }
-
-    /**
-     * Get the underlying adapter instance.
-     *
-     * @return DatabaseAdapterInterface
-     */
-    public function get_adapter() {
-        return $this->adapter;
     }
 
     /**

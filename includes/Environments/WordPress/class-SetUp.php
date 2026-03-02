@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Cache\WPCacheAdapter;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\WPDBAdapter;
@@ -18,6 +19,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
+use SmartLicenseServer\SettingsAPI\WPSettingsAdapter;
 
 /**
  * WordPress Environment setup class
@@ -34,23 +36,33 @@ class SetUp extends Config implements EnvironmentProviderInterface {
      * Class constructor
      */
     private function __construct() {
-        $repo_path      = WP_CONTENT_DIR;
-        $absolute_path  = ABSPATH;
-        $uploads_dir    = wp_upload_dir()['basedir'];
-        $db_prefix      = $GLOBALS['wpdb']?->prefix;
+        $wpdb               = $GLOBALS['wpdb'] ?? null;
+        $repo_path          = WP_CONTENT_DIR;
+        $absolute_path      = ABSPATH;
+        $uploads_dir        = wp_upload_dir()['basedir'];
+        $db_prefix          = $wpdb?->prefix;
+        $filesystem_adapter = new WPFileSystemAdapter;
+        $cache_adapter      = new WPCacheAdapter;
+        $settings_adapter   = new WPSettingsAdapter;
+        $database_adapter   = new WPDBAdapter( $wpdb );
+        $rest_api_provider  = new RESTAPI( new V1 );
         
-        parent::instance( compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir' ) );
-        FileSystem::instance( new WPFileSystemAdapter );
-        Database::instance( new WPDBAdapter( $GLOBALS['wpdb'] ) );
-        new RESTAPI( new V1 );
+        $env    = compact('absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
+        'filesystem_adapter', 'cache_adapter', 'settings_adapter', 'database_adapter',
+        'rest_api_provider'
+        
+        );
+        
+        $this->setup( $env );
 
         $auth           = new IdentityService;
         $scriptManager  = new ScriptManager;
+        $menu           = new Menu;
 
         add_action( 'plugins_loaded', array( $this, 'bootstrap_files' ) );
         add_action( 'set_current_user', [$auth, 'authenticate'] );
         add_action( 'admin_menu', [Menu::class, 'register_menus'] );
-        add_action( 'admin_menu', [Menu::class, 'modify_sw_menu'], 999 );
+        add_action( 'admin_menu', [Menu::class, 'submenu_index_name'], 999 );
 
         add_action( 'admin_notices', [ $this, 'check_filesystem_errors'] );
         add_action( 'admin_notices', array( $this, 'print_admin_notices' ) );
@@ -92,6 +104,19 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         return self::$instance;
     }
 
+    /**
+     * Get instance
+     * 
+     * @return static
+     */
+    public static function instance() : static {
+        if ( is_null( static::$instance ) ) {
+            return static::init();
+        }
+
+        return static::$instance;
+    }
+
 
     /**
      * Load monetization providers
@@ -128,7 +153,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
                 \SMLISER_SOFTWARE_REPO_DIR,
             ];
 
-            $cached_results = FileSystem::instance()->test_dirs_read_write( $dirs_to_check );
+            $cached_results = $this->filesystem->test_dirs_read_write( $dirs_to_check );
             set_transient( $transient_key, $cached_results, HOUR_IN_SECONDS );
         }
 

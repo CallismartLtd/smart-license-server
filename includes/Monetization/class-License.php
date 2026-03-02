@@ -388,12 +388,13 @@ class License {
     public function get_app() : ?AbstractHostedApp {
 
         if ( ! isset( $this->app ) ) {
-            if ( count( $this->get_app_prop() ) !== 2 ) {
+            if ( count(  $this->app_prop ) !== 2 ) {
                 return null;
             }
 
-            $app    = null;
-            [$app_type, $app_slug] = $this->get_app_prop();
+            $app        = null;
+            $app_type   = $this->app_prop['type'] ?? '';
+            $app_slug   = $this->app_prop['slug'] ?? '';
             $app_class  = HostedApplicationService::get_app_class( $app_type );
             $method     = "get_by_slug";
 
@@ -668,6 +669,86 @@ class License {
     }
 
     /**
+     * Search licenses in the database.
+     *
+     * @param array $args.
+     *
+     * @return array {
+     *     @type static[] $items
+     *     @type array    $pagination
+     * }
+     */
+    public static function search( array $args = [] ) : array {
+
+        $defaults   = array(
+            'search_term'   => '',
+            'page'          => 1,
+            'limit'         => 10
+        );
+
+        $args   = parse_args( $args, $defaults );
+
+        $key  = static::make_cache_key( __METHOD__, $args );
+        $data = static::cache_get( $key );
+
+        if ( false !== $data ) {
+            return $data;
+        }
+
+        $db     = smliser_dbclass();
+        $table  = \SMLISER_LICENSE_TABLE;
+        $page   = max( 1, $args['page'] );
+        $limit  = max( 1, $args['limit'] );
+        $offset = $db->calculate_query_offset( $page, $limit );
+
+        $like   = $args['search_term'] . '%';
+
+        /**
+         * Fetch paginated rows
+         */
+        $sql    = "SELECT * FROM {$table} WHERE `licensee_fullname` LIKE ? OR `license_key` LIKE ?
+        OR `service_id` LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?";
+
+        $params = [$like, $like, $like, $limit, $offset];
+        
+        $rows   = $db->get_results( $sql, $params );
+
+        $items = array();
+
+        if ( ! empty( $rows ) ) {
+            foreach ( $rows as $row ) {
+                $items[] = static::from_array( $row );
+            }
+        }
+
+        /**
+         * Fetch total count
+         */
+        $count_sql = "SELECT COUNT(*) FROM {$table} WHERE `licensee_fullname` LIKE ? OR `license_key` LIKE ?
+        OR `service_id` LIKE ?";
+        $params = [$like, $like, $like];
+        $total     = (int) $db->get_var( $count_sql, $params );
+
+        $result = array(
+            'items'      => $items,
+            'pagination' => array(
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => $total,
+                'total_pages' => $limit > 0 ? (int) ceil( $total / $limit ) : 0,
+            ),
+        );
+
+        static::cache_set(
+            $key,
+            $result,
+            30 * \MINUTE_IN_SECONDS
+        );
+
+        return $result;
+    }
+
+    /**
      * Save the license.
      * 
      * @return bool True when license is save, false otherwise
@@ -842,8 +923,14 @@ class License {
         $static->set_end_date( $data['end_date'] ?? '' );
         $static->set_max_allowed_domains( $data['max_allowed_domains'] ?? 0 );
 
-        if ( ! empty( $data['app_prop'] ) && preg_match( '#^[^/]+/[^/]+$#', (string) $data['app_prop'] ) ) {
-            list( $app_type, $app_slug ) = explode( '/', $data['app_prop'], 2 );
+        $app_prop   = $data['app_prop'] ?? '';
+
+        if ( ! empty( $app_prop ) && is_string( $app_prop ) && preg_match( '#^[^/]+/[^/]+$#', $app_prop ) ) {
+            list( $app_type, $app_slug ) = explode( '/', $app_prop, 2 );
+            $static->set_app_prop( $app_type, $app_slug );
+        } else if ( is_array( $app_prop ) && count( $app_prop ) === 2 ) {
+            $app_type   = (string) \array_first( $app_prop );
+            $app_slug   = (string) \array_last( $app_prop );
             $static->set_app_prop( $app_type, $app_slug );
         }
 

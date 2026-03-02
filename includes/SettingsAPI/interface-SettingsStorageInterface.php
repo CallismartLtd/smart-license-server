@@ -15,14 +15,14 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\SettingsAPI;
 
 /**
- * The settings interface defines the contracts all settings adapters must implement.
+ * The settings storage interface defines the contracts all settings adapters must implement.
  *
  * It enforces methods necessary for CRUD operations (saving, retrieving, deleting)
  * of application settings, ensuring persistence in the host environment's storage.
  *
  * @since 0.2.0
  */
-interface SettingsInterface {
+interface SettingsStorageInterface {
 	/**
 	 * Retrieves the value of a specific setting key from storage.
 	 *

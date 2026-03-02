@@ -84,7 +84,7 @@ class FileSystemHelper {
      * @return string|null
      */
     public static function get_mime_type( string $path ): ?string {
-        $fs = FileSystem::instance();
+        $fs = smliser_filesystem();
 
         if ( ! $fs->exists( $path ) || ! $fs->is_readable( $path ) ) {
             return null;
@@ -193,7 +193,7 @@ class FileSystemHelper {
      * @return bool
      */
     public static function is_valid_file( string $path, array $allowed_extensions = [] ): bool {
-        $fs = FileSystem::instance();
+        $fs = smliser_filesystem();
 
         if ( ! $fs->exists( $path ) || ! $fs->is_readable( $path ) || $fs->is_dir( $path ) ) {
             return false;
@@ -302,7 +302,7 @@ class FileSystemHelper {
      * @return string|null
      */
     public static function checksum( string $path, string $algo = 'sha256' ): ?string {
-        $fs = FileSystem::instance();
+        $fs = smliser_filesystem();
 
         if ( ! $fs->exists( $path ) || ! $fs->is_readable( $path ) ) {
             return null;
@@ -349,7 +349,7 @@ class FileSystemHelper {
      * @return array|null
      */
     public static function inspect( string $path ): ?array {
-        $fs = FileSystem::instance();
+        $fs = smliser_filesystem();
 
         if ( ! $fs->exists( $path ) ) {
             return null;
@@ -721,7 +721,7 @@ class FileSystemHelper {
             $type           = smliser_pluralize( str_replace( '_', '-', $type ) );
             $tmp_name       = self::validate_uploaded_file( $avatar_file, 'avatar' );
             $avatar_path    = self::join_path( SMLISER_UPLOADS_DIR, sprintf( 'avatars/%s', $type ) );
-            $fs             = FileSystem::instance();
+            $fs             = smliser_filesystem();
 
             if ( \is_smliser_error( $avatar_path ) ) {
                 throw $avatar_path;
@@ -763,7 +763,7 @@ class FileSystemHelper {
         $type   = smliser_pluralize( str_replace( '_', '-', $type ) );
         $file   = self::join_path( SMLISER_UPLOADS_DIR, sprintf( 'avatars/%s', $type ), $filename);
 
-        $fs     = FileSystem::instance();
+        $fs     = smliser_filesystem();
 
         if ( is_smliser_error( $file ) || ! $fs->exists( $file ) || $fs->is_dir( $file ) ) {
             return false;

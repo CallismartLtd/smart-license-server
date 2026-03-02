@@ -17,6 +17,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\RESTAPI\RESTInterface;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
+use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Principal;
@@ -629,5 +630,35 @@ class RESTAPI implements RESTProviderInterface {
         
         return (bool) preg_match( '#/download-token-reauthentication/#', $this->current_route );
 
+    }
+
+    /**
+     * Get the REST API namespace
+     * 
+     * @return string
+     */
+    public function get_namespace() : string {
+        return $this->rest->namespace();
+    }
+
+    /**
+     * Index REST API Documentation
+     */
+    public static function index_rest_doc() {
+        $rest = V1::class;
+        ?>
+            <div class="smliser-admin-api-description-section">
+                <h2 class="heading">REST API Documentation</h2>
+                <div class="smliser-api-base-url">
+                    <strong>Base URL:</strong>
+                    <code><?php echo esc_url( rest_url() ); ?></code>
+                </div>
+                
+                <?php foreach ( $rest::describe_routes() as $path => $html ) : 
+                    echo $html;
+                endforeach; ?>
+            </div>
+    
+        <?php
     }
 }

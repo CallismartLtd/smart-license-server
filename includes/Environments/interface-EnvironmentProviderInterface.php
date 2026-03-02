@@ -7,6 +7,8 @@
 
 namespace SmartLicenseServer\Environments;
 
+use SmartLicenseServer\Database\Database;
+
 /**
  * Defines the contracts every environment adapter most follow to fully load this application.
  */
@@ -38,5 +40,5 @@ interface EnvironmentProviderInterface {
     /**
      * Sets up custom routes.
      */
-    public function route_register() :void;
+    public function route_register() : void;
 }

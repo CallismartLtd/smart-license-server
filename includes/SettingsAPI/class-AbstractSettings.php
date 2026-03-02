@@ -21,7 +21,7 @@ namespace SmartLicenseServer\SettingsAPI;
  *
  * @since 0.2.0
  */
-abstract class AbstractSettings implements SettingsInterface {
+abstract class AbstractSettings implements SettingsStorageInterface {
 
 	/**
 	 * Local in-memory cache for settings loaded during the request lifecycle.
