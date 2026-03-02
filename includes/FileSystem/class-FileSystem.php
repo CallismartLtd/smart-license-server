@@ -12,7 +12,6 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 
 defined( 'SMLISER_ABSPATH' ) || exit;

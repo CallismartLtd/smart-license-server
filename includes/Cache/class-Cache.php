@@ -49,15 +49,6 @@ class Cache {
     }
 
     /**
-     * Get the underlying adapter instance.
-     *
-     * @return CacheAdapterInterface
-     */
-    public function get_adapter(): CacheAdapterInterface {
-        return $this->adapter;
-    }
-
-    /**
      * Proxy calls to the adapter methods.
      *
      * @param string $method Method name.

@@ -8,8 +8,6 @@
 
 namespace SmartLicenseServer\Database;
 
-use PDO;
-
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**

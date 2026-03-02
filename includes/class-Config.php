@@ -15,7 +15,6 @@ use SmartLicenseServer\Cache\ApcuCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterInterface;
 use SmartLicenseServer\Cache\InMemoryCacheAdapter;
-use SmartLicenseServer\Cache\LaravelCacheAdapter;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\DatabaseAdapterInterface;
 use SmartLicenseServer\Database\LaravelAdapter;
