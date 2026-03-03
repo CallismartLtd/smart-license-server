@@ -204,7 +204,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
                 $dir_count,
                 'smliser'
             ),
-            '<strong>' . esc_html( SMLISER_APP_NAME ) . '</strong>',
+            '<strong>' . SMLISER_APP_NAME . '</strong>',
             $dir_count
         );
 

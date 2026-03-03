@@ -429,24 +429,25 @@ abstract class Config {
                 'username'  => defined('DB_USER') ? DB_USER : 'root',
                 'password'  => defined('DB_PASSWORD') ? DB_PASSWORD : '',
                 'database'  => defined('DB_NAME') ? DB_NAME : '',
-                'charset'   => function_exists('smliser_settings_adapter') ? \smliser_settings_adapter()->get( 'db_charset', 'utf8mb4' ) : 'utf8mb4',
+                'charset'   => \smliser_settings_adapter()->get( 'db_charset', 'utf8mb4' ),
             ];
 
-            if ( class_exists( PDO::class ) && in_array( 'mysql', PDO::getAvailableDrivers() ) ) {
-                $this->dbadapter    = new PdoAdapter( $config );
+            $adapters   = [
+                PdoAdapter::class       => class_exists( PDO::class ) && in_array( 'mysql', PDO::getAvailableDrivers() ),
+                MysqliAdapter::class    => class_exists( 'mysqli' ),
+                SqliteAdapter::class    => defined( 'DB_TYPE' ) && 'sqlite' === constant( 'DB_TYPE' ) && class_exists( 'SQLite3' ),
+            ];
+
+            foreach( $adapters as $adapter_class => $is_supported ) {
+                if ( $is_supported ) {
+                    $this->dbadapter = new $adapter_class( $config );
+                    break;
+                }
             }
 
-            if ( class_exists( 'mysqli' ) ) {
-                $this->dbadapter    = new MysqliAdapter( $config );
-            }
-            
-            if ( defined( 'DB_TYPE' ) && 'sqlite' === constant( 'DB_TYPE' ) && class_exists( 'SQLite3' ) ) {
-                $this->dbadapter    = new SqliteAdapter( [
-                    'database' => defined( 'DB_FILE' ) ? constant( 'DB_TYPE' )  : $config['database']
-                ] );
-            }
-            
-            throw new \Exception( 'No supported database adapter found or initialized.' );            
+            if ( ! isset( $this->dbadapter ) ) {
+                throw new \Exception( 'No supported database adapter found or initialized.' ); 
+            }          
         }
         
         $this->database = new Database( $this->dbadapter );

@@ -166,8 +166,6 @@ class Router implements RouterInterface {
             'user_agent'        => smliser_get_user_agent(),
             'request_time'      => time(),
             'client_ip'         => smliser_get_client_ip(),
-            'issuer'            => $settings->get( 'smliser_company_name', get_bloginfo( 'name' ) ),
-            'terms_url'         => $settings->get( 'smliser_license_term_url', 'https://callismart.com.ng/terms/' )
         ]);
 
         $response = FileRequestController::get_license_document( $request );

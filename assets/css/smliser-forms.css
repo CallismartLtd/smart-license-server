@@ -12,8 +12,9 @@
 .smliser-options-form {
   background-color: #fff;
   display: block;
-  margin-inline: auto;
+  margin: 20px;
   padding: 10px;
+  border-radius: 4px;
 }
 
 .smliser-options-form_body {
@@ -22,6 +23,10 @@
   flex-wrap: wrap;
   gap: 15px;
   margin: 10px;
+}
+
+.smliser-options-form_body label span {
+  font-weight: 600;
 }
 
 .smliser-hide {

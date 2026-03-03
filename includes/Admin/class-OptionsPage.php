@@ -16,13 +16,6 @@ class OptionsPage {
      */
     public static function router() {
         $tab = smliser_get_query_param( 'tab' );
-        $tabs = array(
-            ''              => 'General',
-            'monetization'  => 'Monetization Providers',
-            'pages'         => 'Page Setup',
-            'api-keys'      => 'REST API',
-
-        );
         
         switch( $tab ) {
             case 'pages':
@@ -34,7 +27,7 @@ class OptionsPage {
                 break;
 
             default:
-            self::general_settings();
+            self::pages_options();
         }
     }
 
@@ -80,5 +73,68 @@ class OptionsPage {
         }
 
         include_once SMLISER_PATH . 'templates/admin/options/monetizations.php';
+    }
+
+    /**
+     * Get menu args
+     */
+    protected static function get_menu_args() : array {
+        $tab            = \smliser_get_query_param( 'tab' );
+        $license_id     = \smliser_get_query_param( 'license_id' );
+        $current_url    = \smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider' );
+        $title  = match ( $tab ) {
+            'logs'      => 'License Activity Logs',
+            'add-new'   => 'Add new license',
+            'edit'      => 'Edit license',
+            'view'      => 'License Details',
+            'monetization'  => 'Monetization Providers Settings',
+            default         => 'General Settings'
+        };
+
+        $args   = array(
+            'breadcrumbs'   => array(
+                array(
+                    'label' => 'General Settings',
+                    'url'   => $current_url,
+                    'icon'  => 'dashicons dashicons-admin-home'
+                ),
+                array(
+                    'label' => $title,
+                )
+            ),
+            'actions'   => array(
+                array(
+                    'title'     => 'Monetizations',
+                    'label'     => 'Monetizations',
+                    'url'       => $current_url->add_query_param( 'tab', 'monetization' ),
+                    'icon'      => 'ti ti-cash-register',
+                    'active'    => 'monetization' === $tab
+                ),
+
+                array(
+                    'title'     => 'Pages Settings',
+                    'label'     => 'Pages',
+                    'url'       => $current_url->add_query_param( 'tab', 'pages' ),
+                    'icon'      => 'ti ti-globe',
+                    'active'    => 'pages' === $tab
+                ),
+            )
+        );
+
+        return $args;
+    }
+
+    /**
+     * System Settings form fields
+     * 
+     * @return array
+     */
+    public static function system_settings_field() : array {
+        return array(
+            'license_issuer',
+            'terms_url',
+            'smliser_repo_base_perma',
+            'smliser_license_prefix',
+        );
     }
 }
