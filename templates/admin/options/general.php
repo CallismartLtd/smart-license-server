@@ -1,19 +1,24 @@
 <?php
 /**
- * File name options.php
+ * General settings template file.
  * 
- * @author Callistus
- * @package Smliser\templates
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\templates
  * @since 1.0.0
  */
+
+use SmartLicenseServer\Admin\Menu;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
+
+$menu_args = static::get_menu_args();
+unset( $menu_args['breadcrumbs'][0] );
+
 ?>
-<h1>General</h1>
-<?php if ( $message = smliser_get_query_param( 'message' ) ) :?>
-    <?php echo wp_kses_post( smliser_form_message( $message ) ) ;?>
-<?php endif;?>
-<form action="" class="smliser-form">
-    <div class="smliser-form-container">
+<div class="smliser-admin-page">
+    <?php Menu::print_admin_top_menu( $menu_args ); ?>
+    
+    <form action="" class="smliser-options-form">
         <input type="hidden" name="action" value="smliser_options" />
 
         <div class="smliser-form-row">
@@ -21,5 +26,5 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             <span class="smliser-form-description" title="Add the plugin name, name must match with the name on plugin file header">?</span>
             <input type="text" name="" id="smliser-plugin-name" class="smliser-form-input" required>
         </div>
-    </div>
-</form>
+    </form>
+</div>

@@ -19,7 +19,6 @@ $other_fields = array(
             'value' => $app->get_support_url(),
             'class' => 'app-uploader-form-row',
             'attr'  => array(
-                'autocomplete' => 'off',
                 'spellcheck'   => 'off',
                 'placeholder'  => 'Optional – link to support page'
             )
@@ -33,7 +32,6 @@ $other_fields = array(
             'value' => $app->get_download_url(),
             'class' => 'app-uploader-form-row',
             'attr'  => array(
-                'autocomplete' => 'off',
                 'spellcheck'   => 'off',
                 'placeholder'  => 'Optional – leave empty to use server download'
             )
@@ -47,7 +45,6 @@ $other_fields = array(
             'value' => $app->get_homepage(),
             'class' => 'app-uploader-form-row',
             'attr'  => array(
-                'autocomplete' => 'off',
                 'spellcheck'   => 'off',
                 'placeholder'  => 'Optional – link to software homepage'
             )
@@ -61,7 +58,6 @@ $other_fields = array(
             'value' => $app->get_meta( 'documentation_url' ),
             'class' => 'app-uploader-form-row',
             'attr'  => array(
-                'autocomplete' => 'off',
                 'spellcheck'   => 'off',
                 'placeholder'  => 'Optional – link to software documentation'
             )

@@ -12,45 +12,42 @@ $title          = sprintf( 'Edit Plugin: %s', $app->get_name() );
 $other_fields   = array(
     array(
         'label' => __( 'Required PHP Version', 'smliser' ),
+        'help'  => 'Use plugin readme.txt file to edit the plugin\'s required PHP version.',
         'input' => array(
             'type'  => 'text',
             'name'  => 'app_required_php_version',
             'value' => $app->get_required_php(),
             'attr'  => array(
-                'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
                 'readonly'      => true,
-                'title'         => 'Use plugin readme.txt file to edit the plugin\'s required PHP version.'
             )
         )
     ),
 
     array(
         'label' => __( 'Required WordPress Version', 'smliser' ),
+        'help'  => 'Use plugin readme.txt file to edit the minimum WordPress version required to install this plugin',
         'input' => array(
             'type'  => 'text',
             'name'  => 'app_required_wp_version',
             'value' => $app->get_requires_at_least(),
             'attr'  => array(
-                'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
                 'readonly'      => true,
-                'title'         => 'Use plugin readme.txt file to edit the minimum WordPress version required to install this plugin'
             )
         )
     ),
 
     array(
         'label' => __( 'Tested WordPress Version', 'smliser' ),
+        'help'  => 'Use plugin the readme.txt file to edit the WordPress version this plugin has been tested up to.',
         'input' => array(
             'type'  => 'text',
             'name'  => 'app_tested_wp_version',
             'value' => $app->get_tested_up_to(),
             'attr'  => array(
-                'autocomplete'  => 'off',
                 'spellcheck'    => 'off',
                 'readonly'      => true,
-                'title'         => 'Use plugin the readme.txt file to edit the WordPress version this plugin has been tested up to.'
             )
         )
     ),
@@ -62,7 +59,6 @@ $other_fields   = array(
             'name'  => 'app_support_url',
             'value' => $app->get_support_url(),
             'attr'  => array(
-                'autocomplete'  => 'off',
                 'spellcheck'    => 'off'
             )
         )
@@ -75,7 +71,6 @@ $other_fields   = array(
             'name'  => 'app_download_url',
             'value' => $app->get_download_url(),
             'attr'  => array(
-                'autocomplete'  => 'off',
                 'spellcheck'    => 'off'
             )
         )
@@ -88,7 +83,6 @@ $other_fields   = array(
             'name'  => 'app_homepage_url',
             'value' => $app->get_homepage(),
             'attr'  => array(
-                'autocomplete'  => 'off',
                 'spellcheck'    => 'off'
             )
         )

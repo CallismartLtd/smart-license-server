@@ -18,8 +18,8 @@ class OptionsPage {
         $tab = smliser_get_query_param( 'tab' );
         
         switch( $tab ) {
-            case 'pages':
-                self::pages_options();
+            case 'routes':
+                self::routes_setting();
                 break;
 
             case 'monetization':
@@ -27,7 +27,7 @@ class OptionsPage {
                 break;
 
             default:
-            self::pages_options();
+            self::general_settings();
         }
     }
 
@@ -35,15 +35,15 @@ class OptionsPage {
      * The general settings page
      */
     private static function general_settings() {
-        include_once SMLISER_PATH . 'templates/admin/options/options.php';
+        include_once SMLISER_PATH . 'templates/admin/options/general.php';
     }
 
     /**
      * Permalink settings
      */
-    private static function pages_options() {
+    private static function routes_setting() {
         
-        include_once SMLISER_PATH . '/templates/admin/options/pages-setup.php';
+        include_once SMLISER_PATH . '/templates/admin/options/routing.php';
     }
 
     /**
@@ -85,8 +85,8 @@ class OptionsPage {
         $title  = match ( $tab ) {
             'logs'      => 'License Activity Logs',
             'add-new'   => 'Add new license',
-            'edit'      => 'Edit license',
-            'view'      => 'License Details',
+            'edit'          => 'Edit license',
+            'routes'         => 'Page Routing',
             'monetization'  => 'Monetization Providers Settings',
             default         => 'General Settings'
         };
@@ -112,11 +112,11 @@ class OptionsPage {
                 ),
 
                 array(
-                    'title'     => 'Pages Settings',
-                    'label'     => 'Pages',
-                    'url'       => $current_url->add_query_param( 'tab', 'pages' ),
+                    'title'     => 'Routes Settings',
+                    'label'     => 'Routes',
+                    'url'       => $current_url->add_query_param( 'tab', 'routes' ),
                     'icon'      => 'ti ti-globe',
-                    'active'    => 'pages' === $tab
+                    'active'    => 'routes' === $tab
                 ),
             )
         );

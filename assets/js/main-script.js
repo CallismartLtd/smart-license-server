@@ -953,6 +953,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
 
     CallismartDatePicker.mountAll();
+    smliserHelpToolTip();
     
     if ( usersSearch ) {
         const options = {
@@ -2643,3 +2644,172 @@ document.addEventListener( 'DOMContentLoaded', async function() {
         })
     }
 });
+
+
+function smliserHelpToolTip() {
+    'use strict';
+
+    /**
+     * How close to the viewport edge (px) before we flip the tooltip.
+     */
+    var EDGE_THRESHOLD = 16;
+
+    function reposition( tooltip ) {
+        tooltip.classList.remove( 'smliser-tooltip-below', 'smliser-tooltip-left', 'smliser-tooltip-right' );
+        tooltip.style.width     = '';
+        tooltip.style.left      = '';
+        tooltip.style.transform = '';
+
+        void tooltip.offsetWidth;
+
+        var viewport_w    = window.innerWidth;
+        var rect          = tooltip.getBoundingClientRect();
+        var parent_rect   = tooltip.offsetParent ? tooltip.offsetParent.getBoundingClientRect() : { left: 0, right: viewport_w };
+
+        // Convert tooltip edges to viewport-space for accurate comparison.
+        var tooltip_left  = rect.left;
+        var tooltip_right = rect.right;
+
+        // Flip below if cropped at the top.
+        if ( rect.top < EDGE_THRESHOLD ) {
+            tooltip.classList.add( 'smliser-tooltip-below' );
+            void tooltip.offsetWidth;
+        }
+
+        // Resolve horizontal overflow — these are mutually exclusive so we
+        // check right-edge first, then left-edge, and left always wins.
+        if ( tooltip_right > ( viewport_w - EDGE_THRESHOLD ) ) {
+            tooltip.classList.add( 'smliser-tooltip-left' );
+        }
+
+        if ( tooltip_left < EDGE_THRESHOLD ) {
+            tooltip.classList.remove( 'smliser-tooltip-left' );
+            tooltip.classList.add( 'smliser-tooltip-right' );
+        }
+
+        // Last resort — after flipping, re-measure and check if the tooltip
+        // still bleeds outside the viewport on either side. If so, clamp its
+        // width and nudge it using offset-parent-relative coordinates so we
+        // stay in the correct coordinate space.
+        void tooltip.offsetWidth;
+        var final_rect = tooltip.getBoundingClientRect();
+
+        if ( final_rect.left < EDGE_THRESHOLD || final_rect.right > ( viewport_w - EDGE_THRESHOLD ) ) {
+            var available_w  = viewport_w - ( EDGE_THRESHOLD * 2 );
+            // Translate the desired viewport-space left into offset-parent space.
+            var target_left  = EDGE_THRESHOLD - parent_rect.left;
+
+            tooltip.style.width     = available_w + 'px';
+            tooltip.style.left      = target_left + 'px';
+            tooltip.style.transform = 'none';
+        }
+    }
+
+    /**
+     * Show a tooltip.
+     *
+     * @param {HTMLElement} tooltip
+     */
+    function show( tooltip ) {
+        tooltip.classList.add( 'is-visible' );
+        reposition( tooltip );
+    }
+
+    /**
+     * Hide a tooltip.
+     *
+     * @param {HTMLElement} tooltip
+     */
+    function hide( tooltip ) {
+        tooltip.classList.remove( 'is-visible' );
+    }
+
+    /**
+     * Hide every open tooltip except the one provided.
+     *
+     * @param {HTMLElement|null} except
+     */
+    function hide_all( except ) {
+        document.querySelectorAll( '.smliser-help-tooltip.is-visible' ).forEach( function ( tooltip ) {
+            if ( tooltip !== except ) {
+                hide( tooltip );
+            }
+        } );
+    }
+
+    /**
+     * Wire up a single help icon button.
+     *
+     * @param {HTMLElement} btn
+     */
+    function init_icon( btn ) {
+        var tooltip = btn.nextElementSibling;
+
+        if ( ! tooltip || ! tooltip.classList.contains( 'smliser-help-tooltip' ) ) {
+            return;
+        }
+
+        // Toggle on click (covers both mouse and touch).
+        btn.addEventListener( 'click', function ( e ) {
+            e.stopPropagation();
+            var is_open = tooltip.classList.contains( 'is-visible' );
+            hide_all( null );
+            is_open ? hide( tooltip ) : show( tooltip );
+        } );
+
+        // Show on keyboard focus, hide on blur.
+        btn.addEventListener( 'focusin', function () {
+            hide_all( tooltip );
+            show( tooltip );
+        } );
+
+        btn.addEventListener( 'focusout', function ( e ) {
+            // Don't hide if focus moves into the tooltip itself.
+            if ( ! tooltip.contains( e.relatedTarget ) ) {
+                hide( tooltip );
+            }
+        } );
+    }
+
+    /**
+     * Close any open tooltip on Escape key.
+     */
+    document.addEventListener( 'keydown', function ( e ) {
+        if ( e.key === 'Escape' ) {
+            hide_all( null );
+        }
+    } );
+
+    /**
+     * Close any open tooltip when clicking outside.
+     */
+    document.addEventListener( 'click', function () {
+        hide_all( null );
+    } );
+
+    /**
+     * Initialise all help icons currently in the DOM, and watch for
+     * any added dynamically (e.g. fields rendered via AJAX).
+     */
+    function init_all() {
+        document.querySelectorAll( '.smliser-help-icon' ).forEach( init_icon );
+    }
+
+    // Handle dynamically injected fields.
+    var observer = new MutationObserver( function ( mutations ) {
+        mutations.forEach( function ( mutation ) {
+            mutation.addedNodes.forEach( function ( node ) {
+                if ( node.nodeType !== 1 ) return;
+                if ( node.classList.contains( 'smliser-help-icon' ) ) {
+                    init_icon( node );
+                } else {
+                    node.querySelectorAll( '.smliser-help-icon' ).forEach( init_icon );
+                }
+            } );
+        } );
+    } );
+
+    observer.observe( document.body, { childList: true, subtree: true } );
+    init_all();
+
+};

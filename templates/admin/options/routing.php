@@ -14,13 +14,14 @@ flush_rewrite_rules();
 
 $menu_args  = static::get_menu_args();
 
-unset( $menu_args['breadcrumbs'][0] );
 ?>
 <div class="smliser-admin-page">
     <?php Menu::print_admin_top_menu( $menu_args ); ?>
 
-    <?php if ( $message = smliser_get_query_param( 'message' ) ):?>
-        <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ) ?></p></div>
+    <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
+        <div class="notice notice-success is-dismissible">
+            <p><?php echo esc_html( $message ) ?></p>
+        </div>
     <?php endif;?>
 
     <form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" >

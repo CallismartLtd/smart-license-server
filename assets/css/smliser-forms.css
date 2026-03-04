@@ -585,7 +585,139 @@ button.smliser-upload-btn {
   opacity: .5;
 }
 
-.app-uploader-form-row span {
+/* ── Help icon wrap ───────────────────────────────────────────── */
+.smliser-help-icon-wrap {
+    position: relative;
+    display:  inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* ── Icon button ──────────────────────────────────────────────── */
+.smliser-help-icon {
+    display:    inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding:    0;
+    border:     none;
+    background: none;
+    cursor:     pointer;
+    color:      #555555;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.smliser-help-icon svg {
+    display: block;
+    width:   16px;
+    height:  16px;
+}
+
+/* Dark circle background */
+.smliser-help-icon svg circle:first-child {
+    fill:   #1e1e1e;
+    stroke: #1e1e1e;
+}
+
+/* White question mark */
+.smliser-help-icon svg text {
+    fill: #ffffff;
+}
+
+.smliser-help-icon:hover,
+.smliser-help-icon:focus-visible {
+    color: #2271b1; /* WP admin blue */
+    outline: none;
+}
+
+/* ── Tooltip ──────────────────────────────────────────────────── */
+.smliser-help-tooltip {
+    position:   absolute;
+    bottom:     calc( 100% + 8px ); /* sit above the icon by default */
+    left:       50%;
+    transform:  translateX( -50% );
+    z-index:    9999;
+
+    min-width:  180px;
+    max-width:  280px;
+    padding:    8px 10px;
+    border-radius: 4px;
+
+    background: #1e1e1e;
+    color:      #ffffff;
+    font-size:  12px;
+    line-height: 1.5;
+    text-align: left;
+    white-space: normal;
+    word-wrap:  break-word;
+
+    /* Hidden by default */
+    opacity:    0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+
+/* Arrow pointing downward toward the icon */
+.smliser-help-tooltip::after {
+    content:  '';
+    position: absolute;
+    top:      100%;
+    left:     50%;
+    transform: translateX( -50% );
+    border:   5px solid transparent;
+    border-top-color: #1e1e1e;
+}
+
+/* Flip below the icon when .smliser-tooltip-below is set by JS */
+.smliser-help-tooltip.smliser-tooltip-below {
+    bottom: auto;
+    top:    calc( 100% + 8px );
+}
+
+.smliser-help-tooltip.smliser-tooltip-below::after {
+    top:    auto;
+    bottom: 100%;
+    border-top-color:    transparent;
+    border-bottom-color: #1e1e1e;
+}
+
+/* Flip leftward when .smliser-tooltip-left is set by JS */
+.smliser-help-tooltip.smliser-tooltip-left {
+    left:      auto;
+    right:     0;
+    transform: none;
+}
+
+.smliser-help-tooltip.smliser-tooltip-left::after {
+    left:      auto;
+    right:     10px;
+    transform: none;
+}
+/* Flip rightward when .smliser-tooltip-right is set by JS */
+.smliser-help-tooltip.smliser-tooltip-right {
+    left:      0;
+    right:     auto;
+    transform: none;
+}
+
+.smliser-help-tooltip.smliser-tooltip-right::after {
+    left:      10px;
+    right:     auto;
+    transform: none;
+}
+
+/* Visible state — toggled by JS or CSS hover fallback */
+.smliser-help-tooltip.is-visible,
+.smliser-help-icon:hover  + .smliser-help-tooltip,
+.smliser-help-icon:focus-visible + .smliser-help-tooltip {
+    opacity:    1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.app-uploader-form-row span:not( .smliser-help-tooltip ) {
   font-weight: 500;
   color: #333333;
 }

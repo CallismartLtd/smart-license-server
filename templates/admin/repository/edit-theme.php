@@ -9,7 +9,117 @@
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 $title          = sprintf( 'Edit Theme: %s', $app->get_name() );
-$other_fields   = array(
+$other_fields   = array(    
+    array(
+        'label' => __( 'Required PHP Version', 'smliser' ),
+        'help'  => 'Use theme style.css file to edit the minimum PHP version required to install this theme.',
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_required_php_version',
+            'value' => $app->get_required_php(),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'spellcheck'    => 'off',
+                'readonly'      => true,
+            )
+        )
+    ),
+
+    array(
+        'label' => __( 'Required WordPress Version', 'smliser' ),
+        'help'  => 'Use theme style.css file to edit the minimum WordPress version required to install this theme.',
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_required_wp_version',
+            'value' => $app->requires_at_least(),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'spellcheck'    => 'off',
+                'readonly'      => true,
+            )
+        )
+    ),
+
+    array(
+        'label' => __( 'Tested WordPress Version', 'smliser' ),
+        'input' => 'Use theme style.css file to edit the WordPress version the theme has been tested up to.',
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_tested_wp_version',
+            'value' => $app->get_tested_up_to(),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'spellcheck'    => 'off',
+                'readonly'      => true,
+            )
+        )
+    ),
+    
+    array(
+        'label' => __( 'Theme Homepage', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_homepage_url',
+            'value' => $app->get_homepage(),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'spellcheck'    => 'off'
+            )
+        )
+    ),
+
+    array(
+        'label' => __( 'External Repository URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_external_repository_url',
+            'value' => $app->get_meta( 'external_repository_url' ),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'spellcheck'    => 'off'
+            )
+        )
+    ),
+
+    array(
+        'label' => __( 'Theme Preview URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_preview_url',
+            'value' => $app->get_meta( 'preview_url' ),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'spellcheck'    => 'off'
+            )
+        )
+    ),
+
+    array(
+        'label' => __( 'Theme Support URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_support_url',
+            'value' => $app->get_support_url(),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'spellcheck'    => 'off'
+            )
+        )
+    ),
+
+    array(
+        'label' => __( 'Theme Download URL', 'smliser' ),
+        'input' => array(
+            'type'  => 'text',
+            'name'  => 'app_download_url',
+            'value' => $app->get_download_url(),
+            'class' => 'app-uploader-form-row',
+            'attr'  => array(
+                'spellcheck'    => 'off'
+            )
+        )
+    ),
+
     array(
         'label' => __( 'App.json File', 'smliser' ),
         'input' => array(
@@ -24,124 +134,6 @@ $other_fields   = array(
                 'class' => 'smliser-json-textarea',
                 'readonly' => true,
                 'data-editor-description' => 'Edit the theme\'s app.json file. Certain fields are automatically generated from the theme style.css file and cannot be overridden here.'
-            )
-        )
-    ),
-    
-    array(
-        'label' => __( 'Required PHP Version', 'smliser' ),
-        'input' => array(
-            'type'  => 'text',
-            'name'  => 'app_required_php_version',
-            'value' => $app->get_required_php(),
-            'class' => 'app-uploader-form-row',
-            'attr'  => array(
-                'autocomplete'  => 'off',
-                'spellcheck'    => 'off',
-                'readonly'      => true,
-                'title'         => 'Use theme style.css file to edit the minimum PHP version required to install this theme'
-            )
-        )
-    ),
-
-    array(
-        'label' => __( 'Required WordPress Version', 'smliser' ),
-        'input' => array(
-            'type'  => 'text',
-            'name'  => 'app_required_wp_version',
-            'value' => $app->requires_at_least(),
-            'class' => 'app-uploader-form-row',
-            'attr'  => array(
-                'autocomplete'  => 'off',
-                'spellcheck'    => 'off',
-                'readonly'      => true,
-                'title'         => 'Use theme style.css file to edit the minimum WordPress version required to install this theme'
-            )
-        )
-    ),
-
-    array(
-        'label' => __( 'Tested WordPress Version', 'smliser' ),
-        'input' => array(
-            'type'  => 'text',
-            'name'  => 'app_tested_wp_version',
-            'value' => $app->get_tested_up_to(),
-            'class' => 'app-uploader-form-row',
-            'attr'  => array(
-                'autocomplete'  => 'off',
-                'spellcheck'    => 'off',
-                'readonly'      => true,
-                'title'         => 'Use theme style.css file to edit the WordPress version the theme has been tested up to'
-            )
-        )
-    ),
-    
-    array(
-        'label' => __( 'Theme Homepage', 'smliser' ),
-        'input' => array(
-            'type'  => 'text',
-            'name'  => 'app_homepage_url',
-            'value' => $app->get_homepage(),
-            'class' => 'app-uploader-form-row',
-            'attr'  => array(
-                'autocomplete'  => 'off',
-                'spellcheck'    => 'off'
-            )
-        )
-    ),
-
-    array(
-        'label' => __( 'External Repository URL', 'smliser' ),
-        'input' => array(
-            'type'  => 'text',
-            'name'  => 'app_external_repository_url',
-            'value' => $app->get_meta( 'external_repository_url' ),
-            'class' => 'app-uploader-form-row',
-            'attr'  => array(
-                'autocomplete'  => 'off',
-                'spellcheck'    => 'off'
-            )
-        )
-    ),
-
-    array(
-        'label' => __( 'Theme Preview URL', 'smliser' ),
-        'input' => array(
-            'type'  => 'text',
-            'name'  => 'app_preview_url',
-            'value' => $app->get_meta( 'preview_url' ),
-            'class' => 'app-uploader-form-row',
-            'attr'  => array(
-                'autocomplete'  => 'off',
-                'spellcheck'    => 'off'
-            )
-        )
-    ),
-
-    array(
-        'label' => __( 'Theme Support URL', 'smliser' ),
-        'input' => array(
-            'type'  => 'text',
-            'name'  => 'app_support_url',
-            'value' => $app->get_support_url(),
-            'class' => 'app-uploader-form-row',
-            'attr'  => array(
-                // 'autocomplete'  => 'on',
-                'spellcheck'    => 'off'
-            )
-        )
-    ),
-
-    array(
-        'label' => __( 'Theme Download URL', 'smliser' ),
-        'input' => array(
-            'type'  => 'text',
-            'name'  => 'app_download_url',
-            'value' => $app->get_download_url(),
-            'class' => 'app-uploader-form-row',
-            'attr'  => array(
-                'autocomplete'  => 'off',
-                'spellcheck'    => 'off'
             )
         )
     ),

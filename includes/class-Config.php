@@ -163,6 +163,11 @@ abstract class Config {
         ];
 
         foreach ( $prop_map as $env_k => $prop_k ) {
+            if ( isset( $this->{$prop_k} ) ) {
+                // Avoid overwrite.
+                continue;
+            }
+            
             $this->{$prop_k}    = $this->env[$env_k];
         }
     }

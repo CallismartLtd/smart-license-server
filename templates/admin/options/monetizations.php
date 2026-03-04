@@ -9,10 +9,15 @@
 
 use SmartLicenseServer\Admin\Menu;
 
-defined( 'SMLISER_ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ABSPATH' ) || exit; 
+
+$args   = static::get_menu_args();
+
+$args['breadcrumbs'][1]['label'] .= sprintf( ' >%s', $name );
+
+?>
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( static::get_menu_args() ); ?>
-    <h2><?php echo esc_html( $name ); ?> Settings</h2>
+    <?php Menu::print_admin_top_menu( $args ); ?>
 
     <?php if ( $saved = smliser_get_query_param( 'message' ) ):?>
         <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $saved ); ?></p></div>

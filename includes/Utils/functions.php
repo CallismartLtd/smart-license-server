@@ -855,27 +855,61 @@ function smliser_render_toggle_switch( $attrs = array() ) {
 }
 
 /**
- * Render form input field
+ * Render form input field.
  *
- * @param array $args Arguments to render the field.
+ * Supports an optional help icon that displays a tooltip describing
+ * the field. The help icon is rendered inline after the label text,
+ * before the input element.
+ *
+ * Basic usage:
+ *
+ *   smliser_render_input_field( array(
+ *       'label' => 'API Key',
+ *       'help'  => 'Your secret API key. Do not share this with anyone.',
+ *       'input' => array(
+ *           'type'  => 'password',
+ *           'name'  => 'api_key',
+ *           'value' => '',
+ *       ),
+ *   ) );
+ *
+ * The help text is exposed via:
+ *   - An aria-label on the icon button (screen readers).
+ *   - A data-help attribute (JS tooltip hook).
+ *   - A <span class="smliser-help-tooltip"> sibling (CSS tooltip fallback).
+ *
+ * @param array $args {
+ *     @type string $label          Field label text.
+ *     @type string $help           Optional help text shown in the tooltip.
+ *     @type array  $input {
+ *         @type string $type       Input type (text, password, select, etc.). Default 'text'.
+ *         @type string $name       Input name attribute.
+ *         @type string $value      Input value.
+ *         @type string $class      Wrapper/label class. Default 'smliser-form-label-row'.
+ *         @type array  $options    Options for select/radio inputs.
+ *         @type array  $attr       Additional HTML attributes as key => value pairs.
+ *     }
+ * }
  */
-function smliser_render_input_field( $args = array() ) {
+function smliser_render_input_field( array $args = [] ): void {
     $default_args = array(
         'label' => '',
+        'help'  => '',
         'input' => array(
-            'type'      => 'text',
-            'name'      => '',
-            'value'     => '',
-            'class'     => 'smliser-form-label-row',
-            'options'   => array(), // For select/radio
-            'attr'      => array(),
+            'type'    => 'text',
+            'name'    => '',
+            'value'   => '',
+            'class'   => 'smliser-form-label-row',
+            'options' => array(),
+            'attr'    => array(),
         ),
     );
 
     $parsed_args = parse_args_recursive( $args, $default_args );
     $input       = $parsed_args['input'];
     $type        = $input['type'];
-    
+    $help        = trim( $parsed_args['help'] );
+
     // Build attributes string.
     $attr_str = '';
     if ( ! empty( $input['attr'] ) && is_array( $input['attr'] ) ) {
@@ -883,12 +917,13 @@ function smliser_render_input_field( $args = array() ) {
             $attr_str .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $val ) );
         }
     }
-    
+
     $id = ! empty( $input['attr']['id'] ) ? $input['attr']['id'] : $input['name'];
 
-    // Hidden fields don't need labels
+    // Hidden fields: no label, no help icon.
     if ( 'hidden' === $type ) {
-        printf( '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
+        printf(
+            '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
             esc_attr( $type ),
             esc_attr( $input['name'] ),
             esc_attr( $id ),
@@ -898,9 +933,24 @@ function smliser_render_input_field( $args = array() ) {
         return;
     }
 
-    printf( '<label for="%1$s" class="%2$s"><span>%3$s</span>', esc_attr( $id ), esc_html( $input['class'] ), esc_html( $parsed_args['label'] ) );
+    // Open label.
+    printf(
+        '<label for="%1$s" class="%2$s">',
+        esc_attr( $id ),
+        esc_attr( $input['class'] )
+    );
 
-    // Handle different tag types
+    // Label text + optional help icon, grouped so they sit inline.
+    echo '<span class="smliser-field-label-text">';
+    echo '<span>' . esc_html( $parsed_args['label'] ) . '</span>';
+
+    if ( '' !== $help ) {
+        smliser_render_field_help_icon( $help, $id );
+    }
+
+    echo '</span>'; // .smliser-field-label-text
+
+    // Input element.
     switch ( $type ) {
         case 'textarea':
             printf(
@@ -913,13 +963,18 @@ function smliser_render_input_field( $args = array() ) {
             break;
 
         case 'select':
-            printf( '<select name="%1$s" id="%2$s"%3$s>', esc_attr( $input['name'] ), esc_attr( $id ), $attr_str );
+            printf(
+                '<select name="%1$s" id="%2$s"%3$s>',
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                $attr_str
+            );
             foreach ( $input['options'] as $val => $label ) {
-                printf( 
-                    '<option value="%1$s" %2$s>%3$s</option>', 
-                    esc_attr( $val ), 
-                    selected( $input['value'], $val, false ), 
-                    esc_html( $label ) 
+                printf(
+                    '<option value="%1$s" %2$s>%3$s</option>',
+                    esc_attr( $val ),
+                    selected( $input['value'], $val, false ),
+                    esc_html( $label )
                 );
             }
             echo '</select>';
@@ -928,7 +983,7 @@ function smliser_render_input_field( $args = array() ) {
         case 'checkbox':
         case 'radio':
             printf(
-                '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s" %5$s %6$s>',
+                '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s" %5$s%6$s>',
                 esc_attr( $type ),
                 esc_attr( $input['name'] ),
                 esc_attr( $id ),
@@ -939,7 +994,6 @@ function smliser_render_input_field( $args = array() ) {
             break;
 
         case 'password':
-            // Password field with toggle visibility
             echo '<div class="smliser-password-field-wrapper">';
             printf(
                 '<input type="password" name="%1$s" id="%2$s" value="%3$s" class="smliser-password-input"%4$s>',
@@ -949,17 +1003,18 @@ function smliser_render_input_field( $args = array() ) {
                 $attr_str
             );
             printf(
-                '<button type="button" class="smliser-password-toggle" data-target="%1$s" aria-label="Toggle password visibility">
-                    <svg class="smliser-eye-icon smliser-eye-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                '<button type="button" class="smliser-password-toggle" data-target="%1$s" aria-label="%2$s">
+                    <svg class="smliser-eye-icon smliser-eye-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                     </svg>
-                    <svg class="smliser-eye-icon smliser-eye-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                    <svg class="smliser-eye-icon smliser-eye-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;" aria-hidden="true">
                         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
                         <line x1="1" y1="1" x2="23" y2="23"></line>
                     </svg>
                 </button>',
-                esc_attr( $id )
+                esc_attr( $id ),
+                esc_attr__( 'Toggle password visibility', 'smliser' )
             );
             echo '</div>';
             break;
@@ -977,6 +1032,50 @@ function smliser_render_input_field( $args = array() ) {
     }
 
     echo '</label>';
+}
+
+/**
+ * Render a help icon with an associated tooltip for a form field.
+ *
+ * Outputs a <button> (so it is focusable and keyboard-accessible) containing
+ * a question-mark SVG. The tooltip text is attached three ways:
+ *
+ *   1. aria-label  — read aloud by screen readers on focus/hover.
+ *   2. data-help   — picked up by any JS tooltip library you wire up.
+ *   3. A visually-hidden <span class="smliser-help-tooltip"> sibling that
+ *      can be shown with pure CSS for environments without JS.
+ *
+ * The button carries aria-describedby pointing at the tooltip span so
+ * assistive technology can also read the full text when the element is
+ * focused, not just its label.
+ *
+ * @param string $help_text  The descriptive text to display.
+ * @param string $field_id   The ID of the field this help icon belongs to,
+ *                           used to generate a unique tooltip ID.
+ */
+function smliser_render_field_help_icon( string $help_text, string $field_id ): void {
+    $tooltip_id = esc_attr( $field_id ) . '-help-tooltip';
+
+    printf(
+        '<span class="smliser-help-icon-wrap">
+            <button
+                type="button"
+                class="smliser-help-icon"
+                aria-label="%1$s"
+                aria-describedby="%2$s"
+                data-help="%1$s"
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                    <text x="12" y="17" text-anchor="middle" font-size="13" font-weight="600" font-family="sans-serif" fill="currentColor">?</text>
+                </svg>
+            </button>
+            <span id="%2$s" class="smliser-help-tooltip" role="tooltip">%3$s</span>
+        </span>',
+        esc_attr( $help_text ),
+        esc_attr( $tooltip_id ),
+        esc_html( $help_text )
+    );
 }
 
 /**

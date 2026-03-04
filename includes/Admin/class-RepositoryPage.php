@@ -402,6 +402,7 @@ class RepositoryPage {
         return array(
             array(
                 'label' => __( 'Name', 'smliser' ),
+                'help'  => 'The name of the application',
                 'input' => array(
                     'type'  => 'text',
                     'name'  => 'app_name',
@@ -416,6 +417,7 @@ class RepositoryPage {
             ),
             array(
                 'label' => __( 'Version', 'smliser' ),
+                'help'  => \sprintf( 'Use %s file to edit %s version', $manifest_filename, $type ),
                 'input' => array(
                     'type'  => 'text',
                     'name'  => 'app_version',
@@ -425,12 +427,12 @@ class RepositoryPage {
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off',
                         'readonly'      => true,
-                        'title'         => \sprintf( 'Use %s file to edit %s version', $manifest_filename, $type )
                     )
                 )
             ),
             array(
                 'label' => __( 'Author Name'),
+                'help'  => sprintf( 'Enter the name of the %s author.', $type ),
                 'input' => array(
                     'type'  => 'text',
                     'name'  => 'app_author',
@@ -444,6 +446,7 @@ class RepositoryPage {
             ),
             array(
                 'label' => __( 'Author Profile URL', 'smliser' ),
+                'help'  => sprintf( 'Enter the URL of the %s author profile.', $type ),
                 'input' => array(
                     'type'  => 'text',
                     'name'  => 'app_author_url',
@@ -457,6 +460,7 @@ class RepositoryPage {
             ),
             array(
                 'label' => __( 'Owner', 'smliser' ),
+                'help'  => sprintf( 'Select the owner of the %s. %s Owner is the user or organization that host and maintain the %s in this repository.', $type, ucfirst( $type ), $type ),
                 'input' => array(
                     'type'  => 'select',
                     'name'  => 'app_owner_id',
@@ -471,6 +475,7 @@ class RepositoryPage {
             ),
             array(
                 'label' => __( 'Status', 'smliser' ),
+                'help'  => sprintf( 'Enter the %s status', $type ),
                 'input' => array(
                     'type'  => 'select',
                     'name'  => 'app_status',
