@@ -787,7 +787,8 @@ class SmliserModal {
                 width: '500px',
                 customClass: `smliser-dialog smliser-alert-dialog smliser-alert-${config.type}`,
                 closeOnBackdropClick: false,
-                closeOnEscape: true
+                closeOnEscape: true,
+                ...config
             });
 
             // Event handler
