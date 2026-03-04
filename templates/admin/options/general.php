@@ -20,11 +20,16 @@ unset( $menu_args['breadcrumbs'][0] );
     
     <form action="" class="smliser-options-form">
         <input type="hidden" name="action" value="smliser_options" />
+        <div class="smliser-options-form_body">
+            <?php foreach( static::system_settings_fields() as $field ) : ?>
+                <?php smliser_render_input_field( $field ); ?>
+            <?php endforeach; ?>
 
-        <div class="smliser-form-row">
-            <label for="smliser-plugin-name" class="smliser-form-label">Option Name:</label>
-            <span class="smliser-form-description" title="Add the plugin name, name must match with the name on plugin file header">?</span>
-            <input type="text" name="" id="smliser-plugin-name" class="smliser-form-input" required>
+            <label for="save_license" class="smliser-form-label-row">
+                <span>Save Settings</span>
+                <button type="submit" id="save_license" class="smliser-submit-button"><?php printf( '%s', isset( $license ) ? 'Update' : 'Save' ); ?></button>
+            </label>
+            <span class="smliser-spinner"></span>
         </div>
     </form>
 </div>

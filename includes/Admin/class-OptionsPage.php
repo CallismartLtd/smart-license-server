@@ -8,6 +8,8 @@
 namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\Monetization\ProviderCollection;
 
+use function sprintf, smliser_settings_adapter;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 class OptionsPage {
@@ -129,12 +131,191 @@ class OptionsPage {
      * 
      * @return array
      */
-    public static function system_settings_field() : array {
+    protected static function system_settings_fields() : array {
+
+        $settings = smliser_settings_adapter();
+
         return array(
-            'license_issuer',
-            'terms_url',
-            'smliser_repo_base_perma',
-            'smliser_license_prefix',
+
+            array(
+                'label' => 'Repository Name',
+                'help'  => 'Public name of this license repository. This may appear in system emails, API responses, and administrative interfaces.',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'repository_name',
+                    'value' => $settings->get( 'repository_name', SMLISER_APP_NAME, true ),
+                    'attr'  => array(
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Administration Email',
+                'help'  => 'Primary email address for receiving system notifications, error reports, and administrative alerts.',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'admin_email',
+                    'value' => $settings->get( 'admin_email', '', true ),
+                    'attr'  => array(
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Hosting Email',
+                'help'  => 'Designated contact email for server, infrastructure, or application hosting-related issues and notifications.',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'hosting_email',
+                    'value' => $settings->get( 'hosting_email', '', true ),
+                    'attr'  => array(
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Support Email',
+                'help'  => 'Customer-facing support email address used in license communications and support responses.',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'support_email',
+                    'value' => $settings->get( 'support_email', '', true ),
+                    'attr'  => array(
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Email From Name',
+                'help'  => 'Name displayed as the sender in outgoing system emails.',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'email_from_name',
+                    'value' => $settings->get( 'email_from_name', get_bloginfo( 'name' ), true ),
+                    'attr'  => array(
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Email From Address',
+                'help'  => 'Email address used as the sender for outgoing system emails.',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'email_from_address',
+                    'value' => $settings->get( 'email_from_address', '', true ),
+                    'attr'  => array(
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'License Key Prefix',
+                'help'  => 'Prefix automatically added to generated license keys (e.g., SMLISER-XXXX-XXXX). Helps identify the issuing system.',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'license_prefix',
+                    'value' => $settings->get( 'license_prefix', 'SMLISER', true ),
+                    'attr'  => array(
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Default License Duration (Days)',
+                'help'  => 'Default number of days a newly generated license remains valid when no expiration date is specified.',
+                'input' => array(
+                    'type'  => 'number',
+                    'name'  => 'default_license_duration',
+                    'value' => $settings->get( 'default_license_duration', 365, true ),
+                    'attr'  => array(
+                        'min' => 1,
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Default Activation Limit',
+                'help'  => 'Default number of activations allowed per license key.',
+                'input' => array(
+                    'type'  => 'number',
+                    'name'  => 'default_activation_limit',
+                    'value' => $settings->get( 'default_activation_limit', 1, true ),
+                    'attr'  => array(
+                        'min' => 1,
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'API Rate Limit (Per Minute)',
+                'help'  => 'Maximum number of API requests allowed per client within a one-minute window.',
+                'input' => array(
+                    'type'  => 'number',
+                    'name'  => 'api_rate_limit',
+                    'value' => $settings->get( 'api_rate_limit', 60, true ),
+                    'attr'  => array(
+                        'min' => 1,
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Log Retention (Days)',
+                'help'  => 'Number of days system logs are retained before automatic cleanup.',
+                'input' => array(
+                    'type'  => 'number',
+                    'name'  => 'log_retention_days',
+                    'value' => $settings->get( 'log_retention_days', 30, true ),
+                    'attr'  => array(
+                        'min' => 1,
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Environment Mode',
+                'help'  => 'Defines whether this repository operates in production, staging, or development mode.',
+                'input' => array(
+                    'type'    => 'select',
+                    'name'    => 'environment_mode',
+                    'value'   => $settings->get( 'environment_mode', 'production', true ),
+                    'options' => array(
+                        'production'  => 'Production',
+                        'staging'     => 'Staging',
+                        'development' => 'Development',
+                    ),
+                ),
+            ),
+
+            array(
+                'label' => 'Terms URL',
+                'help'  => 'Full URL to your Terms of Service or license agreement page. May be included in customer communications and API responses.',
+                'input' => array(
+                    'type'  => 'text',
+                    'name'  => 'terms_url',
+                    'value' => $settings->get( 'terms_url', '', true ),
+                    'attr'  => array(
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ),
+                ),
+            ),
+
         );
     }
 }

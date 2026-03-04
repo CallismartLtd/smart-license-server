@@ -290,7 +290,7 @@ class FileRequestController {
         $max_domains    = $license->get_max_allowed_domains();
         $licensee       = $license->get_licensee_fullname();
         $today          = gmdate( 'F j, Y g:i:s a' );
-        $issuer         = $settingsAPI->get( 'license_issuer', SMLISER_APP_NAME, true );
+        $issuer         = $settingsAPI->get( 'repository_name', SMLISER_APP_NAME, true );
         $terms_url      = $settingsAPI->get( 'terms_url', '', true );
         $app_id         = $license->get_app_id();
 
