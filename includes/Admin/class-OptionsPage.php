@@ -1,11 +1,18 @@
 <?php
 /**
  * The admin options page handler class
- * 
- * @author Callistus Nwachukwu
- * @package Smliser\classes
+ *
+ * @author  Callistus Nwachukwu
+ * @package SmartLicenseServer\Admin
+ * @since   1.0.0
  */
+
+declare( strict_types = 1 );
+
 namespace SmartLicenseServer\Admin;
+
+use SmartLicenseServer\Email\EmailProviderCollection;
+use SmartLicenseServer\Email\Providers\EmailProviderInterface;
 use SmartLicenseServer\Monetization\ProviderCollection;
 
 use function sprintf, smliser_settings_adapter;
@@ -13,13 +20,14 @@ use function sprintf, smliser_settings_adapter;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 class OptionsPage {
+
     /**
-     * Page router
+     * Page router.
      */
-    public static function router() {
+    public static function router(): void {
         $tab = smliser_get_query_param( 'tab' );
-        
-        switch( $tab ) {
+
+        switch ( $tab ) {
             case 'routes':
                 self::routes_setting();
                 break;
@@ -28,294 +36,389 @@ class OptionsPage {
                 self::monetization_options();
                 break;
 
+            case 'email':
+                self::email_options();
+                break;
+
             default:
-            self::general_settings();
+                self::general_settings();
         }
     }
 
+    /*
+    |---------
+    | ROUTING
+    |---------
+    */
+
     /**
-     * The general settings page
+     * General settings page.
      */
-    private static function general_settings() {
+    private static function general_settings(): void {
         include_once SMLISER_PATH . 'templates/admin/options/general.php';
     }
 
     /**
-     * Permalink settings
+     * Permalink/routes settings page.
      */
-    private static function routes_setting() {
-        
+    private static function routes_setting(): void {
         include_once SMLISER_PATH . '/templates/admin/options/routing.php';
     }
 
     /**
-     * Monetization providers settings page
+     * Monetization providers settings page.
      */
-    private static function monetization_options() {
+    private static function monetization_options(): void {
         if ( smliser_has_query_param( 'provider' ) ) {
             self::provider_settings();
-
         } else {
             $providers = ProviderCollection::instance()->get_providers();
-
             include_once SMLISER_PATH . 'templates/admin/options/all-providers.php';
         }
     }
 
     /**
-     * Settings page for individual monetization provider
+     * Settings page for an individual monetization provider.
      */
-    private static function provider_settings() {
-        $provider = ProviderCollection::instance()->get_provider( smliser_get_query_param( 'provider' ) );
+    private static function provider_settings(): void {
+        $provider = ProviderCollection::instance()->get_provider(
+            smliser_get_query_param( 'provider' )
+        );
 
         if ( $provider ) {
-            $name       = $provider->get_name();
-            $id         = $provider->get_id();
-            $settings   = $provider->get_settings();
+            $name     = $provider->get_name();
+            $id       = $provider->get_id();
+            $settings = $provider->get_settings();
         }
 
         include_once SMLISER_PATH . 'templates/admin/options/monetizations.php';
     }
 
     /**
-     * Get menu args
+     * Email settings page dispatcher.
+     *
+     * Routes to individual provider settings when a provider query param
+     * is present, otherwise renders the provider list with global email settings.
      */
-    protected static function get_menu_args() : array {
-        $tab            = \smliser_get_query_param( 'tab' );
-        $license_id     = \smliser_get_query_param( 'license_id' );
-        $current_url    = \smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider' );
-        $title  = match ( $tab ) {
-            'logs'      => 'License Activity Logs',
-            'add-new'   => 'Add new license',
-            'edit'          => 'Edit license',
-            'routes'         => 'Page Routing',
-            'monetization'  => 'Monetization Providers Settings',
-            default         => 'General Settings'
-        };
+    private static function email_options(): void {
+        if ( smliser_has_query_param( 'provider' ) ) {
+            self::email_provider_settings();
+        } else {
+            $collection       = EmailProviderCollection::instance();
+            $providers        = $collection->get_providers();
+            $default_provider = EmailProviderCollection::get_default_provider_id();
+            $email_fields     = static::email_settings_fields();
 
-        $args   = array(
-            'breadcrumbs'   => array(
-                array(
-                    'label' => 'General Settings',
-                    'url'   => $current_url,
-                    'icon'  => 'dashicons dashicons-admin-home'
-                ),
-                array(
-                    'label' => $title,
-                )
-            ),
-            'actions'   => array(
-                array(
-                    'title'     => 'Monetizations',
-                    'label'     => 'Monetizations',
-                    'url'       => $current_url->add_query_param( 'tab', 'monetization' ),
-                    'icon'      => 'ti ti-cash-register',
-                    'active'    => 'monetization' === $tab
-                ),
-
-                array(
-                    'title'     => 'Routes Settings',
-                    'label'     => 'Routes',
-                    'url'       => $current_url->add_query_param( 'tab', 'routes' ),
-                    'icon'      => 'ti ti-globe',
-                    'active'    => 'routes' === $tab
-                ),
-            )
-        );
-
-        return $args;
+            include_once SMLISER_PATH . 'templates/admin/options/email.php';
+        }
     }
 
     /**
-     * System Settings form fields
-     * 
-     * @return array
+     * Settings page for an individual email provider.
      */
-    protected static function system_settings_fields() : array {
+    private static function email_provider_settings(): void {
+        $provider_id = smliser_get_query_param( 'provider' );
+        $collection  = EmailProviderCollection::instance();
+        $provider    = $collection->get_provider( $provider_id );
 
+        if ( ! $provider ) {
+            include_once SMLISER_PATH . 'templates/admin/options/email.php';
+            return;
+        }
+
+        $provider_name   = $provider->get_name();
+        $provider_id     = $provider->get_id();
+        $schema          = $provider->get_settings_schema();
+        $is_default      = EmailProviderCollection::get_default_provider_id() === $provider_id;
+
+        // Pre-populate each field with persisted value.
+        $saved_settings = [];
+        foreach ( $schema as $key => $_ ) {
+            $saved_settings[ $key ] = EmailProviderCollection::get_option( $provider_id, $key );
+        }
+
+        include_once SMLISER_PATH . 'templates/admin/options/email-provider.php';
+    }
+
+    /*
+    |--------
+    | FIELDS
+    |--------
+    */
+
+    /**
+     * Global email settings fields.
+     *
+     * These are provider-agnostic settings that apply regardless of
+     * which provider is active — default sender identity, fallback
+     * behaviour, and provider selection.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected static function email_settings_fields(): array {
         $settings = smliser_settings_adapter();
 
-        return array(
+        return [
+            [
+                'label' => 'Default Email Provider',
+                'help'  => 'The email provider used for all outgoing system emails. Configure individual providers using the cards below.',
+                'input' => [
+                    'type'    => 'select',
+                    'name'    => EmailProviderCollection::DEFAULT_PROVIDER_KEY,
+                    'value'   => EmailProviderCollection::get_default_provider_id() ?? '',
+                    'options' => array_map(
+                        static fn( EmailProviderInterface $p ) => $p->get_name(),
+                        EmailProviderCollection::instance()->get_providers()
+                    ),
+                ],
+            ],
 
-            array(
+            [
+                'label' => 'Default From Name',
+                'help'  => 'Sender name used in outgoing emails when the active provider does not have a From Name configured.',
+                'input' => [
+                    'type'  => 'text',
+                    'name'  => EmailProviderCollection::DEFAULT_SENDER_NAME_KEY,
+                    'value' => EmailProviderCollection::instance()->get_default_sender_name(),
+                    'attr'  => [
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ],
+                ],
+            ],
+
+            [
+                'label' => 'Default From Address',
+                'help'  => 'Sender email address used in outgoing emails when the active provider does not have a From Email configured.',
+                'input' => [
+                    'type'  => 'text',
+                    'name'  => EmailProviderCollection::DEFAULT_SENDER_EMAIL_KEY,
+                    'value' => EmailProviderCollection::instance()->get_default_sender_email(),
+                    'attr'  => [
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * System settings form fields.
+     *
+     * Email-specific fields (from_name, from_address) have been moved
+     * to email_settings_fields() and are no longer included here.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected static function system_settings_fields(): array {
+        $settings = smliser_settings_adapter();
+
+        return [
+            [
                 'label' => 'Repository Name',
                 'help'  => 'Public name of this license repository. This may appear in system emails, API responses, and administrative interfaces.',
-                'input' => array(
+                'input' => [
                     'type'  => 'text',
                     'name'  => 'repository_name',
                     'value' => $settings->get( 'repository_name', SMLISER_APP_NAME, true ),
-                    'attr'  => array(
+                    'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
-                    ),
-                ),
-            ),
+                    ],
+                ],
+            ],
 
-            array(
+            [
                 'label' => 'Administration Email',
                 'help'  => 'Primary email address for receiving system notifications, error reports, and administrative alerts.',
-                'input' => array(
+                'input' => [
                     'type'  => 'text',
                     'name'  => 'admin_email',
                     'value' => $settings->get( 'admin_email', '', true ),
-                    'attr'  => array(
+                    'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
-                    ),
-                ),
-            ),
+                    ],
+                ],
+            ],
 
-            array(
+            [
                 'label' => 'Hosting Email',
                 'help'  => 'Designated contact email for server, infrastructure, or application hosting-related issues and notifications.',
-                'input' => array(
+                'input' => [
                     'type'  => 'text',
                     'name'  => 'hosting_email',
                     'value' => $settings->get( 'hosting_email', '', true ),
-                    'attr'  => array(
+                    'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
-                    ),
-                ),
-            ),
+                    ],
+                ],
+            ],
 
-            array(
+            [
                 'label' => 'Support Email',
                 'help'  => 'Customer-facing support email address used in license communications and support responses.',
-                'input' => array(
+                'input' => [
                     'type'  => 'text',
                     'name'  => 'support_email',
                     'value' => $settings->get( 'support_email', '', true ),
-                    'attr'  => array(
+                    'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
-                    ),
-                ),
-            ),
+                    ],
+                ],
+            ],
 
-            array(
-                'label' => 'Email From Name',
-                'help'  => 'Name displayed as the sender in outgoing system emails.',
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'email_from_name',
-                    'value' => $settings->get( 'email_from_name', get_bloginfo( 'name' ), true ),
-                    'attr'  => array(
-                        'autocomplete' => 'off',
-                        'spellcheck'   => 'off',
-                    ),
-                ),
-            ),
-
-            array(
-                'label' => 'Email From Address',
-                'help'  => 'Email address used as the sender for outgoing system emails.',
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'email_from_address',
-                    'value' => $settings->get( 'email_from_address', '', true ),
-                    'attr'  => array(
-                        'autocomplete' => 'off',
-                        'spellcheck'   => 'off',
-                    ),
-                ),
-            ),
-
-            array(
+            [
                 'label' => 'License Key Prefix',
                 'help'  => 'Prefix automatically added to generated license keys (e.g., SMLISER-XXXX-XXXX). Helps identify the issuing system.',
-                'input' => array(
+                'input' => [
                     'type'  => 'text',
                     'name'  => 'license_prefix',
                     'value' => $settings->get( 'license_prefix', 'SMLISER', true ),
-                    'attr'  => array(
+                    'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
-                    ),
-                ),
-            ),
+                    ],
+                ],
+            ],
 
-            array(
+            [
                 'label' => 'Default License Duration (Days)',
                 'help'  => 'Default number of days a newly generated license remains valid when no expiration date is specified.',
-                'input' => array(
+                'input' => [
                     'type'  => 'number',
                     'name'  => 'default_license_duration',
                     'value' => $settings->get( 'default_license_duration', 365, true ),
-                    'attr'  => array(
-                        'min' => 1,
-                    ),
-                ),
-            ),
+                    'attr'  => [ 'min' => 1 ],
+                ],
+            ],
 
-            array(
+            [
                 'label' => 'Default Activation Limit',
                 'help'  => 'Default number of activations allowed per license key.',
-                'input' => array(
+                'input' => [
                     'type'  => 'number',
                     'name'  => 'default_activation_limit',
                     'value' => $settings->get( 'default_activation_limit', 1, true ),
-                    'attr'  => array(
-                        'min' => 1,
-                    ),
-                ),
-            ),
+                    'attr'  => [ 'min' => 1 ],
+                ],
+            ],
 
-            array(
+            [
                 'label' => 'API Rate Limit (Per Minute)',
                 'help'  => 'Maximum number of API requests allowed per client within a one-minute window.',
-                'input' => array(
+                'input' => [
                     'type'  => 'number',
                     'name'  => 'api_rate_limit',
                     'value' => $settings->get( 'api_rate_limit', 60, true ),
-                    'attr'  => array(
-                        'min' => 1,
-                    ),
-                ),
-            ),
+                    'attr'  => [ 'min' => 1 ],
+                ],
+            ],
 
-            array(
+            [
                 'label' => 'Log Retention (Days)',
                 'help'  => 'Number of days system logs are retained before automatic cleanup.',
-                'input' => array(
+                'input' => [
                     'type'  => 'number',
                     'name'  => 'log_retention_days',
                     'value' => $settings->get( 'log_retention_days', 30, true ),
-                    'attr'  => array(
-                        'min' => 1,
-                    ),
-                ),
-            ),
+                    'attr'  => [ 'min' => 1 ],
+                ],
+            ],
 
-            array(
+            [
                 'label' => 'Environment Mode',
                 'help'  => 'Defines whether this repository operates in production, staging, or development mode.',
-                'input' => array(
+                'input' => [
                     'type'    => 'select',
                     'name'    => 'environment_mode',
                     'value'   => $settings->get( 'environment_mode', 'production', true ),
-                    'options' => array(
+                    'options' => [
                         'production'  => 'Production',
                         'staging'     => 'Staging',
                         'development' => 'Development',
-                    ),
-                ),
-            ),
+                    ],
+                ],
+            ],
 
-            array(
+            [
                 'label' => 'Terms URL',
-                'help'  => 'Full URL to your Terms of Service or license agreement page. May be included in customer communications and API responses.',
-                'input' => array(
+                'help'  => 'Full URL to your Terms of Service or license agreement page.',
+                'input' => [
                     'type'  => 'text',
                     'name'  => 'terms_url',
                     'value' => $settings->get( 'terms_url', '', true ),
-                    'attr'  => array(
+                    'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
-                    ),
-                ),
-            ),
+                    ],
+                ],
+            ],
+        ];
+    }
 
-        );
+    /*
+    |------
+    | MENU
+    |------
+    */
+
+    /**
+     * Get menu args.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function get_menu_args(): array {
+        $tab         = smliser_get_query_param( 'tab' );
+        $current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider' );
+
+        $title = match ( $tab ) {
+            'logs'          => 'License Activity Logs',
+            'add-new'       => 'Add new license',
+            'edit'          => 'Edit license',
+            'routes'        => 'Page Routing',
+            'monetization'  => 'Monetization Providers Settings',
+            'email'         => 'Email Settings',
+            default         => 'General Settings',
+        };
+
+        return [
+            'breadcrumbs' => [
+                [
+                    'label' => 'General Settings',
+                    'url'   => $current_url,
+                    'icon'  => 'dashicons dashicons-admin-home',
+                ],
+                [
+                    'label' => $title,
+                ],
+            ],
+            'actions' => [
+                [
+                    'title'  => 'Monetizations',
+                    'label'  => 'Monetizations',
+                    'url'    => $current_url->add_query_param( 'tab', 'monetization' ),
+                    'icon'   => 'ti ti-cash-register',
+                    'active' => 'monetization' === $tab,
+                ],
+                [
+                    'title'  => 'Email Settings',
+                    'label'  => 'Email',
+                    'url'    => $current_url->add_query_param( 'tab', 'email' ),
+                    'icon'   => 'ti ti-mail',
+                    'active' => 'email' === $tab,
+                ],
+                [
+                    'title'  => 'Routes Settings',
+                    'label'  => 'Routes',
+                    'url'    => $current_url->add_query_param( 'tab', 'routes' ),
+                    'icon'   => 'ti ti-globe',
+                    'active' => 'routes' === $tab,
+                ],
+            ],
+        ];
     }
 }

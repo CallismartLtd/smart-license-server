@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Email\RequestController as EmailRequestController;
 use SmartLicenseServer\Environments\RouterInterface;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
@@ -70,7 +71,10 @@ class Router implements RouterInterface {
             'smliser_access_control_save'                   => [__CLASS__, 'parse_access_control_save_request'],
             'smliser_access_control_delete'                 => [__CLASS__, 'parse_access_control_delete_request'],
             'smliser_delete_org_member'                     => [__CLASS__, 'parse_smliser_delete_org_member_request'],
-            'smliser_admin_security_entity_search'          => [__CLASS__, 'parse_admin_security_entity_search_request']
+            'smliser_admin_security_entity_search'          => [__CLASS__, 'parse_admin_security_entity_search_request'],
+            'smliser_save_default_email_settings'           => [__CLASS__, 'parse_default_email_settings_request'],
+            'smliser_send_test_email'                       => [__CLASS__, 'parse_email_test_request'],
+            'smliser_save_email_provider_settings'          => [__CLASS__, 'parse_save_email_provider_request']
         ];
 
         if ( isset( $handler_map[$trigger] ) ) {
@@ -891,6 +895,57 @@ class Router implements RouterInterface {
 
         $response->send();
 
+    }
+
+    public static function parse_default_email_settings_request() : void {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+            ), 401 );
+        }
+
+        if ( ! is_super_admin() ) {
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $response   = EmailRequestController::save_default_email_options( new Request );
+
+        $response->send();
+        exit;
+    }
+
+    public static function parse_email_test_request() : void {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+            ), 401 );
+        }
+
+        if ( ! is_super_admin() ) {
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $response   = EmailRequestController::send_test_email( new Request );
+
+        $response->send();
+        exit;
+    }
+
+    public static function parse_save_email_provider_request() : void {
+        if ( ! check_ajax_referer( 'smliser_nonce', 'security', false ) ) {
+            smliser_send_json_error( array(
+                'message'  => __( 'Security check failed.', 'smliser' ),
+            ), 401 );
+        }
+
+        if ( ! is_super_admin() ) {
+            smliser_send_json_error( array( 'message' => 'You do not have the required permission to perform this action!' ), 401 );
+        }
+
+        $response   = EmailRequestController::save_provider_settings( new Request );
+
+        $response->send();
+        exit;
     }
 
     /*

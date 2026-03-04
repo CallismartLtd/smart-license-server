@@ -202,4 +202,19 @@ interface RouterInterface {
      * @return void
      */
     public static function parse_smliser_delete_org_member_request() : void;
+
+    /**
+     * Parse request to save default email settings.
+     */
+    public static function parse_default_email_settings_request() : void;
+
+    /**
+     * Parse Email test request.
+     */
+    public static function parse_email_test_request() : void;
+
+    /**
+     * Parse save email provider settings request.
+     */
+    public static function parse_save_email_provider_request() : void;
 }

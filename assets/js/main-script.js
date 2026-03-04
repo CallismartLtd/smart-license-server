@@ -930,6 +930,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     let dashboardPage           = document.querySelector( '.smliser-admin-dashboard-template.overview' );
     let monetizationUI          = document.querySelector( '.smliser-monetization-ui' );
     let optionForms             = document.querySelectorAll( 'form.smliser-options-form' );
+    const emailProviderSelect   = document.querySelector( '#email_default_provider' );
     const bulkMessageForm       = document.querySelector( 'form.smliser-compose-message-container' );
     const licenseAppSelect      = document.querySelector( '.license-app-select' );
     const allCopyEl             = document.querySelectorAll( '.smliser-click-to-copy' );
@@ -1089,40 +1090,15 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 submitBtn?.setAttribute( 'disabled', 'disabled' );
                 const spinner = showSpinner( '.smliser-spinner', true );
 
-                fetch( url, {
+                smliserFetchJSON( url, {
                     method: 'POST',
                     body: payLoad,
                     credentials: 'same-origin'
                 }).then( async response => {
-                    const contentType = response.headers.get( 'content-type' );
-                    if ( ! response.ok ) {
-                        let errorMessage = 'Something went wrong!';
-                        if ( contentType.includes( 'application/json' ) ) {
-                            const body      = await response.json();
-                            errorMessage    = body?.data?.message ?? errorMessage;
-                        } else {
-                            errorMessage = await response.text();
-                        }
-
-                        throw new Error( errorMessage );
-                    }
-
-                    const responseJson = await response.json();
-
-                    if ( ! responseJson.success ) {
-                        let errorMessage = responseJson?.data?.message ?? 'An error occurred';
-
-                        throw new Error( errorMessage );
-                    }
-
-                    const message = responseJson?.data?.message ?? 'Success';
-                    smliserNotify( message, 5000 );
-                }).catch( error => {
-                    if ( error.message?.toLowerCase().includes( "network" ) || error.message?.toLowerCase().includes( "failed to fetch" ) ){
-                        smliserNotify( 'Check network connection', 5000 );
-                    } else {
-                        smliserNotify( error.message, 5000 );
-                    }
+                    const message = response?.data?.message ?? 'Success';
+                    await SmliserModal.success( message, 'Saved' );
+                }).catch( async error => {
+                    await SmliserModal.error( error.message, error.category );
                     
                 }).finally( () => {
                     removeSpinner( spinner );
@@ -1130,6 +1106,21 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 });
                 
             })
+        })
+    }
+
+    if ( emailProviderSelect ) {
+        emailProviderSelect.addEventListener( 'change', e => {
+            e.preventDefault();
+            const value = e.target.value;
+            const selected  = document.querySelector( `.smliser-email-provider-card.${value}` );
+
+            if ( selected ) {
+                document.querySelectorAll( '.smliser-email-provider-card' )
+                .forEach( el => el.classList.remove( 'smliser-provider-card--active' ) );
+
+                selected.classList.add( 'smliser-provider-card--active' );
+            }
         })
     }
 

@@ -20,7 +20,7 @@ namespace SmartLicenseServer\SettingsAPI;
  * It is a Singleton that manages the primary persistence adapter instance.
  *
  * @method mixed get( string $key, mixed $default, bool $use_prefix ) Retrieves the value of a specific setting key from storage.
- * @method mixed set( string $key, mixed $value, bool $use_prefix ) Stores or updates the value of a specific setting key in storage (persistence).
+ * @method bool set( string $key, mixed $value, bool $use_prefix ) Stores or updates the value of a specific setting key in storage (persistence).
  * @method bool delete( string $key, bool $use_prefix )Removes a specific setting key and its value from storage.
  * @method bool has( string $key, bool $use_prefix ) Checks if a specific setting key exists in the storage.
  * @since 0.2.0

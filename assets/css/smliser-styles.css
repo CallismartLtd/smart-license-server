@@ -2070,3 +2070,124 @@ input.smliser_toggle-switch-input {
     margin: 0 auto !important;
     justify-content: center;
 }
+
+/* ─── Provider Grid Container ────────────────────────────────────────── */
+.smliser-email-provider-grid ,
+.smliser-test-email {
+    margin: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #dcdcde;
+}
+
+.smliser-section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 0 0 8px 0;
+}
+
+.smliser-section-description {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin-bottom: 24px;
+    max-width: 600px;
+    line-height: 1.5;
+}
+
+/* ─── Cards Layout ───────────────────────────────────────────────────── */
+.smliser-email-provider-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+/* ─── Individual Card ────────────────────────────────────────────────── */
+.smliser-email-provider-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.smliser-email-provider-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+/* Active State */
+.smliser-provider-card--active {
+    border-color: #6366f1;
+    background: #f8faff;
+    box-shadow: 0 0 0 1px #6366f1, 0 4px 12px rgba(99, 102, 241, 0.1);
+}
+
+/* ─── Card Header & Badge ────────────────────────────────────────────── */
+.smliser-email-provider-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.smliser-provider-card__name {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.smliser-email-provider-card__badge {
+    background: #eef0ff;
+    color: #6366f1;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    letter-spacing: 0.05em;
+}
+
+/* ─── Card Actions ───────────────────────────────────────────────────── */
+.smliser-email-provider-card__actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Button override to match card style */
+.smliser-email-provider-card .smliser-button {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    width: 100%; /* Make configure button full width */
+    transition: background 0.15s ease;
+}
+
+.smliser-button--secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.smliser-button--secondary:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+/* ─── Responsive Adjustments ─────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .smliser-email-provider-cards {
+        grid-template-columns: 1fr;
+    }
+}
