@@ -14,7 +14,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  * Provides a unified cache API for Smart License Server.
  *
- * Automatically detects the environment and selects the appropriate cache adapter.
  *
  * Methods are proxied to the underlying adapter:
  *
