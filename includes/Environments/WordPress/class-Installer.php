@@ -9,7 +9,6 @@
  */
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Config;
 use SmartLicenseServer\Database\Schema\DBTables;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
@@ -60,6 +59,7 @@ class Installer {
 
         self::maybe_create_tables();
         self::install_default_roles();
+        self::maybe_auto_provision_wp_admin();
         
         return true;
        
@@ -121,7 +121,7 @@ class Installer {
      * @return bool|Exception True on success, Exception on failure.
      */
     private static function init_repo_dir() {    
-        Config::instance()->bootstrap_files();
+        SetUp::instance()->bootstrap_files();
         return Repository::make_default_directories();
     }
 
@@ -145,6 +145,13 @@ class Installer {
                 return $e;
             }
         }
+    }
+
+    /**
+     * Attempt to auto provision WordPress admin to have access to this application.
+     */
+    private static function maybe_auto_provision_wp_admin() : void {
+        (new IdentityService )->auto_provision();
     }
 
     /**

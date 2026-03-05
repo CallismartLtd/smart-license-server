@@ -14,6 +14,8 @@ use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Context\Principal;
 use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Security\Permission\DefaultRoles;
+use SmartLicenseServer\Security\Permission\Role;
 
 final class IdentityService extends AbstractIdentityProvider {
 
@@ -123,5 +125,88 @@ final class IdentityService extends AbstractIdentityProvider {
         }
 
         return $this->add( $user->get_id(), $this->issuer(), $id );
+    }
+
+    public function auto_provision() {
+        if ( ! \is_user_logged_in() || ! \is_super_admin( ) ) {
+            return;
+        }
+
+        if ( Guard::has_principal() ) {
+            // Already has access.
+            return;
+        }
+
+        $wp_user    = wp_get_current_user();
+        $issuer     = $this->issuer();
+        $wp_id      = (string) $wp_user->ID;
+        $actor      = $this->find_actor( $issuer, $wp_id );
+
+        if ( $actor ) {
+            // Already federated.
+            return;
+        }
+
+        $email          = $wp_user->user_email;
+        $smliser_user   = User::get_by_email( $email );
+
+        if ( $smliser_user ) {
+            // An account exists for this admin, federate it.
+            $this->sync_user( $wp_id, $smliser_user );
+            return;
+        }
+
+        // We are creating a new User.
+        $user           = new User;
+        $password_hash  = password_hash( wp_generate_password(), PASSWORD_ARGON2ID );
+        $user->set_display_name( $wp_user->display_name )
+            ->set_password_hash( $password_hash )
+            ->set_status( User::STATUS_ACTIVE )
+            ->set_email( $email );
+
+        if ( ! $user->save() ) {
+            return;
+        }
+
+        
+        $default_role   = DefaultRoles::get( 'system_admin' );
+        $caps           = $default_role['capabilities'];
+        $role_slug      = $default_role['slug'];
+        $role_label     = $default_role['label'];
+        
+        $role           = Role::get_by_slug( $role_slug );
+
+        if ( ! $role ) {
+            $role   = new Role();
+        }
+
+        $role->set_label( $role_label)
+            ->set_slug( $role_slug )
+            ->set_capabilities( $caps )
+            ->set_is_canonical( $default_role['is_canonical'] );
+        try {
+            $owner  = ContextServiceProvider::get_default_owner( $user );
+            if ( ! $owner ) {
+                $owner  = new Owner;
+            }
+            
+            if ( ! $owner->exists() ) {
+                $owner->set_name( $user->get_display_name() )
+                    ->set_status( Owner::STATUS_ACTIVE )
+                    ->set_subject_id( $user->get_id() )
+                    ->set_type( Owner::TYPE_INDIVIDUAL );
+                $owner->save();
+            }
+            
+            // User will act for self for now.
+            $owner_subject  = ContextServiceProvider::get_owner_subject( $owner );
+            ContextServiceProvider::save_actor_role( $user, $role, $owner_subject );
+
+        } catch ( \Throwable $th ) {
+            return;
+        }
+
+        // Sync to federation table.
+        $this->sync_user( $wp_id, $user );
     }
 }
