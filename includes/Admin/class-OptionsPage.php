@@ -73,7 +73,7 @@ class OptionsPage {
             self::provider_settings();
         } else {
             $providers = ProviderCollection::instance()->get_providers();
-            include_once SMLISER_PATH . 'templates/admin/options/all-providers.php';
+            include_once SMLISER_PATH . 'templates/admin/options/monetization-providers.php';
         }
     }
 
@@ -81,15 +81,14 @@ class OptionsPage {
      * Settings page for an individual monetization provider.
      */
     private static function provider_settings(): void {
-        $provider = ProviderCollection::instance()->get_provider(
-            smliser_get_query_param( 'provider' )
-        );
+        $provider_key   = smliser_get_query_param( 'provider' );
+        $provider       = ProviderCollection::instance()->get_provider( $provider_key );
 
-        if ( $provider ) {
-            $name     = $provider->get_name();
-            $id       = $provider->get_id();
-            $settings = $provider->get_settings();
-        }
+   
+        $name     = $provider?->get_name() ?? '';
+        $id       = $provider?->get_id() ?? '';
+        $settings = $provider?->get_settings() ?? [];
+        
 
         include_once SMLISER_PATH . 'templates/admin/options/monetizations.php';
     }
@@ -117,18 +116,13 @@ class OptionsPage {
      * Settings page for an individual email provider.
      */
     private static function email_provider_settings(): void {
-        $provider_id = smliser_get_query_param( 'provider' );
+        $provider_key = smliser_get_query_param( 'provider' );
         $collection  = EmailProviderCollection::instance();
-        $provider    = $collection->get_provider( $provider_id );
+        $provider    = $collection->get_provider( $provider_key );
 
-        if ( ! $provider ) {
-            include_once SMLISER_PATH . 'templates/admin/options/email.php';
-            return;
-        }
-
-        $provider_name   = $provider->get_name();
-        $provider_id     = $provider->get_id();
-        $schema          = $provider->get_settings_schema();
+        $provider_name   = $provider?->get_name() ?? '';
+        $provider_id     = $provider?->get_id() ?? '';
+        $schema          = $provider?->get_settings_schema() ?? [];
         $is_default      = EmailProviderCollection::get_default_provider_id() === $provider_id;
 
         // Pre-populate each field with persisted value.
@@ -376,12 +370,9 @@ class OptionsPage {
         $current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider' );
 
         $title = match ( $tab ) {
-            'logs'          => 'License Activity Logs',
-            'add-new'       => 'Add new license',
-            'edit'          => 'Edit license',
             'routes'        => 'Page Routing',
-            'monetization'  => 'Monetization Providers Settings',
-            'email'         => 'Email Settings',
+            'monetization'  => 'Monetization Providers',
+            'email'         => 'Email Providers',
             default         => 'General Settings',
         };
 
@@ -405,8 +396,8 @@ class OptionsPage {
                     'active' => 'monetization' === $tab,
                 ],
                 [
-                    'title'  => 'Email Settings',
-                    'label'  => 'Email',
+                    'title'  => 'Email Providers Settings',
+                    'label'  => 'Emails',
                     'url'    => $current_url->add_query_param( 'tab', 'email' ),
                     'icon'   => 'ti ti-mail',
                     'active' => 'email' === $tab,

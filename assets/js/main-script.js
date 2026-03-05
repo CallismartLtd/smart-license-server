@@ -940,6 +940,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     const roleBuilderEl         = document.querySelector( '#smliser-role-builder' );
     const avatarUploadFields    = document.querySelectorAll( '.smliser-avatar-upload' );
     const generatePasswordBtn   = document.querySelector( '#smliser-generate-password' );
+    const smliserPasswordFields = document.querySelectorAll( 'input[type="password"].smliser-password-input' );
     const licenseForm           = document.querySelector( '.smliser-license-form' );
 
     /** @type {HTMLFormElement} */
@@ -950,6 +951,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     /** @type {HTMLSelectElement} */
     const ownersSearch          = document.querySelector( '#owner_id, #app_owner_id' );
     const deleteEntities        = document.querySelectorAll( '.smliser-delete-entity' );
+
+    jQuery( '.smliser-auto-select2' ).find( 'select' ).select2({width: '100%'});
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
 
@@ -1025,8 +1028,10 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             }
             
         });
+    }
 
-        [pwd1Field, pwd2Field].forEach( pwdInput => {
+    if ( smliserPasswordFields ) {
+        smliserPasswordFields.forEach( pwdInput => {
             pwdInput.parentElement.addEventListener( 'click', e => {
                 const btn = e.target.closest( '.smliser-password-toggle' );
                 
@@ -1053,15 +1058,16 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             });
 
             const openField = () => {
-                pwdInput.disabled   = false
-                pwdInput.type       = 'text';
-                
-                if ( queryParam.has( 'section', 'edit' ) ) {
-                    pwdInput.required = false;
+                if ( pwdInput.disabled ) {
+                    pwdInput.disabled   = false
+                    pwdInput.type       = 'text';
+                    
+                    if ( queryParam.has( 'section', 'edit' ) ) {
+                        pwdInput.required = false;
+                    }                    
                 }
-                
             }
-            setTimeout( openField, 1500);
+            setTimeout( openField, 1500 );
         })
     }
 
@@ -1078,8 +1084,9 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
     if ( optionForms ) {
         optionForms.forEach( form => {
-            form.addEventListener( 'submit', ( e ) => {
+            form.addEventListener( 'submit', async ( e ) => {
                 e.preventDefault();
+                                
                 const submittedForm = e.target;
                 if ( ! ( submittedForm instanceof HTMLFormElement ) ) return;
                 const payLoad   = new FormData( submittedForm );
@@ -1097,6 +1104,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 }).then( async response => {
                     const message = response?.data?.message ?? 'Success';
                     await SmliserModal.success( message, 'Saved' );
+                    
                 }).catch( async error => {
                     await SmliserModal.error( error.message, error.category );
                     

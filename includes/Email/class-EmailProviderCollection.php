@@ -240,7 +240,15 @@ class EmailProviderCollection {
             static::$options_cache[ $provider_id ] = $all_options[ $provider_id ] ?? [];
         }
 
-        return static::$options_cache[ $provider_id ][ $option_name ] ?? '';
+        $default    = '';
+
+        if ( 'from_email' === $option_name ) {
+            $default    = static::instance()->get_default_sender_email();
+        } elseif( 'from_name' === $option_name ) {
+            $default    = static::instance()->get_default_sender_name();
+        }
+
+        return static::$options_cache[ $provider_id ][ $option_name ] ?? $default;
     }
 
     /**

@@ -364,7 +364,7 @@ tr:hover:has(.smliser-edit-link) .smliser-edit-link,
 
 /********************** Data Not Found Container ***************/
 .smliser-not-found-container {
-    margin: 10px auto;
+    margin: 20px;
     background-color: #fff;
     box-shadow: 1px 1px 10px rgba(0 0 0 /7%);
     border-left: 5px solid #c4c4f1;

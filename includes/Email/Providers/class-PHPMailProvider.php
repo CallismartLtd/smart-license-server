@@ -14,6 +14,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Email\Providers;
 
 use SmartLicenseServer\Email\EmailMessage;
+use SmartLicenseServer\Email\EmailProviderCollection;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 
@@ -67,8 +68,9 @@ class PHPMailProvider implements EmailProviderInterface {
 
         // Resolve sender — message-level 'from' takes precedence over settings.
         $from       = $message->get( 'from' ) ?? [];
-        $from_email = $from['email'] ?? $this->settings['from_email'] ?? '';
-        $from_name  = $from['name']  ?? $this->settings['from_name']  ?? '';
+        $collection = EmailProviderCollection::instance();
+        $from_email = $from['email'] ?? $this->settings['from_email'] ?? $collection->get_default_sender_email();
+        $from_name  = $from['name']  ?? $this->settings['from_name']  ?? $collection->get_default_sender_name();
 
         $boundary = md5( uniqid( '', true ) );
         $headers  = $this->build_headers( $message, $from_email, $from_name, $boundary );

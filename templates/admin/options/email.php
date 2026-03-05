@@ -31,10 +31,12 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                 <?php smliser_render_input_field( $field ); ?>
             <?php endforeach; ?>
 
-            <label for="save_email_settings" class="smliser-form-label-row">
-                <span>Save Settings</span>
-                <button type="submit" id="save_email_settings" class="smliser-submit-button">Save</button>
-            </label>
+            <div class="smliser-form-label-row">
+                <span>Save Defaults</span>
+                <span>
+                    <button type="submit" id="save_email_settings" class="smliser-submit-button">Save</button>
+                </span>
+            </div>
             <span class="smliser-spinner"></span>
         </div>
     </form>
@@ -75,11 +77,11 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
         </div>
     </div>
 
-    <div class="smliser-test-email">
+    <div class="smliser-test-email" id="send-test-email">
         <h2 class="smliser-section-title">Send Test Email</h2>
         <p class="smliser-section-description">
             Send a test email through any configured provider to verify it is
-            working correctly. The provider must have its settings saved before testing.
+            working correctly. The provider must have its settings configure and saved before testing.
         </p>
 
         <form action="" class="smliser-options-form" id="smliser-test-email-form">
@@ -116,14 +118,11 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     ],
                 ] ); ?>
 
-                <label for="send_test_email" class="smliser-form-label-row">
-                    <span>Send Test</span>
-                    <button type="submit"
-                            id="send_test_email"
-                            class="smliser-submit-button">
-                        Send Test Email
-                    </button>
-                </label>
+                <div class="smliser-form-label-row">
+                    <span style="text-align: right;">
+                        <button type="submit" id="send_test_email" class="smliser-submit-button">Send Test Email</button>
+                    </span>
+                </div>
 
                 <span class="smliser-spinner"></span>                
 

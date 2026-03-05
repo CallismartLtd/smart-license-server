@@ -21,6 +21,7 @@ use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use InvalidArgumentException;
+use SmartLicenseServer\Email\EmailProviderCollection;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -442,8 +443,9 @@ class SMTPProvider implements EmailProviderInterface {
      */
     protected function transmit( EmailMessage $message ): string {
         $from       = $message->get( 'from' ) ?? [];
-        $from_email = $from['email'] ?? $this->settings['from_email'] ?? '';
-        $from_name  = $from['name']  ?? $this->settings['from_name']  ?? '';
+        $collection = EmailProviderCollection::instance();
+        $from_email = $from['email'] ?? $this->settings['from_email'] ?? $collection->get_default_sender_email();
+        $from_name  = $from['name']  ?? $this->settings['from_name']  ?? $collection->get_default_sender_name();
 
         // Validate envelope sender before opening the SMTP transaction.
         $this->validate_envelope_sender( $from_email );
@@ -580,8 +582,8 @@ class SMTPProvider implements EmailProviderInterface {
         $headers[] = 'MIME-Version: 1.0';
 
         // Top-level Content-Type depends on whether attachments are present.
-        // With attachments:    multipart/mixed  → wraps multipart/alternative + attachments.
-        // Without attachments: multipart/alternative → wraps plain text + HTML directly.
+        // With attachments:    multipart/mixed - wraps multipart/alternative + attachments.
+        // Without attachments: multipart/alternative - wraps plain text + HTML directly.
         $headers[] = $has_attachments
             ? "Content-Type: multipart/mixed; boundary=\"{$mixed_boundary}\""
             : "Content-Type: multipart/alternative; boundary=\"{$alt_boundary}\"";

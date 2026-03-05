@@ -43,14 +43,6 @@ use RuntimeException;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 class Mailer {
-
-    /**
-     * Singleton instance.
-     *
-     * @var static|null
-     */
-    protected static ?self $instance = null;
-
     /**
      * The active email provider.
      *
@@ -68,31 +60,12 @@ class Mailer {
     protected array $pending = [];
 
     /**
-     * Private constructor — use instance().
+     * Class constructor.
+     * 
+     * @param EmailProviderInterface $provider
      */
-    private function __construct() {}
-
-    /*
-    |------------------
-    | SINGLETON ACCESS
-    |------------------
-    */
-
-    /**
-     * Return the singleton Mailer instance.
-     *
-     * The active provider is resolved from the EmailProviderCollection
-     * on first access and whenever no provider has been set.
-     *
-     * @return static
-     * @throws RuntimeException If no default provider is configured.
-     */
-    public static function instance(): static {
-        if ( static::$instance === null ) {
-            static::$instance = new static();
-        }
-
-        return static::$instance;
+    public function __construct( EmailProviderInterface $provider ) {
+        $this->provider = $provider;
     }
 
     /*
@@ -104,16 +77,14 @@ class Mailer {
     /**
      * Return a copy of the mailer using a specific provider.
      *
-     * Does not affect the singleton's provider — the returned instance
-     * is a temporary clone for this send only.
-     *
-     * @param string $provider_id
+     * @param string|EmailProviderInterface $provider_id
      * @return static
      * @throws InvalidArgumentException If the provider is not registered.
      */
-    public function with_provider( string $provider_id ): static {
-        $provider = EmailProviderCollection::instance()
-            ->get_provider_with_settings( $provider_id );
+    public static function with_provider( string|EmailProviderInterface $provider_id ): static {
+        $provider = ( $provider_id instanceof EmailProviderInterface ) 
+            ? $provider_id
+            : EmailProviderCollection::instance()->get_provider_with_settings( $provider_id );
 
         if ( $provider === null ) {
             throw new InvalidArgumentException(
@@ -121,10 +92,10 @@ class Mailer {
             );
         }
 
-        $clone           = clone $this;
-        $clone->provider = $provider;
+        $static           = new static( $provider );
+        $static->provider = $provider;
 
-        return $clone;
+        return $static;
     }
 
     /**

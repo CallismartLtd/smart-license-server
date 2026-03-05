@@ -96,10 +96,17 @@ class AmazonSESProvider extends AbstractRestEmailProvider {
                 'description' => 'Your AWS IAM Secret Access Key.',
             ],
             'region' => [
-                'type'        => 'text',
-                'label'       => 'AWS Region',
-                'required'    => true,
-                'description' => 'AWS region where your SES is configured. e.g. us-east-1',
+                'type'          => 'select',
+                'label'         => 'AWS Region',
+                'required'      => true,
+                'description'   => 'AWS region where your SES is configured. e.g. us-east-1',
+                'options'       => \array_combine(
+                    static::SUPPORTED_REGIONS, 
+                    array_map( 
+                        static fn ( $v) => ucwords( \str_replace( '-', ' ', $v ) ), 
+                        static::SUPPORTED_REGIONS
+                    ) 
+                )
             ],
             'from_email' => [
                 'type'        => 'text',
