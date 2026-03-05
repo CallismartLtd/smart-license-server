@@ -9,7 +9,6 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Environments\WordPress\RESTAPI;
-use SmartLicenseServer\RESTAPI\Versions\V1;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -23,55 +22,55 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
      * 
      * @var string
      */
-    public static $dasboard_page_id;
+    public $dasboard_page_id;
 
     /**
      *  The repository page ID
      * 
      * @var string
      */
-    public static $repository_page_id;
+    public $repository_page_id;
 
     /**
      * License page ID.
      * 
      * @var string
      */
-    public static $license_page_id;
+    public $license_page_id;
 
     /**
      * Bulk messaging page ID.
      * 
      * @var string
      */
-    public static $bulk_message_page_id;
+    public $bulk_message_page_id;
 
     /**
      * REST API page ID.
      * 
      * @var string
      */
-    public static $rest_api_page_id;
+    public $rest_api_page_id;
 
     /**
      * Accounts page ID.
      * 
      * @var string
      */
-    public static $accounts_page_id;
+    public $accounts_page_id;
 
     /**
      * Options page ID.
      * 
      * @var string
      */
-    public static $options_page_id;
+    public $options_page_id;
 
     /**
      * Register admin menus.
      */
-    public static function register_menus() {
-        self::$dasboard_page_id = add_menu_page(
+    public function register_menus() {
+        $this->dasboard_page_id = add_menu_page(
             SMLISER_APP_NAME,
             SMLISER_APP_NAME,
             'manage_options',
@@ -81,7 +80,7 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
             3.1
         );
 
-        self::$repository_page_id = add_submenu_page(
+        $this->repository_page_id = add_submenu_page(
             'smliser-admin',
             'Repository',
             'Repository',
@@ -90,7 +89,7 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
             array( RepositoryPage::class, 'router' )
         );
 
-        self::$license_page_id = add_submenu_page(
+        $this->license_page_id = add_submenu_page(
             'smliser-admin',
             'Licenses',
             'Licenses',
@@ -99,7 +98,7 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
             array( LicensePage::class, 'router' )
         );
 
-        self::$bulk_message_page_id = add_submenu_page(
+        $this->bulk_message_page_id = add_submenu_page(
             'smliser-admin',
             'Bulk Message',
             'Bulk Message',
@@ -108,7 +107,7 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
             array( BulkMessagePage::class, 'router' )
         );
 
-        self::$rest_api_page_id = add_submenu_page(
+        $this->rest_api_page_id = add_submenu_page(
             'smliser-admin',
             'API DOC',
             'API DOC',
@@ -117,7 +116,7 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
             array( RESTAPI::class, 'index_rest_doc' )
         );
 
-        self::$accounts_page_id = add_submenu_page(
+        $this->accounts_page_id = add_submenu_page(
             'smliser-admin',
             'Accounts',
             'Accounts',
@@ -126,7 +125,7 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
             array( AccessControlPage::class, 'router' )
         );
 
-        self::$options_page_id = add_submenu_page(
+        $this->options_page_id = add_submenu_page(
             'smliser-admin',
             'Settings',
             'Settings',
@@ -139,7 +138,7 @@ const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5
     /**
      * Rename First menu item to Dashboard.
      */
-    public static function submenu_index_name() {
+    public function submenu_index_name() {
         global $submenu;
 
         if ( isset( $submenu['smliser-admin'] ) ) {

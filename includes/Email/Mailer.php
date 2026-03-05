@@ -64,7 +64,7 @@ class Mailer {
      * 
      * @param EmailProviderInterface $provider
      */
-    public function __construct( EmailProviderInterface $provider ) {
+    public function __construct( ?EmailProviderInterface $provider = null ) {
         $this->provider = $provider;
     }
 

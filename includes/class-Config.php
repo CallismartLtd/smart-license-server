@@ -21,6 +21,8 @@ use SmartLicenseServer\Database\LaravelAdapter;
 use SmartLicenseServer\Database\MysqliAdapter;
 use SmartLicenseServer\Database\PdoAdapter;
 use SmartLicenseServer\Database\SqliteAdapter;
+use SmartLicenseServer\Email\EmailProviderCollection;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
@@ -95,11 +97,18 @@ abstract class Config {
     protected Settings $settings;
 
     /**
+     * The mailing API.
+     * 
+     * @var Mailer $mailer
+     */
+    protected Mailer $mailer;
+
+    /**
      * Environment configuration setup.
      * 
      * @param array $config Array of configuration options
      */
-    protected function setup( array $config ) {
+    final protected function setup( array $config ) {
         $this->parse_config( $config );
         $this->setProps();
         $this->declareGlobalConstants();
@@ -107,6 +116,7 @@ abstract class Config {
         $this->setGlobalFileSystemAdapter();
         $this->setGlobalCacheAdapter();
         $this->setGlobalSettingsAdapter();
+        $this->setGlobalMailingAdapter();
 
     }
 
@@ -132,9 +142,11 @@ abstract class Config {
         $parsed_config  = array_intersect_key( array_merge( $default_config, $env_config ), $default_config );
         $missing_config = [];
 
+        $required_keys = [ 'db_prefix', 'absolute_path', 'repo_path', 'uploads_dir' ];
+
         foreach ( $parsed_config as $key => $value ) {
-            if ( empty( $value ) ) {
-                $missing_config[]   = $key;
+            if ( in_array( $key, $required_keys, true ) && $value === null ) {
+                $missing_config[] = $key;
             }
         }
 
@@ -164,7 +176,7 @@ abstract class Config {
 
         foreach ( $prop_map as $env_k => $prop_k ) {
             if ( isset( $this->{$prop_k} ) ) {
-                // Avoid overwrite.
+                // Preserve injected adapter if already set.
                 continue;
             }
             
@@ -424,20 +436,18 @@ abstract class Config {
      */
     protected function setGlobalDBAdapter() : void {
         if ( ! isset( $this->dbadapter ) ) {
-            if ( class_exists( 'Illuminate\Support\Facades\DB' ) ) {
-                $this->dbadapter    = new LaravelAdapter();
-            }
-
+   
             // Common configuration for standard PHP environments
             $config = [
                 'host'      => defined('DB_HOST') ? DB_HOST : 'localhost',
                 'username'  => defined('DB_USER') ? DB_USER : 'root',
                 'password'  => defined('DB_PASSWORD') ? DB_PASSWORD : '',
                 'database'  => defined('DB_NAME') ? DB_NAME : '',
-                'charset'   => \smliser_settings_adapter()->get( 'db_charset', 'utf8mb4' ),
+                'charset'   => defined( 'DB_CHARSET' ) ? DB_CHARSET : 'utf8mb4',
             ];
 
             $adapters   = [
+                LaravelAdapter::class   => class_exists( 'Illuminate\Support\Facades\DB' ),
                 PdoAdapter::class       => class_exists( PDO::class ) && in_array( 'mysql', PDO::getAvailableDrivers() ),
                 MysqliAdapter::class    => class_exists( 'mysqli' ),
                 SqliteAdapter::class    => defined( 'DB_TYPE' ) && 'sqlite' === constant( 'DB_TYPE' ) && class_exists( 'SQLite3' ),
@@ -500,6 +510,15 @@ abstract class Config {
     }
 
     /**
+     * Sets up the global mailing mailing service to use the default provider.
+     */
+    protected function setGlobalMailingAdapter() : void {
+        // Instantiate the email collection with storage.
+        $collection     = EmailProviderCollection::instance( $this->settings );
+        $this->mailer   = new Mailer( $collection->get_provider_with_settings() );
+    }
+
+    /**
      * Get the namespace
      */
     public function rest_namespace() {
@@ -532,6 +551,13 @@ abstract class Config {
      */
     public function settings() : Settings {
         return $this->settings;
+    }
+
+    /**
+     * Get the mailer API instance
+     */
+    public function mailer() : Mailer {
+        return $this->mailer;
     }
 
     /**

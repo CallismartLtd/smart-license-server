@@ -28,4 +28,4 @@ define( 'SMLISER_APP_NAME', 'Smart License Server' );
 
 require_once SMLISER_PATH . 'includes/class-Autoloader.php';
 
-SetUp::init();
+SetUp::instance();

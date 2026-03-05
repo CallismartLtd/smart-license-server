@@ -25,6 +25,8 @@ use SmartLicenseServer\Email\Providers\ResendProvider;
 use SmartLicenseServer\Email\Providers\AmazonSESProvider;
 use InvalidArgumentException;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exceptions\EmailTransportException;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 use function smliser_settings_adapter;
 
@@ -55,6 +57,13 @@ class EmailProviderCollection {
      */
     protected static array $options_cache = [];
 
+    /**
+     * The settings API used to set/get settings from storage.
+     * 
+     * @var Settings $settings
+     */
+    protected Settings $settings;
+
     const DEFAULT_PROVIDER_KEY      = 'email_default_provider';
     const SETTINGS_KEY              = 'email_providers_options';
     const DEFAULT_SENDER_NAME_KEY   = 'email_from_name';
@@ -63,7 +72,9 @@ class EmailProviderCollection {
     /**
      * Private constructor — use instance() or create().
      */
-    private function __construct() {}
+    private function __construct( Settings $settings ) {
+        $this->settings = $settings;
+    }
 
     /*
     |------------------
@@ -74,11 +85,16 @@ class EmailProviderCollection {
     /**
      * Return the singleton instance, creating and loading it if needed.
      *
+     * @param Settings|null $settings The storage API, required on first initialization.
      * @return static
      */
-    public static function instance(): static {
+    public static function instance( ?Settings $settings = null ): static {
         if ( static::$instance === null ) {
-            static::$instance = new static();
+            if ( ! $settings ) {
+                throw new EmailTransportException( 'Email provider collection API requires a storage API' );
+            }
+
+            static::$instance = new static( $settings );
             static::$instance->load_core_providers();
         }
 
@@ -198,7 +214,7 @@ class EmailProviderCollection {
      * @return string|null
      */
     public static function get_default_provider_id(): string {
-        return (string) smliser_settings_adapter()->get( static::DEFAULT_PROVIDER_KEY, 'php_mail', true );
+        return (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, 'php_mail', true );
     }
 
     /**
@@ -215,7 +231,7 @@ class EmailProviderCollection {
             );
         }
 
-        return smliser_settings_adapter()->set( static::DEFAULT_PROVIDER_KEY, $provider_id, true );
+        return static::instance()->settings->set( static::DEFAULT_PROVIDER_KEY, $provider_id, true );
     }
 
     /*
@@ -236,7 +252,7 @@ class EmailProviderCollection {
      */
     public static function get_option( string $provider_id, string $option_name ): mixed {
         if ( ! isset( static::$options_cache[ $provider_id ] ) ) {
-            $all_options = smliser_settings_adapter()->get( static::SETTINGS_KEY, [], true );
+            $all_options = static::instance()->settings->get( static::SETTINGS_KEY, [], true );
             static::$options_cache[ $provider_id ] = $all_options[ $provider_id ] ?? [];
         }
 
@@ -260,7 +276,8 @@ class EmailProviderCollection {
      * @return bool
      */
     public static function update_option( string $provider_id, string $option_name, mixed $value ): bool {
-        $all_options = smliser_settings_adapter()->get( static::SETTINGS_KEY, [], true );
+        $settings       = static::instance()->settings;
+        $all_options    = $settings->get( static::SETTINGS_KEY, [], true );
 
         if ( ! isset( $all_options[ $provider_id ] ) || ! is_array( $all_options[ $provider_id ] ) ) {
             $all_options[ $provider_id ] = [];
@@ -268,7 +285,7 @@ class EmailProviderCollection {
 
         $all_options[ $provider_id ][ $option_name ] = $value;
 
-        $saved = (bool) smliser_settings_adapter()->set( static::SETTINGS_KEY, $all_options, true );
+        $saved = $settings->set( static::SETTINGS_KEY, $all_options, true );
 
         if ( $saved ) {
             // Bust the cache for this provider so the next get_option() reads fresh data.
@@ -289,11 +306,10 @@ class EmailProviderCollection {
      * @return bool
      */
     public static function update_provider_settings( string $provider_id, array $settings ): bool {
-        $all_options = smliser_settings_adapter()->get( static::SETTINGS_KEY, [], true );
-
+        $storage     = static::instance()->settings;
+        $all_options = $storage->get( static::SETTINGS_KEY, [], true );
         $all_options[ $provider_id ] = $settings;
-
-        $saved = smliser_settings_adapter()->set( static::SETTINGS_KEY, $all_options, true );
+        $saved = $storage->set( static::SETTINGS_KEY, $all_options, true );
 
         if ( $saved ) {
             unset( static::$options_cache[ $provider_id ] );
@@ -308,7 +324,7 @@ class EmailProviderCollection {
      * This is the default system overriding name.
      */
     public function get_default_sender_name() : string {
-        return (string) smliser_settings_adapter()->get( static::DEFAULT_SENDER_NAME_KEY, SMLISER_APP_NAME, true );
+        return (string) $this->settings->get( static::DEFAULT_SENDER_NAME_KEY, SMLISER_APP_NAME, true );
     }
 
     /**
@@ -319,7 +335,7 @@ class EmailProviderCollection {
     public function get_default_sender_email() : string {
         $url        = new URL( site_url() );
         $default    = \sprintf( 'smliser@%s', $url->get_host() );
-        return (string) smliser_settings_adapter()->get( static::DEFAULT_SENDER_EMAIL_KEY, $default , true );
+        return (string) $this->settings->get( static::DEFAULT_SENDER_EMAIL_KEY, $default , true );
     }
 
     /**
@@ -328,7 +344,7 @@ class EmailProviderCollection {
      * @param string $name Default system overriding name.
      */
     public function set_default_sender_name( string $name ) : bool {
-        return smliser_settings_adapter()->set( static::DEFAULT_SENDER_NAME_KEY, $name, true );
+        return $this->settings->set( static::DEFAULT_SENDER_NAME_KEY, $name, true );
     }
 
     /**
@@ -337,7 +353,7 @@ class EmailProviderCollection {
      * @param string $email Default system overriding name.
      */
     public function set_default_sender_email( string $email ) : bool {
-        return smliser_settings_adapter()->set( static::DEFAULT_SENDER_EMAIL_KEY, $email, true );
+        return $this->settings->set( static::DEFAULT_SENDER_EMAIL_KEY, $email, true );
     }
 
     /*

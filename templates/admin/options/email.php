@@ -13,6 +13,7 @@
  */
 
 use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Email\EmailProviderIcons;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -55,19 +56,29 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
             ?>
                 <div class="smliser-email-provider-card <?php echo esc_attr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
 
-                    <div class="smliser-email-provider-card__header">
+                    <div class="smliser-email-provider-card__icon-wrap">
+                        <?php echo EmailProviderIcons::render( $provider_id, $provider->get_name() ); ?>
+                    </div>
+
+                    <div class="smliser-email-provider-card__body">
                         <span class="smliser-provider-card__name">
                             <?php echo esc_html( $provider->get_name() ); ?>
                         </span>
 
                         <?php if ( $is_default ) : ?>
-                            <span class="smliser-email-provider-card__badge">Active</span>
+                            <span class="smliser-email-provider-card__badge">&#10003; Active</span>
+                        <?php endif; ?>
+
+                        <?php if ( $provider_id === 'php_mail' ) : ?>
+                            <p class="smliser-provider-card__notice">
+                                Not recommended for production use.
+                            </p>
                         <?php endif; ?>
                     </div>
 
                     <div class="smliser-email-provider-card__actions">
                         <a href="<?php echo esc_url( $provider_url ); ?>"
-                           class="smliser-button smliser-button--secondary">
+                        class="smliser-button smliser-button--secondary">
                             Configure
                         </a>
                     </div>
