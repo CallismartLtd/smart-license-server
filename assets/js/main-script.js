@@ -952,7 +952,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     const ownersSearch          = document.querySelector( '#owner_id, #app_owner_id' );
     const deleteEntities        = document.querySelectorAll( '.smliser-delete-entity' );
 
-    jQuery( '.smliser-auto-select2' ).find( 'select' ).select2({width: '100%'});
+    jQuery( '.smliser-auto-select2 select' ).select2( { width: '100%' } );
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
 

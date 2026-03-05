@@ -112,12 +112,12 @@ interface RouterInterface {
     public static function parse_monetization_tier_form_request( Request $request ): void;
 
     /**
-     * Handle options form submission.
+     * Parse save routes settings request.
      *
      * @param  Request $request
      * @return void
      */
-    public static function parse_options_form_request( Request $request ): void;
+    public static function parse_save_routes_settings_request( Request $request ): void;
 
     /**
      * Load authentication template.

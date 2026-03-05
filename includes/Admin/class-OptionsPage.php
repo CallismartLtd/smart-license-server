@@ -62,6 +62,7 @@ class OptionsPage {
      * Permalink/routes settings page.
      */
     private static function routes_setting(): void {
+
         include_once SMLISER_PATH . '/templates/admin/options/routing.php';
     }
 
@@ -155,9 +156,10 @@ class OptionsPage {
                 'label' => 'Default Email Provider',
                 'help'  => 'The email provider used for all outgoing system emails. Configure individual providers using the cards below.',
                 'input' => [
-                    'type'    => 'select',
-                    'name'    => EmailProviderCollection::DEFAULT_PROVIDER_KEY,
-                    'value'   => EmailProviderCollection::get_default_provider_id() ?? '',
+                    'type'  => 'select',
+                    'name'  => EmailProviderCollection::DEFAULT_PROVIDER_KEY,
+                    'value' => EmailProviderCollection::get_default_provider_id() ?? '',
+                    'class' => 'smliser-form-label-row smliser-auto-select2',
                     'options' => array_map(
                         static fn( EmailProviderInterface $p ) => $p->get_name(),
                         EmailProviderCollection::instance()->get_providers()
@@ -343,6 +345,43 @@ class OptionsPage {
                     'type'  => 'text',
                     'name'  => 'terms_url',
                     'value' => $settings->get( 'terms_url', '', true ),
+                    'attr'  => [
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Get routing settings form fields.
+     * 
+     * @return array<int, array<string, mixed>>
+     */
+    public static function get_routing_fields() : array {
+        return [
+            [
+                'label' => 'Repository URL Prefix',
+                'help'  => 'The URL segment that appears before repository pages. For example: https://example.com/repository/',
+                'input' => [
+                    'type'  => 'text',
+                    'name'  => 'repository_url_prefix',
+                    'value' => \smliser_get_repository_url_prefix(),
+                    'attr'  => [
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ],
+                ],
+            ],
+
+            [
+                'label' => 'Downloads URL Prefix',
+                'help'  => 'The URL segment that appears before download pages. For example: https://example.com/downloads/',
+                'input' => [
+                    'type'  => 'text',
+                    'name'  => 'download_url_prefix',
+                    'value' => \smliser_get_download_url_prefix(),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',

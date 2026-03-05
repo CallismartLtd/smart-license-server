@@ -44,7 +44,7 @@ class SettingsController {
                 if ( empty( $key ) ) {
                     continue;
                 }
-                
+
                 if ( $request->has( $key ) ) {
                     $value  = static::sanitize_auto( $request->get( $key ) );
                     if ( $settings->set( $key, $value, true ) ) {
@@ -71,5 +71,52 @@ class SettingsController {
         }
 
     }
+
+    /**
+     * Save routing settings.
+     *
+     * @param  Request $request
+     * @return Response
+     */
+    public static function save_routing_settings( Request $request ): Response {
+        try {
+            static::is_system_admin();
+
+            $collection = Collection::make( OptionsPage::get_routing_fields() );
+            $fields     = $collection->map(
+                fn( $v ) => $v['input']['name'] ?? ''
+            );
+
+            $settings = smliser_settings_adapter();
+
+            foreach ( $fields as $key ) {
+                if ( empty( $key ) ) {
+                    continue;
+                }
+
+                $default    = match( $key ) {
+                    'repository_url_prefix' => $settings->get( $key, 'repository', true ),
+                    'download_url_prefix'   => $settings->get( $key, 'downloads', true ),
+                    default                 => ''
+                };
+
+                $value  = static::sanitize_slug( $request->get( $key, $default ) ) ?: $default;
+                $settings->set( $key, $value, true );
+        
+            }
+
+            return ( new Response( 200, [], [
+                'success' => true,
+                'data'    => [
+                    'message' => 'Routes has been updated.',
+                ],
+            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
+    }    
     
 }

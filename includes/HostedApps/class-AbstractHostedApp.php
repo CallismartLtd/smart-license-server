@@ -385,7 +385,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             $this->download_link = $url->__toString();
         } else {
             $slug           = $this->get_slug();
-            $download_slug  = smliser_get_download_slug();
+            $download_slug  = smliser_get_download_url_prefix();
             $type           = $this->get_type();
             $slug           = basename( $slug, '.zip' );
 
@@ -1167,15 +1167,17 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     /**
      * Get the URL to view the app.
      * 
-     * @return string
+     * @return URL
      */
-    public function get_url() {
-        $slug   = basename( $this->get_slug(), '.zip' );
-        $type   = $this->get_type();
-        $url    = new URL( site_url() );
-        $url->set_path( $type . '/' . $slug );
-
-        return $url->__toString();
+    public function get_url() : URL {
+        $slug               = basename( $this->get_slug(), '.zip' );
+        $repostory_prefix   = \smliser_get_repository_url_prefix();
+        $type               = $this->get_type();
+        $path               = implode( '/', [$repostory_prefix, $type, $slug] );
+        
+        return ( new URL( site_url() ) )
+            ->set_path( $path );
+        
     }
 
     /**

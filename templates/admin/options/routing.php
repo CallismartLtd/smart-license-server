@@ -10,28 +10,39 @@
 use SmartLicenseServer\Admin\Menu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
-flush_rewrite_rules();
 
-$menu_args  = static::get_menu_args();
-
+$menu_args = static::get_menu_args();
 ?>
+
 <div class="smliser-admin-page">
     <?php Menu::print_admin_top_menu( $menu_args ); ?>
 
     <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
         <div class="notice notice-success is-dismissible">
-            <p><?php echo esc_html( $message ) ?></p>
+            <p><?php echo esc_html( $message ); ?></p>
         </div>
-    <?php endif;?>
+    <?php endif; ?>
 
-    <form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" >
-        <?php wp_nonce_field( 'smliser_options_form', 'smliser_options_form' );?>
-        <input type="hidden" name="action" value="smliser_options">
-
-        <div class="smliser-options-form">
-
+    <form class="smliser-options-form" action="">
+        <div class="notice notice-warning">
+            <p>
+                <i class="ti ti-alert-hexagon-filled"></i>
+                <strong>Caution:</strong> Changing these values will update the public URLs of your hosted applications. Any existing links shared with users may stop working until they are updated.
+            </p>
         </div>
-        <input type="submit" name="smliser_page_setup" class="button action smliser-bulk-action-button" value="Save">
 
+        <input type="hidden" name="action" value="smliser_save_route_options">
+
+        <div class="smliser-options-form_body">
+            <?php foreach ( static::get_routing_fields() as $field ) : ?>
+                <?php smliser_render_input_field( $field ); ?>
+            <?php endforeach; ?>
+
+            <div class="smliser-form-label-row">
+                <span>Routing Settings</span>
+                <button type="submit" class="smliser-submit-button">Save</button>
+            </div>
+            <span class="smliser-spinner"></span>
+        </div>
     </form>
 </div>

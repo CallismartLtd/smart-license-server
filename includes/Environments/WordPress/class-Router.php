@@ -78,7 +78,8 @@ class Router implements RouterInterface {
             'smliser_save_default_email_settings'           => [ __CLASS__, 'parse_default_email_settings_request' ],
             'smliser_send_test_email'                       => [ __CLASS__, 'parse_email_test_request' ],
             'smliser_save_email_provider_settings'          => [ __CLASS__, 'parse_save_email_provider_request' ],
-            'smliser_save_options'                          => [ __CLASS__, 'parse_save_system_settings_request' ],
+            'smliser_save_system_options'                   => [ __CLASS__, 'parse_save_system_settings_request' ],
+            'smliser_save_route_options'                    => [ __CLASS__, 'parse_save_routes_settings_request' ],
         ];
 
         if ( isset( $handler_map[ $trigger ] ) ) {
@@ -401,23 +402,18 @@ class Router implements RouterInterface {
     }
 
     /**
-     * Parse options form request.
+     * Parse route settings request.
      */
-    public static function parse_options_form_request( Request $request ): void {
-        if ( ! current_user_can( 'install_plugins' ) ) {
-            smliser_send_json_error( [ 'message' => 'You do not have the required permission to do this.' ] );
+    public static function parse_save_routes_settings_request( Request $request ): void {
+        static::guard( $request, 'super_admin' );
+
+        $response   = SettingsController::save_routing_settings( $request );
+
+        if ( $response->ok() ) {
+            \flush_rewrite_rules();
         }
 
-        if ( $request->hasValue( 'smliser_page_setup' ) && static::verify_nonce( $request, 'smliser_options_form' ) ) {
-            $permalink = (string) $request->get( 'smliser_permalink', '' );
-            $permalink = preg_replace( '~(^\/|\/$)~', '', $permalink );
-            smliser_settings_adapter()->set(
-                'smliser_repo_base_perma',
-                ! empty( $permalink ) ? strtolower( $permalink ) : 'plugins'
-            );
-        }
-
-        wp_safe_redirect( admin_url( 'admin.php?page=smliser-options&path=pages&success=true' ) );
+        $response->send();
         exit;
     }
 

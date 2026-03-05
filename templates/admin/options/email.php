@@ -68,12 +68,6 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                         <?php if ( $is_default ) : ?>
                             <span class="smliser-email-provider-card__badge">&#10003; Active</span>
                         <?php endif; ?>
-
-                        <?php if ( $provider_id === 'php_mail' ) : ?>
-                            <p class="smliser-provider-card__notice">
-                                Not recommended for production use.
-                            </p>
-                        <?php endif; ?>
                     </div>
 
                     <div class="smliser-email-provider-card__actions">
@@ -82,7 +76,11 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                             Configure
                         </a>
                     </div>
-
+                    <?php if ( $provider_id === 'php_mail' ) : ?>
+                        <p class="smliser-provider-card__notice">
+                            Not recommended for production use.
+                        </p>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -104,9 +102,10 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     'label' => 'Provider',
                     'help'  => 'Select the provider you want to test.',
                     'input' => [
-                        'type'    => 'select',
-                        'name'    => 'provider_id',
-                        'value'   => $default_provider ?? '',
+                        'type'  => 'select',
+                        'name'  => 'provider_id',
+                        'value' => $default_provider ?? '',
+                        'class' => 'smliser-form-label-row smliser-auto-select2',
                         'options' => array_map(
                             fn( $p ) => $p->get_name(),
                             $providers

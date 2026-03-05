@@ -249,7 +249,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
      * @since 1.0.0
      */
     public function disable_redirect_on_downloads( $redirect_url, $requested_url ) {
-        $download_slug = site_url( smliser_get_download_slug() );
+        $download_slug = site_url( smliser_get_download_url_prefix() );
         if ( strpos( $requested_url, $download_slug ) !== false ) {
             return false;
         }
@@ -261,10 +261,10 @@ class SetUp extends Config implements EnvironmentProviderInterface {
      * Sets up custom routes.
      */
     public function route_register() :void {
-        $repo_base_url = \smliser_settings_adapter()->get( 'smliser_repo_base_perma', 'repository' );
+        $repo_prefix = smliser_get_repository_url_prefix();
     
         add_rewrite_rule(
-            '^' . $repo_base_url . '$',
+            '^' . $repo_prefix . '$',
             'index.php?pagename=smliser-repository',
             'top'
         );
@@ -273,7 +273,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
          * Repository app type page matches siteurl/repository/{app_type}/ where app type can be (themes, plugins, software)
          */
         add_rewrite_rule(
-            '^' . $repo_base_url . '/([^/]+)$',
+            '^' . $repo_prefix . '/([^/]+)$',
             'index.php?pagename=smliser-repository&smliser_app_type=$matches[1]',
             'top'
         );
@@ -282,7 +282,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
          * Repository app type page matches siteurl/repository/{app_type}/{app_slug}/
          */
         add_rewrite_rule(
-            '^' . $repo_base_url . '/([^/]+)/([^/]+)/?$',
+            '^' . $repo_prefix . '/([^/]+)/([^/]+)/?$',
             'index.php?pagename=smliser-repository&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]',
             'top'
         );
@@ -291,7 +291,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
          * Asset serving url matchs siteurl/repository/{app_type}/{app_slug}/assets/{filename}
          */
         add_rewrite_rule(
-            '^' . $repo_base_url . '/([^/]+)/([^/]+)/assets/(.+)$',
+            '^' . $repo_prefix . '/([^/]+)/([^/]+)/assets/(.+)$',
             'index.php?pagename=smliser-repository-assets&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]&smliser_asset_name=$matches[3]',
             'top'
         );
@@ -311,7 +311,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         |------------------------
         */
 
-        $download_slug = smliser_get_download_slug();
+        $download_slug = smliser_get_download_url_prefix();
 
         /**
          * The base downloads page 

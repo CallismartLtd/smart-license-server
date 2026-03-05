@@ -68,7 +68,7 @@ function smliser_repo_page() {
         return $url;
     }
 
-    return site_url( \smliser_settings_adapter()->get( 'smliser_repo_base_perma', 'plugins' ) );
+    return site_url( smliser_get_repository_url_prefix() );
 }
 
 /**
@@ -649,10 +649,19 @@ function smliser_load_auth_footer() {
 }
 
 /**
- * Get the slug for file downloads
+ * Get the base downloads url prefix.
  */
-function smliser_get_download_slug() {
-    return apply_filters( 'smliser_download_slug', 'downloads' );
+function smliser_get_download_url_prefix() : string {
+    return (string) smliser_settings_adapter()->get( 'download_url_prefix', 'downloads', true );
+}
+
+/**
+ * Get the the base repository slug.
+ * 
+ * @return string
+ */
+function smliser_get_repository_url_prefix() : string {
+    return (string) smliser_settings_adapter()->get( 'repository_url_prefix', 'repository', true );
 }
 
 /**
@@ -662,7 +671,7 @@ function smliser_get_download_slug() {
  * @return URL
  */
 function smliser_document_download_url( int $id = 0 ) : URL {
-    $downloads_slug = smliser_get_download_slug();
+    $downloads_slug = smliser_get_download_url_prefix();
     $path           = implode( '/', [$downloads_slug,'document', $id] );
 
     return new URL( site_url( $path ) );
@@ -1578,7 +1587,7 @@ function smliser_get_asset_url( $type, $slug, $filename ) {
  * @return string
  */
 function smliser_get_repo_url( $path = '' ) {
-    $repo_base = \smliser_settings_adapter()->get( 'smliser_repo_base_perma', 'repository' );
+    $repo_base = smliser_get_repository_url_prefix();
     $base_url  = site_url( $repo_base );
 
     if ( $path !== '' ) {
