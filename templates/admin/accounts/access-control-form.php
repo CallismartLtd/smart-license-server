@@ -154,7 +154,7 @@ if ( $render_image_only ) {
 
                 <ul class="smliser-organization-members-list" role="list">
 
-                    <?php foreach ( $organization->get_members() as $member ) : ?>
+                    <?php foreach ( (array) $organization?->get_members() as $member ) : ?>
 
                         <li class="smliser-org-member" role="listitem">
 
