@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" fill="none">
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#37474F"/>
+      <stop offset="100%" stop-color="#1C2A31"/>
+    </linearGradient>
+    <linearGradient id="envelopeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#B2EBF2"/>
+    </linearGradient>
+    <linearGradient id="flapGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00838F"/>
+      <stop offset="100%" stop-color="#26C6DA"/>
+    </linearGradient>
+    <linearGradient id="pillGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00ACC1"/>
+      <stop offset="100%" stop-color="#006978"/>
+    </linearGradient>
+    <linearGradient id="serverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#455A64"/>
+      <stop offset="100%" stop-color="#263238"/>
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1DE9B6"/>
+      <stop offset="100%" stop-color="#00BCD4"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-8%" y="-6%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#00000035"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="0.8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="envShadow" x="-5%" y="-5%" width="115%" height="120%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#00000025"/>
+    </filter>
+  </defs>
+
+  <!-- ── Card background ───────────────────────────── -->
+  <rect x="1" y="1" width="62" height="70" rx="10" fill="url(#cardGrad)" filter="url(#cardShadow)"/>
+  <rect x="1" y="1" width="62" height="35" rx="10" fill="white" opacity="0.04"/>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!--  TOP HALF — PHP pill  →  Server                -->
+  <!-- ══════════════════════════════════════════════ -->
+
+  <!-- PHP logo pill — left side, scaled to fit ~26px wide -->
+  <!--
+    Original viewBox: 0 0 152 80
+    Target width: 26  →  scale = 26/152 ≈ 0.171
+    Target height: 26*80/152 ≈ 13.7
+    Centered vertically in top half (top half = y 6..41, mid = 23.5)
+    y offset: 23.5 - 13.7/2 ≈ 16.1  → translate(5, 16)
+  -->
+  <g transform="translate(5, 16) scale(0.171)">
+    <path fill="#777bb3" fill-rule="evenodd"
+      d="M77.5 0C118.64 0 152 17.9 152 40s-33.35 40-74.5 40S0 62.1 0 40 36.35 0 77.5 0"/>
+    <path fill="#fff" fill-rule="evenodd"
+      d="M32.33 21.35h15.95q7.03.06 10.18 4.05t2.08 10.88a20.9 20.9 0 0 1-1.84 6.19
+         18.4 18.4 0 0 1-3.8 5.47 13.3 13.3 0 0 1-6.38 3.92 29.3 29.3 0 0 1-7.02.84h-7.14
+         L32.09 64h-8.27l8.51-42.64m6.97 6.78-3.58 17.84a4.4 4.4 0 0 0 .72.06h.83
+         a31.3 31.3 0 0 0 9.52-1.14q3.81-1.24 5.12-8.68 1.07-6.24-2.14-7.2
+         a26.7 26.7 0 0 0-7.92-.89q-.71.06-1.37.06h-1.24l.05-.06
+         M69.97 9.99h8.21l-2.32 11.36h7.38q6.07.12 9.05 2.5 3.03 2.38 1.78 9.04
+         L90.1 52.7h-8.34l3.81-18.91q.6-2.98-.36-4.23t-4.1-1.25l-6.6-.06L69.6 52.7h-8.2
+         L69.97 10m32.93 11.35h15.95q7.02.06 10.18 4.05t2.08 10.88a20.9 20.9 0 0 1-1.84 6.19
+         18.4 18.4 0 0 1-3.81 5.47 13.3 13.3 0 0 1-6.37 3.92 29.3 29.3 0 0 1-7.02.84h-7.15
+         L102.66 64h-8.28zm6.96 6.78-3.57 17.85a4.4 4.4 0 0 0 .72.05h.83
+         a31.3 31.3 0 0 0 9.52-1.13q3.81-1.25 5.12-8.68 1.07-6.24-2.14-7.2
+         a26.7 26.7 0 0 0-7.92-.9q-.71.07-1.37.07h-1.25z"/>
+  </g>
+
+  <!-- Dashed transmission arrow — PHP pill → server -->
+  <line x1="31" y1="23" x2="39" y2="23"
+        stroke="url(#arrowGrad)" stroke-width="1.2"
+        stroke-dasharray="1.8 1.5" stroke-linecap="round"/>
+  <polyline points="38,20.5 41,23 38,25.5"
+            stroke="url(#arrowGrad)" stroke-width="1.2"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Server block — right side -->
+  <rect x="42" y="10" width="18" height="26" rx="2.5" fill="url(#serverGrad)"/>
+
+  <!-- Server unit 1 — active green -->
+  <rect x="44" y="12.5" width="14" height="5.5" rx="1" fill="#263238"/>
+  <circle cx="46.5" cy="15.2" r="1.3" fill="#1DE9B6" filter="url(#glow)" opacity="0.9"/>
+  <rect x="49" y="14" width="7" height="1" rx="0.5" fill="#37474F"/>
+  <rect x="49" y="15.5" width="5" height="1" rx="0.5" fill="#37474F"/>
+
+  <!-- Server unit 2 — active -->
+  <rect x="44" y="19.5" width="14" height="5.5" rx="1" fill="#263238"/>
+  <circle cx="46.5" cy="22.2" r="1.3" fill="#1DE9B6" filter="url(#glow)" opacity="0.7"/>
+  <rect x="49" y="21" width="6" height="1" rx="0.5" fill="#37474F"/>
+  <rect x="49" y="22.5" width="8" height="1" rx="0.5" fill="#37474F"/>
+
+  <!-- Server unit 3 — amber idle -->
+  <rect x="44" y="26.5" width="14" height="5.5" rx="1" fill="#263238"/>
+  <circle cx="46.5" cy="29.2" r="1.3" fill="#FFB300" opacity="0.75"/>
+  <rect x="49" y="28" width="7" height="1" rx="0.5" fill="#37474F"/>
+  <rect x="49" y="29.5" width="4" height="1" rx="0.5" fill="#37474F"/>
+
+  <!-- Server base feet -->
+  <rect x="44" y="36" width="14" height="2" rx="1" fill="#263238"/>
+  <rect x="45" y="38" width="3" height="1.5" rx="0.75" fill="#1C2A31"/>
+  <rect x="54" y="38" width="3" height="1.5" rx="0.75" fill="#1C2A31"/>
+
+  <!-- Signal arcs from server top-right -->
+  <path d="M60 13 Q63 17 60 21" stroke="#1DE9B6" stroke-width="1"
+        stroke-linecap="round" fill="none" opacity="0.7" filter="url(#glow)"/>
+  <path d="M60 10 Q65 17 60 24" stroke="#1DE9B6" stroke-width="0.8"
+        stroke-linecap="round" fill="none" opacity="0.35"/>
+
+  <!-- ── Divider ─────────────────────────────────────── -->
+  <line x1="6" y1="42" x2="58" y2="42" stroke="white" stroke-width="0.5" opacity="0.15"/>
+
+  <!-- ── Envelope — lower half (same style as php-mail) ── -->
+  <rect x="6" y="45" width="52" height="22" rx="3" fill="url(#envelopeGrad)" filter="url(#envShadow)"/>
+
+  <!-- Envelope flap -->
+  <path d="M6 48.5 L32 61 L58 48.5" fill="url(#flapGrad)" opacity="0.4"/>
+  <path d="M6 48.5 L32 61 L58 48.5" stroke="#00ACC1" stroke-width="0.8" fill="none" opacity="0.5"/>
+
+  <!-- Bottom fold creases -->
+  <line x1="6"  y1="67" x2="17" y2="58" stroke="#80DEEA" stroke-width="0.7" opacity="0.45"/>
+  <line x1="58" y1="67" x2="47" y2="58" stroke="#80DEEA" stroke-width="0.7" opacity="0.45"/>
+
+  <!-- SMTP badge -->
+  <rect x="21" y="52.5" width="22" height="7" rx="3.5" fill="url(#pillGrad)" opacity="0.9"/>
+  <text x="32" y="58" font-family="monospace, Consolas, sans-serif" font-size="4.5"
+        font-weight="700" fill="white" text-anchor="middle" letter-spacing="0.3">SMTP</text>
+</svg>
