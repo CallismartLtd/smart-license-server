@@ -10,6 +10,7 @@
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Environments\WordPress\SetUp;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
@@ -1532,6 +1533,15 @@ function smliser_settings_adapter() : SmartLicenseServer\SettingsAPI\Settings {
  */
 function smliser_cache() : \SmartLicenseServer\Cache\Cache {
     return SetUp::instance()->cache();
+}
+
+/**
+ * Get the mailer API
+ * 
+ * @return \SmartLicenseServer\Email\Mailer
+ */
+function smliser_mailer() : Mailer {
+    return Setup::instance()->mailer();
 }
 
 /**

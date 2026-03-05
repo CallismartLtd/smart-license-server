@@ -19,7 +19,7 @@ unset( $menu_args['breadcrumbs'][0] );
     <?php Menu::print_admin_top_menu( $menu_args ); ?>
     
     <form action="" class="smliser-options-form">
-        <input type="hidden" name="action" value="smliser_options" />
+        <input type="hidden" name="action" value="smliser_save_options" />
         <div class="smliser-options-form_body">
             <?php foreach( static::system_settings_fields() as $field ) : ?>
                 <?php smliser_render_input_field( $field ); ?>

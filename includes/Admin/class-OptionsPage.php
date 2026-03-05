@@ -70,7 +70,7 @@ class OptionsPage {
      */
     private static function monetization_options(): void {
         if ( smliser_has_query_param( 'provider' ) ) {
-            self::provider_settings();
+            self::monetization_provider_settings();
         } else {
             $providers = ProviderCollection::instance()->get_providers();
             include_once SMLISER_PATH . 'templates/admin/options/monetization-providers.php';
@@ -80,14 +80,12 @@ class OptionsPage {
     /**
      * Settings page for an individual monetization provider.
      */
-    private static function provider_settings(): void {
+    private static function monetization_provider_settings(): void {
         $provider_key   = smliser_get_query_param( 'provider' );
         $provider       = ProviderCollection::instance()->get_provider( $provider_key );
-
-   
-        $name     = $provider?->get_name() ?? '';
-        $id       = $provider?->get_id() ?? '';
-        $settings = $provider?->get_settings() ?? [];
+        $name           = $provider?->get_name() ?? '';
+        $id             = $provider?->get_id() ?? '';
+        $settings       = $provider?->get_settings() ?? [];
         
 
         include_once SMLISER_PATH . 'templates/admin/options/monetizations.php';
@@ -205,7 +203,7 @@ class OptionsPage {
      *
      * @return array<int, array<string, mixed>>
      */
-    protected static function system_settings_fields(): array {
+    public static function system_settings_fields(): array {
         $settings = smliser_settings_adapter();
 
         return [

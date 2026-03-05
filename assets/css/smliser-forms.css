@@ -241,6 +241,7 @@ button.smliser-upload-btn {
   padding: 10px;
   border-radius: 8px;
   flex-wrap: wrap;
+  margin: 20px;
 }
 
 .smliser-monetization-ui table {

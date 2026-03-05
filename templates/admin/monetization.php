@@ -10,7 +10,6 @@
  */
 
 use SmartLicenseServer\Admin\Menu;
-use SmartLicenseServer\Core\URL;
 
 use SmartLicenseServer\Monetization\Monetization,
     SmartLicenseServer\Monetization\ProviderCollection;
@@ -34,21 +33,13 @@ if ( empty( $object ) ) {
 }
 
 $app = $object->get_app();
-$view_url   = $url->add_query_param( 'tab', 'view' )->add_query_params( [ 'app_id' => $id, 'type' => $app_type ] );
-$edit_url   = $url->add_query_param( 'tab', 'edit' )->add_query_params( [ 'app_id' => $id, 'type' => $app_type ] );
 ?>
 
-<h1>Software Monetization</h1>
 <div class="smliser-admin-repository-template repo-page">
     <?php Menu::print_admin_top_menu( self::get_menu_args( $app ) ); ?>
     <?php if ( empty( $app ) ) : ?>
         <?php echo wp_kses_post( smliser_not_found_container( 'This app does not exist in the repository <a href="' . smliser_repo_page() . '">Back</a>' ) ); ?>
     <?php else : ?>
-        <a href="<?php echo esc_url( $url->__toString() ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-database"></span> Repository</a>
-        <a href="<?php echo esc_url( $view_url->__toString() ); ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-visibility"></span> View</a>
-        <a href="<?php echo esc_url( $edit_url->__toString() ) ?>" class="button action smliser-nav-btn"><span class="dashicons dashicons-edit"></span> Edit Plugin</a>
-        <p><span class="dashicons dashicons-info"></span><?php printf( 'Use this interface to %s monetization for <strong>%s</strong>', ( $app->is_monetized() ) ? 'manage' :'set up', $app->get_name() ); ?></p>
-
         <div class="smliser-monetization-ui">
             <div class="smliser-monetization-ui__software-info">
 
