@@ -91,7 +91,13 @@ final class ScriptManager {
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
-            )
+            ),
+            'smliser-email-editor' => array(
+                'src'   => SetUp::assets_url() . 'css/email-editor.css',
+                'deps'  => [ 'smliser-styles', 'smliser-modal' ],
+                'ver'   => SMLISER_VER,
+                'media' => 'all',
+            ),
         );
     }
 
@@ -170,7 +176,38 @@ final class ScriptManager {
                 'deps'      => array(),
                 'ver'       => SMLISER_VER,
                 'footer'    => true,
+            ),
+            'smliser-email-editor' => array(
+                'src'    => SetUp::assets_url() . 'js/email-editor.js',
+                'deps'   => [ 'jquery', 'smliser-script', 'smliser-modal' ],
+                'ver'    => SMLISER_VER,
+                'footer' => true,
+            ),
+
+            'smliser-jquery'    => array(
+                'src'    => SetUp::assets_url() . 'js/jQuery/jQuery.js',
+                'deps'   => [],
+                'ver'    => SMLISER_VER,
+                'footer' => true,
             )
+        );
+    }
+
+    /**
+     * Get all localizable vairables.
+     */
+    public function allVars() {
+        return array(
+            'ajaxURL'  => admin_url( 'admin-ajax.php' ),
+            'nonce'             => wp_create_nonce( 'smliser_nonce' ),
+            'admin_url'         => admin_url(),
+            'wp_spinner_gif'    => admin_url( 'images/spinner.gif' ),
+            'wp_spinner_gif_2x' => admin_url( 'images/spinner-2x.gif' ),
+            'app_search_api'    => rest_url( SetUp::instance()->rest_namespace() . '/repository/' ),
+            'default_roles'     => [
+                'roles'         => Role::all( true ),
+                'capabilities'  => Capability::get_caps()
+            ]
         );
     }
 
@@ -218,21 +255,8 @@ final class ScriptManager {
             wp_enqueue_script( 'smliser-role-builder' );
         }
 
-        $vars   = array(
-            'ajaxURL'  => admin_url( 'admin-ajax.php' ),
-            'nonce'             => wp_create_nonce( 'smliser_nonce' ),
-            'admin_url'         => admin_url(),
-            'wp_spinner_gif'    => admin_url( 'images/spinner.gif' ),
-            'wp_spinner_gif_2x' => admin_url( 'images/spinner-2x.gif' ),
-            'app_search_api'    => rest_url( SetUp::instance()->rest_namespace() . '/repository/' ),
-            'default_roles'     => [
-                'roles'         => Role::all( true ),
-                'capabilities'  => Capability::get_caps()
-            ]
-        );
-
         // Script localizer.
-        wp_localize_script( 'smliser-script', 'smliser_var', $vars );
+        wp_localize_script( 'smliser-script', 'smliser_var', $this->allVars() );
     }
 
     /**
@@ -261,5 +285,68 @@ final class ScriptManager {
             wp_enqueue_style( 'smliser-role-builder' );
         }
     
+    }
+
+    /**
+     * Return the asset definitions required by the standalone email editor page.
+     *
+     * Because the editor renders as a full HTML document outside the normal
+     * WordPress admin shell, wp_head() / wp_footer() never fire and nothing
+     * enqueued through wp_enqueue_script / wp_enqueue_style reaches the page.
+     * This method exposes the raw src URLs so the editor template can render
+     * its own <link> and <script> tags in the correct order.
+     *
+     * Only the assets the editor actually needs are returned — the full
+     * smliser asset registry is not exposed.
+     *
+     * Return shape:
+     *   [
+     *     'styles'  => [ [ 'handle' => string, 'src' => string ], ... ],
+     *     'scripts' => [ [ 'handle' => string, 'src' => string ], ... ],
+     *   ]
+     *
+     * Scripts are ordered so that dependencies come before dependants:
+     *   jquery → smliser-script → smliser-modal → smliser-email-editor
+     *
+     * @return array<string, array<int, array<string, string>>>
+     */
+    public function get_editor_assets(): array {
+        $all_css = $this->allCSS();
+        $all_js  = $this->allJS();
+
+        $styles = [
+            'smliser-tabler-icons',
+            'smliser-styles',
+            'smliser-form-styles',
+            'smliser-modal',
+            'smliser-datetime-picker',
+            'smliser-email-editor',
+        ];
+
+        $scripts = [
+            'smliser-jquery',
+            'select2',
+            'smliser-datetime-picker',
+            'smliser-script',
+            'smliser-modal',
+            'smliser-email-editor',
+        ];
+
+        return [
+            'styles'  => array_map(
+                fn( $handle ) => [
+                    'handle' => $handle,
+                    'src'    => $all_css[ $handle ]['src'],
+                ],
+                $styles
+            ),
+            'scripts' => array_map(
+                fn( $handle ) => [
+                    'handle' => $handle,
+                    'src'    => $all_js[ $handle ]['src'],
+                ],
+                $scripts
+            ),
+        ];
     }
 }

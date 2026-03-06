@@ -270,4 +270,29 @@ interface RouterInterface {
      * @return void
      */
     public static function parse_save_system_settings_request( Request $request ) : void;
+
+    /**
+     * Parse request to preview email template.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_preview_email_template_request(  Request $request ) : void;
+
+    /**
+     * Parse request to save email template.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_save_email_template_request(  Request $request ) : void;
+    
+    /**
+     * Parse request to reset email template.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_reset_email_template_request(  Request $request ) : void;
+    
 }

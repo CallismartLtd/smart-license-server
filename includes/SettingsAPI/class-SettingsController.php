@@ -190,4 +190,182 @@ class SettingsController {
         }
     }
     
+    /**
+     * Render a live preview from the editor's current block and style state.
+     *
+     * Called on every debounced change in the editor. Renders the full email
+     * HTML via render_from_blocks() without persisting anything — the result
+     * is written directly into the editor's preview iframe.
+     *
+     * Expected POST params:
+     *   template_key (string) — registered template key
+     *   blocks       (string) — JSON-encoded block array from editor state
+     *   styles       (string) — JSON-encoded style token map from editor state
+     *
+     * @param  Request  $request
+     * @return Response JSON — { success: true, data: { html: string } }
+     */
+    public static function preview_email_template( Request $request ): Response {
+        try {
+            static::is_system_admin();
+
+            $template_key = $request->get( 'template_key' );
+            $blocks_raw   = $request->get( 'blocks' );
+            $styles_raw   = $request->get( 'styles' );
+
+            if ( ! $template_key ) {
+                throw new RequestException( 'required_param', 'Template key is required.' );
+            }
+
+            if ( ! EmailTemplateRegistry::has( $template_key ) ) {
+                throw new RequestException( 'invalid_param', 'Invalid template key.' );
+            }
+
+            $blocks = json_decode( $blocks_raw, true );
+            $styles = json_decode( $styles_raw, true );
+
+            if ( ! is_array( $blocks ) || ! is_array( $styles ) ) {
+                throw new RequestException( 'invalid_param', 'Invalid blocks or styles data.' );
+            }
+
+            $html = EmailTemplateRegistry::preview( $template_key )
+                ->render_from_blocks( $blocks, $styles );
+
+            return ( new Response( 200 ) )
+                ->set_body( [
+                    'success' => true,
+                    'data'    => [ 'html' => $html ],
+                ] )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
+                ->set_exception( $e );
+        }
+    }
+
+    /**
+     * Save the editor's current block and style state as a custom template.
+     *
+     * Renders the full HTML from the submitted block and style data via
+     * render_from_blocks(), then persists it via save_custom_template() so
+     * subsequent render() calls return the custom version without needing
+     * block data at send time.
+     *
+     * Expected POST params:
+     *   template_key (string) — registered template key
+     *   blocks       (string) — JSON-encoded block array from editor state
+     *   styles       (string) — JSON-encoded style token map from editor state
+     *
+     * @param  Request  $request
+     * @return Response JSON — { success: true, data: { message: string, template_key: string } }
+     */
+    public static function save_email_template( Request $request ): Response {
+        try {
+            static::is_system_admin();
+
+            $template_key = $request->get( 'template_key' );
+            $blocks_raw   = $request->get( 'blocks' );
+            $styles_raw   = $request->get( 'styles' );
+
+            if ( ! $template_key ) {
+                throw new RequestException( 'required_param', 'Template key is required.' );
+            }
+
+            if ( ! EmailTemplateRegistry::has( $template_key ) ) {
+                throw new RequestException( 'invalid_param', 'Invalid template key.' );
+            }
+
+            $blocks = json_decode( $blocks_raw, true );
+            $styles = json_decode( $styles_raw, true );
+            pp( $request->get( 'blocks' ) );
+
+            if ( ! is_array( $blocks ) || ! is_array( $styles ) ) {
+                throw new RequestException( 'invalid_param', 'Invalid blocks or styles data.' );
+            }
+
+            $preview = EmailTemplateRegistry::preview( $template_key );
+            $html    = $preview->render_from_blocks( $blocks, $styles );
+
+            if ( ! $preview->save_custom_template( $html ) ) {
+                throw new RequestException(
+                    'server_error',
+                    'Failed to save template. Please try again.'
+                );
+            }
+
+            $label = EmailTemplateRegistry::entry( $template_key )['label'];
+
+            return ( new Response( 200 ) )
+                ->set_body( [
+                    'success' => true,
+                    'data'    => [
+                        'message'      => "{$label} template saved successfully.",
+                        'template_key' => $template_key,
+                    ],
+                ] )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
+                ->set_exception( $e );
+        }
+    }
+
+    /**
+     * Reset a template type to its system default.
+     *
+     * Deletes the stored custom template HTML so render() falls back to
+     * the system default skeleton on the next send. The editor reloads
+     * the page after a successful reset to reflect the fresh default state.
+     *
+     * Expected POST params:
+     *   template_key (string) — registered template key
+     *
+     * @param  Request  $request
+     * @return Response JSON — { success: true, data: { message: string, template_key: string } }
+     */
+    public static function reset_email_template( Request $request ): Response {
+        try {
+            static::is_system_admin();
+
+            $template_key = $request->get( 'template_key' );
+
+            if ( ! $template_key ) {
+                throw new RequestException( 'required_param', 'Template key is required.' );
+            }
+
+            if ( ! EmailTemplateRegistry::has( $template_key ) ) {
+                throw new RequestException( 'invalid_param', 'Invalid template key.' );
+            }
+
+            $preview = EmailTemplateRegistry::preview( $template_key );
+
+            if ( ! $preview->reset_to_default() ) {
+                throw new RequestException(
+                    'server_error',
+                    'Failed to reset template. Please try again.'
+                );
+            }
+
+            $label = EmailTemplateRegistry::entry( $template_key )['label'];
+
+            return ( new Response() )
+                ->set_body( [
+                    'success' => true,
+                    'data'    => [
+                        'message'      => "{$label} template reset to default.",
+                        'template_key' => $template_key,
+                    ],
+                ] )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
+                ->set_exception( $e );
+        }
+    }
 }

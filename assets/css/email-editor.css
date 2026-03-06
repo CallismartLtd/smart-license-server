@@ -1,0 +1,939 @@
+/* =============================================================================
+   EMAIL EDITOR — Layout & Component Styles
+   
+   Structure:
+   1.  Reset & base
+   2.  Editor root
+   3.  Toolbar
+   4.  Editor layout
+   5.  Sidebar
+   6.  Sidebar tabs
+   7.  Sidebar panels
+   8.  Style panel — color fields
+   9.  Block editor panel
+   10. Block editor fields
+   11. Tone picker
+   12. Detail card rows editor
+   13. Canvas
+   14. Block list
+   15. Block list items
+   16. Preview pane
+   17. Preview browser chrome
+   18. Preview iframe
+   19. Badges
+   20. Buttons
+   21. Drag & drop states
+   22. Loading states
+   23. Scrollbars
+============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   1. Reset & base
+----------------------------------------------------------------------------- */
+.smliser-editor-page {
+    margin: 0;
+    padding: 0;
+    background: #f1f5f9;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    color: #334155;
+    overflow: hidden;
+    height: 100vh;
+}
+
+.smliser-editor-page *,
+.smliser-editor-page *::before,
+.smliser-editor-page *::after {
+    box-sizing: border-box;
+}
+
+/* -----------------------------------------------------------------------------
+   2. Editor root
+----------------------------------------------------------------------------- */
+.smliser-email-editor {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* -----------------------------------------------------------------------------
+   3. Toolbar
+----------------------------------------------------------------------------- */
+.smliser-editor-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    padding: 0 16px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    flex-shrink: 0;
+    z-index: 100;
+    gap: 12px;
+}
+
+.smliser-editor-toolbar__left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.smliser-editor-toolbar__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.smliser-editor-toolbar__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.smliser-editor-toolbar__name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.smliser-editor-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    color: #64748b;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+
+.smliser-editor-back:hover {
+    background: #f1f5f9;
+    color: #1a1a2e;
+}
+
+.smliser-editor-back .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+/* -----------------------------------------------------------------------------
+   4. Editor layout — sidebar + canvas
+----------------------------------------------------------------------------- */
+.smliser-editor-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* -----------------------------------------------------------------------------
+   5. Sidebar
+----------------------------------------------------------------------------- */
+.smliser-editor-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* -----------------------------------------------------------------------------
+   6. Sidebar tabs
+----------------------------------------------------------------------------- */
+.smliser-sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.smliser-sidebar-tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -1px;
+}
+
+.smliser-sidebar-tab:hover {
+    color: #475569;
+}
+
+.smliser-sidebar-tab.is-active {
+    color: #6366f1;
+    border-bottom-color: #6366f1;
+}
+
+.smliser-sidebar-tab .ti {
+    font-size: 14px;
+}
+
+/* -----------------------------------------------------------------------------
+   7. Sidebar panels
+----------------------------------------------------------------------------- */
+.smliser-sidebar-panel {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.smliser-sidebar-panel.is-active {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* -----------------------------------------------------------------------------
+   8. Style panel — color fields
+----------------------------------------------------------------------------- */
+.smliser-style-group {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.smliser-style-group__title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #475569;
+    background: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.smliser-style-group__title .ti {
+    font-size: 13px;
+    color: #6366f1;
+}
+
+.smliser-style-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.smliser-style-row:last-child {
+    border-bottom: none;
+}
+
+.smliser-style-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+}
+
+.smliser-color-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.smliser-color-picker {
+    width: 28px;
+    height: 28px;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 2px;
+    cursor: pointer;
+    background: none;
+    flex-shrink: 0;
+}
+
+.smliser-color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.smliser-color-picker::-webkit-color-swatch {
+    border: none;
+    border-radius: 3px;
+}
+
+.smliser-color-hex {
+    width: 76px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: monospace;
+    color: #334155;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.smliser-color-hex:focus {
+    border-color: #6366f1;
+}
+
+/* -----------------------------------------------------------------------------
+   9. Block editor panel
+----------------------------------------------------------------------------- */
+.smliser-block-editor-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 12px;
+    text-align: center;
+    color: #94a3b8;
+    padding: 40px 20px;
+}
+
+.smliser-block-editor-empty p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.smliser-block-editor-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.smliser-block-editor__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.smliser-block-editor__type {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6366f1;
+    background: #eef2ff;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.smliser-block-editor__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: none;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+    padding: 0;
+}
+
+.smliser-block-editor__close:hover {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* -----------------------------------------------------------------------------
+   10. Block editor fields
+----------------------------------------------------------------------------- */
+.smliser-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.smliser-field-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.smliser-field-input,
+.smliser-field-textarea {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    color: #334155;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    resize: vertical;
+}
+
+.smliser-field-input:focus,
+.smliser-field-textarea:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+
+.smliser-field-help {
+    margin: 0;
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.5;
+}
+
+.smliser-field-help code {
+    background: #f1f5f9;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+    color: #6366f1;
+}
+
+/* -----------------------------------------------------------------------------
+   11. Tone picker
+----------------------------------------------------------------------------- */
+.smliser-tone-picker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.smliser-tone-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.smliser-tone-btn:hover {
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #4f46e5;
+}
+
+.smliser-tone-btn.is-active {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #ffffff;
+}
+
+.smliser-tone-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.smliser-tone-dot--success { background: #16a34a; }
+.smliser-tone-dot--warning { background: #d97706; }
+.smliser-tone-dot--error   { background: #dc2626; }
+.smliser-tone-dot--info    { background: #2563eb; }
+
+/* -----------------------------------------------------------------------------
+   12. Detail card rows editor
+----------------------------------------------------------------------------- */
+.smliser-card-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.smliser-card-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+}
+
+.smliser-card-row input {
+    width: 100%;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    color: #334155;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.smliser-card-row input:focus {
+    border-color: #6366f1;
+}
+
+.smliser-card-row input::placeholder {
+    color: #cbd5e1;
+}
+
+/* -----------------------------------------------------------------------------
+   13. Canvas
+----------------------------------------------------------------------------- */
+.smliser-editor-canvas {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   14. Block list
+----------------------------------------------------------------------------- */
+.smliser-block-list-wrap {
+    flex-shrink: 0;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    max-height: 260px;
+    display: flex;
+    flex-direction: column;
+}
+
+.smliser-block-list-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.smliser-block-list-hint {
+    font-size: 11px;
+    font-weight: 400;
+    color: #94a3b8;
+    margin-left: auto;
+}
+
+.smliser-block-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* -----------------------------------------------------------------------------
+   15. Block list items
+----------------------------------------------------------------------------- */
+.smliser-block-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+}
+
+.smliser-block-item:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.smliser-block-item.is-active {
+    background: #eef2ff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+}
+
+.smliser-block-item.is-dragging {
+    opacity: 0.4;
+}
+
+.smliser-block-item.drag-over {
+    border-color: #6366f1;
+    background: #e0e7ff;
+}
+
+.smliser-block-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    color: #cbd5e1;
+    cursor: grab;
+    flex-shrink: 0;
+    font-size: 16px;
+}
+
+.smliser-block-drag-handle:active {
+    cursor: grabbing;
+}
+
+.smliser-block-item__type {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #6366f1;
+    background: #eef2ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.smliser-block-item__preview {
+    flex: 1;
+    font-size: 12px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.smliser-block-item__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.smliser-block-item:hover .smliser-block-item__actions {
+    opacity: 1;
+}
+
+.smliser-block-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.smliser-block-action-btn:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.smliser-block-action-btn.is-visible-btn:hover {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.smliser-block-item.is-hidden {
+    opacity: 0.5;
+}
+
+.smliser-block-item.is-hidden .smliser-block-item__type {
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+/* -----------------------------------------------------------------------------
+   16. Preview pane
+----------------------------------------------------------------------------- */
+.smliser-preview-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #f1f5f9;
+    min-height: 0;
+}
+
+.smliser-preview-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    flex-shrink: 0;
+}
+
+.smliser-preview-note {
+    font-size: 11px;
+    font-weight: 400;
+    color: #94a3b8;
+}
+
+.smliser-preview-loader {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 400;
+    color: #6366f1;
+    margin-left: auto;
+}
+
+/* -----------------------------------------------------------------------------
+   17. Preview browser chrome
+----------------------------------------------------------------------------- */
+.smliser-preview-browser {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin: 16px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    background: #f4f6f8;
+}
+
+.smliser-preview-browser__chrome {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.smliser-preview-browser__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.smliser-preview-browser__dot--red    { background: #fecaca; }
+.smliser-preview-browser__dot--yellow { background: #fde68a; }
+.smliser-preview-browser__dot--green  { background: #bbf7d0; }
+
+.smliser-preview-browser__bar {
+    flex: 1;
+    margin-left: 6px;
+    padding: 4px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* -----------------------------------------------------------------------------
+   18. Preview iframe
+----------------------------------------------------------------------------- */
+.smliser-preview-frame {
+    flex: 1;
+    width: 100%;
+    border: none;
+    display: block;
+    background: #f4f6f8;
+    min-height: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   19. Badges
+----------------------------------------------------------------------------- */
+.smliser-editor-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.smliser-editor-badge--enabled {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
+.smliser-editor-badge--disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+    border: 1px solid #e2e8f0;
+}
+
+.smliser-editor-badge--custom {
+    background: #fdf4ff;
+    color: #9333ea;
+    border: 1px solid #e9d5ff;
+}
+
+.smliser-editor-badge--unsaved {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+.smliser-editor-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.smliser-editor-badge--enabled  .smliser-editor-badge__dot { background: #16a34a; }
+.smliser-editor-badge--disabled .smliser-editor-badge__dot { background: #94a3b8; }
+
+/* -----------------------------------------------------------------------------
+   20. Toolbar buttons
+----------------------------------------------------------------------------- */
+.smliser-editor-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    outline: none;
+}
+
+.smliser-editor-btn .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    margin-top: 1px;
+}
+
+.smliser-editor-btn--primary {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #ffffff;
+}
+
+.smliser-editor-btn--primary:hover:not(:disabled) {
+    background: #4f46e5;
+    border-color: #4f46e5;
+}
+
+.smliser-editor-btn--danger {
+    background: #ffffff;
+    border-color: #fecaca;
+    color: #dc2626;
+}
+
+.smliser-editor-btn--danger:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #fca5a5;
+}
+
+.smliser-editor-btn--ghost {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    color: #475569;
+}
+
+.smliser-editor-btn--ghost:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1a1a2e;
+}
+
+.smliser-editor-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* -----------------------------------------------------------------------------
+   21. Drag & drop states
+----------------------------------------------------------------------------- */
+.smliser-block-list.drag-active .smliser-block-item:not(.is-dragging) {
+    transition: transform 0.1s;
+}
+
+/* -----------------------------------------------------------------------------
+   22. Loading states
+----------------------------------------------------------------------------- */
+.smliser-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(99,102,241,0.2);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: smliser-spin 0.6s linear infinite;
+}
+
+@keyframes smliser-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* -----------------------------------------------------------------------------
+   23. Scrollbars
+----------------------------------------------------------------------------- */
+.smliser-editor-sidebar ::-webkit-scrollbar,
+.smliser-block-list     ::-webkit-scrollbar {
+    width: 4px;
+}
+
+.smliser-editor-sidebar ::-webkit-scrollbar-track,
+.smliser-block-list     ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.smliser-editor-sidebar ::-webkit-scrollbar-thumb,
+.smliser-block-list     ::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 9999px;
+}
+
+.smliser-editor-sidebar ::-webkit-scrollbar-thumb:hover,
+.smliser-block-list     ::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+}

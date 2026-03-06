@@ -152,8 +152,9 @@ class OptionsPage {
             exit;
         }
 
-        $preview       = EmailTemplateRegistry::preview( $key );
-        $preview_html  = $preview?->render();
+        $preview        = EmailTemplateRegistry::preview( $key );
+        $preview_html   = $preview?->render();
+        $current_url    = smliser_get_current_url()->remove_query_param( 'message' );
 
         include_once SMLISER_PATH . 'templates/admin/options/email-template-detail.php';
     }

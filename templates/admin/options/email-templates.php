@@ -183,7 +183,7 @@ $group_colors = [
                                     <?php echo $entry['is_enabled'] ? 'Disable' : 'Enable'; ?>
                                 </button>
 
-                                <a href="<?php echo esc_url( $detail_url ); ?>"
+                                <a href="<?php echo esc_url( $detail_url->add_query_param( 'noheader', true ) ); ?>"
                                 class="button smliser-nav-btn"
                                 title="Preview and configure this template">
                                     <span class="dashicons dashicons-admin-generic"></span>

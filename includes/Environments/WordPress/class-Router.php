@@ -81,6 +81,9 @@ class Router implements RouterInterface {
             'smliser_save_system_options'                   => [ __CLASS__, 'parse_save_system_settings_request' ],
             'smliser_save_route_options'                    => [ __CLASS__, 'parse_save_routes_settings_request' ],
             'smliser_toggle_email_template'                 => [ __CLASS__, 'parse_save_email_template_toggle_request' ],
+            'smliser_preview_email_template'                => [ __CLASS__, 'parse_preview_email_template_request' ],
+            'smliser_save_email_template'                   => [ __CLASS__, 'parse_save_email_template_request' ],
+            'smliser_reset_email_template'                  => [ __CLASS__, 'parse_reset_email_template_request' ],
         ];
 
         if ( isset( $handler_map[ $trigger ] ) ) {
@@ -634,7 +637,10 @@ class Router implements RouterInterface {
         // Core controller expects 'entity' key.
         $request->set( 'entity', $request->get( 'entity_type' ) );
 
-        RequestController::delete_entity( $request )->send();
+        RequestController::delete_entity( $request )
+        ->send();
+
+        exit;
     }
 
     /**
@@ -654,6 +660,7 @@ class Router implements RouterInterface {
             : RequestController::search_resource_owners( $request );
 
         $response->send();
+        exit;
     }
 
     /**
@@ -662,7 +669,9 @@ class Router implements RouterInterface {
     public static function parse_smliser_delete_org_member_request( Request $request ): void {
         static::guard( $request, 'super_admin' );
 
-        RequestController::delete_org_member( $request )->send();
+        RequestController::delete_org_member( $request )
+        ->send();
+        exit;
     }
 
     /**
@@ -671,7 +680,8 @@ class Router implements RouterInterface {
     public static function parse_default_email_settings_request( Request $request ): void {
         static::guard( $request, 'super_admin' );
 
-        EmailRequestController::save_default_email_options( $request )->send();
+        EmailRequestController::save_default_email_options( $request )
+        ->send();
         exit;
     }
 
@@ -681,7 +691,8 @@ class Router implements RouterInterface {
     public static function parse_email_test_request( Request $request ): void {
         static::guard( $request, 'super_admin' );
 
-        EmailRequestController::send_test_email( $request )->send();
+        EmailRequestController::send_test_email( $request )
+        ->send();
         exit;
     }
 
@@ -691,7 +702,8 @@ class Router implements RouterInterface {
     public static function parse_save_email_provider_request( Request $request ): void {
         static::guard( $request, 'super_admin' );
 
-        EmailRequestController::save_provider_settings( $request )->send();
+        EmailRequestController::save_provider_settings( $request )
+        ->send();
         exit;
     }
 
@@ -703,12 +715,57 @@ class Router implements RouterInterface {
     public static function parse_save_system_settings_request( Request $request ) : void {
         static::guard( $request );
         
-        $response   = SettingsController::save_system_settings( $request );
-
-        $response->send();
+        SettingsController::save_system_settings( $request )
+        ->send();
         exit;
     }
 
+    /**
+     * Route a live preview render request to the settings controller.
+     *
+     * Called from the email editor on every debounced state change.
+     * Returns rendered HTML without persisting anything.
+     *
+     * @param Request $request
+     */
+    public static function parse_preview_email_template_request( Request $request ): void {
+        static::guard( $request );
+        SettingsController::preview_email_template( $request )
+        ->send();
+        exit;
+    }
+
+    /**
+     * Route a template save request to the settings controller.
+     *
+     * Renders the block and style state from the editor and persists
+     * the resulting HTML as the custom template for this type.
+     *
+     * @param Request $request
+     */
+    public static function parse_save_email_template_request( Request $request ): void {
+        static::guard( $request );
+        SettingsController::save_email_template( $request )
+        ->send();
+
+        exit;
+    }
+
+    /**
+     * Route a template reset request to the settings controller.
+     *
+     * Deletes the stored custom template, reverting to the system
+     * default skeleton on the next render.
+     *
+     * @param Request $request
+     */
+    public static function parse_reset_email_template_request( Request $request ): void {
+        static::guard( $request );
+        SettingsController::reset_email_template( $request )
+        ->send();
+
+        exit;
+    }
     /*
     |----------------
     | UTILITY METHODS
