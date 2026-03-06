@@ -172,4 +172,50 @@ class PaymentReceivedEmail extends EmailTemplate {
             'License renewal — My Awesome Plugin (Pro)'
         );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{recipient_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => 'Thank you for your payment. We have received it successfully and your account has been updated accordingly.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'success',
+                'content'   => 'Amount Paid: {{amount}} {{currency}}',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Transaction ID', 'value' => '{{transaction_id}}' ],
+                    [ 'label' => 'Payment Date',   'value' => '{{payment_date}}' ],
+                    [ 'label' => 'Amount',         'value' => '{{amount}} {{currency}}' ],
+                    [ 'label' => 'Description',    'value' => '{{description}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'Please keep this email as your receipt. If you have any questions about this payment, contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

@@ -190,4 +190,62 @@ class SystemAlertEmail extends EmailTemplate {
             "Error: SQLSTATE[HY000] [2002] Connection refused\n#0 /var/www/html/Database.php(42)"
         );
     }
+
+    public function get_blocks(): array {
+        $blocks = [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'System Alert — {{app_name}}',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => match( $this->severity ) {
+                    self::SEVERITY_CRITICAL => 'error',
+                    self::SEVERITY_WARNING  => 'warning',
+                    default                 => 'info',
+                },
+                'content'   => '[{{severity}}] {{alert_title}}',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Severity',    'value' => '{{severity}}' ],
+                    [ 'label' => 'Occurred At', 'value' => '{{occurred_at}}' ],
+                    [ 'label' => 'Details',     'value' => '{{alert_body}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+
+        // Context block is optional — only included when context data is present.
+        if ( ! empty( $this->context ) ) {
+            $blocks[] = [
+                'id'        => 'context',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Additional Context', 'value' => '{{context}}' ],
+                ],
+                'editable'  => false,
+                'removable' => true,
+            ];
+        }
+
+        $blocks[] = [
+            'id'        => 'closing',
+            'type'      => 'closing',
+            'content'   => 'This is an automated alert from {{app_name}}. If this issue requires support, contact us at {{support_email}}.',
+            'editable'  => true,
+            'removable' => false,
+        ];
+
+        return $blocks;
+    }
 }

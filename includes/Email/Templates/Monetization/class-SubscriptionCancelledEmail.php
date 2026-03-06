@@ -179,4 +179,52 @@ class SubscriptionCancelledEmail extends EmailTemplate {
             'Switching to a different plan.'
         );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{recipient_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => $this->self_cancelled
+                    ? 'You have cancelled your subscription.'
+                    : 'Your subscription has been cancelled by an administrator.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'warning',
+                'content'   => 'Your access to {{plan_name}} features will remain active until {{access_until}}, after which your account will be downgraded.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Plan',          'value' => '{{plan_name}}' ],
+                    [ 'label' => 'Cancelled On',  'value' => '{{cancelled_on}}' ],
+                    [ 'label' => 'Access Until',  'value' => '{{access_until}}' ],
+                    [ 'label' => 'Reason',        'value' => '{{reason}}' ],
+                ],
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not request this cancellation or would like to reactivate your subscription, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

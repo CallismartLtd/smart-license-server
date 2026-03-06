@@ -128,4 +128,40 @@ class LicenseDeactivatedEmail extends EmailTemplate {
         ]);
         return new static( $license, 'preview@example.com', 'example.com' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{licensee_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => 'Your license has been deactivated from the domain below. You can reactivate it on the same or a different domain at any time.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Deactivated Domain', 'value' => '{{domain}}' ],
+                    [ 'label' => 'License Key',         'value' => '{{license_key}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not request this deactivation, please contact us immediately at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

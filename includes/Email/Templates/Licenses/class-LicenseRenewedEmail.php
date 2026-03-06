@@ -136,4 +136,41 @@ class LicenseRenewedEmail extends EmailTemplate {
         ]);
         return new static( $license, 'preview@example.com' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{licensee_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'success',
+                'content'   => 'Your license has been renewed successfully. Your new expiry date is {{end_date}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'License Key',     'value' => '{{license_key}}' ],
+                    [ 'label' => 'New Expiry Date', 'value' => '{{end_date}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'Thank you for renewing. If you have any questions, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

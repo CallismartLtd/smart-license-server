@@ -156,4 +156,43 @@ class AppPublishedEmail extends EmailTemplate {
         ]);
         return new static( $app, 'preview@example.com' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Your application is now live.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'success',
+                'content'   => '{{app_name}} has been published successfully and is now available to licensed users.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Application Name', 'value' => '{{app_name}}' ],
+                    [ 'label' => 'Type',             'value' => '{{app_type}}' ],
+                    [ 'label' => 'Version',          'value' => '{{app_version}}' ],
+                    [ 'label' => 'Slug',             'value' => '{{app_slug}}' ],
+                ],
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you have any questions or concerns, contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

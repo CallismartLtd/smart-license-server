@@ -131,4 +131,53 @@ class PasswordResetEmail extends EmailTemplate {
         $user = User::from_array( [ 'display_name' => 'Jane Doe' ] );
         return new static( $user, 'preview@example.com', 'https://example.com/reset?token=xxxx', 30 );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{display_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => 'We received a request to reset the password for your account. Click the button below to choose a new password.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'button',
+                'type'      => 'button',
+                'label'     => 'Reset My Password',
+                'url'       => '{{reset_url}}',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'expiry_notice',
+                'type'      => 'banner',
+                'tone'      => 'warning',
+                'content'   => 'This link will expire in {{expires_in}} minutes. If it expires, you can request a new one from the login page.',
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'fallback',
+                'type'      => 'text',
+                'content'   => 'If the button above does not work, copy and paste this link into your browser: {{reset_url}}',
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not request a password reset, you can safely ignore this email. Your password will not change. If you have concerns, contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

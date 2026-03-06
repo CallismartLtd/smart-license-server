@@ -143,4 +143,49 @@ class TestEmail extends EmailTemplate {
     public static function preview(): static {
         return new static( 'preview@example.com', 'Preview Provider' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Email Configuration Test',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'success',
+                'content'   => 'Your email provider is configured correctly. This test email was delivered successfully.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => 'This is an automated test email sent from {{app_name}} to verify that your email provider is set up and working correctly. No action is required.',
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Provider',     'value' => '{{provider_name}}' ],
+                    [ 'label' => 'Sent At',      'value' => '{{sent_at}}' ],
+                    [ 'label' => 'Delivered To', 'value' => '{{recipient}}' ],
+                ],
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not expect this email or have any concerns, contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => true,
+            ],
+        ];
+    }
 }

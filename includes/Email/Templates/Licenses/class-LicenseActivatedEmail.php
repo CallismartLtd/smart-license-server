@@ -147,4 +147,41 @@ class LicenseActivatedEmail extends EmailTemplate {
         return new static( $license, 'preview@example.com', 'example.com' );
     }
 
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{licensee_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => 'Your license has been successfully activated on the domain below.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Activated Domain', 'value' => '{{domain}}' ],
+                    [ 'label' => 'License Key',      'value' => '{{license_key}}' ],
+                    [ 'label' => 'License Expires',  'value' => '{{end_date}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not activate this license or do not recognize the domain above, please contact us immediately at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
+
 }

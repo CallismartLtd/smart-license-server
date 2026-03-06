@@ -123,4 +123,40 @@ class WelcomeEmail extends EmailTemplate {
         ]);
         return new static( $user, 'preview@example.com' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Welcome, {{display_name}}!',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => 'Your account on {{app_name}} has been created successfully. You can now log in and start managing your licenses.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Full Name',      'value' => '{{display_name}}' ],
+                    [ 'label' => 'Email Address',  'value' => '{{email}}' ],
+                ],
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not create this account or have any concerns, please contact us immediately at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

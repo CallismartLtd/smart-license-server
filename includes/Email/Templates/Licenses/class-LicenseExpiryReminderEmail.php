@@ -141,4 +141,42 @@ class LicenseExpiryReminderEmail extends EmailTemplate {
         ]);
         return new static( $license, 'preview@example.com', 7 );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{licensee_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'warning',
+                'content'   => 'Your license expires in {{days_left}} day(s) on {{end_date}}. Renew now to avoid any interruption to your service.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'License Key',   'value' => '{{license_key}}' ],
+                    [ 'label' => 'Expiry Date',   'value' => '{{end_date}}' ],
+                    [ 'label' => 'Days Remaining','value' => '{{days_left}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you have already renewed or have any questions, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

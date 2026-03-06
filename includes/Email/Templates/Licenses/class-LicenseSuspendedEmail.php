@@ -138,4 +138,41 @@ class LicenseSuspendedEmail extends EmailTemplate {
         ]);
         return new static( $license, 'preview@example.com', 'Suspicious activity detected.' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{licensee_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'error',
+                'content'   => 'Your license has been suspended and is currently inactive. Please contact support to resolve this.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'License Key', 'value' => '{{license_key}}' ],
+                    [ 'label' => 'Reason',      'value' => '{{reason}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you believe this suspension was made in error or need further assistance, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

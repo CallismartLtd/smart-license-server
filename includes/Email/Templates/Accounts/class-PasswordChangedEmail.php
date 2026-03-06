@@ -117,4 +117,46 @@ class PasswordChangedEmail extends EmailTemplate {
         $user = User::from_array( [ 'display_name' => 'Jane Doe' ] );
         return new static( $user, 'preview@example.com' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{display_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'success',
+                'content'   => 'Your password was changed successfully on {{changed_at}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => 'This is a confirmation that your account password has been updated. No further action is needed.',
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'security_notice',
+                'type'      => 'banner',
+                'tone'      => 'error',
+                'content'   => 'If you did not make this change, your account may be compromised. Please contact us immediately at {{support_email}} so we can secure your account.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you made this change yourself, you can safely ignore this email. For any other questions, contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

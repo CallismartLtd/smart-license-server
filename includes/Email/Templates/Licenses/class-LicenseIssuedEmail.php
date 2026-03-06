@@ -157,4 +157,42 @@ class LicenseIssuedEmail extends EmailTemplate {
         return new static( $license, 'preview@example.com' );
     }
 
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{licensee_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => 'Your license has been successfully issued. Below are your license details. Please keep this information safe.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'License Key',       'value' => '{{license_key}}' ],
+                    [ 'label' => 'Start Date',        'value' => '{{start_date}}' ],
+                    [ 'label' => 'Expiry Date',       'value' => '{{end_date}}' ],
+                    [ 'label' => 'Activation Limit',  'value' => '{{activation_limit}} site(s)' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not request this license or believe this was issued in error, please contact us immediately at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
+
 }

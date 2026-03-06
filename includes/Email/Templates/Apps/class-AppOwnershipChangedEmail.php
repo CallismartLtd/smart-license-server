@@ -185,4 +185,49 @@ class AppOwnershipChangedEmail extends EmailTemplate {
         ]);
         return new static( $app, 'preview@example.com', 'Jane Doe', 'John Smith', 'Jane Doe', true );
     }
+
+    public function get_blocks(): array {
+        $banner_content = $this->is_new_owner
+            ? 'You are now the owner of {{app_name}}. You have full control over this application.'
+            : 'Ownership of {{app_name}} has been transferred to {{new_owner}}. You no longer have owner-level access.';
+
+        $banner_tone = $this->is_new_owner ? 'success' : 'warning';
+
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{recipient_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => $banner_tone,
+                'content'   => $banner_content,
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Application',     'value' => '{{app_name}}' ],
+                    [ 'label' => 'Type',            'value' => '{{app_type}}' ],
+                    [ 'label' => 'Previous Owner',  'value' => '{{previous_owner}}' ],
+                    [ 'label' => 'New Owner',       'value' => '{{new_owner}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not expect this change or believe it was made in error, please contact us immediately at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

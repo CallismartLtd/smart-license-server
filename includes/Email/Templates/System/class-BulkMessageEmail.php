@@ -95,4 +95,29 @@ class BulkMessageEmail extends EmailTemplate {
         );
     }
 
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{recipient_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'message',
+                'type'      => 'text',
+                'content'   => $this->message_body,
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you have any questions regarding this message, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => true,
+            ],
+        ];
+    }
 }

@@ -119,4 +119,41 @@ class LicenseExpiredEmail extends EmailTemplate {
         ]);
         return new static( $license, 'preview@example.com' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{licensee_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'error',
+                'content'   => 'Your license expired on {{end_date}}. Access to associated features may be restricted until you renew.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Expired License Key', 'value' => '{{license_key}}' ],
+                    [ 'label' => 'Expired On',          'value' => '{{end_date}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'To renew your license or if you have any questions, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

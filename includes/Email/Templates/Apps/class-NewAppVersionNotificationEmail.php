@@ -160,4 +160,42 @@ class NewAppVersionNotificationEmail extends EmailTemplate {
         ]);
         return new static( $app, $license, 'preview@example.com' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{licensee_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => 'A new version of {{app_name}} is now available. Your active license entitles you to this update.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Application',      'value' => '{{app_name}}' ],
+                    [ 'label' => 'Type',             'value' => '{{app_type}}' ],
+                    [ 'label' => 'New Version',      'value' => '{{app_version}}' ],
+                    [ 'label' => 'Your License Key', 'value' => '{{license_key}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'To download the update, use your license key through the standard update mechanism on your site. If you need help, contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

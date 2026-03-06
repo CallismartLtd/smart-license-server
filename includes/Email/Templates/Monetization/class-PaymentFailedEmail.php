@@ -199,4 +199,51 @@ class PaymentFailedEmail extends EmailTemplate {
             'https://example.com/billing/retry'
         );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{recipient_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'error',
+                'content'   => 'Your payment of {{amount}} {{currency}} on {{payment_date}} could not be processed. Please review your payment details and try again.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Amount',         'value' => '{{amount}} {{currency}}' ],
+                    [ 'label' => 'Date Attempted', 'value' => '{{payment_date}}' ],
+                    [ 'label' => 'Description',    'value' => '{{description}}' ],
+                    [ 'label' => 'Reason',         'value' => '{{reason}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'button',
+                'type'      => 'button',
+                'label'     => 'Retry Payment',
+                'url'       => '{{retry_url}}',
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you continue to experience issues or need assistance, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

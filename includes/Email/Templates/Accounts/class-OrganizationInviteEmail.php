@@ -140,4 +140,52 @@ class OrganizationInviteEmail extends EmailTemplate {
         return new static( $org, 'preview@example.com', 'Jane Doe', 'John Smith', 'https://example.com/invite?token=xxxx', 48 );
     }
 
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{invitee_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'intro',
+                'type'      => 'text',
+                'content'   => '{{inviter_name}} has invited you to join {{organization_name}}. Accept the invitation below to get started.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'button',
+                'type'      => 'button',
+                'label'     => 'Accept Invitation',
+                'url'       => '{{invite_url}}',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'expiry_notice',
+                'type'      => 'banner',
+                'tone'      => 'warning',
+                'content'   => 'This invitation link will expire in {{expires_in}} hours. If it expires, please ask {{inviter_name}} to send a new invitation.',
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'fallback',
+                'type'      => 'text',
+                'content'   => 'If the button above does not work, copy and paste this link into your browser: {{invite_url}}',
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not expect this invitation or have any concerns, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

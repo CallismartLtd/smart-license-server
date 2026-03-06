@@ -167,4 +167,44 @@ class AppStatusChangedEmail extends EmailTemplate {
         ]);
         return new static( $app, 'preview@example.com', 'active', 'suspended', 'Violation of terms of service.' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'A status update for your application.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'warning',
+                'content'   => 'The status of {{app_name}} has been changed from {{old_status}} to {{new_status}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Application',     'value' => '{{app_name}}' ],
+                    [ 'label' => 'Type',            'value' => '{{app_type}}' ],
+                    [ 'label' => 'Previous Status', 'value' => '{{old_status}}' ],
+                    [ 'label' => 'New Status',      'value' => '{{new_status}}' ],
+                    [ 'label' => 'Reason',          'value' => '{{reason}}' ],
+                ],
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you have questions about this change or believe it was made in error, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

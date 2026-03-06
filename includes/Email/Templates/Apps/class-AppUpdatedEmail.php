@@ -161,4 +161,43 @@ class AppUpdatedEmail extends EmailTemplate {
         ]);
         return new static( $app, 'preview@example.com', '1.0.0' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'A new version of your application is now live.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'success',
+                'content'   => '{{app_name}} has been updated from version {{old_version}} to version {{new_version}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'details',
+                'type'      => 'detail_card',
+                'rows'      => [
+                    [ 'label' => 'Application Name',  'value' => '{{app_name}}' ],
+                    [ 'label' => 'Type',              'value' => '{{app_type}}' ],
+                    [ 'label' => 'Previous Version',  'value' => '{{old_version}}' ],
+                    [ 'label' => 'New Version',       'value' => '{{new_version}}' ],
+                ],
+                'editable'  => true,
+                'removable' => true,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you did not make this update or have any concerns, contact us immediately at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }

@@ -99,4 +99,31 @@ class OrganizationMemberRemovedEmail extends EmailTemplate {
         $org = Owner::from_array([ 'name' => 'Acme Corporation' ]);
         return new static( $org, 'preview@example.com', 'Jane Doe' );
     }
+
+    public function get_blocks(): array {
+        return [
+            [
+                'id'        => 'greeting',
+                'type'      => 'greeting',
+                'content'   => 'Hi {{member_name}},',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'banner',
+                'type'      => 'banner',
+                'tone'      => 'error',
+                'content'   => 'Your membership in {{organization_name}} has been ended. You no longer have access to this organization\'s resources.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+            [
+                'id'        => 'closing',
+                'type'      => 'closing',
+                'content'   => 'If you believe this was done in error or would like more information, please contact us at {{support_email}}.',
+                'editable'  => true,
+                'removable' => false,
+            ],
+        ];
+    }
 }
