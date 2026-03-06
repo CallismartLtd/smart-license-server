@@ -52,16 +52,16 @@ $assets = ( new \SmartLicenseServer\Environments\WordPress\ScriptManager() )->ge
          * normal WordPress admin shell — not on this standalone page.
          */
         window.smliserEmailEditor = {
-            key:        <?php echo json_encode( $key ); ?>,
-            label:      <?php echo json_encode( $label ); ?>,
-            blocks:     <?php echo json_encode( $preview->get_blocks() ); ?>,
-            styles:     <?php echo json_encode( $preview->resolve_styles() ); ?>,
-            isEnabled:  <?php echo json_encode( $is_enabled ); ?>,
-            hasCustom:  <?php echo json_encode( $has_custom ); ?>,
-            backURL:    <?php echo json_encode( $back_url ); ?>,
-            previewHTML:<?php echo json_encode( $preview_html ); ?>,
-            ajaxURL:    <?php echo json_encode( admin_url( 'admin-ajax.php' ) ); ?>,
-            nonce:      <?php echo json_encode( wp_create_nonce( 'smliser_nonce' ) ); ?>,
+            key:        <?php echo smliser_safe_json_encode( $key ); ?>,
+            label:      <?php echo smliser_safe_json_encode( $label ); ?>,
+            blocks:     <?php echo smliser_safe_json_encode( $preview->get_blocks() ); ?>,
+            styles:     <?php echo smliser_safe_json_encode( $preview->resolve_styles() ); ?>,
+            isEnabled:  <?php echo smliser_safe_json_encode( $is_enabled ); ?>,
+            hasCustom:  <?php echo smliser_safe_json_encode( $has_custom ); ?>,
+            backURL:    <?php echo smliser_safe_json_encode( $back_url ); ?>,
+            previewHTML:<?php echo smliser_safe_json_encode( $preview_html ); ?>,
+            ajaxURL:    <?php echo smliser_safe_json_encode( admin_url( 'admin-ajax.php' ) ); ?>,
+            nonce:      <?php echo smliser_safe_json_encode( wp_create_nonce( 'smliser_nonce' ) ); ?>,
         };
     </script>
 </head>
