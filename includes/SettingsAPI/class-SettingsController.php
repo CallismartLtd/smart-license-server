@@ -210,8 +210,8 @@ class SettingsController {
             static::is_system_admin();
 
             $template_key = $request->get( 'template_key' );
-            $blocks_raw   = $request->get( 'blocks' );
-            $styles_raw   = $request->get( 'styles' );
+            $blocks_raw   = $request->get_file( 'blocks' )?->get_contents() ?? '';
+            $styles_raw   = $request->get_file( 'styles' )?->get_contents() ?? '';
 
             if ( ! $template_key ) {
                 throw new RequestException( 'required_param', 'Template key is required.' );
@@ -266,8 +266,8 @@ class SettingsController {
             static::is_system_admin();
 
             $template_key = $request->get( 'template_key' );
-            $blocks_raw   = $request->get( 'blocks' );
-            $styles_raw   = $request->get( 'styles' );
+            $blocks_raw   = $request->get_file( 'blocks' )?->get_contents() ?? '';
+            $styles_raw   = $request->get_file( 'styles' )?->get_contents() ?? '';
 
             if ( ! $template_key ) {
                 throw new RequestException( 'required_param', 'Template key is required.' );
@@ -279,7 +279,6 @@ class SettingsController {
 
             $blocks = json_decode( $blocks_raw, true );
             $styles = json_decode( $styles_raw, true );
-            pp( $request->get( 'blocks' ) );
 
             if ( ! is_array( $blocks ) || ! is_array( $styles ) ) {
                 throw new RequestException( 'invalid_param', 'Invalid blocks or styles data.' );

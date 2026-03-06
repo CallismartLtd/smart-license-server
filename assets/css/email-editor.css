@@ -37,6 +37,9 @@
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-size: 13px;
     color: #334155;
+    /* FIX: overflow hidden on body prevents the page itself from scrolling,
+       but we need the inner layout to scroll, not the page. Keep hidden here
+       but fix the inner containers below. */
     overflow: hidden;
     height: 100vh;
 }
@@ -53,7 +56,10 @@
 .smliser-email-editor {
     display: flex;
     flex-direction: column;
+    /* FIX: use 100vh with explicit height so flex children can use
+       flex: 1 and min-height: 0 to actually scroll */
     height: 100vh;
+    max-height: 100vh;
     overflow: hidden;
 }
 
@@ -65,6 +71,7 @@
     align-items: center;
     justify-content: space-between;
     height: 56px;
+    min-height: 56px; /* FIX: prevent toolbar from shrinking under flex pressure */
     padding: 0 16px;
     background: #ffffff;
     border-bottom: 1px solid #e2e8f0;
@@ -122,10 +129,8 @@
     color: #1a1a2e;
 }
 
-.smliser-editor-back .dashicons {
+.smliser-editor-back .ti {
     font-size: 18px;
-    width: 18px;
-    height: 18px;
 }
 
 /* -----------------------------------------------------------------------------
@@ -133,7 +138,12 @@
 ----------------------------------------------------------------------------- */
 .smliser-editor-layout {
     display: flex;
+    /* FIX: flex: 1 alone is not enough — min-height: 0 is required so
+       this flex child can shrink below its content size and allow its
+       own children to scroll. Without this, the browser calculates the
+       height as the content height and overflow never triggers. */
     flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -142,11 +152,16 @@
 ----------------------------------------------------------------------------- */
 .smliser-editor-sidebar {
     width: 300px;
+    min-width: 300px; /* FIX: prevent sidebar from collapsing under flex pressure */
     flex-shrink: 0;
     background: #ffffff;
     border-right: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
+    /* FIX: sidebar itself must not overflow hidden — it needs to let
+       the panel inside it scroll. Set height to 100% so it fills the
+       layout row, and let the panel handle scrolling. */
+    height: 100%;
     overflow: hidden;
 }
 
@@ -156,7 +171,7 @@
 .smliser-sidebar-tabs {
     display: flex;
     border-bottom: 1px solid #e2e8f0;
-    flex-shrink: 0;
+    flex-shrink: 0; /* FIX: tabs must never shrink — they sit above the scroll area */
 }
 
 .smliser-sidebar-tab {
@@ -195,7 +210,11 @@
 ----------------------------------------------------------------------------- */
 .smliser-sidebar-panel {
     display: none;
+    /* FIX: flex: 1 + min-height: 0 is the correct pattern for a scrollable
+       flex child. Without min-height: 0, the browser refuses to shrink the
+       panel below its content height so overflow-y: auto never activates. */
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 16px;
 }
@@ -215,6 +234,7 @@
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 8px;
+    flex-shrink: 0; /* FIX: style groups must not shrink — they define their own height */
 }
 
 .smliser-style-group__title {
@@ -305,7 +325,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    /* FIX: flex: 1 so it fills available space in the panel */
     flex: 1;
+    min-height: 120px;
     gap: 12px;
     text-align: center;
     color: #94a3b8;
@@ -322,6 +344,7 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    /* FIX: no height constraint here — let the panel scroll around it */
 }
 
 .smliser-block-editor__header {
@@ -330,6 +353,7 @@
     justify-content: space-between;
     padding-bottom: 12px;
     border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
 }
 
 .smliser-block-editor__type {
@@ -370,6 +394,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    flex-shrink: 0; /* FIX: field groups define their own height, don't shrink */
 }
 
 .smliser-field-label {
@@ -508,10 +533,12 @@
 ----------------------------------------------------------------------------- */
 .smliser-editor-canvas {
     flex: 1;
+    min-width: 0;  /* FIX: same min-width: 0 pattern — allows canvas to shrink */
     display: flex;
     flex-direction: column;
+    /* FIX: overflow hidden here, let children handle their own scroll */
     overflow: hidden;
-    gap: 0;
+    height: 100%;
 }
 
 /* -----------------------------------------------------------------------------
@@ -521,9 +548,13 @@
     flex-shrink: 0;
     background: #ffffff;
     border-bottom: 1px solid #e2e8f0;
-    max-height: 260px;
+    /* FIX: use max-height with overflow rather than a fixed height so the
+       block list shrinks naturally when there are few blocks, and scrolls
+       when there are many — without eating into the preview space */
+    max-height: 400px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .smliser-block-list-header {
@@ -546,8 +577,11 @@
 }
 
 .smliser-block-list {
-    overflow-y: auto;
+    /* FIX: flex: 1 + min-height: 0 + overflow-y: auto — the scroll trifecta.
+       The block list is the actual scrolling element inside the wrap. */
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     padding: 8px;
     display: flex;
     flex-direction: column;
@@ -568,6 +602,7 @@
     cursor: pointer;
     transition: all 0.15s;
     user-select: none;
+    flex-shrink: 0; /* FIX: block items must not shrink — each is a fixed height row */
 }
 
 .smliser-block-item:hover {
@@ -651,6 +686,7 @@
     color: #94a3b8;
     padding: 0;
     transition: background 0.15s, color 0.15s;
+    font-size: 14px;
 }
 
 .smliser-block-action-btn:hover {
@@ -676,12 +712,14 @@
    16. Preview pane
 ----------------------------------------------------------------------------- */
 .smliser-preview-wrap {
+    /* FIX: flex: 1 + min-height: 0 — preview takes all remaining canvas
+       height after the block list, and can scroll internally */
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background: #f1f5f9;
-    min-height: 0;
 }
 
 .smliser-preview-header {
@@ -694,7 +732,7 @@
     font-size: 12px;
     font-weight: 700;
     color: #475569;
-    flex-shrink: 0;
+    flex-shrink: 0; /* FIX: header never shrinks */
 }
 
 .smliser-preview-note {
@@ -717,7 +755,10 @@
    17. Preview browser chrome
 ----------------------------------------------------------------------------- */
 .smliser-preview-browser {
+    /* FIX: flex: 1 + min-height: 0 so the browser chrome + iframe fills
+       the remaining preview-wrap height and the iframe can grow into it */
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -768,12 +809,15 @@
    18. Preview iframe
 ----------------------------------------------------------------------------- */
 .smliser-preview-frame {
+    /* FIX: flex: 1 + min-height: 0 lets the iframe fill the remaining
+       browser chrome height. The iframe itself scrolls its own document
+       so overflow: auto on the frame element is not needed. */
     flex: 1;
+    min-height: 0;
     width: 100%;
     border: none;
     display: block;
     background: #f4f6f8;
-    min-height: 0;
 }
 
 /* -----------------------------------------------------------------------------
@@ -842,13 +886,12 @@
     transition: all 0.15s;
     white-space: nowrap;
     outline: none;
+    flex-shrink: 0;
 }
 
-.smliser-editor-btn .dashicons {
+.smliser-editor-btn .ti {
     font-size: 14px;
-    width: 14px;
-    height: 14px;
-    margin-top: 1px;
+    line-height: 1;
 }
 
 .smliser-editor-btn--primary {
@@ -908,32 +951,43 @@
     border-top-color: #6366f1;
     border-radius: 50%;
     animation: smliser-spin 0.6s linear infinite;
+    flex-shrink: 0;
 }
 
 @keyframes smliser-spin {
     to { transform: rotate(360deg); }
 }
 
+/* FIX: spin utility for tabler icon buttons (save in progress state) */
+.smliser-spin {
+    animation: smliser-spin 0.6s linear infinite;
+    display: inline-block;
+}
+
 /* -----------------------------------------------------------------------------
    23. Scrollbars
 ----------------------------------------------------------------------------- */
 .smliser-editor-sidebar ::-webkit-scrollbar,
-.smliser-block-list     ::-webkit-scrollbar {
+.smliser-block-list     ::-webkit-scrollbar,
+.smliser-preview-frame  ::-webkit-scrollbar {
     width: 4px;
 }
 
 .smliser-editor-sidebar ::-webkit-scrollbar-track,
-.smliser-block-list     ::-webkit-scrollbar-track {
+.smliser-block-list     ::-webkit-scrollbar-track,
+.smliser-preview-frame  ::-webkit-scrollbar-track {
     background: transparent;
 }
 
 .smliser-editor-sidebar ::-webkit-scrollbar-thumb,
-.smliser-block-list     ::-webkit-scrollbar-thumb {
+.smliser-block-list     ::-webkit-scrollbar-thumb,
+.smliser-preview-frame  ::-webkit-scrollbar-thumb {
     background: #e2e8f0;
     border-radius: 9999px;
 }
 
 .smliser-editor-sidebar ::-webkit-scrollbar-thumb:hover,
-.smliser-block-list     ::-webkit-scrollbar-thumb:hover {
+.smliser-block-list     ::-webkit-scrollbar-thumb:hover,
+.smliser-preview-frame  ::-webkit-scrollbar-thumb:hover {
     background: #cbd5e1;
 }

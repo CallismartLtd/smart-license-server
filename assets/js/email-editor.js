@@ -76,7 +76,6 @@
             window.addEventListener( 'beforeunload', ( e ) => {
                 if ( this.dirty ) {
                     e.preventDefault();
-                    e.returnValue = '';
                 }
             } );
         }
@@ -802,9 +801,8 @@
             payload.set( 'action',       'smliser_preview_email_template' );
             payload.set( 'security',     smliserEmailEditor.nonce );
             payload.set( 'template_key', this.editor.config.key );
-            payload.set( 'blocks',       JSON.stringify( this.editor.$state.blocks ) );
-            payload.set( 'styles',       JSON.stringify( this.editor.$state.styles ) );
-
+            appendJSONFile( payload, 'blocks', this.editor.$state.blocks );
+            appendJSONFile( payload, 'styles', this.editor.$state.styles );
             smliserFetchJSON( new URL( smliserEmailEditor.ajaxURL ), {
                 method:      'POST',
                 credentials: 'same-origin',
@@ -835,13 +833,6 @@
             doc.open();
             doc.write( html );
             doc.close();
-
-            // Adjust iframe height to content after render settles.
-            setTimeout( () => {
-                if ( doc.body ) {
-                    this.frame.style.height = doc.body.scrollHeight + 'px';
-                }
-            }, 100 );
         }
     }
 
@@ -877,8 +868,8 @@
             payload.set( 'action',       'smliser_save_email_template' );
             payload.set( 'security',     smliserEmailEditor.nonce );
             payload.set( 'template_key', key );
-            payload.set( 'blocks', JSON.stringify( this.editor.$state.blocks ) );
-            payload.set( 'styles', JSON.stringify( this.editor.$state.styles ) );
+            appendJSONFile( payload, 'blocks', this.editor.$state.blocks );
+            appendJSONFile( payload, 'styles', this.editor.$state.styles );
 
             smliserFetchJSON( new URL( smliserEmailEditor.ajaxURL ), {
                 method:      'POST',
@@ -1001,6 +992,26 @@
                 btn.disabled = false;
             } );
         }
+    }
+
+    /**
+     * Append a JSON-serializable value to a FormData instance as a file.
+     *
+     * Sending nested arrays/objects as raw JSON strings in POST params is
+     * unreliable — PHP may receive a double-encoded string depending on the
+     * fetch wrapper in use. Appending as a Blob file guarantees PHP receives
+     * the raw bytes which json_decode() can parse correctly via $_FILES.
+     *
+     * @param {FormData} formData  — the FormData instance to append to
+     * @param {string}   fieldName — the file field name PHP will read from $_FILES
+     * @param {*}        data      — any JSON-serializable value
+     */
+    function appendJSONFile( formData, fieldName, data ) {
+        const blob = new Blob(
+            [ JSON.stringify( data ) ],
+            { type: 'application/json' }
+        );
+        formData.append( fieldName, blob, fieldName + '.json' );
     }
 
     // =========================================================================
