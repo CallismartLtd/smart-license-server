@@ -57,6 +57,9 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
      * @return bool
      */
     protected function add( int $user_id, string $issuer, string $external_id ) : bool {
+        if ( $this->find_actor( $issuer, $external_id ) ) {
+            return true; // already federated — not an error
+        }
 
         $db = smliser_dbclass();
 

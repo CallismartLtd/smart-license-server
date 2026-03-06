@@ -101,11 +101,11 @@ final class IdentityService extends AbstractIdentityProvider {
             return null;
         }
 
-        $transient_key  = sprintf( '%s_%s', md5( $this->issuer() ), $session_token );
+        $transient_key  = md5( $this->issuer() . '_' . $session_token );
         $owner_id       = get_transient( $transient_key );
 
         if ( $owner_id ) {
-            return Owner::get_by_id( $owner_id );
+            return Owner::get_by_id( (int) $owner_id );
         }
 
         return null;
@@ -114,21 +114,26 @@ final class IdentityService extends AbstractIdentityProvider {
     /**
      * Add a Wordpress user to Smart License Server using the federation feature.
      * 
-     * @param int       $id     The WordPress user ID.
+     * @param int       $wp_user_id     The WordPress user ID.
      * @param int|User  $user   ID or an instance of @see `\SmartLicenseServer\Security\Actors\User`
      */
-    public function sync_user( int $id, User|int $user ) : bool {
+    public function sync_user( int $wp_user_id, User|int $user ) : bool {
         $user   = is_int( $user ) ? User::get_by_id( $user ) : $user;
 
         if ( ! $user ) {
             return false;
         }
 
-        return $this->add( $user->get_id(), $this->issuer(), $id );
+        return $this->add( $user->get_id(), $this->issuer(), $wp_user_id );
     }
 
-    public function auto_provision() {
-        if ( ! \is_user_logged_in() || ! \is_super_admin( ) ) {
+    /**
+     * Auto automatically federate WordPress administrators into Smart License Server.
+     * 
+     * Silently fails on errors.
+     */
+    public function auto_provision() : void {
+        if ( ! \is_user_logged_in() || ! \is_super_admin() ) {
             return;
         }
 
@@ -139,8 +144,8 @@ final class IdentityService extends AbstractIdentityProvider {
 
         $wp_user    = wp_get_current_user();
         $issuer     = $this->issuer();
-        $wp_id      = (string) $wp_user->ID;
-        $actor      = $this->find_actor( $issuer, $wp_id );
+        $wp_user_id      = (string) $wp_user->ID;
+        $actor      = $this->find_actor( $issuer, $wp_user_id );
 
         if ( $actor ) {
             // Already federated.
@@ -152,7 +157,7 @@ final class IdentityService extends AbstractIdentityProvider {
 
         if ( $smliser_user ) {
             // An account exists for this admin, federate it.
-            $this->sync_user( $wp_id, $smliser_user );
+            $this->sync_user( $wp_user_id, $smliser_user );
             return;
         }
 
@@ -167,7 +172,6 @@ final class IdentityService extends AbstractIdentityProvider {
         if ( ! $user->save() ) {
             return;
         }
-
         
         $default_role   = DefaultRoles::get( 'system_admin' );
         $caps           = $default_role['capabilities'];
@@ -207,6 +211,6 @@ final class IdentityService extends AbstractIdentityProvider {
         }
 
         // Sync to federation table.
-        $this->sync_user( $wp_id, $user );
+        $this->sync_user( $wp_user_id, $user );
     }
 }
