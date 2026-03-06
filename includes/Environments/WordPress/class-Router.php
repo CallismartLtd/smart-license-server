@@ -80,6 +80,7 @@ class Router implements RouterInterface {
             'smliser_save_email_provider_settings'          => [ __CLASS__, 'parse_save_email_provider_request' ],
             'smliser_save_system_options'                   => [ __CLASS__, 'parse_save_system_settings_request' ],
             'smliser_save_route_options'                    => [ __CLASS__, 'parse_save_routes_settings_request' ],
+            'smliser_toggle_email_template'                 => [ __CLASS__, 'parse_save_email_template_toggle_request' ],
         ];
 
         if ( isset( $handler_map[ $trigger ] ) ) {
@@ -408,6 +409,25 @@ class Router implements RouterInterface {
         static::guard( $request, 'super_admin' );
 
         $response   = SettingsController::save_routing_settings( $request );
+
+        if ( $response->ok() ) {
+            \flush_rewrite_rules();
+        }
+
+        $response->send();
+        exit;
+    }
+
+    /**
+     * Parse save email template toggle request.
+     *
+     * @param  Request $request
+     * @return void
+     */
+    public static function parse_save_email_template_toggle_request( Request $request ): void {
+        static::guard( $request, 'super_admin' );
+
+        $response   = SettingsController::toggle_email_template( $request );
 
         if ( $response->ok() ) {
             \flush_rewrite_rules();

@@ -2267,3 +2267,49 @@ input.smliser_toggle-switch-input {
         grid-template-columns: 1fr;
     }
 }
+
+.smliser-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.smliser-filter-btn:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #4f46e5;
+}
+
+.smliser-filter-btn--active {
+    background: #7e7f8f;
+    border-color: #6366f1;
+    color: #ffffff;
+}
+
+.smliser-filter-btn--active .smliser-filter-count {
+    background: rgba( 255, 255, 255, 0.25 );
+    color: #ffffff;
+}
+
+.smliser-filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 10px;
+    font-weight: 700;
+    background: #e2e8f0;
+    color: #64748b;
+    border-radius: 9999px;
+}

@@ -256,6 +256,14 @@ interface RouterInterface {
     public static function parse_save_email_provider_request( Request $request ): void;
 
     /**
+     * Parse save email template toggle request.
+     *
+     * @param  Request $request
+     * @return void
+     */
+    public static function parse_save_email_template_toggle_request( Request $request ): void;
+
+    /**
      * Parse save system settings request.
      * 
      * @param Request $request

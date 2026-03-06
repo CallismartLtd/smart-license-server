@@ -951,6 +951,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     /** @type {HTMLSelectElement} */
     const ownersSearch          = document.querySelector( '#owner_id, #app_owner_id' );
     const deleteEntities        = document.querySelectorAll( '.smliser-delete-entity' );
+    const emailTemplatesPage    = document.querySelector( '#smliser-email-templates-table' );
+    const emailTemplateToggle   = document.querySelectorAll( '.smliser-template-toggle' );
 
     jQuery( '.smliser-auto-select2 select' ).select2( { width: '100%' } );
 
@@ -2641,6 +2643,83 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             
 
         })
+    }
+
+    if ( emailTemplatesPage ) {
+        const btns  = document.querySelectorAll( '.smliser-filter-btn' );
+        const rows  = document.querySelectorAll( '#smliser-email-templates-table tbody tr' );
+
+        btns.forEach( function( btn ) {
+            btn.addEventListener( 'click', function() {
+                const group = this.dataset.group;
+
+                btns.forEach( b => b.classList.remove( 'smliser-filter-btn--active' ) );
+                this.classList.add( 'smliser-filter-btn--active' );
+
+                rows.forEach( function( row ) {
+                    row.style.display = ( group === 'all' || row.dataset.group === group )
+                        ? ''
+                        : 'none';
+                } );
+            } );
+        } );
+    }
+
+    if ( emailTemplateToggle ) {
+        emailTemplateToggle.forEach( function( btn ) {
+            btn.addEventListener( 'click', function() {
+                const key     = this.dataset.key;
+                const enabled = this.dataset.enabled;
+                toggleEmailTemplate( key, enabled, this );
+            } );
+        } );
+
+        const toggleEmailTemplate = ( tempKey, currentState, btn ) => {
+            const url      = new URL( smliser_var.ajaxURL );
+            const payLoad  = new FormData;
+            const enabling = currentState === '0'; // if currently disabled, we are enabling
+
+            payLoad.set( 'action',       'smliser_toggle_email_template' );
+            payLoad.set( 'security',     smliser_var.nonce );
+            payLoad.set( 'template_key', tempKey );
+            payLoad.set( 'new_state',    enabling ? '1' : '0' );
+
+            btn.disabled = true;
+
+            smliserFetchJSON( url, {
+                method:      'POST',
+                credentials: 'same-origin',
+                body:        payLoad,
+            } ).then( async response => {
+                if ( response.success ) {
+                    await SmliserModal.success( response?.data?.message || 'Success' );
+
+                    // Update button data attribute to reflect new state.
+                    btn.dataset.enabled = enabling ? '1' : '0';
+
+                    // Update button appearance.
+                    if ( enabling ) {
+                        btn.style.border     = '1px solid #fecaca';
+                        btn.style.background = '#fef2f2';
+                        btn.style.color      = '#991b1b';
+                        btn.querySelector( '.dashicons' ).classList.replace( 'dashicons-visibility', 'dashicons-hidden' );
+                        btn.lastChild.textContent = 'Disable';
+                        btn.title = 'Disable this template';
+                    } else {
+                        btn.style.border     = '1px solid #bbf7d0';
+                        btn.style.background = '#f0fdf4';
+                        btn.style.color      = '#166534';
+                        btn.querySelector( '.dashicons' ).classList.replace( 'dashicons-hidden', 'dashicons-visibility' );
+                        btn.lastChild.textContent = 'Enable';
+                        btn.title = 'Enable this template';
+                    }
+                }
+            } ).catch( err => {
+                SmliserModal.error( err.message, 'Error Occurred' );
+            } ).finally( () => {
+                btn.disabled = false;
+            } );
+        };
     }
 });
 

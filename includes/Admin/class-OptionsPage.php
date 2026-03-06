@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Email\EmailProviderCollection;
 use SmartLicenseServer\Email\Providers\EmailProviderInterface;
+use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
 use SmartLicenseServer\Monetization\ProviderCollection;
 
 use function sprintf, smliser_settings_adapter;
@@ -96,19 +97,65 @@ class OptionsPage {
      * Email settings page dispatcher.
      *
      * Routes to individual provider settings when a provider query param
-     * is present, otherwise renders the provider list with global email settings.
+     * is present, to the template list when section=templates, to an
+     * individual template when section=templates&template=key,
+     * otherwise renders the provider list with global email settings.
      */
     private static function email_options(): void {
         if ( smliser_has_query_param( 'provider' ) ) {
             self::email_provider_settings();
-        } else {
-            $collection       = EmailProviderCollection::instance();
-            $providers        = $collection->get_providers();
-            $default_provider = EmailProviderCollection::get_default_provider_id();
-            $email_fields     = static::email_settings_fields();
-
-            include_once SMLISER_PATH . 'templates/admin/options/email.php';
+            return;
         }
+
+        if ( smliser_get_query_param( 'section' ) === 'templates' ) {
+            self::email_template_options();
+            return;
+        }
+
+        $collection       = EmailProviderCollection::instance();
+        $providers        = $collection->get_providers();
+        $default_provider = EmailProviderCollection::get_default_provider_id();
+        $email_fields     = static::email_settings_fields();
+
+        include_once SMLISER_PATH . 'templates/admin/options/email.php';
+    }
+
+    /**
+     * Email template list or individual template view.
+     *
+     * Dispatches to the single template view when a template key
+     * is present, otherwise renders the full template list.
+     */
+    private static function email_template_options(): void {
+        if ( smliser_has_query_param( 'template' ) ) {
+            self::email_template_detail();
+            return;
+        }
+
+        $templates = EmailTemplateRegistry::all();
+
+        include_once SMLISER_PATH . 'templates/admin/options/email-templates.php';
+    }
+
+    /**
+     * Individual email template view.
+     *
+     * Provides the preview render and enable/disable/reset controls
+     * for a single template type.
+     */
+    private static function email_template_detail(): void {
+        $key   = smliser_get_query_param( 'template' );
+        $entry = EmailTemplateRegistry::entry( $key );
+
+        if ( ! $entry ) {
+            wp_safe_redirect( remove_query_arg( 'template' ) );
+            exit;
+        }
+
+        $preview       = EmailTemplateRegistry::preview( $key );
+        $preview_html  = $preview?->render();
+
+        include_once SMLISER_PATH . 'templates/admin/options/email-template-detail.php';
     }
 
     /**
@@ -404,14 +451,18 @@ class OptionsPage {
      */
     protected static function get_menu_args(): array {
         $tab         = smliser_get_query_param( 'tab' );
-        $current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider' );
+        $section     = smliser_get_query_param( 'section' );
+        $current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider', 'template' );
 
-        $title = match ( $tab ) {
-            'routes'        => 'Page Routing',
-            'monetization'  => 'Monetization Providers',
-            'email'         => 'Email Providers',
-            default         => 'General Settings',
+        $title = match ( true ) {
+            'routes'       === $tab                              => 'Page Routing',
+            'monetization' === $tab                              => 'Monetization Providers',
+            'email'        === $tab && 'templates' === $section  => 'Email Templates',
+            'email'        === $tab                              => 'Email Providers',
+            default                                              => 'General Settings',
         };
+
+        $email_url = $current_url->add_query_param( 'tab', 'email' );
 
         return [
             'breadcrumbs' => [
@@ -426,18 +477,25 @@ class OptionsPage {
             ],
             'actions' => [
                 [
-                    'title'  => 'Monetizations',
+                    'title'  => 'Monetization Provider Settings',
                     'label'  => 'Monetizations',
                     'url'    => $current_url->add_query_param( 'tab', 'monetization' ),
                     'icon'   => 'ti ti-cash-register',
                     'active' => 'monetization' === $tab,
                 ],
                 [
-                    'title'  => 'Email Providers Settings',
-                    'label'  => 'Emails',
-                    'url'    => $current_url->add_query_param( 'tab', 'email' ),
+                    'title'  => 'Email Provider Settings',
+                    'label'  => 'Email Providers',
+                    'url'    => $email_url,
                     'icon'   => 'ti ti-mail',
-                    'active' => 'email' === $tab,
+                    'active' => 'email' === $tab && 'templates' !== $section,
+                ],
+                [
+                    'title'  => 'Email Templates',
+                    'label'  => 'Email Templates',
+                    'url'    => $email_url->add_query_param( 'section', 'templates' ),
+                    'icon'   => 'ti ti-template',
+                    'active' => 'email' === $tab && 'templates' === $section,
                 ],
                 [
                     'title'  => 'Routes Settings',
