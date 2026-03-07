@@ -1072,6 +1072,10 @@ class License {
      * @return bool
      */
     public function is_issued() : bool {
+        if ( ! isset( $this->app ) ) {
+            $this->get_app();
+        }
+        
         return ( $this->app instanceof AbstractHostedApp );
     }
 
