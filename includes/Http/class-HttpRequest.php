@@ -6,7 +6,7 @@
  * Constructed once and passed to any HttpAdapterInterface implementation.
  *
  * @package SmartLicenseServer\Http
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 declare( strict_types = 1 );

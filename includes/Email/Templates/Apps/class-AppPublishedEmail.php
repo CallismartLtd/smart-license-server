@@ -150,7 +150,7 @@ class AppPublishedEmail extends EmailTemplate {
     public static function preview(): static {
         $app = Plugin::from_array_minimal([
             'name'    => 'My Awesome Plugin',
-            'version' => '1.0.0',
+            'version' => '0.2.0',
             'type'    => 'plugin',
             'slug'    => 'my-awesome-plugin',
         ]);

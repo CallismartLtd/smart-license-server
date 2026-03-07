@@ -4,7 +4,7 @@ Tags: rest-api, license, private-repository, plugin, theme, self-hosted
 Requires PHP: 7.4
 Requires at least: 6.2
 Tested up to: 6.5
-Stable tag: 1.0.0
+Stable tag: 0.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 

@@ -778,7 +778,7 @@ abstract class Repository {
     /**
      * Creates all necessary directories.
      *
-     * @since 1.0.0
+     * @since 0.2.0
      *
      * @return true|Exception True on success, Exception instance on failure.
      */
@@ -829,7 +829,7 @@ abstract class Repository {
     /**
      * Protects the given directory using an .htaccess file.
      *
-     * @since 1.0.0
+     * @since 0.2.0
      *
      * @param string $dir Absolute path to the directory.
      * @param FileSystem $fs  FileSystem instance.
@@ -884,7 +884,7 @@ abstract class Repository {
     /**
      * Safely translate a string even outside WordPress.
      *
-     * @since 1.0.0
+     * @since 0.2.0
      *
      * @param string $text Text to translate.
      * @param string $domain Text domain.
@@ -897,7 +897,7 @@ abstract class Repository {
     /**
      * Safely escape a string even outside WordPress.
      *
-     * @since 1.0.0
+     * @since 0.2.0
      *
      * @param string $text Text to escape.
      * @return string Escaped or raw text.

@@ -246,7 +246,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
      * @param string $redirect_url The redirected url.
      * @param string $requested_url The client requested url.
      * @return false|string False when accessing downloads page, perform redirect when not.
-     * @since 1.0.0
+     * @since 0.2.0
      */
     public function disable_redirect_on_downloads( $redirect_url, $requested_url ) {
         $download_slug = site_url( smliser_get_download_url_prefix() );

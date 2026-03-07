@@ -7,7 +7,7 @@
  *
  * @see     https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
  * @package SmartLicenseServer\Http
- * @since   1.0.0
+ * @since   0.2.0
  */
 
 declare( strict_types = 1 );

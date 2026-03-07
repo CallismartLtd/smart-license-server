@@ -5,7 +5,7 @@
  * Represents a normalized response from an email provider.
  *
  * @package SmartLicenseServer\Email
- * @since 1.0.0
+ * @since 0.2.0
  */
 declare( strict_types = 1 );
 

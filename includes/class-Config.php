@@ -4,7 +4,7 @@
  * 
  * @author Callistus
  * @package SmartLicenseServer
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 namespace SmartLicenseServer;
@@ -177,6 +177,10 @@ abstract class Config {
         foreach ( $prop_map as $env_k => $prop_k ) {
             if ( isset( $this->{$prop_k} ) ) {
                 // Preserve injected adapter if already set.
+                continue;
+            }
+
+            if ( ! isset( $this->env[$env_k] ) ) {
                 continue;
             }
             

@@ -7,7 +7,7 @@
  * Requires allow_url_fopen = On in php.ini.
  *
  * @package SmartLicenseServer\Http\Adapters
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 declare( strict_types = 1 );

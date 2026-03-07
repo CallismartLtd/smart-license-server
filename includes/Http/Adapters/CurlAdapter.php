@@ -7,7 +7,7 @@
  * including SSL verification, redirects, cookies, and timing.
  *
  * @package SmartLicenseServer\Http\Adapters
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 declare( strict_types = 1 );

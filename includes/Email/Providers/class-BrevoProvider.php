@@ -8,7 +8,7 @@
  *
  * @see     https://developers.brevo.com/reference/sendtransacemail
  * @package SmartLicenseServer\Email\Providers
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 declare( strict_types = 1 );

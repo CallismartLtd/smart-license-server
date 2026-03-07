@@ -4,7 +4,7 @@
  * 
  * @author Callistus.
  * @package Smliser\templates.
- * @since 1.0.0
+ * @since 0.2.0
  * @var SmartLicenseServer\HostedApps\Software $app The plugin object.
  * @var SmartLicenseServer\SoftwareRepository $repo_class
  */

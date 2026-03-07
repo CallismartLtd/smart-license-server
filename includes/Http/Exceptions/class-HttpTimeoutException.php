@@ -7,7 +7,7 @@
  * or together.
  *
  * @package SmartLicenseServer\Http\Exceptions
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 declare( strict_types = 1 );

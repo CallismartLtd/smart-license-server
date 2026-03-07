@@ -9,7 +9,7 @@
  *
  * @see     https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html
  * @package SmartLicenseServer\Email\Providers
- * @since   1.0.0
+ * @since   0.2.0
  */
 
 declare( strict_types = 1 );

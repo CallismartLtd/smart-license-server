@@ -4,7 +4,7 @@
  * Utility functions file
  * 
  * @author Callistus
- * @since 1.0.0
+ * @since 0.2.0
  * @package Smliser\functions
  */
 

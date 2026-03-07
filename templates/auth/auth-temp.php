@@ -11,7 +11,7 @@
  * the readme will list any important changes.
  *
  * @package Smliser\Templates\Auth
- * @version 1.0.0
+ * @version 0.2.0
  */
 
 defined( 'SMLISER_ABSPATH' ) || exit;

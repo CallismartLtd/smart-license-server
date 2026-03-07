@@ -4,7 +4,7 @@
  * 
  * @author Callistus.
  * @package Smliser\templates.
- * @since 1.0.0
+ * @since 0.2.0
  * @var SmartLicenseServer\HostedApps\Theme $app The theme object.
  * @var SmartLicenseServer\FileSystem\ThemeRepository $repo_class
  */

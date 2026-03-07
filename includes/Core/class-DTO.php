@@ -41,7 +41,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *   }
  *
  * @package SmartLicenseServer
- * @since   1.0.0
+ * @since   0.2.0
  */
 class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializable {
 

@@ -4,7 +4,7 @@
  * 
  * @author Callistus.
  * @package Smliser\templates.
- * @since 1.0.0
+ * @since 0.2.0
  * @var \SmartLicenseServer\Monetization\License $license
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp $licensed_app
  */

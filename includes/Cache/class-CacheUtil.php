@@ -3,7 +3,7 @@
  * Cache utilities.
  *
  * @package SmartLicenseServer\Cache
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 namespace SmartLicenseServer\Cache;

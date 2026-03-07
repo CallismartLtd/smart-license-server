@@ -6,7 +6,7 @@
  * WP-specific syntax should be handled by a dedicated parser.
  *
  * @package SmartLicenseServer\MDParser
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 namespace SmartLicenseServer\Utils;

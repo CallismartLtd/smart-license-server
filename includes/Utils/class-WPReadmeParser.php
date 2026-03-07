@@ -9,7 +9,7 @@
  * - Converts WP headings and bullet/numbered lists into Markdown format.
  *
  * @package SmartLicenseServer\MDParser
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 namespace SmartLicenseServer\Utils;

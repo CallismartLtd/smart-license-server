@@ -4,7 +4,7 @@
  *
  * @package Smart_License_Server
  * @subpackage Monetization
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 namespace SmartLicenseServer\Monetization;

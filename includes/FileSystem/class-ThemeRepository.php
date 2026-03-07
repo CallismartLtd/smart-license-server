@@ -350,7 +350,7 @@ class ThemeRepository extends Repository {
             * Parse key: value fields
             * Example:
             *   Theme Name: Smart Portal
-            *   Version: 1.0.0
+            *   Version: 0.2.0
             *   Tags: dashboard, smart-woo
             */
             if ( preg_match( '/^([^:]+):\s*(.+)$/', $line, $matches ) ) {

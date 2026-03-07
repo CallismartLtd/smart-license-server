@@ -5,7 +5,7 @@
  * Represents a normalized email message to be sent via any provider.
  *
  * @package SmartLicenseServer\Email
- * @since 1.0.0
+ * @since 0.2.0
  */
 declare( strict_types = 1 );
 
@@ -23,11 +23,11 @@ use InvalidArgumentException;
  * values (bad addresses, empty subject, etc.) also throws immediately.
  *
  * Normalisation applied automatically via cast():
- *   - 'to', 'cc', 'bcc'    → always string[]
- *   - 'from', 'reply_to'   → always ['email' => string, 'name' => string]
- *   - 'attachments'        → always ['path'|'base64', 'content', 'filename', 'mime'][]
- *   - 'headers'            → always string[]
- *   - 'subject', 'body'    → always string
+ *   - 'to', 'cc', 'bcc'            → always string[]
+ *   - 'from', 'reply_to'           → always ['email' => string, 'name' => string]
+ *   - 'attachments'                → always ['path'|'base64', 'content', 'filename', 'mime'][]
+ *   - 'headers'                    → always string[]
+ *   - 'subject', 'body', 'text'    → always string
  */
 class EmailMessage extends DTO {
 

@@ -4,7 +4,7 @@
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\templates
- * @since 1.0.0
+ * @since 0.2.0
  */
 
 use SmartLicenseServer\Admin\Menu;

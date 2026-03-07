@@ -159,7 +159,7 @@ class AppUpdatedEmail extends EmailTemplate {
             'type'    => 'theme',
             'slug'    => 'my-awesome-theme',
         ]);
-        return new static( $app, 'preview@example.com', '1.0.0' );
+        return new static( $app, 'preview@example.com', '0.2.0' );
     }
 
     public function get_blocks(): array {
