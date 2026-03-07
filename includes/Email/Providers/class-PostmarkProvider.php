@@ -130,14 +130,15 @@ class PostmarkProvider extends AbstractRestEmailProvider {
 
         $this->validate_recipients( $to );
 
-        $html_body = $message->get( 'body', '' );
+        $html_body  = $message->get( 'body', '' );
+        $text       = $message->get( 'text', '' );
 
         $payload = [
             'From'          => $this->format_address_string( $sender['email'], $sender['name'] ),
             'To'            => $this->format_address_string_list( $to ),
             'Subject'       => $message->get( 'subject', '' ),
             'HtmlBody'      => $html_body,
-            'TextBody'      => $this->derive_text_body( $html_body ),
+            'TextBody'      => $text,
             'MessageStream' => $this->settings['message_stream'] ?? 'outbound',
         ];
 

@@ -130,14 +130,15 @@ class ResendProvider extends AbstractRestEmailProvider {
 
         $this->validate_recipients( $to );
 
-        $html_body = $message->get( 'body', '' );
+        $html_body  = $message->get( 'body', '' );
+        $text       = $message->get( 'text', '' );
 
         $payload = [
             'from'    => $this->format_address_string( $sender['email'], $sender['name'] ),
             'to'      => $to,
             'subject' => $message->get( 'subject', '' ),
             'html'    => $html_body,
-            'text'    => $this->derive_text_body( $html_body ),
+            'text'    => $text,
         ];
 
         if ( ! empty( $cc ) ) {

@@ -224,7 +224,7 @@ class AmazonSESProvider extends AbstractRestEmailProvider {
                 ],
                 'Body' => [
                     'Text' => [
-                        'Data'    => $this->derive_text_body( $html_body ),
+                        'Data'    => $message->get( 'text', '' ),
                         'Charset' => 'UTF-8',
                     ],
                     'Html' => [
@@ -359,7 +359,7 @@ class AmazonSESProvider extends AbstractRestEmailProvider {
         $mime .= "--{$alt_boundary}{$eol}";
         $mime .= "Content-Type: text/plain; charset=UTF-8{$eol}";
         $mime .= "Content-Transfer-Encoding: quoted-printable{$eol}{$eol}";
-        $mime .= quoted_printable_encode( $this->derive_text_body( $html_body ) ) . $eol;
+        $mime .= quoted_printable_encode( $message->get( 'text', '' ) ) . $eol;
 
         // HTML part.
         $mime .= "--{$alt_boundary}{$eol}";

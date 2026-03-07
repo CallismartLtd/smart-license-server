@@ -17,6 +17,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email\Providers;
 
+use Automattic\WooCommerce\StoreApi\Routes\V1\Agentic\Messages\Message;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
@@ -554,7 +555,6 @@ class SMTPProvider implements EmailProviderInterface {
         $alt_boundary    = 'alt-'   . md5( uniqid( '', true ) );
         $attachments     = $message->get( 'attachments', [] );
         $has_attachments = ! empty( $attachments );
-        $html_body       = $message->get( 'body', '' );
 
         // --- Headers ---
         $headers   = [];
@@ -599,7 +599,7 @@ class SMTPProvider implements EmailProviderInterface {
             // Open mixed boundary and embed the alternative block as a nested part.
             $this->write_raw( "--{$mixed_boundary}{$eol}" );
             $this->write_raw( "Content-Type: multipart/alternative; boundary=\"{$alt_boundary}\"{$eol}{$eol}" );
-            $this->stream_alternative_parts( $html_body, $alt_boundary );
+            $this->stream_alternative_parts( $message, $alt_boundary );
             $this->write_raw( $eol );
 
             // Stream each attachment directly from disk or memory.
@@ -611,7 +611,7 @@ class SMTPProvider implements EmailProviderInterface {
             $this->write_raw( "--{$mixed_boundary}--{$eol}" );
         } else {
             // No attachments — write alternative parts directly.
-            $this->stream_alternative_parts( $html_body, $alt_boundary );
+            $this->stream_alternative_parts( $message, $alt_boundary );
         }
 
         // DATA terminator — signals end of message to the server.
@@ -627,13 +627,14 @@ class SMTPProvider implements EmailProviderInterface {
      * Both parts use quoted-printable transfer encoding, which handles
      * non-ASCII UTF-8 content safely and keeps line lengths within RFC limits.
      *
-     * @param string $html
+     * @param EmailMessage $message
      * @param string $boundary
      * @throws EmailTransportException
      */
-    protected function stream_alternative_parts( string $html, string $boundary ): void {
+    protected function stream_alternative_parts( EmailMessage $message, string $boundary ): void {
         $eol        = "\r\n";
-        $plain_text = strip_tags( $html );
+        $html       = $message->get( 'body', '' );
+        $plain_text = $message->get( 'text', '' );
 
         // Plain text part.
         $this->write_raw( "--{$boundary}{$eol}" );

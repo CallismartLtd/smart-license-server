@@ -79,7 +79,8 @@ class EmailMessage extends DTO {
             'cc',          // string[]: optional CC recipients
             'bcc',         // string[]: optional BCC recipients
             'subject',     // string
-            'body',        // string: HTML or plain text
+            'body',        // string: HTML
+            'text',        // string: plain text
             'attachments', // array: normalised attachment descriptors
             'headers',     // string[]: custom headers
             'reply_to',    // array: ['email' => string, 'name' => string]

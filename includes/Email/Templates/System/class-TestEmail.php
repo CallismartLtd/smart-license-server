@@ -140,8 +140,11 @@ class TestEmail extends EmailTemplate {
     public function description(): string {
         return 'Sent when an administrator tests an email provider configuration.';
     }
+
     public static function preview(): static {
-        return new static( 'preview@example.com', 'Preview Provider' );
+        $providers  = ['PHP Mail', 'SMTP', 'Brevo', 'SendGrid', 'Mailgun', 'Postmark' ];
+        $provider   = $providers[\random_int( 0, count( $providers) - 1 )];
+        return new static( 'preview@example.com', $provider );
     }
 
     public function get_blocks(): array {

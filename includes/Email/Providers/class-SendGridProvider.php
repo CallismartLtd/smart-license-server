@@ -141,7 +141,8 @@ class SendGridProvider extends AbstractRestEmailProvider {
             $personalisation['bcc'] = $this->format_address_list( $bcc );
         }
 
-        $html_body = $message->get( 'body', '' );
+        $html_body  = $message->get( 'body', '' );
+        $text       = $message->get( 'text', '' );
 
         $payload = [
             'personalizations' => [ $personalisation ],
@@ -150,7 +151,7 @@ class SendGridProvider extends AbstractRestEmailProvider {
             'content'          => [
                 [
                     'type'  => 'text/plain',
-                    'value' => $this->derive_text_body( $html_body ),
+                    'value' => $text,
                 ],
                 [
                     'type'  => 'text/html',

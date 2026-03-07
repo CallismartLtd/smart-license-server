@@ -275,17 +275,4 @@ abstract class AbstractRestEmailProvider implements EmailProviderInterface {
 
         return $result;
     }
-
-    /**
-     * Derive a plain text body from an HTML body via strip_tags().
-     *
-     * Used when the provider requires a separate text body and the
-     * EmailMessage does not carry an explicit one.
-     *
-     * @param string $html
-     * @return string
-     */
-    protected function derive_text_body( string $html ): string {
-        return strip_tags( $html );
-    }
 }

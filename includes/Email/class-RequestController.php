@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Email;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Email\Templates\System\TestEmail;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\SecurityAwareTrait;
@@ -255,11 +256,8 @@ class RequestController {
 
             $site_name = smliser_settings_adapter()->get( 'repository_name', SMLISER_APP_NAME, true );
 
-            $message = new EmailMessage( [
-                'to'      => $recipient,
-                'subject' => sprintf( '[%s] Test Email', $site_name ),
-                'body'    => static::build_test_email_body( $site_name, $provider->get_name(), $recipient ),
-            ] );
+            $message = ( new TestEmail( $recipient, $provider->get_name() ) )
+                ->to_message();
 
             $mailer         = Mailer::with_provider( $provider );
             $email_response = $mailer->send( $message );
@@ -302,19 +300,5 @@ class RequestController {
                 ->set_exception( new RequestException( 'send_failed', $e->getMessage() ) )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
-    }
-
-    /**
-     * Build the HTML body for the test email.
-     *
-     * @param string $site_name     Repository name from system settings.
-     * @param string $provider_name Display name of the provider being tested.
-     * @param string $recipient     The address the test is being sent to.
-     * @return string
-     */
-    protected static function build_test_email_body( string $site_name, string $provider_name, string $recipient ): string {
-        $sent_at = ( new \DateTimeImmutable( 'now' ) )->format( 'Y-m-d H:i:s T' );
-
-        return include_once SMLISER_PATH . 'templates/emails/test-email.php';
     }
 }

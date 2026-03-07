@@ -126,7 +126,7 @@ class BrevoProvider extends AbstractRestEmailProvider {
             'to'          => $this->format_address_list( $to ),
             'subject'     => $message->get( 'subject', '' ),
             'htmlContent' => $message->get( 'body', '' ),
-            'textContent' => $this->derive_text_body( $message->get( 'body', '' ) ),
+            'textContent' => $message->get( 'text', '' ),
         ];
 
         if ( ! empty( $cc ) ) {
