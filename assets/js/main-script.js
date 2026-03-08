@@ -1080,6 +1080,15 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             } else {
                 adminNav.classList.remove( 'is-scrolled' );
             }
+
+            if ( window.matchMedia( `( min-width: 19px) and (max-width: 600px )`).matches ) {
+                let scrollUp = window.scrollY > 20;
+                if( scrollUp ) {
+                    adminNav.style.top = "0";
+                } else {
+                    adminNav.style.top = "35px";
+                }
+            }
             
         })
     }
