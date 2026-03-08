@@ -39,8 +39,8 @@ $menu_args = static::get_menu_args();
             <?php endforeach; ?>
 
             <div class="smliser-form-label-row">
-                <span>Routing Settings</span>
-                <button type="submit" class="smliser-submit-button">Save</button>
+                <span></span>
+                <button type="submit" class="smliser-submit-button" style="width: 100px;">Save</button>
             </div>
             <span class="smliser-spinner"></span>
         </div>
