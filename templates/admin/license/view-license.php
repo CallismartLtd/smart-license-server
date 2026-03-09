@@ -65,7 +65,7 @@ $args   = self::get_menu_args();
     array(
         'title'     => 'Delete License',
         'label'     => 'Delete license',
-        'url'       => $delete_link ?? '#',
+        'url'       =>  isset( $delete_url ) ? $delete_url : '#',
         'class'     => 'smliser-license-delete-btn',
         'icon'      => 'ti ti-trash',
         'attributes' => array(

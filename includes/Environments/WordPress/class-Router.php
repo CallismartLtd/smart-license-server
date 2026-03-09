@@ -84,6 +84,7 @@ class Router implements RouterInterface {
             'smliser_preview_email_template'                => [ __CLASS__, 'parse_preview_email_template_request' ],
             'smliser_save_email_template'                   => [ __CLASS__, 'parse_save_email_template_request' ],
             'smliser_reset_email_template'                  => [ __CLASS__, 'parse_reset_email_template_request' ],
+            'smliser_delete_license'                        => [ __CLASS__, 'parse_license_delete_request' ],
         ];
 
         if ( isset( $handler_map[ $trigger ] ) ) {
@@ -110,6 +111,7 @@ class Router implements RouterInterface {
      */
     private static function verify_nonce( Request $request, string $action = 'smliser_nonce' ): bool {
         $nonce = $request->get( 'security' )
+            ?? $request->get( 'smliser_nonce' )
             ?? $request->get( '_wpnonce' )
             ?? $request->get_header( 'X-WP-Nonce' );
 
@@ -750,6 +752,15 @@ class Router implements RouterInterface {
     public static function parse_reset_email_template_request( Request $request ): void {
         static::guard( $request );
         SettingsController::reset_email_template( $request )
+        ->send();
+
+        exit;
+    }
+
+    public static function parse_license_delete_request( Request $request ) : void {
+        static::guard( $request, 'manage_options', 'smliser_delete_license_nonce' );
+
+        Controller::delete_license( $request )
         ->send();
 
         exit;

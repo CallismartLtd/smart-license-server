@@ -528,4 +528,47 @@ class Controller {
 
         }
     }
+
+    /**
+     * Delete a license.
+     * 
+     * @param Request $request
+     * @return Response
+     */
+    public static function delete_license( Request $request ) : Response {
+        try {
+            $license_id = $request->get( 'license_id' );
+            $license    = License::get_by_id( $license_id );
+
+            if ( ! $license ) {
+                throw new RequestException( 'resource_not_found', 'License was not found', ['status' => 404] );
+            }
+
+            $success    = true;
+
+            if ( ! $license->delete() ) {
+                $success    = false;
+            }
+
+            $message    = $success ? 'License was deleted' : 'Unable to delete license';
+            $location   = ( new URL( \smliser_license_page() ) )
+                ->add_query_params([
+                    'success'   => $success,
+                    'message'   => $message
+                ]);
+
+            return ( new Response( 200 ) )
+                ->set_header( 'Location', $location->get_href() );
+        } catch ( RequestException $e ) {
+            $message    = $e->get_error_message();
+            $location   = ( new URL( \smliser_license_page() ) )
+                ->add_query_params([
+                    'success'   => $success,
+                    'message'   => $message
+                ]);
+
+            return ( new Response( 200 ) )
+                ->set_header( 'Location', $location->get_href() );
+        }
+    }
 }

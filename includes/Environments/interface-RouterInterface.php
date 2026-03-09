@@ -295,4 +295,11 @@ interface RouterInterface {
      */
     public static function parse_reset_email_template_request(  Request $request ) : void;
     
+    /**
+     * Parse license delete request.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_license_delete_request( Request $request ) : void;
 }

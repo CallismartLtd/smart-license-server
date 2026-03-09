@@ -128,10 +128,12 @@ class LicensePage {
         $licensed_app   = $license?->get_app();
         if ( $license ) {
             $client_fullname    = $license->get_licensee_fullname();
-            $delete_url         = new URL( admin_url( 'admin-post.php' ) );
-
-            $delete_url->add_query_params( ['action' => 'smliser_all_actions', 'real_action' => 'delete', 'context' => 'license', 'license_ids' => $license_id] );
-            $delete_link    = wp_nonce_url( $delete_url->get_href(), 'smliser_nonce', 'smliser_nonce' );    
+            $delete_url         = ( new URL( admin_url() ) )
+                ->add_query_params([
+                    'action'        => 'smliser_delete_license',
+                    'license_id'    => $license_id,
+                    'smliser_nonce' => wp_create_nonce( 'smliser_delete_license_nonce' )
+                ]);    
         }
 
         include_once SMLISER_PATH . 'templates/admin/license/view-license.php';    
