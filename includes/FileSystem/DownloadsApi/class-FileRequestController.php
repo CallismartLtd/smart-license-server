@@ -115,6 +115,49 @@ class FileRequestController {
     }
 
     /**
+     * Serve license document download to admins.
+     * @param FileRequest $request The file request object.
+     * @return FileResponse
+     */
+    public static function get_admin_license_document( FileRequest $request ): FileResponse {
+        try {
+            static::is_system_admin();
+            $license_id = $request->get( 'license_id' );
+
+            if ( empty( $license_id ) ) {
+                throw new FileRequestException( 'invalid_param_license_id' );
+            }
+
+            $license = License::get_by_id( $license_id );
+            if ( ! $license ) {
+                throw new FileRequestException( 'file_not_found' );
+            }
+            
+            $document = self::generate_license_document( $license, smliser_settings_adapter() );
+
+            $file_props = [
+                'type'         => 'document',
+                'is_file'      => false,
+                'name'         => 'license-document.txt',
+                'content_type' => 'text/plain',
+            ];
+
+
+            return new FileResponse( $document, $file_props );
+
+        } catch ( FileRequestException $e ) {
+            return new FileResponse( $e );
+        } catch ( \Throwable $e ) {
+            $exception = new FileRequestException(
+                'unexpected_repo_failure',
+                $e->getMessage(),
+                [ 'trace' => $e->getTraceAsString() ]
+            );
+            return new FileResponse( $exception );
+        }
+    }
+
+    /**
      * Serves remote asset as a proxy, bypassing CORs restrictions for clients.
      * 
      * @param FileRequest $request The file request object.
@@ -284,49 +327,49 @@ class FileRequestController {
     protected static function generate_license_document( $license, Settings $settingsAPI ): string {
         $license_key    = $license->get_license_key();
         $service_id     = $license->get_service_id();
-        $date_issued    = $license->get_start_date()->format( \smliser_datetime_format() );
-        $expiry         = $license->get_end_date()->format( \smliser_datetime_format() );
+        $date_issued    = $license->get_start_date()?->format( \smliser_datetime_format() ) ?? 'N/A';
+        $expiry         = $license->get_end_date()?->format( \smliser_datetime_format() ) ?? 'N/A';
         $status         = $license->get_status();
         $max_domains    = $license->get_max_allowed_domains();
         $licensee       = $license->get_licensee_fullname();
         $today          = gmdate( 'F j, Y g:i:s a' );
         $issuer         = $settingsAPI->get( 'repository_name', SMLISER_APP_NAME, true );
         $terms_url      = $settingsAPI->get( 'terms_url', '', true );
-        $app_id         = $license->get_app_id();
+        $app_id         = $license->is_issued() ? $license->get_app_id() : 'N/A';
 
         $document = <<<LICENSE
-        ========================================
+        ==================================================
         SOFTWARE LICENSE CERTIFICATE
         Issued by:  {$issuer}
         Licensee:   {$licensee}
-        ========================================
-        ----------------------------------------
+        ==================================================
+        --------------------------------------------------
         License Details
-        ----------------------------------------
+        --------------------------------------------------
         Status:         {$status}
         Service ID:     {$service_id}
         License Key:    {$license_key}
         App ID:         {$app_id}
 
-        ----------------------------------------
+        --------------------------------------------------
         License Validity
-        ----------------------------------------
+        --------------------------------------------------
         Start Date:     {$date_issued}
         End Date:       {$expiry}
         Allowed Sites:  {$max_domains}
 
-        ----------------------------------------
+        --------------------------------------------------
         Activation Guide
-        ----------------------------------------
+        --------------------------------------------------
         Use the Service ID and License Key above to activate this software.
 
         Note:
         - The software already includes its internal ID.
         - Activation may vary by product. Refer to product documentation.
 
-        ----------------------------------------
+        --------------------------------------------------
         License Terms (Summary)
-        ----------------------------------------
+        --------------------------------------------------
         ✔ Use on "{$max_domains}" domain(s)
         ✔ Allowed for personal or client projects
         ✘ Not allowed to resell, redistribute, or modify for resale
@@ -334,10 +377,10 @@ class FileRequestController {
         Full License Agreement:
         {$terms_url}
 
-        ----------------------------------------
+        --------------------------------------------------
         Issued By:          {$issuer}
         Auto Generated On:  {$today}
-        ========================================
+        ==================================================
         LICENSE;
 
         return $document;

@@ -415,7 +415,6 @@ function smliser_generate_item_token( License $license, int $expiry = 864000 ) {
         $token = DownloadToken::create_token( $license, $expiry );
         return $token;
     } catch ( Exception $e ) {
-        // You can log $e->getMessage() here if needed
         return false;
     }
 }

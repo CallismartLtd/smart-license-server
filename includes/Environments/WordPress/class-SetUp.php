@@ -11,9 +11,11 @@ namespace SmartLicenseServer\Environments\WordPress;
 use SmartLicenseServer\Admin\Menu;
 use SmartLicenseServer\Cache\WPCacheAdapter;
 use SmartLicenseServer\Config;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\WPDBAdapter;
 use SmartLicenseServer\Environments\EnvironmentProviderInterface;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
@@ -120,8 +122,10 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         return site_url();
     }
     
-    public static function assets_url() : string {
-        return rtrim( SMLISER_URL, '/' ) . '/assets/';
+    public static function assets_url( string $path = '' ) : URL {
+        $path   = FileSystemHelper::join_path( '/assets/', $path );
+        return ( new URL( SMLISER_URL ) )
+            ->append_path( $path );
     }
 
     /**

@@ -7,6 +7,7 @@
 
 namespace SmartLicenseServer\Environments;
 
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Database;
 
 /**
@@ -25,8 +26,10 @@ interface EnvironmentProviderInterface {
 
     /**
      * Get the URL for the assets directory.
+     * 
+     * @param string $path
      */
-    public static function assets_url() : string;
+    public static function assets_url( string $path = '' ) : URL;
 
     /**
      * Check key filesystem directories for read/write access.

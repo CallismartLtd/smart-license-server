@@ -244,7 +244,7 @@ class URL {
      */
     public function append_path( string $pathname ): self {
         $components         = $this->components;
-        $components['path'] = ( $components['path'] ?? '' ) . '/' . ltrim( $pathname, '/' );
+        $components['path'] = rtrim( ( $components['path'] ?? '' ), '/' ) . '/' . ltrim( $pathname, '/' );
         return $this->with_components( $components );
     }
 

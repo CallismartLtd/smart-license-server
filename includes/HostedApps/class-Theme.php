@@ -332,8 +332,8 @@ class Theme extends AbstractHostedApp {
          */
         $sections = array(
             'description'   => $repo_class->get_description( $self->get_slug() ),
-            'changelog'     => $repo_class->get_changelog( $self->get_slug() ),
-            'installation'  => '',
+            'changelog'     => $repo_class->get_changelog( $self->get_slug(), 'txt' ),
+            'installation'  => $repo_class->get_installation( $self->get_slug(), 'txt' ),
             'screenshots'   =>  [],
         );
         
@@ -390,7 +390,7 @@ class Theme extends AbstractHostedApp {
             'manifest'              => $this->get_manifest(),
             'icon'                  => $this->get_icon(),
             'screenshot_url'        => $this->get_screenshot_url(),
-            'rating'                => $this->get_ratings(),
+            'rating'                => $this->get_average_rating(),
             'num_ratings'           => $this->get_num_ratings(),
             'reviews_url'           => '',
             'downloaded'            => 0,

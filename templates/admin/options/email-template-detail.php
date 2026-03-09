@@ -24,7 +24,7 @@ $is_enabled = $entry['is_enabled'];
 $has_custom = $entry['has_custom'];
 $back_url   = $current_url->remove_query_param( 'template', 'noheader' );
 
-$assets = ( new \SmartLicenseServer\Environments\WordPress\ScriptManager() )->get_editor_assets();
+$assets = ( new \SmartLicenseServer\Environments\WordPress\ScriptManager() )->get_email_editor_assets();
 ?>
 <!DOCTYPE html>
 <html lang="en">

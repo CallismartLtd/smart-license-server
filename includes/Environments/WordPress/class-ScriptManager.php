@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Environments\WordPress;
 use SmartLicenseServer\Security\Permission\Capability;
 use SmartLicenseServer\Security\Permission\Role;
 
-use function wp_register_script, wp_register_style, is_admin, wp_enqueue_script, wp_enqueue_style,
+use function wp_register_script, wp_register_style, is_admin, wp_enqueue_script, wp_enqueue_style, sprintf,
 wp_localize_script;
 /**
  * Manages JavaScript and CSS files.
@@ -23,56 +23,50 @@ final class ScriptManager {
     private function allCSS() {
         return array(
             'smliser-styles'    => array(
-                'src'   => SetUp::assets_url() . 'css/smliser-styles.css',
+                'src'   => SetUp::assets_url( sprintf( 'css/smliser-styles%s.css', $this->script_suffix() ) ) ,
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
                 
             ),
             'smliser-apps-uploader'   => array(
-                'src'   => SetUp::assets_url() . 'css/apps-uploader.css',
+                'src'   => SetUp::assets_url( sprintf( 'css/apps-uploader%s.css', $this->script_suffix() ) ),
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
                 
             ),
             'smliser-form-styles'   => array(
-                'src'   => SetUp::assets_url() . 'css/smliser-forms.css',
+                'src'   => SetUp::assets_url( sprintf( 'css/smliser-forms%s.css', $this->script_suffix() ) ),
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
                 
             ),
             'select2'       => array(
-                'src'   => SetUp::assets_url() . 'css/select2.min.css',
+                'src'   => SetUp::assets_url( sprintf( 'css/select2%s.css', $this->script_suffix() ) ),
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
                 
             ),
-            'smliser-nanojson'    => array(
-                'src'   => SetUp::assets_url() . 'css/nanojson.min.css',
-                'deps'  => array(),
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
-                
-            ),
+
             'smliser-tabler-icons'    => array(
-                'src'   => SetUp::assets_url() . 'icons/tabler-icons.min.css',
+                'src'   => SetUp::assets_url( sprintf( 'icons/tabler-icons%s.css', $this->script_suffix() ) ),
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
                 
             ),
             'smliser-role-builder'    => array(
-                'src'   => SetUp::assets_url() . 'css/role-builder.css',
+                'src'   => SetUp::assets_url( sprintf( 'css/role-builder%s.css', $this->script_suffix() ) ),
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
                 
             ),
             'smliser-modal'    => array(
-                'src'   => SetUp::assets_url() . 'css/smliser-modal.css',
+                'src'   => SetUp::assets_url( sprintf( 'css/smliser-modal%s.css', $this->script_suffix() ) ),
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
@@ -80,20 +74,20 @@ final class ScriptManager {
             ),
 
             'smliser-json-editor'   => array(
-                'src'   => SetUp::assets_url() . 'css/smliser-json-editor.css',
+                'src'   => SetUp::assets_url( sprintf( 'css/smliser-json-editor%s.css', $this->script_suffix() ) ),
                 'deps'  => array( 'smliser-styles', 'smliser-modal' ),
                 'ver'   => SMLISER_VER,
                 'media' => 'all',
             ),
 
             'smliser-datetime-picker'   => array(
-                'src'   => SetUp::assets_url() . 'css/smliser-datetime-picker.css',
+                'src'   => SetUp::assets_url( sprintf( 'css/smliser-datetime-picker%s.css', $this->script_suffix() ) ),
                 'deps'  => array(),
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ),
             'smliser-email-editor' => array(
-                'src'   => SetUp::assets_url() . 'css/email-editor.css',
+                'src'   => SetUp::assets_url( sprintf( 'css/email-editor%s.css', $this->script_suffix() ) ),
                 'deps'  => [ 'smliser-styles', 'smliser-modal' ],
                 'ver'   => SMLISER_VER,
                 'media' => 'all',
@@ -107,85 +101,80 @@ final class ScriptManager {
     private function allJS() {
         return array(
             'smliser-script'    => array(
-                'src'       => SetUp::assets_url() . 'js/main-script.js',
+                'src'       => SetUp::assets_url( sprintf( 'js/main-script%s.js' , $this->script_suffix() ) ),
                 'deps'      => array( 'jquery' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
-            'smliser-nanojson'    => array(
-                'src'       => SetUp::assets_url() . 'js/nanojson.min.js',
-                'deps'      => array( 'jquery', 'smliser-script' ),
-                'ver'       => SMLISER_VER,
-                'footer'    => true
-            ),
+
             'smliser-apps-uploader'    => array(
-                'src'       => SetUp::assets_url() . 'js/apps-uploader.js',
+                'src'       => SetUp::assets_url( sprintf( 'js/apps-uploader%s.js' , $this->script_suffix() ) ),
                 'deps'      => array( 'jquery', 'smliser-script' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
             'select2'           => array(
-                'src'       => SetUp::assets_url() . 'js/Select2/select2.min.js',
+                'src'       => SetUp::assets_url( sprintf( 'js/Select2/select2%s.js' , $this->script_suffix() ) ),
                 'deps'      => array( 'jquery' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
             'smliser-tinymce'   => array(
-                'src'       => SetUp::assets_url() . 'js/tinymce/tinymce.min.js',
+                'src'       => SetUp::assets_url( 'js/tinymce/tinymce.min.js' ),
                 'deps'      => array( 'jquery' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
             'smliser-admin-repository'    => array(
-                'src'       => SetUp::assets_url() . 'js/admin-repository.js',
+                'src'       => SetUp::assets_url( sprintf( 'js/admin-repository%s.js' , $this->script_suffix() ) ),
                 'deps'      => array( 'jquery', 'smliser-script' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
             
             'smliser-role-builder'    => array(
-                'src'       => SetUp::assets_url() . 'js/role-builder.js',
+                'src'       => SetUp::assets_url( sprintf( 'js/role-builder%s.js' , $this->script_suffix() ) ),
                 'deps'      => array('jquery' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
 
             'smliser-chart'    => array(
-                'src'       => SetUp::assets_url() . 'js/Chartjs/chart.min.js',
+                'src'       => SetUp::assets_url( 'js/Chartjs/chart.min.js' ),
                 'deps'      => array('jquery' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
 
             'smliser-modal'    => array(
-                'src'       => SetUp::assets_url() . 'js/smliser-modal.js',
+                'src'       => SetUp::assets_url( sprintf( 'js/smliser-modal%s.js' , $this->script_suffix() ) ),
                 'deps'      => array('jquery' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
 
             'smliser-json-editor'    => array(
-                'src'       => SetUp::assets_url() . 'js/smliser-json-editor.js',
+                'src'       => SetUp::assets_url( sprintf( 'js/smliser-json-editor%s.js' , $this->script_suffix() ) ),
                 'deps'      => array( 'jquery', 'smliser-script', 'smliser-modal' ),
                 'ver'       => SMLISER_VER,
                 'footer'    => true
             ),
 
             'smliser-datetime-picker'   => array(
-                'src'       => Setup::assets_url() . 'js/smliser-datetime-picker.js',
+                'src'       => Setup::assets_url( sprintf( 'js/smliser-datetime-picker%s.js' , $this->script_suffix() ) ),
                 'deps'      => array(),
                 'ver'       => SMLISER_VER,
                 'footer'    => true,
             ),
             'smliser-email-editor' => array(
-                'src'    => SetUp::assets_url() . 'js/email-editor.js',
+                'src'    => SetUp::assets_url( sprintf( 'js/email-editor%s.js' , $this->script_suffix() ) ),
                 'deps'   => [ 'jquery', 'smliser-script', 'smliser-modal' ],
                 'ver'    => SMLISER_VER,
                 'footer' => true,
             ),
 
             'smliser-jquery'    => array(
-                'src'    => SetUp::assets_url() . 'js/jQuery/jQuery.js',
+                'src'    => SetUp::assets_url( sprintf( 'js/jQuery/jQuery%s.js' , $this->script_suffix() ) ),
                 'deps'   => [],
                 'ver'    => SMLISER_VER,
                 'footer' => true,
@@ -310,7 +299,7 @@ final class ScriptManager {
      *
      * @return array<string, array<int, array<string, string>>>
      */
-    public function get_editor_assets(): array {
+    public function get_email_editor_assets(): array {
         $all_css = $this->allCSS();
         $all_js  = $this->allJS();
 
@@ -348,5 +337,14 @@ final class ScriptManager {
                 $scripts
             ),
         ];
+    }
+
+    /**
+     * Get script suffix depending on whether debug is enabled or not.
+     * 
+     * @return string
+     */
+    private function script_suffix() : string {
+        return defined( 'SCRIPT_DEBUG' ) && \SCRIPT_DEBUG ? '' : '.min';
     }
 }

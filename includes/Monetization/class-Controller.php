@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Monetization;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Security\SecurityAwareTrait;
@@ -468,6 +469,63 @@ class Controller {
             return ( new Response() )
                 ->set_exception( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
+    }
+
+    /**
+     * Generate download token for a license.
+     * 
+     * @param Request $request
+     * @return Response
+     */
+    public static function generate_app_download_token( Request $request ) : Response {
+        try {
+            static::is_system_admin();
+            
+            $license_id = $request->get( 'license_id' );
+
+            if ( ! $license_id ) {
+                throw new RequestException( 'required_param', 'License ID is required.' );
+            }
+
+            $license    = License::get_by_id( $license_id );
+
+            if ( ! $license ) {
+                throw new RequestException( 'resource_not_found', 'This license does not exist.' );
+            }
+
+            $default_expiry = (int) ( 10 * DAY_IN_SECONDS );
+
+            $expiry         = $request->get( 'expiry', $default_expiry ) ?: $default_expiry;
+
+            if ( is_string( $expiry ) ) {
+                $expiry = ( (int) strtotime( $expiry ) ) - time();
+
+                if ( $expiry < 0 ) {
+                    $expiry = $default_expiry;
+                }
+            }
+
+            $token = DownloadToken::create_token( $license, $expiry );
+
+            $response_data  = [
+                'success'   => true,
+                'data'  => [
+                    'token'                 => $token,
+                    'licensee_fullname'     => $license->get_licensee_fullname(),
+                    'document_download_url' => smliser_document_download_url( $license->get_id() )
+                        ->add_query_param( 'download_token', $token )
+                        ->get_href(),
+                    'expiry'                => gmdate( smliser_datetime_format(), time() + $expiry ),                    
+                ]
+            ];
+            return ( new Response( 200, [], $response_data ) )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        } catch( Exception $e ) {
+            return ( new Response( ) )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
         }
     }
 }

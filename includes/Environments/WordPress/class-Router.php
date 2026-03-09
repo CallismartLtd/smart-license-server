@@ -202,7 +202,7 @@ class Router implements RouterInterface {
             smliser_abort_request(
                 __( 'Expired download link, please refresh current page.', 'smliser' ),
                 'Expired Link',
-                [ 'response' => 400 ]
+                [ 'response' => 400, 'back_link' => true ]
             );
         }
 
@@ -210,23 +210,34 @@ class Router implements RouterInterface {
             smliser_abort_request(
                 __( 'You are not authorized to perform this action.', 'smliser' ),
                 'Unauthorized Download',
-                [ 'response' => 403 ]
+                [ 'response' => 403, 'back_link' => true ]
             );
         }
 
         $type = $request->get( 'type' );
         $id   = $request->get( 'id' );
 
-        if ( empty( $type ) || empty( $id ) ) {
-            smliser_abort_request( __( 'Invalid download request.', 'smliser' ), 'Invalid Request', [ 'response' => 400 ] );
+        if ( empty( $type ) ) {
+            smliser_abort_request( 
+                __( 'Please specify the download type.', 'smliser' ),
+                'Download Type Missing', 
+                [ 'response' => 400, 'back_link' => true ]
+            );
+        }
+
+        if ( 'license_document' === $type ) {
+            $method = 'get_admin_license_document';
+        } else {
+            $method = 'get_admin_application_zip_file';
         }
 
         $file_request = new FileRequest( [
-            'app_type' => $type,
-            'app_id'   => $id,
+            'app_type'      => $type,
+            'app_id'        => $id,
+            'license_id'    => $id,
         ] );
 
-        FileRequestController::get_admin_application_zip_file( $file_request )->send();
+        FileRequestController::$method( $file_request )->send();
     }
 
     /**
@@ -462,33 +473,10 @@ class Router implements RouterInterface {
     public static function parse_download_token_generation_request( Request $request ): void {
         static::guard( $request, 'install_plugins' );
 
-        $license_id = $request->get( 'license_id' )
-            ?? smliser_send_json_error( [ 'message' => 'License ID is required.' ] );
+        Controller::generate_app_download_token( $request )
+        ->send();
 
-        $expiry  = $request->get( 'expiry', 10 * DAY_IN_SECONDS ) ?: 10 * DAY_IN_SECONDS;
-        $license = License::get_by_id( $license_id );
-
-        if ( ! $license ) {
-            smliser_send_json_error( [ 'message' => 'This license does not exist.' ] );
-        }
-
-        if ( is_string( $expiry ) ) {
-            $expiry = strtotime( $expiry ) - time();
-            if ( $expiry < 0 ) {
-                $expiry = 10 * DAY_IN_SECONDS;
-            }
-        }
-
-        $token = smliser_generate_item_token( $license, $expiry );
-
-        smliser_send_json_success( [
-            'token'                 => $token,
-            'licensee_fullname'     => $license->get_licensee_fullname(),
-            'document_download_url' => smliser_document_download_url( $license->get_id() )
-                ->add_query_param( 'download_token', $token )
-                ->get_href(),
-            'expiry'                => gmdate( smliser_datetime_format(), time() + $expiry ),
-        ] );
+        exit;
     }
 
     /**

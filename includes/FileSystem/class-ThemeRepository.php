@@ -138,6 +138,23 @@ class ThemeRepository extends Repository {
         }
 
         $style_css_content = $zip->getFromIndex( $style_css_index );
+
+        // Find changelog.txt file(not required).
+        $changelog_md_index = $zip->locateName( $rootDir . '/changelog.txt', ZipArchive::FL_NOCASE );
+        $changelog_content  = '';
+
+        if ( false !== $changelog_md_index ) {
+            $changelog_content  = $zip->getFromIndex( $changelog_md_index );
+        }
+
+        // Find installation.txt file(not required).
+        $install_md_index   = $zip->locateName( $rootDir . '/installation.txt', ZipArchive::FL_NOCASE );
+        $install_md_content = '';
+
+        if ( false !== $install_md_index ) {
+            $install_md_content  = $zip->getFromIndex( $install_md_index );
+        }
+
         $zip->close();
 
         $style_css_path = FileSystemHelper::join_path( $base_folder, 'style.css' );
@@ -145,6 +162,16 @@ class ThemeRepository extends Repository {
         if ( ! $this->put_contents( $style_css_path, $style_css_content ) ) {
             $cleanup_func();
             return new Exception( 'style_css_save_faild', 'Could not save the theme style.css file', [ 'status' => 500 ] );
+        }
+
+        if ( $changelog_content ) {
+            $changelog_path = FileSystemHelper::join_path( $base_folder, 'changelog.txt' );
+            $this->put_contents( $changelog_path, $changelog_content );
+        }
+
+        if ( $install_md_content ) {
+            $install_md_path    = FileSystemHelper::join_path( $base_folder, 'changelog.txt' );
+            $this->put_contents( $install_md_path, $install_md_content );
         }
 
         return $slug;

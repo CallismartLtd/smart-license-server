@@ -610,7 +610,7 @@ class FileSystemHelper {
             }
 
             // Allowlist: must start with alphanumeric or underscore, followed by safe characters.
-            if ( ! preg_match( '/^[A-Za-z0-9_][A-Za-z0-9._\-]*$/', $segment ) ) {
+            if ( ! preg_match( '/^[A-Za-z0-9_.][A-Za-z0-9._\-]*$/', $segment ) ) {
                 return new Exception( 'invalid_chars', "Illegal characters in path segment: {$segment}" );
             }
 

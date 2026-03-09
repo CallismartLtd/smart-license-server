@@ -23,8 +23,8 @@ trait RepoFilesAwareTrait {
      * 
      * @return string The changelog in HTML format.
      */
-    public function get_changelog( $slug ) : string {
-        $changelog_md = $this->file_get_contents( $slug, 'changelog.md' );
+    public function get_changelog( string $slug, string $suffix = '.md' ) : string {
+        $changelog_md = $this->file_get_contents( $slug, sprintf( 'changelog.%s', $suffix ) );
         return $this->parser->parse( $changelog_md ?: '' );
     }
 
@@ -34,8 +34,8 @@ trait RepoFilesAwareTrait {
      * @param string $slug
      * @return string
      */
-    public function get_installation( $slug ) {
-        $installation = $this->file_get_contents( $slug, 'installation.md' );
+    public function get_installation( string $slug, string $suffix = 'md' ) {
+        $installation = $this->file_get_contents( $slug, sprintf( 'installation.%s', $suffix ) );
         return $this->parser->parse( $installation ?: '' );
     }
 
@@ -45,8 +45,8 @@ trait RepoFilesAwareTrait {
      * @param string $slug
      * @return string
      */
-    public function get_readme( string $slug ) : string {
-        $readme = $this->file_get_contents( $slug, 'readme.md' );
+    public function get_readme( string $slug, string $suffix = 'md' ) : string {
+        $readme = $this->file_get_contents( $slug, sprintf( 'readme.%s', $suffix ) );
         return $this->parser->parse( $readme ?: '' );
     }
 
@@ -101,6 +101,6 @@ trait RepoFilesAwareTrait {
             $file_contents = $this->get_contents( $file_path );
         }
 
-        return $file_contents;
+        return (string) $file_contents;
     }
 }

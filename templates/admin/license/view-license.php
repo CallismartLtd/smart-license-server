@@ -15,6 +15,13 @@ use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
+$download_url   = ( new URL( admin_url() ) )
+    ->add_query_params([
+        'action'            => 'smliser_admin_download',
+        'id'                => $license_id,
+        'download_token'    => \wp_create_nonce( 'smliser_download_token' ),
+        'type'              => 'license_document'
+    ]);
 /** @var array $args */
 $args   = self::get_menu_args();
 
@@ -26,13 +33,20 @@ $args   = self::get_menu_args();
         'url'   => \smliser_license_admin_action_page( 'edit', $license_id ),
         'icon'  => 'ti ti-edit'
     ),
+    
+    array(
+        'title' => 'Download License Document',
+        'label' => 'Download Document',
+        'url'   => $download_url,
+        'icon'  => 'ti ti-download'
+    ),
 
     array(
         'title'     => 'Generate license download token',
         'label'     => 'Generate Download Token',
         'url'       => '#',
         'class'     => 'smliser-generate-download-token-btn',
-        'icon'      => 'ti ti-download',
+        'icon'      => 'ti ti-cloud',
         'attributes' => array(
             'aria-label'    => 'Generate a one-time download token for this license.',
             'aria-role'     => 'button',
