@@ -75,8 +75,8 @@ function smliser_repo_page() {
  * Bulk messages URL
  */
 function smliser_bulk_messages_page() : URL {
-    $url    = new URL( admin_url() );
-    $url->add_query_params([
+    $url    = ( new URL( admin_url() ) )
+    ->add_query_params([
         'page'  => 'smliser-bulk-message'
     ]);
 
