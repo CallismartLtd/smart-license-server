@@ -140,7 +140,7 @@ class RESTAPI implements RESTProviderInterface {
         }
 
         if ( is_smliser_error( $response ) ) {
-            remove_filter( 'rest_post_dispatch', 'rest_send_allow_header' ); // Prevents calling the permission callback again.
+            remove_filter( 'rest_post_dispatch', 'rest_send_allow_header' ); // Prevent calling the permission callbacks again.
         }
 
         return $response;
@@ -162,12 +162,14 @@ class RESTAPI implements RESTProviderInterface {
             if ( $data instanceof Response ) {
                 $data->remove_header( 'Content-Length' ); // Allow WordPress to calculate.
                 
+                // Transfer headers.
                 foreach ( $data->get_headers( true ) as $key => $value ) {                    
                     $response->header( $key, $value );
                 }
 
                 $response->set_status( $data->get_status_code() );
                 
+                // Transfer response data.
                 if ( $data->has_errors() ) {
                     $data = $data->get_exception()->to_wp_error();
                 } else {
@@ -190,7 +192,7 @@ class RESTAPI implements RESTProviderInterface {
     }
 
     /**
-     * Ensures HTTPS/TLS for REST API endpoints within the plugin's namespace.
+     * Ensures HTTPS/TLS connection for REST API endpoints within the plugin's namespace.
      *
      * Checks if the current REST API request belongs to the plugin's namespace
      * and enforces HTTPS/TLS requirements if the environment is production.
@@ -295,8 +297,8 @@ class RESTAPI implements RESTProviderInterface {
     private function prepare_rest_args( array $args ) : array {
         foreach ( $args as $key => &$arg ) {
             // Add sanitization callbacks based on type.
-            if ( 'string' === $arg['type'] ) {
-                if ( $key === 'domain' ) {
+            if ( isset( $arg['type'] ) && 'string' === $arg['type'] ) {
+                if ( 'domain' === $key ) {
                     $arg['sanitize_callback'] = array( __CLASS__, 'sanitize_url' );
                     $arg['validate_callback'] = array( __CLASS__, 'is_url' );
                 } else {
@@ -363,7 +365,7 @@ class RESTAPI implements RESTProviderInterface {
             return null;
         }
 
-        if ( $this->is_license_endpoint() || $this->is_reauthentication_route() ) {
+        if ( $this->is_license_service_route() || $this->is_reauthentication_route() ) {
             // License endpoints uses license key for authentication.
             // Reauthentication route is used to reauthenticate download token requests, which also uses license key for authentication.
             return null;
@@ -510,8 +512,8 @@ class RESTAPI implements RESTProviderInterface {
      * @return string Sanitized URL.
      */
     public static function sanitize_url( $url ) : string {
-        $url = new URL( $url );
-        $url->sanitize();
+        $url = ( new URL( $url ) )
+            ->sanitize();
         
         return $url->get_href();
     }
@@ -602,20 +604,26 @@ class RESTAPI implements RESTProviderInterface {
         $route      = substr( $uri, strlen( $prefix ) );
 
         $this->current_route = $route;
-        return $route;
+        return $this->current_route;
     }
 
     /**
-     * Tells whether the current endpoint is the license endpoint.
+     * Tells whether the current route is the license service route.
+     * 
+     * License service routes are the routes which are used to activate, deactivate, uninstall
+     * and test license validity, authentications in these routes are done using the license key and
+     * the service ID associated with it and sometimes in the context of the hosted application which
+     * the license is issued.
      * 
      * @return bool
      */
-    protected function is_license_endpoint() : bool {
+    protected function is_license_service_route() : bool {
         if ( ! isset( $this->current_route ) ) {
             $this->guess_route();
         }
         
-        return (bool) preg_match( '#/license-[^/]+#', $this->current_route );
+        $pattern = 'license-activation|license-deactivation|license-uninstallation|license-validity-test';
+        return $this->route_matches( "({$pattern})" );
     }
 
     /**
@@ -627,9 +635,7 @@ class RESTAPI implements RESTProviderInterface {
         if ( ! isset( $this->current_route ) ) {
             $this->guess_route();
         }
-        
-        return (bool) preg_match( '#/download-token-reauthentication/#', $this->current_route );
-
+        return $this->route_matches( 'download-token-reauthentication' );
     }
 
     /**
@@ -639,6 +645,13 @@ class RESTAPI implements RESTProviderInterface {
      */
     public function get_namespace() : string {
         return $this->rest->namespace();
+    }
+
+    private function route_matches( string $pattern ) : bool {
+        $namespace = preg_quote( trim( $this->get_namespace(), '/' ), '#' );
+        $route     = ltrim( $this->current_route, '/' );
+
+        return (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $route );
     }
 
     /**

@@ -324,8 +324,8 @@ class Controller {
                 'license'   => $license->to_array()
             ];
             $code   = $license_exists ? 200 : 201;
-            $url    = new URL( smliser_license_admin_action_page( 'edit', $license->get_id() ) );
-            $url->add_query_param( 'message', 'Saved' );
+            $url    = ( new URL( smliser_license_admin_action_page( 'edit', $license->get_id() ) ) )
+                ->add_query_param( 'message', 'Saved' );
 
             $response = new Response( $code, [], $response_data );
             $response->set_header( 'Content-Type', 'application/json; charset=utf-8' )
@@ -369,8 +369,8 @@ class Controller {
                 $license->save() && $affected++;
             }
 
-            $url    = new URL( smliser_license_page() );
-            $url->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
+            $url    = ( new URL( smliser_license_page() ) )
+                ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
             
             $response = ( new Response( 200, [], '' ) )
                 ->set_header( 'Location', $url->get_href() );

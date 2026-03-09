@@ -369,8 +369,8 @@ class RepositoryPage {
      * Manage plugin monetization page
      */
     private static function monetization_page() {
-        $url    = new URL( admin_url( 'admin.php?page=repository' ) );
-        $url->remove_query_param( 'message' );
+        $url    = ( new URL( admin_url( 'admin.php?page=repository' ) ) )
+        ->remove_query_param( 'message' );
 
         include_once SMLISER_PATH . 'templates/admin/monetization.php';
     }

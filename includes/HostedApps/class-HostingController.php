@@ -598,8 +598,8 @@ class HostingController {
                 $app->save() && $affected++;
             }
 
-            $url = new URL( smliser_repo_page() );
-            $url->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
+            $url = ( new URL( smliser_repo_page() ) )
+                ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
             $response = ( new Response( 200, [], '' ) )
                 ->set_response_data( $request )
@@ -608,8 +608,8 @@ class HostingController {
             \smliser_cache()->clear();
             return $response;
         } catch ( Exception $e ) {
-            $url = new URL( smliser_repo_page() );
-            $url->add_query_param(
+            $url = ( new URL( smliser_repo_page() ) )
+                ->add_query_param(
                 'message', 
                 \sprintf( 'Error: %s', $e->get_error_message() )
             );
