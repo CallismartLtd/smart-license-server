@@ -173,7 +173,7 @@ class Licenses {
         $license            = $request->get( 'smliser_resource' );
         $original_status    = $license->get_status();
         
-        $license->set_status( 'Deactivated' );
+        $license->set_status( License::STATUS_DEACTIVATED );
         $log_data   = array(
             'license_id'    => $license->get_id(),
             'ip_address'    => smliser_get_client_ip(),
