@@ -965,7 +965,7 @@ class License {
     public function get_active_domain( $url, $all_data = true ) {
         $all_domains = $this->get_active_domains( 'edit' );
 
-        $url    = new URL( $url );
+        $url    = $this->ensure_domain( $url );
         $host   = $url->get_host();
 
         if ( ! isset( $all_domains[$host] ) ) {
@@ -984,8 +984,6 @@ class License {
     /**
      * Add or update the domains where this license is currently activated.
      * 
-     * `NOTE`: It is the duty of the caller to check the validity of the domain and construct a valid URL. 
-     * 
      * @param string $url The url of the site to be added.
      * @param string $site_secret The secret key for the site.
      */
@@ -995,7 +993,7 @@ class License {
             $sites = array();
         }
         
-        $url    = new URL( $url );
+        $url    = $this->ensure_domain( $url );
         $origin = $url->get_origin();
         $host   = $url->get_host();
         
@@ -1020,18 +1018,14 @@ class License {
             return false;
         }
         
-        $url    = new URL( $domain );
-
-        if ( ! $url->has_scheme() ) {
-            $url->set_scheme( 'https' );
-            $url = new URL( $url->__toString() );
-        }
-
-        $host = $url->get_host();
+        $url    = $this->ensure_domain( $domain );
+        $host   = $url->get_host();
 
         unset( $sites[$host] );
+        
         $this->set_meta( 'activated_on', $sites );
         $this->save();
+        
         return true;
     }
 
@@ -1052,18 +1046,35 @@ class License {
      * 
      * @param string $domain The name of the website.
      */
-    public function is_new_domain( $domain ) {
-        $url    = new URL( $domain );
-
-        if ( ! $url->has_scheme() ) {
-            $url->set_scheme( 'https' );
-            $url = new URL( $url->__toString() );
-        }
+    public function is_new_domain( string $domain ) {
+        $url    = $this->ensure_domain( $domain );
 
         $domain = $url->get_host();
 
         $all_sites      = $this->get_active_domains( 'edit' );
+        
         return ! isset( $all_sites[$domain] );
+    }
+
+    /**
+     * Helper method to ensure a given domain is a valid URL.
+     * 
+     * @param string|URL $domain
+     */
+    private function ensure_domain( string|URL $domain ) : URL {
+        if ( ( $domain instanceof URL ) ) {
+            $url = $domain;
+            if ( ! $url->has_scheme() ) {
+                // Malformed url, rebuild it.
+                $url    = $url->set_scheme( 'https' );
+                $url    = new URL( $url->__toString() );
+            }
+
+            return $url;
+        }
+
+        $url    = new URL( $domain );
+        return $this->ensure_domain( $url );
     }
 
     /**
@@ -1139,7 +1150,7 @@ class License {
             case static::STATUS_DEACTIVATED:
                 return new Exception(
                     'license_deactivated',
-                    'This license has been deactivated. Please reactivate it.',
+                    'This license is deactivated.',
                     array( 'status' => 409 )
                 );
 
