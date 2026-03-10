@@ -91,6 +91,15 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
     }
 
     /**
+     * Sensitive configuration keys.
+     *
+     * @return string[]
+     */
+    protected function sensitive_keys(): array {
+        return [];
+    }
+
+    /**
      * Cast or transform a value before it is stored.
      *
      * Override in subclasses to enforce types, trim strings, etc.
@@ -394,14 +403,27 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
     /**
      * Dump the current DTO state for inspection.
      *
+     * Sensitive values will be masked if the DTO defines them.
+     *
      * @return array<string, mixed>
      */
     public function dump(): array {
+
+        $data       = $this->props;
+        $sensitive  = $this->sensitive_keys();
+
+        foreach ( $sensitive as $key ) {
+            if ( array_key_exists( $key, $data ) ) {
+                $data[ $key ] = '***';
+            }
+        }
+        
+
         return [
-            'class'         => static::class,
-            'count'         => $this->count(),
-            'allowed_keys'  => $this->allowed_keys(),
-            'props'         => $this->props,
+            'class'        => static::class,
+            'count'        => $this->count(),
+            'allowed_keys' => $this->allowed_keys(),
+            'props'        => $data,
         ];
     }
 }

@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Database;
 
 use mysqli;
 use mysqli_stmt;
+use SmartLicenseServer\Core\DBConfigDTO;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -29,9 +30,9 @@ class MysqliAdapter implements DatabaseAdapterInterface {
     /**
      * Configuration settings for the connection.
      *
-     * @var array
+     * @var DBConfigDTO
      */
-    protected $config;
+    protected DBConfigDTO $config;
 
     /**
      * Last inserted ID.
@@ -50,9 +51,9 @@ class MysqliAdapter implements DatabaseAdapterInterface {
     /**
      * Constructor.
      *
-     * @param array $config Database connection configuration.
+     * @param DBConfigDTO $config Database connection configuration.
      */
-    public function __construct( array $config ) {
+    public function __construct( DBConfigDTO $config ) {
         $this->config = $config;
         $this->connect();
     }
@@ -69,10 +70,10 @@ class MysqliAdapter implements DatabaseAdapterInterface {
         
         // Suppress connection error output
         $mysqli = @new mysqli(
-            $this->config['host'] ?? 'localhost',
-            $this->config['username'] ?? 'root',
-            $this->config['password'] ?? '',
-            $this->config['database'] ?? ''
+            $this->config->host,
+            $this->config->username,
+            $this->config->password,
+            $this->config->database
         );
 
         if ( $mysqli->connect_error ) {

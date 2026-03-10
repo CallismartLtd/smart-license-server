@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Database;
 
 use SQLite3;
 use Exception;
+use SmartLicenseServer\Core\DBConfigDTO;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -18,6 +19,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Adapter for native SQLite3 database access.
  */
 class SqliteAdapter implements DatabaseAdapterInterface {
+    use SqliteCompatibilityTrait;
 
     /**
      * The SQLite3 connection instance.
@@ -29,9 +31,9 @@ class SqliteAdapter implements DatabaseAdapterInterface {
     /**
      * Configuration settings.
      *
-     * @var array
+     * @var DBConfigDTO
      */
-    protected $config;
+    protected DBConfigDTO $config;
 
     /**
      * Last inserted ID.
@@ -50,9 +52,9 @@ class SqliteAdapter implements DatabaseAdapterInterface {
     /**
      * Constructor.
      *
-     * @param array $config Database configuration including 'database' path and optional 'flags'.
+     * @param DBConfigDTO $config Database configuration including 'database' path and optional 'flags'.
      */
-    public function __construct( array $config ) {
+    public function __construct( DBConfigDTO $config ) {
         $this->config = $config;
         $this->connect();
     }
@@ -68,12 +70,13 @@ class SqliteAdapter implements DatabaseAdapterInterface {
         }
 
         try {
-            $path       = $this->config['database'] ?? ':memory:';
-            $flags      = $this->config['flags'] ?? ( SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE );
-            $encryption = $this->config['encryption_key'] ?? '';
-            
-            $this->sqlite = new SQLite3( $path, $flags, $encryption );
+            $path       = $this->config->database ?? ':memory:';
+            $flags      = $this->config->flags ?? ( SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE );
+            $encryption = $this->config->encryption_key ?? '';
 
+            $this->sqlite = new SQLite3( $path, (int) $flags, $encryption );
+            $this->sqlite->exec( 'PRAGMA journal_mode=WAL;' );
+            $this->sqlite->exec( 'PRAGMA synchronous=NORMAL;' );
             return true;
         } catch ( Exception $e ) {
             $this->last_error = $e->getMessage();
@@ -134,7 +137,8 @@ class SqliteAdapter implements DatabaseAdapterInterface {
             return false;
         }
 
-        $stmt = $this->sqlite->prepare( $query );
+        $query  = $this->translate_mysql_to_sqlite( $query );
+        $stmt   = @$this->sqlite->prepare( $query );
         if ( ! $stmt ) {
             $this->last_error = $this->sqlite->lastErrorMsg();
             return false;

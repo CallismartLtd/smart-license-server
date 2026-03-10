@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environments\WordPress;
 use SmartLicenseServer\Admin\Menu;
 use SmartLicenseServer\Cache\WPCacheAdapter;
 use SmartLicenseServer\Config;
+use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\WPDBAdapter;
 use SmartLicenseServer\Environments\EnvironmentProviderInterface;
@@ -40,6 +41,47 @@ class SetUp extends Config implements EnvironmentProviderInterface {
      * Class constructor
      */
     private function __construct() {
+        $this->setProps();
+
+        add_action( 'plugins_loaded', array( $this, 'bootstrap_files' ) );
+        add_action( 'set_current_user', [$this->auth, 'authenticate'] );
+        add_action( 'admin_menu', [$this->menu, 'register_menus'] );
+        add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
+
+        add_action( 'admin_notices', [ $this, 'check_filesystem_errors'] );
+        add_action( 'admin_notices', [$this, 'print_admin_notices'] );
+        
+        add_action( 'init', [$this, 'route_register'], 9 );
+        add_action( 'init', [$this, 'schedule_events'], 10 );
+        add_action( 'init', [$this, 'load_monetization_providers'], 10 );
+        add_action( 'init', [$this->script_manager, 'register_scripts'], 10 );
+        add_action( 'init', [$this->script_manager, 'register_styles'], 10 );
+        
+        add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
+        add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
+        
+        add_action( 'admin_init', [Router::class, 'init_request'] );
+        add_action( 'template_redirect', [Router::class, 'init_request'] );
+        add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
+        
+        add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
+        add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
+        add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
+        add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
+
+        add_filter( 'redirect_canonical', [$this, 'disable_redirect_on_downloads'], 10, 2 );
+        add_filter( 'template_include', [Router::class, 'load_auth_template'] );
+        add_filter( 'query_vars', [$this, 'query_vars'] );
+        add_filter( 'cron_schedules', [$this, 'register_cron'] );
+
+        register_activation_hook( SMLISER_FILE, [Installer::class, 'install'] );
+    }
+
+    /**
+     * Bootstrap the class properties.
+     */
+    private function setProps() {
+        /** @var \wpdb $wpdb */
         $wpdb               = $GLOBALS['wpdb'] ?? null;
         $repo_path          = WP_CONTENT_DIR;
         $absolute_path      = ABSPATH;
@@ -57,44 +99,21 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         
         );
 
+        $this->dbConfig = new DBConfigDTO([
+            'driver'    => 'mysql',
+            'host'     => DB_HOST,
+            'port'     => 3306,
+            'database' => DB_NAME,
+            'username' => DB_USER,
+            'password' => DB_PASSWORD,
+            'charset'  => DB_CHARSET,
+        ]);
+        
         $this->setup( $env );
         
         $this->auth             = new IdentityService;
         $this->script_manager   = new ScriptManager;
         $this->menu             = new Menu;
-
-        add_action( 'plugins_loaded', array( $this, 'bootstrap_files' ) );
-        add_action( 'set_current_user', [$this->auth, 'authenticate'] );
-        add_action( 'admin_menu', [$this->menu, 'register_menus'] );
-        add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
-
-        add_action( 'admin_notices', [ $this, 'check_filesystem_errors'] );
-        add_action( 'admin_notices', array( $this, 'print_admin_notices' ) );
-        
-        add_action( 'init', array( $this, 'route_register' ), 9 );
-        add_action( 'init', [$this, 'schedule_events'], 10 );
-        add_action( 'init', [$this, 'load_monetization_providers'], 10 );
-        add_action( 'init', [$this->script_manager, 'register_scripts'], 10 );
-        add_action( 'init', [$this->script_manager, 'register_styles'], 10 );
-        
-        add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
-        add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
-        
-        add_action( 'admin_init', [Router::class, 'init_request'] );
-        add_action( 'template_redirect', array( Router::class, 'init_request' ) );
-        add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
-        
-        add_action( 'wp_enqueue_scripts', array( $this->script_manager, 'enqueue_styles' ) );
-        add_action( 'wp_enqueue_scripts', array( $this->script_manager, 'enqueue_scripts' ) );
-        add_action( 'admin_enqueue_scripts', array( $this->script_manager, 'enqueue_styles' ) );
-        add_action( 'admin_enqueue_scripts', array( $this->script_manager, 'enqueue_scripts' ) );
-
-        add_filter( 'redirect_canonical', array( $this, 'disable_redirect_on_downloads' ), 10, 2 );
-        add_filter( 'template_include', array( Router::class, 'load_auth_template' ) );
-        add_filter( 'query_vars', array( $this, 'query_vars') );
-        add_filter( 'cron_schedules', array( $this, 'register_cron' ) );
-
-        register_activation_hook( SMLISER_FILE, array( Installer::class, 'install' ) );
     }
 
     /**

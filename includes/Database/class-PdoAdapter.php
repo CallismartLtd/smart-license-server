@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Database;
 
 use PDO;
 use PDOException;
+use SmartLicenseServer\Core\DBConfigDTO;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -30,9 +31,9 @@ class PdoAdapter implements DatabaseAdapterInterface {
     /**
      * Configuration settings for the PDO connection.
      *
-     * @var array
+     * @var DBConfigDTO
      */
-    protected $config;
+    protected DBConfigDTO $config;
 
     /**
      * Last inserted ID.
@@ -51,9 +52,9 @@ class PdoAdapter implements DatabaseAdapterInterface {
     /**
      * Constructor.
      *
-     * @param array $config Database connection configuration.
+     * @param DBConfigDTO $config Database connection configuration.
      */
-    public function __construct( array $config ) {
+    public function __construct( DBConfigDTO $config ) {
         $this->config = $config;
         $this->connect();
     }
@@ -69,24 +70,26 @@ class PdoAdapter implements DatabaseAdapterInterface {
         }
 
         try {
-            $driver = $this->config['driver'] ?? 'mysql';
+            $driver = $this->config->driver;
             $dsn = sprintf(
                 '%s:host=%s;dbname=%s;charset=%s',
                 $driver,
-                $this->config['host'] ?? 'localhost',
-                $this->config['database'] ?? '',
-                $this->config['charset'] ?? 'utf8mb4'
+                $this->config->host,
+                $this->config->database,
+                $this->config->charset
             );
+
+            $flags  = (array) $this->config->flags ?? [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ];
 
             $this->pdo = new PDO(
                 $dsn,
-                $this->config['username'] ?? 'root',
-                $this->config['password'] ?? '',
-                [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
-                ]
+                $this->config->username,
+                $this->config->password,
+                $flags
             );
 
             return true;

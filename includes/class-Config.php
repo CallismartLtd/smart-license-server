@@ -10,11 +10,11 @@
 namespace SmartLicenseServer;
 
 use PDO;
-use RuntimeException;
 use SmartLicenseServer\Cache\ApcuCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterInterface;
 use SmartLicenseServer\Cache\InMemoryCacheAdapter;
+use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\DatabaseAdapterInterface;
 use SmartLicenseServer\Database\LaravelAdapter;
@@ -23,6 +23,7 @@ use SmartLicenseServer\Database\PdoAdapter;
 use SmartLicenseServer\Database\SqliteAdapter;
 use SmartLicenseServer\Email\EmailProviderCollection;
 use SmartLicenseServer\Email\Mailer;
+use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
@@ -104,6 +105,13 @@ abstract class Config {
     protected Mailer $mailer;
 
     /**
+     * Database configuration class.
+     * 
+     * @var DBConfigDTO
+     */
+    protected DBConfigDTO $dbConfig;
+
+    /**
      * Environment configuration setup.
      * 
      * @param array $config Array of configuration options
@@ -156,7 +164,7 @@ abstract class Config {
                 \implode( ', ', $missing_config )
             );
 
-            throw new RuntimeException( $message );
+            throw new EnvironmentBootstrapException( 'mis_configuration', $message );
         }
 
         $this->env  = $parsed_config;
@@ -440,21 +448,16 @@ abstract class Config {
      */
     protected function setGlobalDBAdapter() : void {
         if ( ! isset( $this->dbadapter ) ) {
-   
-            // Common configuration for standard PHP environments
-            $config = [
-                'host'      => defined('DB_HOST') ? DB_HOST : 'localhost',
-                'username'  => defined('DB_USER') ? DB_USER : 'root',
-                'password'  => defined('DB_PASSWORD') ? DB_PASSWORD : '',
-                'database'  => defined('DB_NAME') ? DB_NAME : '',
-                'charset'   => defined( 'DB_CHARSET' ) ? DB_CHARSET : 'utf8mb4',
-            ];
+            if ( ! isset( $this->dbConfig ) ) {
+                throw new EnvironmentBootstrapException( 'missing_db_config' );
+            }
+            $config = $this->dbConfig;
 
             $adapters   = [
                 LaravelAdapter::class   => class_exists( 'Illuminate\Support\Facades\DB' ),
-                PdoAdapter::class       => class_exists( PDO::class ) && in_array( 'mysql', PDO::getAvailableDrivers() ),
-                MysqliAdapter::class    => class_exists( 'mysqli' ),
-                SqliteAdapter::class    => defined( 'DB_TYPE' ) && 'sqlite' === constant( 'DB_TYPE' ) && class_exists( 'SQLite3' ),
+                // PdoAdapter::class       => class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
+                // MysqliAdapter::class    => class_exists( 'mysqli' ),
+                SqliteAdapter::class    => 'sqlite' === $config->driver && class_exists( 'SQLite3' ),
             ];
 
             foreach( $adapters as $adapter_class => $is_supported ) {
@@ -465,7 +468,7 @@ abstract class Config {
             }
 
             if ( ! isset( $this->dbadapter ) ) {
-                throw new \Exception( 'No supported database adapter found or initialized.' ); 
+                throw new EnvironmentBootstrapException( 'no_db_adapter_found' ); 
             }          
         }
         
