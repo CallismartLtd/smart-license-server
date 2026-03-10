@@ -10,10 +10,10 @@
 namespace SmartLicenseServer;
 
 use PDO;
-use SmartLicenseServer\Cache\ApcuCacheAdapter;
+use SmartLicenseServer\Cache\Adapters\ApcuCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
-use SmartLicenseServer\Cache\CacheAdapterInterface;
-use SmartLicenseServer\Cache\InMemoryCacheAdapter;
+use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
+use SmartLicenseServer\Cache\Adapters\InMemoryCacheAdapter;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\DatabaseAdapterInterface;
@@ -455,8 +455,8 @@ abstract class Config {
 
             $adapters   = [
                 LaravelAdapter::class   => class_exists( 'Illuminate\Support\Facades\DB' ),
-                // PdoAdapter::class       => class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
-                // MysqliAdapter::class    => class_exists( 'mysqli' ),
+                PdoAdapter::class       => class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
+                MysqliAdapter::class    => class_exists( 'mysqli' ),
                 SqliteAdapter::class    => 'sqlite' === $config->driver && class_exists( 'SQLite3' ),
             ];
 

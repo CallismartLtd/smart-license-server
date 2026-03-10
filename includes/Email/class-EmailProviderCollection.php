@@ -28,8 +28,6 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
-use function smliser_settings_adapter;
-
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 class EmailProviderCollection {

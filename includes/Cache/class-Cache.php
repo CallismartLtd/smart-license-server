@@ -7,6 +7,8 @@
 
 namespace SmartLicenseServer\Cache;
 
+use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**

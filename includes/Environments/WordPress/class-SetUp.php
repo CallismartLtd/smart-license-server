@@ -9,7 +9,7 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Admin\Menu;
-use SmartLicenseServer\Cache\WPCacheAdapter;
+use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
@@ -88,7 +88,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         $uploads_dir        = wp_upload_dir()['basedir'];
         $db_prefix          = $wpdb?->prefix;
         $filesystem_adapter = new WPFileSystemAdapter;
-        $cache_adapter      = new WPCacheAdapter;
+        $cache_adapter      = wp_using_ext_object_cache() ? new WPCacheAdapter : null;
         $settings_adapter   = new WPSettingsAdapter;
         $database_adapter   = new WPDBAdapter( $wpdb );
         $rest_api_provider  = new RESTAPI( new V1 );

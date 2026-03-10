@@ -7,7 +7,7 @@
  * @package SmartLicenseServer\Cache
  */
 
-namespace SmartLicenseServer\Cache;
+namespace SmartLicenseServer\Cache\Adapters;
 
 use SmartLicenseServer\Database\DatabaseAdapterInterface;
 

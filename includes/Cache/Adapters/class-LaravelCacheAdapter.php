@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\Cache
  */
 
-namespace SmartLicenseServer\Cache;
+namespace SmartLicenseServer\Cache\Adapters;
 
 use Illuminate\Support\Facades\Cache as LaravelCache;
 

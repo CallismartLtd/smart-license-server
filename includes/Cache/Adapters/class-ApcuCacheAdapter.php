@@ -8,7 +8,7 @@
  * @package SmartLicenseServer\Cache
  */
 
-namespace SmartLicenseServer\Cache;
+namespace SmartLicenseServer\Cache\Adapters;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
