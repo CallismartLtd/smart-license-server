@@ -33,15 +33,26 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
     protected string $prefix = '';
 
     /**
+     * Server hostname
+     * 
+     * @var string
+     */
+    protected string $hostname  = '';
+
+    /**
+     * Port
+     * 
+     * @var int
+     */
+    protected int $port = 11211;
+
+    /**
      * Constructor.
      *
      * @param Memcached $memcached Memcached client instance.
      * @param string    $prefix    Optional key prefix.
      */
-    public function __construct( Memcached $memcached, string $prefix = '' ) {
-        $this->memcached = $memcached;
-        $this->prefix    = $prefix;
-    }
+    public function __construct() {}
 
     /**
      * Build the cache key.
@@ -104,5 +115,50 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      */
     public function clear(): bool {
         return $this->memcached->flush();
+    }
+
+    /**
+    |----------------------
+    | ADAPTER IDENTITY
+    |----------------------
+    */
+
+    public function get_id() : string {
+        return 'memcached';
+    }
+
+    public function get_name() : string {
+        return 'Memcached';
+    }
+
+    public function get_settings_schema() : array {
+        return [
+            'hostname' => [
+                'type'        => 'text',
+                'label'       => 'Server Host',
+                'required'    => true,
+                'description' => 'Memcached server hostname. e.g. localhost',
+            ],
+            'port' => [
+                'type'        => 'number',
+                'label'       => 'Port',
+                'required'    => false,
+                'description' => 'Typically 11211.',
+            ],
+        ];
+    }
+
+    public function set_settings( array $settings ) : void {
+        if ( isset( $settings['hostname'] ) ) {
+            $this->hostname = (string) $settings['hostname'];
+        }
+
+        if ( isset( $settings['port'] ) ) {
+            $this->hostname = (int) $settings['port'];
+        }
+    }
+
+    public function is_supported() : bool {
+        return class_exists( Memcached::class );
     }
 }

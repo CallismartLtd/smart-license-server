@@ -33,15 +33,26 @@ class RedisCacheAdapter implements CacheAdapterInterface {
     protected string $prefix = '';
 
     /**
+     * Server hostname
+     * 
+     * @var string
+     */
+    protected string $hostname  = '';
+
+    /**
+     * Port
+     * 
+     * @var int
+     */
+    protected int $port = 6379;
+
+    /**
      * Constructor.
      *
      * @param Redis  $redis  Redis client instance.
      * @param string $prefix Optional key prefix.
      */
-    public function __construct( Redis $redis, string $prefix = '' ) {
-        $this->redis  = $redis;
-        $this->prefix = $prefix;
-    }
+    public function __construct() {}
 
     /**
      * Build the full cache key.
@@ -117,5 +128,50 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      */
     public function clear(): bool {
         return (bool) $this->redis->flushDB();
+    }
+
+    /**
+    |----------------------
+    | ADAPTER IDENTITY
+    |----------------------
+    */
+
+    public function get_id() : string {
+        return 'redis';
+    }
+
+    public function get_name() : string {
+        return 'Redis Cache';
+    }
+
+    public function get_settings_schema() : array {
+        return [
+            'hostname' => [
+                'type'        => 'text',
+                'label'       => 'Server Host',
+                'required'    => true,
+                'description' => 'Redis server hostname. e.g. localhost',
+            ],
+            'port' => [
+                'type'        => 'number',
+                'label'       => 'Port',
+                'required'    => false,
+                'description' => 'Typically 6379.',
+            ],
+        ];
+    }
+
+    public function set_settings( array $settings ) : void {
+        if ( isset( $settings['hostname'] ) ) {
+            $this->hostname = (string) $settings['hostname'];
+        }
+
+        if ( isset( $settings['port'] ) ) {
+            $this->port = (int) $settings['port'];
+        }
+    }
+
+    public function is_supported() : bool {
+        return class_exists( Redis::class );
     }
 }

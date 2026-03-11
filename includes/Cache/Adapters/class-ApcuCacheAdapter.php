@@ -22,7 +22,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
      *
      * @var bool
      */
-    protected $enabled;
+    protected bool $enabled;
 
     /**
      * Constructor.
@@ -117,5 +117,29 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
      */
     public function is_enabled(): bool {
         return $this->enabled;
+    }
+
+    /**
+    |----------------------
+    | ADAPTER IDENTITY
+    |----------------------
+    */
+
+    public function get_id() : string {
+        return 'apcu';
+    }
+
+    public function get_name() : string {
+        return 'APCu Cache';
+    }
+
+    public function get_settings_schema() : array {
+        return [];
+    }
+
+    public function set_settings( array $settings ) : void {}
+    
+    public function is_supported() : bool {
+        return $this->is_enabled();
     }
 }

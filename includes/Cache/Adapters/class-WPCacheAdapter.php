@@ -71,4 +71,28 @@ class WPCacheAdapter implements CacheAdapterInterface {
         wp_cache_get( $key, $this->group, false, $found );
         return $found;
     }
+
+    /**
+    |----------------------
+    | ADAPTER IDENTITY
+    |----------------------
+    */
+
+    public function get_id() : string {
+        return 'wpcache';
+    }
+
+    public function get_name() : string {
+        return 'WordPress Cache API';
+    }
+
+    public function get_settings_schema() : array {
+        return [];
+    }
+
+    public function set_settings( array $settings ) : void {}
+
+    public function is_supported() : bool {
+        return true;
+    }
 }

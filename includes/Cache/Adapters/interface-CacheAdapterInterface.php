@@ -54,4 +54,61 @@ interface CacheAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function clear(): bool;
+
+    /**
+    |----------------------
+    | ADAPTER IDENTITY
+    |----------------------
+    */
+
+    /**
+     * Get the adapter ID
+     * 
+     * @return string
+     */
+    public function get_id() : string;
+
+    /**
+     * Get provider display name.
+     *
+     * Example: "PHP Mail", "Brevo", "SendGrid".
+     *
+     * @return string
+     */
+    public function get_name() : string;
+
+    /**
+     * Return required configuration fields.
+     *
+     * This allows the system to dynamically build a settings UI.
+     *
+     * Example return structure:
+     * [
+     *     'hostname' => [
+     *         'type'        => 'text',
+     *         'label'       => 'Host Name',
+     *         'required'    => true,
+     *         'default'     => localhost
+     *         'description' => 'The redis server hostname.'
+     *     ]
+     * ]
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function get_settings_schema() : array;
+
+    /**
+     * Set provider configuration.
+     *
+     * @param array<string, mixed> $settings
+     * @return void
+     */
+    public function set_settings( array $settings ) : void;
+
+    /**
+     * Tells whether the adapter can run in the host environment.
+     * 
+     * @return bool
+     */
+    public function is_supported() : bool;
 }

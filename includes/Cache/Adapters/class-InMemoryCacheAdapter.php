@@ -97,4 +97,28 @@ class InMemoryCacheAdapter implements CacheAdapterInterface {
         $this->cache = [];
         return true;
     }
+
+    /**
+    |----------------------
+    | ADAPTER IDENTITY
+    |----------------------
+    */
+
+    public function get_id() : string {
+        return 'php_mem';
+    }
+
+    public function get_name() : string {
+        return 'In Memory Cache';
+    }
+
+    public function get_settings_schema() : array {
+        return [];
+    }
+
+    public function set_settings( array $settings ) : void {}
+
+    public function is_supported() : bool {
+        return true;
+    }
 }

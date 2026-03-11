@@ -72,4 +72,29 @@ class LaravelCacheAdapter implements CacheAdapterInterface {
     public function has( string $key ): bool {
         return LaravelCache::has( $key );
     }
+
+
+    /**
+    |----------------------
+    | ADAPTER IDENTITY
+    |----------------------
+    */
+
+    public function get_id() : string {
+        return 'laravelcache';
+    }
+
+    public function get_name() : string {
+        return 'Laravel Cache API';
+    }
+
+    public function get_settings_schema() : array {
+        return [];
+    }
+
+    public function set_settings( array $settings ) : void {}
+
+    public function is_supported() : bool {
+        return class_exists( LaravelCache::class );
+    }
 }
