@@ -354,7 +354,7 @@ class SMTPProvider implements EmailProviderInterface {
         if ( in_array( $encryption, [ self::ENCRYPTION_STARTTLS, self::ENCRYPTION_TLS ], true ) ) {
             $this->command( 'STARTTLS', 220 );
 
-            if ( ! stream_socket_enable_crypto( $this->socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT ) ) {
+            if ( ! stream_socket_enable_crypto( $this->socket, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT ) ) {
                 throw new EmailTransportException( 'SMTPProvider: STARTTLS negotiation failed.' );
             }
 
