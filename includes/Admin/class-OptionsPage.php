@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Cache\CacheAdapterCollection;
 use SmartLicenseServer\Email\EmailProviderCollection;
 use SmartLicenseServer\Email\Providers\EmailProviderInterface;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
@@ -39,6 +40,9 @@ class OptionsPage {
 
             case 'email':
                 self::email_options();
+                break;
+            case 'cache':
+                self::cache_options();
                 break;
 
             default:
@@ -179,6 +183,50 @@ class OptionsPage {
         }
 
         include_once SMLISER_PATH . 'templates/admin/options/email-provider.php';
+    }
+
+    /**
+     * Email settings page dispatcher.
+     *
+     * Routes to individual provider settings when a provider query param
+     * is present, to the template list when section=templates, to an
+     * individual template when section=templates&template=key,
+     * otherwise renders the provider list with global email settings.
+     */
+    private static function cache_options(): void {
+        if ( smliser_has_query_param( 'adapter' ) ) {
+            self::cache_adapter_settings();
+            return;
+        }
+
+        $collection       = CacheAdapterCollection::instance();
+        $providers        = $collection->get_providers();
+        $default_provider = CacheAdapterCollection::get_default_provider_id();
+        $cache_fields     = static::email_settings_fields();
+
+        include_once SMLISER_PATH . 'templates/admin/options/cache.php';
+    }
+
+    /**
+     * Settings page for an individual email provider.
+     */
+    private static function cache_adapter_settings(): void {
+        $adapter_key    = smliser_get_query_param( 'adapter' );
+        $collection     = CacheAdapterCollection::instance();
+        $adapter        = $collection->get_provider( $adapter_key );
+
+        $adapter_name   = $adapter?->get_name() ?? '';
+        $adapter_id     = $adapter?->get_id() ?? '';
+        $schema         = $adapter?->get_settings_schema() ?? [];
+        $is_default     = CacheAdapterCollection::get_default_provider_id() === $adapter_id;
+
+        // Pre-populate each field with persisted value.
+        $saved_settings = [];
+        foreach ( $schema as $key => $_ ) {
+            $saved_settings[ $key ] = CacheAdapterCollection::get_option( $adapter_id, $key );
+        }
+
+        include_once SMLISER_PATH . 'templates/admin/options/cache-adapter.php';
     }
 
     /*
@@ -453,13 +501,14 @@ class OptionsPage {
     protected static function get_menu_args(): array {
         $tab         = smliser_get_query_param( 'tab' );
         $section     = smliser_get_query_param( 'section' );
-        $current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider', 'template' );
+        $current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider', 'adapter', 'template' );
 
         $title = match ( true ) {
             'routes'       === $tab                              => 'Page Routing',
             'monetization' === $tab                              => 'Monetization Providers',
             'email'        === $tab && 'templates' === $section  => 'Email Templates',
             'email'        === $tab                              => 'Email Providers',
+            'cache'        === $tab                              => 'Cache Adapters',
             default                                              => 'General Settings',
         };
 
@@ -498,6 +547,14 @@ class OptionsPage {
                     'icon'   => 'ti ti-template',
                     'active' => 'email' === $tab && 'templates' === $section,
                 ],
+                [
+                    'title'  => 'Cache Adapters',
+                    'label'  => 'Cache',
+                    'url'    => $current_url->add_query_param( 'tab', 'cache' ),
+                    'icon'   => 'ti ti-database-search',
+                    'active' => 'cache' === $tab,
+                ],
+                
                 [
                     'title'  => 'Routes Settings',
                     'label'  => 'Routes',

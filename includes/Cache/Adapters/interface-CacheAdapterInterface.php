@@ -71,7 +71,7 @@ interface CacheAdapterInterface {
     /**
      * Get provider display name.
      *
-     * Example: "PHP Mail", "Brevo", "SendGrid".
+     * Example: "Redis Cache", "Memcached", "APCu Cache".
      *
      * @return string
      */

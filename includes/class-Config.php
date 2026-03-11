@@ -14,6 +14,7 @@ use SmartLicenseServer\Cache\Adapters\ApcuCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
 use SmartLicenseServer\Cache\Adapters\InMemoryCacheAdapter;
+use SmartLicenseServer\Cache\CacheAdapterCollection;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\DatabaseAdapterInterface;
@@ -122,8 +123,8 @@ abstract class Config {
         $this->declareGlobalConstants();
         $this->setGlobalDBAdapter();
         $this->setGlobalFileSystemAdapter();
-        $this->setGlobalCacheAdapter();
         $this->setGlobalSettingsAdapter();
+        $this->setGlobalCacheAdapter();
         $this->setGlobalMailingAdapter();
 
     }
@@ -506,13 +507,7 @@ abstract class Config {
      */
     protected function setGlobalCacheAdapter() : void {
         if ( ! isset( $this->cacheAdapter ) ) {
-            // APCu (fast native PHP cache) if available and enabled.
-            if ( extension_loaded( 'apcu' ) && ini_get( 'apc.enabled' ) ) {
-                $this->cacheAdapter = new ApcuCacheAdapter();
-            } else {
-                // Default to in-memory cache.
-                $this->cacheAdapter = new InMemoryCacheAdapter();
-            }
+            $this->cacheAdapter = CacheAdapterCollection::instance( $this->settings )->get_provider_with_settings();
         }
 
         $this->cache    = new Cache( $this->cacheAdapter );

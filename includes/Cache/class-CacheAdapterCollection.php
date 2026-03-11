@@ -201,7 +201,7 @@ class CacheAdapterCollection {
      * @return string|null
      */
     public static function get_default_provider_id(): string {
-        return (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, 'php_mail', true );
+        return (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, 'apcu', true );
     }
 
     /**

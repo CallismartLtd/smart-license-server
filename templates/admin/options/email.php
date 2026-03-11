@@ -42,35 +42,35 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
         </div>
     </form>
 
-    <div class="smliser-email-provider-grid">
+    <div class="smliser-providers-grid">
         <h2 class="smliser-section-title">Email Providers</h2>
         <p class="smliser-section-description">
             Configure the email provider you want to use for outgoing system emails.
             The active provider is determined by the Default Email Provider setting above.
         </p>
 
-        <div class="smliser-email-provider-cards">
+        <div class="smliser-provider-cards">
             <?php foreach ( $providers as $provider_id => $provider ) :
                 $is_default   = $default_provider === $provider_id;
                 $provider_url = $current_url->add_query_param( 'provider', $provider_id );
             ?>
-                <div class="smliser-email-provider-card <?php echo esc_attr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
+                <div class="smliser-provider-card <?php echo esc_attr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
 
-                    <div class="smliser-email-provider-card__icon-wrap">
+                    <div class="smliser-provider-card__icon-wrap">
                         <?php echo EmailProviderIcons::render( $provider_id, $provider->get_name() ); ?>
                     </div>
 
-                    <div class="smliser-email-provider-card__body">
+                    <div class="smliser-provider-card__body">
                         <span class="smliser-provider-card__name">
                             <?php echo esc_html( $provider->get_name() ); ?>
                         </span>
 
                         <?php if ( $is_default ) : ?>
-                            <span class="smliser-email-provider-card__badge">&#10003; Active</span>
+                            <span class="smliser-provider-card__badge">&#10003; Active</span>
                         <?php endif; ?>
                     </div>
 
-                    <div class="smliser-email-provider-card__actions">
+                    <div class="smliser-provider-card__actions">
                         <a href="<?php echo esc_url( $provider_url ); ?>"
                         class="smliser-button smliser-button--secondary">
                             Configure

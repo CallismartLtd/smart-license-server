@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ram-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C4B5FD"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="ram-stick" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#ede9fe" stop-opacity="0.9"/>
+    </linearGradient>
+    <filter id="ram-shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#3b0764" flood-opacity="0.35"/>
+    </filter>
+    <linearGradient id="ram-glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#C4B5FD" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="64" height="64" rx="14" ry="14" fill="url(#ram-bg)" filter="url(#ram-shadow)"/>
+
+  <!-- RAM stick body -->
+  <rect x="10" y="22" width="44" height="20" rx="2" ry="2" fill="url(#ram-stick)"/>
+
+  <!-- Notch at bottom of RAM stick -->
+  <rect x="28" y="38" width="8" height="5" rx="1" fill="url(#ram-bg)"/>
+
+  <!-- PCB circuit trace line -->
+  <rect x="10" y="29" width="44" height="1.5" rx="0.75" fill="url(#ram-glow)"/>
+
+  <!-- Memory chips on stick -->
+  <rect x="13" y="24" width="7" height="7" rx="1.5" fill="#7C3AED" opacity="0.8"/>
+  <rect x="22" y="24" width="7" height="7" rx="1.5" fill="#7C3AED" opacity="0.8"/>
+  <rect x="31" y="24" width="7" height="7" rx="1.5" fill="#7C3AED" opacity="0.8"/>
+  <rect x="40" y="24" width="7" height="7" rx="1.5" fill="#7C3AED" opacity="0.8"/>
+
+  <!-- Chip dots (tiny contacts) -->
+  <circle cx="16.5" cy="27.5" r="1" fill="#ffffff" opacity="0.7"/>
+  <circle cx="25.5" cy="27.5" r="1" fill="#ffffff" opacity="0.7"/>
+  <circle cx="34.5" cy="27.5" r="1" fill="#ffffff" opacity="0.7"/>
+  <circle cx="43.5" cy="27.5" r="1" fill="#ffffff" opacity="0.7"/>
+
+  <!-- Bottom connector gold pins -->
+  <rect x="12" y="43" width="2" height="6" rx="0.5" fill="#FCD34D"/>
+  <rect x="16" y="43" width="2" height="6" rx="0.5" fill="#FCD34D"/>
+  <rect x="20" y="43" width="2" height="6" rx="0.5" fill="#FCD34D"/>
+  <rect x="24" y="43" width="2" height="6" rx="0.5" fill="#FCD34D"/>
+  <!-- gap for notch -->
+  <rect x="32" y="43" width="2" height="6" rx="0.5" fill="#FCD34D"/>
+  <rect x="36" y="43" width="2" height="6" rx="0.5" fill="#FCD34D"/>
+  <rect x="40" y="43" width="2" height="6" rx="0.5" fill="#FCD34D"/>
+  <rect x="44" y="43" width="2" height="6" rx="0.5" fill="#FCD34D"/>
+
+  <!-- Speed glow dots (indicating volatile/fast) -->
+  <circle cx="8" cy="18" r="2" fill="#C4B5FD" opacity="0.7"/>
+  <circle cx="14" cy="13" r="1.5" fill="#C4B5FD" opacity="0.5"/>
+  <circle cx="56" cy="18" r="2" fill="#C4B5FD" opacity="0.7"/>
+  <circle cx="50" cy="13" r="1.5" fill="#C4B5FD" opacity="0.5"/>
+</svg>

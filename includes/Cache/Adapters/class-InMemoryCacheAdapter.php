@@ -105,7 +105,7 @@ class InMemoryCacheAdapter implements CacheAdapterInterface {
     */
 
     public function get_id() : string {
-        return 'php_mem';
+        return 'inmemory';
     }
 
     public function get_name() : string {

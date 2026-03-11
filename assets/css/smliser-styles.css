@@ -2072,7 +2072,7 @@ input.smliser_toggle-switch-input {
 }
 
 /* ─── Provider Grid Container ────────────────────────────────────────── */
-.smliser-email-provider-grid,
+.smliser-providers-grid,
 .smliser-test-email {
     margin: 20px;
     padding-top: 24px;
@@ -2096,14 +2096,14 @@ input.smliser_toggle-switch-input {
 }
 
 /* ─── Cards Layout ───────────────────────────────────────────────────── */
-.smliser-email-provider-cards {
+.smliser-provider-cards {
     display: grid;
     grid-template-columns: repeat( auto-fill, minmax( 300px, 1fr ) );
     gap: 14px;
 }
 
 /* ─── Individual Card ────────────────────────────────────────────────── */
-.smliser-email-provider-card {
+.smliser-provider-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
@@ -2118,7 +2118,7 @@ input.smliser_toggle-switch-input {
     min-height: 72px;
 }
 
-.smliser-email-provider-card:hover {
+.smliser-provider-card:hover {
     border-color: #c7d2fe;
     box-shadow: 0 4px 14px rgba( 99, 102, 241, 0.09 );
     transform: translateY( -1px );
@@ -2136,7 +2136,7 @@ input.smliser_toggle-switch-input {
 }
 
 /* ─── Icon Column ────────────────────────────────────────────────────── */
-.smliser-email-provider-card__icon-wrap {
+.smliser-provider-card__icon-wrap {
     width: 87px;
     height: 87px;
     border-radius: 10px;
@@ -2149,20 +2149,20 @@ input.smliser_toggle-switch-input {
     flex-shrink: 0;
 }
 
-.smliser-email-provider-card__icon-wrap img.smliser-provider-icon {
+.smliser-provider-card__icon-wrap img.smliser-provider-icon {
     width: 87px;
     height: 87px;
     object-fit: contain;
     display: block;
 }
 
-.smliser-email-provider-card__icon-wrap span.smliser-provider-icon {
+.smliser-provider-card__icon-wrap span.smliser-provider-icon {
     font-size: 24px;
     color: #6366f1;
 }
 
 /* ─── Content Column ─────────────────────────────────────────────────── */
-.smliser-email-provider-card__body {
+.smliser-provider-card__body {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -2180,7 +2180,7 @@ input.smliser_toggle-switch-input {
 }
 
 /* ─── Active Badge ───────────────────────────────────────────────────── */
-.smliser-email-provider-card__badge {
+.smliser-provider-card__badge {
     display: inline-flex;
     align-items: center;
     gap: 3px;
@@ -2211,12 +2211,12 @@ input.smliser_toggle-switch-input {
     justify-self: center;
 }
 
-.smliser-email-provider-card__actions {
+.smliser-provider-card__actions {
     display: flex;
     align-items: center;
 }
 
-.smliser-email-provider-card .smliser-button {
+.smliser-provider-card .smliser-button {
     text-decoration: none;
     display: inline-flex;
     align-items: center;
@@ -2232,7 +2232,7 @@ input.smliser_toggle-switch-input {
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.smliser-email-provider-card .smliser-button:hover {
+.smliser-provider-card .smliser-button:hover {
     background: #e8eeff;
     border-color: #c7d2fe;
     color: #4f46e5;
@@ -2263,7 +2263,7 @@ input.smliser_toggle-switch-input {
 
 /* ─── Responsive Adjustments ─────────────────────────────────────────── */
 @media (max-width: 480px) {
-    .smliser-email-provider-cards {
+    .smliser-provider-cards {
         grid-template-columns: 1fr;
     }
 }
