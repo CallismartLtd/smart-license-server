@@ -13,7 +13,7 @@ use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
 use SmartLicenseServer\Cache\Adapters\InMemoryCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\MemcachedCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\RedisCacheAdapter;
-use SmartLicenseServer\Cache\Adapters\SqliteCacheAdapter;
+use SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -317,7 +317,7 @@ class CacheAdapterCollection {
             new ApcuCacheAdapter,
             new RedisCacheAdapter,
             new MemcachedCacheAdapter,
-            new SqliteCacheAdapter,
+            new SQLiteCacheAdapter,
             new InMemoryCacheAdapter,
         ];
 

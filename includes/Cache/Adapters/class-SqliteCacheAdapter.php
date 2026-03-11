@@ -33,7 +33,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * - initialize() only runs once per instance — ensure_db() gates everything
  *   with a fast isset() check on subsequent calls.
  */
-class SqliteCacheAdapter implements CacheAdapterInterface {
+class SQLiteCacheAdapter implements CacheAdapterInterface {
 
     /**
      * The SQLite3 connection.
