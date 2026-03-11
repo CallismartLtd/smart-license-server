@@ -17,7 +17,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email\Providers;
 
-use Automattic\WooCommerce\StoreApi\Routes\V1\Agentic\Messages\Message;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
@@ -30,7 +29,7 @@ class SMTPProvider implements EmailProviderInterface {
 
     public const ENCRYPTION_NONE     = '';
     public const ENCRYPTION_SSL      = 'ssl';
-    public const ENCRYPTION_TLS      = 'tls';       // Alias for STARTTLS — explicit in-session upgrade.
+    public const ENCRYPTION_TLS      = 'tls';
     public const ENCRYPTION_STARTTLS = 'starttls';
 
     protected const DEFAULT_TIMEOUT          = 15;
@@ -78,6 +77,28 @@ class SMTPProvider implements EmailProviderInterface {
      * @var bool
      */
     protected bool $configured = false;
+
+    /**
+     * AUTH mechanisms advertised by the server in its EHLO response.
+     *
+     * Populated by parse_ehlo_response() after every EHLO command.
+     * Values are lowercased for case-insensitive comparison.
+     * e.g. [ 'plain', 'login', 'xoauth2' ]
+     *
+     * @var string[]
+     */
+    protected array $auth_mechanisms = [];
+
+    /**
+     * SMTP extensions advertised by the server in its EHLO response.
+     *
+     * Keyed by lowercase extension keyword, value is any trailing
+     * parameter string (or empty string if the extension has no params).
+     * e.g. [ 'size' => '52428800', 'pipelining' => '', '8bitmime' => '' ]
+     *
+     * @var array<string, string>
+     */
+    protected array $extensions = [];
 
     /*
     |----------------------
@@ -155,6 +176,12 @@ class SMTPProvider implements EmailProviderInterface {
                 'required'    => false,
                 'description' => 'Socket connection timeout. Default: ' . self::DEFAULT_TIMEOUT . 's.',
             ],
+            'helo_hostname' => [
+                'type'        => 'text',
+                'label'       => 'EHLO Hostname',
+                'required'    => false,
+                'description' => 'Hostname sent in the EHLO command. Must be an FQDN or IP literal like [1.2.3.4]. Leave blank to auto-detect.',
+            ],
         ];
     }
 
@@ -201,8 +228,6 @@ class SMTPProvider implements EmailProviderInterface {
             );
         }
 
-        // Drop any existing connection when settings change so the next
-        // send() opens a fresh socket against the new host/credentials.
         if ( $this->is_connected() ) {
             $this->disconnect();
         }
@@ -219,10 +244,6 @@ class SMTPProvider implements EmailProviderInterface {
 
     /**
      * Send an email message over SMTP.
-     *
-     * Reuses an existing open connection when available. Reconnects
-     * automatically if the connection has been dropped or the per-connection
-     * send limit has been reached.
      *
      * @param EmailMessage $message
      * @return EmailResponse
@@ -242,8 +263,6 @@ class SMTPProvider implements EmailProviderInterface {
             $message_id = $this->transmit( $message );
             $this->send_count++;
         } catch ( EmailTransportException $e ) {
-            // The connection may be in an undefined state after a mid-flight
-            // failure — tear it down so the next send() starts clean.
             $this->force_disconnect();
             throw $e;
         }
@@ -253,9 +272,6 @@ class SMTPProvider implements EmailProviderInterface {
 
     /**
      * Explicitly close the connection.
-     *
-     * Call this after a bulk send batch is complete to release the socket
-     * cleanly rather than waiting for the destructor or server-side timeout.
      */
     public function close(): void {
         $this->disconnect();
@@ -294,8 +310,6 @@ class SMTPProvider implements EmailProviderInterface {
 
     /**
      * Check whether the socket has timed out or been closed by the server.
-     *
-     * Uses stream_get_meta_data() which is cheap — no actual read/write.
      */
     protected function is_socket_stale(): bool {
         if ( ! is_resource( $this->socket ) ) {
@@ -322,8 +336,6 @@ class SMTPProvider implements EmailProviderInterface {
         $encryption = $this->settings['encryption']      ?? self::ENCRYPTION_NONE;
         $timeout    = (int) ( $this->settings['timeout'] ?? self::DEFAULT_TIMEOUT );
 
-        // Only SSL uses the ssl:// stream wrapper — TLS and STARTTLS connect
-        // plain first and upgrade in-session via the STARTTLS command.
         $socket_host = ( $encryption === self::ENCRYPTION_SSL )
             ? "ssl://{$host}"
             : $host;
@@ -344,30 +356,97 @@ class SMTPProvider implements EmailProviderInterface {
 
         stream_set_timeout( $this->socket, $timeout );
 
-        // Read server greeting.
+        // Read server greeting — some servers send 220 immediately,
+        // others send multiple 220 continuation lines. read_response()
+        // handles both correctly.
         $this->read_response( 220 );
 
-        // EHLO handshake.
-        $this->command( 'EHLO ' . $this->get_local_hostname(), 250 );
+        $this->ehlo();
 
-        // STARTTLS and TLS both perform an explicit in-session TLS upgrade.
         if ( in_array( $encryption, [ self::ENCRYPTION_STARTTLS, self::ENCRYPTION_TLS ], true ) ) {
+
+            // Only attempt STARTTLS if the server advertised it.
+            if ( ! isset( $this->extensions['starttls'] ) ) {
+                throw new EmailTransportException(
+                    'SMTPProvider: STARTTLS requested but server did not advertise STARTTLS capability.'
+                );
+            }
+
             $this->command( 'STARTTLS', 220 );
 
-            if ( ! stream_socket_enable_crypto( $this->socket, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT ) ) {
+            if ( ! stream_socket_enable_crypto( $this->socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT ) ) {
                 throw new EmailTransportException( 'SMTPProvider: STARTTLS negotiation failed.' );
             }
 
-            // Re-introduce ourselves after the TLS upgrade.
-            $this->command( 'EHLO ' . $this->get_local_hostname(), 250 );
+            // Re-introduce after TLS upgrade — server resets its capability list.
+            $this->ehlo();
         }
 
-        // Authenticate if credentials are present.
-        $username = $this->settings['username'] ?? '';
-        $password = $this->settings['password'] ?? '';
+        $username = trim( $this->settings['username'] ?? '' );
+        $password = trim( $this->settings['password'] ?? '' );
 
-        if ( ! empty( $username ) && ! empty( $password ) ) {
+        if ( $username !== '' && $password !== '' ) {
             $this->authenticate( $username, $password );
+        }
+    }
+
+    /**
+     * Send EHLO, capture the response, and parse server capabilities.
+     *
+     * @throws EmailTransportException
+     */
+    protected function ehlo(): void {
+        $response = $this->command( 'EHLO ' . $this->get_local_hostname(), 250 );
+        $this->parse_ehlo_response( $response );
+    }
+
+    /**
+     * Parse the full EHLO multi-line response.
+     *
+     * Populates both $this->extensions (all advertised capabilities) and
+     * $this->auth_mechanisms (the AUTH capability line specifically).
+     *
+     * Handles all known EHLO response formats:
+     *   250-AUTH PLAIN LOGIN XOAUTH2      (space-separated mechanisms)
+     *   250-AUTH=PLAIN LOGIN              (= delimiter, mixed separators)
+     *   250 AUTH PLAIN                    (single-line response)
+     *
+     * @param string $response  Full multi-line EHLO response string.
+     */
+    protected function parse_ehlo_response( string $response ): void {
+        $this->extensions    = [];
+        $this->auth_mechanisms = [];
+
+        // Normalise line endings — some servers send bare \n instead of \r\n.
+        $lines = explode( "\n", str_replace( "\r\n", "\n", $response ) );
+
+        foreach ( $lines as $line ) {
+            $line = trim( $line );
+
+            // Each EHLO response line starts with the 3-digit code followed
+            // by either a space (final line) or a hyphen (continuation line).
+            // Strip the "250 " / "250-" prefix before parsing the keyword.
+            if ( ! preg_match( '/^\d{3}[-\s](.+)$/', $line, $m ) ) {
+                continue;
+            }
+
+            $content = trim( $m[1] );
+
+            // AUTH line — format: AUTH[=]MECH1 MECH2 ...
+            // The = sign is an old RFC 2554 format still used by some servers.
+            if ( preg_match( '/^AUTH[=\s](.+)$/i', $content, $auth_match ) ) {
+                $mechanisms          = preg_split( '/\s+/', trim( $auth_match[1] ) );
+                $this->auth_mechanisms = array_map( 'strtolower', array_filter( (array) $mechanisms ) );
+                $this->extensions['auth'] = implode( ' ', $this->auth_mechanisms );
+                continue;
+            }
+
+            // All other extensions — keyword optionally followed by params.
+            $parts   = preg_split( '/\s+/', $content, 2 );
+            $keyword = strtolower( $parts[0] );
+            $params  = isset( $parts[1] ) ? trim( $parts[1] ) : '';
+
+            $this->extensions[ $keyword ] = $params;
         }
     }
 
@@ -393,17 +472,13 @@ class SMTPProvider implements EmailProviderInterface {
     protected function force_disconnect(): void {
         if ( $this->socket !== null ) {
             fclose( $this->socket );
-            $this->socket     = null;
-            $this->send_count = 0;
+            $this->socket          = null;
+            $this->send_count      = 0;
+            $this->extensions      = [];
+            $this->auth_mechanisms = [];
         }
     }
 
-    /**
-     * Close the connection on object destruction.
-     *
-     * Guards against dangling sockets when the provider is garbage collected
-     * without an explicit close() call.
-     */
     public function __destruct() {
         $this->disconnect();
     }
@@ -415,11 +490,82 @@ class SMTPProvider implements EmailProviderInterface {
     */
 
     /**
-     * Perform AUTH LOGIN over the open socket.
+     * Authenticate using the best mechanism the server advertises.
+     *
+     * Negotiation priority: PLAIN → LOGIN
+     *
+     * Credentials are trimmed before use — whitespace in stored credentials
+     * is a common source of 535 rejections that are otherwise very hard to
+     * diagnose because the encoded string gives nothing away.
+     *
+     * If the server advertised no AUTH mechanisms at all the connection is
+     * treated as an open relay and this method returns without attempting
+     * authentication.
+     *
+     * If the server advertised mechanisms but none of the ones we support
+     * are available, we throw with a clear message listing what was offered
+     * so the operator knows exactly what to configure.
      *
      * @throws EmailTransportException
      */
     protected function authenticate( string $username, string $password ): void {
+        // Trim here as a final safety net — credentials may have been stored
+        // with trailing whitespace from a form submission or copy-paste.
+        $username = trim( $username );
+        $password = trim( $password );
+
+        // No mechanisms advertised — open relay.
+        if ( empty( $this->auth_mechanisms ) ) {
+            return;
+        }
+
+        if ( in_array( 'plain', $this->auth_mechanisms, true ) ) {
+            $this->authenticate_plain( $username, $password );
+            return;
+        }
+
+        if ( in_array( 'login', $this->auth_mechanisms, true ) ) {
+            $this->authenticate_login( $username, $password );
+            return;
+        }
+
+        throw new EmailTransportException(
+            'SMTPProvider: server does not support AUTH PLAIN or AUTH LOGIN. '
+            . 'Offered mechanisms: ' . implode( ', ', $this->auth_mechanisms ) . '.'
+        );
+    }
+
+    /**
+     * Perform AUTH PLAIN authentication (RFC 4616).
+     *
+     * Sends the initial AUTH PLAIN command and waits for the server's 334
+     * challenge before sending the base64-encoded credentials. This two-step
+     * flow is more broadly compatible than the single-command inline form
+     * (AUTH PLAIN <credentials>) which some servers do not accept.
+     *
+     * Credential format: \0authcid\0passwd
+     * The authzid (first field) is intentionally left empty — it is only
+     * needed for proxy authentication scenarios which SMTP does not use.
+     *
+     * @throws EmailTransportException
+     */
+    protected function authenticate_plain( string $username, string $password ): void {
+        $this->command( 'AUTH PLAIN', 334 );
+        // Populate authzid with username instead of leaving it empty.
+        $credentials = base64_encode( $username . "\0" . $username . "\0" . $password );
+        $this->command( $credentials, 235 );
+    }
+
+    /**
+     * Perform AUTH LOGIN authentication (RFC 4954 legacy mechanism).
+     *
+     * Sends username and password as separate base64-encoded responses
+     * to successive server challenges. Used as a fallback when the server
+     * does not advertise AUTH PLAIN.
+     *
+     * @throws EmailTransportException
+     */
+    protected function authenticate_login( string $username, string $password ): void {
         $this->command( 'AUTH LOGIN', 334 );
         $this->command( base64_encode( $username ), 334 );
         $this->command( base64_encode( $password ), 235 );
@@ -434,13 +580,9 @@ class SMTPProvider implements EmailProviderInterface {
     /**
      * Transmit the email envelope and DATA payload.
      *
-     * Validates the envelope sender and all recipients before issuing any
-     * SMTP commands so that obviously bad addresses are caught locally
-     * rather than generating a mid-session server rejection.
-     *
      * @return string Generated Message-ID.
      * @throws EmailTransportException
-     * @throws InvalidArgumentException On invalid envelope addresses.
+     * @throws InvalidArgumentException
      */
     protected function transmit( EmailMessage $message ): string {
         $from       = $message->get( 'from' ) ?? [];
@@ -448,10 +590,8 @@ class SMTPProvider implements EmailProviderInterface {
         $from_email = $from['email'] ?? $this->settings['from_email'] ?? $collection->get_default_sender_email();
         $from_name  = $from['name']  ?? $this->settings['from_name']  ?? $collection->get_default_sender_name();
 
-        // Validate envelope sender before opening the SMTP transaction.
         $this->validate_envelope_sender( $from_email );
 
-        // Collect and validate all envelope recipients.
         $all_recipients = array_merge(
             $message->get( 'to',  [] ),
             $message->get( 'cc',  [] ),
@@ -460,20 +600,16 @@ class SMTPProvider implements EmailProviderInterface {
 
         $this->validate_recipients( $all_recipients );
 
-        // MAIL FROM envelope.
         $this->command( "MAIL FROM:<{$from_email}>", 250 );
 
-        // RCPT TO envelope.
         foreach ( $all_recipients as $recipient ) {
             $this->command( "RCPT TO:<{$recipient}>", 250 );
         }
 
-        // DATA phase.
         $this->command( 'DATA', 354 );
 
         $message_id = $this->generate_message_id( $from_email );
 
-        // Build and dot-stuff the payload, then stream it to the socket.
         $this->stream_payload( $message, $from_email, $from_name, $message_id );
 
         $this->read_response( 250 );
@@ -488,9 +624,6 @@ class SMTPProvider implements EmailProviderInterface {
     */
 
     /**
-     * Assert the envelope sender is a valid email address.
-     *
-     * @param string $from_email
      * @throws InvalidArgumentException
      */
     protected function validate_envelope_sender( string $from_email ): void {
@@ -502,9 +635,6 @@ class SMTPProvider implements EmailProviderInterface {
     }
 
     /**
-     * Assert the recipient list is non-empty and contains only valid addresses.
-     *
-     * @param string[] $recipients
      * @throws InvalidArgumentException
      */
     protected function validate_recipients( array $recipients ): void {
@@ -532,16 +662,6 @@ class SMTPProvider implements EmailProviderInterface {
     /**
      * Build and stream the full message payload directly to the socket.
      *
-     * Rather than assembling the entire message in memory — which is
-     * prohibitive for large attachments — this method writes headers first,
-     * then streams each body part (text, HTML, attachments) in chunks.
-     *
-     * The DATA terminator (\r\n.\r\n) is written as the final chunk.
-     *
-     * @param EmailMessage $message
-     * @param string       $from_email
-     * @param string       $from_name
-     * @param string       $message_id
      * @throws EmailTransportException
      */
     protected function stream_payload(
@@ -556,7 +676,6 @@ class SMTPProvider implements EmailProviderInterface {
         $attachments     = $message->get( 'attachments', [] );
         $has_attachments = ! empty( $attachments );
 
-        // --- Headers ---
         $headers   = [];
         $headers[] = 'Message-ID: <' . $message_id . '>';
         $headers[] = 'Date: ' . date( 'r' );
@@ -568,8 +687,6 @@ class SMTPProvider implements EmailProviderInterface {
             $headers[] = 'Cc: ' . implode( ', ', $cc );
         }
 
-        // BCC intentionally omitted from headers — recipients were added via RCPT TO only.
-
         $reply_to = $message->get( 'reply_to' );
         if ( ! empty( $reply_to['email'] ) ) {
             $headers[] = 'Reply-To: ' . ( $reply_to['name']
@@ -580,10 +697,6 @@ class SMTPProvider implements EmailProviderInterface {
 
         $headers[] = 'Subject: ' . $this->encode_header( $message->get( 'subject', '' ) );
         $headers[] = 'MIME-Version: 1.0';
-
-        // Top-level Content-Type depends on whether attachments are present.
-        // With attachments:    multipart/mixed - wraps multipart/alternative + attachments.
-        // Without attachments: multipart/alternative - wraps plain text + HTML directly.
         $headers[] = $has_attachments
             ? "Content-Type: multipart/mixed; boundary=\"{$mixed_boundary}\""
             : "Content-Type: multipart/alternative; boundary=\"{$alt_boundary}\"";
@@ -592,43 +705,29 @@ class SMTPProvider implements EmailProviderInterface {
             $headers[] = "{$name}: {$value}";
         }
 
-        // Write headers + blank separator line.
         $this->write_raw( implode( $eol, $headers ) . $eol . $eol );
 
         if ( $has_attachments ) {
-            // Open mixed boundary and embed the alternative block as a nested part.
             $this->write_raw( "--{$mixed_boundary}{$eol}" );
             $this->write_raw( "Content-Type: multipart/alternative; boundary=\"{$alt_boundary}\"{$eol}{$eol}" );
             $this->stream_alternative_parts( $message, $alt_boundary );
             $this->write_raw( $eol );
 
-            // Stream each attachment directly from disk or memory.
             foreach ( $attachments as $attachment ) {
                 $this->stream_attachment( $attachment, $mixed_boundary );
             }
 
-            // Close the mixed boundary.
             $this->write_raw( "--{$mixed_boundary}--{$eol}" );
         } else {
-            // No attachments — write alternative parts directly.
             $this->stream_alternative_parts( $message, $alt_boundary );
         }
 
-        // DATA terminator — signals end of message to the server.
         $this->write_raw( "\r\n.\r\n" );
     }
 
     /**
      * Stream the plain text and HTML alternative parts for a given boundary.
      *
-     * Plain text is always written first per RFC 2046 — clients render the
-     * last part they understand, so HTML must appear last.
-     *
-     * Both parts use quoted-printable transfer encoding, which handles
-     * non-ASCII UTF-8 content safely and keeps line lengths within RFC limits.
-     *
-     * @param EmailMessage $message
-     * @param string $boundary
      * @throws EmailTransportException
      */
     protected function stream_alternative_parts( EmailMessage $message, string $boundary ): void {
@@ -636,48 +735,28 @@ class SMTPProvider implements EmailProviderInterface {
         $html       = $message->get( 'body', '' );
         $plain_text = $message->get( 'text', '' );
 
-        // Plain text part.
         $this->write_raw( "--{$boundary}{$eol}" );
         $this->write_raw( "Content-Type: text/plain; charset=UTF-8{$eol}" );
         $this->write_raw( "Content-Transfer-Encoding: quoted-printable{$eol}{$eol}" );
         $this->write_dotted( quoted_printable_encode( $plain_text ) . $eol );
 
-        // HTML part.
         $this->write_raw( "--{$boundary}{$eol}" );
         $this->write_raw( "Content-Type: text/html; charset=UTF-8{$eol}" );
         $this->write_raw( "Content-Transfer-Encoding: quoted-printable{$eol}{$eol}" );
         $this->write_dotted( quoted_printable_encode( $html ) . $eol );
 
-        // Close this boundary.
         $this->write_raw( "--{$boundary}--{$eol}" );
     }
 
     /**
      * Stream a single attachment to the socket in base64 chunks.
      *
-     * Attachment descriptor shape (normalised by EmailMessage::cast()):
-     * [
-     *     'type'     => 'path' | 'base64',
-     *     'content'  => string,
-     *     'filename' => string,
-     *     'mime'     => string,
-     * ]
-     *
-     * For 'path' attachments the file is read in 57-byte chunks (yielding
-     * 76-character base64 lines per RFC 2045) so arbitrarily large files
-     * are never fully loaded into memory.
-     *
-     * For 'base64' attachments the pre-encoded content is chunk-split and
-     * written directly.
-     *
-     * @param array{type: string, content: string, filename: string, mime: string} $attachment
-     * @param string $boundary
      * @throws EmailTransportException
      */
     protected function stream_attachment( array $attachment, string $boundary ): void {
-        $eol       = "\r\n";
-        $filename  = $attachment['filename'] ?? '';
-        $mime_type = $attachment['mime']     ?? 'application/octet-stream';
+        $eol              = "\r\n";
+        $filename         = $attachment['filename'] ?? '';
+        $mime_type        = $attachment['mime']     ?? 'application/octet-stream';
         $encoded_filename = $this->encode_header( $filename );
 
         $this->write_raw( "--{$boundary}{$eol}" );
@@ -689,14 +768,10 @@ class SMTPProvider implements EmailProviderInterface {
             $filepath = $attachment['content'] ?? '';
 
             if ( ! file_exists( $filepath ) || ! is_readable( $filepath ) ) {
-                // Skip silently — the message still sends without this attachment.
-                // Close the boundary part we opened above with an empty base64 body.
                 $this->write_raw( $eol );
                 return;
             }
 
-            // Stream the file in 57-byte chunks → 76-character base64 lines.
-            // This keeps memory usage constant regardless of file size.
             $handle = fopen( $filepath, 'rb' );
 
             if ( $handle === false ) {
@@ -713,7 +788,6 @@ class SMTPProvider implements EmailProviderInterface {
 
             fclose( $handle );
         } else {
-            // Pre-encoded base64 content — chunk-split and write.
             $lines = str_split( $attachment['content'] ?? '', 76 );
             foreach ( $lines as $line ) {
                 $this->write_dotted( $line . $eol );
@@ -736,15 +810,12 @@ class SMTPProvider implements EmailProviderInterface {
      */
     protected function command( string $command, int $expected_code ): string {
         $this->write_raw( $command . "\r\n" );
-        return $this->read_response( $expected_code );
+        $response = $this->read_response( $expected_code );
+        return $response;
     }
 
     /**
-     * Write raw bytes to the socket without appending any line ending.
-     *
-     * All callers are responsible for their own CRLF termination:
-     *   - Commands:        write_raw( $cmd . "\r\n" )
-     *   - DATA terminator: write_raw( "\r\n.\r\n" )
+     * Write raw bytes to the socket.
      *
      * @throws EmailTransportException
      */
@@ -755,13 +826,7 @@ class SMTPProvider implements EmailProviderInterface {
     }
 
     /**
-     * Dot-stuff a line per RFC 5321 §4.5.2 and write it to the socket.
-     *
-     * Any line beginning with a dot must be prefixed with an additional dot
-     * so the server does not interpret it as the DATA terminator.
-     *
-     * All body content that goes through the DATA phase uses this method.
-     * Raw protocol commands and the DATA terminator use write_raw() directly.
+     * Dot-stuff and write body content per RFC 5321 §4.5.2.
      *
      * @throws EmailTransportException
      */
@@ -773,15 +838,17 @@ class SMTPProvider implements EmailProviderInterface {
      * Read lines from the socket until a final response line is received,
      * then assert the response code matches the expected code.
      *
-     * Handles multi-line responses (lines prefixed with "NNN-") correctly.
-     * Enforces a hard cap of 512 iterations to guard against a pathological
-     * or malicious server sending an infinite stream of continuation lines.
+     * Handles:
+     * - Multi-line responses (lines prefixed with "NNN-")
+     * - Servers that send bare \n instead of \r\n
+     * - Responses where the reason phrase is empty (e.g. "334 \r\n")
+     * - A hard cap of 512 lines guards against pathological servers
      *
      * @throws EmailTransportException
      */
     protected function read_response( int $expected_code ): string {
-        $response  = '';
-        $max_lines = 512;
+        $response   = '';
+        $max_lines  = 512;
         $lines_read = 0;
 
         while ( $lines_read < $max_lines ) {
@@ -796,25 +863,38 @@ class SMTPProvider implements EmailProviderInterface {
             $response .= $line;
             $lines_read++;
 
-            // A space in position 3 (vs a dash) signals the final line of a
-            // potentially multi-line response (RFC 5321 §4.2.1).
-            if ( isset( $line[3] ) && ' ' === $line[3] ) {
+            // RFC 5321 §4.2.1 — a space at position 3 signals the final
+            // line of a (possibly multi-line) response. A hyphen means
+            // more lines follow.
+            //
+            // We use rtrim() on the line before checking position 3 because
+            // some servers send trailing spaces before CRLF which shifts the
+            // character positions. We check the raw $line for the delimiter
+            // since it still has its original structure.
+            if ( strlen( $line ) >= 4 && $line[3] === ' ' ) {
+                break;
+            }
+
+            // Guard: a very short line with no delimiter — stop reading to
+            // avoid hanging on a malformed server response.
+            if ( strlen( $line ) < 4 && trim( $line ) !== '' ) {
                 break;
             }
         }
 
         if ( $lines_read >= $max_lines ) {
             throw new EmailTransportException(
-                'SMTPProvider: server response exceeded maximum line limit — possible attack or misconfiguration.'
+                'SMTPProvider: server response exceeded maximum line limit.'
             );
         }
 
         $this->last_response = $response;
-        $actual_code         = (int) substr( $response, 0, 3 );
+        $actual_code         = (int) substr( trim( $response ), 0, 3 );
 
         if ( $actual_code !== $expected_code ) {
             throw new EmailTransportException(
-                "SMTPProvider: expected {$expected_code}, got {$actual_code}. Server said: " . trim( $response )
+                "SMTPProvider: expected {$expected_code}, got {$actual_code}. "
+                . 'Server said: ' . trim( $response )
             );
         }
 
@@ -829,9 +909,6 @@ class SMTPProvider implements EmailProviderInterface {
 
     /**
      * Generate an RFC 5321-compliant Message-ID.
-     *
-     * @param string $from_email
-     * @return string
      */
     protected function generate_message_id( string $from_email ): string {
         $domain = substr( strrchr( $from_email, '@' ) ?: '@localhost', 1 );
@@ -840,14 +917,6 @@ class SMTPProvider implements EmailProviderInterface {
 
     /**
      * Encode a header value containing non-ASCII characters (RFC 2047).
-     *
-     * Pure ASCII values are returned unchanged. Everything else is
-     * wrapped in a UTF-8 Base64 encoded word so that mail clients
-     * correctly decode subjects, sender names, and attachment filenames
-     * containing accented or non-Latin characters.
-     *
-     * @param string $value
-     * @return string
      */
     protected function encode_header( string $value ): string {
         if ( mb_detect_encoding( $value, 'ASCII', true ) !== false ) {
@@ -859,9 +928,49 @@ class SMTPProvider implements EmailProviderInterface {
     /**
      * Resolve the local hostname for the EHLO command.
      *
-     * @return string
+     * Priority:
+     *   1. Explicit override from settings (helo_hostname)
+     *   2. gethostname() if it resolves to an FQDN (contains a dot)
+     *   3. gethostbyname() resolution of the system hostname
+     *   4. Outbound IP as an RFC 2821 literal
+     *   5. [127.0.0.1] as the last-resort safe fallback
+     *
+     * RFC 2821 §4.1.1.1 requires either a valid FQDN (must contain at
+     * least one dot) or an IP address literal wrapped in square brackets.
      */
-    protected function get_local_hostname(): string {
-        return gethostname() ?: 'localhost';
+    public function get_local_hostname(): string {
+        // 1. Explicit settings override.
+        $override = trim( $this->settings['helo_hostname'] ?? '' );
+        if ( $override !== '' ) {
+            return $override;
+        }
+
+        // 2. System hostname — use if it is already an FQDN.
+        $hostname = gethostname();
+        if ( $hostname && strpos( $hostname, '.' ) !== false ) {
+            // Wrap in brackets if it resolved to a bare IP.
+            return filter_var( $hostname, FILTER_VALIDATE_IP )
+                ? '[' . $hostname . ']'
+                : $hostname;
+        }
+
+        // 3. Try to resolve the unqualified hostname to an FQDN or IP.
+        if ( $hostname ) {
+            $resolved = gethostbyname( $hostname );
+            if ( $resolved !== $hostname ) {
+                return filter_var( $resolved, FILTER_VALIDATE_IP )
+                    ? '[' . $resolved . ']'
+                    : $resolved;
+            }
+        }
+
+        // 4. Resolve the OS node name.
+        $ip = gethostbyname( php_uname( 'n' ) );
+        if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+            return '[' . $ip . ']';
+        }
+
+        // 5. Safe fallback.
+        return '[127.0.0.1]';
     }
 }
