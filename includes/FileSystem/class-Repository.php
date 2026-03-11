@@ -786,12 +786,13 @@ abstract class Repository {
         $fs = smliser_filesystem();
 
         $directories = [
-            'repository' => SMLISER_REPO_DIR,
-            'plugin'     => SMLISER_PLUGINS_REPO_DIR,
-            'theme'      => SMLISER_THEMES_REPO_DIR,
-            'software'   => SMLISER_SOFTWARE_REPO_DIR,
-            'trash'      => FileSystemHelper::join_path( SMLISER_REPO_DIR, self::TRASH_DIR ),
-            'uploads'    => SMLISER_UPLOADS_DIR,
+            'repository'    => SMLISER_REPO_DIR,
+            'plugin'        => SMLISER_PLUGINS_REPO_DIR,
+            'theme'         => SMLISER_THEMES_REPO_DIR,
+            'software'      => SMLISER_SOFTWARE_REPO_DIR,
+            'cache'         => SMLISER_CACHE_DIR,
+            'trash'         => FileSystemHelper::join_path( SMLISER_REPO_DIR, self::TRASH_DIR ),
+            'uploads'       => SMLISER_UPLOADS_DIR,
         ];
 
         $exception = new Exception();

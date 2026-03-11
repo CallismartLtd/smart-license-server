@@ -358,6 +358,10 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             return;
         }
 
+        if ( ! isset( $this->path ) ) {
+            return;
+        }
+
         try {
             $file  = $this->path . '/smliser-cache.db';
             $dir   = dirname( $file );

@@ -437,6 +437,13 @@ abstract class Config {
         define( 'SMLISER_CACHE_DIR', SMLISER_REPO_DIR . '/.cache' );
 
         /**
+         * Absolute path to the trash directory.
+         * 
+         * @var string
+         */
+        define( 'SMLISER_TRASH_DIR', SMLISER_REPO_DIR . '/.trash' );
+
+        /**
          * Absolute path to the uploads directory.
          * 
          * @var string
