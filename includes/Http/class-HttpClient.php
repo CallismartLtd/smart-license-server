@@ -179,6 +179,46 @@ class HttpClient {
         return $this->send( $request );
     }
 
+    /**
+     * Download a remote file directly to disk without buffering in memory.
+     *
+     * A thin wrapper around HttpRequest::get()->with_sink() that keeps
+     * download calls consistent with the rest of the HttpClient API.
+     *
+     * The directory of $destination must already exist and be writable —
+     * with_sink() will throw an InvalidArgumentException otherwise.
+     *
+     * On success, HttpResponse::$sink_path holds the destination path and
+     * HttpResponse::$file_size holds the number of bytes written.
+     * HttpResponse::$body will be an empty string.
+     *
+     * On a non-2xx response, the partially written file (if any) is deleted
+     * by the adapter and HttpResponse::$sink_path will be null.
+     *
+     * Example:
+     *   $response = $client->download(
+     *       'https://example.com/releases/plugin-2.1.0.zip',
+     *       '/var/www/downloads/plugin-2.1.0.zip'
+     *   );
+     *
+     *   if ( $response->is_success() ) {
+     *       echo "Saved {$response->file_size} bytes to {$response->sink_path}";
+     *   }
+     *
+     * @param  string               $url          Remote file URL.
+     * @param  string               $destination  Absolute local file path to write to.
+     * @param  array<string,string> $headers      Optional extra request headers.
+     * @param  array<string,mixed>  $options      Optional request options (timeout, verify_ssl, etc.).
+     * @return HttpResponse
+     * @throws \InvalidArgumentException   If the destination directory does not exist or is not writable.
+     * @throws Exceptions\HttpTimeoutException
+     * @throws Exceptions\HttpRequestException
+     */
+    public function download( string $url, string $destination, array $headers = [], array $options = [] ): HttpResponse {
+        $request = HttpRequest::get( $url, $headers, $options )->with_sink( $destination );
+        return $this->send( $request );
+    }
+
     /*
     |--------
     | SEND
@@ -235,7 +275,7 @@ class HttpClient {
     /**
      * Merge default headers into the request, preserving per-request overrides.
      *
-     * @param HttpRequest $request
+     * @param  HttpRequest $request
      * @return HttpRequest
      */
     protected function apply_default_headers( HttpRequest $request ): HttpRequest {
@@ -255,6 +295,7 @@ class HttpClient {
             verify_ssl    : $request->verify_ssl,
             max_redirects : $request->max_redirects,
             cookies       : $request->cookies,
+            sink          : $request->sink,
         );
     }
 }

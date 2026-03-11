@@ -24,7 +24,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 class SocketAdapter implements HttpAdapterInterface {
 
-    protected const SOCKET_READ_LENGTH = 8192;
+    protected const SOCKET_READ_LENGTH  = 8192;
+    protected const MAX_HEADER_BYTES    = 65536;
 
     public function get_id(): string {
         return 'socket';
@@ -49,7 +50,8 @@ class SocketAdapter implements HttpAdapterInterface {
         $redirects        = 0;
 
         do {
-            $response = $this->execute( $request, $current_url );
+            // ← Pass sink so execute() can forward it to read_response().
+            $response = $this->execute( $request, $current_url, $request->sink );
 
             if ( $response->is_redirect() ) {
                 $location = $response->get_header( 'location' );
@@ -67,7 +69,6 @@ class SocketAdapter implements HttpAdapterInterface {
             break;
         } while ( true );
 
-        // Append the final URL to complete the history.
         if ( ! empty( $redirect_history ) ) {
             $redirect_history[] = $current_url;
         }
@@ -82,9 +83,10 @@ class SocketAdapter implements HttpAdapterInterface {
             cookies          : $response->cookies,
             redirect_history : $redirect_history,
             latency          : $latency,
+            sink_path        : $response->sink_path,   // ← propagate
+            file_size        : $response->file_size,   // ← propagate
         );
     }
-
     /*
     |---------
     | EXECUTE
@@ -94,13 +96,14 @@ class SocketAdapter implements HttpAdapterInterface {
     /**
      * Perform a single HTTP request against a given URL.
      *
-     * @param HttpRequest $request  Original request (method, headers, body, options).
-     * @param string      $url      The URL to connect to (may differ from request->url after redirects).
+     * @param HttpRequest $request
+     * @param string      $url
+     * @param string|null $sink   Absolute path to stream the body into, or null.
      * @return HttpResponse
      * @throws HttpTimeoutException
      * @throws HttpRequestException
      */
-    protected function execute( HttpRequest $request, string $url ): HttpResponse {
+    protected function execute( HttpRequest $request, string $url, ?string $sink = null ): HttpResponse {
         $parsed = parse_url( $url );
 
         if ( $parsed === false || empty( $parsed['host'] ) ) {
@@ -109,12 +112,11 @@ class SocketAdapter implements HttpAdapterInterface {
             );
         }
 
-        $scheme = $parsed['scheme'] ?? 'http';
-        $host   = $parsed['host'];
-        $port   = $parsed['port'] ?? ( $scheme === 'https' ? 443 : 80 );
-        $path   = ( $parsed['path'] ?? '/' )
+        $scheme      = $parsed['scheme'] ?? 'http';
+        $host        = $parsed['host'];
+        $port        = $parsed['port'] ?? ( $scheme === 'https' ? 443 : 80 );
+        $path        = ( $parsed['path'] ?? '/' )
             . ( isset( $parsed['query'] ) ? '?' . $parsed['query'] : '' );
-
         $socket_host = ( $scheme === 'https' ) ? "ssl://{$host}" : $host;
 
         $errno  = 0;
@@ -135,10 +137,13 @@ class SocketAdapter implements HttpAdapterInterface {
         }
 
         stream_set_timeout( $socket, $request->timeout );
-
         $this->write_request( $socket, $request, $host, $path );
 
-        $raw      = $this->read_response( $socket, $request->timeout );
+        if ( $sink !== null ) {
+            return $this->read_response_to_sink( $socket, $request->timeout, $sink );
+        }
+
+        $raw = $this->read_response( $socket, $request->timeout );
         fclose( $socket );
 
         return $this->parse_raw_response( $raw );
@@ -160,6 +165,7 @@ class SocketAdapter implements HttpAdapterInterface {
             'Connection'      => 'close',
             'Accept'          => '*/*',
             'Accept-Encoding' => 'identity',
+            'User-Agent'      => 'SmartLicenseServer/0.2',
         ], $request->headers );
 
         $cookie_header = $request->get_cookie_header();
@@ -171,11 +177,11 @@ class SocketAdapter implements HttpAdapterInterface {
             $headers['Content-Length'] = (string) strlen( $request->body );
         }
 
-        $header_lines = array_map(
-            fn( $name, $value ) => "{$name}: {$value}",
-            array_keys( $headers ),
-            $headers
-        );
+        $header_lines = [];
+
+        foreach ( $headers as $name => $value ) {
+            $header_lines[] = "{$name}: {$value}";
+        };
 
         $raw  = "{$request->method} {$path} HTTP/1.1{$eol}";
         $raw .= implode( $eol, $header_lines ) . $eol . $eol;
@@ -184,10 +190,19 @@ class SocketAdapter implements HttpAdapterInterface {
             $raw .= $request->body;
         }
 
-        if ( fwrite( $socket, $raw ) === false ) {
-            throw new HttpRequestException(
-                'SocketAdapter: failed to write request to socket.'
-            );
+        $length  = strlen( $raw );
+        $written = 0;
+
+        while ( $written < $length ) {
+            $result = fwrite( $socket, substr( $raw, $written ) );
+
+            if ( $result === false ) {
+                throw new HttpRequestException(
+                    'SocketAdapter: failed to write request to socket.'
+                );
+            }
+
+            $written += $result;
         }
     }
 
@@ -205,7 +220,7 @@ class SocketAdapter implements HttpAdapterInterface {
         $deadline  = time() + $timeout;
 
         while ( ! feof( $socket ) ) {
-            if ( time() > $deadline ) {
+            if ( microtime( true ) > $deadline ) {
                 throw new HttpTimeoutException(
                     'SocketAdapter: timed out while reading server response.'
                 );
@@ -229,6 +244,135 @@ class SocketAdapter implements HttpAdapterInterface {
         }
 
         return $raw;
+    }
+
+    /**
+     * Read the HTTP response from the socket, streaming the body to a file.
+     *
+     * The header block is buffered normally (it is always small).
+     * Once the \r\n\r\n separator is found, subsequent bytes are written
+     * directly to the sink file in the same 8 KB chunks fread() delivers
+     * them — no body string is ever built in memory.
+     *
+     * @param  resource   $socket
+     * @param  int        $timeout
+     * @param  string     $sink     Absolute path to write the body into.
+     * @return HttpResponse         Body is '' — sink_path / file_size carry the result.
+     * @throws HttpTimeoutException
+     * @throws HttpRequestException
+     */
+    protected function read_response_to_sink( $socket, int $timeout, string $sink ): HttpResponse {
+        $deadline   = time() + $timeout;
+        $header_buf = '';           // accumulates raw bytes until \r\n\r\n
+        $separator  = "\r\n\r\n";
+        $sep_len    = strlen( $separator );
+        $headers_done = false;
+        $sink_handle  = null;
+        $bytes_written = 0;
+
+        while ( ! feof( $socket ) ) {
+            if ( microtime( true ) > $deadline ) {
+                fclose( $socket );
+                if ( $sink_handle ) { fclose( $sink_handle ); @unlink( $sink ); }
+                throw new HttpTimeoutException(
+                    'SocketAdapter: timed out while reading server response.'
+                );
+            }
+
+            $chunk = fread( $socket, self::SOCKET_READ_LENGTH );
+
+            if ( $chunk === false ) {
+                $meta = stream_get_meta_data( $socket );
+                fclose( $socket );
+                if ( $sink_handle ) { fclose( $sink_handle ); @unlink( $sink ); }
+                if ( $meta['timed_out'] ) {
+                    throw new HttpTimeoutException(
+                        'SocketAdapter: stream timed out while reading response.'
+                    );
+                }
+                throw new HttpRequestException(
+                    'SocketAdapter: failed to read from socket.'
+                );
+            }
+
+            if ( ! $headers_done ) {
+                $header_buf .= $chunk;
+
+                if ( strlen( $header_buf ) > self::MAX_HEADER_BYTES ) {
+                    fclose( $socket );
+                    throw new HttpRequestException(
+                        'SocketAdapter: header block exceeded maximum allowed size.'
+                    );
+                }
+                
+                $pos = strpos( $header_buf, $separator );
+
+                if ( $pos !== false ) {
+                    // Everything after the separator is body data.
+                    $body_fragment = substr( $header_buf, $pos + $sep_len );
+                    $header_buf    = substr( $header_buf, 0, $pos );
+                    $headers_done  = true;
+
+                    // Parse status + headers from the buffered header block.
+                    $header_lines   = explode( "\r\n", $header_buf );
+                    [ $status_code, $reason_phrase ] = $this->extract_status( $header_lines );
+                    $parsed_headers = $this->parse_headers( $header_lines );
+                    $cookies        = $this->parse_cookies( $header_lines );
+
+                    // Only open the sink for 2xx responses.
+                    if ( $status_code >= 200 && $status_code < 300 ) {
+                        $sink_handle = @fopen( $sink, 'wb' );
+                        if ( $sink_handle === false ) {
+                            fclose( $socket );
+                            throw new HttpRequestException(
+                                "SocketAdapter: could not open sink file for writing: '{$sink}'."
+                            );
+                        }
+
+                        if ( $body_fragment !== '' ) {
+                            fwrite( $sink_handle, $body_fragment );
+                            $bytes_written += strlen( $body_fragment );
+                        }
+                    }
+                    // Non-2xx: discard body — continue reading to drain socket cleanly.
+                }
+                // Haven't found the separator yet — keep buffering.
+                continue;
+            }
+
+            // Headers are done — write body chunk to sink (if open).
+            if ( $sink_handle !== null ) {
+                fwrite( $sink_handle, $chunk );
+                $bytes_written += strlen( $chunk );
+            }
+        }
+
+        fclose( $socket );
+
+        if ( $sink_handle !== null ) {
+            fclose( $sink_handle );
+        }
+
+        // If we never found the header separator something went very wrong.
+        if ( ! $headers_done ) {
+            throw new HttpRequestException(
+                'SocketAdapter: could not locate header/body separator in response.'
+            );
+        }
+
+        $is_success = $status_code >= 200 && $status_code < 300;
+
+        return new HttpResponse(
+            status_code      : $status_code,
+            reason_phrase    : $reason_phrase,
+            headers          : $parsed_headers,
+            body             : '',
+            cookies          : $cookies,
+            redirect_history : [],
+            latency          : 0.0,
+            sink_path        : $is_success ? $sink        : null,
+            file_size        : $is_success ? $bytes_written : null,
+        );
     }
 
     /*
@@ -256,9 +400,9 @@ class SocketAdapter implements HttpAdapterInterface {
             );
         }
 
-        $header_block = substr( $raw, 0, $pos );
-        $body         = substr( $raw, $pos + strlen( $separator ) );
-        $header_lines = explode( "\r\n", $header_block );
+        $header_block   = substr( $raw, 0, $pos );
+        $body           = substr( $raw, $pos + strlen( $separator ) );
+        $header_lines   = explode( "\r\n", $header_block );
 
         [ $status_code, $reason_phrase ] = $this->extract_status( $header_lines );
 
@@ -355,13 +499,26 @@ class SocketAdapter implements HttpAdapterInterface {
      * @return string
      */
     protected function resolve_url( string $location, string $current_url ): string {
+
         if ( preg_match( '/^https?:\/\//i', $location ) ) {
             return $location;
         }
 
-        $parsed = parse_url( $current_url );
-        $base   = ( $parsed['scheme'] ?? 'http' ) . '://' . ( $parsed['host'] ?? '' );
+        $base = parse_url( $current_url );
 
-        return $base . '/' . ltrim( $location, '/' );
+        if ( ! isset( $base['scheme'], $base['host'] ) ) {
+            return $location;
+        }
+
+        $root = $base['scheme'] . '://' . $base['host'];
+
+        if ( str_starts_with( $location, '/' ) ) {
+            return $root . $location;
+        }
+
+        $path = $base['path'] ?? '/';
+        $dir  = rtrim( dirname( $path ), '/' );
+
+        return $root . $dir . '/' . $location;
     }
 }

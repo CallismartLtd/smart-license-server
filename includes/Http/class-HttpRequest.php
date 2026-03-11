@@ -45,16 +45,18 @@ class HttpRequest {
      * @param bool                 $verify_ssl      Whether to verify SSL certificates.
      * @param int                  $max_redirects   Maximum number of redirects to follow.
      * @param array<string,string> $cookies         Cookies keyed by name.
+     * @param string|null          $sink            Absolute path to file name where response is written.
      */
     public function __construct(
-        public readonly string $method,
-        public readonly string $url,
-        public readonly array  $headers      = [],
-        public readonly string $body         = '',
-        public readonly int    $timeout      = self::DEFAULT_TIMEOUT,
-        public readonly bool   $verify_ssl   = true,
-        public readonly int    $max_redirects = self::DEFAULT_MAX_REDIRECTS,
-        public readonly array  $cookies      = [],
+        public readonly string  $method,
+        public readonly string  $url,
+        public readonly array   $headers       = [],
+        public readonly string  $body          = '',
+        public readonly int     $timeout       = self::DEFAULT_TIMEOUT,
+        public readonly bool    $verify_ssl    = true,
+        public readonly int     $max_redirects = self::DEFAULT_MAX_REDIRECTS,
+        public readonly array   $cookies       = [],
+        public readonly ?string $sink          = null,
     ) {
         $this->assert_valid_method( $method );
         $this->assert_valid_url( $url );
@@ -189,6 +191,57 @@ class HttpRequest {
             $this->timeout, $this->verify_ssl, $this->max_redirects, $cookies );
     }
 
+    /**
+     * Return a copy of the request that streams the response body to a file.
+     *
+     * When a sink path is set, adapters MUST write the response body
+     * directly to this file rather than returning it in HttpResponse::$body.
+     * HttpResponse::$body will be an empty string and HttpResponse::$sink_path
+     * will carry the destination path instead.
+     *
+     * The directory must already exist and be writable. The file is created
+     * (or truncated) by the adapter at download time.
+     *
+     * Example:
+     *   $request = HttpRequest::get( $url )->with_sink( '/tmp/plugin.zip' );
+     *   $response = $client->send( $request );
+     *   if ( $response->is_success() ) {
+     *       // file is at /tmp/plugin.zip
+     *   }
+     *
+     * @param  string $path  Absolute path to the destination file.
+     * @return static
+     * @throws \InvalidArgumentException If the directory does not exist or is not writable.
+     */
+    public function with_sink( string $path ): static {
+        $dir = dirname( $path );
+
+        if ( ! is_dir( $dir ) ) {
+            throw new \InvalidArgumentException(
+                "HttpRequest::with_sink() — directory does not exist: '{$dir}'."
+            );
+        }
+
+        if ( ! is_writable( $dir ) ) {
+            throw new \InvalidArgumentException(
+                "HttpRequest::with_sink() — directory is not writable: '{$dir}'."
+            );
+        }
+
+        return new static(
+            method        : $this->method,
+            url           : $this->url,
+            headers       : $this->headers,
+            body          : $this->body,
+            timeout       : $this->timeout,
+            verify_ssl    : $this->verify_ssl,
+            max_redirects : $this->max_redirects,
+            cookies       : $this->cookies,
+            sink          : $path,
+        );
+    }
+
+
     /*
     |----------
     | HELPERS
@@ -250,6 +303,18 @@ class HttpRequest {
         }
     }
 
+    /**
+     * Whether this request should stream its response body to a file.
+     *
+     * Adapters use this to decide between memory-buffered and
+     * file-streamed response handling.
+     *
+     * @return bool
+     */
+    public function has_sink(): bool {
+        return $this->sink !== null;
+    }
+
     /*
     |---------
     | FACTORY
@@ -278,10 +343,11 @@ class HttpRequest {
             url           : $url,
             headers       : $headers,
             body          : $body,
-            timeout       : (int)  ( $options['timeout']       ?? self::DEFAULT_TIMEOUT ),
-            verify_ssl    : (bool) ( $options['verify_ssl']    ?? true ),
-            max_redirects : (int)  ( $options['max_redirects'] ?? self::DEFAULT_MAX_REDIRECTS ),
-            cookies       : (array)( $options['cookies']       ?? [] ),
+            timeout       : (int)    ( $options['timeout']       ?? self::DEFAULT_TIMEOUT ),
+            verify_ssl    : (bool)   ( $options['verify_ssl']    ?? true ),
+            max_redirects : (int)    ( $options['max_redirects'] ?? self::DEFAULT_MAX_REDIRECTS ),
+            cookies       : (array)  ( $options['cookies']       ?? [] ),
+            sink          : isset( $options['sink'] ) ? (string) $options['sink'] : null,
         );
     }
 }

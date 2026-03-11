@@ -29,7 +29,7 @@ class FopenAdapter implements HttpAdapterInterface {
     }
 
     public function is_available(): bool {
-        return (bool) ini_get( 'allow_url_fopen' );
+        return (bool) ini_get( 'allow_url_fopen' ) && function_exists( 'fopen' );;
     }
 
     /**
@@ -41,13 +41,14 @@ class FopenAdapter implements HttpAdapterInterface {
      * @throws HttpRequestException
      */
     public function send( HttpRequest $request ): HttpResponse {
-        $start   = microtime( true );
-        $context = stream_context_create( $this->build_context( $request ) );
+        if ( $request->has_sink() ) {
+            return $this->send_to_sink( $request );
+        }
 
-        // Suppress the warning on failure — we handle it via the return value.
-        $body = @file_get_contents( $request->url, false, $context );
-
-        $latency = microtime( true ) - $start;
+        $start      = microtime( true );
+        $context    = stream_context_create( $this->build_context( $request ) );
+        $body       = @file_get_contents( $request->url, false, $context );
+        $latency    = microtime( true ) - $start;
 
         if ( $body === false ) {
             $error = error_get_last()['message'] ?? 'Unknown error';
@@ -63,8 +64,7 @@ class FopenAdapter implements HttpAdapterInterface {
             );
         }
 
-        // $http_response_header is a PHP magic variable populated by file_get_contents().
-        $raw_headers = $http_response_header ?? [];
+        $raw_headers    = isset( $http_response_header ) ? $http_response_header : [];
 
         [ $status_code, $reason_phrase ] = $this->extract_status( $raw_headers );
         $redirect_history                = $this->extract_redirect_history( $raw_headers );
@@ -79,6 +79,93 @@ class FopenAdapter implements HttpAdapterInterface {
             cookies          : $cookies,
             redirect_history : $redirect_history,
             latency          : $latency,
+        );
+    }
+
+    /**
+     * Execute the request and stream the response body directly to the sink file.
+     *
+     * Uses fopen() + stream_copy_to_stream() so the response body is never
+     * held entirely in PHP memory regardless of file size.
+     *
+     * @param  HttpRequest $request  Must have a non-null sink.
+     * @return HttpResponse
+     * @throws HttpTimeoutException
+     * @throws HttpRequestException
+     */
+    private function send_to_sink( HttpRequest $request ): HttpResponse {
+        $start   = microtime( true );
+        $context = stream_context_create( $this->build_context( $request ) );
+
+        // Open the remote URL as a readable stream.
+        // $http_response_header is populated by fopen() just like file_get_contents().
+        $remote = @fopen( $request->url, 'rb', false, $context );
+
+        $latency = microtime( true ) - $start;
+
+        if ( $remote === false ) {
+            $error = error_get_last()['message'] ?? 'Unknown error';
+
+            if ( stripos( $error, 'timed out' ) !== false ) {
+                throw new HttpTimeoutException(
+                    "FopenAdapter: request to '{$request->url}' timed out after {$request->timeout}s."
+                );
+            }
+
+            throw new HttpRequestException(
+                "FopenAdapter: request to '{$request->url}' failed — {$error}."
+            );
+        }
+
+        // $http_response_header is a PHP magic variable populated by fopen().
+        $raw_headers = $http_response_header ?? [];
+
+        [ $status_code, $reason_phrase ] = $this->extract_status( $raw_headers );
+        $redirect_history                = $this->extract_redirect_history( $raw_headers );
+        $parsed_headers                  = $this->parse_headers( $raw_headers );
+        $cookies                         = $this->parse_cookies( $raw_headers );
+
+        // Only stream to disk on 2xx — discard error-response bodies.
+        $file_size = null;
+        $sink_path = null;
+
+        if ( $status_code >= 200 && $status_code < 300 ) {
+            $local = @fopen( $request->sink, 'wb' );
+
+            if ( $local === false ) {
+                fclose( $remote );
+                throw new HttpRequestException(
+                    "FopenAdapter: could not open sink file for writing: '{$request->sink}'."
+                );
+            }
+
+            $bytes = stream_copy_to_stream( $remote, $local );
+            fclose( $local );
+
+            if ( $bytes === false ) {
+                @unlink( $request->sink );
+                fclose( $remote );
+                throw new HttpRequestException(
+                    "FopenAdapter: failed to write response body to sink '{$request->sink}'."
+                );
+            }
+
+            $sink_path = $request->sink;
+            $file_size = $bytes;
+        }
+
+        fclose( $remote );
+
+        return new HttpResponse(
+            status_code      : $status_code,
+            reason_phrase    : $reason_phrase,
+            headers          : $parsed_headers,
+            body             : '',
+            cookies          : $cookies,
+            redirect_history : $redirect_history,
+            latency          : $latency,
+            sink_path        : $sink_path,
+            file_size        : $file_size,
         );
     }
 
@@ -122,8 +209,9 @@ class FopenAdapter implements HttpAdapterInterface {
         }
 
         $ssl = [
-            'verify_peer'      => $request->verify_ssl,
-            'verify_peer_name' => $request->verify_ssl,
+            'verify_peer'       => $request->verify_ssl,
+            'verify_peer_name'  => $request->verify_ssl,
+            'SNI_enabled'       => true,
         ];
 
         return [ 'http' => $http, 'ssl' => $ssl ];

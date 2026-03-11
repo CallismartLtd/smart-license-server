@@ -25,15 +25,19 @@ class HttpResponse {
      * @param array<string,string>         $cookies        Cookies parsed from Set-Cookie headers.
      * @param array<int,string>            $redirect_history  Ordered list of URLs followed during redirects.
      * @param float                        $latency        Request duration in seconds.
+     * @param null|string                  $sink_path      Absolute path where the response body is written to(optional).
+     * @param null|int                     $file_size      The file size in bytes.
      */
     public function __construct(
-        public readonly int    $status_code,
-        public readonly string $reason_phrase,
-        public readonly array  $headers          = [],
-        public readonly string $body             = '',
-        public readonly array  $cookies          = [],
-        public readonly array  $redirect_history = [],
-        public readonly float  $latency          = 0.0,
+        public readonly int     $status_code,
+        public readonly string  $reason_phrase,
+        public readonly array   $headers          = [],
+        public readonly string  $body             = '',
+        public readonly array   $cookies          = [],
+        public readonly array   $redirect_history = [],
+        public readonly float   $latency          = 0.0,
+        public readonly ?string $sink_path        = null,
+        public readonly ?int    $file_size        = null,
     ) {}
 
     /*
@@ -85,6 +89,19 @@ class HttpResponse {
      */
     public function is_redirect(): bool {
         return $this->status_code >= 300 && $this->status_code < 400;
+    }
+
+    /**
+     * Whether this response was streamed to a file rather than buffered.
+     *
+     * True when the originating request carried a sink path and the
+     * adapter successfully wrote the body to disk. In this case $body
+     * will be an empty string and $sink_path will hold the file path.
+     *
+     * @return bool
+     */
+    public function is_download(): bool {
+        return $this->sink_path !== null;
     }
 
     /*
@@ -221,5 +238,39 @@ class HttpResponse {
         return ! empty( $this->redirect_history )
             ? end( $this->redirect_history )
             : null;
+    }
+
+    /**
+     * Write the in-memory response body to a file on disk.
+     *
+     * This is a convenience for buffered (non-sink) responses. For large
+     * files use HttpRequest::with_sink() instead so the body is never
+     * held in memory at all.
+     *
+     * Returns false if the response was already streamed to disk via a
+     * sink (the body is empty — there is nothing to write), if the
+     * directory does not exist or is not writable, or if the write fails.
+     *
+     * Example:
+     *   $response = $client->get( $url );
+     *   if ( $response->is_success() ) {
+     *       $response->save_to( '/var/downloads/file.zip' );
+     *   }
+     *
+     * @param  string $path  Absolute destination path.
+     * @return bool          True on success, false on any failure.
+     */
+    public function save_to( string $path ): bool {
+        // A sink response has an empty body — nothing to write.
+        if ( $this->is_download() || $this->body === '' ) {
+            return false;
+        }
+
+        $dir = dirname( $path );
+        if ( ! is_dir( $dir ) || ! is_writable( $dir ) ) {
+            return false;
+        }
+
+        return file_put_contents( $path, $this->body ) !== false;
     }
 }

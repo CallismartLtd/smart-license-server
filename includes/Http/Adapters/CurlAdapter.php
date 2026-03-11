@@ -41,12 +41,25 @@ class CurlAdapter implements HttpAdapterInterface {
      * @throws HttpRequestException
      */
     public function send( HttpRequest $request ): HttpResponse {
-        $start  = microtime( true );
-        $handle = curl_init();
-
+        $start            = microtime( true );
+        $handle           = curl_init();
         $response_headers = [];
+        $sink_handle      = null;
 
-        curl_setopt_array( $handle, $this->build_options( $request, $response_headers ) );
+        if ( $request->has_sink() ) {
+            $sink_handle = @fopen( $request->sink, 'wb' );
+
+            if ( $sink_handle === false ) {
+                throw new HttpRequestException(
+                    "CurlAdapter: could not open sink file for writing: '{$request->sink}'."
+                );
+            }
+        }
+
+        curl_setopt_array(
+            $handle,
+            $this->build_options( $request, $response_headers, $sink_handle )
+        );
 
         $body  = curl_exec( $handle );
         $error = curl_error( $handle );
@@ -57,23 +70,53 @@ class CurlAdapter implements HttpAdapterInterface {
 
         $latency = microtime( true ) - $start;
 
+        if ( $sink_handle !== null ) {
+            fclose( $sink_handle );
+        }
+
         if ( $errno === CURLE_OPERATION_TIMEDOUT ) {
+            // Clean up a partial download before throwing.
+            if ( $request->has_sink() && file_exists( $request->sink ) ) {
+                @unlink( $request->sink );
+            }
             throw new HttpTimeoutException(
                 "CurlAdapter: request to '{$request->url}' timed out after {$request->timeout}s."
             );
         }
 
         if ( $body === false || $errno !== 0 ) {
+            if ( $request->has_sink() && file_exists( $request->sink ) ) {
+                @unlink( $request->sink );
+            }
             throw new HttpRequestException(
                 "CurlAdapter: request to '{$request->url}' failed — {$error} (errno {$errno})."
             );
         }
 
-        [ $status_code, $reason_phrase ] = $this->extract_status( $response_headers );
+        [ $status_code, $reason_phrase ]    = $this->extract_status( $response_headers );
+        $redirect_history                   = $this->extract_redirect_history( $response_headers, $info );
+        $parsed_headers                     = $this->parse_headers( $response_headers );
+        $cookies                            = $this->parse_cookies( $response_headers );
+        $response_ok                        = $status_code >= 200 && $status_code < 300;
 
-        $redirect_history = $this->extract_redirect_history( $response_headers, $info );
-        $parsed_headers   = $this->parse_headers( $response_headers );
-        $cookies          = $this->parse_cookies( $response_headers );
+        if ( $request->has_sink() ) {
+            // Non-2xx with a sink: remove the (likely empty/error) file.
+            if ( ! $response_ok ) {
+                @unlink( $request->sink );
+            }
+
+            return new HttpResponse(
+                status_code      : $status_code,
+                reason_phrase    : $reason_phrase,
+                headers          : $parsed_headers,
+                body             : '',
+                cookies          : $cookies,
+                redirect_history : $redirect_history,
+                latency          : $latency,
+                sink_path        : $response_ok ? $request->sink : null,
+                file_size        : $response_ok ? (int) ( $info['size_download'] ?? filesize( $request->sink ) ) : null,
+            );
+        }
 
         return new HttpResponse(
             status_code      : $status_code,
@@ -86,6 +129,7 @@ class CurlAdapter implements HttpAdapterInterface {
         );
     }
 
+
     /*
     |---------
     | HELPERS
@@ -95,17 +139,14 @@ class CurlAdapter implements HttpAdapterInterface {
     /**
      * Build the cURL options array for a given request.
      *
-     * The $response_headers array is passed by reference so the header
-     * callback can populate it during execution.
-     *
-     * @param HttpRequest          $request
-     * @param array<int,string>   &$response_headers
+     * @param HttpRequest        $request
+     * @param array<int,string> &$response_headers  Populated by the header callback.
+     * @param resource|null      $sink_handle        Open file handle for sink downloads.
      * @return array<int, mixed>
      */
-    protected function build_options( HttpRequest $request, array &$response_headers ): array {
+    protected function build_options( HttpRequest $request, array &$response_headers, $sink_handle = null ): array {
         $options = [
             CURLOPT_URL            => $request->url,
-            CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => $request->timeout,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => $request->max_redirects,
@@ -118,7 +159,15 @@ class CurlAdapter implements HttpAdapterInterface {
             },
         ];
 
-        // Headers.
+        if ( $sink_handle !== null ) {
+            // CURLOPT_FILE streams bytes directly to the handle.
+            // CURLOPT_RETURNTRANSFER must NOT be set — they are mutually
+            // exclusive. curl_exec() returns true/false instead of the body.
+            $options[ CURLOPT_FILE ] = $sink_handle;
+        } else {
+            $options[ CURLOPT_RETURNTRANSFER ] = true;
+        }
+
         $headers = $request->headers;
 
         $cookie_header = $request->get_cookie_header();
@@ -134,7 +183,6 @@ class CurlAdapter implements HttpAdapterInterface {
             );
         }
 
-        // Body.
         if ( $request->has_body() ) {
             $options[ CURLOPT_POSTFIELDS ] = $request->body;
         }
