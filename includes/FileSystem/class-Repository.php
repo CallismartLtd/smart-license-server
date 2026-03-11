@@ -791,7 +791,7 @@ abstract class Repository {
             'theme'         => SMLISER_THEMES_REPO_DIR,
             'software'      => SMLISER_SOFTWARE_REPO_DIR,
             'cache'         => SMLISER_CACHE_DIR,
-            'trash'         => FileSystemHelper::join_path( SMLISER_REPO_DIR, self::TRASH_DIR ),
+            'trash'         => SMLISER_TRASH_DIR,
             'uploads'       => SMLISER_UPLOADS_DIR,
         ];
 
