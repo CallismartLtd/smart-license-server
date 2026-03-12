@@ -138,7 +138,7 @@ class HostedApplicationService {
                 );                
             }
 
-            self::cache_set( $key, $results, 30 * \MINUTE_IN_SECONDS );
+            self::cache_set( $key, $results, static::default_ttl() );
         }
 
         return $results;
@@ -438,7 +438,7 @@ class HostedApplicationService {
                 );
             }
 
-            self::cache_set( $key, $results, 30 * MINUTE_IN_SECONDS );
+            self::cache_set( $key, $results, static::default_ttl() );
         }
 
         return $results;
@@ -464,7 +464,7 @@ class HostedApplicationService {
                 $app    = $app_class::get_by_slug( $app_slug );
             }
 
-            self::cache_set( $key, $app, 30 * \MINUTE_IN_SECONDS );
+            self::cache_set( $key, $app, static::default_ttl() );
         }
         /** @var AbstractHostedApp|null $app */
         return $app;
@@ -491,7 +491,7 @@ class HostedApplicationService {
                 $app    = $app_class::$method( $id );
             }
 
-            self::cache_set( $key, $app, 30 * \MINUTE_IN_SECONDS );
+            self::cache_set( $key, $app, static::default_ttl() );
         }
 
         /** @var AbstractHostedApp|null */
@@ -564,7 +564,7 @@ class HostedApplicationService {
                 $count = (int) $db->get_var( $sql, $params );
             }
 
-            self::cache_set( $key, $count, 30 * \MINUTE_IN_SECONDS );
+            self::cache_set( $key, $count, static::default_ttl() );
         }
 
         return $count;

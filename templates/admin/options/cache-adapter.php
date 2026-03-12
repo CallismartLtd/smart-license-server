@@ -45,6 +45,18 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
             <input type="hidden" name="adapter_id" value="<?php echo esc_attr( $adapter_id ); ?>" />
 
             <div class="smliser-options-form_body">
+                <?php smliser_render_input_field([
+                    'label' => 'Default TTL',
+                    'help'  => 'Default cache expiration duration in seconds.',
+                    'input' => array(
+                        'type'  => 'number',
+                        'name'  => 'default_cache_ttl',
+                        'value' => smliser_settings_adapter()->get( 'default_cache_ttl', 0, true ),
+                        'attr'  => array(
+                            'min'   => 0
+                        )
+                    )
+                ]); ?>
     
                 <?php foreach ( $schema as $key => $field_schema ) :
                     // Build the field definition in the same shape smliser_render_input_field() expects.
@@ -90,7 +102,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     
                 </div>
 
-                <div class="smliser-form-label-row row">
+                <div class="smliser-form-label-row submit-row">
                     <button type="submit" class="smliser-submit-button">Save</button>
                     <button type="button" class="smliser-btn test-cache-btn">Test</button>
                     

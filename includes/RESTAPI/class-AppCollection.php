@@ -122,7 +122,7 @@ class AppCollection {
                 'pagination' => $results['pagination'],
             );
 
-            static::cache_set( $cache_key, $data, 2 * \HOUR_IN_SECONDS );
+            static::cache_set( $cache_key, $data, static::default_ttl() );
         }
 
 
@@ -141,14 +141,30 @@ class AppCollection {
         $app_type   = $request->get( 'app_type' );
         $app_slug   = $request->get( 'app_slug' );
 
-        $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+        $cache_key  = static::make_cache_key( __METHOD__, [$app_type, $app_slug] );
 
-        if ( ! $app ) {
-            return new RequestException( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );
+        /** @var \SmartLicenseServer\Exceptions\RequestException|false|array $app */
+        $app        = static::cache_get( $cache_key );
+
+        if ( false === $app ) {
+            $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app ) {
+                $app    = new RequestException( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );
+            } else {
+                AppsAnalytics::log_client_access( $app, \sprintf( '%s_info', $app->get_type() ) );
+                $app    = $app->get_rest_response();
+            }
+
+            static::cache_set( $cache_key, $app, static::default_ttl() );
+            
         }
 
-        AppsAnalytics::log_client_access( $app, \sprintf( '%s_info', $app->get_type() ) );
-        return new Response( 200, array(), $app->get_rest_response() );
+        if ( $app instanceof RequestException ) {
+            return $app;
+        }
+        
+        return new Response( 200, array(), $app );
     }
 
     /**

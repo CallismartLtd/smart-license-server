@@ -14,7 +14,6 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use DateMalformedStringException;
-use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Exceptions\Exception;
 
 use const SMLISER_OWNERS_TABLE;
@@ -44,7 +43,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 
 class Owner {
-    use SanitizeAwareTrait, CommonQueryTrait, CacheAwareTrait;
+    use SanitizeAwareTrait, CommonQueryTrait;
     public const TYPE_INDIVIDUAL    = 'individual';
     public const TYPE_ORGANIZATION  = 'organization';
     public const TYPE_PLATFORM      = 'platform';

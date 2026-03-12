@@ -50,6 +50,15 @@ class Cache {
     }
 
     /**
+     * Default cache ttl
+     * 
+     * @return int
+     */
+    public function default_ttl() : int {
+        return (int) max( 0, smliser_settings_adapter()->get( 'default_cache_ttl', 0 ) );
+    }
+
+    /**
      * Proxy calls to the adapter methods.
      *
      * @param string $method Method name.

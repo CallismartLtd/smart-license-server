@@ -574,7 +574,7 @@ class License {
                 $result = null;
             }
 
-            static::cache_set( $key, $result, 30 * \MINUTE_IN_SECONDS );
+            static::cache_set( $key, $result, static::default_ttl() );
         }
 
         return $result;
@@ -596,7 +596,7 @@ class License {
             $table      = SMLISER_LICENSE_TABLE;
             $license    = static::get_self_by_id( $id, $table );
 
-            static::cache_set( $key, $license, 30 * \MINUTE_IN_SECONDS );
+            static::cache_set( $key, $license, static::default_ttl() );
         }
 
         return $license;
@@ -659,11 +659,7 @@ class License {
             ),
         );
 
-        static::cache_set(
-            $key,
-            $result,
-            30 * \MINUTE_IN_SECONDS
-        );
+        static::cache_set( $key, $result, static::default_ttl() );
 
         return $result;
     }
@@ -739,11 +735,7 @@ class License {
             ),
         );
 
-        static::cache_set(
-            $key,
-            $result,
-            30 * \MINUTE_IN_SECONDS
-        );
+        static::cache_set( $key, $result, static::default_ttl() );
 
         return $result;
     }

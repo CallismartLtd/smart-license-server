@@ -571,9 +571,12 @@ button.smliser-upload-btn {
   gap: 5px;
 }
 
-.smliser-form-label-row.row {
+.smliser-form-label-row.submit-row {
   flex-direction: row;
   align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
 }
 
 .smliser-form-label-row input[type="text"],

@@ -92,7 +92,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     </div>
                 <?php endif; ?>
 
-                <div class="smliser-form-label-row">
+                <div class="smliser-form-label-row submit-row">
                     <div>
                         <button type="submit" class="smliser-submit-button">Save</button>
                     </div>

@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\RESTAPI;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
+use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -20,6 +21,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Handles REST API Requests for hosted themes.
  */
 class Themes {    
+    use CacheAwareTrait;
+
     /**
      * Theme info endpoint permission callback.
      * 
@@ -41,12 +44,29 @@ class Themes {
             );
         }
 
-        // Let's identify the theme.
-        $theme = Theme::get_theme( $theme_id ) ?? Theme::get_by_slug( $slug );
+        $arg        = $theme_id ? $theme_id : $slug;
+        $cache_key  =   static::make_cache_key( __METHOD__, [$arg] );
 
-        if ( ! $theme ) {
-            $message = __( 'The theme does not exist.', 'smliser' );
-            return new RequestException( 'theme_not_found', $message, array( 'status' => 404 ) );
+        /** @var \SmartLicenseServer\Exceptions\RequestException|false|array $theme */
+        $theme      = static::cache_get( $cache_key );
+
+        if ( false === $theme ) {
+            $theme = Theme::get_theme( $theme_id ) ?? Theme::get_by_slug( $slug );
+
+            if ( ! $theme ) {
+                $message    = __( 'The theme does not exist.', 'smliser' );
+                $theme      = new RequestException( 'theme_not_found', $message, array( 'status' => 404 ) );
+            } else {
+                AppsAnalytics::log_client_access( $theme, 'theme_info' ); 
+                $theme  = $theme->get_rest_response();
+            }
+
+            static::cache_set( $cache_key, $theme, static::default_ttl() );
+
+        }
+
+        if ( $theme instanceof RequestException ) {
+            return $theme;
         }
 
         $request->set( 'smliser_resource', $theme );
@@ -62,12 +82,10 @@ class Themes {
      * @return Response The REST API response object.
      */
     public static function theme_info_response( Request $request ) : Response {
-        /** @var Theme $theme */
+        /** @var array $theme */
         $theme = $request->get( 'smliser_resource' );
 
-        $response = new Response( 200, array(), $theme->get_rest_response() );
-        AppsAnalytics::log_client_access( $theme, 'theme_info' );    
-        
+        $response = new Response( 200, array(), $theme );
         return $response;
     }
 

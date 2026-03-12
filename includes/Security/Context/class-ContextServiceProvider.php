@@ -868,7 +868,7 @@ class ContextServiceProvider {
                 ],
             ];
 
-            static::cache_set( $cache_key, $report, 4 * HOUR_IN_SECONDS );
+            static::cache_set( $cache_key, $report, static::default_ttl() );
             return $report;
 
         } catch ( \Exception $e ) {

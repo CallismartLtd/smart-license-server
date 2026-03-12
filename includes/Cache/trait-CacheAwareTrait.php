@@ -66,4 +66,13 @@ trait CacheAwareTrait {
     protected static function cache_clear() : bool {
         return smliser_cache()->clear();
     }
+
+    /**
+     * Get default cache ttl
+     * 
+     * @return int
+     */
+    protected static function default_ttl() : int {
+        return smliser_cache()->default_ttl();
+    }
 }
