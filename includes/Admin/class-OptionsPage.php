@@ -200,8 +200,8 @@ class OptionsPage {
         }
 
         $collection       = CacheAdapterCollection::instance();
-        $providers        = $collection->get_providers();
-        $default_provider = CacheAdapterCollection::get_default_provider_id();
+        $providers        = $collection->get_adapters();
+        $default_provider = CacheAdapterCollection::get_default_adapter_id();
         $cache_fields     = static::email_settings_fields();
 
         include_once SMLISER_PATH . 'templates/admin/options/cache.php';
@@ -213,12 +213,12 @@ class OptionsPage {
     private static function cache_adapter_settings(): void {
         $adapter_key    = smliser_get_query_param( 'adapter' );
         $collection     = CacheAdapterCollection::instance();
-        $adapter        = $collection->get_provider( $adapter_key );
+        $adapter        = $collection->get_adapter( $adapter_key );
 
         $adapter_name   = $adapter?->get_name() ?? '';
         $adapter_id     = $adapter?->get_id() ?? '';
         $schema         = $adapter?->get_settings_schema() ?? [];
-        $is_default     = CacheAdapterCollection::get_default_provider_id() === $adapter_id;
+        $is_default     = CacheAdapterCollection::get_default_adapter_id() === $adapter_id;
 
         // Pre-populate each field with persisted value.
         $saved_settings = [];

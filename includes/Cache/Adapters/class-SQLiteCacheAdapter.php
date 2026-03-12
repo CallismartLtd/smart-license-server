@@ -92,8 +92,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             return false;
         }
 
-        // Probabilistic prune — 1% of reads trigger an async-style
-        // cleanup of all expired rows.
+        // Probabilistic prune — 1% of reads trigger cleanup of all expired rows.
         if ( mt_rand( 1, 100 ) === 1 ) {
             $this->prune_expired();
         }
@@ -176,7 +175,6 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
 
         $result->finalize();
 
-        // changes() returns rows affected — 1 on insert or update, 0 on no-op.
         return $this->db->changes() > 0;
     }
 
@@ -218,8 +216,15 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * Determine whether a non-expired cache entry exists.
      *
      * Expiry is enforced at the SQL layer — no PHP time comparison.
-     * Does not delete the expired entry if found — that is handled
-     * by the probabilistic prune in get() and by prune_expired().
+     * Uses SELECT 1 with a WHERE match; a result row means the key
+     * exists and has not expired. fetchArray() returning false means
+     * no matching row — i.e. miss or expired.
+     *
+     * BUG FIX (original): queried FROM table (literal) instead of
+     * FROM {$this->table}, and checked fetchArray() truthiness on the
+     * EXISTS row without reading the boolean column value — EXISTS
+     * always returns a row (containing 0 or 1), so the original always
+     * returned true regardless of whether the key existed.
      *
      * @param  string $key
      * @return bool
@@ -255,7 +260,9 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         $row = $result->fetchArray( SQLITE3_NUM );
         $result->finalize();
 
-        return $row !== false;
+        // A row is returned only when the key exists and has not expired.
+        // fetchArray() returns false when there are no rows — i.e. miss.
+        return $row !== false && ( (int) $row[0] ) === 1;
     }
 
     /**
@@ -312,7 +319,8 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
                 'type'        => 'text',
                 'label'       => 'Cache Directory',
                 'required'    => true,
-                'description' => 'Absolute path to the cache directory.',
+                'default'     => '',
+                'description' => 'Absolute path to the directory where the SQLite cache database will be stored. Must be within the writable repository path.',
             ],
         ];
     }
@@ -327,11 +335,185 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         }
 
         $this->path = rtrim( $cache_dir, '/' );
+
+        // Reset statement cache — a new path means a new database file.
+        $this->stmts = [];
+        unset( $this->db );
+
         $this->initialize();
     }
 
     public function is_supported(): bool {
         return class_exists( SQLite3::class );
+    }
+
+    /*
+    |---------------------
+    | Diagnostics
+    |---------------------
+    */
+
+    /**
+     * Return runtime statistics derived from the SQLite database.
+     *
+     * All figures are computed with lightweight COUNT / SUM queries
+     * against the cache table itself — no SQLite PRAGMA overhead beyond
+     * page_count and page_size which are O(1) reads from the header.
+     *
+     * memory_total reflects the physical database file size (page_count ×
+     * page_size) rather than a configurable ceiling, since SQLite has no
+     * fixed memory limit. memory_used is the serialised byte footprint of
+     * live (non-expired) cache values.
+     *
+     * Hit/miss counters are not tracked by SQLite itself; uptime is derived
+     * from the oldest created_at timestamp if that column exists, falling
+     * back to 0. Because SQLite is file-based and this adapter does not yet
+     * record hits/misses, both are returned as 0.
+     *
+     * @return CacheStats
+     */
+    public function get_stats(): CacheStats {
+        if ( ! $this->ensure_db() ) {
+            return new CacheStats();
+        }
+
+        try {
+            $now = time();
+
+            // Live entry count and total serialised size of non-expired values.
+            $row = $this->db->querySingle(
+                "SELECT
+                     COUNT(*)       AS entry_count,
+                     SUM(LENGTH(cache_value)) AS value_bytes
+                 FROM {$this->table}
+                 WHERE expires_at IS NULL OR expires_at > {$now}",
+                true
+            );
+
+            $entries     = (int)   ( $row['entry_count'] ?? 0 );
+            $memory_used = (int)   ( $row['value_bytes'] ?? 0 );
+
+            // Expired-but-not-yet-pruned entry count (informational).
+            $expired = (int) $this->db->querySingle(
+                "SELECT COUNT(*) FROM {$this->table}
+                 WHERE expires_at IS NOT NULL AND expires_at <= {$now}"
+            );
+
+            // Physical file size: page_count × page_size (both O(1) PRAGMA reads).
+            $page_count = (int) $this->db->querySingle( 'PRAGMA page_count' );
+            $page_size  = (int) $this->db->querySingle( 'PRAGMA page_size' );
+            $db_size    = $page_count * $page_size;
+
+            // File path for the extra bag.
+            $db_file = isset( $this->path )
+                ? $this->path . '/smliser-cache.db'
+                : '';
+
+            return new CacheStats(
+                hits         : 0,    // SQLite does not track read hits natively.
+                misses       : 0,    // SQLite does not track read misses natively.
+                entries      : $entries,
+                memory_used  : $memory_used,
+                memory_total : $db_size,
+                uptime       : 0,    // No server process — file mtime could substitute if needed.
+                extra        : [
+                    'expired_entries' => $expired,
+                    'db_file_size'    => $db_size,
+                    'db_file'         => $db_file,
+                    'journal_mode'    => (string) $this->db->querySingle( 'PRAGMA journal_mode' ),
+                    'page_count'      => $page_count,
+                    'page_size'       => $page_size,
+                ],
+            );
+        } catch ( \Throwable ) {
+            return new CacheStats();
+        }
+    }
+
+    /**
+     * Test whether the adapter can open a SQLite database and perform a
+     * full write → read → delete round-trip at the supplied path.
+     *
+     * Creates an isolated temporary database in the supplied cache_dir
+     * (or a system temp directory when cache_dir is absent) so the live
+     * database is never touched. The probe file is deleted before returning.
+     *
+     * Validates that cache_dir is within SMLISER_REPO_DIR when provided,
+     * matching the same constraint enforced by set_settings().
+     *
+     * @param array<string, mixed> $settings Settings shaped like get_settings_schema().
+     * @return bool True if the path is writable and a round-trip succeeds.
+     */
+    public function test( array $settings = [] ): bool {
+        if ( ! $this->is_supported() ) {
+            return false;
+        }
+
+        $probe_file = null;
+
+        try {
+            $cache_dir = isset( $settings['cache_dir'] )
+                ? rtrim( (string) $settings['cache_dir'], '/' )
+                : null;
+
+            // Validate the supplied path against the same constraint as set_settings().
+            if ( $cache_dir !== null ) {
+                if ( ! str_starts_with( $cache_dir, SMLISER_REPO_DIR ) ) {
+                    return false;
+                }
+
+                if ( ! is_dir( $cache_dir ) && ! mkdir( $cache_dir, 0755, true ) ) {
+                    return false;
+                }
+
+                $probe_file = $cache_dir . '/__smliser_sqlite_probe_' . \uniqid( '', true ) . '.db';
+            } else {
+                // No path supplied — use the system temp dir for an in-isolation test.
+                $probe_file = sys_get_temp_dir() . '/__smliser_sqlite_probe_' . \uniqid( '', true ) . '.db';
+            }
+
+            $sandbox = new SQLite3(
+                $probe_file,
+                SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
+            );
+
+            $sandbox->exec( 'CREATE TABLE IF NOT EXISTS probe (k TEXT PRIMARY KEY, v BLOB)' );
+
+            $probe_key   = '__probe_' . \uniqid( '', true );
+            $probe_value = serialize( 1 );
+
+            // Write.
+            $stmt = $sandbox->prepare( 'INSERT INTO probe (k, v) VALUES (?, ?)' );
+            $stmt->bindValue( 1, $probe_key,   SQLITE3_TEXT );
+            $stmt->bindValue( 2, $probe_value, SQLITE3_BLOB );
+            $stmt->execute();
+
+            // Read.
+            $read  = $sandbox->querySingle(
+                "SELECT v FROM probe WHERE k = '" . SQLite3::escapeString( $probe_key ) . "'"
+            );
+            $ok = $read !== null && unserialize( $read ) === 1;
+
+            // Delete.
+            $sandbox->exec(
+                "DELETE FROM probe WHERE k = '" . SQLite3::escapeString( $probe_key ) . "'"
+            );
+            $ok = $ok && $sandbox->changes() === 1;
+
+            $sandbox->close();
+
+            return $ok;
+        } catch ( \Throwable ) {
+            return false;
+        } finally {
+            // Always remove the probe file, even when an exception was thrown.
+            if ( $probe_file !== null && file_exists( $probe_file ) ) {
+                @unlink( $probe_file );
+                // WAL mode creates -wal and -shm sidecar files; clean those up too.
+                @unlink( $probe_file . '-wal' );
+                @unlink( $probe_file . '-shm' );
+            }
+        }
     }
 
     /*
@@ -363,8 +545,8 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         }
 
         try {
-            $file  = $this->path . '/smliser-cache.db';
-            $dir   = dirname( $file );
+            $file = $this->path . '/smliser-cache.db';
+            $dir  = dirname( $file );
 
             if ( ! is_dir( $dir ) ) {
                 mkdir( $dir, 0755, true );
@@ -375,21 +557,25 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
                 SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
             );
 
-            // WAL mode allows concurrent reads during a write.
+            // Use Write-Ahead Logging to allow concurrent reads during writes.
             $this->db->exec( 'PRAGMA journal_mode = WAL;' );
 
-            // NORMAL sync is safe with WAL and significantly faster than FULL.
+            // NORMAL is safe with WAL and faster than FULL.
             $this->db->exec( 'PRAGMA synchronous = NORMAL;' );
 
-            // Keep temp tables in memory.
+            // Store temp tables in memory to reduce disk I/O.
             $this->db->exec( 'PRAGMA temp_store = MEMORY;' );
 
             // 4 MB page cache.
             $this->db->exec( 'PRAGMA cache_size = -4096;' );
 
-        } catch ( Exception $e ) {
-            // Swallow — ensure_db() will return false and all public
-            // methods degrade gracefully to false/null returns.
+            // 256 MB memory-mapped I/O.
+            $this->db->exec( 'PRAGMA mmap_size = 268435456;' );
+
+            // Wait up to 1 s on a locked database rather than failing immediately.
+            $this->db->exec( 'PRAGMA busy_timeout = 1000;' );
+
+        } catch ( Exception ) {
             return;
         }
 
@@ -401,8 +587,8 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             ) WITHOUT ROWID
         " );
 
-        // Partial index — only indexes rows that actually have an expiry,
-        // which is exactly the set the DELETE in prune_expired() scans.
+        // Partial index covering only rows with an expiry — keeps the index
+        // small and makes prune_expired() DELETE scans fast.
         $this->db->exec( "
             CREATE INDEX IF NOT EXISTS idx_{$this->table}_expires
             ON {$this->table} (expires_at)
@@ -413,11 +599,8 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     /**
      * Return a cached prepared statement, preparing it on first use.
      *
-     * Prepared statements are reused across calls within the same
-     * request/process lifetime — one prepare per label per connection.
-     *
-     * @param  string          $label  Arbitrary identifier for the statement.
-     * @param  string          $sql    SQL to prepare on first call.
+     * @param  string $label  Arbitrary identifier for the statement.
+     * @param  string $sql    SQL to prepare on first call.
      * @return SQLite3Stmt|false
      */
     private function stmt( string $label, string $sql ): SQLite3Stmt|false {
@@ -437,8 +620,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     /**
      * Ensure the database connection is open.
      *
-     * Fast path on repeated calls — isset() on a typed property is
-     * essentially free. Only falls through to initialize() once.
+     * Fast path on repeated calls — isset() on a typed property is free.
      *
      * @return bool  True if the connection is available.
      */

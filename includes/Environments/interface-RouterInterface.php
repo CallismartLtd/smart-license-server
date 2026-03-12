@@ -302,4 +302,20 @@ interface RouterInterface {
      * @return void
      */
     public static function parse_license_delete_request( Request $request ) : void;
+
+    /**
+     * Parse request to save cache adapter settings.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_save_cache_adapter_settings_request( Request $request ) : void;
+
+    /**
+     * Parse test cache adapter settings request.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_test_cache_adapter_settings_request( Request $request ) : void;
 }

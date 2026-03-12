@@ -34,8 +34,6 @@ interface EnvironmentProviderInterface {
     /**
      * Check key filesystem directories for read/write access.
      *
-     * Uses a transient to avoid repeated expensive filesystem checks.
-     *
      * @return void
      */
     public function check_filesystem_errors(): void;

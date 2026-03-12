@@ -25,7 +25,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
     <?php Menu::print_admin_top_menu( $menu_args ); ?>
 
     <div class="smliser-providers-grid">
-        <h2 class="smliser-section-title">Cache Providers</h2>
+        <h2 class="smliser-section-title">Cache Adapters</h2>
         <div class="notice notice-info" style="margin: 10px;">
             <p class="smliser-section-description">
                 Configure the cache adapter you want to use for object caching.
@@ -55,10 +55,23 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     </div>
 
                     <div class="smliser-provider-card__actions">
-                        <a href="<?php echo esc_url( $provider_url ); ?>"
-                        class="smliser-button smliser-button--secondary">
-                            Configure
-                        </a>
+                        <?php if ( empty( $provider->get_settings_schema() ) && $provider->is_supported() ) : ?>
+                            <a href="<?php echo esc_url( $provider_url ); ?>"
+                                class="smliser-button smliser-button--secondary">
+                                Check
+                            </a>
+                        <?php elseif( ! empty( $provider->get_settings_schema() ) && $provider->is_supported() ): ?>
+                            <a href="<?php echo esc_url( $provider_url ); ?>"
+                                class="smliser-button smliser-button--secondary">
+                                Configure</a>
+                        <?php endif; ?>
+
+                        <?php if ( ! $provider->is_supported() ) : ?>
+                            <span>
+                                <i class="ti ti-cancel"></i>
+                                Not supported
+                            </span>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>

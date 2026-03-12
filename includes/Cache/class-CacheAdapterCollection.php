@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Cache;
 
 use SmartLicenseServer\Cache\Adapters\ApcuCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
-use SmartLicenseServer\Cache\Adapters\InMemoryCacheAdapter;
+use SmartLicenseServer\Cache\Adapters\RuntimeCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\MemcachedCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\RedisCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter;
@@ -31,7 +31,7 @@ class CacheAdapterCollection {
     protected static ?self $instance = null;
 
     /**
-     * Registered providers keyed by adapter ID.
+     * Registered adapters keyed by adapter ID.
      *
      * @var array<string, CacheAdapterInterface>
      */
@@ -40,7 +40,7 @@ class CacheAdapterCollection {
     /**
      * In-memory cache for persisted adapter options.
      *
-     * Keyed by provider ID. Busted whenever update_option() is called.
+     * Keyed by adapter ID. Busted whenever update_option() is called.
      *
      * @var array<string, array<string, mixed>>
      */
@@ -53,7 +53,7 @@ class CacheAdapterCollection {
      */
     protected Settings $settings;
 
-    const DEFAULT_PROVIDER_KEY      = 'cache_default_adapter';
+    const DEFAULT_ADAPTER_KEY      = 'cache_default_adapter';
     const SETTINGS_KEY              = 'cache_adapter_options';
 
     /**
@@ -82,7 +82,7 @@ class CacheAdapterCollection {
             }
 
             static::$instance = new static( $settings );
-            static::$instance->load_core_providers();
+            static::$instance->load_core_adapters();
         }
 
         return static::$instance;
@@ -90,136 +90,136 @@ class CacheAdapterCollection {
 
     /*
     |---------------------
-    | PROVIDER MANAGEMENT
+    | ADAPTER MANAGEMENT
     |---------------------
     */
 
     /**
      * Register a cache adapter.
      *
-     * Replaces any previously registered provider with the same ID.
+     * Replaces any previously registered adapter with the same ID.
      *
-     * @param CacheAdapterInterface $provider
+     * @param CacheAdapterInterface $adapter
      * @return void
      */
-    public function register_provider( CacheAdapterInterface $provider ): void {
-        $this->adapters[ $provider->get_id() ] = $provider;
+    public function register_adapter( CacheAdapterInterface $adapter ): void {
+        $this->adapters[ $adapter->get_id() ] = $adapter;
     }
 
     /**
-     * Unregister a provider by its ID.
+     * Unregister a adapter by its ID.
      *
-     * @param string $provider_id
-     * @return bool True if the provider was found and removed, false otherwise.
+     * @param string $adapter_id
+     * @return bool True if the adapter was found and removed, false otherwise.
      */
-    public function unregister_provider( string $provider_id ): bool {
-        if ( ! isset( $this->adapters[ $provider_id ] ) ) {
+    public function unregister_adapter( string $adapter_id ): bool {
+        if ( ! isset( $this->adapters[ $adapter_id ] ) ) {
             return false;
         }
 
-        unset( $this->adapters[ $provider_id ] );
+        unset( $this->adapters[ $adapter_id ] );
         return true;
     }
 
     /**
-     * Check whether a provider is registered.
+     * Check whether a adapter is registered.
      *
-     * @param string $provider_id
+     * @param string $adapter_id
      * @return bool
      */
-    public function has_provider( string $provider_id ): bool {
-        return isset( $this->adapters[ $provider_id ] );
+    public function has_adapter( string $adapter_id ): bool {
+        return isset( $this->adapters[ $adapter_id ] );
     }
 
     /**
-     * Return a registered provider by ID without settings applied.
+     * Return a registered adapter by ID without settings applied.
      *
-     * @param string $provider_id
+     * @param string $adapter_id
      * @return CacheAdapterInterface|null
      */
-    public function get_provider( string $provider_id ): ?CacheAdapterInterface {
-        return $this->adapters[ $provider_id ] ?? null;
+    public function get_adapter( string $adapter_id ): ?CacheAdapterInterface {
+        return $this->adapters[ $adapter_id ] ?? null;
     }
 
     /**
-     * Return all registered providers.
+     * Return all registered adapters.
      *
-     * @param bool $assoc Whether to key the array by provider ID.
+     * @param bool $assoc Whether to key the array by adapter ID.
      * @return array<string, CacheAdapterInterface>|CacheAdapterInterface[]
      */
-    public function get_providers( bool $assoc = true ): array {
+    public function get_adapters( bool $assoc = true ): array {
         return $assoc ? $this->adapters : array_values( $this->adapters );
     }
 
     /**
-     * Return a provider with its persisted settings applied.
+     * Return a adapter with its persisted settings applied.
      *
-     * If no provider ID is given, the default provider is used.
+     * If no adapter ID is given, the default adapter is used.
      *
      * A clone is returned so the shared registered instance is never
      * mutated — concurrent calls with different settings stay isolated.
      *
-     * @param string|null $provider_id
+     * @param string|null $adapter_id
      * @return CacheAdapterInterface|null
      * @throws InvalidArgumentException If settings validation fails.
      */
-    public function get_provider_with_settings( ?string $provider_id = null ): ?CacheAdapterInterface {
-        $provider_id = $provider_id ?? static::get_default_provider_id();
+    public function get_adapter_with_settings( ?string $adapter_id = null ): ?CacheAdapterInterface {
+        $adapter_id = $adapter_id ?? static::get_default_adapter_id();
 
-        if ( $provider_id === null ) {
+        if ( $adapter_id === null ) {
             return null;
         }
 
-        $provider = $this->get_provider( $provider_id );
+        $adapter = $this->get_adapter( $adapter_id );
 
-        if ( $provider === null ) {
+        if ( $adapter === null ) {
             return null;
         }
 
         // Clone before applying settings to protect the shared registered instance.
-        $provider = clone $provider;
+        $adapter = clone $adapter;
 
         $saved_settings = [];
-        foreach ( $provider->get_settings_schema() as $key => $_ ) {
-            $saved_settings[ $key ] = static::get_option( $provider_id, $key );
+        foreach ( $adapter->get_settings_schema() as $key => $_ ) {
+            $saved_settings[ $key ] = static::get_option( $adapter_id, $key );
         }
 
-        $provider->set_settings( $saved_settings );
+        $adapter->set_settings( $saved_settings );
 
-        return $provider;
+        return $adapter;
     }
 
     /*
     |------------------
-    | DEFAULT PROVIDER
+    | DEFAULT ADAPTER
     |------------------
     */
 
     /**
-     * Return the default provider ID, or null if none is set.
+     * Return the default adapter ID, or null if none is set.
      *
      * @return string|null
      */
-    public static function get_default_provider_id(): string {
-        return (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, 'apcu', true );
+    public static function get_default_adapter_id(): string {
+        return (string) static::instance()->settings->get( static::DEFAULT_ADAPTER_KEY, 'runtime', true );
     }
 
     /**
      * Set the default cache adapter.
      *
-     * @param string $provider_id
+     * @param string $adapter_id
      * @return bool True if saved successfully.
-     * @throws InvalidArgumentException If the provider is not registered.
+     * @throws InvalidArgumentException If the adapter is not registered.
      */
-    public static function set_default_provider( string $provider_id ): bool {
-        if ( ! static::instance()->has_provider( $provider_id ) ) {
+    public static function set_default_adapter( string $adapter_id ): bool {
+        if ( ! static::instance()->has_adapter( $adapter_id ) ) {
             throw new EnvironmentBootstrapException(
                 'mis_configuration',
-                "CacheAdapterCollection: cannot set default — adapter '{$provider_id}' is not registered."
+                "CacheAdapterCollection: cannot set default — adapter '{$adapter_id}' is not registered."
             );
         }
 
-        return static::instance()->settings->set( static::DEFAULT_PROVIDER_KEY, $provider_id, true );
+        return static::instance()->settings->set( static::DEFAULT_ADAPTER_KEY, $adapter_id, true );
     }
 
     /*
@@ -229,70 +229,70 @@ class CacheAdapterCollection {
     */
 
     /**
-     * Return a persisted option value for a provider.
+     * Return a persisted option value for a adapter.
      *
      * Results are cached in memory for the duration of the request.
-     * The cache is keyed by provider ID and busted on write.
+     * The cache is keyed by adapter ID and busted on write.
      *
-     * @param string $provider_id
+     * @param string $adapter_id
      * @param string $option_name
      * @return mixed
      */
-    public static function get_option( string $provider_id, string $option_name ): mixed {
-        if ( ! isset( static::$settings_store[ $provider_id ] ) ) {
+    public static function get_option( string $adapter_id, string $option_name ): mixed {
+        if ( ! isset( static::$settings_store[ $adapter_id ] ) ) {
             $all_options = static::instance()->settings->get( static::SETTINGS_KEY, [], true );
-            static::$settings_store[ $provider_id ] = $all_options[ $provider_id ] ?? [];
+            static::$settings_store[ $adapter_id ] = $all_options[ $adapter_id ] ?? [];
         }
 
-        return static::$settings_store[ $provider_id ][ $option_name ] ?? '';
+        return static::$settings_store[ $adapter_id ][ $option_name ] ?? '';
     }
 
     /**
-     * Persist an option value for a provider and bust the cache.
+     * Persist an option value for a adapter and bust the cache.
      *
-     * @param string $provider_id
+     * @param string $adapter_id
      * @param string $option_name
      * @param mixed  $value
      * @return bool
      */
-    public static function update_option( string $provider_id, string $option_name, mixed $value ): bool {
+    public static function update_option( string $adapter_id, string $option_name, mixed $value ): bool {
         $settings       = static::instance()->settings;
         $all_options    = $settings->get( static::SETTINGS_KEY, [], true );
 
-        if ( ! isset( $all_options[ $provider_id ] ) || ! is_array( $all_options[ $provider_id ] ) ) {
-            $all_options[ $provider_id ] = [];
+        if ( ! isset( $all_options[ $adapter_id ] ) || ! is_array( $all_options[ $adapter_id ] ) ) {
+            $all_options[ $adapter_id ] = [];
         }
 
-        $all_options[ $provider_id ][ $option_name ] = $value;
+        $all_options[ $adapter_id ][ $option_name ] = $value;
 
         $saved = $settings->set( static::SETTINGS_KEY, $all_options, true );
 
         if ( $saved ) {
-            // Bust the cache for this provider so the next get_option() reads fresh data.
-            unset( static::$settings_store[ $provider_id ] );
+            // Bust the cache for this adapter so the next get_option() reads fresh data.
+            unset( static::$settings_store[ $adapter_id ] );
         }
 
         return $saved;
     }
 
     /**
-     * Persist all settings for a provider at once and bust the cache.
+     * Persist all settings for a adapter at once and bust the cache.
      *
      * More efficient than calling update_option() per key when saving
      * an entire settings form submission.
      *
-     * @param string               $provider_id
+     * @param string               $adapter_id
      * @param array<string, mixed> $settings
      * @return bool
      */
-    public static function update_provider_settings( string $provider_id, array $settings ): bool {
+    public static function update_adapter_settings( string $adapter_id, array $settings ): bool {
         $storage     = static::instance()->settings;
         $all_options = $storage->get( static::SETTINGS_KEY, [], true );
-        $all_options[ $provider_id ] = $settings;
+        $all_options[ $adapter_id ] = $settings;
         $saved = $storage->set( static::SETTINGS_KEY, $all_options, true );
 
         if ( $saved ) {
-            unset( static::$settings_store[ $provider_id ] );
+            unset( static::$settings_store[ $adapter_id ] );
         }
 
         return $saved;
@@ -300,29 +300,29 @@ class CacheAdapterCollection {
 
     /*
     |----------------
-    | CORE PROVIDERS
+    | CORE ADAPTERS
     |----------------
     */
 
     /**
-     * Register all built-in providers.
+     * Register all built-in adapters.
      *
-     * Called once by instance() on first access. Third-party providers
-     * can be registered afterward via register_provider().
+     * Called once by instance() on first access. Third-party adapters
+     * can be registered afterward via register_adapter().
      *
      * @return void
      */
-    protected function load_core_providers(): void {
-        $core_providers = [
+    protected function load_core_adapters(): void {
+        $core_adapters = [
+            new RuntimeCacheAdapter,
             new ApcuCacheAdapter,
-            new RedisCacheAdapter,
             new MemcachedCacheAdapter,
+            new RedisCacheAdapter,
             new SQLiteCacheAdapter,
-            new InMemoryCacheAdapter,
         ];
 
-        foreach ( $core_providers as $provider ) {
-            $this->register_provider( $provider );
+        foreach ( $core_adapters as $adapter ) {
+            $this->register_adapter( $adapter );
         }
     }
 }

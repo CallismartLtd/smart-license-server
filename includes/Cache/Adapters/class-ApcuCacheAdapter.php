@@ -36,10 +36,9 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
     /**
      * Store a value in cache.
      *
-     * @param string $key Cache key.
+     * @param string $key   Cache key.
      * @param mixed  $value Value to store.
-     * @param int    $ttl Time-to-live in seconds. 0 = infinite.
-     *
+     * @param int    $ttl   Time-to-live in seconds. 0 = infinite.
      * @return bool True on success, false on failure.
      */
     public function set( string $key, mixed $value, int $ttl = 0 ): bool {
@@ -54,7 +53,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
      * Retrieve a value from cache.
      *
      * @param string $key Cache key.
-     * @return mixed
+     * @return mixed The cached value, or false on a cache miss.
      */
     public function get( string $key ): mixed {
         if ( ! $this->enabled ) {
@@ -71,7 +70,6 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
      * Delete a cache entry.
      *
      * @param string $key Cache key.
-     *
      * @return bool True on success, false on failure.
      */
     public function delete( string $key ): bool {
@@ -86,7 +84,6 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
      * Check if a cache entry exists.
      *
      * @param string $key Cache key.
-     *
      * @return bool True if key exists, false otherwise.
      */
     public function has( string $key ): bool {
@@ -125,21 +122,102 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
     |----------------------
     */
 
-    public function get_id() : string {
+    public function get_id(): string {
         return 'apcu';
     }
 
-    public function get_name() : string {
+    public function get_name(): string {
         return 'APCu Cache';
     }
 
-    public function get_settings_schema() : array {
+    public function get_settings_schema(): array {
         return [];
     }
 
-    public function set_settings( array $settings ) : void {}
-    
-    public function is_supported() : bool {
+    public function set_settings( array $settings ): void {}
+
+    public function is_supported(): bool {
         return $this->is_enabled();
+    }
+
+    /**
+    |----------------------
+    | DIAGNOSTICS
+    |----------------------
+    */
+
+    /**
+     * Return runtime statistics for the APCu backend.
+     *
+     * Pulls hit/miss counters from apcu_cache_info() and memory
+     * figures from apcu_sma_info(). When APCu is disabled every
+     * field is left at its zero default so callers always receive
+     * a valid CacheStats instance.
+     *
+     * @return CacheStats
+     */
+    public function get_stats(): CacheStats {
+        if ( ! $this->enabled ) {
+            return new CacheStats();
+        }
+
+        $info = \apcu_cache_info( true );   // true = compact/no entry list
+        $sma  = \apcu_sma_info();
+
+        $memory_total = (int) ( $sma['num_seg'] * $sma['seg_size'] );
+        $memory_used  = (int) ( $memory_total   - $sma['avail_mem'] );
+        $uptime       = isset( $info['start_time'] )
+            ? max( 0, time() - (int) $info['start_time'] )
+            : 0;
+
+        return new CacheStats(
+            hits         : (int) ( $info['num_hits']    ?? 0 ),
+            misses       : (int) ( $info['num_misses']  ?? 0 ),
+            entries      : (int) ( $info['num_entries'] ?? 0 ),
+            memory_used  : $memory_used,
+            memory_total : $memory_total,
+            uptime       : $uptime,
+            extra        : [
+                'num_slots'     => (int) ( $info['num_slots']     ?? 0 ),
+                'num_expunges'  => (int) ( $info['expunges']      ?? 0 ),
+                'num_inserts'   => (int) ( $info['num_inserts']   ?? 0 ),
+                'file_upload_progress' => (bool) \ini_get( 'apc.rfc1867' ),
+            ],
+        );
+    }
+
+    /**
+     * Test whether APCu is operational.
+     *
+     * APCu has no external connection to configure, so $settings is
+     * intentionally ignored — the only meaningful check is whether the
+     * extension is loaded, enabled, and capable of a full round-trip.
+     *
+     * The probe key is namespaced and suffixed with a unique ID so it
+     * cannot collide with real application keys, and it is always
+     * deleted before this method returns.
+     *
+     * @param array<string, mixed> $settings Ignored for APCu (no config required).
+     * @return bool True if APCu can store, retrieve, and delete a value.
+     */
+    public function test( array $settings = [] ): bool {
+        if ( ! $this->enabled ) {
+            return false;
+        }
+
+        $probe = '__smliser_apcu_probe_' . \uniqid( '', true );
+
+        try {
+            $stored   = \apcu_store( $probe, 1, 10 );
+            $fetched  = false;
+            $value    = \apcu_fetch( $probe, $fetched );
+            $deleted  = \apcu_delete( $probe );
+
+            return $stored && $fetched && $value === 1 && $deleted;
+        } catch ( \Throwable ) {
+            // Ensure the probe key is cleaned up even on unexpected errors.
+            \apcu_delete( $probe );
+            return false;
+        }
     }
 }

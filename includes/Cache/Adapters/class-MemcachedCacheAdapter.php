@@ -21,9 +21,11 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
     /**
      * Memcached client instance.
      *
-     * @var Memcached
+     * Null until connect() is called successfully.
+     *
+     * @var Memcached|null
      */
-    protected Memcached $memcached;
+    protected ?Memcached $memcached = null;
 
     /**
      * Cache key prefix.
@@ -33,15 +35,15 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
     protected string $prefix = '';
 
     /**
-     * Server hostname
-     * 
+     * Server hostname.
+     *
      * @var string
      */
-    protected string $hostname  = '';
+    protected string $hostname = 'localhost';
 
     /**
-     * Port
-     * 
+     * Server port.
+     *
      * @var int
      */
     protected int $port = 11211;
@@ -49,29 +51,81 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
     /**
      * Constructor.
      *
-     * @param Memcached $memcached Memcached client instance.
-     * @param string    $prefix    Optional key prefix.
+     * The client is not connected at construction time.
+     * Call set_settings() then any cache method (which calls connect() lazily),
+     * or rely on test() to validate settings before persisting them.
      */
     public function __construct() {}
 
+    /*----------------------------------------------------------
+     * CONNECTION
+     *---------------------------------------------------------*/
+
     /**
-     * Build the cache key.
+     * Initialise and connect the Memcached client using current settings.
      *
-     * @param string $key Cache key.
+     * Idempotent — if a client is already connected this is a no-op.
+     * Re-call after set_settings() to reconnect with new credentials.
+     *
+     * @return bool True if the server was added successfully.
+     */
+    public function connect(): bool {
+        if ( $this->memcached instanceof Memcached ) {
+            return true;
+        }
+
+        $this->memcached = new Memcached();
+
+        return $this->memcached->addServer( $this->hostname, $this->port );
+    }
+
+    /**
+     * Return true if the client is initialised.
+     *
+     * Does not guarantee the server is reachable — use test() for that.
+     *
+     * @return bool
+     */
+    protected function is_connected(): bool {
+        return $this->memcached instanceof Memcached;
+    }
+
+    /*----------------------------------------------------------
+     * KEY BUILDER
+     *---------------------------------------------------------*/
+
+    /**
+     * Prepend the configured prefix to a key.
+     *
+     * @param string $key Raw cache key.
      * @return string
      */
     protected function key( string $key ): string {
         return $this->prefix . $key;
     }
 
+    /*----------------------------------------------------------
+     * CACHE OPERATIONS
+     *---------------------------------------------------------*/
+
     /**
      * Retrieve a cached value.
+     *
+     * Returns false on a cache miss OR when the client is not connected.
      *
      * @param string $key Cache key.
      * @return mixed|false
      */
     public function get( string $key ): mixed {
-        return $this->memcached->get( $this->key( $key ) );
+        if ( ! $this->is_connected() ) {
+            return false;
+        }
+
+        $value = $this->memcached->get( $this->key( $key ) );
+
+        return $this->memcached->getResultCode() === Memcached::RES_SUCCESS
+            ? $value
+            : false;
     }
 
     /**
@@ -83,6 +137,10 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function set( string $key, mixed $value, int $ttl = 0 ): bool {
+        if ( ! $this->is_connected() ) {
+            return false;
+        }
+
         return $this->memcached->set( $this->key( $key ), $value, $ttl );
     }
 
@@ -93,27 +151,42 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function delete( string $key ): bool {
+        if ( ! $this->is_connected() ) {
+            return false;
+        }
+
         return $this->memcached->delete( $this->key( $key ) );
     }
 
     /**
-     * Determine whether a key exists.
+     * Determine whether a key exists in cache.
+     *
+     * Performs a real get and inspects the result code rather than
+     * issuing a separate lookup, since Memcached has no native exists().
      *
      * @param string $key Cache key.
      * @return bool
      */
     public function has( string $key ): bool {
+        if ( ! $this->is_connected() ) {
+            return false;
+        }
+
         $this->memcached->get( $this->key( $key ) );
 
-        return Memcached::RES_NOTFOUND !== $this->memcached->getResultCode();
+        return $this->memcached->getResultCode() !== Memcached::RES_NOTFOUND;
     }
 
     /**
-     * Clear the cache.
+     * Flush all keys from the Memcached server.
      *
      * @return bool
      */
     public function clear(): bool {
+        if ( ! $this->is_connected() ) {
+            return false;
+        }
+
         return $this->memcached->flush();
     }
 
@@ -123,42 +196,179 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
     |----------------------
     */
 
-    public function get_id() : string {
+    public function get_id(): string {
         return 'memcached';
     }
 
-    public function get_name() : string {
+    public function get_name(): string {
         return 'Memcached';
     }
 
-    public function get_settings_schema() : array {
+    public function get_settings_schema(): array {
         return [
             'hostname' => [
                 'type'        => 'text',
                 'label'       => 'Server Host',
                 'required'    => true,
-                'description' => 'Memcached server hostname. e.g. localhost',
+                'default'     => 'localhost',
+                'description' => 'Memcached server hostname or IP address.',
             ],
             'port' => [
                 'type'        => 'number',
                 'label'       => 'Port',
                 'required'    => false,
-                'description' => 'Typically 11211.',
+                'default'     => 11211,
+                'description' => 'Memcached server port. Typically 11211.',
+            ],
+            'prefix' => [
+                'type'        => 'text',
+                'label'       => 'Key Prefix',
+                'required'    => false,
+                'default'     => '',
+                'description' => 'Optional string prepended to every cache key to avoid collisions in shared environments.',
             ],
         ];
     }
 
-    public function set_settings( array $settings ) : void {
+    /**
+     * Apply adapter configuration.
+     *
+     * Resets the client so the next operation reconnects with the new settings.
+     *
+     * @param array<string, mixed> $settings
+     * @return void
+     */
+    public function set_settings( array $settings ): void {
         if ( isset( $settings['hostname'] ) ) {
             $this->hostname = (string) $settings['hostname'];
         }
 
         if ( isset( $settings['port'] ) ) {
-            $this->hostname = (int) $settings['port'];
+            $this->port = (int) $settings['port']; // BUG FIX: was assigning to $this->hostname.
         }
+
+        if ( isset( $settings['prefix'] ) ) {
+            $this->prefix = (string) $settings['prefix'];
+        }
+
+        // Reset the client so the next operation reconnects with the new values.
+        $this->memcached = null;
     }
 
-    public function is_supported() : bool {
+    /**
+     * @inheritDoc
+     */
+    public function is_supported(): bool {
         return class_exists( Memcached::class );
+    }
+
+    /**
+    |----------------------
+    | DIAGNOSTICS
+    |----------------------
+    */
+
+    /**
+     * Return runtime statistics from the Memcached server.
+     *
+     * Calls getStats() which returns per-server stats keyed by "host:port".
+     * We sum across all servers so the returned CacheStats reflects the
+     * entire pool when multiple servers are configured.
+     *
+     * Memcached does not expose a discrete memory_total; we derive it as
+     * memory_used + available memory (limit_maxbytes − bytes).
+     *
+     * Returns a zero-default CacheStats when the client is not connected
+     * or the server returns no data.
+     *
+     * @return CacheStats
+     */
+    public function get_stats(): CacheStats {
+        if ( ! $this->is_connected() ) {
+            return new CacheStats();
+        }
+
+        $raw = $this->memcached->getStats();
+
+        if ( empty( $raw ) ) {
+            return new CacheStats();
+        }
+
+        // Aggregate across all servers in the pool.
+        $hits         = 0;
+        $misses       = 0;
+        $entries      = 0;
+        $memory_used  = 0;
+        $memory_total = 0;
+        $uptime       = 0;
+        $evictions    = 0;
+        $connections  = 0;
+
+        foreach ( $raw as $server_stats ) {
+            $hits        += (int) ( $server_stats['get_hits']      ?? 0 );
+            $misses      += (int) ( $server_stats['get_misses']    ?? 0 );
+            $entries     += (int) ( $server_stats['curr_items']    ?? 0 );
+            $memory_used += (int) ( $server_stats['bytes']         ?? 0 );
+            $evictions   += (int) ( $server_stats['evictions']     ?? 0 );
+            $connections += (int) ( $server_stats['curr_connections'] ?? 0 );
+
+            // Use the longest uptime across the pool as the representative value.
+            $uptime = max( $uptime, (int) ( $server_stats['uptime'] ?? 0 ) );
+
+            // limit_maxbytes is the configured memory ceiling per server.
+            $memory_total += (int) ( $server_stats['limit_maxbytes'] ?? 0 );
+        }
+
+        return new CacheStats(
+            hits         : $hits,
+            misses       : $misses,
+            entries      : $entries,
+            memory_used  : $memory_used,
+            memory_total : $memory_total,
+            uptime       : $uptime,
+            extra        : [
+                'evictions'       => $evictions,
+                'curr_connections'=> $connections,
+                'server_count'    => count( $raw ),
+                'servers'         => array_keys( $raw ),
+            ],
+        );
+    }
+
+    /**
+     * Test whether Memcached is reachable and operational with the supplied settings.
+     *
+     * Creates a temporary isolated client so the live $this->memcached
+     * connection and the live cache are never touched. Applies the supplied
+     * settings to the sandbox only, performs a write → read → delete
+     * round-trip, then discards the sandbox.
+     *
+     * @param array<string, mixed> $settings Settings shaped like get_settings_schema().
+     * @return bool True if the server is reachable and all three probe operations succeed.
+     */
+    public function test( array $settings = [] ): bool {
+        if ( ! $this->is_supported() ) {
+            return false;
+        }
+
+        try {
+            $hostname = (string) ( $settings['hostname'] ?? $this->hostname );
+            $port     = (int)    ( $settings['port']     ?? $this->port );
+            $prefix   = (string) ( $settings['prefix']   ?? $this->prefix );
+
+            $sandbox = new Memcached();
+            $sandbox->addServer( $hostname, $port );
+
+            $probe = $prefix . '__smliser_memcached_probe_' . \uniqid( '', true );
+
+            $stored  = $sandbox->set( $probe, 1, 10 );
+            $value   = $sandbox->get( $probe );
+            $fetched = $sandbox->getResultCode() === Memcached::RES_SUCCESS;
+            $deleted = $sandbox->delete( $probe );
+
+            return $stored && $fetched && $value === 1 && $deleted;
+        } catch ( \Throwable ) {
+            return false;
+        }
     }
 }

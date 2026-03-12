@@ -44,10 +44,13 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
     <div class="smliser-providers-grid">
         <h2 class="smliser-section-title">Email Providers</h2>
-        <p class="smliser-section-description">
-            Configure the email provider you want to use for outgoing system emails.
-            The active provider is determined by the Default Email Provider setting above.
-        </p>
+        <div class="notice notice-info" style="margin: 10px;">
+            <p class="smliser-section-description">
+                Configure the email provider you want to use for outgoing system emails.
+                The active provider is determined by the Default Email Provider setting above.
+            </p>            
+        </div>
+
 
         <div class="smliser-provider-cards">
             <?php foreach ( $providers as $provider_id => $provider ) :

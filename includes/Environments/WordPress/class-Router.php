@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
+use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Email\RequestController as EmailRequestController;
 use SmartLicenseServer\Environments\RouterInterface;
@@ -85,6 +86,8 @@ class Router implements RouterInterface {
             'smliser_save_email_template'                   => [ __CLASS__, 'parse_save_email_template_request' ],
             'smliser_reset_email_template'                  => [ __CLASS__, 'parse_reset_email_template_request' ],
             'smliser_delete_license'                        => [ __CLASS__, 'parse_license_delete_request' ],
+            'smliser_save_cache_adapter_settings'           => [ __CLASS__, 'parse_save_cache_adapter_settings_request' ],
+            'smliser_test_cache_adapter_settings'           => [ __CLASS__, 'parse_test_cache_adapter_settings_request' ],
         ];
 
         if ( isset( $handler_map[ $trigger ] ) ) {
@@ -765,6 +768,25 @@ class Router implements RouterInterface {
 
         exit;
     }
+
+    public static function parse_save_cache_adapter_settings_request( Request $request ) : void {
+        static::guard( $request );
+
+        CacheRequestController::save_adapter_settings( $request )
+        ->send();
+
+        exit;
+    }
+
+    public static function parse_test_cache_adapter_settings_request( Request $request ) : void {
+        static::guard( $request );
+
+        CacheRequestController::test_cache_adapter_settings( $request )
+        ->send();
+
+        exit;
+    }
+
     /*
     |----------------
     | UTILITY METHODS

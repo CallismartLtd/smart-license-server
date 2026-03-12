@@ -2,7 +2,7 @@
 /**
  * Individual cache adapter settings template.
  *
- * Variables available from OptionsPage::email_adapter_settings():
+ * Variables available from OptionsPage::cache_adapter_settings():
  *   $adapter_name  — string
  *   $adapter_id    — string
  *   $schema         — array<string, array>   field schema from get_settings_schema()
@@ -34,17 +34,18 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
     <?php Menu::print_admin_top_menu( $menu_args ); ?>
     <?php if ( ! $adapter ) : ?>
         <?php printf(
-            smliser_not_found_container( 'The email adapter "%s" does not exists. <a href="%s">Go Back</a>' ),
+            smliser_not_found_container( 'The cache adapter "%s" does not exists. <a href="%s">Go Back</a>' ),
             $adapter_key,
-            $current_url
+            $current_url->get_href()
         ); ?>
 
     <?php else: ?>
         <form action="" class="smliser-options-form">
-            <input type="hidden" name="action"      value="smliser_save_email_adapter_settings" />
+            <input type="hidden" name="action"      value="smliser_save_cache_adapter_settings" />
             <input type="hidden" name="adapter_id" value="<?php echo esc_attr( $adapter_id ); ?>" />
 
             <div class="smliser-options-form_body">
+    
                 <?php foreach ( $schema as $key => $field_schema ) :
                     // Build the field definition in the same shape smliser_render_input_field() expects.
                     $field = [
@@ -54,9 +55,13 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                             'type'     => $field_schema['type'],
                             'name'     => $key,
                             'value'    => $saved_settings[ $key ] ?? '',
-                            'required' => $field_schema['required'] ?? false,
                         ],
                     ];
+
+                    if ( isset( $field_schema['required'] ) && $field_schema['required'] ) {
+                        $field['input']['attr']['required']     = true;
+                        $field['input']['attr']['field_name']   = $field['label'];
+                    }
 
                     // Pass options through for select fields.
                     if ( isset( $field_schema['options'] ) ) {
@@ -76,26 +81,18 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     <?php smliser_render_input_field( $field ); ?>
                 <?php endforeach; ?>
 
-                <?php if ( ! $is_default ) : ?>
-                    <div class="smliser-form-label-row">
-                        <span>Set as Default Provider</span>
-                        <label class="smliser-toggle">
-                            <input type="checkbox"
-                                    name="set_as_default"
-                                    value="1" />
-                            <span class="smliser-toggle__slider"></span>
-                        </label>
-                    </div>
-                <?php else : ?>
-                    <div class="smliser-notice smliser-notice--info">
-                        This is the currently active email adapter.
-                    </div>
-                <?php endif; ?>
-
                 <div class="smliser-form-label-row">
-                    <div>
-                        <button type="submit" class="smliser-submit-button">Save</button>
-                    </div>
+                    <span>Set as Default Provider</span>
+                    <?php smliser_render_toggle_switch([
+                        'name'  => 'set_as_default',
+                        'value' => $is_default
+                    ]); ?>
+                    
+                </div>
+
+                <div class="smliser-form-label-row row">
+                    <button type="submit" class="smliser-submit-button">Save</button>
+                    <button type="button" class="smliser-btn test-cache-btn">Test</button>
                     
                 </div>
                 <span class="smliser-spinner"></span>

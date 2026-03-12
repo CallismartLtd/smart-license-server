@@ -105,7 +105,7 @@ class CacheProviderIcons {
                 'redis'         => SMLISER_URL . 'assets/images/cache-adapters/redis-cache.svg',
                 'memcached'     => SMLISER_URL . 'assets/images/cache-adapters/memcached.svg',
                 'sqlitecache'   => SMLISER_URL . 'assets/images/cache-adapters/sqlite-cache.svg',
-                'inmemory'      => SMLISER_URL . 'assets/images/cache-adapters/inmemory-cache.svg',
+                'runtime'      => SMLISER_URL . 'assets/images/cache-adapters/runtime-cache.svg',
             ];
         }
 

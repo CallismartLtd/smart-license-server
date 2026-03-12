@@ -223,8 +223,21 @@ button.smliser-upload-btn {
   box-sizing: border-box;
   animation: rotation 2s linear infinite;
 }
+.rotate {
+  color: #000000;
+  animation: rotation 2s linear infinite;
+}
 
 @keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes rotate {
   0% {
     transform: rotate(0deg);
   }
@@ -556,6 +569,11 @@ button.smliser-upload-btn {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+.smliser-form-label-row.row {
+  flex-direction: row;
+  align-items: flex-start;
 }
 
 .smliser-form-label-row input[type="text"],

@@ -13,7 +13,7 @@ use PDO;
 use SmartLicenseServer\Cache\Adapters\ApcuCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
-use SmartLicenseServer\Cache\Adapters\InMemoryCacheAdapter;
+use SmartLicenseServer\Cache\Adapters\RuntimeCacheAdapter;
 use SmartLicenseServer\Cache\CacheAdapterCollection;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Database\Database;
@@ -507,7 +507,7 @@ abstract class Config {
      */
     protected function setGlobalCacheAdapter() : void {
         if ( ! isset( $this->cacheAdapter ) ) {
-            $this->cacheAdapter = CacheAdapterCollection::instance( $this->settings )->get_provider_with_settings();
+            $this->cacheAdapter = CacheAdapterCollection::instance( $this->settings )->get_adapter_with_settings();
         }
 
         $this->cache    = new Cache( $this->cacheAdapter );

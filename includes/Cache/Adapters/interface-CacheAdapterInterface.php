@@ -5,6 +5,8 @@
  * Ensures a unified API for caching across different environments
  * (WordPress, Laravel, and pure PHP memory-based cache).
  *
+ * @author Callistus Nwachukwu
+ * @since 0.2.0
  * @package SmartLicenseServer\Cache
  */
 
@@ -111,4 +113,78 @@ interface CacheAdapterInterface {
      * @return bool
      */
     public function is_supported() : bool;
+
+    /**
+    |----------------------
+    | DIAGNOSTICS
+    |----------------------
+    */
+
+    /**
+     * Return runtime statistics for this cache adapter.
+     *
+     * Implementers must populate a {@see CacheStats} value object with
+     * whatever metrics the underlying backend exposes. Fields that are not
+     * available for a given backend should be left at their default (0 / null).
+     *
+     * Example (APCu):
+     * ```php
+     * public function get_stats(): CacheStats {
+     *     $info = apcu_cache_info( true );
+     *     $sma  = apcu_sma_info();
+     *
+     *     return new CacheStats(
+     *         hits         : $info['num_hits'],
+     *         misses       : $info['num_misses'],
+     *         entries      : $info['num_entries'],
+     *         memory_used  : $sma['num_seg'] * $sma['seg_size'] - $sma['avail_mem'],
+     *         memory_total : $sma['num_seg'] * $sma['seg_size'],
+     *         uptime       : $info['start_time'] ? time() - $info['start_time'] : 0,
+     *     );
+     * }
+     * ```
+     *
+     * @return CacheStats
+     */
+    public function get_stats() : CacheStats;
+
+    /**
+     * Test whether the adapter can connect and operate with the supplied settings.
+     *
+     * Implementations should:
+     *  1. Apply $settings temporarily (do NOT persist them via set_settings()).
+     *  2. Attempt a write → read → delete round-trip against the backend.
+     *  3. Return true only when all three steps succeed.
+     *  4. Restore the previous configuration before returning.
+     *
+     * This method must never throw — all exceptions must be caught internally
+     * and result in a false return value.
+     *
+     * Example (Redis):
+     * ```php
+     * public function test( array $settings ): bool {
+     *     try {
+     *         $client = new \Redis();
+     *         $client->connect( $settings['hostname'], (int) $settings['port'] );
+     *
+     *         if ( ! empty( $settings['password'] ) ) {
+     *             $client->auth( $settings['password'] );
+     *         }
+     *
+     *         $probe = '__smliser_probe_' . uniqid();
+     *         $client->set( $probe, '1', 10 );
+     *         $ok = $client->get( $probe ) === '1';
+     *         $client->del( $probe );
+     *
+     *         return $ok;
+     *     } catch ( \Throwable $e ) {
+     *         return false;
+     *     }
+     * }
+     * ```
+     *
+     * @param array<string, mixed> $settings Settings to test, shaped like get_settings_schema().
+     * @return bool True if the adapter is reachable and functional with these settings.
+     */
+    public function test( array $settings ) : bool;
 }
