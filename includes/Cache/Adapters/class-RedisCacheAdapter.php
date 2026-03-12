@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Cache\Adapters;
 
 use Redis;
 use RedisException;
+use SmartLicenseServer\Cache\CacheStats;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -118,6 +119,10 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     protected function is_connected(): bool {
+        if ( ! isset( $this->redis ) ) {
+            $this->connect();
+        }
+        
         return $this->redis instanceof Redis;
     }
 

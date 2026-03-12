@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Cache\Adapters;
 
 use Illuminate\Support\Facades\Cache as LaravelCache;
 use Illuminate\Contracts\Cache\Repository;
+use SmartLicenseServer\Cache\CacheStats;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 

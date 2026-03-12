@@ -10,6 +10,7 @@
 namespace SmartLicenseServer\Cache\Adapters;
 
 use Memcached;
+use SmartLicenseServer\Cache\CacheStats;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -74,6 +75,10 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
             return true;
         }
 
+        if ( ! isset( $this->hostname ) || empty( $this->port ) ) {
+            return false;
+        }
+
         $this->memcached = new Memcached();
 
         return $this->memcached->addServer( $this->hostname, $this->port );
@@ -87,6 +92,10 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     protected function is_connected(): bool {
+        if ( $this->memcached === null ) {
+            $this->connect();
+        }
+        
         return $this->memcached instanceof Memcached;
     }
 
@@ -244,14 +253,14 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
         }
 
         if ( isset( $settings['port'] ) ) {
-            $this->port = (int) $settings['port']; // BUG FIX: was assigning to $this->hostname.
+            $this->port = (int) $settings['port'];
         }
 
         if ( isset( $settings['prefix'] ) ) {
             $this->prefix = (string) $settings['prefix'];
         }
 
-        // Reset the client so the next operation reconnects with the new values.
+        // Force reconnection with the new values on the next operation.
         $this->memcached = null;
     }
 
@@ -275,8 +284,10 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * We sum across all servers so the returned CacheStats reflects the
      * entire pool when multiple servers are configured.
      *
-     * Memcached does not expose a discrete memory_total; we derive it as
-     * memory_used + available memory (limit_maxbytes − bytes).
+     * curr_connections from Memcached's stats includes listener sockets
+     * (one per bound interface — IPv4, IPv6, or both), so it is stored raw
+     * in the extra bag for reference while client_connections gives the
+     * true PHP client count via get_client_connections().
      *
      * Returns a zero-default CacheStats when the client is not connected
      * or the server returns no data.
@@ -305,12 +316,12 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
         $connections  = 0;
 
         foreach ( $raw as $server_stats ) {
-            $hits        += (int) ( $server_stats['get_hits']      ?? 0 );
-            $misses      += (int) ( $server_stats['get_misses']    ?? 0 );
-            $entries     += (int) ( $server_stats['curr_items']    ?? 0 );
-            $memory_used += (int) ( $server_stats['bytes']         ?? 0 );
-            $evictions   += (int) ( $server_stats['evictions']     ?? 0 );
-            $connections += (int) ( $server_stats['curr_connections'] ?? 0 );
+            $hits         += (int) ( $server_stats['get_hits']         ?? 0 );
+            $misses       += (int) ( $server_stats['get_misses']       ?? 0 );
+            $entries      += (int) ( $server_stats['curr_items']       ?? 0 );
+            $memory_used  += (int) ( $server_stats['bytes']            ?? 0 );
+            $evictions    += (int) ( $server_stats['evictions']        ?? 0 );
+            $connections  += (int) ( $server_stats['curr_connections'] ?? 0 );
 
             // Use the longest uptime across the pool as the representative value.
             $uptime = max( $uptime, (int) ( $server_stats['uptime'] ?? 0 ) );
@@ -327,12 +338,65 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
             memory_total : $memory_total,
             uptime       : $uptime,
             extra        : [
-                'evictions'       => $evictions,
-                'curr_connections'=> $connections,
-                'server_count'    => count( $raw ),
-                'servers'         => array_keys( $raw ),
+                'evictions'          => $evictions,
+                'curr_connections'   => $connections,              // raw — includes listener sockets
+                'client_connections' => $this->get_client_connections(), // true PHP client count
+                'server_count'       => count( $raw ),
+                'servers'            => array_keys( $raw ),
             ],
         );
+    }
+
+    /**
+     * Return the number of true PHP client connections to the Memcached pool.
+     *
+     * Memcached's curr_connections stat includes its own listener sockets
+     * (one per bound interface — typically 2 on dual-stack IPv4+IPv6 servers),
+     * which inflates the number shown to users. This method queries
+     * getStats('conns') — the per-connection detail available in Memcached
+     * 1.6+ — and counts only sockets that are NOT in conn_listening state,
+     * giving an accurate client-only count regardless of the server's
+     * network configuration.
+     *
+     * Falls back to 0 if the extended stats are unavailable (older Memcached
+     * versions or permission restrictions).
+     *
+     * @return int
+     */
+    private function get_client_connections(): int {
+        if ( ! $this->is_connected() ) {
+            return 0;
+        }
+
+        try {
+            $conns = $this->memcached->getStats( 'conns' );
+
+            if ( empty( $conns ) || ! is_array( $conns ) ) {
+                return 0;
+            }
+
+            $client_count = 0;
+
+            foreach ( $conns as $server_conns ) {
+                if ( ! is_array( $server_conns ) ) {
+                    continue;
+                }
+
+                foreach ( $server_conns as $key => $value ) {
+                    // Each connection exposes a "<fd>:state" key.
+                    // Listener sockets report "conn_listening" — exclude those.
+                    if ( str_ends_with( (string) $key, ':state' )
+                         && $value !== 'conn_listening' ) {
+                        $client_count++;
+                    }
+                }
+            }
+
+            return $client_count;
+
+        } catch ( \Throwable ) {
+            return 0;
+        }
     }
 
     /**

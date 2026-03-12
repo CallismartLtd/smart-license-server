@@ -12,6 +12,8 @@
 
 namespace SmartLicenseServer\Cache\Adapters;
 
+use SmartLicenseServer\Cache\CacheStats;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 interface CacheAdapterInterface {
@@ -100,7 +102,7 @@ interface CacheAdapterInterface {
     public function get_settings_schema() : array;
 
     /**
-     * Set provider configuration.
+     * Set adapter configuration.
      *
      * @param array<string, mixed> $settings
      * @return void

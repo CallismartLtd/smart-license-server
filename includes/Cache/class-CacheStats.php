@@ -21,7 +21,7 @@
  * @property array $extra         Adapter-specific extras (e.g. connected_slaves for Redis).
  */
 
-namespace SmartLicenseServer\Cache\Adapters;
+namespace SmartLicenseServer\Cache;
 
 use SmartLicenseServer\Core\DTO;
 use InvalidArgumentException;

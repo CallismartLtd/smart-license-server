@@ -92,6 +92,12 @@ final class ScriptManager {
                 'ver'   => SMLISER_VER,
                 'media' => 'all',
             ),
+            'smliser-cache-stats' => array(
+                'src'   => SetUp::assets_url( sprintf( 'css/cache-stats%s.css', $this->script_suffix() ) ),
+                'deps'  => [ 'smliser-styles', 'smliser-modal' ],
+                'ver'   => SMLISER_VER,
+                'media' => 'all',
+            ),
         );
     }
 
@@ -172,6 +178,12 @@ final class ScriptManager {
                 'ver'    => SMLISER_VER,
                 'footer' => true,
             ),
+            'smliser-cache-stats' => array(
+                'src'    => SetUp::assets_url( sprintf( 'js/cache-stats%s.js' , $this->script_suffix() ) ),
+                'deps'   => [ 'jquery', 'smliser-script', 'smliser-modal' ],
+                'ver'    => SMLISER_VER,
+                'footer' => true,
+            ),
 
             'smliser-jquery'    => array(
                 'src'    => SetUp::assets_url( sprintf( 'js/jQuery/jQuery%s.js' , $this->script_suffix() ) ),
@@ -244,6 +256,10 @@ final class ScriptManager {
             wp_enqueue_script( 'smliser-role-builder' );
         }
 
+        if ( 'smart-license-server_page_smliser-options' === $s ) {
+            wp_enqueue_script( 'smliser-cache-stats' );
+        }
+
         // Script localizer.
         wp_localize_script( 'smliser-script', 'smliser_var', $this->allVars() );
     }
@@ -272,6 +288,10 @@ final class ScriptManager {
 
         if ( 'smart-license-server_page_smliser-access-control' === $s ) {
             wp_enqueue_style( 'smliser-role-builder' );
+        }
+
+        if ( 'smart-license-server_page_smliser-options' === $s ) {
+            wp_enqueue_style( 'smliser-cache-stats' );
         }
     
     }

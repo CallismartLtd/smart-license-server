@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Cache\Adapters;
 
 use Exception;
 use LogicException;
+use SmartLicenseServer\Cache\CacheStats;
 use SQLite3;
 use SQLite3Stmt;
 
