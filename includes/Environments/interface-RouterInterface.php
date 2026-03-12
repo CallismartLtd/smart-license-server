@@ -318,4 +318,54 @@ interface RouterInterface {
      * @return void
      */
     public static function parse_test_cache_adapter_settings_request( Request $request ) : void;
+    
+    /**
+     * Parse request to get cache stats.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_get_cache_stats_request( Request $request ): void;
+
+    /**
+     * Parse request to clear all cache data.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_clear_all_cache_request( Request $request ): void;
+    
+    /**
+     * Parse request to delete cache by prefix.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_delete_cache_by_prefix_request( Request $request ): void;
+
+    /**
+     * Parse request to delete cache by pattern.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_delete_cache_by_pattern_request( Request $request ): void;
+
+    /**
+     * Parse request to flush expired cache data.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_flush_expired_cache_request( Request $request ): void;
+
+    /**
+     * Parse request to get top cache keys.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function parse_get_top_cache_keys_request( Request $request ): void;
+
+    
 }

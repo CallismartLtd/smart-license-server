@@ -23,8 +23,6 @@
     const dash = document.querySelector( '.smlc-dash' );
     if ( ! dash ) return;
 
-    const adapter = dash.dataset.adapter ?? '';
-
     /* ── Helpers ──────────────────────────────────────────────────────────── */
 
     /**
@@ -57,6 +55,54 @@
         };
     }
 
+    /**
+     * Safely escape a string for HTML insertion.
+     *
+     * @param {string} str
+     * @returns {string}
+     */
+    function escHtml( str ) {
+        return String( str )
+            .replace( /&/g,  '&amp;'  )
+            .replace( /</g,  '&lt;'   )
+            .replace( />/g,  '&gt;'   )
+            .replace( /"/g,  '&quot;' )
+            .replace( /'/g,  '&#039;' );
+    }
+
+    /**
+     * Format a byte count into a human-readable string.
+     *
+     * @param {number} bytes
+     * @returns {string}
+     */
+    function fmtBytes( bytes ) {
+        if ( ! bytes || bytes <= 0 ) return '0 B';
+        const units = [ 'B', 'KB', 'MB', 'GB' ];
+        const i     = Math.floor( Math.log( bytes ) / Math.log( 1024 ) );
+        return ( bytes / Math.pow( 1024, i ) ).toFixed( 2 ) + ' ' + units[ i ];
+    }
+
+    /**
+     * Format a duration in seconds into a compact human-readable string.
+     *
+     * @param {number} secs
+     * @returns {string}
+     */
+    function fmtSeconds( secs ) {
+        if ( secs <= 0 ) return '< 1s';
+        const d = Math.floor( secs / 86400 );
+        const h = Math.floor( ( secs % 86400 ) / 3600 );
+        const m = Math.floor( ( secs % 3600  ) / 60   );
+        const s = secs % 60;
+        const parts = [];
+        if ( d )        parts.push( d + 'd' );
+        if ( h )        parts.push( h + 'h' );
+        if ( m )        parts.push( m + 'm' );
+        if ( s && ! d ) parts.push( s + 's' );
+        return parts.join( ' ' ) || '< 1s';
+    }
+
     /* ── 1. Refresh button ────────────────────────────────────────────────── */
 
     const refreshBtn = dash.querySelector( '.smlc-refresh-btn' );
@@ -76,10 +122,14 @@
     }
 
     /**
-     * Re-fetch stat card HTML from the server and swap the cards container.
+     * Re-fetch stats from the server and re-render the cards in-place.
      *
-     * The AJAX handler (smliser_cache_get_stats) should return:
-     *   { success: true, data: { html: '<div class="smlc-cards">…</div>' } }
+     * The controller (smliser_cache_get_stats) returns:
+     *   { success: true, data: { adapter_id, adapter_name, stats: { hits, misses, … } } }
+     *
+     * We update innerHTML on the stable #smlc-stat-cards wrapper — never outerHTML —
+     * so the container reference stays valid across the async gap and the finally
+     * block can always clear the loading state on the same node.
      *
      * @returns {Promise<void>}
      */
@@ -87,50 +137,151 @@
         const container = document.getElementById( 'smlc-stat-cards' );
         if ( ! container ) return;
 
-        // Show skeleton while loading
-        container.style.opacity = '.4';
+        container.style.opacity       = '0.4';
         container.style.pointerEvents = 'none';
 
         try {
             const url    = ajaxUrl( 'smliser_cache_get_stats', smliser_var.nonce );
             const result = await smliserFetchJSON( url, { method: 'GET' } );
 
-            if ( result.success && result.data?.html ) {
-                container.outerHTML = result.data.html;
+            if ( result.success && result.data?.stats ) {
+                container.innerHTML = buildStatCards( result.data.stats );
             }
         } catch ( err ) {
-            // Silently fail — the cards keep showing their last-known values.
+            // Silent fail — cards keep showing their last-known values.
             console.warn( '[smlc] Could not refresh stats:', err.message );
         } finally {
-            const fresh = document.getElementById( 'smlc-stat-cards' );
-            if ( fresh ) {
-                fresh.style.opacity       = '';
-                fresh.style.pointerEvents = '';
-            }
+            // container was never replaced so this always references the live node.
+            container.style.opacity       = '';
+            container.style.pointerEvents = '';
         }
+    }
+
+    /**
+     * Build stat card inner HTML from a raw CacheStats payload.
+     *
+     * Mirrors the rendering logic in cache-stats.php so cards look identical
+     * after a JS refresh as they do on first page load.
+     *
+     * @param {Object} s  CacheStats::to_array() payload
+     * @returns {string}
+     */
+    function buildStatCards( s ) {
+        const hits      = s.hits         ?? 0;
+        const misses    = s.misses       ?? 0;
+        const entries   = s.entries      ?? 0;
+        const memUsed   = s.memory_used  ?? 0;
+        const memTotal  = s.memory_total ?? 0;
+        const uptime    = s.uptime       ?? 0;
+        const extra     = s.extra        ?? {};
+
+        const total      = hits + misses;
+        const tracksHits = total > 0;
+        const hitPct     = tracksHits ? +( ( hits / total ) * 100 ).toFixed( 1 ) : null;
+        const hasMemCeil = memTotal > 0;
+        const memPct     = hasMemCeil ? +( ( memUsed / memTotal ) * 100 ).toFixed( 1 ) : null;
+
+        const hitColour = hitPct === null  ? 'neutral'
+            : hitPct >= 70 ? 'good' : hitPct >= 50 ? 'warn' : 'bad';
+        const memColour = memPct === null  ? 'neutral'
+            : memPct >= 90 ? 'bad'  : memPct >= 70 ? 'warn' : 'good';
+
+        const expired = extra.expired_entries ?? extra.expired_slots ?? 0;
+
+        // Hit rate card
+        const hitValue = hitPct !== null
+            ? `${ hitPct }<span class="smlc-card__unit">%</span>`
+            : `<span class="smlc-card__na">—</span>`;
+
+        const hitSub = tracksHits
+            ? `<span class="smlc-hit">${ hits.toLocaleString() } hits</span>
+               <span class="smlc-dot">·</span>
+               <span class="smlc-miss">${ misses.toLocaleString() } misses</span>`
+            : `<span class="smlc-muted">Not tracked by this adapter</span>`;
+
+        // Entries card
+        const entriesSub = expired > 0
+            ? `<span class="smlc-warn-txt">+${ expired.toLocaleString() } expired</span>`
+            : `<span class="smlc-muted">All entries live</span>`;
+
+        // Memory card
+        const memValue = memPct !== null
+            ? `${ memPct }<span class="smlc-card__unit">%</span>`
+            : fmtBytes( memUsed );
+
+        const memBar = hasMemCeil
+            ? `<div class="smlc-mem-bar">
+                   <div class="smlc-mem-bar__fill smlc-mem-bar__fill--${ memColour }"
+                        style="width:${ Math.min( memPct, 100 ) }%"></div>
+               </div>
+               <div class="smlc-card__sub smlc-mem-detail">
+                   <span>Used ${ fmtBytes( memUsed ) }</span>
+                   <span>·</span>
+                   <span>Free ${ fmtBytes( memTotal - memUsed ) }</span>
+                   <span>·</span>
+                   <span>Total ${ fmtBytes( memTotal ) }</span>
+               </div>`
+            : `<div class="smlc-card__sub smlc-muted">${
+                  memUsed > 0 ? fmtBytes( memUsed ) + ' used · No fixed ceiling' : 'Not reported'
+              }</div>`;
+
+        // Uptime card
+        const uptimeValue = uptime > 0
+            ? fmtSeconds( uptime )
+            : `<span class="smlc-card__na">—</span>`;
+
+        const adapterHint = dash.dataset.adapter ?? '';
+        const uptimeSub   = uptime > 0
+            ? 'Since last restart'
+            : ( adapterHint === 'runtime' || adapterHint === 'arraycache'
+                ? 'Request-scoped'
+                : 'Not reported' );
+
+        return `
+            <div class="smlc-card smlc-card--${ hitColour }">
+                <div class="smlc-card__eyebrow">Hit Rate</div>
+                <div class="smlc-card__value">${ hitValue }</div>
+                <div class="smlc-card__sub">${ hitSub }</div>
+            </div>
+
+            <div class="smlc-card smlc-card--neutral">
+                <div class="smlc-card__eyebrow">Cached Entries</div>
+                <div class="smlc-card__value">${ entries.toLocaleString() }</div>
+                <div class="smlc-card__sub">${ entriesSub }</div>
+            </div>
+
+            <div class="smlc-card smlc-card--${ memColour } smlc-card--wide">
+                <div class="smlc-card__eyebrow">Memory</div>
+                <div class="smlc-card__value">${ memValue }</div>
+                ${ memBar }
+            </div>
+
+            <div class="smlc-card smlc-card--neutral">
+                <div class="smlc-card__eyebrow">Uptime</div>
+                <div class="smlc-card__value">${ uptimeValue }</div>
+                <div class="smlc-card__sub smlc-muted">${ uptimeSub }</div>
+            </div>`;
     }
 
     /* ── 2. Confirm-action buttons ────────────────────────────────────────── */
 
+    // Use capture phase so this fires before the bubble-phase global
+    // smliserActionBtns handler. No need for stopImmediatePropagation tricks
+    // or class-add/remove races — we simply call smliserActionBtns directly
+    // after the user confirms.
     dash.addEventListener( 'click', async ( e ) => {
         const btn = e.target.closest( '.smlc-confirm-btn' );
         if ( ! btn ) return;
 
-        // Prevent the global smliserActionBtns from firing immediately —
-        // we gate it behind a confirmation modal first.
         e.stopImmediatePropagation();
 
-        const message = btn.dataset.confirm || 'Are you sure you want to proceed?';
-
+        const message   = btn.dataset.confirm || 'Are you sure you want to proceed?';
         const confirmed = await SmliserModal.confirm( message, 'Confirm Action' );
         if ( ! confirmed ) return;
 
-        // Re-dispatch as a regular .smliser-action-button click so the
-        // global handler takes over from here.
-        btn.classList.add( 'smliser-action-button' );
-        btn.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
-        btn.classList.remove( 'smliser-action-button' );
-    } );
+        smliserActionBtns( { target: btn } );
+
+    }, true /* capture phase */ );
 
     /* ── 3. Input-action buttons ──────────────────────────────────────────── */
 
@@ -152,7 +303,6 @@
 
         const value = input.value.trim();
 
-        // Validate: must not be empty.
         if ( ! value ) {
             input.classList.add( 'smlc-input--error' );
             input.focus();
@@ -164,9 +314,11 @@
 
         try {
             const url    = ajaxUrl( action, nonce );
+            // security must be in the POST body — the controller reads it via
+            // $request->get('security'), not from the query string.
             const result = await smliserFetchJSON( url, {
-                method: 'POST',
-                body:   JSON.stringify( { value } ),
+                method : 'POST',
+                body   : JSON.stringify( { value, security: nonce } ),
             } );
 
             if ( result.success ) {
@@ -187,16 +339,15 @@
 
     /* ── 4. Top-keys browser ──────────────────────────────────────────────── */
 
-    const loadKeysBtn  = document.getElementById( 'smlc-load-keys-btn' );
-    const topNSelect   = document.getElementById( 'smlc-topn-select' );
-    const keysWrap     = document.getElementById( 'smlc-keys-wrap' );
+    const loadKeysBtn = document.getElementById( 'smlc-load-keys-btn' );
+    const topNSelect  = document.getElementById( 'smlc-topn-select'   );
+    const keysWrap    = document.getElementById( 'smlc-keys-wrap'     );
 
     if ( loadKeysBtn && keysWrap ) {
         loadKeysBtn.addEventListener( 'click', async () => {
             const limit   = parseInt( topNSelect?.value ?? '10', 10 );
             const restore = setLoading( loadKeysBtn );
 
-            // Show skeleton table while loading
             keysWrap.innerHTML = buildSkeletonTable( Math.min( limit, 8 ) );
 
             try {
@@ -224,9 +375,6 @@
 
     /**
      * Build the keys table HTML from the AJAX response.
-     *
-     * Each key entry shape:
-     *   { key: string, hits: number, ttl: number|null, size: number }
      *
      * @param {Array<{key:string, hits:number, ttl:number|null, size:number}>} keys
      * @returns {string}
@@ -273,10 +421,10 @@
     /**
      * Build a shimmer skeleton table for the loading state.
      *
-     * @param {number} rows
+     * @param {number} rowCount
      * @returns {string}
      */
-    function buildSkeletonTable( rows ) {
+    function buildSkeletonTable( rowCount ) {
         const skRow = `
         <tr>
             <td><span class="smlc-skeleton" style="width:22px;height:22px;border-radius:50%;display:inline-block"></span></td>
@@ -290,51 +438,17 @@
         <div class="smlc-keys-table-wrap">
             <table class="smlc-keys-table">
                 <thead>
-                    <tr>
-                        <th>#</th><th>Key</th><th>Hits</th><th>TTL Remaining</th><th>Size</th>
-                    </tr>
+                    <tr><th>#</th><th>Key</th><th>Hits</th><th>TTL Remaining</th><th>Size</th></tr>
                 </thead>
-                <tbody>${ skRow.repeat( rows ) }</tbody>
+                <tbody>${ skRow.repeat( rowCount ) }</tbody>
             </table>
         </div>`;
     }
 
-    /* ── 5. Refresh cards after any successful action ─────────────────────── */
+    /* ── 5. Re-fetch cards after any successful cache action ──────────────── */
 
     document.addEventListener( 'smliser:action_success', () => {
         refreshStatCards();
     } );
-
-    /* ── Formatting utilities ─────────────────────────────────────────────── */
-
-    function fmtBytes( bytes ) {
-        if ( ! bytes || bytes <= 0 ) return '0 B';
-        const units = [ 'B', 'KB', 'MB', 'GB' ];
-        const i     = Math.floor( Math.log( bytes ) / Math.log( 1024 ) );
-        return ( bytes / Math.pow( 1024, i ) ).toFixed( 2 ) + ' ' + units[ i ];
-    }
-
-    function fmtSeconds( secs ) {
-        if ( secs <= 0 ) return '< 1s';
-        const d = Math.floor( secs / 86400 );
-        const h = Math.floor( ( secs % 86400 ) / 3600 );
-        const m = Math.floor( ( secs % 3600 ) / 60 );
-        const s = secs % 60;
-        const parts = [];
-        if ( d ) parts.push( d + 'd' );
-        if ( h ) parts.push( h + 'h' );
-        if ( m ) parts.push( m + 'm' );
-        if ( s && ! d ) parts.push( s + 's' );
-        return parts.join( ' ' ) || '< 1s';
-    }
-
-    function escHtml( str ) {
-        return String( str )
-            .replace( /&/g, '&amp;' )
-            .replace( /</g, '&lt;'  )
-            .replace( />/g, '&gt;'  )
-            .replace( /"/g, '&quot;' )
-            .replace( /'/g, '&#039;' );
-    }
 
 } )();

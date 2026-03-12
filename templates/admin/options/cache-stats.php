@@ -303,7 +303,7 @@ if ( ! function_exists( 'smliser_cs_fmt_uptime' ) ) {
                     <button type="button"
                             class="smliser-button smliser-button--danger smliser-action-button smlc-confirm-btn"
                             data-confirm="This will delete ALL cached data for <?php echo esc_attr( $adapter_name ); ?>. Continue?"
-                            data-args='<?php echo esc_attr( wp_json_encode([
+                            data-args='<?php echo esc_attr( smliser_safe_json_encode([
                                 'action'  => 'smliser_cache_clear_all',
                                 'payLoad' => [ 'security' => $nonce ],
                             ]) ); ?>'>

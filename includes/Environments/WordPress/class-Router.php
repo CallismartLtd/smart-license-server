@@ -86,8 +86,15 @@ class Router implements RouterInterface {
             'smliser_save_email_template'                   => [ __CLASS__, 'parse_save_email_template_request' ],
             'smliser_reset_email_template'                  => [ __CLASS__, 'parse_reset_email_template_request' ],
             'smliser_delete_license'                        => [ __CLASS__, 'parse_license_delete_request' ],
+            
             'smliser_save_cache_adapter_settings'           => [ __CLASS__, 'parse_save_cache_adapter_settings_request' ],
             'smliser_test_cache_adapter_settings'           => [ __CLASS__, 'parse_test_cache_adapter_settings_request' ],
+            'smliser_cache_get_stats'                       => [ __CLASS__, 'parse_get_cache_stats_request' ],
+            'smliser_cache_clear_all'                       => [ __CLASS__, 'parse_clear_all_cache_request' ],
+            'smliser_cache_delete_by_prefix'                => [ __CLASS__, 'parse_delete_cache_by_prefix_request' ],
+            'smliser_cache_delete_by_pattern'               => [ __CLASS__, 'parse_delete_cache_by_pattern_request' ],
+            'smliser_cache_flush_expired'                   => [ __CLASS__, 'parse_flush_expired_cache_request' ],
+            'smliser_cache_get_top_keys'                    => [ __CLASS__, 'parse_get_top_cache_keys_request' ],
         ];
 
         if ( isset( $handler_map[ $trigger ] ) ) {
@@ -782,6 +789,60 @@ class Router implements RouterInterface {
         static::guard( $request );
 
         CacheRequestController::test_cache_adapter_settings( $request )
+        ->send();
+
+        exit;
+    }
+
+    public static function parse_get_cache_stats_request( Request $request ): void {
+        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+
+        CacheRequestController::get_cache_stats( $request )
+        ->send();
+
+        exit;
+    }
+
+    public static function parse_clear_all_cache_request( Request $request ): void {
+        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+
+        CacheRequestController::clear_all_cache( $request )
+        ->send();
+
+        exit;
+    }
+
+    public static function parse_delete_cache_by_prefix_request( Request $request ): void {
+        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+
+        CacheRequestController::delete_cache_by_prefix( $request )
+        ->send();
+
+        exit;
+    }
+
+    public static function parse_delete_cache_by_pattern_request( Request $request ): void {
+        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+
+        CacheRequestController::delete_cache_by_pattern( $request )
+        ->send();
+
+        exit;
+    }
+
+    public static function parse_flush_expired_cache_request( Request $request ): void {
+        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+
+        CacheRequestController::flush_expired_cache( $request )
+        ->send();
+
+        exit;
+    }
+
+    public static function parse_get_top_cache_keys_request( Request $request ): void {
+        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+
+        CacheRequestController::get_top_cache_keys( $request )
         ->send();
 
         exit;
