@@ -15,6 +15,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\RESTAPI\Versions\V1;
+use SmartLicenseServer\Utils\Format;
 
 /**
  * The Admin repository page handler
@@ -274,7 +275,7 @@ class RepositoryPage {
             'download_token' => wp_create_nonce( 'smliser_download_token' )
         ];
         $download_url           = ( new URL( admin_url( 'admin-post.php' ) ) )->add_query_params( $download_actions);
-        $last_updated_string    = sprintf( '%s ago', smliser_readable_duration( time() - strtotime( $app->get_last_updated() ) ) );
+        $last_updated_string    = Format::time_ago( strtotime( $app->get_last_updated() ) );
         $file_size              = FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) );
 
         $template_header    = [
