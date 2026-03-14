@@ -16,9 +16,11 @@
 
 namespace SmartLicenseServer\Core;
 
+use JsonSerializable;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class URL {
+class URL implements JsonSerializable{
 
     /**
      * URL components parsed by parse_url().
@@ -731,5 +733,16 @@ class URL {
 
             'raw_components' => $this->components,
         ];
+    }
+
+    public function jsonSerialize() : mixed {
+        return $this->sanitize()->get_href();
+    }
+
+    public function __serialize() : array {
+        return $this->components;
+    }
+    public function __unserialize( $data ) : void {
+        $this->components = (array) $data;
     }
 }
