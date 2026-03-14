@@ -20,7 +20,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
-
+use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\MDParser;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -1999,12 +1999,6 @@ function smliser_value_to_array( mixed $value, bool $use_object_vars = false ): 
 
 	return [];
 }
-/**
- * Helper: Format label from snake_case to readable format
- */
-function smliser_format_label( $label ) {
-    return ucwords( str_replace( '_', ' ', $label ) );
-}
 
 /**
  * Helper: Check if array contains only scalar values
@@ -2014,43 +2008,4 @@ function smliser_is_scalar_array( $array ) {
         return false;
     }
     return count( array_filter( $array, 'is_array' ) ) === 0;
-}
-
-/**
- * Generate a cryptographically secure UUID version 4.
- *
- * This function creates a random UUID compliant with RFC 4122 §4.4,
- * which defines version 4 (random) UUIDs.
- *
- * Behavior:
- * - Generates 16 bytes (128 bits) of cryptographically secure randomness.
- * - Sets the UUID version field to 4 (binary 0100).
- * - Sets the variant field to RFC 4122 standard (binary 10xx).
- * - Formats the result as a canonical UUID string:
- *   xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
- *
- * Format Details:
- * - Total length: 36 characters (32 hex digits + 4 hyphens)
- * - Version nibble (position 13): always "4"
- * - Variant bits (position 17): one of 8, 9, A, or B
- *
- * @example output:
- *   ```550e8400-e29b-41d4-a716-446655440000```
- *
- * @return string RFC 4122-compliant UUID v4.
- * @throws \Exception If a secure random source is unavailable.
- */
-function smliser_generate_uuid_v4() : string {
-    $data = random_bytes(16);
-
-    // Set version to 0100 (UUID version 4).
-    $data[6] = chr( ord( $data[6] ) & 0x0f | 0x40 );
-
-    // Set variant to 10xx (RFC 4122 variant).
-    $data[8] = chr( ord( $data[8] ) & 0x3f | 0x80 );
-
-    return vsprintf(
-        '%s%s-%s-%s-%s-%s%s%s',
-        str_split( bin2hex( $data ), 4 )
-    );
 }
