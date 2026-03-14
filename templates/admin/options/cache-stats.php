@@ -19,14 +19,13 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 $menu_args = static::get_menu_args();
 
-// ── Derived values ─────────────────────────────────────────────────────────────
 $extra        = $stats->get( 'extra', [] );
-$hits         = (int) $stats->get( 'hits',         0 );
-$misses       = (int) $stats->get( 'misses',        0 );
-$entries      = (int) $stats->get( 'entries',       0 );
-$memory_used  = (int) $stats->get( 'memory_used',   0 );
-$memory_total = (int) $stats->get( 'memory_total',  0 );
-$uptime       = (int) $stats->get( 'uptime',        0 );
+$hits         = (int) $stats->get( 'hits', 0 );
+$misses       = (int) $stats->get( 'misses', 0 );
+$entries      = (int) $stats->get( 'entries', 0 );
+$memory_used  = (int) $stats->get( 'memory_used', 0 );
+$memory_total = (int) $stats->get( 'memory_total', 0 );
+$uptime       = (int) $stats->get( 'uptime', 0 );
 
 $hit_rate     = $stats->hit_rate();
 $mem_ratio    = $stats->memory_usage_ratio();
@@ -123,7 +122,6 @@ if ( ! function_exists( 'smliser_cs_fmt_uptime' ) ) {
             </div>
         </div>
 
-        <!-- ── Stat cards ───────────────────────────────────────────────────── -->
         <div class="smlc-cards" id="smlc-stat-cards">
 
             <div class="smlc-card smlc-card--<?php echo $hit_colour; ?>">
