@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Cache\Adapters;
 use Exception;
 use LogicException;
 use SmartLicenseServer\Cache\CacheStats;
+use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 use SQLite3;
 use SQLite3Stmt;
 
@@ -444,10 +445,13 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      *
      * @param array<string, mixed> $settings Settings shaped like get_settings_schema().
      * @return bool True if the path is writable and a round-trip succeeds.
+     * @throws CacheTestException On any configuration or connectivity failure.
      */
     public function test( array $settings = [] ): bool {
         if ( ! $this->is_supported() ) {
-            return false;
+            throw new CacheTestException(
+                'SQLite3 extension is not available on this server.'
+            );
         }
 
         $probe_file = null;
@@ -457,60 +461,102 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
                 ? rtrim( (string) $settings['cache_dir'], '/' )
                 : null;
 
-            // Validate the supplied path against the same constraint as set_settings().
             if ( $cache_dir !== null ) {
                 if ( ! str_starts_with( $cache_dir, SMLISER_REPO_DIR ) ) {
-                    return false;
+                    throw new CacheTestException(
+                        sprintf(
+                            'Cache directory "%s" is outside the allowed base path. It must be within %s.',
+                            $cache_dir,
+                            SMLISER_REPO_DIR
+                        )
+                    );
                 }
 
                 if ( ! is_dir( $cache_dir ) && ! mkdir( $cache_dir, 0755, true ) ) {
-                    return false;
+                    throw new CacheTestException(
+                        sprintf( 'Could not create cache directory "%s". Check filesystem permissions.', $cache_dir )
+                    );
                 }
 
                 $probe_file = $cache_dir . '/__smliser_sqlite_probe_' . \uniqid( '', true ) . '.db';
             } else {
-                // No path supplied — use the system temp dir for an in-isolation test.
                 $probe_file = sys_get_temp_dir() . '/__smliser_sqlite_probe_' . \uniqid( '', true ) . '.db';
             }
 
-            $sandbox = new SQLite3(
-                $probe_file,
-                SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
-            );
+            try {
+                $sandbox = new \SQLite3(
+                    $probe_file,
+                    SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
+                );
+            } catch ( \Throwable $e ) {
+                throw new CacheTestException(
+                    sprintf( 'Could not open SQLite database at "%s": %s', $probe_file, $e->getMessage() ),
+                    0,
+                    $e
+                );
+            }
 
-            $sandbox->exec( 'CREATE TABLE IF NOT EXISTS probe (k TEXT PRIMARY KEY, v BLOB)' );
+            if ( $sandbox->exec( 'CREATE TABLE IF NOT EXISTS probe (k TEXT PRIMARY KEY, v BLOB)' ) === false ) {
+                $sandbox->close();
+                throw new CacheTestException(
+                    sprintf( 'Could not create probe table: %s', $sandbox->lastErrorMsg() )
+                );
+            }
 
             $probe_key   = '__probe_' . \uniqid( '', true );
             $probe_value = serialize( 1 );
 
             // Write.
             $stmt = $sandbox->prepare( 'INSERT INTO probe (k, v) VALUES (?, ?)' );
+            if ( $stmt === false ) {
+                $sandbox->close();
+                throw new CacheTestException(
+                    sprintf( 'Could not prepare write statement: %s', $sandbox->lastErrorMsg() )
+                );
+            }
+
             $stmt->bindValue( 1, $probe_key,   SQLITE3_TEXT );
             $stmt->bindValue( 2, $probe_value, SQLITE3_BLOB );
-            $stmt->execute();
+
+            if ( $stmt->execute() === false ) {
+                $sandbox->close();
+                throw new CacheTestException(
+                    sprintf( 'Probe write failed: %s', $sandbox->lastErrorMsg() )
+                );
+            }
 
             // Read.
-            $read  = $sandbox->querySingle(
-                "SELECT v FROM probe WHERE k = '" . SQLite3::escapeString( $probe_key ) . "'"
+            $read = $sandbox->querySingle(
+                "SELECT v FROM probe WHERE k = '" . \SQLite3::escapeString( $probe_key ) . "'"
             );
-            $ok = $read !== null && unserialize( $read ) === 1;
+
+            if ( $read === null || unserialize( $read ) !== 1 ) {
+                $sandbox->close();
+                throw new CacheTestException(
+                    'Probe read returned unexpected data — the write may have silently failed.'
+                );
+            }
 
             // Delete.
             $sandbox->exec(
-                "DELETE FROM probe WHERE k = '" . SQLite3::escapeString( $probe_key ) . "'"
+                "DELETE FROM probe WHERE k = '" . \SQLite3::escapeString( $probe_key ) . "'"
             );
-            $ok = $ok && $sandbox->changes() === 1;
+
+            if ( $sandbox->changes() !== 1 ) {
+                $sandbox->close();
+                throw new CacheTestException(
+                    'Probe delete did not remove the expected row — cache eviction may be unreliable.'
+                );
+            }
 
             $sandbox->close();
 
-            return $ok;
-        } catch ( \Throwable ) {
-            return false;
+            return true;
+
         } finally {
             // Always remove the probe file, even when an exception was thrown.
             if ( $probe_file !== null && file_exists( $probe_file ) ) {
                 @unlink( $probe_file );
-                // WAL mode creates -wal and -shm sidecar files; clean those up too.
                 @unlink( $probe_file . '-wal' );
                 @unlink( $probe_file . '-shm' );
             }

@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Cache\Adapters;
 
 use SmartLicenseServer\Cache\CacheStats;
+use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -203,7 +204,7 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
         );
     }
 
-    /**
+/**
      * Test whether this adapter is operational with the supplied settings.
      *
      * RuntimeCacheAdapter has no configuration and no external connection,
@@ -213,21 +214,52 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
      *
      * @param array<string, mixed> $settings Ignored — no configuration required.
      * @return bool True if a round-trip succeeds on a clean instance.
+     * @throws CacheTestException On any operational failure.
      */
     public function test( array $settings = [] ): bool {
         try {
-            // Use a fresh isolated instance so the probe never pollutes
-            // the live cache and no cleanup of $this->cache is needed.
             $sandbox = new self();
             $probe   = '__smliser_runtime_probe_' . \uniqid( '', true );
 
-            $stored  = $sandbox->set( $probe, 1, 10 );
-            $value   = $sandbox->get( $probe );
-            $deleted = $sandbox->delete( $probe );
+            // Write.
+            if ( ! $sandbox->set( $probe, 1, 10 ) ) {
+                throw new CacheTestException(
+                    'Runtime cache probe write failed unexpectedly.'
+                );
+            }
 
-            return $stored && $value === 1 && $deleted && ! $sandbox->has( $probe );
-        } catch ( \Throwable ) {
-            return false;
+            // Read.
+            $value = $sandbox->get( $probe );
+
+            if ( $value !== 1 ) {
+                throw new CacheTestException(
+                    'Runtime cache probe read returned unexpected data — the stored value was corrupted.'
+                );
+            }
+
+            // Delete.
+            if ( ! $sandbox->delete( $probe ) ) {
+                throw new CacheTestException(
+                    'Runtime cache probe delete failed unexpectedly.'
+                );
+            }
+
+            if ( $sandbox->has( $probe ) ) {
+                throw new CacheTestException(
+                    'Runtime cache probe key still exists after deletion — eviction is not working correctly.'
+                );
+            }
+
+            return true;
+
+        } catch ( CacheTestException $e ) {
+            throw $e;
+        } catch ( \Throwable $e ) {
+            throw new CacheTestException(
+                sprintf( 'Unexpected error while testing Runtime cache — %s', $e->getMessage() ),
+                0,
+                $e
+            );
         }
     }
 }

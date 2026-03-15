@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Cache\Adapters;
 use Redis;
 use RedisException;
 use SmartLicenseServer\Cache\CacheStats;
+use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -420,45 +421,122 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      * settings to the sandbox only, performs a write → read → delete
      * round-trip with a short TTL, verifies the value, then discards the client.
      *
-     * This method must never throw — all exceptions resolve to false.
-     *
      * @param array<string, mixed> $settings Settings shaped like get_settings_schema().
      * @return bool True if Redis is reachable and all probe operations succeed.
+     * @throws CacheTestException On any configuration or connectivity failure.
      */
     public function test( array $settings = [] ): bool {
         if ( ! $this->is_supported() ) {
-            return false;
+            throw new CacheTestException(
+                'The Redis extension is not available on this server.'
+            );
         }
 
+        $hostname = (string) ( $settings['hostname'] ?? $this->hostname );
+        $port     = (int)    ( $settings['port']     ?? $this->port     );
+        $password = (string) ( $settings['password'] ?? $this->password );
+        $database = (int)    ( $settings['database'] ?? $this->database );
+        $prefix   = (string) ( $settings['prefix']   ?? $this->prefix   );
+
+        $sandbox = new \Redis();
+
         try {
-            $hostname = (string) ( $settings['hostname'] ?? $this->hostname );
-            $port     = (int)    ( $settings['port']     ?? $this->port );
-            $password = (string) ( $settings['password'] ?? $this->password );
-            $database = (int)    ( $settings['database'] ?? $this->database );
-            $prefix   = (string) ( $settings['prefix']   ?? $this->prefix );
-
-            $sandbox = new Redis();
-            $sandbox->connect( $hostname, $port );
-
-            if ( $password !== '' ) {
-                $sandbox->auth( $password );
+            if ( ! $sandbox->connect( $hostname, $port, 1.0 ) ) {
+                throw new CacheTestException(
+                    sprintf(
+                        'Could not connect to Redis at %s:%d. Check that the server is running and the host/port are correct.',
+                        $hostname,
+                        $port
+                    )
+                );
             }
 
-            if ( $database !== 0 ) {
-                $sandbox->select( $database );
+            if ( $password !== '' && ! $sandbox->auth( $password ) ) {
+                throw new CacheTestException(
+                    sprintf(
+                        'Redis authentication failed for %s:%d. Check your password.',
+                        $hostname,
+                        $port
+                    )
+                );
+            }
+
+            if ( $database !== 0 && ! $sandbox->select( $database ) ) {
+                throw new CacheTestException(
+                    sprintf(
+                        'Could not select Redis database %d on %s:%d. The database index may be out of range.',
+                        $database,
+                        $hostname,
+                        $port
+                    )
+                );
             }
 
             $probe   = $prefix . '__smliser_redis_probe_' . \uniqid( '', true );
-            $payload = serialize( 1 );
+            $payload = '1';
 
-            $stored  = (bool) $sandbox->setex( $probe, 10, $payload );
-            $raw     = $sandbox->get( $probe );
-            $value   = $raw !== false ? unserialize( $raw ) : null;
-            $deleted = (bool) $sandbox->del( $probe );
+            // Write.
+            if ( ! $sandbox->setex( $probe, 10, $payload ) ) {
+                throw new CacheTestException(
+                    sprintf(
+                        'Could not write probe key to Redis at %s:%d. The server may be read-only or out of memory.',
+                        $hostname,
+                        $port
+                    )
+                );
+            }
 
-            return $stored && $value === 1 && $deleted;
-        } catch ( \Throwable ) {
-            return false;
+            // Read.
+            $raw = $sandbox->get( $probe );
+
+            if ( $raw === false ) {
+                throw new CacheTestException(
+                    sprintf(
+                        'Could not read probe key from Redis at %s:%d — key was not found immediately after writing.',
+                        $hostname,
+                        $port
+                    )
+                );
+            }
+
+            if ( $raw !== $payload ) {
+                throw new CacheTestException(
+                    'Probe read returned unexpected data — the value was corrupted in transit.'
+                );
+            }
+
+            // Delete.
+            if ( ! $sandbox->del( $probe ) ) {
+                throw new CacheTestException(
+                    sprintf(
+                        'Could not delete probe key from Redis at %s:%d.',
+                        $hostname,
+                        $port
+                    )
+                );
+            }
+
+            return true;
+
+        } catch ( CacheTestException $e ) {
+            throw $e;
+        } catch ( \RedisException $e ) {
+            throw new CacheTestException(
+                sprintf(
+                    'Redis error on %s:%d — %s',
+                    $hostname,
+                    $port,
+                    $e->getMessage()
+                ),
+                0,
+                $e
+            );
+        } finally {
+            try {
+                $sandbox->close();
+            } catch ( \Throwable ) {
+                // Already disconnected — nothing to do.
+            }
         }
     }
 }

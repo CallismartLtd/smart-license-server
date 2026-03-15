@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Cache\Adapters;
 
 use Memcached;
 use SmartLicenseServer\Cache\CacheStats;
+use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -409,30 +410,85 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      *
      * @param array<string, mixed> $settings Settings shaped like get_settings_schema().
      * @return bool True if the server is reachable and all three probe operations succeed.
+     * @throws CacheTestException On any configuration or connectivity failure.
      */
     public function test( array $settings = [] ): bool {
         if ( ! $this->is_supported() ) {
-            return false;
+            throw new CacheTestException(
+                'The Memcached extension is not available on this server.'
+            );
         }
 
-        try {
-            $hostname = (string) ( $settings['hostname'] ?? $this->hostname );
-            $port     = (int)    ( $settings['port']     ?? $this->port );
-            $prefix   = (string) ( $settings['prefix']   ?? $this->prefix );
+        $hostname = (string) ( $settings['hostname'] ?? $this->hostname );
+        $port     = (int)    ( $settings['port']     ?? $this->port     );
+        $prefix   = (string) ( $settings['prefix']   ?? $this->prefix   );
 
-            $sandbox = new Memcached();
+        try {
+            $sandbox = new \Memcached();
             $sandbox->addServer( $hostname, $port );
 
             $probe = $prefix . '__smliser_memcached_probe_' . \uniqid( '', true );
 
-            $stored  = $sandbox->set( $probe, 1, 10 );
-            $value   = $sandbox->get( $probe );
-            $fetched = $sandbox->getResultCode() === Memcached::RES_SUCCESS;
-            $deleted = $sandbox->delete( $probe );
+            // Write.
+            if ( ! $sandbox->set( $probe, 1, 10 ) ) {
+                throw new CacheTestException(
+                    sprintf(
+                        'Could not write to Memcached at %s:%d (result: %s). Check that the server is running and accepting connections.',
+                        $hostname,
+                        $port,
+                        $sandbox->getResultMessage()
+                    )
+                );
+            }
 
-            return $stored && $fetched && $value === 1 && $deleted;
-        } catch ( \Throwable ) {
-            return false;
+            // Read.
+            $value      = $sandbox->get( $probe );
+            $result_code = $sandbox->getResultCode();
+
+            if ( $result_code !== \Memcached::RES_SUCCESS ) {
+                throw new CacheTestException(
+                    sprintf(
+                        'Could not read probe key from Memcached at %s:%d (result: %s).',
+                        $hostname,
+                        $port,
+                        $sandbox->getResultMessage()
+                    )
+                );
+            }
+
+            if ( $value !== 1 ) {
+                throw new CacheTestException(
+                    'Probe read returned unexpected data — the value was corrupted in transit.'
+                );
+            }
+
+            // Delete.
+            if ( ! $sandbox->delete( $probe ) ) {
+                throw new CacheTestException(
+                    sprintf(
+                        'Could not delete probe key from Memcached at %s:%d (result: %s).',
+                        $hostname,
+                        $port,
+                        $sandbox->getResultMessage()
+                    )
+                );
+            }
+
+            return true;
+
+        } catch ( CacheTestException $e ) {
+            throw $e;
+        } catch ( \Throwable $e ) {
+            throw new CacheTestException(
+                sprintf(
+                    'Unexpected error while testing Memcached at %s:%d — %s',
+                    $hostname,
+                    $port,
+                    $e->getMessage()
+                ),
+                0,
+                $e
+            );
         }
     }
 }

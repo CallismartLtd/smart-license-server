@@ -11,6 +11,7 @@
 namespace SmartLicenseServer\Cache\Adapters;
 
 use SmartLicenseServer\Cache\CacheStats;
+use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -188,7 +189,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
         );
     }
 
-    /**
+/**
      * Test whether APCu is operational.
      *
      * APCu has no external connection to configure, so $settings is
@@ -201,25 +202,60 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
      *
      * @param array<string, mixed> $settings Ignored for APCu (no config required).
      * @return bool True if APCu can store, retrieve, and delete a value.
+     * @throws CacheTestException On any operational failure.
      */
     public function test( array $settings = [] ): bool {
         if ( ! $this->enabled ) {
-            return false;
+            throw new CacheTestException(
+                'APCu is not available. Ensure the APCu extension is installed and apc.enabled is set to 1 in your php.ini.'
+            );
         }
 
         $probe = '__smliser_apcu_probe_' . \uniqid( '', true );
 
         try {
-            $stored   = \apcu_store( $probe, 1, 10 );
-            $fetched  = false;
-            $value    = \apcu_fetch( $probe, $fetched );
-            $deleted  = \apcu_delete( $probe );
+            // Write.
+            if ( ! \apcu_store( $probe, 1, 10 ) ) {
+                throw new CacheTestException(
+                    'APCu probe write failed. The shared memory cache may be full or misconfigured.'
+                );
+            }
 
-            return $stored && $fetched && $value === 1 && $deleted;
-        } catch ( \Throwable ) {
-            // Ensure the probe key is cleaned up even on unexpected errors.
+            // Read.
+            $fetched = false;
+            $value   = \apcu_fetch( $probe, $fetched );
+
+            if ( ! $fetched ) {
+                throw new CacheTestException(
+                    'APCu probe read failed — the key was not found immediately after writing. Shared memory may be under pressure.'
+                );
+            }
+
+            if ( $value !== 1 ) {
+                throw new CacheTestException(
+                    'APCu probe read returned unexpected data — the stored value was corrupted.'
+                );
+            }
+
+            // Delete.
+            if ( ! \apcu_delete( $probe ) ) {
+                throw new CacheTestException(
+                    'APCu probe delete failed — the key could not be removed from shared memory.'
+                );
+            }
+
+            return true;
+
+        } catch ( CacheTestException $e ) {
             \apcu_delete( $probe );
-            return false;
+            throw $e;
+        } catch ( \Throwable $e ) {
+            \apcu_delete( $probe );
+            throw new CacheTestException(
+                sprintf( 'Unexpected error while testing APCu — %s', $e->getMessage() ),
+                0,
+                $e
+            );
         }
     }
 }

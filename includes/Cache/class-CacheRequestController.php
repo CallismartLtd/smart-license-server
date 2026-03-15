@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Cache;
 
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
+use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -79,7 +80,7 @@ class CacheRequestController {
         }
     }
 
-    /**
+/**
      * Handle a request to test settings for a specific cache adapter.
      *
      * Validates the submitted fields through the same pipeline as
@@ -116,6 +117,14 @@ class CacheRequestController {
                 'data'    => [
                     'message'    => sprintf( '%s connection test passed successfully.', $cloned->get_name() ),
                     'is_default' => CacheAdapterCollection::get_default_adapter_id() === $cloned->get_id(),
+                ],
+            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( CacheTestException $e ) {
+            return ( new Response( 200, [], [
+                'success' => false,
+                'data'    => [
+                    'message' => $e->getMessage(),
                 ],
             ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
@@ -315,7 +324,14 @@ class CacheRequestController {
             static::is_system_admin();
 
             $cache  = \smliser_cache();
-            $pruned = $cache->flush_expired();
+
+            if ( 'sqlitecache' !== $cache->get_id() ) {
+                throw new RequestException(
+                    'validation_failed',
+                    'Manual cache expiry flush is not supported by this driver.'
+                );
+            }
+            $pruned = $cache->prune_expired();
 
             return ( new Response( 200, [], [
                 'success' => true,
