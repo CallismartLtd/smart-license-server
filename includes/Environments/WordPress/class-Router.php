@@ -795,7 +795,7 @@ class Router implements RouterInterface {
     }
 
     public static function parse_get_cache_stats_request( Request $request ): void {
-        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+        static::guard( $request, 'manage_options' );
 
         CacheRequestController::get_cache_stats( $request )
         ->send();
@@ -804,7 +804,7 @@ class Router implements RouterInterface {
     }
 
     public static function parse_clear_all_cache_request( Request $request ): void {
-        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+        static::guard( $request, 'manage_options' );
 
         CacheRequestController::clear_all_cache( $request )
         ->send();
@@ -813,7 +813,7 @@ class Router implements RouterInterface {
     }
 
     public static function parse_delete_cache_by_prefix_request( Request $request ): void {
-        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+        static::guard( $request, 'manage_options' );
 
         CacheRequestController::delete_cache_by_prefix( $request )
         ->send();
@@ -822,7 +822,7 @@ class Router implements RouterInterface {
     }
 
     public static function parse_delete_cache_by_pattern_request( Request $request ): void {
-        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+        static::guard( $request, 'manage_options' );
 
         CacheRequestController::delete_cache_by_pattern( $request )
         ->send();
@@ -831,7 +831,7 @@ class Router implements RouterInterface {
     }
 
     public static function parse_flush_expired_cache_request( Request $request ): void {
-        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+        static::guard( $request, 'manage_options' );
 
         CacheRequestController::flush_expired_cache( $request )
         ->send();
@@ -840,7 +840,7 @@ class Router implements RouterInterface {
     }
 
     public static function parse_get_top_cache_keys_request( Request $request ): void {
-        static::guard( $request, 'manage_options', 'smliser_cache_actions' );
+        static::guard( $request, 'manage_options' );
 
         CacheRequestController::get_top_cache_keys( $request )
         ->send();
