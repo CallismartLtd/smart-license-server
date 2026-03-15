@@ -367,12 +367,9 @@ class BulkMessages {
      *     @type int $page  Page number.
      *     @type int $limit Items per page.
      * }
-     * @return array {
-     *     @type self[] $items
-     *     @type array  $pagination
-     * }
+     * @return array{items: \SmartLicenseServer\Messaging\BulkMessages[], pagination: array{page: mixed, limit: mixed, total: int, total_pages: int}}
      */
-    public static function get_all( $args = array() ) {
+    public static function get_all( $args = array() ) : array {
 
         $db = \smliser_dbclass();
 
@@ -451,12 +448,9 @@ class BulkMessages {
      *     @type int    $page     Page number.
      *     @type int    $limit    Items per page.
      * }
-     * @return array {
-     *     @type self[] $items
-     *     @type array  $pagination
-     * }
+     * @return array{items: \SmartLicenseServer\Messaging\BulkMessages[], pagination: array{page: mixed, limit: mixed, total: int, total_pages: int}}
      */
-    public static function get_for_app( $args = array() ) {
+    public static function get_for_app( $args = array() ) : array {
 
         $db = \smliser_dbclass();
 
@@ -539,12 +533,9 @@ class BulkMessages {
      *     @type int          $limit     Results per page.
      * }
      *
-     * @return array {
-     *     @type self[] $items
-     *     @type array  $pagination
-     * }
+     * @return array{items: array, pagination: array{page: mixed, limit: mixed, total: int, total_pages: int}}|array{items: \SmartLicenseServer\Messaging\BulkMessages[], pagination: array{page: mixed, limit: mixed, total: int, total_pages: int}}
      */
-    public static function get_for_slugs( $args = array() ) {
+    public static function get_for_slugs( $args = array() ) : array {
 
         $db = \smliser_dbclass();
 
