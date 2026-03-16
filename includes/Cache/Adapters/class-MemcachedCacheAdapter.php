@@ -59,7 +59,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      */
     public function __construct() {}
 
-    /*----------------------------------------------------------
+   /*----------------------------------------------------
      * CONNECTION
      *---------------------------------------------------------*/
 
@@ -100,7 +100,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
         return $this->memcached instanceof Memcached;
     }
 
-    /*----------------------------------------------------------
+   /*----------------------------------------------------
      * KEY BUILDER
      *---------------------------------------------------------*/
 
@@ -114,7 +114,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
         return $this->prefix . $key;
     }
 
-    /*----------------------------------------------------------
+   /*----------------------------------------------------
      * CACHE OPERATIONS
      *---------------------------------------------------------*/
 

@@ -1526,6 +1526,32 @@ function smliser_filesystem() : FileSystem {
 }
 
 /**
+ * Return the global job queue manager instance.
+ *
+ * Usage:
+ *   smliser_job_queue()->dispatch( JobDTO::make( ... ) );
+ *   smliser_job_queue()->find_job( $id );
+ *
+ * @return \SmartLicenseServer\Background\Queue\JobQueue
+ */
+function smliser_job_queue(): \SmartLicenseServer\Background\Queue\JobQueue {
+    return Setup::instance()->job_queue();
+}
+ 
+/**
+ * Return the global queue worker instance.
+ *
+ * Usage:
+ *   smliser_queue_worker()->process_next_job();
+ *   smliser_queue_worker()->start_processing();
+ *
+ * @return \SmartLicenseServer\Background\Workers\QueueWorker
+ */
+function smliser_queue_worker(): \SmartLicenseServer\Background\Workers\QueueWorker {
+    return Setup::instance()->queue_worker();
+}
+
+/**
  * Get the settings API singleton class.
  * 
  * @return SmartLicenseServer\SettingsAPI\Settings

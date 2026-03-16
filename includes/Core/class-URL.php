@@ -32,9 +32,11 @@ class URL implements JsonSerializable{
      */
     private array $components = [];
 
-    /*----------------------------------------------------------
-     * CONSTRUCTOR
-     *---------------------------------------------------------*/
+    /*
+    |--------------
+    | CONSTRUCTOR
+    |--------------
+    */
 
     /**
      * Initialize the URL object from a URL string.
@@ -45,9 +47,11 @@ class URL implements JsonSerializable{
         $this->components = $this->parse_components( $url );
     }
 
-    /*----------------------------------------------------------
-     * PARSING
-     *---------------------------------------------------------*/
+    /*
+    |-----------
+    | PARSING
+    |-----------
+    */
 
     /**
      * Parse a URL string into components.
@@ -84,9 +88,11 @@ class URL implements JsonSerializable{
         return $clone;
     }
 
-    /*----------------------------------------------------------
-     * GETTERS
-     *---------------------------------------------------------*/
+    /*
+    |----------
+    | GETTERS
+    |----------
+    */
 
     /**
      * Get the full URL string (reconstructed from components).
@@ -207,12 +213,14 @@ class URL implements JsonSerializable{
         return $this->components['pass'] ?? null;
     }
 
-    /*----------------------------------------------------------
-     * MUTATORS
-     *
-     * Every method here returns a NEW instance with the requested
-     * change applied. The original instance is never modified.
-     *---------------------------------------------------------*/
+    /*
+    |---------------------------------------------------------------
+    | MUTATORS
+    |
+    | Every method here returns a NEW instance with the requested
+    | change applied. The original instance is never modified.
+    |---------------------------------------------------------------
+    */
 
     /**
      * Return a new instance with the given scheme.
@@ -405,9 +413,11 @@ class URL implements JsonSerializable{
         return $this->with_components( $components );
     }
 
-    /*----------------------------------------------------------
-     * VALIDATION
-     *---------------------------------------------------------*/
+    /*
+    |-----------------
+    | VALIDATION
+    |-----------------
+    */
 
     /**
      * Validate the URL.
@@ -541,9 +551,11 @@ class URL implements JsonSerializable{
         return isset( $this->components['user'] );
     }
 
-    /*----------------------------------------------------------
-     * UTILITY
-     *---------------------------------------------------------*/
+    /*
+    |----------
+    | UTILITY
+    |----------
+    */
 
     /**
      * Cast object to string, returning the full URL.
@@ -683,9 +695,11 @@ class URL implements JsonSerializable{
         return basename( $path );
     }
 
-    /*----------------------------------------------------------
-     * DEBUG
-     *---------------------------------------------------------*/
+    /*
+    |----------
+    | DEBUG
+    |----------
+    */
 
     /**
      * Dump all URL properties and their current state.

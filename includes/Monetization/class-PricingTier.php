@@ -161,7 +161,7 @@ class PricingTier {
         return $this->features;
     }
 
-    /*-----------
+   /*-----
     | SETTERS
     |-----------
     */

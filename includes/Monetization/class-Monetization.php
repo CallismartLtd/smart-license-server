@@ -157,7 +157,7 @@ class Monetization {
         return $this->updated_at;
     }
 
-    /*-----------
+   /*-----
     | SETTERS
     |-----------
     */

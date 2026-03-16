@@ -424,7 +424,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
         return $result !== false;
     }
 
-    /*----------------
+   /*----------
     | UTILITY METHODS
     |-----------------
     */

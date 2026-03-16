@@ -30,9 +30,11 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 final class CacheStats extends DTO {
 
-    /*----------------------------------------------------------
-     * KNOWN KEYS
-     *---------------------------------------------------------*/
+    /*
+    |-------------
+    | KNOWN KEYS
+    |-------------
+    */
 
     public const KEY_HITS         = 'hits';
     public const KEY_MISSES       = 'misses';
@@ -42,9 +44,11 @@ final class CacheStats extends DTO {
     public const KEY_UPTIME       = 'uptime';
     public const KEY_EXTRA        = 'extra';
 
-    /*----------------------------------------------------------
-     * CONSTRUCTOR
-     *---------------------------------------------------------*/
+    /*
+    |---------------
+    | CONSTRUCTOR
+    |---------------
+    */
 
     /**
      * @param int                  $hits          Total cache hits.
@@ -75,9 +79,11 @@ final class CacheStats extends DTO {
         ] );
     }
 
-    /*----------------------------------------------------------
-     * DTO HOOKS
-     *---------------------------------------------------------*/
+    /*
+    |------------
+    | DTO HOOKS
+    |------------
+    */
 
     /**
      * {@inheritdoc}
@@ -124,9 +130,11 @@ final class CacheStats extends DTO {
         };
     }
 
-    /*----------------------------------------------------------
-     * DERIVED METRICS
-     *---------------------------------------------------------*/
+    /*
+    |-------------------
+    | DERIVED METRICS
+    |-------------------
+    */
 
     /**
      * Hit rate as a float between 0.0 and 1.0.

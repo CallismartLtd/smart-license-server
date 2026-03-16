@@ -531,7 +531,7 @@ class ServiceAccount implements ActorInterface {
         return $statuses[$status];
     }
 
-    /*--------------------------------
+   /*--------------------------
     | UTILITY METHODS
     |--------------------------------*/
 

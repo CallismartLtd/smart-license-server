@@ -94,20 +94,20 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         $rest_api_provider  = new RESTAPI( new V1 );
         
         $env    = compact('absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
-        'filesystem_adapter', 'cache_adapter', 'settings_adapter',
+        'filesystem_adapter', 'cache_adapter', 'settings_adapter', 'database_adapter',
         'rest_api_provider'
         
         );
 
         $this->dbConfig = new DBConfigDTO([
-            'driver'    => 'sqlite',
+            'driver'    => 'mysql',
             'host'      => DB_HOST,
             'port'      => 3306,
             'database'  => DB_NAME,
             'username'  => DB_USER,
             'password'  => DB_PASSWORD,
             'charset'   => DB_CHARSET,
-            'path'      => ABSPATH . 'sqlite.db'
+            // 'path'      => ABSPATH . 'sqlite.db'
         ]);
         
         $this->setup( $env );

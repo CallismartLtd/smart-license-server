@@ -111,7 +111,7 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
         return $value;
     }
 
-    /*----------------------------------------------------------
+   /*----------------------------------------------------
      * CORE INTERNAL WRITE
      *---------------------------------------------------------*/
 

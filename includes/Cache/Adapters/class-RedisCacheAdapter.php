@@ -74,7 +74,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      */
     public function __construct() {}
 
-    /*----------------------------------------------------------
+   /*----------------------------------------------------
      * CONNECTION
      *---------------------------------------------------------*/
 
@@ -127,7 +127,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
         return $this->redis instanceof Redis;
     }
 
-    /*----------------------------------------------------------
+   /*----------------------------------------------------
      * KEY BUILDER
      *---------------------------------------------------------*/
 
@@ -141,7 +141,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
         return $this->prefix . $key;
     }
 
-    /*----------------------------------------------------------
+   /*----------------------------------------------------
      * CACHE OPERATIONS
      *---------------------------------------------------------*/
 
