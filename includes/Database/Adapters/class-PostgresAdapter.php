@@ -1,5 +1,5 @@
 <?php
-namespace SmartLicenseServer\Database;
+namespace SmartLicenseServer\Database\Adapters;
 
 use PDO;
 

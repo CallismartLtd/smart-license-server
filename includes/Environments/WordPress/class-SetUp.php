@@ -13,7 +13,7 @@ use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Database\WPDBAdapter;
+use SmartLicenseServer\Database\Adapters\WPDBAdapter;
 use SmartLicenseServer\Environments\EnvironmentProviderInterface;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
@@ -94,19 +94,20 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         $rest_api_provider  = new RESTAPI( new V1 );
         
         $env    = compact('absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
-        'filesystem_adapter', 'cache_adapter', 'settings_adapter', 'database_adapter',
+        'filesystem_adapter', 'cache_adapter', 'settings_adapter',
         'rest_api_provider'
         
         );
 
         $this->dbConfig = new DBConfigDTO([
-            'driver'    => 'mysql',
-            'host'     => DB_HOST,
-            'port'     => 3306,
-            'database' => DB_NAME,
-            'username' => DB_USER,
-            'password' => DB_PASSWORD,
-            'charset'  => DB_CHARSET,
+            'driver'    => 'sqlite',
+            'host'      => DB_HOST,
+            'port'      => 3306,
+            'database'  => DB_NAME,
+            'username'  => DB_USER,
+            'password'  => DB_PASSWORD,
+            'charset'   => DB_CHARSET,
+            'path'      => ABSPATH . 'sqlite.db'
         ]);
         
         $this->setup( $env );

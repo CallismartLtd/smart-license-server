@@ -9,7 +9,7 @@
  * @package SmartLicenseServer\Interfaces
  */
 
-namespace SmartLicenseServer\Database;
+namespace SmartLicenseServer\Database\Adapters;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 

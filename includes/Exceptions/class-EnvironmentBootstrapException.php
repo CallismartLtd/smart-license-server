@@ -21,7 +21,7 @@ class EnvironmentBootstrapException extends Exception {
         'no_db_adapter_found'   => array(
             'status'    => 500,
             'title'     => 'Database Adapter Not Found',
-            'message'   => 'No supported database adapter found or initialized.'
+            'message'   => 'No supported database adapter found or initialized. See DBConfigDTO::allowed_keys()'
         ),
         
         'mis_configuration'   => array(

@@ -5,10 +5,10 @@
  * Implements the DatabaseAdapterInterface for Laravel environments
  * using Laravel's DB facade and query builder.
  *
- * @package SmartLicenseServer\Database
+ * @package SmartLicenseServer\Database\Adapters
  */
 
-namespace SmartLicenseServer\Database;
+namespace SmartLicenseServer\Database\Adapters;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;

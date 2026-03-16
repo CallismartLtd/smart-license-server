@@ -1510,7 +1510,7 @@ function smliser_download_with_fopen( $url, $timeout ) {
 /**
  * Get the database class singleton instance.
  *
- * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
+ * @return \SmartLicenseServer\Database\Adapters\Database Singleton instance of the Database class.
  */
 function smliser_dbclass() : \SmartLicenseServer\Database\Database {
     return SetUp::instance()->database();

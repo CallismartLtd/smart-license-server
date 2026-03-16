@@ -17,11 +17,11 @@ use SmartLicenseServer\Cache\Adapters\RuntimeCacheAdapter;
 use SmartLicenseServer\Cache\CacheAdapterCollection;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Database\Database;
-use SmartLicenseServer\Database\DatabaseAdapterInterface;
-use SmartLicenseServer\Database\LaravelAdapter;
-use SmartLicenseServer\Database\MysqliAdapter;
-use SmartLicenseServer\Database\PdoAdapter;
-use SmartLicenseServer\Database\SqliteAdapter;
+use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
+use SmartLicenseServer\Database\Adapters\LaravelAdapter;
+use SmartLicenseServer\Database\Adapters\MysqliAdapter;
+use SmartLicenseServer\Database\Adapters\PdoAdapter;
+use SmartLicenseServer\Database\Adapters\SqliteAdapter;
 use SmartLicenseServer\Email\EmailProviderCollection;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
@@ -472,7 +472,7 @@ abstract class Config {
                 LaravelAdapter::class   => class_exists( 'Illuminate\Support\Facades\DB' ),
                 PdoAdapter::class       => class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
                 MysqliAdapter::class    => class_exists( 'mysqli' ),
-                SqliteAdapter::class    => 'sqlite' === $config->driver && class_exists( 'SQLite3' ),
+                SqliteAdapter::class    => 'sqlite' === $config->driver && isset( $config->path ) && class_exists( 'SQLite3' ),
             ];
 
             foreach( $adapters as $adapter_class => $is_supported ) {

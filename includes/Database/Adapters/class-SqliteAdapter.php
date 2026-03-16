@@ -4,14 +4,15 @@
  *
  * Implements the DatabaseAdapterInterface using the native SQLite3 PHP extension.
  *
- * @package SmartLicenseServer\Database
+ * @package SmartLicenseServer\Database\Adapters
  */
 
-namespace SmartLicenseServer\Database;
+namespace SmartLicenseServer\Database\Adapters;
 
 use SQLite3;
 use Exception;
 use SmartLicenseServer\Core\DBConfigDTO;
+use SmartLicenseServer\Database\SqliteCompatibilityTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -70,7 +71,8 @@ class SqliteAdapter implements DatabaseAdapterInterface {
         }
 
         try {
-            $path       = $this->config->database ?? ':memory:';
+            $path       = $this->config->path;
+
             $flags      = $this->config->flags ?? ( SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE );
             $encryption = $this->config->encryption_key ?? '';
 

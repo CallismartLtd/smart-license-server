@@ -8,7 +8,7 @@
 namespace SmartLicenseServer\Environments;
 
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Database\Database;
+use SmartLicenseServer\Database\Adapters\Database;
 
 /**
  * Defines the contracts every environment adapter most follow to fully load this application.

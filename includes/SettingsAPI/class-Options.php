@@ -43,7 +43,7 @@ class Options extends AbstractSettings {
     /**
      * Constructor for the Options class.
      *
-     * @param Database $db The instance of the current environment DB adapter @see `\SmartLicenseServer\Database\Database`.
+     * @param Database $db The instance of the current environment DB adapter @see `\SmartLicenseServer\Database\Adapters\Database`.
      */
     public function __construct( Database $db ) {
         $this->db = $db;

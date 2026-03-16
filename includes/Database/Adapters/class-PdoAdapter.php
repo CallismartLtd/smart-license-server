@@ -5,10 +5,10 @@
  * Implements the DatabaseAdapterInterface for environments using PDO (PHP Data Objects).
  * This is the preferred adapter for non-framework pure PHP environments.
  *
- * @package SmartLicenseServer\Database
+ * @package SmartLicenseServer\Database\Adapters
  */
 
-namespace SmartLicenseServer\Database;
+namespace SmartLicenseServer\Database\Adapters;
 
 use PDO;
 use PDOException;

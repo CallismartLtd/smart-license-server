@@ -2,11 +2,13 @@
 /**
  * The Database Manager class file.
  *
- * @package SmartLicenseServer\Database
+ * @package SmartLicenseServer\Database\Adapters
  * @since 0.2.0
  */
 
 namespace SmartLicenseServer\Database;
+
+use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 

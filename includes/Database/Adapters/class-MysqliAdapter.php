@@ -4,10 +4,10 @@
  *
  * Implements the DatabaseAdapterInterface for environments using the mysqli extension.
  *
- * @package SmartLicenseServer\Database
+ * @package SmartLicenseServer\Database\Adapters
  */
 
-namespace SmartLicenseServer\Database;
+namespace SmartLicenseServer\Database\Adapters;
 
 use mysqli;
 use mysqli_stmt;

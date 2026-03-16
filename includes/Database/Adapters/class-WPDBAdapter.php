@@ -5,10 +5,10 @@
  * Implements the DatabaseAdapterInterface for WordPress environments
  * using the global $wpdb object.
  *
- * @package SmartLicenseServer\Database
+ * @package SmartLicenseServer\Database\Adapters
  */
 
-namespace SmartLicenseServer\Database;
+namespace SmartLicenseServer\Database\Adapters;
 
 use wpdb;
 
