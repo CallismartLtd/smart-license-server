@@ -100,11 +100,11 @@ class EmailMessage extends DTO {
      */
     protected function cast( string $key, mixed $value ): mixed {
         return match ( true ) {
-            in_array( $key, [ 'to', 'cc', 'bcc' ], true ) => $this->normalise_address_list( $value ),
-            in_array( $key, [ 'from', 'reply_to' ], true ) => $this->normalise_address( $value ),
+            in_array( $key, [ 'to', 'cc', 'bcc' ], true )   => $this->normalise_address_list( $value ),
+            in_array( $key, [ 'from', 'reply_to' ], true )  => $this->normalise_address( $value ),
             $key === 'attachments'                          => $this->normalise_attachments( $value ),
             $key === 'headers'                              => is_array( $value ) ? $value : [],
-            in_array( $key, [ 'subject', 'body' ], true )  => (string) $value,
+            in_array( $key, [ 'subject', 'body' ], true )   => (string) $value,
             default                                         => $value,
         };
     }

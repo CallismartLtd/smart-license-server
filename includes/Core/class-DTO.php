@@ -56,10 +56,6 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
      */
     protected array $props = [];
 
-    /*----------------------------------------------------------
-     * CONSTRUCTOR
-     *---------------------------------------------------------*/
-
     /**
      * Constructor.
      *
@@ -71,12 +67,14 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
         }
     }
 
-    /*----------------------------------------------------------
-     * EXTENSION HOOKS
-     *
-     * Override these in subclasses to add constraints or coercion
-     * without rewriting the core get/set/has logic.
-     *---------------------------------------------------------*/
+    /*
+    |----------------------------------------------------------
+    | EXTENSION HOOKS
+    |
+    | Override these in subclasses to add constraints or coercion
+    | without rewriting the core get/set/has logic.
+    |---------------------------------------------------------
+    */
 
     /**
      * Return the list of keys this DTO allows.
@@ -140,9 +138,11 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
         $this->props[ $key ] = $this->cast( $key, $value );
     }
 
-    /*----------------------------------------------------------
-     * EXPLICIT API
-     *---------------------------------------------------------*/
+    /*
+    |---------------------
+    | EXPLICIT API
+    |---------------------
+    */
 
     /**
      * Get a property value.
@@ -322,12 +322,14 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
         return empty( $this->props );
     }
 
-    /*----------------------------------------------------------
-     * MAGIC PROPERTY ACCESS
-     *
-     * Delegates to the explicit API so allowed_keys() and cast()
-     * are always honoured, even through magic access.
-     *---------------------------------------------------------*/
+    /*
+    |----------------------------------------------------------
+    | MAGIC PROPERTY ACCESS
+    |
+    | Delegates to the explicit API so allowed_keys() and cast()
+    | are always honoured, even through magic access.
+    |---------------------------------------------------------
+    */
 
     /** @param string $name */
     public function __get( string $name ): mixed {
@@ -349,9 +351,11 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
         $this->remove( $name );
     }
 
-    /*----------------------------------------------------------
-     * ARRAY ACCESS
-     *---------------------------------------------------------*/
+    /*
+    |-----------------
+    | ARRAY ACCESS
+    |----------------
+    */
 
     /** @param mixed $offset */
     public function offsetExists( mixed $offset ): bool {
@@ -380,9 +384,11 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
         $this->remove( (string) $offset );
     }
 
-    /*----------------------------------------------------------
-     * COUNTABLE / ITERATOR / JSON
-     *---------------------------------------------------------*/
+    /*
+    |-----------------------------
+    | COUNTABLE / ITERATOR / JSON
+    |-----------------------------
+    */
 
     public function count(): int {
         return count( $this->props );
@@ -396,9 +402,11 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
         return $this->props;
     }
 
-    /*----------------------------------------------------------
-     * DEBUG
-     *---------------------------------------------------------*/
+    /*
+    |---------
+    | DEBUG
+    |---------
+    */
 
     /**
      * Dump the current DTO state for inspection.
