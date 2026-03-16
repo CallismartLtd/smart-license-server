@@ -45,9 +45,11 @@ class EmailMessage extends DTO {
      */
     protected array $immovable_keys = [ 'to', 'subject', 'body' ];
 
-   /*----------------------------------------------------
-     * CONSTRUCTOR
-     *---------------------------------------------------------*/
+    /*
+    |---------------
+    | CONSTRUCTOR
+    |---------------
+    */
 
     /**
      * Constructor.
@@ -63,9 +65,11 @@ class EmailMessage extends DTO {
         $this->validate();
     }
 
-   /*----------------------------------------------------
-     * SCHEMA
-     *---------------------------------------------------------*/
+    /*
+    |---------
+    | SCHEMA
+    |---------
+    */
 
     /**
      * Allowed keys for the email message.
@@ -87,9 +91,11 @@ class EmailMessage extends DTO {
         ];
     }
 
-   /*----------------------------------------------------
-     * NORMALISATION
-     *---------------------------------------------------------*/
+    /*
+    |------------------
+    | NORMALISATION
+    |-------------------
+    */
 
     /**
      * Cast and normalise values before storage.
@@ -214,9 +220,11 @@ class EmailMessage extends DTO {
         return $normalised;
     }
 
-   /*----------------------------------------------------
-     * VALIDATION
-     *---------------------------------------------------------*/
+    /*
+    |-------------
+    | VALIDATION
+    |-------------
+    */
 
     /**
      * Assert all required keys are present in the raw data array.
@@ -327,9 +335,11 @@ class EmailMessage extends DTO {
         }
     }
 
-   /*----------------------------------------------------
-     * GUARD AGAINST REMOVAL OF REQUIRED FIELDS
-     *---------------------------------------------------------*/
+    /*
+    |--------------------------------------------
+    | GUARD AGAINST REMOVAL OF REQUIRED FIELDS
+    |--------------------------------------------
+    */
 
     /**
      * Prevent required fields from being removed.

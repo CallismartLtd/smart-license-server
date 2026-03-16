@@ -74,9 +74,11 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      */
     public function __construct() {}
 
-   /*----------------------------------------------------
-     * CONNECTION
-     *---------------------------------------------------------*/
+    /*
+    |-------------
+    | CONNECTION
+    |-------------
+    */
 
     /**
      * Initialise and connect the Redis client using current settings.
@@ -127,9 +129,11 @@ class RedisCacheAdapter implements CacheAdapterInterface {
         return $this->redis instanceof Redis;
     }
 
-   /*----------------------------------------------------
-     * KEY BUILDER
-     *---------------------------------------------------------*/
+    /*
+    |----------------
+    | KEY BUILDER
+    |----------------
+    */
 
     /**
      * Prepend the configured prefix to a raw key.
@@ -141,9 +145,11 @@ class RedisCacheAdapter implements CacheAdapterInterface {
         return $this->prefix . $key;
     }
 
-   /*----------------------------------------------------
-     * CACHE OPERATIONS
-     *---------------------------------------------------------*/
+    /*
+    |--------------------
+    | CACHE OPERATIONS
+    |--------------------
+    */
 
     /**
      * Retrieve a cached value by key.
@@ -249,7 +255,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
         }
     }
 
-    /**
+    /*
     |----------------------
     | ADAPTER IDENTITY
     |----------------------
@@ -343,7 +349,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
         return class_exists( Redis::class );
     }
 
-    /**
+    /*
     |----------------------
     | DIAGNOSTICS
     |----------------------

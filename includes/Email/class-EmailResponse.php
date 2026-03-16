@@ -41,9 +41,11 @@ class EmailResponse extends DTO {
      */
     protected array $required_keys = [ 'success' ];
 
-   /*----------------------------------------------------
-     * CONSTRUCTOR
-     *---------------------------------------------------------*/
+    /*
+    |-------------------
+    | CONSTRUCTOR
+    |-------------------
+    */
 
     /**
      * Constructor.
@@ -56,9 +58,11 @@ class EmailResponse extends DTO {
         parent::__construct( $data );
     }
 
-   /*----------------------------------------------------
-     * NAMED CONSTRUCTORS
-     *---------------------------------------------------------*/
+    /*
+    |----------------------
+    | NAMED CONSTRUCTORS
+    |----------------------
+    */
 
     /**
      * Create a successful response.
@@ -90,9 +94,11 @@ class EmailResponse extends DTO {
         ] );
     }
 
-   /*----------------------------------------------------
-     * SCHEMA
-     *---------------------------------------------------------*/
+    /*
+    |---------
+    | SCHEMA
+    |---------
+    */
 
     /**
      * Allowed keys for the email response.
@@ -130,9 +136,11 @@ class EmailResponse extends DTO {
         };
     }
 
-   /*----------------------------------------------------
-     * VALIDATION
-     *---------------------------------------------------------*/
+    /*
+    |-------------
+    | VALIDATION
+    |-------------
+    */
 
     /**
      * Assert required keys are present in the raw data array.
@@ -150,9 +158,11 @@ class EmailResponse extends DTO {
         }
     }
 
-   /*----------------------------------------------------
-     * CONVENIENCE HELPERS
-     *---------------------------------------------------------*/
+    /*
+    |-----------------------
+    | CONVENIENCE HELPERS
+    |-----------------------
+    */
 
     /**
      * Whether the send was accepted by the provider.

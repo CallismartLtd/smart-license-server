@@ -128,7 +128,7 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
         return true;
     }
 
-    /**
+    /*
     |----------------------
     | ADAPTER IDENTITY
     |----------------------
@@ -152,7 +152,7 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
         return true; // Pure PHP — always available.
     }
 
-    /**
+    /*
     |----------------------
     | DIAGNOSTICS
     |----------------------
