@@ -7,7 +7,6 @@
 
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
-use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Core\Response;

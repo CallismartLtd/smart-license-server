@@ -429,6 +429,9 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         if ( ! wp_next_scheduled( 'smliser_clean' ) ) {
             wp_schedule_event( time(), 'smliser_4_hourly', 'smliser_clean' );
         }
+        if ( ! wp_next_scheduled( 'smliser_process_queue' ) ) {
+            wp_schedule_event( time(), 'smliser_three_minutely', 'smliser_process_queue' );
+        }
 
     }
 }

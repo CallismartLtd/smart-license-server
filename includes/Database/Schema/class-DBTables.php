@@ -7,7 +7,7 @@
  * @since 0.2.0
  */
 
-namespace SmartLicenseServer\Database\Adapters\Schema;
+namespace SmartLicenseServer\Database\Schema;
 
 use const SMLISER_LICENSE_TABLE, SMLISER_LICENSE_META_TABLE, SMLISER_PLUGINS_TABLE,
 SMLISER_PLUGINS_META_TABLE, SMLISER_THEMES_TABLE, SMLISER_THEMES_META_TABLE, SMLISER_SOFTWARE_TABLE,

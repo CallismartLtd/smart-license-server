@@ -6,10 +6,13 @@
  * 
  * @author Callistus
  * @package SmartLicenseServer\Analytics
- * @since 0.3.0
+ * @since 0.2.0
  */
 
 namespace SmartLicenseServer\Analytics;
+
+use SmartLicenseServer\Background\Jobs\Analytics\LogLicenseActivityJob;
+use SmartLicenseServer\Background\Queue\JobDTO;
 
 \defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -176,42 +179,40 @@ class RepositoryAnalytics {
             $schedules = (array) $schedules;
         }
 
-        ksort( $schedules );
-
-        foreach ( $schedules as $time => $schedule ) {
-            $timestamp  = strtotime( $time );
-            $expiration = time() - ( 3 * MONTH_IN_SECONDS );
-
-            if ( $timestamp < $expiration ) {
-                unset( $schedules[$time] );
-                \smliser_settings_adapter()->set( self::LICENSE_ACTIVITY_KEY, $schedules );
-            }
-
-        }
-
         return $schedules;
     }
 
     /**
      * Record a license activity with structured event type.
-     * 
-     * @param array $data Associative array containing executed task info
+     *
+     * Dispatches the read-modify-write to the background queue so
+     * license API responses are never blocked by activity logging.
+     *
+     * The duration and all request-context values must be computed
+     * by the caller before passing them in — the worker has no access
+     * to the original request by the time it executes.
+     *
+     * Callers (activation_response, deactivation_response, etc.)
+     * are unaffected — the method signature is unchanged.
+     *
+     * @param array $data Associative array containing executed task info.
      * @return void
      */
-    public static function log_license_activity( array $data ) {
-        $logs = self::get_license_activity_logs();
-
-        $logs[ \gmdate( 'Y-m-d H:i:s' ) ] = [
-            'license_id' => $data['license_id'] ?? 'N/A',
-            'event_type' => $data['event_type'] ?? 'activation', // structured event type
-            'ip_address' => $data['ip_address'] ?? smliser_get_client_ip(),
-            'user_agent' => $data['user_agent'] ?? smliser_get_user_agent(),
-            'website'    => $data['website'] ?? 'N/A',
-            'comment'    => $data['comment'] ?? 'N/A',
-            'duration'   => $data['duration'] ?? 'N/A',
-        ];
-
-        \smliser_settings_adapter()->set( self::LICENSE_ACTIVITY_KEY, $logs );
+    public static function log_license_activity( array $data ): void {
+        smliser_job_queue()->dispatch(
+            JobDTO::make(
+                job_class : LogLicenseActivityJob::class,
+                payload   : [
+                    'license_id' => $data['license_id'] ?? 'N/A',
+                    'event_type' => $data['event_type'] ?? 'activation',
+                    'ip_address' => $data['ip_address'] ?? smliser_get_client_ip(),
+                    'user_agent' => $data['user_agent'] ?? smliser_get_user_agent(),
+                    'website'    => $data['website']    ?? 'N/A',
+                    'comment'    => $data['comment']    ?? 'N/A',
+                    'duration'   => $data['duration']   ?? 'N/A',
+                ],
+            )
+        );
     }
 
     /**

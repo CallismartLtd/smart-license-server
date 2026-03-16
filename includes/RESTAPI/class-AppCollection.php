@@ -444,6 +444,3 @@ class AppCollection {
         return $files->get(0);
     }
 }
-
-
-

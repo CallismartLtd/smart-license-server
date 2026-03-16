@@ -9,6 +9,9 @@
 
 namespace SmartLicenseServer\Analytics;
 
+use SmartLicenseServer\Background\Jobs\Analytics\LogClientAccessJob;
+use SmartLicenseServer\Background\Jobs\Analytics\LogDownloadJob;
+use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 
 \defined( 'SMLISER_ABSPATH' ) || exit;
@@ -28,10 +31,33 @@ class AppsAnalytics {
     const CLIENT_ACCESS_UNIQUE_DAILY_META_KEY   = 'client_access_unique_daily';
 
     /**
-     * Increment download count (Simplified & Unified)
+     * Log a download event asynchronously.
+     *
+     * Dispatches LogDownloadJob to handle the DB insert and download
+     * counter increment in the background. Intentionally does NOT
+     * delegate to log_client_access() — download count and client
+     * access count are distinct metrics tracked independently.
+     *
+     * The fingerprint is computed here during the request because
+     * the worker has no access to the original request context.
+     *
+     * @param AbstractHostedApp $app The app being downloaded.
+     * @return bool Always true — dispatch is fire-and-forget.
      */
     public static function log_download( AbstractHostedApp $app ) : bool {
-        return self::log_client_access( $app, 'download' );
+        smliser_job_queue()->dispatch(
+            JobDTO::make(
+                job_class : LogDownloadJob::class,
+                payload   : [
+                    'app_type'    => $app->get_type(),
+                    'app_slug'    => $app->get_slug(),
+                    'fingerprint' => hash( 'sha256', \smliser_get_client_ip() . '|' . \smliser_get_user_agent( true ) ),
+                    'created_at'  => gmdate( 'Y-m-d H:i:s' ),
+                ],
+            )
+        );
+ 
+        return true;
     }
 
     /**
@@ -162,28 +188,37 @@ class AppsAnalytics {
     }
 
     /**
-     * Unified Entry Point for all Analytics Writing
+     * Unified entry point for all analytics writes.
+     *
+     * Dispatches the DB insert and meta counter update to the background
+     * queue so API requests are never blocked by analytics writes.
+     *
+     * The fingerprint is computed here — during the request — because
+     * the worker has no access to the original IP and user agent context
+     * by the time it executes.
+     *
+     * Callers (including log_download()) are unaffected — the method
+     * signature and return type are unchanged.
+     *
+     * @param AbstractHostedApp $app        The hosted app being accessed.
+     * @param string            $event_type The event type e.g. 'download', 'plugin_info'.
+     * @return bool Always true — dispatch is fire-and-forget.
      */
     public static function log_client_access( AbstractHostedApp $app, string $event_type ) : bool {
-        $db = smliser_dbclass();
-
-        $data = [
-            'app_type'    => $app->get_type(),
-            'app_slug'    => $app->get_slug(),
-            'event_type'  => $event_type,
-            'fingerprint' => hash( 'sha256', \smliser_get_client_ip() . '|' . \smliser_get_user_agent( true ) ),
-            'created_at'  => gmdate( 'Y-m-d H:i:s' ),
-        ];
-
-        $success = $db->insert( \SMLISER_ANALYTICS_LOGS_TABLE, $data );
-
-        if ( $success ) {
-            $key = ( 'download' === $event_type ) ? self::DOWNLOAD_COUNT_META_KEY : self::CLIENT_ACCESS_META_KEY;
-            $current_total = (int) $app->get_meta( $key, 0 );
-            $app->update_meta( $key, $current_total + 1 );
-        }
-
-        return (bool) $success;
+        smliser_job_queue()->dispatch(
+            JobDTO::make(
+                job_class : LogClientAccessJob::class,
+                payload   : [
+                    'app_type'    => $app->get_type(),
+                    'app_slug'    => $app->get_slug(),
+                    'event_type'  => $event_type,
+                    'fingerprint' => hash( 'sha256', \smliser_get_client_ip() . '|' . \smliser_get_user_agent( true ) ),
+                    'created_at'  => gmdate( 'Y-m-d H:i:s' ),
+                ],
+            )
+        );
+ 
+        return true;
     }
 
     /**
