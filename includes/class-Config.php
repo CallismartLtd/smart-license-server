@@ -10,6 +10,9 @@
 namespace SmartLicenseServer;
 
 use PDO;
+use SmartLicenseServer\Background\Queue\Adapters\DatabaseJobStorageAdapter;
+use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Cache\Adapters\ApcuCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
@@ -113,6 +116,20 @@ abstract class Config {
     protected DBConfigDTO $dbConfig;
 
     /**
+     * Background job queue API.
+     * 
+     * @var JobQueue $job_queue
+     */
+    protected JobQueue    $job_queue;
+
+    /**
+     * Background job worker API.
+     * 
+     * @var JobQueue $job_queue
+     */
+    protected QueueWorker $queue_worker;
+
+    /**
      * Environment configuration setup.
      * 
      * @param array $config Array of configuration options
@@ -126,6 +143,8 @@ abstract class Config {
         $this->setGlobalSettingsAdapter();
         $this->setGlobalCacheAdapter();
         $this->setGlobalMailingAdapter();
+        $this->setGlobalQueueAdapter();
+
 
     }
 
@@ -394,6 +413,20 @@ abstract class Config {
         define( 'SMLISER_IDENTITY_FEDERATION_TABLE', $this->env['db_prefix'] . 'smliser_identity_provider_lookup' );
 
         /**
+         * Background jobs queue table name.
+         *
+         * @var string `smliser_background_jobs`
+         */
+        define( 'SMLISER_BACKGROUND_JOBS_TABLE', $this->env['db_prefix'] . 'smliser_background_jobs' );
+
+        /**
+         * Failed jobs archive table name.
+         *
+         * @var string `smliser_failed_jobs`
+         */
+        define( 'SMLISER_FAILED_JOBS_TABLE', $this->env['db_prefix'] . 'smliser_failed_jobs' );
+        
+        /**
          * Absolute path to the Smart License Server repository root directory.
          *
          * This is the base directory where all hosted application files are stored.
@@ -535,6 +568,14 @@ abstract class Config {
     }
 
     /**
+     * Sets the global background job queue adapter.
+     */
+    protected function setGlobalQueueAdapter(): void {
+        $this->job_queue    = new JobQueue( new DatabaseJobStorageAdapter( $this->database ) );
+        $this->queue_worker = new QueueWorker( $this->job_queue );
+    }
+
+    /**
      * Get the namespace
      */
     public function rest_namespace() {
@@ -570,10 +611,24 @@ abstract class Config {
     }
 
     /**
-     * Get the mailer API instance
+     * Get the mailer API instance.
      */
     public function mailer() : Mailer {
         return $this->mailer;
+    }
+
+    /**
+     * Get the job queue instance.
+     */
+    public function job_queue(): JobQueue {
+        return $this->job_queue;
+    }
+
+    /**
+     * Get the background job worker instance.
+     */
+    public function queue_worker(): QueueWorker {
+        return $this->queue_worker;
     }
 
     /**
