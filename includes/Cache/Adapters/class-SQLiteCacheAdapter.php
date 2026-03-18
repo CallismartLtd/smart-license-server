@@ -604,12 +604,9 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
                 SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
             );
 
-            // Use Write-Ahead Logging to allow concurrent reads during writes.
-            $this->db->exec( 'PRAGMA journal_mode = WAL;' );
-
-            // NORMAL is safe with WAL and faster than FULL.
-            $this->db->exec( 'PRAGMA synchronous = NORMAL;' );
-
+            // Wait up to 5 s on a locked database rather than failing immediately.
+            $this->db->busyTimeout( 5000 );
+            
             // Store temp tables in memory to reduce disk I/O.
             $this->db->exec( 'PRAGMA temp_store = MEMORY;' );
 
@@ -619,8 +616,15 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             // 256 MB memory-mapped I/O.
             $this->db->exec( 'PRAGMA mmap_size = 268435456;' );
 
-            // Wait up to 1 s on a locked database rather than failing immediately.
-            $this->db->exec( 'PRAGMA busy_timeout = 1000;' );
+            $current_mode = $this->db->querySingle( 'PRAGMA journal_mode' );
+
+            if ( 'wal' !== strtolower( $current_mode ) ) {
+                // Use Write-Ahead Logging to allow concurrent reads during writes.
+                $this->db->exec( 'PRAGMA journal_mode = WAL;' );
+
+                // NORMAL is safe with WAL and faster than FULL.
+                $this->db->exec( 'PRAGMA synchronous = NORMAL;' );                
+            }
 
         } catch ( Exception ) {
             return;
