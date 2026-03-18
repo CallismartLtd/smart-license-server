@@ -78,6 +78,7 @@ final class DBTables {
              */
             SMLISER_PLUGINS_TABLE   => array(
                 'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'owner_id BIGINT(20) DEFAULT NULL',
                 'name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(300) DEFAULT NULL',
                 'status VARCHAR(300) DEFAULT \'active\'',
@@ -109,6 +110,7 @@ final class DBTables {
              */
             SMLISER_THEMES_TABLE    => array(
                 'id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'owner_id BIGINT(20) DEFAULT NULL',
                 'name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(300) DEFAULT NULL',
                 'author VARCHAR(255) DEFAULT NULL',
@@ -139,6 +141,7 @@ final class DBTables {
              */
             SMLISER_SOFTWARE_TABLE     => array(
                 'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
+                'owner_id BIGINT(20) DEFAULT NULL',
                 'name VARCHAR(255) NOT NULL',
                 'slug VARCHAR(300) UNIQUE NOT NULL',
                 'status VARCHAR(55) DEFAULT \'active\'',

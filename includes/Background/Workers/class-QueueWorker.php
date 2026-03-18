@@ -34,6 +34,10 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  *   smliser_queue_worker()->start_processing();
  *
+ * ## WordPress cron (time-budgeted, safe for WP request lifecycle):
+ *
+ *   smliser_queue_worker()->process_within_time_budget( 25 );
+ *
  * ## Specific queue:
  *
  *   smliser_queue_worker()->process_next_job( JobDTO::QUEUE_CRITICAL );
@@ -169,6 +173,64 @@ class QueueWorker implements WorkerInterface {
             }
 
             sleep( $this->sleep_seconds );
+        }
+
+        return $processed;
+    }
+
+
+    /**
+     * Process jobs until the time budget is exhausted.
+     *
+     * Designed for WordPress cron and web-triggered workers where
+     * execution time is constrained by PHP max_execution_time or
+     * server request timeouts.
+     *
+     * Stops cleanly before the budget runs out — never mid-job —
+     * so jobs are never abandoned in a running state due to a timeout.
+     * Stale running jobs are handled separately by release_stale_running_jobs().
+     *
+     * Exits early if memory limit is exceeded, ensuring the process
+     * never crashes due to OOM regardless of time remaining.
+     *
+     * ## WordPress cron integration (in SetUp::schedule_events()):
+     *
+     *   if ( ! wp_next_scheduled( 'smliser_process_queue' ) ) {
+     *       wp_schedule_event( time(), 'smliser_three_minutely', 'smliser_process_queue' );
+     *   }
+     *
+     *   add_action( 'smliser_process_queue', function() {
+     *       smliser_queue_worker()->process_within_time_budget( 25 );
+     *   } );
+     *
+     * @param int         $time_budget_seconds Max seconds to spend processing. Default 25.
+     * @param string|null $queue               Restrict to a specific queue, or null for
+     *                                         the default priority order.
+     * @return int Total number of jobs processed within the budget.
+     */
+    public function process_within_time_budget( int $time_budget_seconds = 25, ?string $queue = null ): int {
+        $start_time = microtime( true );
+        $processed  = 0;
+
+        while ( true ) {
+            if ( $this->has_exceeded_memory_limit() ) {
+                break;
+            }
+
+            // Stop if we are within 1 second of the budget ceiling —
+            // leaving a safety margin so we never run over.
+            $elapsed = microtime( true ) - $start_time;
+            if ( $elapsed >= ( $time_budget_seconds - 1 ) ) {
+                break;
+            }
+
+            $found = $this->process_next_job( $queue );
+
+            if ( ! $found ) {
+                break; // Queue is empty — nothing left to do.
+            }
+
+            $processed++;
         }
 
         return $processed;

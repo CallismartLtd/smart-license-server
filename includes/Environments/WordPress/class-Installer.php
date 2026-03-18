@@ -3,7 +3,7 @@
  * Installation management class file
  * Handles plugin activation actions.
  * 
- * @author Callistus
+ * @author Callistus Nwachukwu
  * @package Smliser\classes
  * @since 0.2.0
  */
@@ -334,7 +334,7 @@ class Installer {
                 continue;
             }
 
-            $sql    = "ALTER TABLE `{$table}` ADD COLUMN {$new_column} BIGINT(20) NOT NULL AFTER `id`";
+            $sql    = "ALTER TABLE `{$table}` ADD COLUMN {$new_column} BIGINT(20) DEFAULT NULL AFTER `id`";
 
             $db->get_var( $sql );
         }

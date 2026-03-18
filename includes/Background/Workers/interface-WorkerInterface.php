@@ -70,4 +70,17 @@ interface WorkerInterface {
      * @return int Total number of jobs processed in this run.
      */
     public function start_processing( ?string $queue = null ): int;
+    /**
+     * Process jobs until the time budget is exhausted.
+     *
+     * Designed for WordPress cron and web-triggered workers where
+     * execution time is constrained. Stops cleanly before the budget
+     * runs out — never mid-job.
+     *
+     * @param int         $time_budget_seconds Max seconds to spend processing. Default 25.
+     * @param string|null $queue               Restrict to a specific queue, or null
+     *                                         for the default priority order.
+     * @return int Total number of jobs processed within the budget.
+     */
+    public function process_within_time_budget( int $time_budget_seconds = 25, ?string $queue = null ): int;
 }
