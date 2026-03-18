@@ -45,7 +45,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             </tr>
             <?php endforeach; endif;?>
         </table>
-        <p class="smliser-table-count"><?php echo absint( count( $all_tasks ) ); echo ' Item'. ( count( $all_tasks ) > 1 ? 's' : '' ); ?></p>        
+        <p class="smliser-table-count"><?php echo intval( count( $all_tasks ) ); echo ' Item'. ( count( $all_tasks ) > 1 ? 's' : '' ); ?></p>        
     </div>
 
 </div>

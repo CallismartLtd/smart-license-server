@@ -306,7 +306,7 @@ class RESTAPI implements RESTProviderInterface {
                     $arg['validate_callback'] = array( __CLASS__, 'not_empty' );
                 }
             } elseif ( isset( $arg['type'] ) && 'integer' === $arg['type'] ) {
-                $arg['sanitize_callback'] = 'absint';
+                $arg['sanitize_callback'] = 'intval';
             } elseif ( isset( $arg['type'] ) && 'array' === $arg['type'] ) {
                 $arg['sanitize_callback'] = array( __CLASS__, 'sanitize' );
                 if ( ! isset( $arg['validate_callback'] ) ) {

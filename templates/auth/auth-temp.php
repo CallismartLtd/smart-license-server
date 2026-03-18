@@ -64,7 +64,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             <input type="hidden" name="scope" value="<?php echo esc_attr( $sanitized_params['scope'] ); ?>">
             <input type="hidden" name="return_url" value="<?php echo esc_url( $sanitized_params['return_url'] ); ?>">
             <input type="hidden" name="callback_url" value="<?php echo esc_url( $sanitized_params['callback_url'] ); ?>">
-            <input type="hidden" name="user_id" value="<?php echo absint( get_current_user_id() ); ?>">
+            <input type="hidden" name="user_id" value="<?php echo intval( get_current_user_id() ); ?>">
             <p class="smliser-auth-consent_btn-container">
                 <button style="background-color: red;" type="submit" name="deny" value="true" class="smliser-auth-consent_btn"><?php esc_html_e( 'Deny', 'smliser' ); ?></button>
                 <button style="background-color: blue;" type="submit" name="authorize" value="true" class="smliser-auth-consent_btn"><?php esc_html_e( 'Authorize', 'smliser' ); ?></button>

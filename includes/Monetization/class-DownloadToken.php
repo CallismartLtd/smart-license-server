@@ -13,6 +13,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Utils\CommonQueryTrait;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -22,7 +23,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * to hosted applications in the repository.
  */
 class DownloadToken {
-    use CommonQueryTrait, TokenDeliveryTrait;
+    use CommonQueryTrait, TokenDeliveryTrait, SanitizeAwareTrait;
     /**
      * Token ID.
      * 
@@ -103,7 +104,7 @@ class DownloadToken {
      * @return self
      */
     public function set_license_key( string $license_key ) : self {
-        $this->license_key = sanitize_text_field( unslash( $license_key ) );
+        $this->license_key = static::sanitize_text( $license_key );
         return $this;
     }
 
@@ -114,7 +115,7 @@ class DownloadToken {
      * @return self
      */
     public function set_token( string $token ) : self {
-        $this->token = sanitize_text_field( unslash( $token ) );
+        $this->token = static::sanitize_text( $token );
         return $this;
     }
 

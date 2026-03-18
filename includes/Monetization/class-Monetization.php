@@ -10,6 +10,7 @@
 namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -20,6 +21,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Each tier specifies its own provider, billing rules, and feature set.
  */
 class Monetization {
+    use SanitizeAwareTrait;
     /**
      * The monetization ID.
      * 
@@ -169,7 +171,7 @@ class Monetization {
      * @return self
      */
     public function set_id( $id ) {
-        $this->id = absint( $id );
+        $this->id = static::sanitize_int( $id );
         return $this;
     }
 
@@ -180,7 +182,7 @@ class Monetization {
      * @return self
      */
     public function set_app_id( $app_id ) {
-        $this->app_id = absint( $app_id );
+        $this->app_id = static::sanitize_int( $app_id );
         return $this;
     }
 
@@ -191,7 +193,7 @@ class Monetization {
      * @return self
      */
     public function set_app_type( $app_type ) {
-        $this->app_type = sanitize_text_field( unslash( $app_type ) );
+        $this->app_type = static::sanitize_text( $app_type );
         return $this;
     }
 
@@ -241,7 +243,7 @@ class Monetization {
      * @return self
      */
     public function set_created_at( $created_at ) {
-        $this->created_at = sanitize_text_field( unslash( $created_at ) );
+        $this->created_at = static::sanitize_text( $created_at );
         return $this;
     }
     /**
@@ -251,7 +253,7 @@ class Monetization {
      * @return self
      */
     public function set_updated_at( $updated_at ) {
-        $this->updated_at = sanitize_text_field( unslash( $updated_at ) );
+        $this->updated_at = static::sanitize_text( $updated_at );
         return $this;
     }
 
@@ -359,7 +361,7 @@ class Monetization {
         $db     = smliser_dbclass();
         $table  = SMLISER_MONETIZATION_TABLE;
         $sql    = "SELECT * FROM {$table} WHERE id = ?";
-        $row    = $db->get_row( $sql, [absint( $id )] );
+        $row    = $db->get_row( $sql, [static::sanitize_int( $id )] );
         
 
         if ( ! $row ) {

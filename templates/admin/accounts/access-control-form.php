@@ -201,7 +201,7 @@ if ( $render_image_only ) {
                                 <button
                                     type="button"
                                     class="button edit-member"
-                                    data-member-id="<?php echo absint( $member->get_id() ); ?>"
+                                    data-member-id="<?php echo intval( $member->get_id() ); ?>"
                                 >
                                     Edit
                                 </button>
@@ -209,7 +209,7 @@ if ( $render_image_only ) {
                                 <button
                                     type="button"
                                     class="button delete-member"
-                                    data-member-id="<?php echo absint( $member->get_id() ); ?>"
+                                    data-member-id="<?php echo intval( $member->get_id() ); ?>"
                                 >
                                     Delete
                                 </button>

@@ -255,7 +255,7 @@ class Plugin extends AbstractHostedApp {
      * @return bool True on success, false on failure.
      */
     public function delete() : bool {
-        $plugin_id = absint( $this->get_id() );
+        $plugin_id = static::sanitize_int( $this->get_id() );
 
         if ( ! $plugin_id ) {
             return false;

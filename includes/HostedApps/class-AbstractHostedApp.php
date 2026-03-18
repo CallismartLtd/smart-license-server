@@ -277,7 +277,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param int $id
      */
     public function set_id( $id ) {
-        $this->id = absint( $id );
+        $this->id = static::sanitize_int( $id );
     }
 
     /**
@@ -470,7 +470,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param int $value
      */
     public function set_num_ratings( $value ) {
-        $this->num_ratings  = absint( $value );
+        $this->num_ratings  = static::sanitize_int( $value );
     }
 
     /**
@@ -478,7 +478,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param int $value
      */
     public function set_active_installs( $value ) {
-        $this->active_installs = absint( $value );
+        $this->active_installs = static::sanitize_int( $value );
     }
 
     /**
@@ -905,7 +905,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
                 }
             }
 
-            $result = $db->update( $table, $data, array( 'id' => absint( $this->get_id() ) ) );
+            $result = $db->update( $table, $data, array( 'id' => static::sanitize_int( $this->get_id() ) ) );
 
         } else {
             if ( ! ( $file instanceof UploadedFile ) || ! $file->is_upload_successful() ) {
@@ -974,7 +974,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
 
         $db         = smliser_dbclass();
         $table      = static::get_db_meta_table();
-        $app_id     = absint( $this->get_id() );
+        $app_id     = static::sanitize_int( $this->get_id() );
         $fk_column  = $this->get_meta_foreign_key();
 
         $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `{$fk_column}` = ? ORDER BY `id` ASC";
@@ -1008,7 +1008,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return bool True on success, false on failure.
      */
     public function update_meta( $key, $value ) : bool {
-        $app_id = absint( $this->get_id() );
+        $app_id = static::sanitize_int( $this->get_id() );
 
         if ( ! $app_id ) {
             return false;
@@ -1018,8 +1018,8 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $table      = static::get_db_meta_table();
         $fk_column  = $this->get_meta_foreign_key();
 
-        $key   = self::sanitize_key( $key );
-        $store = maybe_serialize( $value );
+        $key        = self::sanitize_key( $key );
+        $store      = maybe_serialize( $value );
 
         // Look for existing meta row.
         $meta_id = $db->get_var(
@@ -1085,7 +1085,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $fk_column  = $this->get_meta_foreign_key();
 
         $sql    = "SELECT `meta_value` FROM {$table} WHERE `{$fk_column}` = ? AND `meta_key` = ?";
-        $params = [ absint( $this->get_id() ), $meta_key ];
+        $params = [ static::sanitize_int( $this->get_id() ), $meta_key ];
 
         $result = $db->get_var( $sql, $params );
 
@@ -1108,7 +1108,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return bool True on success, false on failure.
      */
     public function delete_meta( $meta_key ) {
-        $app_id = absint( $this->get_id() );
+        $app_id = static::sanitize_int( $this->get_id() );
 
         if ( ! $app_id ) {
             return false;
@@ -1317,7 +1317,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $db         = smliser_dbclass();
         $table_name = SMLISER_MONETIZATION_TABLE;
         $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `app_type` = ? AND `app_id` = ? AND `enabled` = ?";
-        $params     = [$this->get_type(), absint( $this->id ), '1'];
+        $params     = [$this->get_type(), static::sanitize_int( $this->id ), '1'];
         return $db->get_var( $query, $params ) > 0;
     }
 

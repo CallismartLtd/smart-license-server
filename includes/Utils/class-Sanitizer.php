@@ -42,7 +42,7 @@ class Sanitizer {
      * @param mixed $str The input value.
      * @return string The sanitized string.
      */
-    public static function sanitize_text_field( $str ) : string {
+    public static function sanitize_text( $str ) : string {
         if ( empty( $str ) || ! is_scalar( $str ) ) {
             return '';
         }
@@ -381,7 +381,7 @@ class Sanitizer {
             return false;
         }
         
-        return self::sanitize_text_field( $str );
+        return self::sanitize_text( $str );
     }
 
     /**
@@ -389,13 +389,13 @@ class Sanitizer {
      *
      * @param mixed         $data     The data to sanitize.
      * @param callable|null $callback Optional. The sanitization function to apply. 
-     * Default is [self::class, 'sanitize_text_field'].
+     * Default is [self::class, 'sanitize_text'].
      * @return mixed The sanitized data.
      */
     public static function sanitize_deep( $data, ?callable $callback = null ) : mixed {
         // Set default callback if none provided
         if ( null === $callback ) {
-            $callback = [ self::class, 'sanitize_text_field' ];
+            $callback = [ self::class, 'sanitize_text' ];
         }
 
         if ( is_array( $data ) ) {

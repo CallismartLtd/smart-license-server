@@ -77,7 +77,7 @@ $app = $object->get_app();
                                     'name'                 => 'enabled',
                                     'value'                => $object->is_enabled() ? 1 : 0,
                                     'data-action'          => 'toggleMonetization',
-                                    'data-monetization-id' => absint( $object->get_id() ),
+                                    'data-monetization-id' => intval( $object->get_id() ),
                                 ) );
                                 ?>
                             </td>
@@ -171,8 +171,8 @@ $app = $object->get_app();
                     <em>A pricing tier represents a specific license option for the application</em>
                     <form id="tier-form" class="smliser-admin-modal_content-form">
                         <input type="hidden" name="action" value="">
-                        <input type="hidden" name="monetization_id" value="<?php echo absint( $object->get_id() ); ?>">
-                        <input type="hidden" name="app_id" value="<?php echo absint( $app->get_id() ); ?>">
+                        <input type="hidden" name="monetization_id" value="<?php echo intval( $object->get_id() ); ?>">
+                        <input type="hidden" name="app_id" value="<?php echo intval( $app->get_id() ); ?>">
                         <input type="hidden" name="app_type" value="<?php echo esc_attr( $object->get_app_type() ); ?>">
                         <input type="hidden" name="tier_id">
                         <label for="tier_name">Tier Name:

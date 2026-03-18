@@ -10,6 +10,7 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -20,7 +21,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * it also supports caching, pagination, searching, asset management, and bulk operations via the request API.
  */
 class HostedApplicationService {
-    use CacheAwareTrait;
+    use CacheAwareTrait, SanitizeAwareTrait;
     /**
      * Allowed app types
      * 
@@ -340,7 +341,7 @@ class HostedApplicationService {
             'types'  => self::$allowed_app_types,
         );
         $args   = parse_args( $args, $defaults );
-        $term   = sanitize_text_field( $args['term'] );
+        $term   = static::sanitize_text( $args['term'] );
         $page   = max( 1, (int) $args['page'] );
         $limit  = max( 1, (int) $args['limit'] );
         $offset = $db->calculate_query_offset( $page, $limit );

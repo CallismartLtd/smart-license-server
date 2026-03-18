@@ -46,7 +46,7 @@ if ( ! isset( $app ) ) {
                 <em>Max Upload Size: <?php echo esc_html( $max_upload_size_mb ) . 'MB'; ?></em>
                 <div class="smliser-form-file-row">
                     <input type="file" name="app_zip_file" id="smliser-file-input"  style="display: none;">
-                    <div class="smliser-file-info" wp-max-upload-size= "<?php echo absint( $max_upload_size_mb ) ?>">
+                    <div class="smliser-file-info" wp-max-upload-size= "<?php echo intval( $max_upload_size_mb ) ?>">
                         <span>No file selected.</span>
                     </div>
                     <button type="button" class="smliser-upload-btn button">Drag over or click to upload file</button>

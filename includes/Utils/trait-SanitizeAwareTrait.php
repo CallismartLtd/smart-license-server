@@ -56,7 +56,7 @@ trait SanitizeAwareTrait {
      * @return string Sanitized text.
      */
     protected static function sanitize_text( $value ): string {
-        return Sanitizer::sanitize_text_field( self::unslash( $value ) );
+        return Sanitizer::sanitize_text( self::unslash( $value ) );
     }
 
     /**

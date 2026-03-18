@@ -5,6 +5,8 @@
  * and query parameter validation
  */
 
+use SmartLicenseServer\Utils\Sanitizer;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 // Define the default values for the required parameters.
@@ -23,9 +25,7 @@ $filtered_get = array_intersect_key( $_GET, $default_params );
 $merged_params = array_merge( $default_params, $filtered_get );
 
 // Sanitize all parameters.
-$sanitized_params = array_map( function( $value ) {
-    return sanitize_text_field( unslash( $value ) );
-}, $merged_params );
+$sanitized_params = array_map( [Sanitizer::class, 'sanitize_text'], $merged_params );
 
 // Check for missing required parameters and use smliser_abort_request() to show a message.
 foreach ( $default_params as $key => $value ) {

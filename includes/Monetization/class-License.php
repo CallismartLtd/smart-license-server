@@ -1097,7 +1097,7 @@ class License {
      * @param int $app_id The App ID associated with the license.
      * @return true|Exception True if license can be served, otherwise Exception.
      */
-    public function can_serve_license( $app_id ) {
+    public function can_serve_license( int $app_id ) {
         if ( ! $this->is_issued() ) {
             return new Exception(
                 'license_error',
@@ -1106,7 +1106,7 @@ class License {
             );
         }
 
-        if ( absint( $app_id ) !== $this->get_app_id() ) {
+        if ( $app_id !== $this->get_app_id() ) {
             return new Exception(
                 'license_error',
                 'License was not issued to this application.',
@@ -1214,11 +1214,12 @@ class License {
      * @throws \SmartLicenseServer\Exception If a unique key cannot be generated or DB persist fails.
      */
     public function regenerate_license_key( string $prefix = '', bool $persist = true, int $tries = 10 ) : string {
-        $db    = \smliser_dbclass();
-        $table = \SMLISER_LICENSE_TABLE;
+        $db         = \smliser_dbclass();
+        $table      = \SMLISER_LICENSE_TABLE;
 
-        $attempt = 0;
-        $new_key = '';
+        $attempt    = 0;
+        $new_key    = '';
+        $tries      = static::sanitize_positive_int( $tries );
 
         do {
             $attempt++;
@@ -1231,9 +1232,9 @@ class License {
             if ( 0 === $count ) {
                 break;
             }
-        } while ( $attempt < max( 1, absint( $tries ) ) );
+        } while ( $attempt < max( 1, $tries ) );
 
-        if ( $attempt >= max( 1, absint( $tries ) ) && $count > 0 ) {
+        if ( $attempt >= max( 1, $tries ) && $count > 0 ) {
             throw new Exception(
                 'license_regeneration_failed',
                 'Unable to generate a unique license key after multiple attempts.',

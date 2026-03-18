@@ -22,6 +22,7 @@ use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\MDParser;
+use SmartLicenseServer\Utils\Sanitizer;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -200,7 +201,7 @@ function smliser_get_client_ip() : string {
         }
 
         // In case of multiple IPs, we take the first one (usually the client IP).
-        $ip_list = explode( ',', sanitize_text_field( unslash( $_SERVER[ $key ] ) ) );
+        $ip_list = explode( ',', Sanitizer::sanitize_text( unslash( $_SERVER[ $key ] ) ) );
         foreach ( $ip_list as $ip ) {
             $ip = trim( $ip );
             // Validate both IPv4 and IPv6 addresses.
@@ -755,14 +756,6 @@ function smliser_get_files_param( $key, $default = null ) {
 /**
  * Retrieve and sanitize a parameter from a given source array, with automatic type detection.
  *
- * This function supports automatic type detection and sanitization for common data types:
- * - Arrays: sanitized recursively with `sanitize_text_field()`.
- * - Numeric strings: cast to `int` or `float`.
- * - Boolean-like values: evaluated with `FILTER_VALIDATE_BOOLEAN` (supports "true", "false", "1", "0", "yes", "no").
- * - Email addresses: validated and sanitized with `sanitize_email()`.
- * - URLs: validated with `FILTER_VALIDATE_URL` and sanitized with `esc_url_raw()`.
- * - All other strings: sanitized with `sanitize_text_field()`.
- *
  * @param string $key     The key to retrieve from the source array.
  * @param mixed  $default Optional. The default value to return if the key is not set. Default ''.
  * @param array  $source  Optional. The source array to read from (e.g., $_GET or $_POST). Default empty array.
@@ -777,7 +770,7 @@ function smliser_get_param( $key, $default = '', $source = array() ) {
     $value = unslash( $source[ $key ] );
 
     if ( is_array( $value ) ) {
-        return array_map( 'sanitize_text_field', $value );
+        return array_map( [Sanitizer::class, 'sanitize_text'], $value );
     }
 
     if ( is_numeric( $value ) ) {
@@ -797,7 +790,7 @@ function smliser_get_param( $key, $default = '', $source = array() ) {
         return esc_url_raw( $value );
     }
 
-    return sanitize_text_field( $value );
+    return Sanitizer::sanitize_text( $value );
 }
 
 /**

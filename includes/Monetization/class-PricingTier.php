@@ -10,6 +10,8 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -21,6 +23,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * billing cycles, site activation limits, and features available under that tier.
  */
 class PricingTier {
+    use SanitizeAwareTrait;
     /**
      * Unique identifier for the pricing tier.
      *
@@ -174,7 +177,7 @@ class PricingTier {
      * @return self
      */
     public function set_id( $id ) {
-        $this->id = absint( $id );
+        $this->id = static::sanitize_int( $id );
         return $this;
     }
 
@@ -185,7 +188,7 @@ class PricingTier {
      * @return self
      */
     public function set_monetization_id( $monetization_id ) {
-        $this->monetization_id = absint( $monetization_id );
+        $this->monetization_id = static::sanitize_int( $monetization_id );
         return $this;
     }
 
@@ -196,7 +199,7 @@ class PricingTier {
      * @return self
      */
     public function set_name( $name ) {
-        $this->name = sanitize_text_field( unslash( $name ) );
+        $this->name = static::sanitize_text( $name );
         return $this;
     }
 
@@ -207,7 +210,7 @@ class PricingTier {
      * @return self
      */
     public function set_product_id( $product_id ) {
-        $this->product_id = is_numeric( $product_id ) ? absint( $product_id ) : sanitize_text_field( unslash( $product_id ) );
+        $this->product_id = is_numeric( $product_id ) ? static::sanitize_int( $product_id ) : static::sanitize_text( $product_id );
         return $this;
     }
 
@@ -218,7 +221,7 @@ class PricingTier {
      * @return self
      */    
     public function set_provider_id( $provider_id ) {
-        $this->provider_id = sanitize_text_field( unslash( $provider_id ) );
+        $this->provider_id = static::sanitize_text( $provider_id );
         return $this;
     }
 

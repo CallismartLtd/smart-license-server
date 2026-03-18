@@ -83,7 +83,7 @@ $args   = self::get_menu_args();
                                             <?php echo $license->get_partial_key(); ?>
                                         </span>
                                     </div>
-                                    <input type="checkbox" id="<?php echo absint( microtime( true ) ); ?>" class="smliser-licence-key-visibility-toggle smliser-tooltip" title="toggle visibility">
+                                    <input type="checkbox" id="<?php echo intval( microtime( true ) ); ?>" class="smliser-licence-key-visibility-toggle smliser-tooltip" title="toggle visibility">
                                 </div>
                             </td>
                             <td><?php echo esc_html( $license->get_service_id() ); ?></td>

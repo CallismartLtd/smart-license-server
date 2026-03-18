@@ -111,7 +111,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                             <?php echo esc_html( $label ); ?>
                         </span>
                         <span class="smliser-status-count">
-                            (<?php echo absint( $count ); ?>)
+                            (<?php echo intval( $count ); ?>)
                         </span>
                     </a>
                 </li>
@@ -174,7 +174,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                             <tr>
                                 <td><input type="checkbox" class="smliser-license-checkbox" name="ids[]" value="<?php printf( '%s:%s', esc_attr( $app->get_type() ), esc_attr( $app->get_slug() ) ); ?>"> </td>
                                 <td class="smliser-edit-row">
-                                    <?php echo absint( $app->get_id() ); ?>
+                                    <?php echo intval( $app->get_id() ); ?>
                                     <div class="smliser-edit-link">
                                         <a href="<?php echo esc_url( smliser_admin_repo_tab( 'edit', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">edit</a> 
                                         |

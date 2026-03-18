@@ -11,12 +11,15 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * WooCommerce Monetization Provider Class
  */
 class WooCommerceProvider implements MonetizationProviderInterface {
+    use SanitizeAwareTrait;
 
     /**
      * WooCommerce site URL.
@@ -38,7 +41,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
      */
     public function __construct() {
         $this->store_url            = sanitize_url( ProviderCollection::get_option( $this->get_id(), 'store_url' ), array( 'https' ) );
-        $this->checkout_endpoint    = sanitize_text_field( unslash( ProviderCollection::get_option( $this->get_id(), 'checkout_url' ) ) );
+        $this->checkout_endpoint    = static::sanitize_text( ProviderCollection::get_option( $this->get_id(), 'checkout_url' ) );
     }
 
     /**
@@ -90,7 +93,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
      * @return array|null
      */
     public function get_product( $product_id, $force_refresh = true ) {
-        $product_id   = absint( $product_id );
+        $product_id   = static::sanitize_int( $product_id );
         $cache_key    = 'smliser_wc_product_' . md5( $this->store_url . '_' . $product_id );
         $cache_expiry = 3 * HOUR_IN_SECONDS;
 

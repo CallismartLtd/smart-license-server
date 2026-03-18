@@ -89,7 +89,7 @@ $args   = self::get_menu_args();
             <div class="smliser-admin-view-page-header"> 
                 <div class="smliser-admin-view-page-header-child">
                     <h2>Info</h2>
-                    <p><span class="dashicons dashicons-database-view"></span> License ID: <?php echo esc_html( absint( $license->get_id() ) ) ?></p>
+                    <p><span class="dashicons dashicons-database-view"></span> License ID: <?php echo esc_html( intval( $license->get_id() ) ) ?></p>
                     <p><span class="dashicons dashicons-yes-alt"></span> Status: <?php echo esc_html( $license->get_status() ) ?></p>
                     <p><span class="dashicons dashicons-businessman"></span> Client: <?php echo esc_html( $client_fullname ) ?></p>
                 </div>
@@ -97,7 +97,7 @@ $args   = self::get_menu_args();
                 <div class="smliser-admin-view-page-header-child">
                     <h2>Statistics</h2>
                     <p><span class="dashicons dashicons-admin-site-alt"></span> Max Allowed Domains: <?php echo esc_html( $license->get_max_allowed_domains() ) ?></p>
-                    <p><span class="dashicons dashicons-admin-site-alt3"></span> Total Domains Activated: <?php echo absint( $license->get_total_active_domains() )?></p>
+                    <p><span class="dashicons dashicons-admin-site-alt3"></span> Total Domains Activated: <?php echo intval( $license->get_total_active_domains() )?></p>
                     <p><span class="dashicons dashicons-plugins-checked"></span> App Prop: <?php echo esc_html( $license->get_app_prop() ) ?></p>
                 </div>
 
@@ -108,7 +108,7 @@ $args   = self::get_menu_args();
                     <tbody>
                         <tr>
                             <th>License ID</th>
-                            <td><?php echo esc_html( absint( $license->get_id() ) ); ?></td>
+                            <td><?php echo esc_html( intval( $license->get_id() ) ); ?></td>
                         </tr>
     
                         <tr>

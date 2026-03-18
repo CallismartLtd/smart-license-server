@@ -207,8 +207,8 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
         <?php
         printf(
             esc_html__( '%1$d of %2$d %3$s', 'smliser' ),
-            absint( $displayed ),
-            absint( $total ),
+            intval( $displayed ),
+            intval( $total ),
             esc_html( _n( 'item', 'items', $total, 'smliser' ) )
         );
         ?>
@@ -220,8 +220,8 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                 <?php
                 printf(
                     esc_html__( 'Page %1$d of %2$d', 'smliser' ),
-                    absint( $page ),
-                    absint( $total_pages )
+                    intval( $page ),
+                    intval( $total_pages )
                 );
                 ?>
             </span>
@@ -251,7 +251,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                     ?>
                     <a class="<?php echo esc_attr( $class ); ?>"
                        href="<?php echo esc_url( $base_url->add_query_params( array( $page_param => $i, 'limit' => $limit ) ) ); ?>">
-                        <?php echo absint( $i ); ?>
+                        <?php echo intval( $i ); ?>
                     </a>
                 <?php endfor; ?>
 
@@ -266,7 +266,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                     ?>
                     <a class="button"
                        href="<?php echo esc_url( $base_url->add_query_params( array( $page_param => $total_pages, 'limit' => $limit ) ) ); ?>">
-                        <?php echo absint( $total_pages ); ?>
+                        <?php echo intval( $total_pages ); ?>
                     </a>
                 <?php endif; ?>
 

@@ -87,7 +87,7 @@ class BulkMessages {
      * @return self
      */
     public function set_id( $id ) {
-        $this->id = absint( $id );
+        $this->id = static::sanitize_int( $id );
 
         return $this;
     }

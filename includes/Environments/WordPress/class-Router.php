@@ -25,11 +25,13 @@ use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\RequestController;
 use SmartLicenseServer\SettingsAPI\SettingsController;
+use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
  * Concrete implementation of routing in WordPress.
  */
 class Router implements RouterInterface {
+    use SanitizeAwareTrait;
 
     /**
      * Handle incoming requests for this application.
@@ -38,7 +40,7 @@ class Router implements RouterInterface {
         $trigger = get_query_var( 'pagename' );
 
         if ( ! $trigger && isset( $_REQUEST['action'] ) ) {
-            $trigger = sanitize_text_field( wp_unslash( $_REQUEST['action'] ) );
+            $trigger = static::sanitize_text( $_REQUEST['action'] );
         }
 
         if ( empty( $trigger ) || ! is_string( $trigger ) ) {
@@ -257,7 +259,7 @@ class Router implements RouterInterface {
      */
     public static function parse_license_document_download_request( Request $request ): void {
         $file_request = new FileRequest( [
-            'license_id'     => absint( get_query_var( 'license_id' ) ),
+            'license_id'     => get_query_var( 'license_id', 0 ),
             'download_token' => $request->get( 'download_token' ),
             'user_agent'     => $request->get_header( 'User-Agent' ),
             'request_time'   => $request->startTime(),
@@ -272,9 +274,9 @@ class Router implements RouterInterface {
      */
     public static function parse_app_asset_request( Request $request ): void {
         $file_request = new FileRequest( [
-            'app_type'    => sanitize_text_field( get_query_var( 'smliser_app_type' ) ),
-            'app_slug'    => sanitize_text_field( get_query_var( 'smliser_app_slug' ) ),
-            'asset_name'  => sanitize_text_field( get_query_var( 'smliser_asset_name' ) ),
+            'app_type'    => static::sanitize_text( get_query_var( 'smliser_app_type' ) ),
+            'app_slug'    => static::sanitize_text( get_query_var( 'smliser_app_slug' ) ),
+            'asset_name'  => static::sanitize_text( get_query_var( 'smliser_asset_name' ) ),
             'user_agent'  => $request->get_header( 'User-Agent' ),
             'request_time'=> $request->startTime(),
             'client_ip'   => smliser_get_client_ip(),

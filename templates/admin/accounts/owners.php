@@ -36,7 +36,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         <?php echo esc_url(
                             smliser_get_current_url()->add_query_param( 'status', $v )
                         );?>" class="smliser-status-link">
-                        <?php echo esc_html( ucfirst( $v ) ); ?> (<?php echo absint( $st_v ); ?>)
+                        <?php echo esc_html( ucfirst( $v ) ); ?> (<?php echo intval( $st_v ); ?>)
                     </a>
                 <?php endif; ?>
             <?php endforeach; ?>
