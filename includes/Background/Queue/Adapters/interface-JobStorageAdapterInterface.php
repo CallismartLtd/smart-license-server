@@ -29,7 +29,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *   class MySQLJobStorageAdapter implements JobStorageAdapterInterface {
  *
  *       public function enqueue( JobDTO $job ): JobDTO {
- *           $id = smliser_db()->insert( SMLISER_BACKGROUND_JOBS_TABLE, $job->to_array() );
+ *           $id = smliser_dbclass()->insert( SMLISER_BACKGROUND_JOBS_TABLE, $job->to_array() );
  *           return $job->set( 'id', $id );
  *       }
  *       // ...

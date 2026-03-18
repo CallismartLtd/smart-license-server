@@ -182,7 +182,7 @@ class QueueWorker implements WorkerInterface {
     /**
      * Process jobs until the time budget is exhausted.
      *
-     * Designed for WordPress cron and web-triggered workers where
+     * Designed for web-triggered workers where
      * execution time is constrained by PHP max_execution_time or
      * server request timeouts.
      *
@@ -193,22 +193,15 @@ class QueueWorker implements WorkerInterface {
      * Exits early if memory limit is exceeded, ensuring the process
      * never crashes due to OOM regardless of time remaining.
      *
-     * ## WordPress cron integration (in SetUp::schedule_events()):
      *
-     *   if ( ! wp_next_scheduled( 'smliser_process_queue' ) ) {
-     *       wp_schedule_event( time(), 'smliser_three_minutely', 'smliser_process_queue' );
-     *   }
-     *
-     *   add_action( 'smliser_process_queue', function() {
-     *       smliser_queue_worker()->process_within_time_budget( 25 );
-     *   } );
-     *
-     * @param int         $time_budget_seconds Max seconds to spend processing. Default 25.
+     * @param int|null    $time_budget_seconds Max seconds to spend processing. Null derives
+     *                                         a safe budget from max_execution_time automatically.
      * @param string|null $queue               Restrict to a specific queue, or null for
      *                                         the default priority order.
      * @return int Total number of jobs processed within the budget.
      */
-    public function process_within_time_budget( int $time_budget_seconds = 25, ?string $queue = null ): int {
+    public function process_within_time_budget( ?int $time_budget_seconds = null, ?string $queue = null ): int {
+        $budget     = $time_budget_seconds ?? $this->safe_time_budget_seconds();
         $start_time = microtime( true );
         $processed  = 0;
 
@@ -220,7 +213,7 @@ class QueueWorker implements WorkerInterface {
             // Stop if we are within 1 second of the budget ceiling —
             // leaving a safety margin so we never run over.
             $elapsed = microtime( true ) - $start_time;
-            if ( $elapsed >= ( $time_budget_seconds - 1 ) ) {
+            if ( $elapsed >= ( $budget - 1 ) ) {
                 break;
             }
 
@@ -278,6 +271,29 @@ class QueueWorker implements WorkerInterface {
     private function has_exceeded_memory_limit(): bool {
         $used_mb = memory_get_usage( true ) / 1024 / 1024;
         return $used_mb >= $this->memory_limit_mb;
+    }
+
+    /**
+     * Derive a safe time budget in seconds from the PHP ini max_execution_time.
+     *
+     * Applies an 80% safety factor so the worker stops well before PHP
+     * forcibly kills the process. Floors at 5 seconds so it always does
+     * some useful work. Falls back to 25 seconds when max_execution_time
+     * is 0 (unlimited) or unparseable — a conservative default that works
+     * safely within typical WordPress cron request lifecycles.
+     *
+     * @return int Safe time budget in seconds.
+     */
+    private function safe_time_budget_seconds(): int {
+        $max = (int) ini_get( 'max_execution_time' );
+
+        // 0 means unlimited — use a conservative default.
+        if ( $max <= 0 ) {
+            return 25;
+        }
+
+        // Apply 80% safety factor and floor at 5 seconds.
+        return max( 5, (int) ( $max * 0.8 ) );
     }
 
     /**

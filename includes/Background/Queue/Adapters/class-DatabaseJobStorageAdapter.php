@@ -132,14 +132,14 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
                    AND available_at <= ?
                    {$queue_sql}
                  ORDER BY
-                     CASE queue
-                         WHEN 'critical' THEN 1
-                         WHEN 'default'  THEN 2
-                         WHEN 'low'      THEN 3
-                         ELSE 4
-                     END ASC,
-                     priority ASC,
-                     available_at ASC
+                    CASE queue
+                        WHEN 'critical' THEN 1
+                        WHEN 'default'  THEN 2
+                        WHEN 'low'      THEN 3
+                        ELSE 4
+                    END ASC,
+                    priority ASC,
+                    available_at ASC
                  LIMIT 1",
                 $params
             );
@@ -232,9 +232,9 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
 
         $rows = $this->db->get_results(
             "SELECT * FROM " . SMLISER_BACKGROUND_JOBS_TABLE . "
-             WHERE status = ? {$queue_sql}
-             ORDER BY created_at ASC
-             LIMIT ? OFFSET ?",
+            WHERE status = ? {$queue_sql}
+            ORDER BY created_at ASC
+            LIMIT ? OFFSET ?",
             $params
         );
 

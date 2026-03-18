@@ -12,6 +12,7 @@ namespace SmartLicenseServer;
 use PDO;
 use SmartLicenseServer\Background\Queue\Adapters\DatabaseJobStorageAdapter;
 use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Cache\Adapters\ApcuCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
@@ -27,6 +28,7 @@ use SmartLicenseServer\Database\Adapters\PdoAdapter;
 use SmartLicenseServer\Database\Adapters\SqliteAdapter;
 use SmartLicenseServer\Email\EmailProviderCollection;
 use SmartLicenseServer\Email\Mailer;
+use SmartLicenseServer\Environments\EnvironmentProviderInterface;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
@@ -38,7 +40,17 @@ use SmartLicenseServer\SettingsAPI\SettingsStorageInterface;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-abstract class Config {
+abstract class Config implements EnvironmentProviderInterface {
+    /**
+     * The current environment provider instance.
+     * 
+     * Must be set early by the child class providing execution environment
+     * for Smart License Server.
+     * 
+     * @var EnvironmentProviderInterface
+     */
+    protected static EnvironmentProviderInterface $envProvider;
+
     /**
      * The current REST API Service Provider
      * 
@@ -144,9 +156,13 @@ abstract class Config {
         $this->setGlobalCacheAdapter();
         $this->setGlobalMailingAdapter();
         $this->setGlobalQueueAdapter();
-
-
     }
+
+    /*
+    |-----------------------
+    | HELPERS
+    |-----------------------
+    */
 
     /**
      * Parse environment configuration file to ensure that required variables are set.
@@ -188,6 +204,64 @@ abstract class Config {
         }
 
         $this->env  = $parsed_config;
+    }
+
+    /**
+     * Compute a safe worker memory ceiling in megabytes.
+     *
+     * Reads memory_limit from the PHP ini, converts to MB, then applies
+     * an 80% safety factor so the worker exits before PHP itself runs out
+     * of memory. Falls back to 64MB when the ini value is unparseable or
+     * unlimited (-1) to keep the worker conservative on unknown environments.
+     *
+     * @return int Memory limit in MB to pass to QueueWorker.
+     */
+    private function safe_worker_memory_limit_mb(): int {
+        $raw = ini_get( 'memory_limit' );
+ 
+        // Parse shorthand notation (128M, 256M, 1G etc.) to bytes.
+        $bytes = $this->parse_ini_bytes( (string) $raw );
+ 
+        // -1 means unlimited — be conservative on unknown environments.
+        if ( $bytes <= 0 ) {
+            return 64;
+        }
+ 
+        $mb = (int) ( $bytes / 1024 / 1024 );
+ 
+        // Apply 80% safety factor and floor at 32MB.
+        return max( 32, (int) ( $mb * 0.8 ) );
+    }
+
+    /**
+     * Convert a PHP ini memory string to bytes.
+     *
+     * Handles shorthand suffixes: K (kilobytes), M (megabytes), G (gigabytes).
+     * Returns -1 for unlimited (-1), 0 for unparseable values.
+     *
+     * @param string $val Raw ini value e.g. '128M', '1G', '-1'.
+     * @return int Byte equivalent, or -1 for unlimited, or 0 on failure.
+     */
+    private function parse_ini_bytes( string $val ): int {
+        $val = trim( $val );
+ 
+        if ( $val === '-1' ) {
+            return -1;
+        }
+ 
+        if ( ! is_numeric( $val[0] ?? '' ) ) {
+            return 0;
+        }
+ 
+        $suffix = strtolower( substr( $val, -1 ) );
+        $num    = (int) $val;
+ 
+        return match ( $suffix ) {
+            'g'     => $num * 1024 * 1024 * 1024,
+            'm'     => $num * 1024 * 1024,
+            'k'     => $num * 1024,
+            default => $num,
+        };
     }
 
     /**
@@ -495,6 +569,10 @@ abstract class Config {
      * Sets up the global database adapter
      */
     protected function setGlobalDBAdapter() : void {
+        if ( isset( $this->database ) ) {
+            return;
+        }
+
         if ( ! isset( $this->dbadapter ) ) {
             if ( ! isset( $this->dbConfig ) ) {
                 throw new EnvironmentBootstrapException( 'missing_db_config' );
@@ -527,6 +605,11 @@ abstract class Config {
      * Sets up the global filesystem adapter
      */
     protected function setGlobalFileSystemAdapter() : void {
+
+        if( isset( $this->filesystem ) ) {
+            return;
+        }
+
         if ( ! isset( $this->filesystemAdapter ) ) {
             $this->filesystemAdapter = new DirectFileSystem;
         }
@@ -539,6 +622,10 @@ abstract class Config {
      * Sets up the global cache adapter
      */
     protected function setGlobalCacheAdapter() : void {
+        if ( isset( $this->cache ) ) {
+            return;
+        }
+
         if ( ! isset( $this->cacheAdapter ) ) {
             $this->cacheAdapter = CacheAdapterCollection::instance( $this->settings )->get_adapter_with_settings();
         }
@@ -562,6 +649,9 @@ abstract class Config {
      * Sets up the global mailing mailing service to use the default provider.
      */
     protected function setGlobalMailingAdapter() : void {
+        if ( isset( $this->mailer ) ) {
+            return;
+        }
         // Instantiate the email collection with storage.
         $collection     = EmailProviderCollection::instance( $this->settings );
         $this->mailer   = new Mailer( $collection->get_provider_with_settings() );
@@ -569,10 +659,26 @@ abstract class Config {
 
     /**
      * Sets the global background job queue adapter.
+     *
+     * Derives a safe memory ceiling from the PHP runtime ini value so
+     * the worker never assumes a fixed limit that may be wrong in production.
+     * Uses 80% of the actual memory_limit as the worker ceiling, leaving
+     * headroom for WordPress core, plugins, and the request itself.
+     *
+     * Does not override adapter or worker instances already set by the
+     * environment (e.g. a test environment injecting a mock worker).
      */
     protected function setGlobalQueueAdapter(): void {
-        $this->job_queue    = new JobQueue( new DatabaseJobStorageAdapter( $this->database ) );
-        $this->queue_worker = new QueueWorker( $this->job_queue );
+        if ( ! isset( $this->job_queue ) ) {
+            $this->job_queue = new JobQueue( new DatabaseJobStorageAdapter( $this->database ) );
+        }
+ 
+        if ( ! isset( $this->queue_worker ) ) {
+            $this->queue_worker = new QueueWorker(
+                $this->job_queue,
+                memory_limit_mb: $this->safe_worker_memory_limit_mb(),
+            );
+        }
     }
 
     /**
@@ -632,6 +738,22 @@ abstract class Config {
     }
 
     /**
+     * Get the environment provider instance
+     */
+    public static function env_provider() : static {
+        return static::$envProvider;
+    }
+
+    /**
+     * Get the task scheduler API instance.
+     * 
+     * Intentionally lazy loaded.
+     */
+    public function scheduler(): Scheduler {
+        return Scheduler::instance( $this->settings );
+    }
+
+    /**
      * Include files
      */
     public function bootstrap_files() {
@@ -643,18 +765,5 @@ abstract class Config {
         require_once SMLISER_PATH . 'includes/Utils/formating-functions.php';
               
     }
-
-    /*
-    |-----------------------
-    | ABSTRACT METHODS
-    |-----------------------
-    */
-
-    /**
-     * Get the instance of the configuration
-     * 
-     * @return static
-     */
-    abstract public static function instance() : static;
 }
 

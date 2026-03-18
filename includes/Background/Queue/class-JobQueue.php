@@ -78,13 +78,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class JobQueue {
 
     /**
-     * Singleton instance.
-     *
-     * @var static|null
-     */
-    protected static ?self $instance = null;
-
-    /**
      * The active job storage adapter.
      *
      * @var JobStorageAdapterInterface

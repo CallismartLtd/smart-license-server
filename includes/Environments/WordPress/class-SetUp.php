@@ -25,7 +25,7 @@ use SmartLicenseServer\SettingsAPI\WPSettingsAdapter;
 /**
  * WordPress Environment setup class
  */
-class SetUp extends Config implements EnvironmentProviderInterface {
+class SetUp extends Config {
     /**
      * The singleton instance of the environment.
      * 
@@ -74,6 +74,9 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         add_filter( 'query_vars', [$this, 'query_vars'] );
         add_filter( 'cron_schedules', [$this, 'register_cron'] );
 
+        add_action( 'smliser_process_queue', [$this->queue_worker, 'process_within_time_budget'] );
+        add_action( 'smliser_run_scheduler', [$this->scheduler(), 'run_due_tasks'] );
+
         register_activation_hook( SMLISER_FILE, [Installer::class, 'install'] );
     }
 
@@ -81,6 +84,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
      * Bootstrap the class properties.
      */
     private function setProps() {
+        static::$envProvider    = $this;
         /** @var \wpdb $wpdb */
         $wpdb               = $GLOBALS['wpdb'] ?? null;
         $repo_path          = WP_CONTENT_DIR;
@@ -93,7 +97,7 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         $database_adapter   = new WPDBAdapter( $wpdb );
         $rest_api_provider  = new RESTAPI( new V1 );
         
-        $env    = compact('absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
+        $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
         'filesystem_adapter', 'cache_adapter', 'settings_adapter', 'database_adapter',
         'rest_api_provider'
         
@@ -408,16 +412,19 @@ class SetUp extends Config implements EnvironmentProviderInterface {
      * Register Custom WordPress Cron Intervals.
      */
     public function register_cron( $schedules ) {
-        /** Add a new cron schedule interval for every 3 minutes. */
-        $schedules['smliser_three_minutely'] = array(
-            'interval' => 3 * MINUTE_IN_SECONDS,
-            'display'  => 'Smliser Three Minutely',
+        $schedules['smliser_every_minute'] = array(
+            'interval' => WP_CRON_LOCK_TIMEOUT,
+            'display'  => 'Every Minute',
         );
 
-        /** Add a new cron schedule interval for every 4 hours. */
+        $schedules['smliser_three_minutely'] = array(
+            'interval' => 3 * MINUTE_IN_SECONDS,
+            'display'  => 'Three Minutely',
+        );
+
         $schedules['smliser_4_hourly'] = array(
             'interval' => 4 * HOUR_IN_SECONDS,
-            'display'  => 'Smliser Four Hourly',
+            'display'  => 'Four Hourly',
         );
         return $schedules;
     }
@@ -429,9 +436,13 @@ class SetUp extends Config implements EnvironmentProviderInterface {
         if ( ! wp_next_scheduled( 'smliser_clean' ) ) {
             wp_schedule_event( time(), 'smliser_4_hourly', 'smliser_clean' );
         }
-        if ( ! wp_next_scheduled( 'smliser_process_queue' ) ) {
-            wp_schedule_event( time(), 'smliser_three_minutely', 'smliser_process_queue' );
-        }
 
+        if ( ! wp_next_scheduled( 'smliser_process_queue' ) ) {
+            wp_schedule_event( time(), 'smliser_every_minute', 'smliser_process_queue' );
+        }
+        
+        if ( ! wp_next_scheduled( 'smliser_run_scheduler' ) ) {
+            wp_schedule_event( time(), 'smliser_every_minute', 'smliser_run_scheduler' );
+        }
     }
 }
