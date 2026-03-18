@@ -69,7 +69,7 @@ function smliser_repo_page() {
         return $url;
     }
 
-    return site_url( smliser_get_repository_url_prefix() );
+    return url( smliser_get_repository_url_prefix() );
 }
 
 /**
@@ -674,7 +674,7 @@ function smliser_document_download_url( int $id = 0 ) : URL {
     $downloads_slug = smliser_get_download_url_prefix();
     $path           = implode( '/', [$downloads_slug,'document', $id] );
 
-    return new URL( site_url( $path ) );
+    return url( $path );
 }
 
 /**
@@ -1503,10 +1503,12 @@ function smliser_download_with_fopen( $url, $timeout ) {
 /**
  * Get the web application URL.
  * 
+ * @param string $path Path(optional).
+ * @param array<string, string> $params Associative array of query params.
  * @return URL
  */
-function url( string $path = '', array $query_param = [] ) : URL {
-    return Config::env_provider()->url( $path, $query_param );
+function url( string $path = '', array $params = [] ) : URL {
+    return Config::env_provider()->url( $path, $params );
 }
 /**
  * Get the database API instance.
@@ -1628,17 +1630,17 @@ function smliser_get_asset_url( $type, $slug, $filename ) {
  * Get the repository base URL or a path within it.
  *
  * @param string $path Optional relative path within the repo.
- * @return string
+ * @return URL
  */
-function smliser_get_repo_url( $path = '' ) {
+function smliser_get_repo_url( $path = '' ) : URL {
     $repo_base = smliser_get_repository_url_prefix();
-    $base_url  = site_url( $repo_base );
+    $url  = url( $repo_base );
 
     if ( $path !== '' ) {
-        return $base_url . '/' . ltrim( $path, '/' );
+        $url    = $url->append_path( $path );
     }
 
-    return $base_url;
+    return $url;
 }
 
 /**
@@ -1683,13 +1685,14 @@ function smliser_get_placeholder_icon( string $type = '' ) : string {
  * Get our uploads url.
  * 
  * @param $path
- * @return string
+ * @return URL
  */
-function smliser_uploads_url( string $path  = '' ) : string {
-    $uploads_rel_path   = 'smliser-uploads';
-    $path               = FileSystemHelper::join_path( $uploads_rel_path, $path );
-    $uploads_url        = site_url( $path );
-    return $uploads_url;
+function smliser_uploads_url( string $path  = '' ) : URL {
+    $rel_path   = 'smliser-uploads';
+    $path       = FileSystemHelper::join_path( $rel_path, $path );
+    
+    return url( $path );
+    
 }
 
 /**
@@ -1725,10 +1728,7 @@ function smliser_avatar_url( string $filename_hash, string $type ) : string {
  * @return \SmartLicenseServer\Core\URL
  */
 function smliser_get_current_url() : URL {
-	$uri = $_SERVER['REQUEST_URI'] ?? '';
-
-    $site_url   = site_url( $uri );
-	return ( new URL( $site_url ) )->sanitize();
+    return url( $_SERVER['REQUEST_URI'] ?? '' );
 }
 
 /**

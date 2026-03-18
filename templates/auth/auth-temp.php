@@ -53,7 +53,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                 /* Translators: %s display name. */
                 printf( esc_html__( 'Logged in as %s', 'smliser' ), esc_html( wp_get_current_user()->display_name ) );
                 ?>
-                <a href="<?php echo esc_url( wp_logout_url( site_url( 'smliser-auth/v1/authorize/?' . http_build_query( $_GET ) ) ) ) ?>">Logout</a>
+                <a href="<?php echo esc_url( wp_logout_url( url( 'smliser-auth/v1/authorize/' )->add_query_params( $_GET ) ) ) ?>">Logout</a>
             </p>
         </div>
 

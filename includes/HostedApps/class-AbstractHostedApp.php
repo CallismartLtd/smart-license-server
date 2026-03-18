@@ -391,7 +391,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
 
             $parts          = [ $download_slug, $type, $slug ];
             $path           = sprintf( '%s.zip', implode( '/', $parts ) );
-            $download_link  = site_url( $path );
+            $download_link  = url( $path );
 
             $this->download_link = self::sanitize_url( $download_link, array( 'http', 'https' ) );            
         }
@@ -1175,8 +1175,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $type               = $this->get_type();
         $path               = implode( '/', [$repostory_prefix, $type, $slug] );
         
-        return ( new URL( site_url() ) )
-            ->set_path( $path );
+        return url( $path );
         
     }
 
