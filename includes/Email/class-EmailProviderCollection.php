@@ -331,7 +331,7 @@ class EmailProviderCollection {
      * This is the default system overriding name.
      */
     public function get_default_sender_email() : string {
-        $url        = new URL( site_url() );
+        $url        = \url();
         $default    = \sprintf( 'smliser@%s', $url->get_host() );
         return (string) $this->settings->get( static::DEFAULT_SENDER_EMAIL_KEY, $default , true );
     }

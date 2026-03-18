@@ -14,7 +14,6 @@ use SmartLicenseServer\Config;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Adapters\WPDBAdapter;
-use SmartLicenseServer\Environments\EnvironmentProviderInterface;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Monetization\DownloadToken;
@@ -43,7 +42,6 @@ class SetUp extends Config {
     private function __construct() {
         $this->setProps();
 
-        add_action( 'plugins_loaded', array( $this, 'bootstrap_files' ) );
         add_action( 'set_current_user', [$this->auth, 'authenticate'] );
         add_action( 'admin_menu', [$this->menu, 'register_menus'] );
         add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
@@ -142,8 +140,10 @@ class SetUp extends Config {
         ProviderCollection::auto_load();
     }
 
-    public static function url() : string {
-        return site_url();
+    public static function url( string $path = '', array $qv = [] ) : URL {
+        return ( new URL( site_url() ) )
+        ->append_path( $path )
+        ->add_query_params( $qv );
     }
     
     public static function assets_url( string $path = '' ) : URL {
@@ -277,7 +277,7 @@ class SetUp extends Config {
      * @since 0.2.0
      */
     public function disable_redirect_on_downloads( $redirect_url, $requested_url ) {
-        $download_slug = site_url( smliser_get_download_url_prefix() );
+        $download_slug = $this->url( smliser_get_download_url_prefix() );
         if ( strpos( $requested_url, $download_slug ) !== false ) {
             return false;
         }

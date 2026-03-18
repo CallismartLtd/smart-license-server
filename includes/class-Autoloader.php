@@ -12,6 +12,8 @@
 
 namespace SmartLicenseServer;
 
+use const DIRECTORY_SEPARATOR;
+
 class Autoloader {
     
     /**
@@ -78,7 +80,7 @@ class Autoloader {
      */
     private static function get_file_path( $base_dir, $class_name ) {
         // Replace namespace separators with directory separators
-        $class_name = str_replace( '\\', \DIRECTORY_SEPARATOR, $class_name );
+        $class_name = str_replace( '\\', DIRECTORY_SEPARATOR, $class_name );
         // Try each prefix
         foreach ( self::$prefixes as $prefix ) {
             // Convert ClassName to class-ClassName.php
@@ -110,13 +112,13 @@ class Autoloader {
      * @return string The complete file path
      */
     private static function class_to_filename( $prefix, $class_name ) {
-        // Split by directory separator
+        // Split by directory separator.
         $parts = explode( DIRECTORY_SEPARATOR, $class_name );
         
-        // Get the last part (actual class name)
+        // Get the last part (actual class name).
         $class_basename = array_pop( $parts );
         
-        // Add prefix to the class name
+        // Add prefix to the class name.
         $filename = $prefix . $class_basename . '.php';
         
         // Rebuild the path: directory/prefix-ClassName.php
@@ -134,7 +136,7 @@ class Autoloader {
      * @param string $base_dir  The base directory
      */
     public static function add_namespace( $namespace, $base_dir ) {
-        self::$namespaces[ $namespace ] = trailingslashit( $base_dir );
+        self::$namespaces[ $namespace ] = rtrim( $base_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
     }
 }
 

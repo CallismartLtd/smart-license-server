@@ -547,4 +547,14 @@ trait SanitizeAwareTrait {
         return $value;
     }
 
+    /**
+     * Ensure a string finishes with the given string
+     * 
+     * @param string $value
+     * @param $char
+     */
+    protected static function finish( string $value, string $char = "\n\r\t\v\0" ) : string {
+        return rtrim( $value, $char ) . $char;
+    }
+
 }

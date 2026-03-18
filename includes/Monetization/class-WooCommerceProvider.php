@@ -11,6 +11,9 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Http\HttpClient;
+use SmartLicenseServer\Http\HttpRequest;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -19,7 +22,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * WooCommerce Monetization Provider Class
  */
 class WooCommerceProvider implements MonetizationProviderInterface {
-    use SanitizeAwareTrait;
+    use SanitizeAwareTrait, CacheAwareTrait;
 
     /**
      * WooCommerce site URL.
@@ -36,12 +39,18 @@ class WooCommerceProvider implements MonetizationProviderInterface {
     protected $checkout_endpoint = '';
 
     /**
+     * HTTP client client API.
+     */
+    private HttpClient $http_client;
+
+    /**
      * Construct provider with target store URL.
      *
      */
     public function __construct() {
-        $this->store_url            = sanitize_url( ProviderCollection::get_option( $this->get_id(), 'store_url' ), array( 'https' ) );
+        $this->store_url            = static::sanitize_web_url( ProviderCollection::get_option( $this->get_id(), 'store_url' ) );
         $this->checkout_endpoint    = static::sanitize_text( ProviderCollection::get_option( $this->get_id(), 'checkout_url' ) );
+        $this->http_client          = new HttpClient();
     }
 
     /**
@@ -78,9 +87,9 @@ class WooCommerceProvider implements MonetizationProviderInterface {
             return $this->checkout_endpoint;
         }
 
-        $product_id = ! empty( $product_id ) ?  trailingslashit( $product_id ) : '{{product_id}}';
-        $base_url   = ! empty( $this->store_url ) ? trailingslashit( $this->store_url ) : '';
-        $checkout   = ! empty( $this->store_url ) ? trailingslashit( $this->checkout_endpoint ) : '';
+        $product_id = ! empty( $product_id ) ?  static::finish( $product_id, '/' ) : '{{product_id}}';
+        $base_url   = ! empty( $this->store_url ) ? static::finish( $this->store_url, '/' ) : '';
+        $checkout   = ! empty( $this->store_url ) ? static::finish( $this->checkout_endpoint, '/' ) : '';
         
         return $base_url . $checkout . $product_id;
     }
@@ -92,58 +101,51 @@ class WooCommerceProvider implements MonetizationProviderInterface {
      * @param bool       $force_refresh Optional. If true, bypass cache. Default false.
      * @return array|null
      */
-    public function get_product( $product_id, $force_refresh = true ) {
-        $product_id   = static::sanitize_int( $product_id );
-        $cache_key    = 'smliser_wc_product_' . md5( $this->store_url . '_' . $product_id );
-        $cache_expiry = 3 * HOUR_IN_SECONDS;
+    public function get_product( $product_id, $force_refresh = false ) :?array {
+        $product_id = static::sanitize_int( $product_id );
+        $cache_key  = static::make_cache_key( __METHOD__, [$product_id, $force_refresh] );
+        $product    = $force_refresh ? false : static::cache_get( $cache_key );
 
         // Return cached result unless bypassing
-        if ( ! $force_refresh ) {
-            $cached = \smliser_cache()->get( $cache_key );
-            if ( false !== $cached ) {
-                return $cached;
-            }
+        if ( false !== $product ) {
+            return $product;
         }
 
-        $endpoint = $this->store_url . '/wp-json/wc/store/v1/products/' . $product_id;
-        $response = wp_remote_get( $endpoint, [
-            'timeout' => 30,
-        ] );
+        $cache_expiry   = static::default_ttl();
+        $endpoint       = $this->store_url . '/wp-json/wc/store/v1/products/' . $product_id;
+        $request        = HttpRequest::get( $endpoint )
+        ->with_options( [ 'timeout' => 30 ] );
 
-        if ( is_smliser_error( $response ) ) {
+        $response = $this->http_client->send( $request );
+
+        if ( ! $response->ok() ) {
             error_log( sprintf(
-                'WooCommerceProvider::get_product() - Request failed for product %d. Error: %s Endpoint: %s',
+                'WooCommerceProvider::get_product() - Request failed for product %d. Error: %s. Endpoint: %s',
                 $product_id,
-                $response->get_error_message(),
+                $response->reason_phrase,
                 $endpoint
             ) );
+
+            static::cache_set( $cache_key, null, $cache_expiry );
             return null;
         }
 
-        $code = wp_remote_retrieve_response_code( $response );
-        if ( 200 !== $code ) {
-            error_log( sprintf(
-                'WooCommerceProvider::get_product() - Invalid response (%d) for product %d Endpoint: %s',
-                $code,
-                $product_id,
-                $endpoint
-            ) );
-            return null;
-        }
+        $product = $response->json();
 
-        $product = json_decode( wp_remote_retrieve_body( $response ), true );
         if ( ! is_array( $product ) ) {
             error_log( sprintf(
                 'WooCommerceProvider::get_product() - Failed to decode JSON for product %d',
                 $product_id
             ) );
+
+            static::cache_set( $cache_key, null, $cache_expiry );
             return null;
         }
 
         $normalized = $this->normalize_product( $product );
 
         // Cache normalized product for future requests
-        \smliser_cache()->set( $cache_key, $normalized, $cache_expiry );
+        static::cache_set( $cache_key, $normalized, $cache_expiry );
 
         return $normalized;
     }

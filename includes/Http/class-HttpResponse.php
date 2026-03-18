@@ -47,6 +47,15 @@ class HttpResponse {
     */
 
     /**
+     * Tells whether the request was ok.
+     * 
+     * @return bool
+     */
+    public function ok() : bool {
+        return $this->is_success();
+    }
+
+    /**
      * Whether the response indicates success (2xx).
      *
      * @return bool

@@ -1501,6 +1501,14 @@ function smliser_download_with_fopen( $url, $timeout ) {
 }
 
 /**
+ * Get the web application URL.
+ * 
+ * @return URL
+ */
+function url( string $path = '', array $query_param = [] ) : URL {
+    return Config::env_provider()->url( $path, $query_param );
+}
+/**
  * Get the database API instance.
  *
  * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.

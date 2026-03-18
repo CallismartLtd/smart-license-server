@@ -241,6 +241,38 @@ class HttpRequest {
         );
     }
 
+    /**
+     * Return a copy of the request with multiple options applied.
+     *
+     * @param array<string, mixed> $options Supported keys:
+     *                                      timeout, verify_ssl,
+     *                                      max_redirects, cookies, sink
+     * @return static
+     */
+    public function with_options( array $options ): static {
+        return new static(
+            method        : $this->method,
+            url           : $this->url,
+            headers       : $this->headers,
+            body          : $this->body,
+            timeout       : isset( $options['timeout'] )
+                ? (int) $options['timeout']
+                : $this->timeout,
+            verify_ssl    : isset( $options['verify_ssl'] )
+                ? (bool) $options['verify_ssl']
+                : $this->verify_ssl,
+            max_redirects : isset( $options['max_redirects'] )
+                ? (int) $options['max_redirects']
+                : $this->max_redirects,
+            cookies       : isset( $options['cookies'] )
+                ? (array) $options['cookies']
+                : $this->cookies,
+            sink          : array_key_exists( 'sink', $options )
+                ? ( $options['sink'] !== null ? (string) $options['sink'] : null )
+                : $this->sink,
+        );
+    }
+
 
     /*
     |----------

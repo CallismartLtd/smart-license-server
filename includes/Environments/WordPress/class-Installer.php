@@ -121,7 +121,6 @@ class Installer {
      * @return bool|Exception True on success, Exception on failure.
      */
     private static function init_repo_dir() {    
-        SetUp::instance()->bootstrap_files();
         return Repository::make_default_directories();
     }
 

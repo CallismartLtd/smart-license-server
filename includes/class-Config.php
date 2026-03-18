@@ -150,6 +150,7 @@ abstract class Config implements EnvironmentProviderInterface {
         $this->parse_config( $config );
         $this->setProps();
         $this->declareGlobalConstants();
+        $this->bootstrap_files();
         $this->setGlobalDBAdapter();
         $this->setGlobalFileSystemAdapter();
         $this->setGlobalSettingsAdapter();
