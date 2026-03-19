@@ -6,11 +6,11 @@
  * @package Smliser\classes
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="application-uploader-page">
-    <?php Menu::print_admin_top_menu(
+    <?php AdminMenu::print_admin_top_menu(
         [
             'breadcrumbs'   => array(
                 array(

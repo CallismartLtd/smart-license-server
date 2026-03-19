@@ -11,6 +11,7 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -79,7 +80,7 @@ $args   = self::get_menu_args();
 ?>
 
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( $args ); ?>
+    <?php AdminMenu::print_admin_top_menu( $args ); ?>
     <?php if ( empty( $license ) ) : ?>
         
         <?php echo wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) ); ?>

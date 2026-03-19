@@ -7,7 +7,7 @@
  * @var SmartLicenseServer\Monetization\License[] $licenses
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -33,7 +33,7 @@ $args   = self::get_menu_args();
 );
 ?>
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( $args ); ?>
+    <?php AdminMenu::print_admin_top_menu( $args ); ?>
     <div class="smliser-app-search-page smliser-table-wrapper">
             <form class="smliser-admin-search" method="GET" action="<?php echo esc_url( $current_url->get_href() ) ?>">
                 <input type="hidden" name="page" value="licenses">

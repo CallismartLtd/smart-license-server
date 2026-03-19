@@ -7,7 +7,7 @@
  * @see \SmartLicenseServer\Admin\OptionsPage::provider_settings()
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit; 
 
@@ -26,7 +26,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
 ?>
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( $args ); ?>
+    <?php AdminMenu::print_admin_top_menu( $args ); ?>
 
     <?php if ( ! $provider ) : ?>
         <?php printf(

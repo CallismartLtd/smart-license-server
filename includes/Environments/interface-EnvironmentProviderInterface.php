@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Environments;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Cache\Cache;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Email\Mailer;
@@ -92,4 +93,11 @@ interface EnvironmentProviderInterface {
      * Get the background job worker instance.
      */
     public function queue_worker(): QueueWorker;
+
+    /**
+     * Get the current request object.
+     * 
+     * @return Request
+     */
+    public function request() : Request;
 }

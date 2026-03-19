@@ -8,13 +8,13 @@
  * @package Smliser\templates
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( self::get_menu_args() ); ?>
+    <?php AdminMenu::print_admin_top_menu( self::get_menu_args() ); ?>
 
     <div class="smliser-admin-body">
         <p>Logs over three months are automatically deleted</p>

@@ -9,7 +9,7 @@
  * @var SmartLicenseServer\Core\URL $url
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 use SmartLicenseServer\Monetization\Monetization,
     SmartLicenseServer\Monetization\ProviderCollection;
@@ -36,7 +36,7 @@ $app = $object->get_app();
 ?>
 
 <div class="smliser-admin-repository-template repo-page">
-    <?php Menu::print_admin_top_menu( self::get_menu_args( $app ) ); ?>
+    <?php AdminMenu::print_admin_top_menu( self::get_menu_args( $app ) ); ?>
     <?php if ( empty( $app ) ) : ?>
         <?php echo wp_kses_post( smliser_not_found_container( 'This app does not exist in the repository <a href="' . smliser_repo_page() . '">Back</a>' ) ); ?>
     <?php else : ?>

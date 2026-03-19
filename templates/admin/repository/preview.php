@@ -9,13 +9,13 @@
  * @var array $template_content Array containing: Icons, Banners, Screenshots
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 
 <div class="smliser-admin-repository-template repo-page">
-    <?php Menu::print_admin_top_menu( self::get_menu_args( isset( $app ) ? $app : null ) ); ?>
+    <?php AdminMenu::print_admin_top_menu( self::get_menu_args( isset( $app ) ? $app : null ) ); ?>
 
     <!-- Hero Section -->
     <section class="smliser-hero-section">

@@ -9,7 +9,7 @@ use const SMLISER_APP_NAME;
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 <div class="smliser-admin-dashboard-template overview">
-    <?php Menu::print_admin_top_menu(
+    <?php AdminMenu::print_admin_top_menu(
         [
             'breadcrumbs'   => array(
                 array(

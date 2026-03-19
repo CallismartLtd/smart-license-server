@@ -177,6 +177,11 @@ class FileRequestController {
             }
             
             $file       = smliser_download_url( $asset_url );
+
+            if ( ! ( $file instanceof FileRequestException ) ) {
+                $file   = (string) $file->sink_path;
+            }
+
             $asset_name = $request->get( 'asset_name' );
             
             $response   = new FileResponse( $file );

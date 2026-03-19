@@ -12,7 +12,7 @@
  * @since   0.2.0
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\Cache\CacheProviderIcons;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -22,7 +22,7 @@ $menu_args = static::get_menu_args();
 $current_url = smliser_get_current_url()->remove_query_param( 'message', 'section', 'provider' );
 ?>
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( $menu_args ); ?>
+    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
 
     <div class="smliser-providers-grid">
         <h2 class="smliser-section-title">Cache Adapters</h2>

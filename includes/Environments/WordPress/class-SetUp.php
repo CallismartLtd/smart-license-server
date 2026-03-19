@@ -8,10 +8,10 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Admin\Menu;
 use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Core\DBConfigDTO;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Adapters\WPDBAdapter;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
@@ -34,7 +34,7 @@ class SetUp extends Config {
 
     protected IdentityService $auth;
     protected ScriptManager $script_manager;
-    protected Menu $menu;
+    protected AdminMenu $menu;
 
     /**
      * Class constructor
@@ -116,7 +116,7 @@ class SetUp extends Config {
         
         $this->auth             = new IdentityService;
         $this->script_manager   = new ScriptManager;
-        $this->menu             = new Menu;
+        $this->menu             = new AdminMenu( $this->request );
     }
 
     /**

@@ -12,7 +12,7 @@
  * @since   0.2.0
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\Cache\CacheProviderIcons;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -76,7 +76,7 @@ if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
 }
 ?>
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( $menu_args ); ?>
+    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
 
     <div class="smlcd-wrap" data-adapter="<?php echo esc_attr( $adapter_id ); ?>">
 

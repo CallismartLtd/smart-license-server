@@ -7,12 +7,12 @@
  * @var \SmartLicenseServer\Core\URL $current_url 
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( $menu_args ); ?>
+    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
     <div class="smliser-table-wrapper">
       
         <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>

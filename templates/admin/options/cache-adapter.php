@@ -13,7 +13,7 @@
  * @since   0.2.0
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -31,7 +31,7 @@ $menu_args['breadcrumbs'][2]['label']   = $adapter_name;
 $current_url = smliser_get_current_url()->remove_query_param( 'message', 'section', 'adapter' );
 ?>
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( $menu_args ); ?>
+    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
     <?php if ( ! $adapter ) : ?>
         <?php printf(
             smliser_not_found_container( 'The cache adapter "%s" does not exists. <a href="%s">Go Back</a>' ),

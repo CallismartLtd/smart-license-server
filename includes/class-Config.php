@@ -20,6 +20,7 @@ use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
 use SmartLicenseServer\Cache\Adapters\RuntimeCacheAdapter;
 use SmartLicenseServer\Cache\CacheAdapterCollection;
 use SmartLicenseServer\Core\DBConfigDTO;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
 use SmartLicenseServer\Database\Adapters\LaravelAdapter;
@@ -95,6 +96,11 @@ abstract class Config implements EnvironmentProviderInterface {
      * @var array $env
      */
     protected ?array $env;
+
+    /**
+     * The current request object.
+     */
+    protected Request $request;
 
     /**
      * The database API abstraction.
@@ -616,6 +622,10 @@ abstract class Config implements EnvironmentProviderInterface {
         }
 
         $this->filesystem    = new FileSystem( $this->filesystemAdapter );
+        
+        if ( ! isset( $this->request ) ) {
+            $this->request = new Request;
+        }
 
     }
 
@@ -752,6 +762,15 @@ abstract class Config implements EnvironmentProviderInterface {
      */
     public function scheduler(): Scheduler {
         return Scheduler::instance( $this->settings );
+    }
+
+    /**
+     * Get the current request object.
+     * 
+     * @return Request
+     */
+    public function request() : Request {
+        return $this->request;
     }
 
     /**

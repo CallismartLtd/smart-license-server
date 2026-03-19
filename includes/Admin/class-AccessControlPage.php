@@ -835,6 +835,6 @@ class AccessControlPage {
             array_unshift( $args['breadcrumbs'], $home );
         }
 
-        Menu::print_admin_top_menu( $args );
+        AdminMenu::print_admin_top_menu( $args );
     }
 }

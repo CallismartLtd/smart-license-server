@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -20,8 +21,12 @@ class DashboardPage {
 
     /**
      * Page router
+     * 
+     * @param Request $request
      */
-    public static function router() {
+    public static function router( Request $request ) {
+
+        pp( $request );
         $tab = smliser_get_query_param( 'tab' );
 
         switch( $tab ) {

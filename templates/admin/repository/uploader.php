@@ -7,8 +7,7 @@
  * @see \SmartLicenseServer\Admin\RepositoryPage::edit_page()
  */
 
-use SmartLicenseServer\Admin\Menu;
-use SmartLicenseServer\FileSystem\Repository;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -27,7 +26,7 @@ if ( ! isset( $app ) ) {
 ?>
 
 <div class="application-uploader-page">
-    <?php Menu::print_admin_top_menu( $args ); ?>
+    <?php AdminMenu::print_admin_top_menu( $args ); ?>
  
 
     <form action="" class="app-uploader-form" id="appUploaderForm">

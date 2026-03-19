@@ -119,8 +119,8 @@ class MessageController {
                     }
             }
 
-            $url    = smliser_bulk_messages_page();
-            $url->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
+            $url    = smliser_bulk_messages_page()
+            ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
             $response = ( new Response( 200, [], '' ) )
                 ->set_header( 'Location', $url->get_href() );

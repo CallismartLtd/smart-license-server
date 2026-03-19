@@ -7,7 +7,7 @@
  * @since 0.2.0
  */
 
-use SmartLicenseServer\Admin\Menu;
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -15,7 +15,7 @@ $menu_args = static::get_menu_args();
 ?>
 
 <div class="smliser-admin-page">
-    <?php Menu::print_admin_top_menu( $menu_args ); ?>
+    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
 
     <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
         <div class="notice notice-success is-dismissible">
