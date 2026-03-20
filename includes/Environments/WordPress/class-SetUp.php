@@ -91,12 +91,12 @@ class SetUp extends Config {
         $db_prefix          = $wpdb?->prefix;
         $filesystem_adapter = new WPFileSystemAdapter;
         $cache_adapter      = wp_using_ext_object_cache() ? new WPCacheAdapter : null;
-        $settings_adapter   = new WPSettingsAdapter;
+        $settings_provider  = new WPSettingsAdapter;
         $database_adapter   = new WPDBAdapter( $wpdb );
         $rest_api_provider  = new RESTAPI( new V1 );
         
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
-        'filesystem_adapter', 'cache_adapter', 'settings_adapter', 'database_adapter',
+        'filesystem_adapter', 'cache_adapter', 'settings_provider', 'database_adapter',
         'rest_api_provider'
         
         );

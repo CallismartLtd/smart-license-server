@@ -793,6 +793,7 @@ abstract class Repository {
             'cache'         => SMLISER_CACHE_DIR,
             'trash'         => SMLISER_TRASH_DIR,
             'uploads'       => SMLISER_UPLOADS_DIR,
+            'tmp'           => SMLISER_TMP_DIR,
         ];
 
         $exception = new Exception();

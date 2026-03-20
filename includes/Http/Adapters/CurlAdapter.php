@@ -66,8 +66,6 @@ class CurlAdapter implements HttpAdapterInterface {
         $errno = curl_errno( $handle );
         $info  = curl_getinfo( $handle );
 
-        curl_close( $handle );
-
         $latency = microtime( true ) - $start;
 
         if ( $sink_handle !== null ) {

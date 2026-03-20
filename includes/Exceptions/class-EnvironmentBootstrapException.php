@@ -36,6 +36,12 @@ class EnvironmentBootstrapException extends Exception {
             'message'   => 'Database configuration DTO must be initialized.'
         ),
 
+        'unsupported_config'   => array(
+            'status'    => 500,
+            'title'     => 'Unsupported Configuration',
+            'message'   => 'The provided configuration is not supported.'
+        ),
+
         'unknown_error'   => array(
             'status'    => 500,
             'title'     => 'Unknown Errro',

@@ -1276,29 +1276,61 @@ function smliser_abort_request( $message = '', $title = '', $args = [] ) {
  *
  * Attempts WordPress download_url, Laravel HTTP client, cURL, or PHP fopen/file_get_contents.
  *
- * @param string|URL $url     URL to download.
- * @param int    $timeout Timeout in seconds (default: 30).
- * @return HttpResponse|FileRequestException
+ * @param string|URL    $url        URL to download.
+ * @param int           $timeout    Timeout in seconds (default: 30).
+ * @param bool          $autoclean  Whether to automatically delete the downloaded file(Default: true).
+ * @return string|FileRequestException
  */
-function smliser_download_url( string|URL $url, $timeout = 30 ) : HttpResponse|FileRequestException {
-    $url  = is_string( $url ) ? new URL( $url ) : $url;
-    // Validate URL.
-    if ( ! $url->is_valid( true ) ) {
-        return new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
+function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean = true ) : string|FileRequestException {
+    try {
+        $url  = is_string( $url ) ? new URL( $url ) : $url;
+        // Validate URL.
+        if ( ! $url->is_valid( true ) ) {
+            throw new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
+        }
+
+        $url        = $url->__toString();
+        $options    = [
+            'timeout'   => max( 1, (int) $timeout )
+        ];
+
+        $destination    = sprintf( '%s/%s', SMLISER_TMP_DIR, uniqid( SMLISER_UPLOAD_TMP_PREFIX ) );
+
+        $response    = ( new HttpClient )
+        ->download( $url, $destination, [], $options );
+
+        if ( $response->is_error() ) {
+            throw new FileRequestException(
+                'http_download_error',
+                $response->reason_phrase,
+                ['status' => $response->status_code]
+            );
+        }
+
+        if ( ! $response->is_download() ) {
+            throw new FileRequestException(
+                'http_download_missing_file',
+                'Downloaded file was corrupted',
+                ['status' => 400]
+            );
+        }
+
+        if ( $autoclean ) {
+            register_shutdown_function( function() use ( $response ){
+                @unlink( $response->sink_path );
+            });            
+        }
+
+        return $response->sink_path;
+
+    } catch ( InvalidArgumentException $e ) {
+        return new FileRequestException(
+            'malformed_request',
+            $e->getMessage()
+        );
+    } catch ( FileRequestException $e ) {
+        return $e;
     }
-
-    $url        = $url->__toString();
-    $options    = [
-        'timeout'   => max( 1, (int) $timeout )
-    ];
-
-    $destination    = sprintf( '%s/%s', sys_get_temp_dir(), uniqid( SMLISER_UPLOAD_TMP_PREFIX ) );
-
-    $response    = ( new HttpClient )
-    ->download( $url, $destination, [], $options );
-
-    return $response;
-    
 }
 
 /**
@@ -1398,6 +1430,15 @@ function smliser_mailer() : Mailer {
  */
 function smliser_scheduler(): \SmartLicenseServer\Background\Schedule\Scheduler {
     return Config::env_provider()->scheduler();
+}
+
+/**
+ * Get the http client instance.
+ * 
+ * @return \SmartLicenseServer\Http\HttpClient
+ */
+function smliser_http_client() : HttpClient {
+    return Config::env_provider()->httpClient();
 }
 
 /**

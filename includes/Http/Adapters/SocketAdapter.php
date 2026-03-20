@@ -87,6 +87,7 @@ class SocketAdapter implements HttpAdapterInterface {
             file_size        : $response->file_size,   // ← propagate
         );
     }
+
     /*
     |---------
     | EXECUTE
@@ -112,12 +113,13 @@ class SocketAdapter implements HttpAdapterInterface {
             );
         }
 
-        $scheme      = $parsed['scheme'] ?? 'http';
-        $host        = $parsed['host'];
-        $port        = $parsed['port'] ?? ( $scheme === 'https' ? 443 : 80 );
-        $path        = ( $parsed['path'] ?? '/' )
+        $scheme = $parsed['scheme'] ?? 'http';
+        $secure = 'https' === $scheme;
+        $host   = $parsed['host'];
+        $port   = $parsed['port'] ?? ( $secure ? 443 : 80 );
+        $path   = ( $parsed['path'] ?? '/' )
             . ( isset( $parsed['query'] ) ? '?' . $parsed['query'] : '' );
-        $socket_host = ( $scheme === 'https' ) ? "ssl://{$host}" : $host;
+        $socket_host = $secure ? "ssl://{$host}" : $host;
 
         $errno  = 0;
         $errstr = '';
@@ -273,7 +275,11 @@ class SocketAdapter implements HttpAdapterInterface {
         while ( ! feof( $socket ) ) {
             if ( microtime( true ) > $deadline ) {
                 fclose( $socket );
-                if ( $sink_handle ) { fclose( $sink_handle ); @unlink( $sink ); }
+                if ( $sink_handle ) {
+                    fclose( $sink_handle );
+                    @unlink( $sink );
+                }
+
                 throw new HttpTimeoutException(
                     'SocketAdapter: timed out while reading server response.'
                 );
@@ -370,7 +376,7 @@ class SocketAdapter implements HttpAdapterInterface {
             cookies          : $cookies,
             redirect_history : [],
             latency          : 0.0,
-            sink_path        : $is_success ? $sink        : null,
+            sink_path        : $is_success ? $sink : null,
             file_size        : $is_success ? $bytes_written : null,
         );
     }

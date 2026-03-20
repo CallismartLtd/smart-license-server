@@ -34,6 +34,7 @@ use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\SettingsAPI\Options;
 use SmartLicenseServer\SettingsAPI\Settings;
@@ -55,9 +56,9 @@ abstract class Config implements EnvironmentProviderInterface {
     /**
      * The current REST API Service Provider
      * 
-     * @var RESTProviderInterface $rest_provider
+     * @var RESTProviderInterface $restProvider
      */
-    protected RESTProviderInterface $rest_provider;
+    protected RESTProviderInterface $restProvider;
 
     /**
      * The cache adapter.
@@ -67,7 +68,7 @@ abstract class Config implements EnvironmentProviderInterface {
     protected CacheAdapterInterface $cacheAdapter;
 
     /**
-     * Settings API adapter.
+     * The user settings storage provider interface.
      * 
      * @var SettingsStorageInterface $settingsStorage
      */
@@ -138,7 +139,7 @@ abstract class Config implements EnvironmentProviderInterface {
      * 
      * @var JobQueue $job_queue
      */
-    protected JobQueue    $job_queue;
+    protected JobQueue $job_queue;
 
     /**
      * Background job worker API.
@@ -148,20 +149,22 @@ abstract class Config implements EnvironmentProviderInterface {
     protected QueueWorker $queue_worker;
 
     /**
+     * The http client API.
+     * 
+     * @var HttpClient $httpClient
+     */
+    protected HttpClient $httpClient;
+
+    /**
      * Environment configuration setup.
      * 
      * @param array $config Array of configuration options
      */
     final protected function setup( array $config ) {
         $this->parse_config( $config );
-        $this->setProps();
         $this->declareGlobalConstants();
         $this->bootstrap_files();
-        $this->setGlobalDBAdapter();
-        $this->setGlobalFileSystemAdapter();
-        $this->setGlobalSettingsAdapter();
-        $this->setGlobalCacheAdapter();
-        $this->setGlobalMailingAdapter();
+        $this->setProps();
         $this->setGlobalQueueAdapter();
     }
 
@@ -184,7 +187,7 @@ abstract class Config implements EnvironmentProviderInterface {
             'uploads_dir'           => '',
             'filesystem_adapter'    => null,
             'cache_adapter'         => null,
-            'settings_adapter'      => null,
+            'settings_provider'     => null,
             'database_adapter'      => null,
             'rest_api_provider'     => null,
 
@@ -193,7 +196,13 @@ abstract class Config implements EnvironmentProviderInterface {
         $parsed_config  = array_intersect_key( array_merge( $default_config, $env_config ), $default_config );
         $missing_config = [];
 
-        $required_keys = [ 'db_prefix', 'absolute_path', 'repo_path', 'uploads_dir' ];
+        $required_keys = [
+            'db_prefix',
+            'absolute_path',
+            'repo_path',
+            'uploads_dir',
+            'rest_api_provider'
+        ];
 
         foreach ( $parsed_config as $key => $value ) {
             if ( in_array( $key, $required_keys, true ) && $value === null ) {
@@ -278,9 +287,10 @@ abstract class Config implements EnvironmentProviderInterface {
         $prop_map   = [
             'filesystem_adapter'    => 'filesystemAdapter',
             'cache_adapter'         => 'cacheAdapter',
-            'settings_adapter'      => 'settingsStorage',
+            'settings_provider'     => 'settingsStorage',
             'database_adapter'      => 'dbadapter',
-            'rest_api_provider'     => 'rest_provider',
+            'rest_api_provider'     => 'restProvider',
+            'http_client'           => 'httpClient'
         ];
 
         foreach ( $prop_map as $env_k => $prop_k ) {
@@ -292,8 +302,37 @@ abstract class Config implements EnvironmentProviderInterface {
             if ( ! isset( $this->env[$env_k] ) ) {
                 continue;
             }
+
+            if ( ! property_exists( $this, $prop_k ) ) {
+                throw new EnvironmentBootstrapException(
+                    'unsupported_config',
+                    sprintf( 'The provided configuration "%s" is not supported.', $prop_k )
+                );
+            }
             
             $this->{$prop_k}    = $this->env[$env_k];
+        }
+
+        // Auto provisions.
+
+        if ( ! isset( $this->database ) ) {
+            $this->setGlobalDBAdapter();
+        }
+
+        if ( ! isset( $this->filesystem ) ) {
+            $this->setGlobalFileSystemAdapter();
+        }
+
+        if ( ! isset( $this->settings ) ) {
+            $this->setGlobalSettingsAdapter();
+        }
+
+        if ( ! isset( $this->cache ) ) {
+            $this->setGlobalCacheAdapter();
+        }
+
+        if ( ! isset( $this->mailer ) ) {
+            $this->setGlobalMailingAdapter();
         }
     }
 
@@ -514,14 +553,7 @@ abstract class Config implements EnvironmentProviderInterface {
          *
          * @var string
          */
-        define( 'SMLISER_NEW_REPO_DIR', $this->env['repo_path'] . '/smliser-repo' );
-
-        /**
-         * Alias for the Smart License Server repository root directory.
-         *
-         * @var string
-         */
-        define( 'SMLISER_REPO_DIR', SMLISER_NEW_REPO_DIR );
+        define( 'SMLISER_REPO_DIR', $this->env['repo_path'] . '/smliser-repo' );
 
         /**
          * Absolute path to the plugin repository directory.
@@ -559,6 +591,13 @@ abstract class Config implements EnvironmentProviderInterface {
         define( 'SMLISER_TRASH_DIR', SMLISER_REPO_DIR . '/.trash' );
 
         /**
+         * Absolute path to the tmp directory.
+         * 
+         * @var string
+         */
+        define( 'SMLISER_TMP_DIR', SMLISER_REPO_DIR . '/tmp' );
+
+        /**
          * Absolute path to the uploads directory.
          * 
          * @var string
@@ -576,20 +615,17 @@ abstract class Config implements EnvironmentProviderInterface {
      * Sets up the global database adapter
      */
     protected function setGlobalDBAdapter() : void {
-        if ( isset( $this->database ) ) {
-            return;
-        }
-
         if ( ! isset( $this->dbadapter ) ) {
             if ( ! isset( $this->dbConfig ) ) {
                 throw new EnvironmentBootstrapException( 'missing_db_config' );
             }
+
             $config = $this->dbConfig;
 
+            /** @var array<class-string, bool> $adapters */
             $adapters   = [
-                LaravelAdapter::class   => class_exists( 'Illuminate\Support\Facades\DB' ),
+                MysqliAdapter::class    => class_exists( 'mysqli' ), // Slightly faster than PDO.
                 PdoAdapter::class       => class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
-                MysqliAdapter::class    => class_exists( 'mysqli' ),
                 SqliteAdapter::class    => 'sqlite' === $config->driver && isset( $config->path ) && class_exists( 'SQLite3' ),
             ];
 
@@ -613,10 +649,6 @@ abstract class Config implements EnvironmentProviderInterface {
      */
     protected function setGlobalFileSystemAdapter() : void {
 
-        if( isset( $this->filesystem ) ) {
-            return;
-        }
-
         if ( ! isset( $this->filesystemAdapter ) ) {
             $this->filesystemAdapter = new DirectFileSystem;
         }
@@ -633,9 +665,6 @@ abstract class Config implements EnvironmentProviderInterface {
      * Sets up the global cache adapter
      */
     protected function setGlobalCacheAdapter() : void {
-        if ( isset( $this->cache ) ) {
-            return;
-        }
 
         if ( ! isset( $this->cacheAdapter ) ) {
             $this->cacheAdapter = CacheAdapterCollection::instance( $this->settings )->get_adapter_with_settings();
@@ -657,12 +686,9 @@ abstract class Config implements EnvironmentProviderInterface {
     }
 
     /**
-     * Sets up the global mailing mailing service to use the default provider.
+     * Sets up the global mailing service to use the default provider.
      */
     protected function setGlobalMailingAdapter() : void {
-        if ( isset( $this->mailer ) ) {
-            return;
-        }
         // Instantiate the email collection with storage.
         $collection     = EmailProviderCollection::instance( $this->settings );
         $this->mailer   = new Mailer( $collection->get_provider_with_settings() );
@@ -696,7 +722,7 @@ abstract class Config implements EnvironmentProviderInterface {
      * Get the namespace
      */
     public function rest_namespace() {
-        return $this->rest_provider->get_namespace();
+        return $this->restProvider->get_namespace();
     }
 
     /**
@@ -771,6 +797,19 @@ abstract class Config implements EnvironmentProviderInterface {
      */
     public function request() : Request {
         return $this->request;
+    }
+
+    /**
+     * Get the global http client.
+     * 
+     * Intentionally lazy loaded
+     */
+    public function httpClient() : HttpClient {
+        if ( ! isset( $this->httpClient ) ) {
+            $this->httpClient = new HttpClient;
+        }
+
+        return $this->httpClient;
     }
 
     /**
