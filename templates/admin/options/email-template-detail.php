@@ -60,7 +60,7 @@ $assets = ( new \SmartLicenseServer\Environments\WordPress\ScriptManager() )->ge
             hasCustom:  <?php echo smliser_safe_json_encode( $has_custom ); ?>,
             backURL:    <?php echo smliser_safe_json_encode( $back_url ); ?>,
             previewHTML:<?php echo smliser_safe_json_encode( $preview_html ); ?>,
-            ajaxURL:    <?php echo smliser_safe_json_encode( admin_url( 'admin-ajax.php' ) ); ?>,
+            ajaxURL:    <?php echo smliser_safe_json_encode( adminUrl( 'admin-ajax.php' ) ); ?>,
             nonce:      <?php echo smliser_safe_json_encode( wp_create_nonce( 'smliser_nonce' ) ); ?>,
         };
     </script>

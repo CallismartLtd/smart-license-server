@@ -15,7 +15,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Repository',
-                    'url'   => admin_url( 'admin.php?page=smliser-repository' ),
+                    'url'   => adminUrl( 'admin.php?page=smliser-repository' ),
                     'icon'  => 'ti ti-home-filled'
                 ),
 

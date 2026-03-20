@@ -199,11 +199,11 @@ final class ScriptManager {
      */
     public function allVars() {
         return array(
-            'ajaxURL'  => admin_url( 'admin-ajax.php' ),
+            'ajaxURL'           => adminUrl( 'admin-ajax.php' )->get_href(),
             'nonce'             => wp_create_nonce( 'smliser_nonce' ),
-            'admin_url'         => admin_url(),
-            'wp_spinner_gif'    => admin_url( 'images/spinner.gif' ),
-            'wp_spinner_gif_2x' => admin_url( 'images/spinner-2x.gif' ),
+            'admin_url'         => \adminUrl()->get_href(),
+            'wp_spinner_gif'    => \adminUrl( 'images/spinner.gif' )->get_href(),
+            'wp_spinner_gif_2x' => \adminUrl( 'images/spinner-2x.gif' )->get_href(),
             'app_search_api'    => rest_url( SetUp::instance()->rest_namespace() . '/repository/' ),
             'default_roles'     => [
                 'roles'         => Role::all( true ),

@@ -55,18 +55,20 @@ function smliser_license_page() {
 }
 
 /**
- * The repository page url function
+ * Get the repository URL.
+ * 
+ * @param string $context
  */
-function smliser_repo_page() {
+function smliser_repo_page( string $context = '' ) : URL {
 
-    if ( is_admin() ) {
-        $url = add_query_arg( array(
-            'page' => 'smliser-repository',
-        ), admin_url( 'admin.php' ) );
-        return $url;
+    if ( 'admin' === $context ) {
+        $url = adminUrl( 'admin.php' )
+        ->add_query_param( 'page', 'smliser-repository' );
+    } else {
+        $url    = url( smliser_get_repository_url_prefix() );
     }
 
-    return url( smliser_get_repository_url_prefix() );
+    return $url;
 }
 
 /**
@@ -158,9 +160,20 @@ function smliser_admin_repo_tab( $tab = 'add-new', $args = array() ) {
     
     $args['tab'] = $tab;
 
-    $url = add_query_arg($args, smliser_repo_page()  );
+    $url = smliser_repo_page( 'admin' )->add_query_params( $args );
 
     return $url;
+}
+
+/**
+ * Get access control page url.
+ * 
+ * @return URL
+ */
+function smliser_access_control_page_url() : URL {
+    return adminUrl( 'admin.php' )->add_query_params([
+        'page'  => 'smliser-access-control',
+    ]);
 }
 
 /**

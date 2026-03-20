@@ -16,7 +16,7 @@ use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-$download_url   = ( new URL( admin_url() ) )
+$download_url   = \adminUrl()
     ->add_query_params([
         'action'            => 'smliser_admin_download',
         'id'                => $license_id,

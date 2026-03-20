@@ -18,7 +18,7 @@ use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
 
 use function defined, smliser_get_query_param, array_unshift, sprintf, time, call_user_func, 
-smliser_json_encode_attr, array_map, admin_url;
+smliser_json_encode_attr;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -793,7 +793,7 @@ class AccessControlPage {
                 array(
                     'title'     => 'Users',
                     'label'     => 'Users',
-                    'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=users' ),
+                    'url'       => smliser_access_control_page_url()->add_query_param( 'tab', 'users' ),
                     'icon'      => 'ti ti-user',
                     'active'    => $tab === 'users'
                 ),
@@ -801,7 +801,7 @@ class AccessControlPage {
                 array(
                     'title'     => 'REST API Service Accounts',
                     'label'     => 'Service Accounts',
-                    'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=service-account' ),
+                    'url'       => smliser_access_control_page_url()->add_query_param( 'tab', 'service-account' ),
                     'icon'      => 'ti ti-robot',
                     'active'    => $tab === 'service-account'
                 ),
@@ -809,7 +809,7 @@ class AccessControlPage {
                 array(
                     'title'     => 'Resource Owners',
                     'label'     => 'Owners',
-                    'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=owners' ),
+                    'url'       => smliser_access_control_page_url()->add_query_param( 'tab', 'owners' ),
                     'icon'      => 'ti ti-source-code',
                     'active'    => $tab === 'owners'
                 ),
@@ -817,7 +817,7 @@ class AccessControlPage {
                 array(
                     'title'     => 'Organizations',
                     'label'     => 'Organizations',
-                    'url'       => admin_url( 'admin.php?page=smliser-access-control&tab=organizations' ),
+                    'url'       => smliser_access_control_page_url()->add_query_param( 'tab', 'organizations' ),
                     'icon'      => 'ti ti-users-group',
                     'active'    => $tab === 'organizations'
                 ),
@@ -827,7 +827,7 @@ class AccessControlPage {
         if ( $tab ) {
             $home = array(
                 'label' => 'Security & Access Control',
-                'url'   => admin_url( 'admin.php?page=smliser-access-control' ),
+                'url'   => smliser_access_control_page_url(),
                 'icon'  => 'ti ti-home'
             );
             

@@ -19,7 +19,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
         <?php if ( empty( $messages ) ) : ?>
             <?php echo wp_kses_post( smliser_not_found_container( '<span class="dashicons dashicons-email-alt"></span> All bulk messages with be listed here' ) ); ?>
         <?php else : ?>
-            <form id="smliser-bulk-action-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <form id="smliser-bulk-action-form" method="post" action="<?php echo esc_url( adminUrl( 'admin-post.php' ) ); ?>">
             
                 <div class="smliser-actions-wrapper">
                     <div class="smliser-bulk-actions">

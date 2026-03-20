@@ -136,7 +136,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                 <?php echo smliser_not_found_container( $message ); ?>       
         <?php else: ?>
 
-            <form id="smliser-bulk-action-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <form id="smliser-bulk-action-form" method="post" action="<?php echo esc_url( adminUrl( 'admin-post.php' ) ); ?>">
                 <div class="smliser-actions-wrapper">
                     <div class="smliser-bulk-actions">
                         <select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>

@@ -57,7 +57,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             </p>
         </div>
 
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) );?>">
+        <form method="post" action="<?php echo esc_url( adminUrl( 'admin-post.php' ) );?>">
             <?php wp_nonce_field( 'smliser_consent_nonce', 'smliser_consent_nonce' ); ?>
             <input type="hidden" name="action" value="smliser_authorize_app">
             <input type="hidden" name="app_name" value="<?php echo esc_attr( $sanitized_params['app_name'] ); ?>">

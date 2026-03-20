@@ -38,7 +38,7 @@ $app = $object->get_app();
 <div class="smliser-admin-repository-template repo-page">
     <?php AdminMenu::print_admin_top_menu( self::get_menu_args( $app ) ); ?>
     <?php if ( empty( $app ) ) : ?>
-        <?php echo wp_kses_post( smliser_not_found_container( 'This app does not exist in the repository <a href="' . smliser_repo_page() . '">Back</a>' ) ); ?>
+        <?php echo wp_kses_post( smliser_not_found_container( 'This app does not exist in the repository <a href="' . smliser_repo_page( 'admin' ) . '">Back</a>' ) ); ?>
     <?php else : ?>
         <div class="smliser-monetization-ui">
             <div class="smliser-monetization-ui__software-info">

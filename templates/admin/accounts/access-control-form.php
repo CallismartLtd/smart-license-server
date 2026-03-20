@@ -35,7 +35,7 @@ if ( $render_image_only ) {
 
     <form  class="smliser-access-control-form" 
         method="post" 
-        action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
+        action="<?php echo esc_url( adminUrl( 'admin-post.php' ) ); ?>"
         aria-labelledby="smliser-form-title"
     >
 
