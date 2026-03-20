@@ -11,13 +11,14 @@
  * @var string $avatar_name
  * @var array $role
  * @var SmartLicenseServer\Security\OwnerSubjects\Organization $organization
+ * @var \SmartLicenseServer\Core\Request $request
  */
 
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-$current_tab        = smliser_get_query_param( 'tab', '' );
-$current_section    = smliser_get_query_param( 'section', '' );
+$current_tab        = $request->get( 'tab', '' );
+$current_section    = $request->get( 'section', '' );
 $render_roles       = in_array( $current_tab, ['service-account', 'users', ], true )
     || in_array( $current_section, ['add-new-member', 'edit-member'], true );
 $render_avatar      = ! in_array( $current_tab, ['owners'] );
@@ -31,7 +32,7 @@ if ( $render_image_only ) {
 ?>
 
 <div class="smliser-admin-repository-template" role="main">
-    <?php self::print_header(); ?>
+    <?php self::print_header( $request ); ?>
 
     <form  class="smliser-access-control-form" 
         method="post" 

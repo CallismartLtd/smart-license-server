@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Core\URL;
@@ -23,48 +24,51 @@ use SmartLicenseServer\Utils\Format;
 class RepositoryPage {
     /**
      * Page router
+     * @param Request $request
      */
-    public static function router() {
-        $tab    = smliser_get_query_param( 'tab' );
+    public static function router( Request $request ) : void {
+        $tab    = $request->get( 'tab' );
         
         switch( $tab ) {
             case 'add-new':
-                self::upload_page();
+                self::upload_page( $request );
                 break;
             case 'edit':
-                self::edit_page();
+                self::edit_page( $request );
                 break;
             case 'view':
-                self::view_page();
+                self::view_page( $request );
                 break;
             case 'monetization':
-                self::monetization_page();
+                self::monetization_page( $request );
                 break;
             case 'search':
-                self::search_page();
+                self::search_page( $request );
                 break;
             default:
-            self::dashboard();
+            self::dashboard( $request );
         }
     }
 
     /**
      * The repository dashboard page
+     * 
+     * @param Request $request
      */
-    private static function dashboard() {
+    private static function dashboard( Request $request ) : void {
         $args = array(
-            'page'      => smliser_get_query_param( 'paged', 1 ),
-            'limit'     => smliser_get_query_param( 'limit', 10 ),
+            'page'      => $request->get( 'paged', 1 ),
+            'limit'     => $request->get( 'limit', 10 ),
         );
 
-        $type   = smliser_get_query_param( 'type', null );
-        $tab    = smliser_get_query_param( 'tab', '' );
+        $type   = $request->get( 'type', null );
+        $tab    = $request->get( 'tab', '' );
         if ( $type ) {
             $args['types']   = $type;
         }
 
-        $status     = \smliser_get_query_param( 'status', AbstractHostedApp::STATUS_ACTIVE );
-        $has_status = (bool) smliser_get_query_param( 'status', false );
+        $status     = $request->get( 'status', AbstractHostedApp::STATUS_ACTIVE );
+        $has_status = (bool) $request->get( 'status', false );
 
         if ( $status ) {
             $args['status'] = $status;
@@ -92,7 +96,7 @@ class RepositoryPage {
     /**
      * Page to search the entire repository.
      */
-    private static function search_page() {
+    private static function search_page( Request $request ) : void {
         $illigal        = ['app_search', 'tab', 'search_status', 's', 'app_types', 'message', 'type', 'status'];
         $current_url    = smliser_get_current_url()->remove_query_param( ...$illigal );
         $add_url        = $current_url
@@ -100,8 +104,8 @@ class RepositoryPage {
         ->remove_query_param( 'status' );
         $post_url   = $current_url->add_query_param( 'tab', 'search' );
         $app_types  = HostedApplicationService::get_allowed_app_types();
-        $limit      = smliser_get_query_param( 'limit', 10 );
-        $page       = smliser_get_query_param( 'paged', 1 );
+        $limit      = $request->get( 'limit', 10 );
+        $page       = $request->get( 'paged', 1 );
         $app_data   = [
             'items' => [], 
             'pagination' => [
@@ -112,12 +116,12 @@ class RepositoryPage {
             ]
         ];
         
-        if ( \smliser_get_query_param( 'app_search', false ) ) {
+        if ( $request->has( 'app_search', false ) ) {
            
             $types          = \rawurldecode( $_GET['app_types'] );
             $types          = str_contains( $types, '|' ) ? explode( '|', $types ) : (array) $types;
-            $search_term    = \smliser_get_request_param( 'app_search', '' );
-            $search_status  = \smliser_get_request_param( 'search_status', 'active' );
+            $search_term    = $request->get( 'app_search', '' );
+            $search_status  = $request->get( 'search_status', 'active' );
             $post_url       = $post_url->add_query_param( 's', $search_term );
 
             $app_data   = HostedApplicationService::search_apps([
@@ -182,8 +186,8 @@ class RepositoryPage {
     /**
      * The upload page
      */
-    private static function upload_page() {
-        $type = smliser_get_query_param( 'type', null );
+    private static function upload_page( Request $request ) {
+        $type = $request->get( 'type', null );
 
         $app_upload_dashboard   = SMLISER_PATH . 'templates/admin/repository/upload.php';
         $app_upload_template    = SMLISER_PATH . 'templates/admin/repository/uploader.php';
@@ -192,7 +196,7 @@ class RepositoryPage {
         $type_title = $type ? ucfirst( $type ) : '';
         $title      = \sprintf( 'Upload New %s', $type_title );
 
-        $essential_fields = self::prepare_essential_app_fields();
+        $essential_fields = self::prepare_essential_app_fields( $request );
         $app_action = array(
             'title' => 'Repository',
             'label' => 'Repository',
@@ -205,9 +209,9 @@ class RepositoryPage {
     /**
      * The edit page
      */
-    private static function edit_page() {
-        $id     = smliser_get_query_param( 'app_id' );
-        $type   = smliser_get_query_param( 'type' );
+    private static function edit_page( Request $request ) {
+        $id     = $request->get( 'app_id' );
+        $type   = $request->get( 'type' );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
             echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page( 'admin' ) ) ) );
@@ -233,7 +237,7 @@ class RepositoryPage {
             ),
             'icon'  => 'ti ti-eye'
         );
-        $essential_fields   = self::prepare_essential_app_fields( $app );
+        $essential_fields   = self::prepare_essential_app_fields( $request, $app );
         $type_title         = ucfirst( $type );
         $file               = sprintf( SMLISER_PATH . 'templates/admin/repository/edit-%s.php', $type );
         include_once $file;
@@ -242,9 +246,9 @@ class RepositoryPage {
     /**
      * View hosted application page
      */
-    private static function view_page() {
-        $id     = smliser_get_query_param( 'app_id' );
-        $type   = smliser_get_query_param( 'type' );
+    private static function view_page( Request $request ) {
+        $id     = $request->get( 'app_id' );
+        $type   = $request->get( 'type' );
         
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
             echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page( 'admin' ) ) ) );
@@ -369,7 +373,7 @@ class RepositoryPage {
     /**
      * Manage plugin monetization page
      */
-    private static function monetization_page() {
+    private static function monetization_page( Request $request ) {
         $url    = \smliser_repo_page( 'admin' );
 
         include_once SMLISER_PATH . 'templates/admin/monetization.php';
@@ -378,10 +382,11 @@ class RepositoryPage {
     /**
      * Prepare essential application fields
      * 
+     * @param Request $request
      * @param AbstractHostedApp|null $app
      */
-    private static function prepare_essential_app_fields( ?AbstractHostedApp $app = null ) {
-        $type               = \smliser_get_query_param( 'type' );
+    private static function prepare_essential_app_fields( Request $request, ?AbstractHostedApp $app = null, ) {
+        $type               = $request->get( 'type' );
         $manifest_filename  = match( $type ) {
             'plugin'    => 'readme.txt',
             'theme'     => 'style.css',
@@ -494,12 +499,13 @@ class RepositoryPage {
     /**
      * Get page menu args
      * 
+     * @param Request $request
      * @param HostedAppsInterface|null $app
      * @return array
      */
-    protected static function get_menu_args( ?HostedAppsInterface $app = null ) : array {
-        $tab        = smliser_get_query_param( 'tab', '' );
-        $app_type   = \ucfirst( $app?->get_type() ?? smliser_get_query_param( 'type', '' ) );
+    protected static function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
+        $tab        = $request->get( 'tab', '' );
+        $app_type   = \ucfirst( $app?->get_type() ?? $request->get( 'type', '' ) );
         $app_name   = $app?->get_name() ?? '';
 
         $title  = match( $tab ) {

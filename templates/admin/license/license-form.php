@@ -8,7 +8,7 @@ use SmartLicenseServer\Environments\WordPress\AdminMenu;
 defined( 'SMLISER_ABSPATH' ) ||  exit; 
 
 /** @var array $args */
-$args   = self::get_menu_args();
+$args   = self::get_menu_args( $request );
 
 if ( 'add-new' !== $tab ) {
     \array_unshift(

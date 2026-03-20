@@ -12,6 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Cache\CacheAdapterCollection;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Email\EmailProviderCollection;
 use SmartLicenseServer\Email\Providers\EmailProviderInterface;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
@@ -25,29 +26,31 @@ class OptionsPage {
 
     /**
      * Page router.
+     * 
+     * @param Request $request
      */
-    public static function router(): void {
-        $tab = smliser_get_query_param( 'tab' );
+    public static function router( Request $request ): void {
+        $tab = $request->get( 'tab' );
 
         switch ( $tab ) {
             case 'routes':
-                self::routes_setting();
+                self::routes_setting( $request );
                 break;
 
             case 'monetization':
-                self::monetization_options();
+                self::monetization_options( $request );
                 break;
 
             case 'email':
-                self::email_options();
+                self::email_options( $request );
                 break;
 
             case 'cache':
-                self::cache_options();
+                self::cache_options( $request );
                 break;
 
             default:
-                self::general_settings();
+                self::general_settings( $request );
         }
     }
 
@@ -60,23 +63,23 @@ class OptionsPage {
     /**
      * General settings page.
      */
-    private static function general_settings(): void {
+    private static function general_settings( Request $request ): void {
         include_once SMLISER_PATH . 'templates/admin/options/general.php';
     }
 
     /**
      * Permalink/routes settings page.
      */
-    private static function routes_setting(): void {
+    private static function routes_setting( Request $request ): void {
         include_once SMLISER_PATH . '/templates/admin/options/routing.php';
     }
 
     /**
      * Monetization providers settings page.
      */
-    private static function monetization_options(): void {
+    private static function monetization_options( Request $request ): void {
         if ( smliser_has_query_param( 'provider' ) ) {
-            self::monetization_provider_settings();
+            self::monetization_provider_settings( $request );
         } else {
             $providers = ProviderCollection::instance()->get_providers();
             include_once SMLISER_PATH . 'templates/admin/options/monetization-providers.php';
@@ -86,8 +89,8 @@ class OptionsPage {
     /**
      * Settings page for an individual monetization provider.
      */
-    private static function monetization_provider_settings(): void {
-        $provider_key = smliser_get_query_param( 'provider' );
+    private static function monetization_provider_settings( Request $request ): void {
+        $provider_key = $request->get( 'provider' );
         $provider     = ProviderCollection::instance()->get_provider( $provider_key );
         $name         = $provider?->get_name() ?? '';
         $id           = $provider?->get_id() ?? '';
@@ -104,14 +107,14 @@ class OptionsPage {
      * individual template when section=templates&template=key,
      * otherwise renders the provider list with global email settings.
      */
-    private static function email_options(): void {
+    private static function email_options( Request $request ): void {
         if ( smliser_has_query_param( 'provider' ) ) {
-            self::email_provider_settings();
+            self::email_provider_settings( $request );
             return;
         }
 
-        if ( smliser_get_query_param( 'section' ) === 'templates' ) {
-            self::email_template_options();
+        if ( $request->get( 'section' ) === 'templates' ) {
+            self::email_template_options( $request );
             return;
         }
 
@@ -129,9 +132,9 @@ class OptionsPage {
      * Dispatches to the single template view when a template key
      * is present, otherwise renders the full template list.
      */
-    private static function email_template_options(): void {
+    private static function email_template_options( Request $request ): void {
         if ( smliser_has_query_param( 'template' ) ) {
-            self::email_template_detail();
+            self::email_template_detail( $request );
             return;
         }
 
@@ -146,8 +149,8 @@ class OptionsPage {
      * Provides the preview render and enable/disable/reset controls
      * for a single template type.
      */
-    private static function email_template_detail(): void {
-        $key   = smliser_get_query_param( 'template' );
+    private static function email_template_detail( Request $request ): void {
+        $key   = $request->get( 'template' );
         $entry = EmailTemplateRegistry::entry( $key );
 
         if ( ! $entry ) {
@@ -165,8 +168,8 @@ class OptionsPage {
     /**
      * Settings page for an individual email provider.
      */
-    private static function email_provider_settings(): void {
-        $provider_key = smliser_get_query_param( 'provider' );
+    private static function email_provider_settings( Request $request ): void {
+        $provider_key = $request->get( 'provider' );
         $collection   = EmailProviderCollection::instance();
         $provider     = $collection->get_provider( $provider_key );
 
@@ -192,14 +195,14 @@ class OptionsPage {
      *   - adapter=<id>   → individual adapter settings
      *   - (default)      → adapter selection grid
      */
-    private static function cache_options(): void {
-        if ( smliser_get_query_param( 'section' ) === 'stats' ) {
-            self::cache_stats();
+    private static function cache_options( Request $request ): void {
+        if ( $request->get( 'section' ) === 'stats' ) {
+            self::cache_stats( $request );
             return;
         }
 
         if ( smliser_has_query_param( 'adapter' ) ) {
-            self::cache_adapter_settings();
+            self::cache_adapter_settings( $request );
             return;
         }
 
@@ -217,7 +220,7 @@ class OptionsPage {
      * so no second adapter instance is created (which would open a second
      * connection on network-backed adapters such as Memcached or Redis).
      */
-    private static function cache_stats(): void {
+    private static function cache_stats( Request $request ): void {
         $cache        = smliser_cache();
         $stats        = $cache->get_stats();
         $adapter_id   = $cache->get_id();
@@ -230,8 +233,8 @@ class OptionsPage {
     /**
      * Settings page for an individual cache adapter.
      */
-    private static function cache_adapter_settings(): void {
-        $adapter_key  = smliser_get_query_param( 'adapter' );
+    private static function cache_adapter_settings( Request $request ): void {
+        $adapter_key  = $request->get( 'adapter' );
         $collection   = CacheAdapterCollection::instance();
         $adapter      = $collection->get_adapter( $adapter_key );
 
@@ -515,9 +518,9 @@ class OptionsPage {
      *
      * @return array<string, mixed>
      */
-    public static function get_menu_args(): array {
-        $tab         = smliser_get_query_param( 'tab' );
-        $section     = smliser_get_query_param( 'section' );
+    public static function get_menu_args( Request $request ): array {
+        $tab         = $request->get( 'tab' );
+        $section     = $request->get( 'section' );
         $current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider', 'adapter', 'template' );
 
         $title = match ( true ) {

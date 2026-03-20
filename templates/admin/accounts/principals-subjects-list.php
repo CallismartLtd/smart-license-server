@@ -6,18 +6,19 @@
  * @see \SmartLicenseServer\Admin\AccessControlPage
  * @var \SmartLicenseServer\Security\Actors\ActorInterface $entity_class
  * @var \SmartLicenseServer\Security\Actors\ActorInterface[] $all
+ * @var \SmartLicenseServer\Core\Request $request
  */
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-admin-repository-template">
-    <?php self::print_header(); ?>
+    <?php self::print_header( $request ); ?>
     
     <div class="smliser-admin-table-body">
 
         <div>
             <a href="<?php echo esc_url( smliser_get_current_url()->add_query_param( 'section', 'add-new' ) ); ?>" class="button action smliser-nav-btn"><?php printf( 'Add %s', esc_html( $type ) ); ?></a>
 
-            <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
+            <?php if ( $message = $request->get( 'message' ) ) : ?>
                 <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
             <?php endif; ?>
         </div>

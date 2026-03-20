@@ -11,7 +11,7 @@ use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-$menu_args = static::get_menu_args();
+$menu_args = static::get_menu_args( $request );
 unset( $menu_args['breadcrumbs'][0] );
 
 ?>

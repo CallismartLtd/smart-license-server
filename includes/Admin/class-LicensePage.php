@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\RESTAPI\Versions\V1;
@@ -20,41 +21,45 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 class LicensePage {
     /**
-     * Page router
+     * Page router.
+     * 
+     * @param Request $request
      */
-    public static function router() {
-        $tab = smliser_get_query_param( 'tab' );
+    public static function router( Request $request ) {
+        $tab = $request->get( 'tab' );
         switch ( $tab ) {
             case 'add-new':
-                self::add_license_page();
+                self::add_license_page( $request );
                 break;
             case 'edit':
-                self::edit_license_page();
+                self::edit_license_page( $request );
                 break;
             case 'view':
-                self::view_license_page();
+                self::view_license_page( $request );
                 break;
             case 'logs':
-                self::license_logs_page();
+                self::license_logs_page( $request );
                 break;
             case 'search':
-                self::search_page();
+                self::search_page( $request );
                 break;    
             default:
-            self::dashboard();
+            self::dashboard( $request );
         }
     
     }
 
     /**
      * The license page dashbard
+     * 
+     * @param Request $request
      */
-    private static function dashboard() : void {
+    private static function dashboard( Request $request ) : void {
         $current_url    = smliser_get_current_url();
-        $limit          = \smliser_get_query_param( 'limit', 20 );
-        $page           = \smliser_get_query_param( 'paged', 1 );
+        $limit          = $request->get( 'limit', 20 );
+        $page           = $request->get( 'paged', 1 );
 
-        if ( $search_term = \smliser_get_query_param( 'search_term' ) ) {
+        if ( $search_term = $request->get( 'search_term' ) ) {
             $license_data   = License::search([
                 'search_term'   => $search_term,
                 'limit'         => $limit,
@@ -74,12 +79,14 @@ class LicensePage {
 
     /**
      * The license page dashbard
+     * 
+     * @param Request $request
      */
-    private static function search_page() : void {
+    private static function search_page( Request $request ) : void {
         $current_url    = smliser_get_current_url();
-        $limit          = \smliser_get_query_param( 'limit', 20 );
-        $page           = \smliser_get_query_param( 'paged', 1 );
-        $search_term    = \smliser_get_query_param( 'search_term' );
+        $limit          = $request->get( 'limit', 20 );
+        $page           = $request->get( 'paged', 1 );
+        $search_term    = $request->get( 'search_term' );
 
         $license_data   = License::search([
             'search_term'   => $search_term,
@@ -97,20 +104,20 @@ class LicensePage {
     /**
      * Add license page
      */
-    private static function add_license_page() {
+    private static function add_license_page( Request $request ) : void {
         $form_fields    = static::get_form_fields();
-        $tab            = \smliser_get_query_param( 'tab' );
+        $tab            = $request->get( 'tab' );
         include_once SMLISER_PATH . 'templates/admin/license/license-form.php';
     }
 
     /**
      * License edit page
      */
-    private static function edit_license_page() : void {
+    private static function edit_license_page( Request $request ) : void {
 
-        $license_id     = smliser_get_query_param( 'license_id' );        
+        $license_id     = $request->get( 'license_id' );        
         $license        = License::get_by_id( $license_id );
-        $tab            = \smliser_get_query_param( 'tab' );
+        $tab            = $request->get( 'tab' );
         
         $form_fields    = static::get_form_fields( $license );
         include_once SMLISER_PATH . 'templates/admin/license/license-form.php';
@@ -120,8 +127,8 @@ class LicensePage {
     /**
      * License view page
      */
-    private static function view_license_page() : void {
-        $license_id         = smliser_get_query_param( 'license_id' );
+    private static function view_license_page( Request $request ) : void {
+        $license_id         = $request->get( 'license_id' );
         $route_descriptions = V1::describe_routes('license');   
 
         $license    = License::get_by_id( $license_id );
@@ -142,7 +149,7 @@ class LicensePage {
     /**
      * License activation log page.
      */
-    private static function license_logs_page() : void {
+    private static function license_logs_page( Request $request ) : void {
         $all_tasks  = RepositoryAnalytics::get_license_activity_logs();
 
         include_once SMLISER_PATH . 'templates/admin/license/logs.php';
@@ -153,9 +160,9 @@ class LicensePage {
      * 
      * @return array
      */
-    protected static function get_menu_args() : array {
-        $tab        = \smliser_get_query_param( 'tab' );
-        $license_id = \smliser_get_query_param( 'license_id' );
+    protected static function get_menu_args( Request $request ) : array {
+        $tab        = $request->get( 'tab' );
+        $license_id = $request->get( 'license_id' );
         $title  = match ( $tab ) {
             'logs'      => 'License Activity Logs',
             'add-new'   => 'Add new license',

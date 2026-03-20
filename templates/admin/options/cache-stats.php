@@ -17,7 +17,7 @@ use SmartLicenseServer\Cache\CacheProviderIcons;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-$menu_args = static::get_menu_args();
+$menu_args = static::get_menu_args( $request );
 
 $extra        = $stats->get( 'extra', [] );
 $hits         = (int) $stats->get( 'hits',         0 );

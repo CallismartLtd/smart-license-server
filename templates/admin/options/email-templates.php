@@ -13,7 +13,7 @@ use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-$menu_args   = static::get_menu_args();
+$menu_args   = static::get_menu_args( $request );
 $current_url = smliser_get_current_url()->remove_query_param( 'message', 'provider' );
 
 /**

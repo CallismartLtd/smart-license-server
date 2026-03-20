@@ -64,7 +64,7 @@ function smliser_get_status_class( $has_issues ) {
 ?>
 
 <div class="smliser-admin-repository-template">
-    <?php self::print_header(); ?>
+    <?php self::print_header( $request ); ?>
 
     <div class="smliser-account-summary-wrapper">
 

@@ -12,7 +12,7 @@ use SmartLicenseServer\Environments\WordPress\AdminMenu;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /** @var array $args */
-$args   = self::get_menu_args();
+$args   = self::get_menu_args( $request );
 
 \array_unshift(
     $args['actions'],
@@ -39,7 +39,7 @@ $args   = self::get_menu_args();
                 <input type="hidden" name="page" value="licenses">
                 <input type="hidden" name="tab" value="search">
                 
-                <input type="search" name="search_term" value="<?php echo smliser_get_query_param( 'search_term' ) ?>" id="smliser-license-search-input" placeholder="Search licenses...">
+                <input type="search" name="search_term" value="<?php echo $request->get( 'search_term' ) ?>" id="smliser-license-search-input" placeholder="Search licenses...">
                 <button type="submit" class="button smliser-btn">Search</button>
             </form>
             

@@ -11,7 +11,7 @@ use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit; 
 
-$args   = static::get_menu_args();
+$args   = static::get_menu_args( $request );
 
 $current_label  = end( $args['breadcrumbs'] )['label'];
 $args['breadcrumbs'][1]  = array(
@@ -36,7 +36,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
         ); ?>
     <?php else: ?>
 
-        <?php if ( $saved = smliser_get_query_param( 'message' ) ):?>
+        <?php if ( $saved = $request->get( 'message' ) ):?>
             <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $saved ); ?></p></div>
         <?php endif;?>
 

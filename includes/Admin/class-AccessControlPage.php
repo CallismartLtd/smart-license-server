@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Core\Collection;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
@@ -17,8 +18,7 @@ use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
 
-use function defined, smliser_get_query_param, array_unshift, sprintf, time, call_user_func, 
-smliser_json_encode_attr;
+use function defined, array_unshift, sprintf, smliser_json_encode_attr;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -29,9 +29,9 @@ class AccessControlPage {
     /**
      * Page router.
      */
-    public static function router() {
-        $tab     = smliser_get_query_param( 'tab' );
-        $section = smliser_get_query_param( 'section' );
+    public static function router( Request $request ) : void {
+        $tab     = $request->get( 'tab' );
+        $section = $request->get( 'section' );
 
         $routes = [
             'users' => [
@@ -60,18 +60,20 @@ class AccessControlPage {
 
         if ( isset( $routes[ $tab ] ) ) {
             $handler = $routes[ $tab ][ $section ] ?? $routes[ $tab ]['default'];
-            call_user_func( $handler );
+            $handler( $request );
             return;
         }
 
-        self::dashboard();
+        self::dashboard( $request );
     }
 
 
     /**
      * Access control page dashbard.
+     * 
+     * @param Request $request
      */
-    public static function dashboard() {
+    public static function dashboard( Request $request ) {
         $account_summaries  = ContextServiceProvider::get_accounts_summary_report();
         include_once SMLISER_PATH . 'templates/admin/accounts/dashboard.php';
     
@@ -79,10 +81,12 @@ class AccessControlPage {
 
     /**
      * Users page.
+     * 
+     * @param Request $request
      */
-    private static function users_page() {
-        $page           = (int) smliser_get_query_param( 'paged', 1 );
-        $limit          = (int) smliser_get_query_param( 'limit', 25 );
+    private static function users_page( $request ) : void {
+        $page           = (int) $request->get( 'paged', 1 );
+        $limit          = (int) $request->get( 'limit', 25 );
         $all            = User::get_all( $page, $limit );
         $entity_class   = User::class;
         $type           = 'user';
@@ -92,9 +96,11 @@ class AccessControlPage {
 
     /**
      * The users creation and edit page
+     * 
+     * @param Request $request
      */
-    private static function users_form_page() {
-        $user_id        = smliser_get_query_param( 'id' );
+    private static function users_form_page( $request ) {
+        $user_id        = $request->get( 'id' );
         $user           = User::get_by_id( (int) $user_id );
 
         $title          = sprintf( '%s User', $user ? 'Edit' : 'Add New' );
@@ -244,10 +250,12 @@ class AccessControlPage {
 
     /**
      * Organizations page.
+     * 
+     * @param Request $request
      */
-    private static function organizations_page() {
-        $page           = (int) smliser_get_query_param( 'paged', 1 );
-        $limit          = (int) smliser_get_query_param( 'limit', 25 );
+    private static function organizations_page( Request $request ) {
+        $page           = (int) $request->get( 'paged', 1 );
+        $limit          = (int) $request->get( 'limit', 25 );
         $all            = Organization::get_all( $page, $limit );
         $entity_class   = Organization::class;
         $type           = 'organization';
@@ -256,12 +264,14 @@ class AccessControlPage {
     }
 
     /**
-     * The organization creation and edit page
+     * The organization creation and edit page.
+     * 
+     * @param Request $request
      */
-    private static function organizations_form_page() {
+    private static function organizations_form_page( Request $request ) {
 
-        $org_id         = smliser_get_query_param( 'id' );
-        $organization   = Organization::get_by_id( (int) $org_id );
+        $org_id         = (int) $request->get( 'id', 0 );
+        $organization   = Organization::get_by_id( $org_id );
 
         $title          = sprintf( '%s Organization', $organization ? 'Edit' : 'Add New' );
         $roles_title    = sprintf( '%s Organization Role', $organization ? 'Update' : 'Set' );
@@ -355,12 +365,14 @@ class AccessControlPage {
 
     /**
      * The organization member creation and edit page.
+     * 
+     * @param Request $request
      */
-    private static function organizations_members_form_page() {
+    private static function organizations_members_form_page( Request $request ) {
 
-        $org_id             = smliser_get_query_param( 'org_id' );
+        $org_id             = $request->get( 'org_id' );
         $organization       = Organization::get_by_id( (int) $org_id );
-        $member_id          = (int) smliser_get_query_param( 'member_id' );
+        $member_id          = (int) $request->get( 'member_id' );
         $member             = $organization?->get_members()->get( $member_id );
         $org_name           = $organization?->get_display_name();
 
@@ -481,20 +493,24 @@ class AccessControlPage {
 
     /**
      * Resource owners.
+     * 
+     * @param Request $request
      */
-    private static function owners_page() {
-        $page   = (int) smliser_get_query_param( 'paged', 1 );
-        $limit  = (int) smliser_get_query_param( 'limit', 25 );
+    private static function owners_page( Request $request ) {
+        $page   = (int) $request->get( 'paged', 1 );
+        $limit  = (int) $request->get( 'limit', 25 );
         $owners = Owner::get_all( $page, $limit );
 
         include_once SMLISER_PATH . 'templates/admin/accounts/owners.php';
     }
 
     /**
-     * The owners creation and edit page
+     * The owners creation and edit page.
+     * 
+     * @param Request $request
      */
-    private static function owners_form_page() {
-        $owner_id           = smliser_get_query_param( 'id' );
+    private static function owners_form_page( Request $request ) {
+        $owner_id           = $request->get( 'id' );
         $owner              = Owner::get_by_id( (int) $owner_id );
 
         $title          = sprintf( '%s Resource Owner', $owner ? 'Edit' : 'Add New' );
@@ -616,10 +632,12 @@ class AccessControlPage {
 
     /**
      * REST API setting page.
+     * 
+     * @param Request $request
      */
-    private static function rest_api_page() {
-        $page           = (int) smliser_get_query_param( 'paged', 1 );
-        $limit          = (int) smliser_get_query_param( 'limit', 25 );
+    private static function rest_api_page( Request $request ) {
+        $page           = (int) $request->get( 'paged', 1 );
+        $limit          = (int) $request->get( 'limit', 25 );
         $all            = ServiceAccount::get_all( $page, $limit );
         $entity_class   = ServiceAccount::class;
         $type           = 'Service Account';
@@ -627,10 +645,12 @@ class AccessControlPage {
     }
 
     /**
-     * The users creation and edit page
+     * The users creation and edit page.
+     * 
+     * @param Request $request
      */
-    private static function rest_api_form_page() {
-        $user_id        = smliser_get_query_param( 'id' );
+    private static function rest_api_form_page( Request $request ) {
+        $user_id        = $request->get( 'id' );
         $sa_acc         = ServiceAccount::get_by_id( (int) $user_id );
 
         $title          = sprintf( '%s Service Account', $sa_acc ? 'Edit' : 'Add New' );
@@ -770,10 +790,12 @@ class AccessControlPage {
     }
 
     /**
-     * Print admin header
+     * Print admin header.
+     * 
+     * @param Request $request
      */
-    protected static function print_header() {
-        $tab        = smliser_get_query_param( 'tab' );
+    protected static function print_header( Request $request ) {
+        $tab        = $request->get( 'tab' );
         $title      = match( $tab ) {
             'users'             => 'Users',
             'organizations'     => 'Organizations',

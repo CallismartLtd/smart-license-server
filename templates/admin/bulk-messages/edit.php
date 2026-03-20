@@ -11,7 +11,7 @@ use SmartLicenseServer\Environments\WordPress\AdminMenu;
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( static::get_menu_args() ); ?>
+    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
     <?php if ( empty( $message ) ) : ?>
         <?php echo smliser_not_found_container( __( 'Invalid or deleted message', 'smliser' ) ); // phpcs:ignore ?>
     <?php else : ?>

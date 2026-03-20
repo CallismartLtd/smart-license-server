@@ -24,7 +24,7 @@ $download_url   = \adminUrl()
         'type'              => 'license_document'
     ]);
 /** @var array $args */
-$args   = self::get_menu_args();
+$args   = self::get_menu_args( $request );
 
 \array_unshift(
     $args['actions'],

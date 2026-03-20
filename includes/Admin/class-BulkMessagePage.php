@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Messaging\BulkMessages;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 
@@ -19,51 +20,60 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class BulkMessagePage {
     /**
      * Page router
+     * 
+     * @param Request $request
      */
-    public static function router() {
-        $tab = smliser_get_query_param( 'tab' );
+    public static function router( Request $request ) : void {
+        $tab = $request->get( 'tab' );
         switch ( $tab ) {
             case 'compose-new':
-                self::compose_message_page();
+                self::compose_message_page( $request );
                 break;
             case 'edit':
-                self::edit_message_page();
+                self::edit_message_page( $request );
                 break;
             case 'search':
-                self::search_page();
+                self::search_page( $request );
                 break;
             default:
-            self::dashboard();
+            self::dashboard( $request );
         }
     
     }
 
     /**
      * Bulk messages page dashbard.
+     * 
+     * @param Request $request
      */
-    private static function dashboard() {
+    private static function dashboard( Request $request ) : void {
         $msg_data       = BulkMessages::get_all();
         $messages       = $msg_data['items'] ?? [];
         $pagination     = $msg_data['pagination'] ?? [];
         $current_url    = smliser_get_current_url();
-        $menu_args      = static::get_menu_args();
+        $menu_args      = static::get_menu_args( $request );
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/dashboard.php';
     
     }
 
     /**
      * Compose message page.
+     * 
+     * @param Request $request
      */
-    private static function compose_message_page() {
+    private static function compose_message_page( Request $request ) : void {
+        $menu_args      = static::get_menu_args( $request );
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/compose.php';
     }
 
     /**
      * Edit message page.
+     * 
+     * @param Request $request
      */
-    private static function edit_message_page() {
-        $message_id = smliser_get_query_param( 'msg_id' );
-        $menu_args  = static::get_menu_args();
+    private static function edit_message_page( Request $request ) : void {
+        $message_id = $request->get( 'msg_id' );
+        $menu_args  = static::get_menu_args( $request );
         $message    = BulkMessages::get_message( $message_id );
    
         include_once SMLISER_PATH . 'templates/admin/bulk-messages/edit.php';
@@ -71,13 +81,15 @@ class BulkMessagePage {
 
     /**
      * Search messages page.
+     * 
+     * @param Request $request
      */
-    private static function search_page() {
+    private static function search_page( Request $request ) : void {
         $current_url    = smliser_get_current_url();
-        $menu_args      = static::get_menu_args();
-        $search         = \smliser_get_query_param( 'msg_search' );
-        $page           = \smliser_get_query_param( 'paged', 1 );
-        $limit          = \smliser_get_query_param( 'limit', 10 );
+        $menu_args      = static::get_menu_args( $request );
+        $search         = $request->get( 'msg_search' );
+        $page           = $request->get( 'paged', 1 );
+        $limit          = $request->get( 'limit', 10 );
         $msg_data       = BulkMessages::search( \compact( 'page', 'search', 'limit' ) );
         $messages       = $msg_data['items'] ?? [];
         $pagination     = $msg_data['pagination'] ?? [];
@@ -89,10 +101,11 @@ class BulkMessagePage {
     /**
      * Get page menu args
      * 
+     * @param Request $request
      * @return array
      */
-    protected static function get_menu_args() : array {
-        $tab    = smliser_get_query_param( 'tab', '' );
+    protected static function get_menu_args( Request $request ) : array {
+        $tab    = $request->get( 'tab', '' );
         $title  = match( $tab ) {
             'edit'          => 'Edit Bulk Message',
             'compose-new'   => 'Compose Bulk Message',
