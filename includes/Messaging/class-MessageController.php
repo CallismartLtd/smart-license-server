@@ -75,7 +75,9 @@ class MessageController {
                 ],
             ];
 
-            return ( new Response( 200, [], \smliser_safe_json_encode( $response_data ) ) )
+            $request->set( 'message_id', $message->get_message_id() );
+
+            return ( new Response( 200, [], $response_data ) )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
         } catch ( RequestException $e ) {

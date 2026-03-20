@@ -169,7 +169,7 @@ class LicensePage {
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Licenses',
-                    'url'   => admin_url( 'admin.php?page=licenses' ),
+                    'url'   => smliser_license_page(),
                     'icon'  => 'dashicons dashicons-admin-home'
                 ),
                 array(

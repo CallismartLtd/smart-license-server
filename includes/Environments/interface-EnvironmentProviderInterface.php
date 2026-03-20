@@ -27,12 +27,20 @@ interface EnvironmentProviderInterface {
     public function load_monetization_providers();
 
     /**
-     * Get the current website URL.
+     * Get the website URL.
      * 
      * @param string $path Optional path.
      * @param array $qv     Optional query param
      */
     public static function url( string $path = '', array $qv = [] ) : URL;
+
+    /**
+     * Get the website URL.
+     * 
+     * @param string $path Optional path.
+     * @param array $qv     Optional query param
+     */
+    public static function adminUrl( string $path = '', array $qv = [] ) : URL;
 
     /**
      * Get the URL for the assets directory.

@@ -26,7 +26,7 @@ $args   = self::get_menu_args();
     array(
         'title'     => 'View Activity Logs',
         'label'     => 'Activity Logs',
-        'url'       => admin_url( 'admin.php?page=licenses&tab=logs' ),
+        'url'       => smliser_license_page()->add_query_param( 'tab', 'logs' ),
         'icon'      => 'ti ti-activity',
     )
 

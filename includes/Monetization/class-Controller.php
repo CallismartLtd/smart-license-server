@@ -369,7 +369,7 @@ class Controller {
                 $license->save() && $affected++;
             }
 
-            $url    = ( new URL( smliser_license_page() ) )
+            $url    = smliser_license_page()
                 ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
             
             $response = ( new Response( 200, [], '' ) )
@@ -551,7 +551,7 @@ class Controller {
             }
 
             $message    = $success ? 'License was deleted' : 'Unable to delete license';
-            $location   = ( new URL( \smliser_license_page() ) )
+            $location   = smliser_license_page()
                 ->add_query_params([
                     'success'   => $success,
                     'message'   => $message
@@ -561,7 +561,7 @@ class Controller {
                 ->set_header( 'Location', $location->get_href() );
         } catch ( RequestException $e ) {
             $message    = $e->get_error_message();
-            $location   = ( new URL( \smliser_license_page() ) )
+            $location   = smliser_license_page()
                 ->add_query_params([
                     'success'   => $success,
                     'message'   => $message

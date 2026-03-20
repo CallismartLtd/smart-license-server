@@ -25,13 +25,11 @@ class DashboardPage {
      * @param Request $request
      */
     public static function router( Request $request ) {
-
-        pp( $request );
-        $tab = smliser_get_query_param( 'tab' );
+        $tab = $request->get( 'tab' );
 
         switch( $tab ) {
             default :
-            self::dashboard();
+            self::dashboard( $request );
         }
     }
 

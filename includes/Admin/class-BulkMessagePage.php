@@ -103,8 +103,8 @@ class BulkMessagePage {
         return [
             'breadcrumbs'   => array(
                 array(
-                    'label' => 'Repository',
-                    'url'   => admin_url( 'admin.php?page=smliser-bulk-message' ),
+                    'label' => 'Bulk Messages',
+                    'url'   => smliser_bulk_messages_page(),
                     'icon'  => 'ti ti-home-filled'
                 ),
 

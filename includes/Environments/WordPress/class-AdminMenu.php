@@ -9,12 +9,15 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Admin\AccessControlPage;
+use SmartLicenseServer\Admin\AdminConfiguration;
 use SmartLicenseServer\Admin\BulkMessagePage;
 use SmartLicenseServer\Admin\LicensePage;
 use SmartLicenseServer\Admin\OptionsPage;
 use SmartLicenseServer\Admin\RepositoryPage;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Environments\WordPress\RESTAPI;
+
+use function add_submenu_page, get_current_screen, sprintf;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -80,83 +83,43 @@ class AdminMenu {
      */
     private Request $request;
 
+    private string $prefix  = 'smliser';
+
+    /**
+     * 
+     */
+    private AdminConfiguration $config;
+
     /**
      * Constructor
      * 
      * @param Request $request The  current request object.
      */
-    public function __construct( Request $request ) {
-        $this->request = $request;
+    public function __construct( AdminConfiguration $config, Request $request ) {
+        $this->config   = $config;
+        $this->request  = $request;
     }
 
     /**
      * Register admin menus.
      */
     public function register_menus() {
-        $this->dasboard_page_id = add_menu_page(
-            SMLISER_APP_NAME,
-            SMLISER_APP_NAME,
-            'manage_options',
-            'smliser-admin',
-            // array( DashboardPage::class, 'router' ),
-            array( $this, 'router' ),
-            self::MENU_ICON,
-            3.1
+        $new_menu   = array(
+            'slug'      => 'api-doc',
+            'title'     => 'API Doc',
+            'handler'   => [RESTAPI::class, 'index_rest_doc']
         );
 
-        $this->repository_page_id = add_submenu_page(
-            'smliser-admin',
-            'Repository',
-            'Repository',
-            'manage_options',
-            'repository',
-            array( RepositoryPage::class, 'router' )
-        );
+        $this->config->register( 'api_doc', $new_menu );
 
-        $this->license_page_id = add_submenu_page(
-            'smliser-admin',
-            'Licenses',
-            'Licenses',
-            'manage_options',
-            'licenses',
-            array( LicensePage::class, 'router' )
-        );
+        $slug   = sprintf( '%s-admin', $this->prefix );
+        add_menu_page( SMLISER_APP_NAME, SMLISER_APP_NAME, 'manage_options', $slug, array( $this, 'dispatch_request' ), self::MENU_ICON, 3.1 );
 
-        $this->bulk_message_page_id = add_submenu_page(
-            'smliser-admin',
-            'Bulk Message',
-            'Bulk Message',
-            'manage_options',
-            'smliser-bulk-message',
-            array( BulkMessagePage::class, 'router' )
-        );
-
-        $this->rest_api_page_id = add_submenu_page(
-            'smliser-admin',
-            'API DOC',
-            'API DOC',
-            'manage_options',
-            'smliser-doc',
-            array( RESTAPI::class, 'index_rest_doc' )
-        );
-
-        $this->accounts_page_id = add_submenu_page(
-            'smliser-admin',
-            'Accounts',
-            'Accounts',
-            'manage_options',
-            'smliser-access-control',
-            array( AccessControlPage::class, 'router' )
-        );
-
-        $this->options_page_id = add_submenu_page(
-            'smliser-admin',
-            'Settings',
-            'Settings',
-            'manage_options',
-            'smliser-options',
-            array( OptionsPage::class, 'router' )
-        );
+        foreach ( $this->config->all() as $key => $menu ) {
+            if ( 'overview' === $key ) continue;
+            $base_slug   = sprintf( '%s-%s', $this->prefix, $menu['slug'] );
+            add_submenu_page( $slug, $menu['title'], $menu['title'], 'manage_options', $base_slug, [$this, 'dispatch_request'] );
+        }
     }
 
     /**
@@ -357,7 +320,28 @@ class AdminMenu {
     /**
      * Dispatch the WordPress menu call to the handler with the request object.
      */
-    public function router() {
-        pp( \get_current_screen() );
+    public function dispatch_request() : void {
+        $screen         = get_current_screen();
+        $page_config    = match( $screen->id ) {
+            'toplevel_page_smliser-admin'                       => $this->config->get( 'overview' ),
+            'smart-license-server_page_smliser-repository'      => $this->config->get( 'repository' ),
+            'smart-license-server_page_smliser-licenses'        => $this->config->get( 'licenses' ),
+            'smart-license-server_page_smliser-bulk-messages'   => $this->config->get( 'bulk_messages' ),
+            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
+            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
+            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
+            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
+            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
+            default                         => '',
+        };
+
+        $handler    = $page_config['handler'] ?? '';
+
+        if ( is_callable( $handler ) ) {
+            $handler( $this->request );
+            return;
+        }
+
+        pp(  \adminUrl() );
     }
 }

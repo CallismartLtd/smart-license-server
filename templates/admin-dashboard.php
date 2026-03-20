@@ -4,6 +4,7 @@
  */
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use const SMLISER_APP_NAME;
 defined( 'SMLISER_ABSPATH' ) || exit;

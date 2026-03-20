@@ -267,7 +267,7 @@ class RepositoryPage {
 
         $repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
 
-        $url                    = new URL( admin_url( 'admin.php?page=repository' ) );
+        $url                    = new URL( admin_url( 'admin.php?page=smliser-repository' ) );
         $download_actions       = [
             'action' => 'smliser_admin_download',
             'type'   => $app->get_type(),
@@ -370,7 +370,7 @@ class RepositoryPage {
      * Manage plugin monetization page
      */
     private static function monetization_page() {
-        $url    = ( new URL( admin_url( 'admin.php?page=repository' ) ) )
+        $url    = ( new URL( admin_url( 'admin.php?page=smliser-repository' ) ) )
         ->remove_query_param( 'message' );
 
         include_once SMLISER_PATH . 'templates/admin/monetization.php';
@@ -515,13 +515,13 @@ class RepositoryPage {
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Repository',
-                    'url'   => admin_url( 'admin.php?page=repository' ),
+                    'url'   => admin_url( 'admin.php?page=smliser-repository' ),
                     'icon'  => 'ti ti-home-filled'
                 ),
 
                 array(
                     'label' => smliser_pluralize( $app?->get_type() ?? $app_type ),
-                    'url'   => admin_url( 'admin.php?page=repository&type=' . $app?->get_type() ?? '' ),
+                    'url'   => admin_url( 'admin.php?page=smliser-repository&type=' . $app?->get_type() ?? '' ),
                     'icon'  => 'ti ti-folder-open'
                 ),
                 array(

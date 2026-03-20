@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
+use SmartLicenseServer\Admin\AdminConfiguration;
 use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Core\DBConfigDTO;
@@ -81,7 +82,7 @@ class SetUp extends Config {
     /**
      * Bootstrap the class properties.
      */
-    private function setProps() {
+    private function setProps() : void {
         static::$envProvider    = $this;
         /** @var \wpdb $wpdb */
         $wpdb               = $GLOBALS['wpdb'] ?? null;
@@ -116,7 +117,7 @@ class SetUp extends Config {
         
         $this->auth             = new IdentityService;
         $this->script_manager   = new ScriptManager;
-        $this->menu             = new AdminMenu( $this->request );
+        $this->menu             = new AdminMenu( new AdminConfiguration, $this->request );
     }
 
     /**
@@ -142,6 +143,12 @@ class SetUp extends Config {
 
     public static function url( string $path = '', array $qv = [] ) : URL {
         return ( new URL( site_url() ) )
+        ->append_path( $path )
+        ->add_query_params( $qv );
+    }
+    
+    public static function adminUrl( string $path = '', array $qv = [] ) : URL {
+        return ( new URL( admin_url() ) )
         ->append_path( $path )
         ->add_query_params( $qv );
     }

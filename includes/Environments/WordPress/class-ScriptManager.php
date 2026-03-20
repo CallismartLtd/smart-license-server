@@ -241,11 +241,11 @@ final class ScriptManager {
         if ( is_admin() ) {
             wp_enqueue_script( 'smliser-modal' );
         }
-        if ( is_admin() && 'toplevel_page_smliser-admin' === $s || 'smart-license-server_page_repository' === $s ) {
+        if ( is_admin() && 'toplevel_page_smliser-admin' === $s || 'smart-license-server_page_smliser-repository' === $s ) {
             wp_enqueue_script( 'smliser-chart' );
         }
 
-        if ( 'smart-license-server_page_repository' === $s ) {
+        if ( 'smart-license-server_page_smliser-repository' === $s ) {
             wp_enqueue_media();
             wp_enqueue_script( 'smliser-apps-uploader' );
             wp_enqueue_script( 'smliser-json-editor' );
@@ -277,7 +277,7 @@ final class ScriptManager {
             wp_enqueue_style( 'smliser-modal' );
         }
 
-        if ( 'smart-license-server_page_repository' === $s ) {
+        if ( 'smart-license-server_page_smliser-repository' === $s ) {
             wp_enqueue_style( 'smliser-apps-uploader' );
             wp_enqueue_style( 'smliser-json-editor' );
         }

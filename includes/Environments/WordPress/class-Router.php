@@ -598,11 +598,11 @@ class Router implements RouterInterface {
         $response = MessageController::save_bulk_message( $request );
 
         if ( $response->ok() && $response->is_json_response() ) {
-            $body = json_decode( $response->get_body(), true );
-            $body['data']['redirect_url'] = admin_url(
-                'admin.php?page=smliser-bulk-message&tab=edit&msg_id=' . ( $body['data']['message_id'] ?? '' )
-            );
-            $response->set_body( smliser_safe_json_encode( $body ) );
+            $body = $response->get_body();
+            $body['data']['redirect_url'] = smliser_bulk_messages_page()
+            ->add_query_params( ['tab' => 'edit', 'msg_id' => $request->get( 'message_id' )] );
+
+            $response->set_body( $body );
         }
 
         $response->send();

@@ -51,13 +51,7 @@ function smliser_debug_enabled() : bool {
  * can be useful to get the url to the License page in all scenerio
  */
 function smliser_license_page() {
-
-    if ( is_admin() ) {
-        $url = add_query_arg( array(
-            'page' => 'licenses',
-        ), admin_url( 'admin.php' ) );
-        return $url;
-    }
+    return adminUrl( 'admin.php', ['page' => 'smliser-licenses'] );
 }
 
 /**
@@ -67,7 +61,7 @@ function smliser_repo_page() {
 
     if ( is_admin() ) {
         $url = add_query_arg( array(
-            'page' => 'repository',
+            'page' => 'smliser-repository',
         ), admin_url( 'admin.php' ) );
         return $url;
     }
@@ -79,9 +73,9 @@ function smliser_repo_page() {
  * Bulk messages URL
  */
 function smliser_bulk_messages_page() : URL {
-    $url    = ( new URL( admin_url() ) )
+    $url    = adminUrl( 'admin.php' )
     ->add_query_params([
-        'page'  => 'smliser-bulk-message'
+        'page'  => 'smliser-bulk-messages'
     ]);
 
     return $url;
@@ -118,19 +112,19 @@ function smliser_is_empty_date( $date_string ) {
  * Action url constructor for admin license page
  * 
  * @param string $action Action query variable for the page.
- * @param int $license_id   The ID of the license. 
+ * @param int $license_id   The ID of the license.
+ * @return \SmartLicenseServer\Core\URL
  */
-function smliser_license_admin_action_page( $action = 'add-new', $license_id = '' ) {
+function smliser_license_admin_action_page( $action = 'add-new', $license_id = '' ) : URL {
     if ( 'edit' === $action || 'view' === $action ) {
-        $url = add_query_arg( array(
+        $url = smliser_license_page()->add_query_params( array(
             'tab'        => $action,
             'license_id'    => $license_id,
-        ), smliser_license_page() );
+        ));
     } else {
-        $url = add_query_arg( array(
-            'tab'    => $action,
-        ), smliser_license_page() );
+        $url = smliser_license_page()->add_query_param( 'tab', $action );
     }
+
     return $url;
 }
 
@@ -1343,6 +1337,18 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
 function url( string $path = '', array $params = [] ) : URL {
     return Config::env_provider()->url( $path, $params );
 }
+
+/**
+ * Get the admin URL.
+ * 
+ * @param string $path Path(optional).
+ * @param array<string, string> $params Associative array of query params.
+ * @return URL
+ */
+function adminUrl( string $path = '', array $params = [] ) : URL {
+    return Config::env_provider()->adminUrl( $path, $params );
+}
+
 /**
  * Get the database API instance.
  *
