@@ -256,7 +256,7 @@ final class ScriptManager {
             wp_enqueue_script( 'smliser-role-builder' );
         }
 
-        if ( 'smart-license-server_page_smliser-options' === $s ) {
+        if ( 'smart-license-server_page_smliser-settings' === $s ) {
             wp_enqueue_script( 'smliser-cache-stats' );
         }
 
@@ -290,7 +290,7 @@ final class ScriptManager {
             wp_enqueue_style( 'smliser-role-builder' );
         }
 
-        if ( 'smart-license-server_page_smliser-options' === $s ) {
+        if ( 'smart-license-server_page_smliser-settings' === $s ) {
             wp_enqueue_style( 'smliser-cache-stats' );
         }
     

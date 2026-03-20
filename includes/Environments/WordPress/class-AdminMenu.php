@@ -329,10 +329,8 @@ class AdminMenu {
             'smart-license-server_page_smliser-bulk-messages'   => $this->config->get( 'bulk_messages' ),
             'smart-license-server_page_smliser-access-control'  => $this->config->get( 'accounts' ),
             'smart-license-server_page_smliser-settings'        => $this->config->get( 'settings' ),
-            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
-            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
-            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
-            default                         => '',
+            'smart-license-server_page_smliser-api-doc'         => $this->config->get( 'api_doc' ),
+            default                                             => '',
         };
 
         $handler    = $page_config['handler'] ?? '';

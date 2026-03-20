@@ -2295,10 +2295,15 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
     if ( allLicenseDomain ) {
         allLicenseDomain.addEventListener( 'click', async e => {
+            if ( 'a' === e.target?.tagName?.toLowerCase() ) {
+                return;
+            }
             const deleteBtn = e.target.closest( '.remove' );
+            if ( ! deleteBtn ) return;
+
             const confirmed = await SmliserModal.confirm( 'Are you sure you want to remove this domain?' );
 
-            if ( ! deleteBtn || ! confirmed ) return;
+            if ( ! confirmed ) return;
 
             const domain    = e.target.closest( '[data-domain-value]' )?.getAttribute( 'data-domain-value' );
 

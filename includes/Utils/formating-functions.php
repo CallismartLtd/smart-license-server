@@ -307,8 +307,8 @@ function smliser_trim_words_utf8( string $text, int $num = 50, ?string $more = n
 /**
  * Helper: Format label from snake_case to readable format
  */
-function smliser_format_label( $label ) {
-    Format::label( $label );
+function smliser_format_label( $label ) : string {
+    return Format::label( $label );
 }
 
 /**
