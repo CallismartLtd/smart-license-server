@@ -180,7 +180,7 @@ class LicensePage {
                 array(
                     'title' => 'Settings',
                     'label' => 'Settings',
-                    'url'   => admin_url( 'admin.php?page=smliser-options'),
+                    'url'   => smliser_options_url(),
                     'icon'  => 'dashicons dashicons-admin-generic'
                 )
             )

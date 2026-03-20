@@ -82,6 +82,18 @@ function smliser_bulk_messages_page() : URL {
 }
 
 /**
+ * The settings page URL
+ */
+function smliser_options_url() : URL {
+    $url    = adminUrl( 'admin.php' )
+    ->add_query_params([
+        'page'  => 'smliser-settings'
+    ]);
+
+    return $url;
+}
+
+/**
  * Not found container
  * 
  * @param string $text Message to show

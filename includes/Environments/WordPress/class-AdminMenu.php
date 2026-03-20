@@ -327,8 +327,8 @@ class AdminMenu {
             'smart-license-server_page_smliser-repository'      => $this->config->get( 'repository' ),
             'smart-license-server_page_smliser-licenses'        => $this->config->get( 'licenses' ),
             'smart-license-server_page_smliser-bulk-messages'   => $this->config->get( 'bulk_messages' ),
-            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
-            'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
+            'smart-license-server_page_smliser-access-control'  => $this->config->get( 'accounts' ),
+            'smart-license-server_page_smliser-settings'        => $this->config->get( 'settings' ),
             'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
             'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
             'toplevel_page_smliser-admin'   => $this->config->get( 'overview' ),
@@ -342,6 +342,6 @@ class AdminMenu {
             return;
         }
 
-        pp(  \adminUrl() );
+        pp( $screen );
     }
 }
