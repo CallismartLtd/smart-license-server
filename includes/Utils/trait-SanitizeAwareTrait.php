@@ -423,7 +423,7 @@ trait SanitizeAwareTrait {
         $items = array_map( 'trim', $items );
         $items = array_filter( $items, fn($item) => $item !== '' );
         
-        return array_map( [ __CLASS__, 'sanitize_text' ], $items );
+        return array_map( [ static::class, 'sanitize_text' ], $items );
     }
 
     /*
@@ -537,10 +537,7 @@ trait SanitizeAwareTrait {
         }
 
         if ( is_array( $value ) ) {
-            return array_map(
-                static fn( $item ) => static::sanitize_auto( $item ),
-                $value
-            );
+            return array_map( [static::class, 'sanitize_auto'], $value );
         }
 
         // Objects / resources are returned untouched by design.
