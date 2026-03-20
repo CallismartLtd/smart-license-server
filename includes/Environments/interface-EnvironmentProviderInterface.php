@@ -35,12 +35,20 @@ interface EnvironmentProviderInterface {
     public static function url( string $path = '', array $qv = [] ) : URL;
 
     /**
-     * Get the website URL.
+     * Get the website admin URL.
      * 
      * @param string $path Optional path.
      * @param array $qv     Optional query param
      */
     public static function adminUrl( string $path = '', array $qv = [] ) : URL;
+
+    /**
+     * Get the website REST API URL.
+     * 
+     * @param string $path Optional path.
+     * @param array $qv     Optional query param
+     */
+    public static function restAPIUrl( string $path = '', array $qv = [] ) : URL;
 
     /**
      * Get the URL for the assets directory.

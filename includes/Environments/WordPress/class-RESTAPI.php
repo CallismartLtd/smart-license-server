@@ -664,7 +664,7 @@ class RESTAPI implements RESTProviderInterface {
                 <h2 class="heading">REST API Documentation</h2>
                 <div class="smliser-api-base-url">
                     <strong>Base URL:</strong>
-                    <code><?php echo esc_url( rest_url() ); ?></code>
+                    <code><?php echo esc_url( restAPIUrl() ); ?></code>
                 </div>
                 
                 <?php foreach ( $rest::describe_routes() as $path => $html ) : 

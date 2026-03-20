@@ -1375,6 +1375,17 @@ function adminUrl( string $path = '', array $params = [] ) : URL {
 }
 
 /**
+ * Get the REST API URL.
+ * 
+ * @param string $path Path(optional).
+ * @param array<string, string> $params Associative array of query params.
+ * @return URL
+ */
+function restAPIUrl( string $path = '', array $params = [] ) : URL {
+    return Config::env_provider()->restAPIUrl( $path, $params );
+}
+
+/**
  * Get the database API instance.
  *
  * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.

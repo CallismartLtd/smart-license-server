@@ -152,6 +152,12 @@ class SetUp extends Config {
         ->append_path( $path )
         ->add_query_params( $qv );
     }
+
+    public static function restAPIUrl( string $path = '', array $qv = [] ) : URL {
+        return ( new URL( rest_url() ) )
+        ->append_path( $path )
+        ->add_query_params( $qv );
+    }
     
     public static function assets_url( string $path = '' ) : URL {
         $path   = FileSystemHelper::join_path( '/assets/', $path );

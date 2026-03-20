@@ -204,7 +204,7 @@ final class ScriptManager {
             'admin_url'         => \adminUrl()->get_href(),
             'wp_spinner_gif'    => \adminUrl( 'images/spinner.gif' )->get_href(),
             'wp_spinner_gif_2x' => \adminUrl( 'images/spinner-2x.gif' )->get_href(),
-            'app_search_api'    => rest_url( SetUp::instance()->rest_namespace() . '/repository/' ),
+            'app_search_api'    => \restAPIUrl( SetUp::instance()->rest_namespace() . '/repository/' ),
             'default_roles'     => [
                 'roles'         => Role::all( true ),
                 'capabilities'  => Capability::get_caps()
