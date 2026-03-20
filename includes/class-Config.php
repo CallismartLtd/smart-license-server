@@ -334,6 +334,10 @@ abstract class Config implements EnvironmentProviderInterface {
         if ( ! isset( $this->mailer ) ) {
             $this->setGlobalMailingAdapter();
         }
+
+        if ( ! isset( $this->request ) ) {
+            $this->request = new Request;
+        }
     }
 
     /**
@@ -654,11 +658,6 @@ abstract class Config implements EnvironmentProviderInterface {
         }
 
         $this->filesystem    = new FileSystem( $this->filesystemAdapter );
-        
-        if ( ! isset( $this->request ) ) {
-            $this->request = new Request;
-        }
-
     }
 
     /**

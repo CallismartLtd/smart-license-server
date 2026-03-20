@@ -3,7 +3,7 @@
  * The Hosted PLugin class file.
  * 
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
- * @package Smliser\classes
+ * @package SmartLicenseServer\HostedApps
  */
 
 namespace SmartLicenseServer\HostedApps;

@@ -3,7 +3,7 @@
  * Software Hosting Controller class file
  * 
  * @author Callistus Nwachukwu
- * @package Smliser\classes\HostedApps
+ * @package SmartLicenseServer\HostedApps
  * @since 0.2.0
  */
 namespace SmartLicenseServer\HostedApps;

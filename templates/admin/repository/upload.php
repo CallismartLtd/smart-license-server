@@ -3,7 +3,7 @@
  * Admin software upload instruction page template
  * 
  * @author Callistus Nwachukwu
- * @package Smliser\classes
+ * @package SmartLicenseServer
  */
 
 use SmartLicenseServer\Environments\WordPress\AdminMenu;

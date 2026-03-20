@@ -3,7 +3,7 @@
  * The license REST API class.
  * 
  * @author Callistus Nwachukwu
- * @package Smliser\classes
+ * @package SmartLicenseServer\RESTAPI
  * @since 0.2.0
  */
 

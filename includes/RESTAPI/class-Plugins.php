@@ -3,7 +3,7 @@
  * The plugin REST API class file
  * 
  * @author Callistus Nwachukwu
- * @package Smliser\classes
+ * @package SmartLicenseServer\RESTAPI
  */
 
 namespace SmartLicenseServer\RESTAPI;

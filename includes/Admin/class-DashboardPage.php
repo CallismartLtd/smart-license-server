@@ -3,7 +3,7 @@
  * The admin dashboard page handler file
  * 
  * @author Callistus Nwachukwu
- * @package Smliser\classes
+ * @package SmartLicenseServer\Admin
  */
 
 namespace SmartLicenseServer\Admin;
