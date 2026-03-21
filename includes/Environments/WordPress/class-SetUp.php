@@ -12,7 +12,6 @@ use SmartLicenseServer\Admin\AdminConfiguration;
 use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Core\DBConfigDTO;
-use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Adapters\WPDBAdapter;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
@@ -20,7 +19,7 @@ use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
-use SmartLicenseServer\SettingsAPI\WPSettingsAdapter;
+use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
 
 /**
  * WordPress Environment setup class
@@ -92,7 +91,7 @@ class SetUp extends Config {
         $db_prefix          = $wpdb?->prefix;
         $filesystem_adapter = new WPFileSystemAdapter;
         $cache_adapter      = wp_using_ext_object_cache() ? new WPCacheAdapter : null;
-        $settings_provider  = new WPSettingsAdapter;
+        $settings_provider  = new WPSettingsProvider;
         $database_adapter   = new WPDBAdapter( $wpdb );
         $rest_api_provider  = new RESTAPI( new V1 );
         
@@ -166,6 +165,8 @@ class SetUp extends Config {
     }
 
     /**
+     * {@inheritdoc}
+     * 
      * Check key filesystem directories for read/write access and print admin notice if not writable.
      *
      * Uses a transient to avoid repeated expensive filesystem checks.
@@ -423,10 +424,17 @@ class SetUp extends Config {
 
     /**
      * Register Custom WordPress Cron Intervals.
+     * 
+     * @param array $schedules
      */
-    public function register_cron( $schedules ) {
+    public function register_cron( $schedules ) : array {
+        // Safety checks.
+        if ( ! is_array( $schedules ) ) {
+            $schedules  = (array) $schedules;
+        }
+
         $schedules['smliser_every_minute'] = array(
-            'interval' => WP_CRON_LOCK_TIMEOUT,
+            'interval' => MINUTE_IN_SECONDS,
             'display'  => 'Every Minute',
         );
 
@@ -439,6 +447,7 @@ class SetUp extends Config {
             'interval' => 4 * HOUR_IN_SECONDS,
             'display'  => 'Four Hourly',
         );
+
         return $schedules;
     }
 

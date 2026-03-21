@@ -386,7 +386,7 @@ class RepositoryPage {
      * @param AbstractHostedApp|null $app
      */
     private static function prepare_essential_app_fields( Request $request, ?AbstractHostedApp $app = null, ) {
-        $type               = $request->get( 'type' );
+        $type               = $request->getTyped( 'type', 'string', '' );
         $manifest_filename  = match( $type ) {
             'plugin'    => 'readme.txt',
             'theme'     => 'style.css',

@@ -2,9 +2,6 @@
 /**
  * Abstract Settings Implementation with Caching.
  *
- * This class provides a centralized implementation for common utilities like
- * in-memory caching and key prefixing, minimizing redundant code in adapters.
- *
  * @package SmartLicenseServer\SettingsAPI
  * @author  Callistus Nwachukwu
  * @since   0.2.0
@@ -12,12 +9,15 @@
 
 declare( strict_types=1 );
 
-namespace SmartLicenseServer\SettingsAPI;
+namespace SmartLicenseServer\SettingsAPI\Providers;
+
+use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 
 /**
- * Provides caching and utility methods for all settings adapters.
+ * Abstract implementation of settings storage API, provides efficient in-memory caching
+ * for retrieved settings to avoid frequent storage hit.
  *
- * Concrete adapters must extend this class and implement the abstract do_* methods.
+ * Concrete adapters must extend this class and implement the abstract `do_*` methods.
  *
  * @since 0.2.0
  */
@@ -47,7 +47,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 */
 	protected function prefix_key( string $key ): string {
 
-		if ( \str_starts_with( $key, $this->prefix  ) ) {
+		if ( \str_starts_with( $key, $this->prefix ) ) {
 			return $key;
 		}
 

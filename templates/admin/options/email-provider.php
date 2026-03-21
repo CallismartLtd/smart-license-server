@@ -41,6 +41,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
     <?php else: ?>
         <form action="" class="smliser-options-form">
+            <span> <a href="<?php echo esc_url( $current_url->get_href() ) ?>" class="smliser-btn"> <i class="ti ti-arrow-back"></i></a></span>
             <input type="hidden" name="action"      value="smliser_save_email_provider_settings" />
             <input type="hidden" name="provider_id" value="<?php echo esc_attr( $provider_id ); ?>" />
 

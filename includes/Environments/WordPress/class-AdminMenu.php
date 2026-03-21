@@ -25,57 +25,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * The admin menu class handles all admin menu registry and routing.
  */
 class AdminMenu {
-    const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSBzY2FsZSgxLjQpIHRyYW5zbGF0ZSgtMTAsIC0xMCkiPgogICAgPHJlY3QgeD0iNC40IiB5PSI1LjYiIHdpZHRoPSIxMS4yIiBoZWlnaHQ9IjIiIHJ4PSIwLjYiIGZpbGw9ImN1cnJlbnRDb2xvciIvPgogICAgPHJlY3QgeD0iNC40IiB5PSI4LjQiIHdpZHRoPSIxMS4yIiBoZWlnaHQ9IjIiIHJ4PSIwLjYiIGZpbGw9ImN1cnJlbnRDb2xvciIvPgogICAgPHJlY3QgeD0iNC40IiB5PSIxMS4yIiB3aWR0aD0iMTEuMiIgaGVpZ2h0PSIyIiByeD0iMC42IiBmaWxsPSJjdXJyZW50Q29sb3IiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjYuNiIgcj0iMC41IiBmaWxsPSIjMDAwIiBvcGFjaXR5PSIwLjMiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjkuNCIgcj0iMC41IiBmaWxsPSIjMDAwIiBvcGFjaXR5PSIwLjMiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjEyLjIiIHI9IjAuNSIgZmlsbD0iIzAwMCIgb3BhY2l0eT0iMC4zIi8+CiAgICA8cGF0aCBkPSJNMTAgNCBMMTMuNiA1LjYgVjkuMiBDMTMuNiAxMiAxMS42IDE0IDEwIDE0LjggQzguNCAxNCA2LjQgMTIgNi40IDkuMiBWNS42IFoiIGZpbGw9ImN1cnJlbnRDb2xvciIvPgogICAgPGNpcmNsZSBjeD0iMTAiIGN5PSI4LjgiIHI9IjEiIGZpbGw9IiMwMDAiIG9wYWNpdHk9IjAuNCIvPgogICAgPHJlY3QgeD0iOS40IiB5PSI4LjgiIHdpZHRoPSIxLjIiIGhlaWdodD0iMi40IiByeD0iMC4zIiBmaWxsPSIjMDAwIiBvcGFjaXR5PSIwLjQiLz4KICA8L2c+Cjwvc3ZnPgo=';
+    const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSBzY2FsZSgxLjQpIHRyYW5zbGF0ZSgtMTAsIC0xMCkiPgogICAgPHJlY3QgeD0iNC40IiB5PSI1LjYiIHdpZHRoPSIxMS4yIiBoZWlnaHQ9IjIiIHJ4PSIwLjYiIGZpbGw9IiNhN2FhYWQiLz4KICAgIDxyZWN0IHg9IjQuNCIgeT0iOC40IiB3aWR0aD0iMTEuMiIgaGVpZ2h0PSIyIiByeD0iMC42IiBmaWxsPSIjYTdhYWFkIi8+CiAgICA8cmVjdCB4PSI0LjQiIHk9IjExLjIiIHdpZHRoPSIxMS4yIiBoZWlnaHQ9IjIiIHJ4PSIwLjYiIGZpbGw9IiNhN2FhYWQiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjYuNiIgcj0iMC41IiBmaWxsPSIjMzMzIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjkuNCIgcj0iMC41IiBmaWxsPSIjMzMzIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjEyLjIiIHI9IjAuNSIgZmlsbD0iIzMzMyIgb3BhY2l0eT0iMC40Ii8+CiAgICA8cGF0aCBkPSJNMTAgNCBMMTMuNiA1LjYgVjkuMiBDMTMuNiAxMiAxMS42IDE0IDEwIDE0LjggQzguNCAxNCA2LjQgMTIgNi40IDkuMiBWNS42IFoiIGZpbGw9IiNhN2FhYWQiLz4KICAgIDxjaXJjbGUgY3g9IjEwIiBjeT0iOC44IiByPSIxIiBmaWxsPSIjMzMzIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxyZWN0IHg9IjkuNCIgeT0iOC44IiB3aWR0aD0iMS4yIiBoZWlnaHQ9IjIuNCIgcng9IjAuMyIgZmlsbD0iIzMzMyIgb3BhY2l0eT0iMC40Ii8+CiAgPC9nPgo8L3N2Zz4=';
     
-    /**
-     * The dashboard page ID.
-     * 
-     * @var string
-     */
-    public $dasboard_page_id;
-
-    /**
-     *  The repository page ID
-     * 
-     * @var string
-     */
-    public $repository_page_id;
-
-    /**
-     * License page ID.
-     * 
-     * @var string
-     */
-    public $license_page_id;
-
-    /**
-     * Bulk messaging page ID.
-     * 
-     * @var string
-     */
-    public $bulk_message_page_id;
-
-    /**
-     * REST API page ID.
-     * 
-     * @var string
-     */
-    public $rest_api_page_id;
-
-    /**
-     * Accounts page ID.
-     * 
-     * @var string
-     */
-    public $accounts_page_id;
-
-    /**
-     * Options page ID.
-     * 
-     * @var string
-     */
-    public $options_page_id;
-
     /**
      * The current request object
      * 
@@ -337,9 +288,6 @@ class AdminMenu {
 
         if ( is_callable( $handler ) ) {
             $handler( $this->request );
-            return;
         }
-
-        pp( $screen );
     }
 }

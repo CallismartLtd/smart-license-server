@@ -12,7 +12,7 @@
 
 declare( strict_types=1 );
 
-namespace SmartLicenseServer\SettingsAPI;
+namespace SmartLicenseServer\SettingsAPI\Providers;
 
 /**
  * Concrete adapter class to manage settings storage using the WordPress Options API.
@@ -21,7 +21,7 @@ namespace SmartLicenseServer\SettingsAPI;
  *
  * @since 0.2.0
  */
-class WPSettingsAdapter extends AbstractSettings {
+class WPSettingsProvider extends AbstractSettings {
 
 	/**
 	 * Concrete implementation for retrieving a setting from the WordPress options table.

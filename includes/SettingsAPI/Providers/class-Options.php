@@ -1,9 +1,6 @@
 <?php
 /**
- * Options API.
- *
- * Concrete adapter class that uses our custom settings table in the database
- * to manage user options across all supported host environments.
+ * Options API class file.
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\SettingsAPI
@@ -12,12 +9,12 @@
 
 declare( strict_types=1 );
 
-namespace SmartLicenseServer\SettingsAPI;
+namespace SmartLicenseServer\SettingsAPI\Providers;
 
 use SmartLicenseServer\Database\Database;
 
 /**
- * Concrete class that uses our custom settings table in the database to manage user options.
+ * Core option class that uses our custom settings table in the database to manage user options.
  *
  * This class implements the abstract do_* methods from AbstractSettings by using
  * the injected DatabaseAdapterInterface implementation.

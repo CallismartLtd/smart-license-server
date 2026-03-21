@@ -304,10 +304,10 @@ class EmailProviderCollection {
      * @return bool
      */
     public static function update_provider_settings( string $provider_id, array $settings ): bool {
-        $storage     = static::instance()->settings;
-        $all_options = $storage->get( static::SETTINGS_KEY, [], true );
-        $all_options[ $provider_id ] = $settings;
-        $saved = $storage->set( static::SETTINGS_KEY, $all_options, true );
+        $storage                        = static::instance()->settings;
+        $all_options                    = $storage->get( static::SETTINGS_KEY, [], true );
+        $all_options[ $provider_id ]    = $settings;
+        $saved                          = $storage->set( static::SETTINGS_KEY, $all_options, true );
 
         if ( $saved ) {
             unset( static::$options_cache[ $provider_id ] );

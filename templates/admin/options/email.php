@@ -1,6 +1,6 @@
 <?php
 /**
- * Email settings template.
+ * Email service providers settings template file.
  *
  * Renders global email settings and the provider selection grid.
  * Variables available from OptionsPage::email_options():

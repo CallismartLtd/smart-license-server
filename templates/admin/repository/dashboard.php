@@ -187,7 +187,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                                 <td><?php echo esc_html( $app->get_version() ); ?></td>
                                 <td><?php echo esc_html( $app->get_slug() ); ?></td>
                                 <td><?php echo esc_html( $app->get_status() ); ?></td>
-                                <td><?php echo esc_html( $app->get_updated_at() ); ?></td>
+                                <td><?php echo esc_html( date( smliser_datetime_format(), strtotime( $app->get_updated_at() ) ) ); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

@@ -1,9 +1,6 @@
 <?php
 /**
- * The Settings API file
- *
- * This class is the Settings Manager/Service Locator, responsible for detecting
- * the current environment and initializing the correct persistence adapter.
+ * The Settings API file.
  *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\SettingsAPI
@@ -14,10 +11,11 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\SettingsAPI;
 
+use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
+
 /**
- * The Settings class handles the default and end-user defined settings for this application.
- *
- * It is a Singleton that manages the primary persistence adapter instance.
+ * The Settings class is the wrapper around the settings API, all settings methods are delegated to the
+ * underlying storage provider.
  *
  * @method mixed get( string $key, mixed $default, bool $use_prefix ) Retrieves the value of a specific setting key from storage.
  * @method bool set( string $key, mixed $value, bool $use_prefix ) Stores or updates the value of a specific setting key in storage (persistence).

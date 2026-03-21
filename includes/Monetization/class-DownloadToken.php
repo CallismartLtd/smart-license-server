@@ -305,20 +305,23 @@ class DownloadToken {
      * Convert database row or array into a DownloadToken object.
      * 
      * @param array $data
-     * @return self
+     * @return static
      */
-    private static function from_array( array $data ) : self {
-        $self = new self();
-        $self->set_id( $data['id'] ?? 0 );
-        if ( ! empty( $data['app_prop'] ) && preg_match( '#^[^/]+/[^/]+$#', $data['app_prop'] ) ) {
-            list( $type, $slug ) = explode( '/', $data['app_prop'], 2 );
-            $self->set_app_prop( $type, $slug );
-        }
-        $self->set_license_key( $data['license_key'] ?? '' );
-        $self->set_token( $data['token'] ?? '' );
-        $self->set_expiry( intval( $data['expiry'] ?? 0 ) );
+    public static function from_array( array $data ) : static {
+        $static = new static();
+        $static->set_id( $data['id'] ?? 0 );
 
-        return $self;
+        $app_prop   = $data['app_prop'] ?? '';
+        if ( is_string( $app_prop ) && preg_match( '#^[^/]+/[^/]+$#', $app_prop ) ) {
+            list( $type, $slug ) = explode( '/', $app_prop, 2 );
+            $static->set_app_prop( $type, $slug );
+        }
+
+        $static->set_license_key( $data['license_key'] ?? '' )
+            ->set_token( $data['token'] ?? '' )
+            ->set_expiry( intval( $data['expiry'] ?? 0 ) );
+
+        return $static;
     }
 
     /**
@@ -332,27 +335,28 @@ class DownloadToken {
      * 
      * @param License $license The license object.
      * @param int $expiry The license expiry duration in seconds.
-     * @throws SmartLicenseServer\Exception
+     * @throws \SmartLicenseServer\Exceptions\Exception
+     * @return string
      */
-    public static function create_token( License $license, $expiry = 86400 ) {
+    public static function create_token( License $license, $expiry = 86400 ) : string {
         // We cant issue token for a license that is not issued
         if ( ! $license->is_issued() ) {
             throw new Exception( 'download_token_error', 'License must be issued to an application first', ['status' => 400] );
         }
 
-        $self = new self();
+        $static = new static();
         $app_type   = $license->get_app()->get_type();
         $app_slug   = $license->get_app()->get_slug() ;
         $expiry     = time() + (int) $expiry;
 
-        $self->set_app_prop( $app_type, $app_slug );
-        $self->set_license_key( $license->get_license_key() );
-        $self->set_expiry( $expiry );
+        $static->set_app_prop( $app_type, $app_slug );
+        $static->set_license_key( $license->get_license_key() );
+        $static->set_expiry( $expiry );
 
-        $raw_token  = self::generate_token();
-        $secret     = self::derive_key();
+        $raw_token  = static::generate_token();
+        $secret     = static::derive_key();
 
-        $self->set_token( \hash_hmac( 'sha256', $raw_token, $secret ) );
+        $static->set_token( \hash_hmac( 'sha256', $raw_token, $secret ) );
 
         $payload = [
             'license_id'    => $license->get_id(),
@@ -366,13 +370,13 @@ class DownloadToken {
         $signature          = \hash_hmac( 'sha256', $encoded_payload, $secret );
 
 
-        if ( ! $self->save() ) {
+        if ( ! $static->save() ) {
             throw new Exception( 'download_token_error', 'Unable to save token in the database', ['status' => 500] );
         }
 
         $token = sprintf( '%s.%s', $encoded_payload, $signature );
 
-        return self::base64url_encode( $token );
+        return static::base64url_encode( $token );
 
     }
 

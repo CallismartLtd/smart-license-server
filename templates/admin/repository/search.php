@@ -19,13 +19,13 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
     <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
     <div class="smliser-table-wrapper">
       
-        <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
+        <?php if ( $message = $request->get( 'message' ) ) : ?>
             <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
         <?php endif; ?>
 
         <div class="smliser-app-search-page smliser-table-wrapper">
             <form class="smliser-admin-search" method="GET" action="<?php echo esc_url( $current_url->get_href() ) ?>">
-                <input type="hidden" name="page" value="repository">
+                <input type="hidden" name="page" value="smliser-repository">
                 <input type="hidden" name="tab" value="search">
                 <select name="app_types" id="app_types" class="smliser-app-type-select">
                     <option value="<?php echo implode( '|', $app_types ); ?>">All</option>
@@ -33,7 +33,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         <option value="<?php echo esc_html( $type ); ?>"><?php echo esc_html( ucfirst( $type ) ); ?></option>
                     <?php endforeach; ?>
                 </select>
-                <input type="search" name="app_search" value="<?php echo smliser_get_query_param( 'app_search' ) ?>" id="smliser-app-search-input" placeholder="Search apps">
+                <input type="search" name="app_search" value="<?php echo $request->get( 'app_search' ) ?>" id="smliser-app-search-input" placeholder="Search apps">
                 <button type="submit" class="button smliser-btn">Search</button>
             </form>
 
@@ -53,10 +53,10 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 </thead>
                 <tbody>
                     <?php if ( empty( $apps ) ) : ?>
-                        <?php if ( smliser_get_query_param( 'app_search' ) ) :
+                        <?php if ( $request->get( 'app_search' ) ) :
                             $message    = sprintf(
                                 'No app found matching the search term "%s". <a href="%s">Reset Search</a>',
-                                esc_html( smliser_get_query_param( 'app_search' ) ),
+                                esc_html( $request->get( 'app_search' ) ),
                                 esc_url( $current_url->add_query_param( 'tab', 'search' )->get_href() )
                             );
                         else:
@@ -86,7 +86,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                             <td><?php echo esc_html( $app->get_version() ); ?></td>
                             <td><?php echo esc_html( $app->get_slug() ); ?></td>
                             <td><?php echo esc_html( $app->get_status() ); ?></td>
-                            <td><?php echo esc_html( $app->get_updated_at() ); ?></td>
+                            <td><?php echo esc_html( date( smliser_datetime_format(), strtotime( $app->get_updated_at() ) ) ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

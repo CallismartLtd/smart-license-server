@@ -15,8 +15,8 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
         <table class="smliser-table widefat striped">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Name</th>
+                    <th>Provider ID</th>
+                    <th>Provider Name</th>
                     <th>Action</th>
                 </tr>
             </thead>

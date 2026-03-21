@@ -29,7 +29,7 @@ trait DatePropertyAwareTrait {
 
         try {
             $date   = new DateTimeImmutable( $date );
-        } catch ( Throwable $e ) {
+        } catch ( Throwable ) {
             return $this;
         }
 

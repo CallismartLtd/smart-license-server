@@ -14,16 +14,13 @@ use SmartLicenseServer\Background\Queue\Adapters\DatabaseJobStorageAdapter;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Background\Workers\QueueWorker;
-use SmartLicenseServer\Cache\Adapters\ApcuCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
-use SmartLicenseServer\Cache\Adapters\RuntimeCacheAdapter;
 use SmartLicenseServer\Cache\CacheAdapterCollection;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
-use SmartLicenseServer\Database\Adapters\LaravelAdapter;
 use SmartLicenseServer\Database\Adapters\MysqliAdapter;
 use SmartLicenseServer\Database\Adapters\PdoAdapter;
 use SmartLicenseServer\Database\Adapters\SqliteAdapter;
@@ -36,9 +33,9 @@ use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
-use SmartLicenseServer\SettingsAPI\Options;
+use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Settings;
-use SmartLicenseServer\SettingsAPI\SettingsStorageInterface;
+use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
