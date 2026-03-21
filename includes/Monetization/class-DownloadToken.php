@@ -198,7 +198,7 @@ class DownloadToken {
      * @return bool True on success, false otherwise
      */
     private function save() : bool {
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
         $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
 
         $data = [
@@ -232,7 +232,7 @@ class DownloadToken {
             return false;
         }
 
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
         $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
 
         $deleted = $db->delete( $table, ['id' => $this->id] );
@@ -256,7 +256,7 @@ class DownloadToken {
      * @return self|null
      */
     public static function get_by_token( string $token ) : ?self {
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
         $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
 
         $row = $db->get_row( "SELECT * FROM {$table} WHERE token = ?", [$token] );
@@ -267,7 +267,7 @@ class DownloadToken {
      * Clean expired tokens
      */
     public static function clean_expired_tokens() {
-        $db     = \smliser_dbclass();
+        $db     = \smliser_db();
         $table  = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
 
         $sql    = "DELETE FROM {$table} WHERE expiry < ?";

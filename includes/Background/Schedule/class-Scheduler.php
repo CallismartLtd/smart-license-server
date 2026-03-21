@@ -11,7 +11,7 @@
  *   // Closure
  *   smliser_scheduler()
  *       ->call( function() {
- *           smliser_dbclass()->query( 'DELETE FROM ...' );
+ *           smliser_db()->query( 'DELETE FROM ...' );
  *       })
  *       ->daily_at( '02:00' )
  *       ->label( 'Prune old records' )

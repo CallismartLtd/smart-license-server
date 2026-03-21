@@ -270,7 +270,7 @@ class PricingTier {
      * @return bool True on success, false on failure.
      */
     public function save() {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         $data = [
             'monetization_id' => $this->monetization_id,
@@ -306,7 +306,7 @@ class PricingTier {
      * @return bool True on success, false on failure.
      */
     public function delete() {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         if ( ! $this->id ) {
             return false;
@@ -324,7 +324,7 @@ class PricingTier {
      * @return self|null The Pricing Tier object if found, null otherwise.
      */
     public static function get_by_id( $id ) {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $table  = \SMLISER_PRICING_TIER_TABLE;
 
         $sql    = "SELECT * FROM {$table} WHERE id = ?";
@@ -354,7 +354,7 @@ class PricingTier {
      * @return self[] Array of Pricing Tier objects.
      */
     public static function get_by_monetization_id( $monetization_id ) {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = \SMLISER_PRICING_TIER_TABLE;
 
         $sql    = "SELECT * FROM {$table} WHERE monetization_id = ?";

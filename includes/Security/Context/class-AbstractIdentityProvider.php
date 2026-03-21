@@ -13,7 +13,7 @@ use SmartLicenseServer\Security\Actors\User;
 
 use const SMLISER_IDENTITY_FEDERATION_TABLE;
 
-use function smliser_dbclass, sprintf;
+use function smliser_db, sprintf;
 
 /**
  * Provides abstract implementation and shared method for identity provision.
@@ -31,7 +31,7 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
      */
     protected function find_actor( string $issuer, string $external_id ) : ?ActorInterface {
 
-        $db    = smliser_dbclass();
+        $db    = smliser_db();
         $table = SMLISER_IDENTITY_FEDERATION_TABLE;
 
         $sql = sprintf(
@@ -61,7 +61,7 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
             return true; // already federated — not an error
         }
 
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         $inserted   = $db->insert(
             SMLISER_IDENTITY_FEDERATION_TABLE,

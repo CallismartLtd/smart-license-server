@@ -69,7 +69,7 @@ class Installer {
      * Create Database table
      */
     private static function maybe_create_tables(){
-        $db     = \smliser_dbclass();
+        $db     = \smliser_db();
         $tables = DBTables::table_names();
 
         foreach( $tables as $table ) {
@@ -89,7 +89,7 @@ class Installer {
      * @param array $columns        The table columns.
      */
     private static function create_table( string $table_name, array $columns ) {
-        $db                 = \smliser_dbclass();     
+        $db                 = \smliser_db();     
         $charset_collate    = self::charset_collate();
 
         $sql = "CREATE TABLE $table_name (";
@@ -112,7 +112,7 @@ class Installer {
      * @return string The generated charset and collate settings string.
      */
     private static function charset_collate() {
-        return \smliser_dbclass()->get_charset_collate();
+        return \smliser_db()->get_charset_collate();
     }
 
     /**
@@ -159,7 +159,7 @@ class Installer {
      * @version 0.0.6
      */
     public static function migration_006() {
-        $db             = smliser_dbclass();
+        $db             = smliser_db();
         $plugin_table   = SMLISER_PLUGINS_TABLE;
 
         // Check if 'status' column already exists
@@ -182,7 +182,7 @@ class Installer {
      * @version 0.1.1
      */
     public static function migration_011() {
-        $db    = smliser_dbclass();
+        $db    = smliser_db();
         $table = SMLISER_LICENSE_TABLE;
 
         $results = $db->get_results( "SELECT `id`, `item_id` FROM {$table}" );
@@ -232,7 +232,7 @@ class Installer {
      */
     public static function monetization_table_upgrade_020() {
         $table  = \SMLISER_MONETIZATION_TABLE;
-        $db     = \smliser_dbclass();
+        $db     = \smliser_db();
 
         $item_id_exists = $db->get_results( "SHOW COLUMNS FROM {$table} LIKE ?", ['item_id'] );
 
@@ -253,7 +253,7 @@ class Installer {
      * Change the body column of the bulk messages table to longtext
      */
     public static function migrate_bulk_message_table_020() {
-        $db     = \smliser_dbclass();
+        $db     = \smliser_db();
         $table  = \SMLISER_BULK_MESSAGES_TABLE;
 
         $sql    = "ALTER TABLE `{$table}` CHANGE `body` `body` LONGTEXT DEFAULT NULL";
@@ -265,7 +265,7 @@ class Installer {
      * Change the last_updated column of the apps table to `updated_at`
      */
     public static function change_last_updated_column_020() {
-        $db     = \smliser_dbclass();
+        $db     = \smliser_db();
         $tables = [\SMLISER_SOFTWARE_TABLE, \SMLISER_PLUGINS_TABLE, \SMLISER_THEMES_TABLE];
 
         foreach ( $tables as $table ) {
@@ -286,7 +286,7 @@ class Installer {
      * Change the user_id column of the licenses table to `licensee_fullname`
      */
     public static function licenses_table_modify_column_020() {
-        $db             = \smliser_dbclass();
+        $db             = \smliser_db();
         $table          = \SMLISER_LICENSE_TABLE;
         $user_id_exists = $db->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'user_id'" );
         
@@ -322,7 +322,7 @@ class Installer {
      * Add owner_id column to the apps tables
      */
     public static function add_apps_owner_id_020() {
-        $db         = \smliser_dbclass();
+        $db         = \smliser_db();
         $tables     = [\SMLISER_PLUGINS_TABLE, \SMLISER_THEMES_TABLE, \SMLISER_SOFTWARE_TABLE];
         $new_column = 'owner_id';
 

@@ -561,7 +561,7 @@ class License {
         $result = static::cache_get( $key );
 
         if ( false === $result || ! ( $result instanceof static ) ) {
-            $db     = \smliser_dbclass();
+            $db     = \smliser_db();
             $table  = \SMLISER_LICENSE_TABLE;
             $sql    = "SELECT * FROM {$table} WHERE `service_id` = ? AND `license_key` = ?";
             $params = [$service_id, $license_key];
@@ -625,7 +625,7 @@ class License {
             return $data;
         }
 
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = \SMLISER_LICENSE_TABLE;
         $offset = $db->calculate_query_offset( $page, $limit );
 
@@ -691,7 +691,7 @@ class License {
             return $data;
         }
 
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = \SMLISER_LICENSE_TABLE;
         $page   = max( 1, $args['page'] );
         $limit  = max( 1, $args['limit'] );
@@ -746,7 +746,7 @@ class License {
      * @return bool True when license is save, false otherwise
      */
     public function save() : bool {
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = \SMLISER_LICENSE_TABLE;
         $meta_table = \SMLISER_LICENSE_META_TABLE;
         $now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
@@ -834,7 +834,7 @@ class License {
      * @return static
      */
     public function load_meta() : static {
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = SMLISER_LICENSE_META_TABLE;
         $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `license_id` = ?";
 
@@ -864,7 +864,7 @@ class License {
             return false;
         }
 
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = \SMLISER_LICENSE_TABLE;
         $meta_table = \SMLISER_LICENSE_META_TABLE;
 
@@ -1214,7 +1214,7 @@ class License {
      * @throws \SmartLicenseServer\Exception If a unique key cannot be generated or DB persist fails.
      */
     public function regenerate_license_key( string $prefix = '', bool $persist = true, int $tries = 10 ) : string {
-        $db         = \smliser_dbclass();
+        $db         = \smliser_db();
         $table      = \SMLISER_LICENSE_TABLE;
 
         $attempt    = 0;

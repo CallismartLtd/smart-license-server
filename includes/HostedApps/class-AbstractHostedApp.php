@@ -15,7 +15,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-use function smliser_dbclass;
+use function smliser_db;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -869,7 +869,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return bool|Exception
      */
     final public function save() : bool|Exception {
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = static::get_db_table();
         $file       = $this->file;
         $repo_class = HostedApplicationService::get_app_repository_class( $this->get_type() );
@@ -944,7 +944,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return self|null   The app object or null if not found.
      */
     public static function get_by_slug( $slug ) : static|null {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = static::get_db_table();
         $slug   = basename( $slug, '.zip' );
 
@@ -972,7 +972,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             return [];
         }
 
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = static::get_db_meta_table();
         $app_id     = static::sanitize_int( $this->get_id() );
         $fk_column  = $this->get_meta_foreign_key();
@@ -1014,7 +1014,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             return false;
         }
 
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = static::get_db_meta_table();
         $fk_column  = $this->get_meta_foreign_key();
 
@@ -1080,7 +1080,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             return $this->meta_data[ $meta_key ];
         }
 
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = static::get_db_meta_table();
         $fk_column  = $this->get_meta_foreign_key();
 
@@ -1114,7 +1114,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             return false;
         }
 
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = static::get_db_meta_table();
         $fk_column  = $this->get_meta_foreign_key();
         $meta_key   = self::sanitize_key( $meta_key );
@@ -1313,7 +1313,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return bool true if monetized, false otherwise.
      */
     public function is_monetized() : bool {
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table_name = SMLISER_MONETIZATION_TABLE;
         $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `app_type` = ? AND `app_id` = ? AND `enabled` = ?";
         $params     = [$this->get_type(), static::sanitize_int( $this->id ), '1'];

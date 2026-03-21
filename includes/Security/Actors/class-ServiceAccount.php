@@ -21,7 +21,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 use const SMLISER_SERVICE_ACCOUNTS_TABLE;
-use function is_string, boolval, smliser_dbclass, defined, uniqid, md5,
+use function is_string, boolval, smliser_db, defined, uniqid, md5,
 smliser_safe_json_encode, smliser_avatar_url;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -425,7 +425,7 @@ class ServiceAccount implements ActorInterface {
      * @return bool
      */
     public function save() : bool {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
         $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
@@ -488,7 +488,7 @@ class ServiceAccount implements ActorInterface {
      * @return static|null
      */
     public static function get_by_api_key( string $api_key_hash ) : ?static {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
         $sql    = "SELECT * FROM `{$table}` WHERE `api_key_hash` = ? LIMIT 1";
 
@@ -518,7 +518,7 @@ class ServiceAccount implements ActorInterface {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $db     = smliser_dbclass();
+            $db     = smliser_db();
             $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
 
             $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
@@ -603,7 +603,7 @@ class ServiceAccount implements ActorInterface {
         }
 
         if ( is_null( $this->exists_cache ) ) {
-            $db     = smliser_dbclass();
+            $db     = smliser_db();
             $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
             $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
 

@@ -21,7 +21,7 @@ use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Owner;
 
 use const SMLISER_ORGANIZATIONS_TABLE;
-use function defined, is_string, smliser_dbclass, gmdate, boolval, smliser_avatar_url, md5;
+use function defined, is_string, smliser_db, gmdate, boolval, smliser_avatar_url, md5;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -336,7 +336,7 @@ class Organization implements OwnerSubjectInterface {
             throw new Exception( 'org_slug_exists', 'The provided slug is not available.', ['status' => 409] );
         }
 
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
         
 
@@ -384,7 +384,7 @@ class Organization implements OwnerSubjectInterface {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $db     = smliser_dbclass();
+            $db     = smliser_db();
             $table  = SMLISER_ORGANIZATIONS_TABLE;
 
             $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
@@ -454,7 +454,7 @@ class Organization implements OwnerSubjectInterface {
         }
 
         if ( is_null( $this->exists_cache ) ) {
-            $db     = smliser_dbclass();
+            $db     = smliser_db();
             $table  = SMLISER_ORGANIZATIONS_TABLE;
             $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
 

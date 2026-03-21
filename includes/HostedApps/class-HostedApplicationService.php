@@ -49,7 +49,7 @@ class HostedApplicationService {
      * }
      */
     public static function get_apps( array $args = array() ) {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         $defaults = array(
             'page'   => 1,
@@ -167,7 +167,7 @@ class HostedApplicationService {
      * }
      */
     public static function get_apps_balanced( array $args = [] ): array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         $defaults = [
             'page'   => 1,
@@ -331,7 +331,7 @@ class HostedApplicationService {
      * }
      */
     public static function search_apps( array $args = array() ) {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         $defaults = array(
             'term'   => '',
@@ -518,7 +518,7 @@ class HostedApplicationService {
      * @return int Total count of matching applications.
      */
     public static function count_apps( array $args = array() ) {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         $defaults = array(
             'status' => AbstractHostedApp::STATUS_ACTIVE,

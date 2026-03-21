@@ -17,7 +17,7 @@ use DateMalformedStringException;
 use SmartLicenseServer\Exceptions\Exception;
 
 use const SMLISER_OWNERS_TABLE;
-use function defined, smliser_dbclass, array_key_exists, is_string, is_null, is_callable,
+use function defined, smliser_db, array_key_exists, is_string, is_null, is_callable,
 sprintf;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -359,7 +359,7 @@ class Owner {
      * @throws \SmartLicenseServer\Exceptions\Exception
      */
     public function save() : bool {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_OWNERS_TABLE;
         $now    = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
 
@@ -417,7 +417,7 @@ class Owner {
 
         $key    = sprintf( '%s:%s', $subject_id, $type );
         if ( ! array_key_exists( $key, $owners ) ) {
-            $db     = smliser_dbclass();
+            $db     = smliser_db();
             $table  = SMLISER_OWNERS_TABLE;
             $sql    = "SELECT * FROM `{$table}` WHERE `subject_id` = ? AND `type` = ?";
 
@@ -452,7 +452,7 @@ class Owner {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $db     = smliser_dbclass();
+            $db     = smliser_db();
             $table  = SMLISER_OWNERS_TABLE;
 
             $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
@@ -539,7 +539,7 @@ class Owner {
         }
 
         if ( is_null( $this->exists_cache ) ) {
-            $db     = smliser_dbclass();
+            $db     = smliser_db();
             $table  = SMLISER_OWNERS_TABLE;
             $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
 

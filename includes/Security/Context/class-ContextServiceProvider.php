@@ -29,7 +29,7 @@ use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE, 
 SMLISER_OWNERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_USERS_TABLE, SMLISER_SERVICE_ACCOUNTS_TABLE;
-use function defined, class_exists, parse_args_recursive, smliser_dbclass, strtolower, gmdate, method_exists,
+use function defined, class_exists, parse_args_recursive, smliser_db, strtolower, gmdate, method_exists,
 sprintf, class_implements, in_array;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -53,7 +53,7 @@ class ContextServiceProvider {
      * @return array
      */
     public static function search( array $args = array() ) {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         $defaults = array(
             'search_term'   => '',
@@ -223,7 +223,7 @@ class ContextServiceProvider {
      * }
      */
     public static function search_owners( array $args = [] ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $defaults = [
             'search_term' => '',
             'page'        => 1,
@@ -307,7 +307,7 @@ class ContextServiceProvider {
      * @throws SecurityException When there is no valid resource owner in context.
      */
     public static function save_actor_role( ActorInterface $actor, Role $role, ?OwnerSubjectInterface $subject ) : bool {
-        $db             = smliser_dbclass();
+        $db             = smliser_db();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
         $subject_id     = $subject ? $subject->get_id() : $actor->get_id();
@@ -387,7 +387,7 @@ class ContextServiceProvider {
         }
 
         $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
 
         $deleted    = $db->delete( $table,[
@@ -416,7 +416,7 @@ class ContextServiceProvider {
      * @return Role|null
      */
     public static function get_principal_role( ActorInterface $actor, ?OwnerSubjectInterface $subject = null ) : ?Role {
-        $db             = smliser_dbclass();
+        $db             = smliser_db();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
         $principal_type = $actor->get_type();
         $principal_id   = $actor->get_id();
@@ -446,7 +446,7 @@ class ContextServiceProvider {
      * @return Owner|null The owner instance or null when the user is not a resource owner
      */
     public static function get_default_owner( User $user ) : ?Owner {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_OWNERS_TABLE;
 
         $sql    = "SELECT `id` FROM {$table} WHERE `subject_id` = ? AND `type` = ?";
@@ -495,7 +495,7 @@ class ContextServiceProvider {
             throw new InvalidArgumentException( 'The role assigned to this member does not exist.' );
         }
 
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
         $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
@@ -534,7 +534,7 @@ class ContextServiceProvider {
      */
     public static function get_organization_members( Organization $organization ): OrganizationMembers {
         $table   = SMLISER_ORGANIZATION_MEMBERS_TABLE;
-        $db      = smliser_dbclass();
+        $db      = smliser_db();
 
         $sql      = "SELECT * FROM `{$table}` WHERE `organization_id` = ?";
         $results  = $db->get_results( $sql, [$organization->get_id() ]);
@@ -568,7 +568,7 @@ class ContextServiceProvider {
      */
     public static function get_user_organizations( User $user ) : ?array {
         $table  = SMLISER_ORGANIZATIONS_TABLE;
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
 
         $sql    = "SELECT `organization_id` FROM `{$table}` WHERE `member_id` = ?";
         $results    = $db->get_col( $sql, [$user->get_id()] );
@@ -598,7 +598,7 @@ class ContextServiceProvider {
                 )
             );
         }
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
 
         $deleted    = $db->delete( $table, [
@@ -636,7 +636,7 @@ class ContextServiceProvider {
             );
         }
 
-        $db                     = smliser_dbclass();
+        $db                     = smliser_db();
         $users_table            = SMLISER_USERS_TABLE;
         $org_table              = SMLISER_ORGANIZATIONS_TABLE;
         $org_member_table       = SMLISER_ORGANIZATION_MEMBERS_TABLE;
@@ -782,7 +782,7 @@ class ContextServiceProvider {
             return $report;
         }
 
-        $db                     = smliser_dbclass();
+        $db                     = smliser_db();
         $users_table            = SMLISER_USERS_TABLE;
         $organizations_table    = SMLISER_ORGANIZATIONS_TABLE;
         $org_members_table      = SMLISER_ORGANIZATION_MEMBERS_TABLE;

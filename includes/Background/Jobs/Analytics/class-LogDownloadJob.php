@@ -83,7 +83,7 @@ class LogDownloadJob implements JobHandlerInterface {
             return false;
         }
 
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         // Insert the raw download log entry.
         $inserted = $db->insert( SMLISER_ANALYTICS_LOGS_TABLE, [

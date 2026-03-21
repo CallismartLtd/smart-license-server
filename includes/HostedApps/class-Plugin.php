@@ -261,7 +261,7 @@ class Plugin extends AbstractHostedApp {
             return false;
         }
 
-        $db             = smliser_dbclass();
+        $db             = smliser_db();
         $meta_deleted   = $db->delete( self::META_TABLE, [ 'plugin_id' => $plugin_id ] );
         $plugin_deleted = $db->delete( self::TABLE, [ 'id' => $plugin_id ] );
 

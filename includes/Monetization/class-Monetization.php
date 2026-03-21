@@ -269,7 +269,7 @@ class Monetization {
      * @return bool True on success, false on failure.
      */
     public function save() {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         $data = [
             'app_type'  => $this->app_type,
@@ -312,7 +312,7 @@ class Monetization {
      * @return bool True on success, false on failure.
      */
     public function delete() {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         if ( ! $this->id ) {
             return false;
@@ -358,7 +358,7 @@ class Monetization {
      * @return Monetization|null
      */
     public static function get_by_id( $id ) {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_MONETIZATION_TABLE;
         $sql    = "SELECT * FROM {$table} WHERE id = ?";
         $row    = $db->get_row( $sql, [static::sanitize_int( $id )] );
@@ -390,7 +390,7 @@ class Monetization {
      * @return Monetization|null
      */
     public static function get_by_app( $app_type, $app_id ) {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_MONETIZATION_TABLE;
 
         $sql    = "SELECT * FROM {$table} WHERE app_type = ? AND app_id = ?";

@@ -18,7 +18,7 @@ use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_ROLES_TABLE, SMLISER_ROLE_CAPABILITIES_TABLE;
-use function is_json, json_decode, defined, smliser_dbclass, smliser_safe_json_encode,
+use function is_json, json_decode, defined, smliser_db, smliser_safe_json_encode,
 get_object_vars;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -326,7 +326,7 @@ class Role {
      * @return static
      */
     public function load_capabilities() : static {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_ROLE_CAPABILITIES_TABLE;
 
         $sql    = "SELECT `capabilities` FROM `{$table}` WHERE `role_id` = ?";
@@ -414,7 +414,7 @@ class Role {
             throw new Exception( 'role_save_error', 'Role slug must be set' );
         }
 
-        $db             = smliser_dbclass();
+        $db             = smliser_db();
         $roles_table    = SMLISER_ROLES_TABLE;
         $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
         $existing       = static::get_by_slug( $this->get_slug() );
@@ -477,7 +477,7 @@ class Role {
             return false;
         }
 
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_ROLES_TABLE;
 
         $result = $db->delete( $table, [ 'id' => $this->get_id() ] );
@@ -518,7 +518,7 @@ class Role {
      * @return self[]|array An array of role objects or array of roles if return param is true.
      */
     public static function all( bool $return_array = false ) : array {
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = SMLISER_ROLES_TABLE;
         $sql        = "SELECT * FROM {$table}";
         $results    = $db->get_results( $sql );

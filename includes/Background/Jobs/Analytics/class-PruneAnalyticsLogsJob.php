@@ -51,7 +51,7 @@ class PruneAnalyticsLogsJob implements JobHandlerInterface {
         $retention_days = (int) ( $payload['retention_days'] ?? 90 );
         $cutoff         = gmdate( 'Y-m-d H:i:s', strtotime( "-{$retention_days} days" ) );
 
-        $result = smliser_dbclass()->query(
+        $result = smliser_db()->query(
             'DELETE FROM ' . SMLISER_ANALYTICS_LOGS_TABLE . ' WHERE created_at < ?',
             [ $cutoff ]
         );

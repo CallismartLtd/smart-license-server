@@ -16,7 +16,7 @@ use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_USERS_TABLE;
-use function is_string, smliser_dbclass, gmdate, boolval, defined, md5, smliser_avatar_url, 
+use function is_string, smliser_db, gmdate, boolval, defined, md5, smliser_avatar_url, 
 get_object_vars;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -380,7 +380,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $db     = smliser_dbclass();
+            $db     = smliser_db();
             $table  = SMLISER_USERS_TABLE;
 
             $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
@@ -399,7 +399,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * @return bool True on success, false otherwise.
      */
     public function save() : bool {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $table  = SMLISER_USERS_TABLE;
 
         $fields = array(
@@ -484,7 +484,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
         }
 
         if ( is_null( $this->exists_cache ) ) {
-            $db     = smliser_dbclass();
+            $db     = smliser_db();
             $table  = SMLISER_USERS_TABLE;
             $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
 

@@ -43,7 +43,7 @@ class RepositoryAnalytics {
      * @return int
      */
     public static function get_total_downloads( ?string $type = null ) : int {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         
         $sql = "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " WHERE event_type = 'download'";
         $params = [];
@@ -64,7 +64,7 @@ class RepositoryAnalytics {
      * @return array<string,int> Array keyed by Y-m-d
      */
     public static function get_downloads_per_day( int $days = 30, ?string $type = null ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         
         $sql = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
                 FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
@@ -91,7 +91,7 @@ class RepositoryAnalytics {
      * @return int
      */
     public static function get_total_client_accesses( int $days = 30, ?string $type = null ) : int {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         
         $sql = "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
                 WHERE event_type != 'download' 
@@ -114,7 +114,7 @@ class RepositoryAnalytics {
      * @return array<string,int>
      */
     public static function get_client_accesses_per_day( int $days = 30, ?string $type = null ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         
         $sql = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
                 FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
@@ -143,7 +143,7 @@ class RepositoryAnalytics {
      * @return int
      */
     public static function get_active_installations( int $days = 30, ?string $type = null ) : int {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         
         $sql = "SELECT COUNT(DISTINCT fingerprint) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
@@ -300,7 +300,7 @@ class RepositoryAnalytics {
      * @return int
      */
     public static function get_total_apps( ?string $type = null ) : int {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $types = $type ? [$type] : array_keys(self::$meta_tables);
         $total = 0;
 
@@ -325,7 +325,7 @@ class RepositoryAnalytics {
      * @return array<string,array<string,int>> [type][status] => count
      */
     public static function get_apps_by_status( ?string $type = null ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $types = $type ? [$type] : array_keys(self::$meta_tables);
         $status_counts = [];
 
@@ -358,7 +358,7 @@ class RepositoryAnalytics {
      * @return array<string,array<int,array<string,mixed>>> [type] => list of apps
      */
     public static function get_top_apps( int $limit = 10, string $metric = 'downloads', ?string $type = null ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         
         $event_filter = ( $metric === 'downloads' ) ? "= 'download'" : "!= 'download'";
         
@@ -394,7 +394,7 @@ class RepositoryAnalytics {
      * @return array<string,array<string,array<string,mixed>>> [type][YYYY-MM] => ['count'=>int,'apps'=>array]
      */
     public static function get_apps_maintained_by_month( int $months = 6, ?string $type = null ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $types = $type ? [$type] : array_keys(self::$meta_tables);
         $maintained = [];
 

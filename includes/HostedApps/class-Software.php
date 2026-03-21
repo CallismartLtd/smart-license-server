@@ -186,7 +186,7 @@ class Software extends AbstractHostedApp {
             return false;
         }
 
-        $db         = smliser_dbclass();
+        $db         = smliser_db();
         $table      = self::TABLE;
         $meta_table = self::META_TABLE;
 

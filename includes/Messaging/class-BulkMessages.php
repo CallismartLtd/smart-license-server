@@ -296,7 +296,7 @@ class BulkMessages {
      * @return boolean
      */
     public function save() : bool {
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
 
         $table = SMLISER_BULK_MESSAGES_TABLE;
 
@@ -332,7 +332,7 @@ class BulkMessages {
      * @return void
      */
     protected function save_associated_apps() {
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
 
         if ( ! $this->id ) {
             return;
@@ -371,7 +371,7 @@ class BulkMessages {
      */
     public static function get_all( $args = array() ) : array {
 
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
 
         $defaults = array(
             'page'  => 1,
@@ -424,7 +424,7 @@ class BulkMessages {
      * @return self|null
      */
     public static function get_message( $id_or_message_id ) {
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
         $id_or_message_id = is_numeric( $id_or_message_id ) ? self::sanitize_int( $id_or_message_id ) : self::sanitize_text( $id_or_message_id );
 
         $table = SMLISER_BULK_MESSAGES_TABLE;
@@ -452,7 +452,7 @@ class BulkMessages {
      */
     public static function get_for_app( $args = array() ) : array {
 
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
 
         $defaults = array(
             'app_type' => '',
@@ -537,7 +537,7 @@ class BulkMessages {
      */
     public static function get_for_slugs( $args = array() ) : array {
 
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
 
         $defaults = array(
             'app_slugs' => array(),
@@ -659,7 +659,7 @@ class BulkMessages {
      */
     public static function search( $args = array() ) {
 
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
 
         $defaults = array(
             'search' => '',
@@ -707,7 +707,7 @@ class BulkMessages {
      * Delete a message and its associations.
      */
     public function delete() {
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
 
         if ( ! $this->id && ! $this->message_id ) {
             return false;
@@ -775,7 +775,7 @@ class BulkMessages {
      * @return array
      */
     private static function load_associated_apps( $message_id ) {
-        $db = \smliser_dbclass();
+        $db = \smliser_db();
 
         $table = SMLISER_BULK_MESSAGES_APPS_TABLE;
 

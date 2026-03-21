@@ -215,7 +215,7 @@ class Theme extends AbstractHostedApp {
      * @return bool True on success, false on otherwise.
      */
     public function delete() : bool {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
 
         if ( empty( $this->id ) ) {
             return false; // A valid theme should have an ID.

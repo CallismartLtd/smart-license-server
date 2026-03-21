@@ -15,7 +15,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  * This trait assumes:
  * - The consuming class implements `from_array( array $data )`
- * - A shared database abstraction via `smliser_dbclass()`
+ * - A shared database abstraction via `smliser_db()`
  */
 trait CommonQueryTrait {
 
@@ -44,7 +44,7 @@ trait CommonQueryTrait {
      * @return static|null
      */
     protected static function get_self_by( string $column, $value, string $table ) : ?static {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $column = self::sanitize_key( $column );
 
         if ( empty( $column ) ) {
@@ -69,7 +69,7 @@ trait CommonQueryTrait {
      * @return static[]
      */
     protected static function get_all_self_by( string $column, $value, string $table ) : array {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $column = self::sanitize_key( $column );
 
         if ( empty( $column ) ) {
@@ -104,7 +104,7 @@ trait CommonQueryTrait {
      * @return static[]
      */
     protected static function get_all_self( string $table, int $page = 1, int $limit = 25 ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
 
         $sql    = "SELECT * FROM {$table} LIMIT ? OFFSET ?";
         $offset = $db->calculate_query_offset( $page, $limit );
@@ -135,7 +135,7 @@ trait CommonQueryTrait {
      * @return bool
      */
     protected static function exists_by( string $column, $value, string $table ) : bool {
-        $db     = smliser_dbclass();
+        $db     = smliser_db();
         $column = self::sanitize_key( $column );
 
         if ( empty( $column ) ) {

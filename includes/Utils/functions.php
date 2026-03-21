@@ -1390,7 +1390,7 @@ function restAPIUrl( string $path = '', array $params = [] ) : URL {
  *
  * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
  */
-function smliser_dbclass() : \SmartLicenseServer\Database\Database {
+function smliser_db() : \SmartLicenseServer\Database\Database {
     return Config::env_provider()->database();
 }
 

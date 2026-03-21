@@ -74,7 +74,7 @@ class AppsAnalytics {
      * Get per-day download counts (Optimized SQL)
      */
     public static function get_downloads_per_day( AbstractHostedApp $app, int $days = 30 ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $query = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
                   FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
                   WHERE app_slug = ? AND event_type = 'download' 
@@ -114,7 +114,7 @@ class AppsAnalytics {
      * @return int
      */
     public static function get_downloads_on( AbstractHostedApp $app, string $date ) : int {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $query = "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
                   WHERE app_slug = ? AND event_type = 'download' 
                   AND DATE(created_at) = ?";
@@ -163,7 +163,7 @@ class AppsAnalytics {
      * @return float
      */
     public static function get_download_growth_percentage( AbstractHostedApp $app, int $days = 30 ) : float {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         
         $current_total = (int) $db->get_var(
             "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
@@ -239,7 +239,7 @@ class AppsAnalytics {
      * @return array<string,int> Array keyed by 'Y-m-d'.
      */
     public static function get_client_access_per_day( AbstractHostedApp $app, int $days = 30 ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $query = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
                   FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
                   WHERE app_slug = ? AND event_type != 'download' 
@@ -275,7 +275,7 @@ class AppsAnalytics {
      * @return array<string,array<string,int>> Format: [ 'Y-m-d' => [ 'event_type' => count ] ]
      */
     public static function get_client_access_event_breakdown( AbstractHostedApp $app, int $days = 30 ) : array {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $query = "SELECT DATE(created_at) as log_date, event_type, COUNT(*) as count 
                   FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
                   WHERE app_slug = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
@@ -294,7 +294,7 @@ class AppsAnalytics {
      * Get estimated active installations (Optimized SQL)
      */
     public static function get_estimated_active_installations( AbstractHostedApp $app, int $days = 30 ) : int {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         $query = "SELECT COUNT(DISTINCT fingerprint) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
                   WHERE app_slug = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
         
@@ -327,7 +327,7 @@ class AppsAnalytics {
      * @return float Growth percentage (positive = growth, negative = decline).
      */
     public static function get_client_access_growth_percentage( AbstractHostedApp $app, int $days = 30 ) : float {
-        $db = smliser_dbclass();
+        $db = smliser_db();
         
         $current_total = (int) $db->get_var(
             "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
