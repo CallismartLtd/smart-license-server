@@ -17,7 +17,6 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\RESTAPI\RESTInterface;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
-use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Principal;
@@ -35,9 +34,9 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class RESTAPI implements RESTProviderInterface {
     use SanitizeAwareTrait;
     /**
-     * The current REST API object.
+     * The current REST API version instance.
      */
-    private ?RESTInterface $rest;
+    private ?RESTInterface $restAPIVersion;
 
     /**
      * Holds the current WP_REST_Request object.
@@ -66,7 +65,7 @@ class RESTAPI implements RESTProviderInterface {
      * @param RESTInterface $rest
      */
     public function __construct( RESTInterface $rest ) {
-        $this->rest = $rest;
+        $this->restAPIVersion = $rest;
         
         add_filter( 'rest_request_before_callbacks', [$this, 'rest_request_before_callbacks'], -1, 3 );
         add_filter( 'rest_post_dispatch', [$this, 'filter_response'], 10, 3 );
@@ -244,7 +243,7 @@ class RESTAPI implements RESTProviderInterface {
      * @return void
      */
     public function register_rest_routes() : void {
-        $api_config = $this->rest->get_routes();
+        $api_config = $this->restAPIVersion->get_routes();
         $namespace  = $api_config['namespace'];
         $routes     = $api_config['routes'];
 
@@ -521,9 +520,9 @@ class RESTAPI implements RESTProviderInterface {
     /**
      * Check whether a value is empty for REST API validation.
      * @param string $value The value to check.
-     * @return bool true if not empty, false otherwise.
+     * @return \WP_Error|bool
      */
-    public static function not_empty( $value ) {
+    public static function not_empty( $value ) : WP_Error|bool {
         if ( empty( $value ) ) {
             return new WP_Error( 'rest_invalid_param', __( 'The value cannot be empty.', 'smliser' ), array( 'status' => 400 ) );
         }
@@ -583,7 +582,7 @@ class RESTAPI implements RESTProviderInterface {
      */
     public function in_namespace( string $route_name ) : bool {
         $route     = ltrim( $route_name, '/' );
-        $namespace = trim( $this->rest->get_namespace(), '/' );
+        $namespace = trim( $this->restAPIVersion->namespace(), '/' );
         $namespace = preg_quote( $namespace, '#' );
 
         return (bool) preg_match( "#^{$namespace}(/|$)#", $route );
@@ -643,35 +642,23 @@ class RESTAPI implements RESTProviderInterface {
      * 
      * @return string
      */
-    public function get_namespace() : string {
-        return $this->rest->namespace();
-    }
-
-    private function route_matches( string $pattern ) : bool {
-        $namespace = preg_quote( trim( $this->get_namespace(), '/' ), '#' );
-        $route     = ltrim( $this->current_route, '/' );
-
-        return (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $route );
+    public function namespace() : string {
+        return $this->restAPIVersion->namespace();
     }
 
     /**
-     * Index REST API Documentation
+     * Get the underlying REST API version instance.
+     * 
+     * @return RESTInterface
      */
-    public static function index_rest_doc() {
-        $rest = V1::class;
-        ?>
-            <div class="smliser-admin-api-description-section">
-                <h2 class="heading">REST API Documentation</h2>
-                <div class="smliser-api-base-url">
-                    <strong>Base URL:</strong>
-                    <code><?php echo esc_url( restAPIUrl() ); ?></code>
-                </div>
-                
-                <?php foreach ( $rest::describe_routes() as $path => $html ) : 
-                    echo $html;
-                endforeach; ?>
-            </div>
-    
-        <?php
+    public function restAPIVersion() : RESTInterface {
+        return $this->restAPIVersion;
+    }
+
+    private function route_matches( string $pattern ) : bool {
+        $namespace = preg_quote( trim( $this->namespace(), '/' ), '#' );
+        $route     = ltrim( $this->current_route, '/' );
+
+        return (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $route );
     }
 }

@@ -11,12 +11,6 @@ namespace SmartLicenseServer\RESTAPI;
  * Defines all methods that REST API versions must implement.
  */
 interface RESTInterface {
-    /**
-     * Get the api name space
-     * 
-     * @return string
-     */
-    public static function get_namespace() : string;
 
     /**
      * Get all route definitions for the API.
@@ -99,6 +93,8 @@ interface RESTInterface {
 
     /**
      * Describe routes by category or all routes.
+     * 
+     * @return array<string, string>
      */
     public static function describe_routes( ?string $category = null ) : array;
 

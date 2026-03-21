@@ -150,15 +150,6 @@ class V1 implements RESTInterface {
     private static $bulk_messages_route = '/bulk-messages/';
 
     /**
-     * Get the API namespace.
-     * 
-     * @return string
-     */
-    public static function get_namespace() : string {
-        return self::$namespace;
-    }
-
-    /**
      * Get all route definitions for the API.
      *
      * Returns a structured array of route configurations that can be consumed
@@ -759,7 +750,7 @@ class V1 implements RESTInterface {
      * 
      * @param string|null $category The category to filter by (e.g., 'license', 'repository').
      *                              If null, returns all routes.
-     * @return array Associative array where key is the route path and value is formatted HTML card.
+     * @return array<string, string> Associative array where key is the route path and value is formatted HTML card.
      */
     public static function describe_routes( ?string $category = null ) : array {
 

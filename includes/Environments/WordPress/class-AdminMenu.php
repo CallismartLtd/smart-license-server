@@ -8,12 +8,8 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Admin\AccessControlPage;
 use SmartLicenseServer\Admin\AdminConfiguration;
-use SmartLicenseServer\Admin\BulkMessagePage;
-use SmartLicenseServer\Admin\LicensePage;
-use SmartLicenseServer\Admin\OptionsPage;
-use SmartLicenseServer\Admin\RepositoryPage;
+use SmartLicenseServer\Config;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Environments\WordPress\RESTAPI;
 
@@ -58,7 +54,7 @@ class AdminMenu {
         $new_menu   = array(
             'slug'      => 'api-doc',
             'title'     => 'API Doc',
-            'handler'   => [RESTAPI::class, 'index_rest_doc']
+            'handler'   => [$this, 'rest_api_documentation']
         );
 
         $this->config->register( 'api_doc', $new_menu );
@@ -289,5 +285,26 @@ class AdminMenu {
         if ( is_callable( $handler ) ) {
             $handler( $this->request );
         }
+    }
+
+    /**
+     * Index REST API Documentation page.
+     */
+    public static function rest_api_documentation() {
+        $rest = Config::env_provider()->restProvider()->restAPIVersion();
+        ?>
+            <div class="smliser-admin-api-description-section">
+                <h2 class="heading">REST API Documentation</h2>
+                <div class="smliser-api-base-url">
+                    <strong>Base URL:</strong>
+                    <code><?php echo esc_url( restAPIUrl() ); ?></code>
+                </div>
+                
+                <?php foreach ( $rest::describe_routes() as $path => $html ) : 
+                    echo $html;
+                endforeach; ?>
+            </div>
+    
+        <?php
     }
 }

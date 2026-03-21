@@ -15,6 +15,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
@@ -49,6 +50,13 @@ interface EnvironmentProviderInterface {
      * @param array $qv     Optional query param
      */
     public static function restAPIUrl( string $path = '', array $qv = [] ) : URL;
+
+    /**
+     * Get the REST API provider instance
+     * 
+     * @return RESTProviderInterface
+     */
+    public function restProvider() : RESTProviderInterface;
 
     /**
      * Get the URL for the assets directory.

@@ -34,5 +34,10 @@ interface RESTProviderInterface {
      * 
      * @return string
      */
-    public function get_namespace() : string;
+    public function namespace() : string;
+
+    /**
+     * Get the current REST API version.
+     */
+    public function restAPIVersion() : RESTInterface;
 }

@@ -718,7 +718,14 @@ abstract class Config implements EnvironmentProviderInterface {
      * Get the namespace
      */
     public function rest_namespace() {
-        return $this->restProvider->get_namespace();
+        return $this->restProvider->namespace();
+    }
+
+    /**
+     * Get the REST API provider instance.
+     */
+    public function restProvider() : RESTProviderInterface {
+        return $this->restProvider;
     }
 
     /**
