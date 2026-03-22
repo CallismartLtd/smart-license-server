@@ -11,6 +11,13 @@ namespace SmartLicenseServer\Environments\WordPress;
 use SmartLicenseServer\Admin\AdminConfiguration;
 use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Config;
+use SmartLicenseServer\Console\CommandRegistry;
+use SmartLicenseServer\Console\Commands\InstallRolesCommand;
+use SmartLicenseServer\Console\Commands\MigrateCommand;
+use SmartLicenseServer\Console\Commands\ScheduleCommand;
+use SmartLicenseServer\Console\Commands\WorkCommand;
+use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
+use SmartLicenseServer\Console\Runners\WPCLIRunner;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Adapters\WPDBAdapter;
@@ -76,6 +83,8 @@ class SetUp extends Config {
         add_action( 'smliser_run_scheduler', [$this->scheduler(), 'run_due_tasks'] );
 
         register_activation_hook( SMLISER_FILE, [Installer::class, 'install'] );
+
+        add_action( 'cli_init', [$this, 'setup_cli'] );
     }
 
     /**
@@ -466,5 +475,20 @@ class SetUp extends Config {
         if ( ! wp_next_scheduled( 'smliser_run_scheduler' ) ) {
             wp_schedule_event( time(), 'smliser_every_minute', 'smliser_run_scheduler' );
         }
+    }
+
+    /**
+     * Bootstraps in WP_CLI environment.
+     */
+    public function setup_cli() {
+        CommandRegistry::instance()->register_core_many( [
+            WorkCommand::class,
+            ScheduleCommand::class,
+            WorkScheduleCommand::class,
+            MigrateCommand::class,
+            InstallRolesCommand::class,
+        ] );
+        
+        ( new WPCLIRunner( CommandRegistry::instance() ) )->register();
     }
 }

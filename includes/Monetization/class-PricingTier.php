@@ -10,6 +10,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -279,7 +280,7 @@ class PricingTier {
             'provider_id'     => $this->provider_id,
             'billing_cycle'   => $this->billing_cycle,
             'max_sites'       => $this->max_sites,
-            'features'        => maybe_serialize( $this->features ),
+            'features'        => Format::encode( $this->features, Format::ENCODING_PHP ),
         ];
 
         if ( $this->id ) {
@@ -342,7 +343,7 @@ class PricingTier {
             ->set_provider_id( $row['provider_id'] ?? '' )
             ->set_billing_cycle( $row['billing_cycle'] ?? '' )
             ->set_max_sites( $row['max_sites'] ?? 0 )
-            ->set_features( maybe_unserialize( $row['features'] ?? '' ) );
+            ->set_features( Format::decode( $row['features'] ?? '' ) );
 
         return $tier;
     }
@@ -374,7 +375,7 @@ class PricingTier {
                 ->set_provider_id( $row['provider_id'] ?? '' )
                 ->set_billing_cycle( $row['billing_cycle'] ?? '' )
                 ->set_max_sites( $row['max_sites'] ?? 0 )
-                ->set_features( maybe_unserialize( $row['features'] ?? '' ) );
+                ->set_features( Format::decode( $row['features'] ?? '' ) );
 
             $tiers[] = $tier;
         }

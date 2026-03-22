@@ -18,6 +18,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
+use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -843,7 +844,7 @@ class License {
         foreach( $results as $result ) {
             $value      = $result['meta_value'] ?? '';
             $meta_name  = $result['meta_key'] ?? '';
-            $meta_value = \is_serialized( $value ) ? \unserialize( $value ) : $value;
+            $meta_value = Format::decode( $value );
 
             if ( ! empty( $meta_name ) ) {
                 $this->set_meta( $meta_name, $meta_value );

@@ -3,3 +3,4 @@ jsconfig.json
 .phpcs.xml
 .phpstan.neon
 smliser_var.js
+vendor/php-stubs

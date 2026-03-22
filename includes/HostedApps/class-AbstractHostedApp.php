@@ -13,6 +13,7 @@ use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use function smliser_db;
@@ -987,9 +988,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
                 $key   = self::sanitize_key( $row['meta_key'] );
                 $value = $row['meta_value'];
 
-                if ( is_serialized( $value ) ) {
-                    $value = unserialize( $value );
-                }
+                $value = Format::decode( $value );
 
                 $meta[ $key ] = $value;
             }
@@ -1019,7 +1018,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $fk_column  = $this->get_meta_foreign_key();
 
         $key        = self::sanitize_key( $key );
-        $store      = maybe_serialize( $value );
+        $store      = Format::encode( $value, Format::ENCODING_PHP );
 
         // Look for existing meta row.
         $meta_id = $db->get_var(
@@ -1094,7 +1093,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             return $default_to;
         }
 
-        $value = is_serialized( $result ) ? unserialize( $result ) : $result;
+        $value = Format::decode( $result );
 
         $this->meta_data[ $meta_key ] = $value ?? $default_to;
 

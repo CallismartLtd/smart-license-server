@@ -10,5 +10,8 @@
     ],
     "require": {
         "league/commonmark": "^2.7"
+    },
+    "require-dev": {
+        "php-stubs/wp-cli-stubs": "^2.12"
     }
 }

@@ -12,6 +12,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\SettingsAPI\Providers;
 
 use SmartLicenseServer\Database\Database;
+use SmartLicenseServer\Utils\Format;
 
 /**
  * Core option class that uses our custom settings table in the database to manage user options.
@@ -66,7 +67,7 @@ class Options extends AbstractSettings {
             return $default;
         }
 
-        $value = \is_serialized( $result ) ? unserialize( $result ) : $result;
+        $value = Format::decode( $result );
 
         return $value;
     }
@@ -86,7 +87,7 @@ class Options extends AbstractSettings {
     protected function do_set( string $key, $value ): bool {
         $table          = self::TABLE_NAME;
 
-        $value_to_store = \maybe_serialize( $value );
+        $value_to_store = Format::encode( $value, Format::ENCODING_PHP );
         
         $option = array(
             'option_name'   => $key,
@@ -97,7 +98,7 @@ class Options extends AbstractSettings {
 
         if ( $old_value ) {
             // Update mode.
-            if ( \maybe_serialize( $old_value ) === $value_to_store ) {
+            if ( Format::encode( $old_value, Format::ENCODING_PHP ) === $value_to_store ) {
                 return false; // No changes.
             }
 

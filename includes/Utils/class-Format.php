@@ -776,4 +776,196 @@ class Format {
 
         return implode( ' ', $words );
     }
+
+/*
+    |--------------------------------------------
+    | ENCODING / DECODING
+    |--------------------------------------------
+    */
+
+    /**
+     * Encoding strategy: JSON.
+     *
+     * @var string
+     */
+    const ENCODING_JSON = 'json';
+
+    /**
+     * Encoding strategy: PHP native serialize().
+     *
+     * Use only when PHP-specific types (objects with classes, resources)
+     * must survive a round-trip exactly. Prefer JSON for plain data.
+     *
+     * @var string
+     */
+    const ENCODING_PHP = 'php';
+
+    /**
+     * Encode a value for database or cache storage.
+     *
+     * Scalars (string, int, float, bool) and null are returned as-is —
+     * they need no encoding. Arrays and objects are encoded using the
+     * chosen strategy.
+     *
+     * @param mixed  $value    The value to encode.
+     * @param string $strategy Encoding strategy: Format::ENCODING_JSON (default)
+     *                         or Format::ENCODING_PHP.
+     * @return mixed Encoded string for arrays/objects, original value otherwise.
+     */
+    public static function encode( mixed $value, string $strategy = self::ENCODING_JSON ): mixed {
+        if ( ! is_array( $value ) && ! is_object( $value ) ) {
+            return $value;
+        }
+
+        if ( $strategy === self::ENCODING_PHP ) {
+            return serialize( $value );
+        }
+
+        return json_encode( $value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+    }
+
+    /**
+     * Decode a value retrieved from database or cache storage.
+     *
+     * Detects whether the value is JSON or PHP-serialized and decodes
+     * it accordingly. Returns the original value untouched if it is
+     * neither — no guessing, no silent failures.
+     *
+     * @param mixed $value The value to decode.
+     * @return mixed Decoded array/object for encoded strings, original value otherwise.
+     */
+    public static function decode( mixed $value ): mixed {
+        if ( ! is_string( $value ) ) {
+            return $value;
+        }
+
+        if ( static::is_json_encoded( $value ) ) {
+            $decoded = json_decode( $value, true );
+
+            if ( json_last_error() === JSON_ERROR_NONE ) {
+                return $decoded;
+            }
+        }
+
+        if ( static::is_php_serialized( $value ) ) {
+            $decoded = @unserialize( $value );
+
+            // unserialize() returns false on failure — but false is also a
+            // valid serialized value, so check the original string too.
+            if ( $decoded !== false || $value === serialize( false ) ) {
+                return $decoded;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Determine whether a value is a JSON-encoded string.
+     *
+     * Checks the outer structure only (starts with { or [) then confirms
+     * it parses cleanly.
+     *
+     * @param mixed $value The value to inspect.
+     * @return bool True if the value is a valid JSON-encoded string.
+     */
+    public static function is_json_encoded( mixed $value ): bool {
+        if ( ! is_string( $value ) || empty( $value ) ) {
+            return false;
+        }
+
+        $trimmed = ltrim( $value );
+
+        if ( ! str_starts_with( $trimmed, '{' ) && ! str_starts_with( $trimmed, '[' ) ) {
+            return false;
+        }
+
+        json_decode( $value );
+
+        return json_last_error() === JSON_ERROR_NONE;
+    }
+
+    /**
+     * Determine whether a value is a PHP-serialized string.
+     *
+     * Inspects the string structure against all known PHP serialization
+     * formats without actually unserializing it:
+     *   N;          — null
+     *   b:1;        — bool
+     *   i:42;       — int
+     *   d:3.14;     — float
+     *   s:3:"foo";  — string
+     *   a:2:{...}   — array
+     *   O:8:"..";   — object
+     *   E:..;       — enum (PHP 8.1+)
+     *
+     * @param mixed $value  The value to inspect.
+     * @param bool  $strict If true (default), requires a valid closing character.
+     * @return bool True if the value is a PHP-serialized string.
+     */
+    public static function is_php_serialized( mixed $value, bool $strict = true ): bool {
+        if ( ! is_string( $value ) ) {
+            return false;
+        }
+
+        $value = trim( $value );
+
+        // Serialized null.
+        if ( $value === 'N;' ) {
+            return true;
+        }
+
+        // Minimum length: "b:1;" = 4 chars.
+        if ( strlen( $value ) < 4 ) {
+            return false;
+        }
+
+        // All serialized strings have a colon at position 1.
+        if ( $value[1] !== ':' ) {
+            return false;
+        }
+
+        if ( $strict ) {
+            $last = substr( $value, -1 );
+            if ( $last !== ';' && $last !== '}' ) {
+                return false;
+            }
+        }
+
+        $token = $value[0];
+
+        switch ( $token ) {
+            case 's':
+                // Serialized strings end with ";  (quote then semicolon).
+                if ( $strict && substr( $value, -2, 1 ) !== '"' ) {
+                    return false;
+                }
+                // Fall through to regex check.
+            case 'a':
+            case 'O':
+            case 'E':
+                return (bool) preg_match( "/^{$token}:[0-9]+:/s", $value );
+
+            case 'b':
+            case 'i':
+            case 'd':
+                $end = $strict ? '$' : '';
+                return (bool) preg_match( "/^{$token}:[0-9.E+\-]+;{$end}/", $value );
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether a value has been encoded by Format::encode().
+     *
+     * Returns true for both JSON and PHP-serialized strings.
+     * Useful as a gate before calling Format::decode().
+     *
+     * @param mixed $value The value to inspect.
+     * @return bool True if the value is JSON or PHP-serialized.
+     */
+    public static function is_encoded( mixed $value ): bool {
+        return static::is_json_encoded( $value ) || static::is_php_serialized( $value );
+    }
 }
