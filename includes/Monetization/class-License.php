@@ -779,7 +779,7 @@ class License {
 
                 $metadata   = [
                     'meta_key'      => $k,
-                    'meta_value'    => ! \is_scalar( $v ) ? \serialize( $v ) : $v,
+                    'meta_value'    => Format::encode( $v, Format::ENCODING_PHP ),
                     'license_id'    => $this->id
                 ];
 
@@ -811,7 +811,7 @@ class License {
                 foreach ( $meta_data as $k => $v ) {
                     $metadata  = [
                         'meta_key'      => $k,
-                        'meta_value'    => ! \is_scalar( $v ) ? \serialize( $v ) : $v,
+                        'meta_value'    => Format::encode( $v, Format::ENCODING_PHP ),
                         'license_id'    => $this->id
                     ];
                     $done   = $db->insert( $meta_table, $metadata );
@@ -1089,7 +1089,7 @@ class License {
      * @return bool
      */
     public function is_deactivated() : bool {
-        return strtolower( $this->get_status() === static::STATUS_DEACTIVATED );
+        return strtolower( $this->get_status() ) === static::STATUS_DEACTIVATED;
     }
 
     /**

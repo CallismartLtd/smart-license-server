@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -20,6 +21,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * budget is exhausted.
  */
 class WorkCommand implements CommandInterface {
+    use CLIAwareTrait;
 
     public static function name(): string {
         return 'work';
@@ -30,7 +32,16 @@ class WorkCommand implements CommandInterface {
     }
 
     public function execute( array $args = [] ): void {
+        $this->start_timer();
+        $this->info( 'Processing queue...' );
+
         $processed = smliser_queue_worker()->process_within_time_budget();
-        echo sprintf( 'Done. %d job(s) processed.' . PHP_EOL, $processed );
+
+        if ( $processed === 0 ) {
+            $this->line( 'No jobs were waiting in the queue.', self::VERBOSITY_VERBOSE );
+        }
+
+        $this->newline();
+        $this->done( sprintf( '%d job(s) processed.', $processed ) );
     }
 }

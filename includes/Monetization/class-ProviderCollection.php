@@ -116,7 +116,7 @@ class ProviderCollection {
      */
     public static function validate_product_data( $product ) {
         if ( ! is_array( $product ) ) {
-            return new Exception( 'invalid_product', __( 'Product data must be an array.', 'smliser' ) );
+            return new Exception( 'invalid_product', 'Product data must be an array.' );
         }
 
         // Required top-level fields
@@ -125,7 +125,7 @@ class ProviderCollection {
             if ( ! array_key_exists( $key, $product ) ) {
                 return new Exception(
                     'missing_field',
-                    sprintf( __( 'Missing required product field: %s', 'smliser' ), $key )
+                    sprintf( 'Missing required product field: %s', $key )
                 );
             }
         }
@@ -133,7 +133,7 @@ class ProviderCollection {
         // Validate currency block
         $currency = $product['currency'];
         if ( ! is_array( $currency ) ) {
-            return new Exception( 'invalid_currency', __( 'Currency must be an array.', 'smliser' ) );
+            return new Exception( 'invalid_currency', 'Currency must be an array.' );
         }
 
         $currency_required = [ 'code', 'symbol', 'symbol_position', 'decimals', 'decimal_separator', 'thousand_separator' ];
@@ -141,7 +141,7 @@ class ProviderCollection {
             if ( ! array_key_exists( $key, $currency ) ) {
                 return new Exception(
                     'missing_currency_field',
-                    sprintf( __( 'Missing required currency field: %s', 'smliser' ), $key )
+                    sprintf( 'Missing required currency field: %s', $key )
                 );
             }
         }
@@ -149,7 +149,7 @@ class ProviderCollection {
         // Validate pricing block
         $pricing = $product['pricing'];
         if ( ! is_array( $pricing ) ) {
-            return new Exception( 'invalid_pricing', __( 'Pricing must be an array.', 'smliser' ) );
+            return new Exception( 'invalid_pricing', 'Pricing must be an array.' );
         }
 
         $pricing_required = [ 'price', 'regular_price', 'sale_price', 'is_on_sale' ];
@@ -157,7 +157,7 @@ class ProviderCollection {
             if ( ! array_key_exists( $key, $pricing ) ) {
                 return new Exception(
                     'missing_pricing_field',
-                    sprintf( __( 'Missing required pricing field: %s', 'smliser' ), $key )
+                    sprintf( 'Missing required pricing field: %s', $key )
                 );
             }
         }
@@ -178,8 +178,8 @@ class ProviderCollection {
                     'thumbnail' => $placeholder,
                     'srcset'    => '',
                     'sizes'     => '',
-                    'name'      => __( 'Placeholder', 'smliser' ),
-                    'alt'       => __( 'Product image not available', 'smliser' ),
+                    'name'      => 'Placeholder',
+                    'alt'       => 'Product image not available',
                 ]
             ];
         } else {

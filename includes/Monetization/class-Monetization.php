@@ -452,7 +452,7 @@ class Monetization {
      * @return bool
      */
     public function exists() {
-        return ! empty( $this->id ) && self::get_by_id( $this->id ) !== null;
+        return ! empty( $this->id );
     }
 
     /*

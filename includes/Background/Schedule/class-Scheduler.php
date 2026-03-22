@@ -476,5 +476,50 @@ class Scheduler {
         ->daily_at( '01:00' )
         ->label( 'Purge Completed Jobs' )
         ->id( 'purge_completed_jobs' );
+
+        // Mark licenses past their end_date as expired and notify licensees.
+        $this->dispatch(
+            \SmartLicenseServer\Background\Jobs\Licenses\ExpireLicensesJob::class,
+            [ 'batch_size' => 100 ]
+        )
+        ->daily_at( '00:30' )
+        ->label( 'Expire Licenses' )
+        ->id( 'expire_licenses' );
+
+        // Send 7-day expiry reminder to licensees.
+        $this->dispatch(
+            \SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob::class,
+            [ 'days_before' => 7, 'batch_size' => 100 ]
+        )
+        ->daily_at( '08:00' )
+        ->label( 'License Expiry Reminder — 7 Days' )
+        ->id( 'notify_expiring_licenses_7d' );
+
+        // Send 3-day expiry reminder to licensees.
+        $this->dispatch(
+            \SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob::class,
+            [ 'days_before' => 3, 'batch_size' => 100 ]
+        )
+        ->daily_at( '08:00' )
+        ->label( 'License Expiry Reminder — 3 Days' )
+        ->id( 'notify_expiring_licenses_3d' );
+
+        // Prune orphaned license meta rows weekly.
+        $this->dispatch(
+            \SmartLicenseServer\Background\Jobs\Licenses\PruneLicenseMetaJob::class,
+            []
+        )
+        ->weekly_on( 'sunday', '04:00' )
+        ->label( 'Prune License Meta' )
+        ->id( 'prune_license_meta' );
+
+        // Clean expired download tokens every 4 hours.
+        $this->dispatch(
+            \SmartLicenseServer\Background\Jobs\Monetization\CleanExpiredTokensJob::class,
+            []
+        )
+        ->every_hours( 4 )
+        ->label( 'Clean Expired Download Tokens' )
+        ->id( 'clean_expired_tokens' );
     }
 }

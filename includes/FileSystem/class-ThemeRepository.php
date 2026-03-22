@@ -170,7 +170,7 @@ class ThemeRepository extends Repository {
         }
 
         if ( $install_md_content ) {
-            $install_md_path    = FileSystemHelper::join_path( $base_folder, 'changelog.txt' );
+            $install_md_path    = FileSystemHelper::join_path( $base_folder, 'installation.txt' );
             $this->put_contents( $install_md_path, $install_md_content );
         }
 

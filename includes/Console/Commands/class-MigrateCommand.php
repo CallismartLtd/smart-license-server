@@ -11,17 +11,17 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
-use SmartLicenseServer\Config;
 use SmartLicenseServer\Database\Schema\DBTables;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Creates any missing database tables by delegating to the environment
- * provider's install_tables() method.
+ * Creates any missing database tables.
  */
 class MigrateCommand implements CommandInterface {
+    use CLIAwareTrait;
 
     public static function name(): string {
         return 'migrate';
@@ -32,23 +32,35 @@ class MigrateCommand implements CommandInterface {
     }
 
     public function execute( array $args = [] ): void {
-        $provider = Config::env_provider();
+        $this->start_timer();
+        $this->info( 'Running database migrations...' );
+        $this->newline();
 
-                $db     = smliser_db();
-        $tables = DBTables::table_names();
+        $db      = smliser_db();
+        $tables  = DBTables::table_names();
+        $headers = [ 'Table', 'Status' ];
+        $rows    = [];
+
+        $this->progress_start( count( $tables ), 'Checking' );
 
         foreach ( $tables as $table ) {
             $existing = $db->get_var( 'SHOW TABLES LIKE ?', [ $table ] );
 
             if ( $table !== $existing ) {
                 $this->create_table( $table, DBTables::get( $table ) );
-                echo sprintf( '  Created table: %s' . PHP_EOL, $table );
+                $rows[] = [ $table, '✔ Created' ];
             } else {
-                echo sprintf( '  Already exists: %s' . PHP_EOL, $table );
+                $rows[] = [ $table, '— Already exists' ];
             }
+
+            $this->progress_advance();
         }
 
-        echo 'Done.' . PHP_EOL;
+        $this->progress_finish();
+        $this->newline();
+        $this->table( $headers, $rows );
+        $this->newline();
+        $this->done( 'Migration complete.' );
     }
 
     /**

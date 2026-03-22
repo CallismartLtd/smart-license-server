@@ -67,7 +67,6 @@ class SetUp extends Config {
         
         add_action( 'admin_init', [Router::class, 'init_request'] );
         add_action( 'template_redirect', [Router::class, 'init_request'] );
-        add_action( 'smliser_clean', [DownloadToken::class, 'clean_expired_tokens'] );
         
         add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
         add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
@@ -464,10 +463,6 @@ class SetUp extends Config {
      * Schedules events.
      */
     public function schedule_events() {
-        if ( ! wp_next_scheduled( 'smliser_clean' ) ) {
-            wp_schedule_event( time(), 'smliser_4_hourly', 'smliser_clean' );
-        }
-
         if ( ! wp_next_scheduled( 'smliser_process_queue' ) ) {
             wp_schedule_event( time(), 'smliser_every_minute', 'smliser_process_queue' );
         }

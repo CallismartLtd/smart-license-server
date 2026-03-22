@@ -12,7 +12,6 @@ namespace SmartLicenseServer\HostedApps;
 
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Security\Owner;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 

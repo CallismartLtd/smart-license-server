@@ -240,7 +240,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
     public function get_settings() {
         return array(
             array(
-                'label' => __( 'Store URL', 'smliser' ),
+                'label' => 'Store URL',
                 'input' => array(
                     'type'  => 'text',
                     'name'  => 'store_url',
@@ -253,7 +253,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
                 )
             ),
             array(
-                'label' => __( 'Checkout URL/Endpoint', 'smliser' ),
+                'label' => 'Checkout URL/Endpoint',
                 'input' => array(
                     'type'  => 'text',
                     'name'  => 'checkout_url',

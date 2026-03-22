@@ -910,7 +910,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
 
         } else {
             if ( ! ( $file instanceof UploadedFile ) || ! $file->is_upload_successful() ) {
-                return new Exception( 'required_file', __( 'No plugin file provided for upload.', 'smliser' ), array( 'status' => 400 ) );
+                return new Exception( 'required_file', 'No plugin file provided for upload.', array( 'status' => 400 ) );
             }
 
             $filename   = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );

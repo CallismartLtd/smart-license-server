@@ -11,18 +11,18 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
-use SmartLicenseServer\Config;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Installs default permission roles by delegating to the environment
- * provider's install_default_roles() method.
+ * Installs default permission roles.
  */
 class InstallRolesCommand implements CommandInterface {
+    use CLIAwareTrait;
 
     public static function name(): string {
         return 'install:roles';
@@ -33,8 +33,14 @@ class InstallRolesCommand implements CommandInterface {
     }
 
     public function execute( array $args = [] ): void {
+        $this->start_timer();
+        $this->info( 'Installing default roles...' );
+        $this->newline();
+
         $this->install_default_roles();
-        echo 'Done.' . PHP_EOL;
+
+        $this->newline();
+        $this->done( 'All roles processed.' );
     }
 
     /**
@@ -44,6 +50,8 @@ class InstallRolesCommand implements CommandInterface {
      */
     public function install_default_roles(): void {
         $default_roles = DefaultRoles::all();
+        $headers       = [ 'Role', 'Status' ];
+        $rows          = [];
 
         foreach ( $default_roles as $slug => $roledata ) {
             $role = new Role;
@@ -53,11 +61,16 @@ class InstallRolesCommand implements CommandInterface {
             $role->set_slug( $slug );
 
             try {
-                $role->save();
-                echo sprintf( '  Role installed: %s' . PHP_EOL, $slug );
+                if ( $role->save() ) {
+                    $rows[] = [ $slug, '✔ Installed' ];
+                } else {
+                    $rows[] = [ $slug, '⚠ Skipped — unable to save' ];
+                }
             } catch ( \Throwable $e ) {
-                echo sprintf( '  Role skipped (%s): %s' . PHP_EOL, $slug, $e->getMessage() );
+                $rows[] = [ $slug, '✖ ' . $e->getMessage() ];
             }
         }
+
+        $this->table( $headers, $rows );
     }
 }
