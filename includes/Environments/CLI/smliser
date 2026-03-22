@@ -1,3 +1,4 @@
+#!/usr/bin/env php
 <?php
 /**
  * Smart License Server CLI bootstrap file.
