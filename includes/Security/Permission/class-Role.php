@@ -419,7 +419,7 @@ class Role {
         $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
         $existing       = static::get_by_slug( $this->get_slug() );
         $capabilities   = array_values( array_unique( $this->get_capabilities() ) );
-        $now            = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+        $now            = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
         if ( ! $existing ) {
             $roles_data = [
