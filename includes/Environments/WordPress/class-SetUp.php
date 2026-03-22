@@ -12,18 +12,12 @@ use SmartLicenseServer\Admin\AdminConfiguration;
 use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Console\Commands\InstallRolesCommand;
-use SmartLicenseServer\Console\Commands\MigrateCommand;
-use SmartLicenseServer\Console\Commands\ScheduleCommand;
-use SmartLicenseServer\Console\Commands\WorkCommand;
-use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 use SmartLicenseServer\Console\Runners\WPCLIRunner;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Adapters\WPDBAdapter;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
-use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\ProviderCollection;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
@@ -475,15 +469,8 @@ class SetUp extends Config {
     /**
      * Bootstraps in WP_CLI environment.
      */
-    public function setup_cli() {
-        CommandRegistry::instance()->register_core_many( [
-            WorkCommand::class,
-            ScheduleCommand::class,
-            WorkScheduleCommand::class,
-            MigrateCommand::class,
-            InstallRolesCommand::class,
-        ] );
-        
-        ( new WPCLIRunner( CommandRegistry::instance() ) )->register();
+    public function setup_cli() {        
+        ( new WPCLIRunner( CommandRegistry::instance() ) )
+        ->register();
     }
 }

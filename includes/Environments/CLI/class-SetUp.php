@@ -8,7 +8,7 @@
  * from environment variables, and calls $this->setup().
  *
  * No hook system, no admin UI, no REST registration. The CLI caller
- * (cli.php) drives execution directly after construction.
+ * (smliser) drives execution directly after construction.
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Environments\CLI

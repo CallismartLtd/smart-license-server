@@ -37,6 +37,11 @@ namespace SmartLicenseServer\Console;
 
 use InvalidArgumentException;
 use RuntimeException;
+use SmartLicenseServer\Console\Commands\InstallRolesCommand;
+use SmartLicenseServer\Console\Commands\MigrateCommand;
+use SmartLicenseServer\Console\Commands\ScheduleCommand;
+use SmartLicenseServer\Console\Commands\WorkCommand;
+use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -84,6 +89,13 @@ class CommandRegistry {
      */
     private array $custom = [];
 
+    /**
+     * Flags whether core commands has been registered.
+     * 
+     * @var bool $core_booted
+     */
+    private bool $core_booted   = false;
+
     /*
     |----------------------
     | CONSTRUCTOR
@@ -93,7 +105,9 @@ class CommandRegistry {
     /**
      * Private constructor — use instance().
      */
-    private function __construct() {}
+    private function __construct() {
+        $this->boot_core();
+    }
 
     /*
     |----------------------
@@ -134,7 +148,7 @@ class CommandRegistry {
      * @throws InvalidArgumentException If the class does not implement CommandInterface.
      * @throws RuntimeException         If a core command with the same name already exists.
      */
-    public function register_core( string $class ): static {
+    private function register_core( string $class ): static {
         $this->assert_implements_interface( $class );
 
         $name = $class::name();
@@ -154,13 +168,27 @@ class CommandRegistry {
     }
 
     /**
-     * Register multiple core commands at once.
+     * Boot core commands at once.
      *
-     * @param array<class-string<CommandInterface>> $classes
      * @return static Fluent.
      */
-    public function register_core_many( array $classes ): static {
-        foreach ( $classes as $class ) {
+    private function boot_core(): static {
+
+        if ( $this->core_booted ) {
+            return $this;
+        }
+
+        $this->core_booted = true;
+
+        $core_commands  = [
+            WorkCommand::class,
+            ScheduleCommand::class,
+            WorkScheduleCommand::class,
+            MigrateCommand::class,
+            InstallRolesCommand::class,
+        ];
+
+        foreach ( $core_commands as $class ) {
             $this->register_core( $class );
         }
 

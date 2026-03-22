@@ -108,7 +108,7 @@ class CLIRunner implements RunnerInterface {
         echo 'Smart License Server CLI' . PHP_EOL;
         echo PHP_EOL;
         echo 'Usage:' . PHP_EOL;
-        echo '  php cli.php [command]' . PHP_EOL;
+        echo '  php smliser [command]' . PHP_EOL;
         echo PHP_EOL;
         echo 'Commands:' . PHP_EOL;
 

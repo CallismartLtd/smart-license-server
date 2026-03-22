@@ -7,8 +7,8 @@
  * command registry, and delegates dispatch to CLIRunner.
  *
  * Usage:
- *   php cli.php [command]
- *   php cli.php help
+ *   php smliser [command]
+ *   php smliser help
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Environments\CLI
@@ -53,25 +53,11 @@ if ( file_exists( $env_file ) ) {
 }
 
 use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Console\Commands\InstallRolesCommand;
-use SmartLicenseServer\Console\Commands\MigrateCommand;
-use SmartLicenseServer\Console\Commands\ScheduleCommand;
-use SmartLicenseServer\Console\Commands\WorkCommand;
-use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 use SmartLicenseServer\Console\Runners\CLIRunner;
 use SmartLicenseServer\Environments\CLI\SetUp as CLISetUp;
 
 // Boot the CLI environment — database, settings, queue, scheduler.
 CLISetUp::instance();
-
-// Build the core command registry.
-CommandRegistry::instance()->register_core_many( [
-    WorkCommand::class,
-    ScheduleCommand::class,
-    WorkScheduleCommand::class,
-    MigrateCommand::class,
-    InstallRolesCommand::class,
-] );
 
 // Dispatch.
 ( new CLIRunner( CommandRegistry::instance(), $argv ) )->register();
