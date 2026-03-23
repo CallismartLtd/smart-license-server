@@ -26,7 +26,7 @@ if ( PHP_SAPI !== 'cli' ) {
 $app_root    = '/var/www/html/apiv1.callismart.local';
 $plugin_path = $app_root . '/wp-content/plugins/smart-license-server/';
 
-// Core constants — mirror the WordPress bootstrap.
+// Core constants.
 define( 'SMLISER_ABSPATH',  $app_root . '/' );
 define( 'SMLISER_PATH',     $plugin_path );
 define( 'SMLISER_FILE',     __FILE__ );
@@ -38,24 +38,12 @@ define( 'SMLISER_APP_NAME', 'Smart License Server' );
 // Register the autoloader.
 require_once SMLISER_PATH . 'includes/class-Autoloader.php';
 
-// Load optional .env file from the application root.
-$env_file = $app_root . '/.env';
-if ( file_exists( $env_file ) ) {
-    $lines = file( $env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
-    foreach ( $lines as $line ) {
-        if ( str_starts_with( trim( $line ), '#' ) ) {
-            continue;
-        }
-        if ( str_contains( $line, '=' ) ) {
-            [ $key, $value ] = explode( '=', $line, 2 );
-            $_ENV[ trim( $key ) ] = trim( $value, " \t\n\r\0\x0B\"'" );
-        }
-    }
-}
-
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\CLIRunner;
+use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Environments\CLI\SetUp as CLISetUp;
+
+( new DotEnv( $app_root ) )->load();
 
 // Boot the CLI environment — database, settings, queue, scheduler.
 CLISetUp::instance();
