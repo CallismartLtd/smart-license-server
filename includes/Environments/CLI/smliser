@@ -18,11 +18,11 @@
 
 // Guard — must be run from CLI only.
 if ( PHP_SAPI !== 'cli' ) {
-    http_response_code( 403 );
+    function_exists( 'http_response_code' ) && http_response_code( 403 );
     exit( 'This script can only be run from the command line.' );
 }
 
-// Resolve paths — adjust $app_root and $plugin_path to match your install.
+// Resolve paths - adjust $app_root and $plugin_path to match your install.
 $app_root    = '/var/www/html/apiv1.callismart.local';
 $plugin_path = $app_root . '/wp-content/plugins/smart-license-server/';
 
