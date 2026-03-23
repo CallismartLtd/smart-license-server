@@ -29,6 +29,14 @@ class ScheduleCommand implements CommandInterface {
     public static function description(): string {
         return 'Run all due scheduled tasks.';
     }
+    public static function synopsis(): string {
+        return 'smliser schedule';
+    }
+
+    public static function help(): string {
+        return '';
+    }
+
 
     public function execute( array $args = [] ): void {
         $this->start_timer();

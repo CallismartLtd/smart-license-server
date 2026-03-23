@@ -30,6 +30,14 @@ class MigrateCommand implements CommandInterface {
     public static function description(): string {
         return 'Create any missing database tables.';
     }
+    public static function synopsis(): string {
+        return 'smliser migrate';
+    }
+
+    public static function help(): string {
+        return '';
+    }
+
 
     public function execute( array $args = [] ): void {
         $this->start_timer();

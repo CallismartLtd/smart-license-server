@@ -36,6 +36,27 @@ class CacheCommand implements CommandInterface {
     public static function description(): string {
         return 'Inspect and manage the system cache.';
     }
+    public static function synopsis(): string {
+        return 'smliser cache <subcommand> [key]';
+    }
+
+    public static function help(): string {
+        return implode( PHP_EOL, [
+            'Subcommands:',
+            '  stats           Show cache engine metrics.',
+            '  clear           Flush all cached data (confirms first).',
+            '  get <key>       Retrieve and display a specific cache key.',
+            '  delete <key>    Remove a specific key from the cache.',
+            '  help            Show this help message.',
+            '',
+            'Examples:',
+            '  smliser cache stats',
+            '  smliser cache clear',
+            '  smliser cache get smliser_some_key',
+            '  smliser cache delete smliser_some_key',
+        ]);
+    }
+
 
     public function execute( array $args = [] ): void {
         $subcommand = $args[0] ?? null;

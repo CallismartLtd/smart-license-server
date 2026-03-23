@@ -22,11 +22,8 @@ namespace SmartLicenseServer\Environments\CLI;
 use SmartLicenseServer\Config;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Database\Schema\DBTables;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\Monetization\ProviderCollection;
-use SmartLicenseServer\Security\Permission\DefaultRoles;
-use SmartLicenseServer\Security\Permission\Role;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -216,86 +213,6 @@ class SetUp extends Config {
      * No-op in CLI — URL rewriting is a web server concern.
      */
     public function route_register(): void {}
-
-    /*
-    |--------------------------------------------
-    | CLI-SPECIFIC MAINTENANCE METHODS
-    |--------------------------------------------
-    */
-
-    /**
-     * Create any missing database tables.
-     *
-     * Mirrors Installer::maybe_create_tables() from the WordPress adapter
-     * without the WordPress dependency.
-     *
-     * @return void
-     */
-    public function install_tables(): void {
-        $db     = smliser_db();
-        $tables = DBTables::table_names();
-
-        foreach ( $tables as $table ) {
-            $existing = $db->get_var( 'SHOW TABLES LIKE ?', [ $table ] );
-
-            if ( $table !== $existing ) {
-                $this->create_table( $table, DBTables::get( $table ) );
-                echo sprintf( '  Created table: %s' . PHP_EOL, $table );
-            } else {
-                echo sprintf( '  Already exists: %s' . PHP_EOL, $table );
-            }
-        }
-    }
-
-    /**
-     * Install default permission roles.
-     *
-     * Mirrors Installer::install_default_roles() from the WordPress adapter.
-     *
-     * @return void
-     */
-    public function install_default_roles(): void {
-        $default_roles = DefaultRoles::all();
-
-        foreach ( $default_roles as $slug => $roledata ) {
-            $role = new Role;
-            $role->set_capabilities( $roledata['capabilities'] );
-            $role->set_label( $roledata['label'] );
-            $role->set_is_canonical( $roledata['is_canonical'] );
-            $role->set_slug( $slug );
-
-            try {
-                $role->save();
-                echo sprintf( '  Role installed: %s' . PHP_EOL, $slug );
-            } catch ( \Throwable $e ) {
-                echo sprintf( '  Role skipped (%s): %s' . PHP_EOL, $slug, $e->getMessage() );
-            }
-        }
-    }
-
-    /*
-    |--------------------------------------------
-    | PRIVATE HELPERS
-    |--------------------------------------------
-    */
-
-    /**
-     * Create a single database table from a column definition array.
-     *
-     * @param string   $table_name Table name constant.
-     * @param string[] $columns    Column definition strings from DBTables.
-     * @return void
-     */
-    private function create_table( string $table_name, array $columns ): void {
-        $db              = smliser_db();
-        $charset_collate = $db->get_charset_collate();
-
-        $sql  = "CREATE TABLE {$table_name} (";
-        $sql .= implode( ', ', $columns );
-        $sql .= ") {$charset_collate};";
-
-        $db->query( $sql );
-    }
 
     /*
     |--------------------------------------------

@@ -17,13 +17,9 @@ use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\Http\HttpClient;
-use SmartLicenseServer\Http\HttpRequest;
-use SmartLicenseServer\Http\HttpResponse;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
-use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\MDParser;
 use SmartLicenseServer\Utils\Sanitizer;
 

@@ -19,6 +19,32 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Console command contract.
+ *
+ * ## Implementing a command
+ *
+ *   class AppCommand implements CommandInterface {
+ *       use CLIAwareTrait;
+ *
+ *       public static function name(): string        { return 'app'; }
+ *       public static function description(): string { return 'Manage hosted applications.'; }
+ *
+ *       public static function synopsis(): string {
+ *           return 'smliser app <subcommand> [arguments]';
+ *       }
+ *
+ *       public static function help(): string {
+ *           return implode( PHP_EOL, [
+ *               'Subcommands:',
+ *               '  list                          List all hosted applications.',
+ *               '  get <slug> <type>             Show details for a specific app.',
+ *               '  status <slug> <type> <status> Change an app status.',
+ *           ]);
+ *       }
+ *
+ *       public function execute( array $args = [] ): void {
+ *           // dispatch subcommands...
+ *       }
+ *   }
  */
 interface CommandInterface {
 
@@ -27,25 +53,59 @@ interface CommandInterface {
      *
      * Use colon notation for namespaced commands.
      *
-     * Examples: 'work', 'work:schedule', 'migrate', 'install:roles'
+     * Examples: 'work', 'work:schedule', 'migrate', 'app', 'cache'
      *
      * @return string
      */
     public static function name(): string;
 
     /**
-     * A short human-readable description shown in help output.
+     * A short one-line description shown in the main command listing.
+     *
+     * Keep this to a single sentence — it appears in the aligned
+     * command table printed by `smliser help`.
      *
      * @return string
      */
     public static function description(): string;
 
     /**
+     * A usage synopsis shown at the top of per-command help output.
+     *
+     * Should describe the full call signature including subcommands
+     * and positional arguments. Printed by `smliser help <command>`
+     * and `smliser <command> --help`.
+     *
+     * Examples:
+     *   'smliser cache <subcommand> [key]'
+     *   'smliser app <subcommand> <slug> <type> [options]'
+     *   'smliser work'
+     *
+     * @return string
+     */
+    public static function synopsis(): string;
+
+    /**
+     * Detailed help text shown when the user requests per-command help.
+     *
+     * Printed below the synopsis by `smliser help <command>` and
+     * `smliser <command> --help`. Should document all subcommands,
+     * positional arguments, flags, and examples.
+     *
+     * Return an empty string for simple commands that have no
+     * subcommands or options beyond what the synopsis covers.
+     *
+     * @return string
+     */
+    public static function help(): string;
+
+    /**
      * Execute the command.
      *
      * Receives the raw argument list from the runner. The runner
-     * strips the command name itself before passing args so the
-     * command only sees its own options and positional arguments.
+     * strips the script name and command name before passing args,
+     * so the command only sees its own subcommands, positional
+     * arguments, and flags.
      *
      * @param array<int|string, mixed> $args Arguments passed to the command.
      * @return void

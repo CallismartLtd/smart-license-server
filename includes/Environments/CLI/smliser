@@ -41,12 +41,15 @@ require_once SMLISER_PATH . 'includes/class-Autoloader.php';
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\CLIRunner;
 use SmartLicenseServer\Core\DotEnv;
+use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;
 use SmartLicenseServer\Environments\CLI\SetUp as CLISetUp;
 
 ( new DotEnv( $app_root ) )->load();
 
 // Boot the CLI environment — database, settings, queue, scheduler.
 CLISetUp::instance();
+
+( new CLIIdentityProvider() )->authenticate();
 
 // Dispatch.
 ( new CLIRunner( CommandRegistry::instance(), $argv ) )->register();

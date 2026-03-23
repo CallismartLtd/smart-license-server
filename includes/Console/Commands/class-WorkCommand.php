@@ -30,6 +30,14 @@ class WorkCommand implements CommandInterface {
     public static function description(): string {
         return 'Process background jobs until the queue is empty.';
     }
+    public static function synopsis(): string {
+        return 'smliser work';
+    }
+
+    public static function help(): string {
+        return '';
+    }
+
 
     public function execute( array $args = [] ): void {
         $this->start_timer();

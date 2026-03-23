@@ -30,6 +30,14 @@ class WorkScheduleCommand implements CommandInterface {
     public static function description(): string {
         return 'Process background jobs and run due scheduled tasks in one pass.';
     }
+    public static function synopsis(): string {
+        return 'smliser work:schedule';
+    }
+
+    public static function help(): string {
+        return '';
+    }
+
 
     public function execute( array $args = [] ): void {
         $this->start_timer();

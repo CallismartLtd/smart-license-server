@@ -417,7 +417,7 @@ class HostedApplicationService {
                 $query_sql  = "{$union_sql} ORDER BY updated_at DESC LIMIT ? OFFSET ?";
                 $params_sql = array_merge( $params_sql, [ $limit, $offset ] );
 
-                $rows       = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS apps", $params_sql, ARRAY_A );
+                $rows       = $db->get_results( "SELECT * FROM ( {$query_sql} ) AS apps", $params_sql );
                 $count_sql  = "SELECT SUM(total) FROM (" . implode( " UNION ALL ", $count_parts ) . ") AS counts";
                 $total      = (int) $db->get_var( $count_sql, $params_count );
 

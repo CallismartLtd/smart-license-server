@@ -522,30 +522,43 @@ class ScheduledTask {
     }
 
     /**
-     * Generate a stable task ID from a callable.
-     *
-     * @param callable $callable
-     * @return string
+     * Generate a stable ID for any callable.
      */
     private function generate_id( callable $callable ): string {
+
+        // Function name
         if ( is_string( $callable ) ) {
-            return $callable;
+            return 'func:' . strtolower( $callable );
         }
 
+        // Class method or object method
         if ( is_array( $callable ) ) {
-            $class  = is_string( $callable[0] ) ? $callable[0] : get_class( $callable[0] );
-            return $class . '::' . $callable[1];
+
+            $target = $callable[0];
+            $method = $callable[1];
+
+            // Static method
+            if ( is_string( $target ) ) {
+                return 'static:' . $target . '::' . $method;
+            }
+
+            // Object method
+            if ( is_object( $target ) ) {
+                return 'object:' . get_class( $target ) . '::' . $method . '#' . spl_object_hash( $target );
+            }
         }
 
+        // Closure
         if ( $callable instanceof \Closure ) {
-            $ref = new \ReflectionFunction( $callable );
-            return sprintf(
-                'closure_%s_%d',
-                basename( str_replace( '\\', '/', $ref->getFileName() ) ),
-                $ref->getStartLine()
-            );
+            return 'closure:' . spl_object_hash( $callable );
         }
 
-        return 'task_' . md5( serialize( $callable ) );
+        // Invokable object
+        if ( is_object( $callable ) && method_exists( $callable, '__invoke' ) ) {
+            return 'invokable:' . get_class( $callable ) . '#' . spl_object_hash( $callable );
+        }
+
+        // Fallback
+        return 'task:' . md5( uniqid( '', true ) );
     }
 }
