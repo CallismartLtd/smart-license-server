@@ -8,8 +8,8 @@
  * command registry, and delegates dispatch to CLIRunner.
  *
  * Usage:
- *   php smliser [command]
- *   php smliser help
+ *   smliser [command]
+ *   smliser help
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Environments\CLI

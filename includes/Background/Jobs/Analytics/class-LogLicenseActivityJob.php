@@ -70,7 +70,7 @@ class LogLicenseActivityJob implements JobHandlerInterface {
      * @return bool True on success.
      */
     public function handle( array $payload ): mixed {
-        RepositoryAnalytics::log_license_activity( $payload );
+        \smliser_settings_adapter()->set( RepositoryAnalytics::LICENSE_ACTIVITY_KEY, $payload );
         return true;
     }
 

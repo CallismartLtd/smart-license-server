@@ -8,15 +8,16 @@
  */
 namespace SmartLicenseServer\HostedApps;
 
+use SmartLicenseServer\Background\Jobs\Apps\NotifyAppUpdateJob;
+use SmartLicenseServer\Background\Jobs\Apps\SendAppOwnershipChangedEmailJob;
+use SmartLicenseServer\Background\Jobs\Apps\SendAppPublishedEmailJob;
+use SmartLicenseServer\Background\Jobs\Apps\SendAppStatusChangedEmailJob;
+use SmartLicenseServer\Background\Jobs\Apps\SendAppUpdatedEmailJob;
+use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\Plugin;
-use SmartLicenseServer\HostedApps\Theme;
-use SmartLicenseServer\HostedApps\Software;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -27,7 +28,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Software Hosting Controller handles HTTP request and response for hosted applications.
  */
 class HostingController {
-    use SanitizeAwareTrait, SecurityAwareTrait;
+    use SanitizeAwareTrait, SecurityAwareTrait, QueueAwareTrait;
 
     /*
     |---------------------------
@@ -89,9 +90,9 @@ class HostingController {
                 throw new RequestException( 'invalid_input', 'Application author name is required.' , array( 'status' => 400 ) );
             }
 
-            $app_zip_file   = $request->get_file( 'app_zip_file' );
-            $author_url     = $request->get( 'app_author_url', '' );
-            $version        = $request->get( 'app_version', '' );
+            $app_zip_file = $request->get_file( 'app_zip_file' );
+            $author_url   = $request->get( 'app_author_url', '' );
+            $version      = $request->get( 'app_version', '' );
 
             if ( ! $app->get_slug() && ! $request->isEmpty( 'app_slug' ) ) {
                 $app->set_slug( $request->get( 'app_slug' ) );
@@ -102,6 +103,16 @@ class HostingController {
             $app->set_author_profile( $author_url );
             $app->set_version( $version );
             $app->set_file( $app_zip_file ?? '' );
+
+            /*
+            |------------------------------------------
+            | Capture pre-save state for job dispatching
+            |------------------------------------------
+            */
+            $is_new          = ! $app->exists();
+            $zip_uploaded    = $app_zip_file instanceof \SmartLicenseServer\Core\UploadedFile
+                               && $app_zip_file->is_upload_successful();
+            $old_owner_id    = $app->get_owner_id();
         
             if ( $app->exists() ) {
 
@@ -127,6 +138,9 @@ class HostingController {
                 $app->set_owner_id( Guard::get_principal()?->get_owner()->get_id() ?? 0 );
             }
 
+            $new_owner_id = $app->get_owner_id();
+            $owner_changed = ! $is_new && $new_owner_id !== $old_owner_id;
+
             $result = $app->save();
 
             if ( is_smliser_error( $result ) ) {
@@ -138,6 +152,36 @@ class HostingController {
 
             if ( ! $request->isEmpty( 'app_status' ) && AbstractHostedApp::STATUS_TRASH !== $request->get( 'app_status' ) ) {
                 static::change_app_status( $request, $app );
+            }
+
+            /*
+            |------------------------------------------
+            | Dispatch background jobs
+            |------------------------------------------
+            */
+            $job_payload = [
+                'app_type' => $app->get_type(),
+                'app_slug' => $app->get_slug(),
+            ];
+
+            if ( $is_new ) {
+                // New app published.
+                ( new static )->dispatch_job( SendAppPublishedEmailJob::class, $job_payload );
+
+            } else {
+                // Existing app zip updated — notify owner and licensees.
+                if ( $zip_uploaded ) {
+                    ( new static )->dispatch_job( SendAppUpdatedEmailJob::class, $job_payload );
+                    ( new static )->dispatch_job( NotifyAppUpdateJob::class, $job_payload );
+                }
+
+                // Ownership transferred.
+                if ( $owner_changed ) {
+                    ( new static )->dispatch_job( SendAppOwnershipChangedEmailJob::class, array_merge( $job_payload, [
+                        'previous_owner_id' => $old_owner_id,
+                        'new_owner_id'      => $new_owner_id,
+                    ] ) );
+                }
             }
 
             \smliser_cache()->clear();
@@ -175,8 +219,6 @@ class HostingController {
 
         $manifest   = $request->get_file( 'app_json_file' );
 
-        // Manifest file for WordPress plugins are optional, if valid manifest file is uploaded,
-        // update the plugin manifest.
         if ( $manifest && $manifest->is_upload_successful() ) {
             $plugin_manifest = static::extract_app_json_content( $request );
 
@@ -206,8 +248,6 @@ class HostingController {
             return new RequestException( 'message', 'Wrong theme object passed' );
         }
 
-        // Manifest file for WordPress themes are optional, if valid manifest file is uploaded,
-        // update the theme manifest.
         $manifest   = $request->get_file( 'app_json_file' );
 
         if ( $manifest && $manifest->is_upload_successful() ) {
@@ -247,7 +287,6 @@ class HostingController {
 
         $manifest   = static::extract_app_json_content( $request );
 
-        // Manifest file is required during software update.
         if ( $manifest instanceof RequestException ) {
             return $manifest;
         }
@@ -264,7 +303,7 @@ class HostingController {
      * Helper method to extract the app.json file contents from the request.
      * 
      * @param Request $request The request object.
-     * @return RequestException|array Returns the app.json contents as an associative array on success, or a RequestException on failure.
+     * @return RequestException|array
      */
     private static function extract_app_json_content( Request $request ) : RequestException|array {
         $uploaded_json = $request->get_file( 'app_json_file' );
@@ -309,8 +348,7 @@ class HostingController {
      * Handles an application's asset upload using a standardized Request object.
      *
      * @param Request $request The standardized request object.
-     * @return Response Returns a Response object on success.
-     * @throws RequestException On business logic failure.
+     * @return Response
      */
     public static function app_asset_upload( Request $request ) {
         try {
@@ -319,7 +357,6 @@ class HostingController {
             $app_type   = $request->get( 'app_type' );
             $app_slug   = $request->get( 'app_slug' );
             $asset_type = $request->get( 'asset_type' );
-            $asset_name = $request->get( 'asset_name', '' );
 
             $missing    = [];
             foreach ( \compact( 'app_slug', 'app_type', 'asset_type' ) as $key => $value ) {
@@ -331,23 +368,17 @@ class HostingController {
             if ( ! empty( $missing ) ) {
                 throw new RequestException(
                     'required_param',
-                    sprintf(
-                        'Missing required parameters: %s',
-                        implode( ', ', $missing )
-                    )
+                    sprintf( 'Missing required parameters: %s', implode( ', ', $missing ) )
                 );
             }
 
             unset( $missing );
             
             if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
-                throw new RequestException( 
-                    'invalid_input', 
-                    sprintf( 'The app type "%s" is not supported.', $app_type ) 
-                );
+                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported.', $app_type ) );
             }
 
-            $app    = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+            $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
             if ( ! $app ) {
                 throw new RequestException( 'app_not_found' );
@@ -369,21 +400,14 @@ class HostingController {
             
             if ( $request->isPost() ) {
                 $result = $repo_class->safe_assets_upload( $app_slug, $asset_file, $asset_type );
-
             } else {
                 static::check_permissions( 'hosted_apps.edit_assets' );
-
                 $result = $repo_class->put_app_asset( $app_slug, $asset_file->get(0), $asset_type );
             }
 
             \smliser_cache()->clear();
             
-            $response   = [
-                'success'   => true,
-                'result'    => $result
-            ];
-
-            return ( new Response( 200, array(), $response ) )
+            return ( new Response( 200, array(), [ 'success' => true, 'result' => $result ] ) )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
 
         } catch ( RequestException $e ) {
@@ -397,7 +421,7 @@ class HostingController {
      * Handles an application's asset deletion using a standardized Request object.
      *
      * @param Request $request The standardized request object.
-     * @return Response Returns a Response object on success.
+     * @return Response
      */
     public static function app_asset_delete( Request $request ) {
         try {
@@ -417,10 +441,7 @@ class HostingController {
             if ( ! empty( $missing ) ) {
                 throw new RequestException(
                     'required_param',
-                    sprintf(
-                        'Missing required parameters: %s',
-                        implode( ', ', $missing )
-                    ),
+                    sprintf( 'Missing required parameters: %s', implode( ', ', $missing ) ),
                     ['status' => 400]
                 );
             }
@@ -428,14 +449,10 @@ class HostingController {
             unset( $missing );
 
             if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
-                throw new RequestException(
-                    'invalid_input',
-                    sprintf( 'The app type "%s" is not supported', $app_type ),
-                    ['status' => 400]
-                );
+                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ), ['status' => 400] );
             }
 
-            $app    = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+            $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
             if ( ! $app ) {
                 throw new RequestException( 'app_not_found' );
@@ -446,11 +463,7 @@ class HostingController {
             $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
             
             if ( ! $repo_class ) {
-                throw new RequestException(
-                    'internal_server_error',
-                    'Unable to resolve repository class.',
-                    ['status' => 500]
-                );
+                throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.', ['status' => 500] );
             }
 
             $result = $repo_class->delete_asset( $app_slug, $asset_name );
@@ -465,13 +478,7 @@ class HostingController {
 
             \smliser_cache()->clear();
 
-            $data       = array( 'message' => 'Asset deleted successfully.' );
-            $response   = [
-                'success'   => true,
-                'data'      => $data
-            ];
-
-            return ( new Response( 200, array(), $response ) )
+            return ( new Response( 200, array(), [ 'success' => true, 'data' => [ 'message' => 'Asset deleted successfully.' ] ] ) )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
 
         } catch ( RequestException $e ) {
@@ -485,6 +492,7 @@ class HostingController {
      * Perform a status change on a hosted app.
      *
      * @param Request $request The request object.
+     * @param AbstractHostedApp|null $app
      * @return Response
      */
     public static function change_app_status( Request $request, ?AbstractHostedApp $app = null ) : Response {
@@ -501,20 +509,21 @@ class HostingController {
 
             static::check_app_ownership( $app );
 
-            $status             = $request->get( 'app_status' );
-            $knowned_statuses   = array_keys( $app->get_statuses() );
+            $status           = $request->get( 'app_status' );
+            $known_statuses   = array_keys( $app->get_statuses() );
 
-            if ( ! in_array( $status, $knowned_statuses, true ) ) {
+            if ( ! in_array( $status, $known_statuses, true ) ) {
                 throw new RequestException( 'invalid_input', sprintf( 'The status "%s" is not valid for the %s with slug "%s"', $status, $app_type, $app_slug ), array( 'status' => 400 ) );
             }
 
             $old_status = $app->get_status();
+
             if ( $old_status === $status ) {
                 throw new RequestException( 'precondition_failed', sprintf( 'Status is already "%s".', $status ) );
             }
             
             $app->set_status( $status );
-            $saved  = $app->save();
+            $saved = $app->save();
 
             if ( is_smliser_error( $saved ) ) {
                 throw new RequestException( 'status_change_failed', sprintf( 'Failed to change status for the %s from %s to %s, error: %s', $app_type, $old_status, $status, $saved->get_error_message() ), array( 'status' => 500 ) );
@@ -531,30 +540,34 @@ class HostingController {
                 }
 
                 if ( $old_status === AbstractHostedApp::STATUS_TRASH && $status !== AbstractHostedApp::STATUS_TRASH ) {
-                    // Restoring from trash.
                     $repo_class->restore_from_trash( $app->get_slug() );
                 } elseif ( $status === AbstractHostedApp::STATUS_TRASH ) {
-                    // Moving to trash.
                     $repo_class->queue_app_for_deletion( $app->get_slug() );
                 }
+            }
 
+            // Dispatch status change notification — skip trash transitions
+            // since CleanTrashedAppsJob handles permanent deletion silently.
+            if ( $status !== AbstractHostedApp::STATUS_TRASH ) {
+                ( new static )->dispatch_job( SendAppStatusChangedEmailJob::class, [
+                    'app_type'   => $app->get_type(),
+                    'app_slug'   => $app->get_slug(),
+                    'old_status' => $old_status,
+                    'new_status' => $status,
+                ] );
             }
 
             \smliser_cache()->clear();
 
             $data = array(
                 'message'       => sprintf( '%s status changed from %s to %s', ucfirst( $app_type ), $old_status, $status ),
-                'redirect_url'  => \smliser_admin_repo_tab( 'view', array( 'type' => $app->get_type(), 'app_id' => $app->get_id()) )
+                'redirect_url'  => \smliser_admin_repo_tab( 'view', array( 'type' => $app->get_type(), 'app_id' => $app->get_id() ) )
             );
-            $response   = [
-                'success'   => true,
-                'data'      => $data
-            ];
 
-            return ( new Response( 200, array(), smliser_safe_json_encode( $response ) ) )
+            return ( new Response( 200, array(), smliser_safe_json_encode( [ 'success' => true, 'data' => $data ] ) ) )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
 
-        }  catch ( RequestException $e ) {
+        } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
@@ -583,7 +596,7 @@ class HostingController {
                     continue;
                 }
 
-                $app    = HostedApplicationService::get_app_by_slug( $type, $slug );
+                $app = HostedApplicationService::get_app_by_slug( $type, $slug );
 
                 if ( ! $app ) {
                     continue;
@@ -607,18 +620,13 @@ class HostingController {
 
             \smliser_cache()->clear();
             return $response;
+
         } catch ( Exception $e ) {
             $url = smliser_repo_page( 'admin' )
-                ->add_query_param(
-                'message', 
-                \sprintf( 'Error: %s', $e->get_error_message() )
-            );
+                ->add_query_param( 'message', \sprintf( 'Error: %s', $e->get_error_message() ) );
 
             return ( new Response() )
                 ->set_header( 'Location', $url->get_href() );
-                
         }
-
     }
-
 }

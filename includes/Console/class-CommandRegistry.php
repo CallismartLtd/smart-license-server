@@ -37,6 +37,7 @@ namespace SmartLicenseServer\Console;
 
 use InvalidArgumentException;
 use RuntimeException;
+use SmartLicenseServer\Console\Commands\CacheCommand;
 use SmartLicenseServer\Console\Commands\InstallRolesCommand;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
@@ -186,6 +187,7 @@ class CommandRegistry {
             WorkScheduleCommand::class,
             MigrateCommand::class,
             InstallRolesCommand::class,
+            CacheCommand::class
         ];
 
         foreach ( $core_commands as $class ) {

@@ -168,11 +168,11 @@ class RepositoryAnalytics {
      * 
      * @return array $schedules An array of task logs
      */
-    public static function get_license_activity_logs() {
-        $schedules  = \smliser_settings_adapter()->get( self::LICENSE_ACTIVITY_KEY, false );
+    public static function get_license_activity_logs() : array {
+        $schedules  = \smliser_settings_adapter()->get( self::LICENSE_ACTIVITY_KEY, [] );
         
-        if ( false === $schedules ) {
-            return array(); // Returns empty array.
+        if ( empty( $schedules ) ) {
+            return [];
         }
 
         if ( ! is_array( $schedules ) ) {

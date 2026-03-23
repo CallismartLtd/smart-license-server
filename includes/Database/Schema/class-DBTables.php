@@ -58,7 +58,6 @@ final class DBTables {
                 'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
                 'INDEX service_id_index (service_id)',
                 'INDEX status_index (status)',
-                'INDEX user_id_index (user_id)',
             ),
 
             /**

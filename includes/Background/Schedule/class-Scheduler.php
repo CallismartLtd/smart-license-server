@@ -521,5 +521,14 @@ class Scheduler {
         ->every_hours( 4 )
         ->label( 'Clean Expired Download Tokens' )
         ->id( 'clean_expired_tokens' );
+
+        // Permanently delete trashed apps older than 30 days — weekly.
+        $this->dispatch(
+            \SmartLicenseServer\Background\Jobs\Apps\CleanTrashedAppsJob::class,
+            [ 'days_in_trash' => 30, 'batch_size' => 50 ]
+        )
+        ->weekly_on( 'sunday', '05:00' )
+        ->label( 'Clean Trashed Apps' )
+        ->id( 'clean_trashed_apps' );
     }
 }
