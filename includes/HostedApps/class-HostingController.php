@@ -285,13 +285,19 @@ class HostingController {
             );
         }
 
-        $manifest   = static::extract_app_json_content( $request );
+        // Manifest is optional on update — if no app.json is provided the existing
+        // manifest is preserved. Allows CLI callers to update without re-uploading.
+        $uploaded_json = $request->get_file( 'app_json_file' );
 
-        if ( $manifest instanceof RequestException ) {
-            return $manifest;
+        if ( $uploaded_json && $uploaded_json->is_upload_successful() ) {
+            $manifest = static::extract_app_json_content( $request );
+
+            if ( $manifest instanceof RequestException ) {
+                return $manifest;
+            }
+
+            $software->set_manifest( $manifest );
         }
-
-        $software->set_manifest( $manifest );
         $software->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
         $software->update_meta( 'support_url', $request->get( 'app_support_url' ) );
         $software->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );

@@ -16,13 +16,12 @@ trait TokenDeliveryTrait {
     /**
      * Derive a secure key using HKDF with salts.
      *
+     * @param string $context
      * @return string 32-byte encryption key.
      */
-    public static function derive_key() {
-        $secret = defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : 'zNqTILD04P3jQ8$Ev[v$Tec[Wf*(6>RxYukbrv{|qUOUr>($1@uO:ur%*<VX@:]&';
-        $salt   = defined( 'SECURE_AUTH_SALT' ) ? SECURE_AUTH_SALT : '7RY@sFBq:]9?JR`21~_45]$Iy.*bF8bO4(L{Ks9(yBxur +i=3D9@`b-fRF_K8JJ';
+    public static function derive_key( string $context = 'default' ) {
 
-        return hash_hkdf( 'sha256', $secret, 32, '', $salt );
+        return hash_hkdf( 'sha256', SMLISER_SECRET, 32, $context, SMLISER_SALT );
     }
 
     /**

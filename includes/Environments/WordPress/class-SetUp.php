@@ -96,10 +96,12 @@ class SetUp extends Config {
         $settings_provider  = new WPSettingsProvider;
         $database_adapter   = new WPDBAdapter( $wpdb );
         $rest_api_provider  = new RESTAPI( new V1 );
+        $secret             = SECURE_AUTH_KEY;
+        $salt               = SECURE_AUTH_SALT;
         
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
         'filesystem_adapter', 'cache_adapter', 'settings_provider', 'database_adapter',
-        'rest_api_provider'
+        'rest_api_provider', 'salt', 'secret'
         
         );
 

@@ -134,10 +134,12 @@ class SetUp extends Config {
 
         $env = [
             'db_prefix'        => $db_prefix,
-            'absolute_path'    => SMLISER_PATH,
+            'absolute_path'    => SMLISER_ABSPATH,
             'repo_path'        => $repo_path,
             'uploads_dir'      => $uploads_dir,
             'rest_api_provider' => new CLIRESTProvider(),
+            'secret'            => $_ENV['SMLISER_SECRET'] ?? '',
+            'salt'              => $_ENV['SMLISER_SALT'] ?? '',
         ];
 
         $this->setup( $env );

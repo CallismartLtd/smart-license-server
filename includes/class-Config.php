@@ -180,6 +180,8 @@ abstract class Config implements EnvironmentProviderInterface {
         $default_config = array(
             'db_prefix'             => '',
             'absolute_path'         => '',
+            'secret'                => null,
+            'salt'                  => null,
             'repo_path'             => '',
             'uploads_dir'           => '',
             'filesystem_adapter'    => null,
@@ -196,6 +198,7 @@ abstract class Config implements EnvironmentProviderInterface {
         $required_keys = [
             'db_prefix',
             'absolute_path',
+            'secret', 'salt',
             'repo_path',
             'uploads_dir',
             'rest_api_provider'
@@ -341,6 +344,20 @@ abstract class Config implements EnvironmentProviderInterface {
      * Declare global constants.
      */
     private function declareGlobalConstants() : void {
+        /**
+         * The application secret key.
+         * 
+         * @var string
+         */
+        define( 'SMLISER_SECRET', $this->env['secret'] );
+
+        /**
+         * The application salt used for encryption.
+         * 
+         * @var string
+         */
+        define( 'SMLISER_SALT', $this->env['salt'] );
+        
         /**
          * Licenses database table name.
          *
