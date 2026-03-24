@@ -1300,7 +1300,7 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
     try {
         $url  = is_string( $url ) ? new URL( $url ) : $url;
         // Validate URL.
-        if ( ! $url->is_valid( true ) ) {
+        if ( ! $url->is_valid( false ) ) {
             throw new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
         }
 

@@ -16,6 +16,7 @@ namespace SmartLicenseServer\Http;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 class HttpResponse {
+    use HttpStatusAwareTrait;
 
     /**
      * @param int                          $status_code    HTTP status code.

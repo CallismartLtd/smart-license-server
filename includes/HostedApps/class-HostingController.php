@@ -56,7 +56,7 @@ class HostingController {
             }
             
             $app_id     = static::sanitize_int( $request->get( 'app_id', 0 ) );
-            $app_slug   = static::sanitize_text( $request->get( 'app_slug' ) );
+            $app_slug   = static::sanitize_text( $request->get( 'app_slug', '' ) );
             $app_class  = HostedApplicationService::get_app_class( static::sanitize_text( $app_type ) );
 
             $init_method    = $app_id ? "get_{$app_type}" : "get_by_slug";

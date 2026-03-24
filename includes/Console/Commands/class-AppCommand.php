@@ -38,6 +38,7 @@ use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostingController;
@@ -604,7 +605,13 @@ class AppCommand implements CommandInterface {
         $temp_path = smliser_download_url( $url, timeout: 60, autoclean: false );
 
         if ( $temp_path instanceof \SmartLicenseServer\Exceptions\FileRequestException ) {
-            $this->error( sprintf( 'Download failed: %s', $temp_path->get_error_message() ) );
+            $status  = $temp_path->get_error_data()['status'] ?? 0;
+            $message = $temp_path->get_error_message() ?: 'Unknown download error.';
+
+            $this->error( $status
+                ? sprintf( 'Download failed [HTTP %d]: %s', $status, $message )
+                : sprintf( 'Download failed: %s', $message )
+            );
             return null;
         }
 
@@ -639,10 +646,10 @@ class AppCommand implements CommandInterface {
 
         $file_entry = [
             'name'     => basename( $tmp_path ),
-            'type'     => $this->guess_mime( $tmp_path ),
+            'type'     => FileSystemHelper::get_mime_type( $tmp_path ),
             'tmp_name' => $tmp_path,
             'error'    => UPLOAD_ERR_OK,
-            'size'     => $fs->size( $tmp_path ),
+            'size'     => $fs->filesize( $tmp_path ),
         ];
 
         // Populate $_FILES so Request::parse_uploaded_files() picks it up.
@@ -652,27 +659,6 @@ class AppCommand implements CommandInterface {
         return $request;
     }
 
-    /**
-     * Guess a MIME type from file extension — used for the synthetic file entry.
-     *
-     * @param string $path
-     * @return string
-     */
-    private function guess_mime( string $path ): string {
-        $ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-
-        return match ( $ext ) {
-            'zip'  => 'application/zip',
-            'json' => 'application/json',
-            'png'  => 'image/png',
-            'jpg',
-            'jpeg' => 'image/jpeg',
-            'gif'  => 'image/gif',
-            'svg'  => 'image/svg+xml',
-            'webp' => 'image/webp',
-            default => 'application/octet-stream',
-        };
-    }
 
     /**
      * Call cleanup functions — tolerates null entries.

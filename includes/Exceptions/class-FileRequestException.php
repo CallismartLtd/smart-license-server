@@ -12,19 +12,22 @@
 
 namespace SmartLicenseServer\Exceptions;
 
+use SmartLicenseServer\Http\HttpStatusAwareTrait;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Class FileRequestException
  */
 class FileRequestException extends Exception {
+    use HttpStatusAwareTrait;
 
     /**
      * Map of error slugs to their default data (HTTP Status, Title, and Message).
      *
      * @var array
      */
-    protected static $error_map = [
+    protected static array $error_map = [
 
         // 400 Bad Request Errors (Client-side input problems).
         'invalid_app_type_method' => [
@@ -101,7 +104,7 @@ class FileRequestException extends Exception {
         'invalid_param_license_id' => [
             'status'  => 400,
             'title'   => 'License Invalid',
-            'message' => 'Please privide the license ID in the request parameter.'
+            'message' => 'Please provide the license ID in the request parameter.'
         ],
         'license_revoked' => [
             'status'  => 403,
@@ -120,7 +123,6 @@ class FileRequestException extends Exception {
             'title'   => 'App Not Found',
             'message' => 'The requested application (slug or ID) was not found in the repository.'
         ],
-        
         'file_not_found' => [
             'status'  => 404,
             'title'   => 'File Not Found',
@@ -161,7 +163,7 @@ class FileRequestException extends Exception {
             'message' => 'The file does not meet the required validation criteria (e.g., missing manifest or invalid structure).'
         ],
 
-        // 500 Internal Server Errors
+        // 500 Internal Server Errors.
         'file_reading_error' => [
             'status'  => 500,
             'title'   => 'File Reading Error',
@@ -202,24 +204,31 @@ class FileRequestException extends Exception {
     /**
      * Constructor for FileRequestException.
      *
-     * @param string $error_slug The known error code (must exist in $error_map keys).
-     * @param string|null $custom_message Optional custom message.
-     * @param mixed $custom_data Optional custom data array to merge with defaults.
+     * Accepts either a known error slug (looked up in $error_map) or a raw
+     * HTTP status code (resolved to a reason phrase). Unknown slugs fall back
+     * to 'unknown_file_error'. A custom message overrides the map default.
+     * Custom data is merged on top of the resolved status and title.
+     *
+     * @param string|int  $error_slug     Known error slug or raw HTTP status code.
+     * @param string|null $custom_message Optional message override.
+     * @param array       $custom_data    Optional data merged over resolved defaults.
      */
-    public function __construct( string $error_slug, ?string $custom_message = null, $custom_data = [] ) {
-        // Fallback to a generic 500 error if the slug is unknown
-        if ( ! isset( self::$error_map[ $error_slug ] ) ) {
-            $error_slug = 'unknown_file_error';
+    public function __construct( string|int $error_slug, ?string $custom_message = null, array $custom_data = [] ) {
+        if ( is_int( $error_slug ) ) {
+            // Raw HTTP status code — resolve title from reason phrase.
+            $defaults = [
+                'status'  => $error_slug,
+                'title'   => static::reason_phrase( $error_slug ),
+                'message' => static::reason_phrase( $error_slug ),
+            ];
+        } else {
+            // Named slug — fall back to unknown_file_error if unrecognised.
+            $defaults = self::$error_map[ $error_slug ] ?? self::$error_map['unknown_file_error'];
         }
 
-        $default_data = self::$error_map[ $error_slug ];
-        $message      = $custom_message ?: $default_data['message'];
-        
-        $data = array_merge(
-            [
-                'status' => $default_data['status'],
-                'title'  => $default_data['title'],
-            ],
+        $message = $custom_message ?: $defaults['message'];
+        $data    = array_merge(
+            [ 'status' => $defaults['status'], 'title' => $defaults['title'] ],
             $custom_data
         );
 

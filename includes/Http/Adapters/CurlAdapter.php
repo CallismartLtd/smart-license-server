@@ -208,6 +208,10 @@ class CurlAdapter implements HttpAdapterInterface {
             }
         }
 
+        if ( empty( $reason_phrase ) ) {
+            $reason_phrase = HttpResponse::reason_phrase( $status_code );
+        }
+
         return [ $status_code, $reason_phrase ];
     }
 
