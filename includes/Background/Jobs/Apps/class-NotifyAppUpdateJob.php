@@ -56,8 +56,8 @@ class NotifyAppUpdateJob implements JobHandlerInterface {
      * @return array{notified: int, skipped: int, ineligible: int}
      */
     public function handle( array $payload ): mixed {
-        $app_type   = $payload['app_type']   ?? '';
-        $app_slug   = $payload['app_slug']   ?? '';
+        $app_type   = (string) $payload['app_type']   ?? '';
+        $app_slug   = (string) $payload['app_slug']   ?? '';
         $batch_size = max( 1, (int) ( $payload['batch_size'] ?? 100 ) );
         $offset     = max( 0, (int) ( $payload['offset']     ?? 0 ) );
 

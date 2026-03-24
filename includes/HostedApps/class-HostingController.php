@@ -56,7 +56,7 @@ class HostingController {
             }
             
             $app_id     = static::sanitize_int( $request->get( 'app_id', 0 ) );
-            $app_slug   = static::sanitize_text( $request->get( 'app_slug', '' ) );
+            $app_slug   = static::sanitize_text( $request->getTyped( 'app_slug', 'string', '' ) );
             $app_class  = HostedApplicationService::get_app_class( static::sanitize_text( $app_type ) );
 
             $init_method    = $app_id ? "get_{$app_type}" : "get_by_slug";
@@ -195,6 +195,7 @@ class HostingController {
             ));
 
             $request->set( 'smliser_resource', $app );
+
             return ( new Response( 200, array(), $data ) )
             ->set_response_data( $request )
             ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );

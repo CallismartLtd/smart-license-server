@@ -176,30 +176,6 @@ class Software extends AbstractHostedApp {
         return self::get_self_by_id( $id, self::TABLE );
     }
 
-    /**
-     * Permanently delete a software.
-     * 
-     * @return bool True on success, false on failure.
-     */
-    public function delete() : bool {
-        if ( ! $this->get_id() ) {
-            return false;
-        }
-
-        $db         = smliser_db();
-        $table      = self::TABLE;
-        $meta_table = self::META_TABLE;
-
-        $meta_deleted       = $db->delete( $meta_table, [ 'software_id' => $this->get_id() ] );
-        $software_deleted   = $db->delete( $table, [ 'id' => $this->get_id() ] );
-
-        if ( ! empty( $this->meta_data ) ) {
-            $this->meta_data = [];
-        }
-
-        return ( $software_deleted > 0 && $meta_deleted > 0 );
-    }
-
     /*
     |---------------------
     | UTILITY METHODS

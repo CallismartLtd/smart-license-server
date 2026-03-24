@@ -39,8 +39,8 @@ class Licenses {
         $service_id     = $request->get( 'service_id' );
         $license_key    = $request->get( 'license_key' );
         $domain         = $request->get( 'domain' );
-        $app_type       = $request->get( 'app_type' );
-        $app_slug       = $request->get( 'app_slug' );
+        $app_type       = (string) $request->getTyped( 'app_type', 'string', '' );
+        $app_slug       = (string) $request->getTyped( 'app_slug', 'string', '' );
 
         $hosted_app     = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
@@ -276,8 +276,8 @@ class Licenses {
     public static function validity_test_permission( Request $request ) {
         $service_id     = $request->get( 'service_id' );
         $license_key    = $request->get( 'license_key' );
-        $app_type       = $request->get( 'app_type' );
-        $app_slug       = $request->get( 'app_slug' );
+        $app_type       = (string) $request->getTyped( 'app_type', 'string', '' );
+        $app_slug       = (string) $request->getTyped( 'app_slug', 'string', '' );
         $hosted_app     = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
         if ( ! $hosted_app ) {
@@ -363,8 +363,8 @@ class Licenses {
         $license_key    = $request->get( 'license_key' );
         $license        = License::get_license( $service_id, $license_key );
 
-        $app_type       = $request->get( 'app_type' );
-        $app_slug       = $request->get( 'app_slug' );
+        $app_type       = (string) $request->getTyped( 'app_type', 'string', '' );
+        $app_slug       = (string) $request->getTyped( 'app_slug', 'string', '' );
         $hosted_app     = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
         if ( ! $hosted_app ) {

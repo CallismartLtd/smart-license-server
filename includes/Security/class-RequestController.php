@@ -250,7 +250,7 @@ class RequestController {
 
             self::save_role( $user, $request );
 
-            $avatar = $request->get( 'avatar' );
+            $avatar = $request->get_file( 'avatar' );
 
             if ( ! empty( $avatar ) ) {
                 FileSystemHelper::upload_avatar( $avatar, 'user', md5( $user->get_email() ) );
@@ -338,7 +338,7 @@ class RequestController {
 
             self::save_role( $sa_acc, $request );
 
-            $avatar = $request->get( 'avatar' );
+            $avatar = $request->get_file( 'avatar' );
 
             if ( ! empty( $avatar ) ) {
                 FileSystemHelper::upload_avatar( $avatar, 'service_account', md5( $sa_acc->get_identifier() ) );
@@ -406,11 +406,12 @@ class RequestController {
                 throw new RequestException( 'database_error', 'Unable to save organization', ['status' => 500] );
             }
 
-            $avatar = $request->get( 'avatar' );
+            $avatar = $request->get_file( 'avatar' );
 
             if ( ! empty( $avatar ) ) {
                 FileSystemHelper::upload_avatar( $avatar, 'organization', md5( $organization->get_slug() ) );
             }
+
             return true;
         } catch ( InvalidArgumentException $e ) {
 

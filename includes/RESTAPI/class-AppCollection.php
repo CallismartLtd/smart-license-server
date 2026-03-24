@@ -16,6 +16,7 @@ use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Security\Context\Guard;
 
@@ -138,8 +139,8 @@ class AppCollection {
      * @param Request $request The REST API request object.
      */
     public static function single_app_get( Request $request ) : RequestException|Response {
-        $app_type   = $request->get( 'app_type' );
-        $app_slug   = $request->get( 'app_slug' );
+        $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
+        $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
 
         $cache_key  = static::make_cache_key( __METHOD__, [$app_type, $app_slug] );
 
@@ -175,18 +176,7 @@ class AppCollection {
      */
     public static function create_app( Request $request ) : Response {
         try {
-            $app_type   = $request->get( 'app_type' );
-            $app_slug   = $request->get( 'app_slug' );
-
-            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( $app_exists ) {
-                throw new RequestException( 'app_slug_exists' );
-            }
-
-            $request->set( 'app_slug', $app_slug )
-                    ->set( 'app_type', $app_type );
-
+            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
             $response = HostingController::save_app( $request );
 
             if ( $response->ok() ) {
@@ -194,7 +184,9 @@ class AppCollection {
 
                 $response->set_header( 'Location', $resource_location );
                 $response->set_status_code( 201 );
-                $app            = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+                /** @var HostedAppsInterface $app */
+                $app            = $response->get_response_data()->get( 'smliser_resource' );
                 $response_body  = $app->get_rest_response();
                 
                 $response->set_body( $response_body );
@@ -219,8 +211,8 @@ class AppCollection {
      */
     public static function update_app( Request $request ) : Response {
         try {
-            $app_type   = $request->get( 'app_type' );
-            $app_slug   = $request->get( 'app_slug' );
+            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
+            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
 
             $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
@@ -261,8 +253,8 @@ class AppCollection {
      */
     public static function delete_app( Request $request ) : Response {
         try {
-            $app_type   = $request->get( 'app_type' );
-            $app_slug   = $request->get( 'app_slug' );
+            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
+            $app_slug   = (string) $request->get( 'app_slug', 'string', '' );
 
             $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
@@ -335,8 +327,8 @@ class AppCollection {
      */
     public static function upload_app_assets( Request $request ) : Response {
         try {
-            $app_type   = $request->get( 'app_type' );
-            $app_slug   = $request->get( 'app_slug' );
+            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
+            $app_slug   = (string) $request->get( 'app_slug', 'string', '' );
 
             $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
@@ -362,8 +354,8 @@ class AppCollection {
      */
     public static function update_app_asset( Request $request ) : Response {
         try {
-            $app_type   = $request->get( 'app_type' );
-            $app_slug   = $request->get( 'app_slug' );
+            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
+            $app_slug   = (string) $request->get( 'app_slug', 'string', '' );
             $asset_name = $request->get( 'asset_name' );
 
             $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
@@ -393,8 +385,8 @@ class AppCollection {
      */
     public static function delete_app_asset( Request $request ) : Response {
         try {
-            $app_type   = $request->get( 'app_type' );
-            $app_slug   = $request->get( 'app_slug' );
+            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
+            $app_slug   = (string) $request->get( 'app_slug', 'string', '' );
 
             $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
@@ -438,7 +430,7 @@ class AppCollection {
         if ( $error_map ) {
             [$code, $message] = $error_map;
 
-            throw new RequestException( $code, str_replace( '{app_type}', $request->get( 'app_type' ), $message ) );
+            throw new RequestException( $code, str_replace( '{app_type}', (string) $request->getTyped( 'app_type', 'string', '' ), $message ) );
         }
         
         return $files->get(0);

@@ -210,29 +210,6 @@ class Theme extends AbstractHostedApp {
     }
 
     /**
-     * Delete a theme.
-     * 
-     * @return bool True on success, false on otherwise.
-     */
-    public function delete() : bool {
-        $db     = smliser_db();
-
-        if ( empty( $this->id ) ) {
-            return false; // A valid theme should have an ID.
-        }
-            
-        $id             = $this->get_id();
-        $theme_deletion = $db->delete( self::TABLE, array( 'id' => $id ) );
-        $meta_deletion  = $db->delete( self::META_TABLE, array( 'theme_id' => $id ) );
-
-        if ( ! empty( $this->meta_data ) ) {
-            $this->meta_data = [];
-        }
-
-        return ( $theme_deletion > 0 && $meta_deletion > 0 );
-    }
-
-    /**
      * Get the database table name.
      * 
      * @return string

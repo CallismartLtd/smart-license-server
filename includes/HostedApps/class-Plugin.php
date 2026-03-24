@@ -249,29 +249,6 @@ class Plugin extends AbstractHostedApp {
         return self::get_self_by_id( $id, self::TABLE );
     }
 
-    /**
-     * Deletes a plugin.
-     *
-     * @return bool True on success, false on failure.
-     */
-    public function delete() : bool {
-        $plugin_id = static::sanitize_int( $this->get_id() );
-
-        if ( ! $plugin_id ) {
-            return false;
-        }
-
-        $db             = smliser_db();
-        $meta_deleted   = $db->delete( self::META_TABLE, [ 'plugin_id' => $plugin_id ] );
-        $plugin_deleted = $db->delete( self::TABLE, [ 'id' => $plugin_id ] );
-
-        if ( isset( $this->meta_data ) ) {
-            $this->meta_data = [];
-        }
-
-        return ( $plugin_deleted > 0 && $meta_deleted > 0 );
-    }
-
     /*
     |---------------
     |UTILITY METHODS

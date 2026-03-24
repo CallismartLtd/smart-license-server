@@ -514,8 +514,8 @@ class DashboardPage {
         $top_apps_data = [];
         foreach ( $top_downloads as $type => $apps ) {
             foreach ( $apps as $app ) {
-                $app_t      = $app['app_type'] ?? '';
-                $app_s      = $app['app_slug'] ?? '';
+                $app_t      = (string) $app['app_type'] ?? '';
+                $app_s      = (string) $app['app_slug'] ?? '';
                 $app_obj    = HostedApplicationService::get_app_by_slug( $app_t, $app_s );
                 $label      = $app_obj ? $app_obj->get_name() : 'Unknown';
                 $top_apps_labels[] = $label;

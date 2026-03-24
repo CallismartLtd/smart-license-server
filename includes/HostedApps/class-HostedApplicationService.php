@@ -452,7 +452,7 @@ class HostedApplicationService {
      * @param string $app_slug The app slug.
      * @return AbstractHostedApp|null The instance of a hosted application or null on failure.
      */
-    public static function get_app_by_slug( $app_type, $app_slug ) : AbstractHostedApp|null {
+    public static function get_app_by_slug( string $app_type, string $app_slug ) : AbstractHostedApp|null {
         $key    = self::make_cache_key( __METHOD__, [$app_type, $app_slug] );
         $app    = self::cache_get( $key );
 

@@ -228,7 +228,7 @@ interface HostedAppsInterface {
      * 
      * @param string $slug
      */
-    public static function get_by_slug( $slug );
+    public static function get_by_slug( string $slug );
 
     /**
      * Delete the application from the repository.

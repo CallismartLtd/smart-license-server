@@ -11,6 +11,7 @@
 namespace SmartLicenseServer\FileSystem;
 
 use Normalizer;
+use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
 
 defined( 'SMLISER_ABSPATH' ) || exit; // phpcs:ignore
@@ -711,45 +712,20 @@ class FileSystemHelper {
     /**
      * Upload avatar.
      * 
-     * @param array $avatar_file    The avatar file from $_FILES array.
+     * @param UploadedFile $avatar  Uploaded avatar.
      * @param string $type          The avatar type(valid options user, organization and service_account).
      * @param string $filename      The avatar file basename.
      * @return bool                 True on success, false otherwise.
+     * @throws Exception
      */
-    public static function upload_avatar( array $avatar_file, string $type, string $filename ) : bool {
-        try {
-            $type           = smliser_pluralize( str_replace( '_', '-', $type ) );
-            $tmp_name       = self::validate_uploaded_file( $avatar_file, 'avatar' );
-            $avatar_path    = self::join_path( SMLISER_UPLOADS_DIR, sprintf( 'avatars/%s', $type ) );
-            $fs             = smliser_filesystem();
+    public static function upload_avatar( UploadedFile $avatar, string $type, string $filename ) : bool {
+        $type           = smliser_pluralize( str_replace( '_', '-', $type ) );
+        $avatar_path    = self::join_path( SMLISER_UPLOADS_DIR, sprintf( 'avatars/%s', $type ) );
 
-            if ( \is_smliser_error( $avatar_path ) ) {
-                throw $avatar_path;
-            }
-
-            if ( ! $fs->is_dir( $avatar_path ) ) {
-                $fs->mkdir( $avatar_path, FS_CHMOD_DIR );
-            }
-
-            $filename   = self::remove_extension( $filename );
-
-            $new_path   = self::join_path( $avatar_path, $filename );
-            if ( \is_smliser_error( $new_path ) ) {
-                throw $new_path;
-            }
-
-            if ( ! $fs->move( $tmp_name, $new_path, true ) ) {
-                throw new Exception( 
-                    'file_system_error', 
-                    'Unable to upload avatar, likely due to inconsistent filesystem permission.', 
-                    ['status' => 500]
-                );
-            }
-            @$fs->chmod( $new_path, FS_CHMOD_FILE );
-            return true;
-        } catch ( Exception $e ) {
-            return false;
-        }
+        $avatar->set_new_name( $filename );
+        $avatar->move( $avatar_path );
+        return true;
+       
     }
 
     /**

@@ -131,8 +131,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                                         </h5>
                                                         <ol class="smliser-ranking-list">
                                                             <?php foreach ( array_slice( $apps, 0, 5 ) as $index => $app ) : 
-                                                                $app_sl     = $app['app_slug'] ?? '';
-                                                                $app_ty     = $app['app_type'] ?? '';
+                                                                $app_sl     = (string) $app['app_slug'] ?? '';
+                                                                $app_ty     = (string) $app['app_type'] ?? '';
                                                                 $app_obj    = HostedApplicationService::get_app_by_slug( $app_ty, $app_sl );
                                                                 
                                                                 ?>

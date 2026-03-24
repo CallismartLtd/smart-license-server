@@ -944,14 +944,14 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $slug The app slug.
      * @return self|null   The app object or null if not found.
      */
-    public static function get_by_slug( $slug ) : static|null {
+    public static function get_by_slug( string $slug ) : ?static {
+        if ( '' === $slug ) {
+            return null;
+        }
+        
         $db     = smliser_db();
         $table  = static::get_db_table();
-        $slug   = basename( $slug, '.zip' );
-
-        if ( ! is_string( $slug ) || empty( $slug ) ) {
-            return null;
-        }        
+        $slug   = basename( $slug, '.zip' );       
     
         $sql    = "SELECT * FROM {$table} WHERE `slug` = ?";
         $result = $db->get_row( $sql, [$slug] );
@@ -961,6 +961,28 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         }
 
         return null;
+    }
+
+    /**
+     * Delete an app.
+     * 
+     * @return bool True on success, false on otherwise.
+     */
+    public function delete() : bool {
+        $db     = smliser_db();
+
+        if ( empty( $this->id ) ) {
+            return false; // A valid app should have an ID.
+        }
+            
+        $app_deletion   = $db->delete( $this->get_db_table(), array( 'id' => $this->get_id() ) );
+        $meta_deletion  = $db->delete( $this->get_db_meta_table(), array( $this->get_meta_foreign_key() => $this->get_id() ) );
+
+        if ( ! empty( $this->meta_data ) ) {
+            $this->meta_data = [];
+        }
+
+        return ( $app_deletion > 0 || $meta_deletion > 0 );
     }
 
     /**
@@ -1072,7 +1094,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param mixed  $default_to The fallback value.
      * @return mixed|null
      */
-    public function get_meta( $meta_key, $default_to = null ) {
+    public function get_meta( string $meta_key, mixed $default_to = null ) {
         $meta_key = self::sanitize_text( $meta_key );
 
         if ( array_key_exists( $meta_key, $this->meta_data ) ) {
@@ -1106,8 +1128,8 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $meta_key The meta key.
      * @return bool True on success, false on failure.
      */
-    public function delete_meta( $meta_key ) {
-        $app_id = static::sanitize_int( $this->get_id() );
+    public function delete_meta( string $meta_key ) {
+        $app_id = $this->get_id();
 
         if ( ! $app_id ) {
             return false;

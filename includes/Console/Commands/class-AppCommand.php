@@ -134,14 +134,14 @@ class AppCommand implements CommandInterface {
         match ( $subcommand ) {
             'list'         => $this->handle_list( array_slice( $args, 1 ) ),
             'search'       => $this->handle_search( array_slice( $args, 1 ) ),
-            'get'          => $this->handle_get( $args[1] ?? null, $args[2] ?? null ),
+            'get'          => $this->handle_get( $args[1] ?? '', $args[2] ?? '' ),
             'count'        => $this->handle_count( array_slice( $args, 1 ) ),
             'save'         => $this->handle_save( array_slice( $args, 1 ) ),
             'upload-asset' => $this->handle_upload_asset( array_slice( $args, 1 ) ),
             'status'       => $this->handle_status( $args[1] ?? null, $args[2] ?? null, $args[3] ?? null ),
             'trash'        => $this->handle_trash( $args[1] ?? null, $args[2] ?? null ),
             'delete'       => $this->handle_trash( $args[1] ?? null, $args[2] ?? null ),
-            'purge'        => $this->handle_purge( $args[1] ?? null, $args[2] ?? null ),
+            'purge'        => $this->handle_purge( $args[1] ?? '', $args[2] ?? '' ),
             'help'         => $this->handle_help(),
             null            => $this->handle_default(),
             default         => $this->handle_unknown( $subcommand ),
@@ -259,7 +259,7 @@ class AppCommand implements CommandInterface {
     /**
      * Show full details for a single application.
      */
-    private function handle_get( ?string $slug, ?string $type ): void {
+    private function handle_get( string $slug, string $type ): void {
         if ( ! $this->require_args( [ 'slug' => $slug, 'type' => $type ], 'smliser app get <slug> <type>' ) ) {
             return;
         }
@@ -765,7 +765,7 @@ class AppCommand implements CommandInterface {
     /**
      * Permanently delete an application — bypasses trash.
      */
-    private function handle_purge( ?string $slug, ?string $type ): void {
+    private function handle_purge( string $slug, string $type ): void {
         if ( ! $this->require_args(
             [ 'slug' => $slug, 'type' => $type ],
             'smliser app purge <slug> <type>'

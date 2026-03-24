@@ -334,7 +334,7 @@ final class UploadedFile {
         $safe_directory = FileSystemHelper::join_path( $directory );
 
         if ( ! $safe_directory ) {
-            throw new Exception( 'malicious_directory', 'The provided directory name is malicious.' );
+            throw new Exception( 'malicious_directory', 'The provided directory name is not safe.' );
         }
 
         if ( ! $this->fs->is_dir( $safe_directory ) ) {
