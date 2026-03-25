@@ -1945,3 +1945,10 @@ function smliser_is_scalar_array( $array ) {
     }
     return count( array_filter( $array, 'is_array' ) ) === 0;
 }
+
+/**
+ * Global translation helper.
+ */
+function smliser__( string $text, string $domain = 'default' ): string {
+    return $text; //@TODO: Build a translation engine.
+}

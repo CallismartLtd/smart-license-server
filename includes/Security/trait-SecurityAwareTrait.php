@@ -51,7 +51,7 @@ trait SecurityAwareTrait {
             throw new RequestException( 'missing_auth' );
         }
 
-        if ( static::is_system_admin() ) { // returns true ro throws RequestException.
+        if ( static::is_system_admin() ) { // returns true or throws RequestException.
             return;
         }
 

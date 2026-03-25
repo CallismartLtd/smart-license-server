@@ -56,9 +56,9 @@ class InstallRolesCommand implements CommandInterface {
      *
      * @return void
      */
-    public function install_default_roles(): void {
+    private function install_default_roles(): void {
         $default_roles = DefaultRoles::all();
-        $headers       = [ 'Role', 'Status' ];
+        $headers       = [ 'Role', 'Result' ];
         $rows          = [];
 
         foreach ( $default_roles as $slug => $roledata ) {

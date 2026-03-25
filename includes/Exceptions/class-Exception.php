@@ -486,10 +486,8 @@ class Exception extends PHPException {
 
             $out .= $nl;
             $out .= 'Error Codes: ' . implode( ', ', $this->get_error_codes() ) . $nl;
-
-            if ( function_exists( 'smliser_safe_json_encode' ) ) {
-                $out .= 'Data: ' . smliser_safe_json_encode( $this->error_data, JSON_PRETTY_PRINT ) . $nl;
-            }
+            $out .= 'Data: ' . smliser_safe_json_encode( $this->error_data, JSON_PRETTY_PRINT ) . $nl;
+            
         }
 
         // Chained exception.

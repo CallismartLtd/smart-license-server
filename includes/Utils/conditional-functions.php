@@ -61,3 +61,12 @@ function is_smliser_error( $value ) {
 
     return ( $value instanceof Exception );
 }
+
+if ( ! function_exists( '__' ) ) {
+    /**
+     * Retrieves the translation of $text.
+     */
+    function __( string $text, string $domain = 'default' ): string {
+        return smliser__( $text, $domain );
+    }
+}

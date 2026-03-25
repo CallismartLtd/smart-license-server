@@ -176,7 +176,6 @@ class AppCollection {
      */
     public static function create_app( Request $request ) : Response {
         try {
-            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
             $response = HostingController::save_app( $request );
 
             if ( $response->ok() ) {

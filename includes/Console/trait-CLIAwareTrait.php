@@ -357,16 +357,27 @@ trait CLIAwareTrait {
      * @param string $default  Default value if the user presses enter.
      * @return string The user's input or the default.
      */
-    public function ask( string $question, string $default = '' ): string {
+    public function prompt( string $question, string $default = '' ): string {
         $prompt = $default !== ''
-            ? sprintf( '%s [%s]: ', $question, $default )
-            : $question . ': ';
+            ? sprintf( '%s [%s] ', $question, $default )
+            : $question . ' ';
 
         echo $this->colorize( self::ANSI_CYAN, $prompt );
 
         $input = trim( (string) fgets( STDIN ) );
 
         return $input !== '' ? $input : $default;
+    }
+
+    /**
+     * Prompt the user for freeform input.
+     *
+     * @param string $question The question to display.
+     * @param string $default  Default value if the user presses enter.
+     * @return string The user's input or the default.
+     */
+    public function ask( string $question, string $default = '' ): string {
+        return $this->prompt( $question, $default );
     }
 
     /**
