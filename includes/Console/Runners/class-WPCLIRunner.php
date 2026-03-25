@@ -64,7 +64,7 @@ class WPCLIRunner implements RunnerInterface {
      *
      * @var string
      */
-    const WP_CLI_NAMESPACE = 'smliser';
+    const SMLISER_CLI_NAMESPACE = 'smliser';
 
     /**
      * Map of WordPress environment types to .env filenames.
@@ -157,14 +157,9 @@ class WPCLIRunner implements RunnerInterface {
             : 'production';
 
         $env_file = self::ENV_FILE_MAP[ $env_type ] ?? '.env';
-        $dotenv   = new DotEnv( ABSPATH );
-
-        // Load environment-specific file if it exists, otherwise fall back.
-        if ( $env_file !== '.env' && file_exists( SMLISER_ABSPATH . $env_file ) ) {
-            $dotenv->load( $env_file );
-        } else {
-            $dotenv->load( '.env' );
-        }
+        $dotenv   = new DotEnv( SMLISER_ABSPATH );
+        $dotenv->load( $env_file );
+     
     }
 
     /**
@@ -179,7 +174,7 @@ class WPCLIRunner implements RunnerInterface {
      */
     private function add_command( string $name, string $class ): void {
         \WP_CLI::add_command(
-            static::WP_CLI_NAMESPACE . ' ' . $name,
+            static::SMLISER_CLI_NAMESPACE . ' ' . $name,
             function( array $args, array $assoc_args ) use ( $class ) {
                 ( new $class() )->execute( array_merge( $args, $assoc_args ) );
             },

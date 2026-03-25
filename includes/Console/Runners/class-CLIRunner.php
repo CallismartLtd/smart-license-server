@@ -94,6 +94,11 @@ class CLIRunner implements RunnerInterface {
             return;
         }
 
+        if ( in_array( $name, ['version', '--version', '-v'] ) ) {
+            $this->print_info();
+            return;
+        }
+
         // Global help flags.
         if ( in_array( $name, [ 'help', '--help', '-h' ], true ) ) {
             // `smliser help <command>` — per-command help.
@@ -150,6 +155,8 @@ class CLIRunner implements RunnerInterface {
         $commands = $this->registry->all();
         $max      = max( array_map( 'strlen', array_keys( $commands ) ) );
 
+        ksort( $commands, \SORT_ASC );
+
         foreach ( $commands as $cmd_name => $class ) {
             $custom_marker = $this->registry->is_custom( $cmd_name ) ? ' [custom]' : '';
             echo sprintf(
@@ -192,6 +199,19 @@ class CLIRunner implements RunnerInterface {
             echo $help . PHP_EOL;
             echo PHP_EOL;
         }
+    }
+
+    /**
+     * Print application info
+     */
+    private function print_info() : void {
+        $app_name = \SMLISER_APP_NAME;
+        $version  = SMLISER_VER;
+        $author   = 'Callistus Nwachukwu';
+
+        echo $app_name . ' v' . $version . PHP_EOL;
+        echo 'Author: ' . $author . PHP_EOL;
+        echo PHP_EOL;
     }
 
     /*

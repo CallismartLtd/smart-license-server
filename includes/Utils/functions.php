@@ -1613,8 +1613,8 @@ function smliser_get_current_url() : URL {
     if ( is_null( $current_url ) ) {
         $uri    = $_SERVER['REQUEST_URI'] ?? '';
         $path   = parse_url( $uri, PHP_URL_PATH );
-        $params = parse_url( $uri, PHP_URL_QUERY );
-
+        $params = parse_url( $uri, PHP_URL_QUERY )?: [];
+        
         parse_str( $params, $query );
         $current_url = url( $path, $query );
     }

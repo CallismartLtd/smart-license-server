@@ -64,6 +64,7 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
     public static function help(): string {
         $type   = static::get_type();
         $name   = \ucfirst( $type );
+        
         return implode( PHP_EOL, [
             'Subcommands:',
             "  create                                   Create a new {$type}.",
@@ -72,7 +73,7 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             "  change status <slug> <status>            Change {$type} status.",
             "  trash <slug>                             Move a {$type} to trash.",
             "  delete <slug>                            Move a {$type} to trash (same as trash).",
-            "  purge <slug>                             Permanently delete a {$type}.",
+            "  purge <slug>                             Permanently delete {$type}.",
             "  help                                     Show this help message.",
             "",
             "Options for create / update:",
