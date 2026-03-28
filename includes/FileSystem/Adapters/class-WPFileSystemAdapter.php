@@ -46,10 +46,12 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
     protected function init_fs(): void {
         global $wp_filesystem;
 
+        \ob_start();
         if ( ! $wp_filesystem ) {
             require_once SMLISER_ABSPATH . 'wp-admin/includes/file.php';
             WP_Filesystem();
         }
+        \ob_end_clean();
 
         $this->fs = $wp_filesystem;
     }
@@ -154,7 +156,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @param int    $mode     Optional. File permissions.
      * @return bool True on success, false on failure.
      */
-    public function put_contents( string $path, string $contents, int $mode = FS_CHMOD_FILE ): bool {
+    public function put_contents( string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION ): bool {
         if ( empty( $path ) ) {
             return false;
         }
@@ -205,13 +207,16 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             $path = $parts[1];
         }
 
+        $dir_seperator  = \DIRECTORY_SEPARATOR;
+        $path           = str_replace( [ '/', '\\' ], $dir_seperator, $path );
+
         if ( $stream_wrapper !== null ) {
             $path = $stream_wrapper . '://' . $path;
         }
 
         $path = rtrim( $path, '/' );
         if ( empty( $path ) ) {
-            $path = '/';
+            $path = $dir_seperator;
         }
 
         $dest_parent = dirname( $path );
@@ -219,22 +224,20 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             $dest_parent = dirname( $dest_parent );
         }
 
-        $stats = @stat( $dest_parent );
-        $perms = $stats ? ( $stats['mode'] & 0777 ) : 0755;
-        if ( $chmod !== false ) {
-            $perms = $chmod;
+        if ( false === $chmod ) {
+            $stats = @stat( $dest_parent );
+            $chmod = $stats ? ( ( $stats['mode'] & 0777 ) | 0755 ) : 0755;           
         }
 
-        $relative_parts = explode( '/', ltrim( substr( $path, strlen( $dest_parent ) ), '/' ) );
+        $relative_parts = explode( $dir_seperator, ltrim( substr( $path, strlen( $dest_parent ) ), $dir_seperator ) );
         $current = $dest_parent;
 
         foreach ( $relative_parts as $part ) {
-            $current .= '/' . $part;
+            $current .= $dir_seperator . $part;
             if ( ! $this->is_dir( $current ) ) {
-                if ( ! $this->fs->mkdir( $current, $perms ) ) {
+                if ( ! $this->fs->mkdir( $current, $chmod ) ) {
                     return false;
                 }
-                @$this->fs->chmod( $current, $perms );
             }
         }
 
@@ -261,7 +264,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function copy( string $source, string $dest, bool $overwrite = false ): bool {
-        return $this->fs->copy( $source, $dest, $overwrite, FS_CHMOD_FILE );
+        return $this->fs->copy( $source, $dest, $overwrite, SMLISER_FILE_PERMISSION );
     }
 
     /**

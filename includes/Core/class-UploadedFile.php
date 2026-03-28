@@ -338,7 +338,7 @@ final class UploadedFile {
         }
 
         if ( ! $this->fs->is_dir( $safe_directory ) ) {
-            $this->fs->mkdir( $safe_directory, FS_CHMOD_DIR );
+            $this->fs->mkdir( $safe_directory, SMLISER_DIR_PERMISSION );
         }
 
         $filename       = $filename ? FileSystemHelper::remove_extension( $filename ) : $this->get_name( false );
@@ -358,7 +358,7 @@ final class UploadedFile {
             );
         }
 
-        @$this->fs->chmod( $destination, FS_CHMOD_FILE );
+        @$this->fs->chmod( $destination, SMLISER_FILE_PERMISSION );
 
         $this->moved = true;
 

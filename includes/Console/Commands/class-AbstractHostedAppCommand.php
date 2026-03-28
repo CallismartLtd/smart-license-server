@@ -62,15 +62,21 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
     }
 
     public static function help(): string {
-        $type   = static::get_type();
-        $name   = \ucfirst( $type );
+        $type           = static::get_type();
+        $name           = \ucfirst( $type );
+        $statuses       = array_keys( AbstractHostedApp::get_statuses() );
+        $valid_statuses = implode( ', ', $statuses );
+
+        $example_statuses = $statuses;
+        \shuffle( $example_statuses );
+        $current_status = $example_statuses[0] ?? 'active';
         
         return implode( PHP_EOL, [
             'Subcommands:',
             "  create                                   Create a new {$type}.",
             "  update <slug>                            Update an existing {$type}.",
             "  upload-asset <slug>                      Upload a {$type} asset.",
-            "  change status <slug> <status>            Change {$type} status.",
+            "  change-status <slug> <status>            Change {$type} status.",
             "  trash <slug>                             Move a {$type} to trash.",
             "  delete <slug>                            Move a {$type} to trash (same as trash).",
             "  purge <slug>                             Permanently delete {$type}.",
@@ -78,32 +84,34 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             "",
             "Options for create / update:",
             "  --slug=<slug>                            {$name} slug. Required for {$type} update.",
-            "  --name=<name>                            Display name. Required for new {$type}.",
+            "  --name=<name>                            {$name} display name. Required for new {$type}.",
             "  --author=<author>                        Author name. Required for new {$type}.",
             "  --version=<version>                      Version string.",
-            "  --app-zip-file=<path>                    Local path to zip file(must be accessible).",
+            "  --app-zip-file=<path>                    Local path to zip file (must be accessible).",
             "  --app-zip-url=<url>                      Remote URL to download zip from.",
-            "  --app-json-file=<path>                   Local path to app.json (software only).",
+            "  --app-json-file=<path>                   Local path to app.json.",
             "  --app-json-url=<url>                     Remote URL to download app.json from.",
             "  --author-url=<url>                       Author profile URL.",
             "  --download-url=<url>                     External download URL override.",
             "  --owner-id=<id>                          Owner ID (system_admin only).",
             "",
+            "Note: A zip file is required for a new {$type}. Provide --app-zip-file or --app-zip-url.",
+            "",
             "Options for upload-asset:",
-            "  --asset-type=<type>                     icons, banners, screenshots, cover, screenshot.",
-            "  --path=<path>                           Local path to asset file.",
-            "  --url=<url>                             Remote URL to download asset from.",
-            "  --asset-name=<name>                     Filename override (for replace operations).",
+            "  --asset-type=<type>                      icons, banners, screenshots, cover.",
+            "  --path=<path>                            Local path to asset file.",
+            "  --url=<url>                              Remote URL to download asset from.",
+            "  --asset-name=<name>                      Filename override (for replace operations).",
             "",
             "Valid statuses for the change-status subcommand:",
-            "  active, deactivated, suspended",
-            "  (trash is handled by the trash/delete subcommand)",
+            "  {$valid_statuses}",
+            "  (Note: 'trash' is managed via the trash/delete subcommands)",
             "",
             "Examples:",
-            "  smliser {$type} create --name=\"My {$name}\" --author=\"Dev\" --path=/tmp/my-{$type}.zip",
-            "  smliser {$type} update my-{$type} --url=https://example.com/{$type}.zip --version=2.0.0",
+            "  smliser {$type} create --name=\"My {$name}\" --author=\"Dev\" --app-zip-file=/tmp/my-{$type}.zip",
+            "  smliser {$type} update my-{$type} --app-zip-url=https://example.com/{$type}.zip --version=2.0.0",
             "  smliser {$type} upload-asset my-{$type} --asset-type=icons --path=/tmp/icon.png",
-            "  smliser {$type} change-status my-{$type} inactive",
+            "  smliser {$type} change-status my-{$type} {$current_status}",
             "  smliser {$type} trash my-{$type}",
             "  smliser {$type} purge my-{$type}",
         ] );
@@ -161,6 +169,38 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
      * Create new app
      */
     private function create_app( array $args ) {
+
+        if ( ! $this->require_auth() ) {
+            return;
+        }
+
+        $opts   = $this->parse_options( $args );
+        $type   = static::get_type();
+        $this->start_timer();
+        $this->info( sprintf( 'Creating %s "%s"...', static::get_type(), $opts['name'] ?? '' ) );
+
+        $request    = $this->buildRequest( $opts );
+
+        if ( null === $request ) {
+            return;
+        }
+        
+        $response = HostingController::save_app( $request );
+
+        if ( $response->ok() ) {
+            $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? '';
+
+            $this->done( sprintf( '%s "%s" saved successfully.', ucfirst( $type ), $slug ) );
+        } else {
+            $this->error( $response->get_error_message() ?: 'Save failed.' );
+        }
+
+    }
+
+    /**
+     * Update an app
+     */
+    private function update_app( array $args ) {
 
     }
 
@@ -294,5 +334,86 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         } else {
             $this->error( $response->get_error_message() );
         }
+    }
+
+    /**
+     * Upload app asset
+     */
+    private function upload_asset() : void {
+
+    }
+
+    /**
+     * Build app request object.
+     */
+    private function buildRequest( $opts ) {
+        // Resolve zip file — --app-zip-path takes precedence over --app-zip-url.
+        $zip_file    = null;
+        $zip_cleanup = null;
+
+        if ( ! empty( $opts['app-zip-path'] ) ) {
+            $zip_file = $this->resolve_local_file( (string) $opts['app-zip-path'] );
+            if ( $zip_file === null ) {
+                return;
+            }
+        } elseif ( ! empty( $opts['app-zip-url'] ) ) {
+            $zip_file = $this->download_to_tmp( (string) $opts['app-zip-url'] );
+            if ( $zip_file === null ) {
+                return;
+            }
+        }
+
+        // Resolve app.json — --app-json-path takes precedence over --app-json-url.
+        $json_file    = null;
+        $json_cleanup = null;
+
+        if ( ! empty( $opts['app-json-path'] ) ) {
+            $json_file = $this->resolve_local_file( (string) $opts['app-json-path'] );
+            if ( $json_file === null ) {
+                return;
+            }
+        } elseif ( ! empty( $opts['app-json-url'] ) ) {
+            $json_file = $this->download_to_tmp( (string) $opts['app-json-url'] );
+            if ( $json_file === null ) {
+                return;
+            }
+        }
+
+        // Build request params.
+        $params = [
+            'app_type'   => static::get_type(),
+            'app_name'   => $opts['name'] ?? '',
+            'app_author' => $opts['author'] ?? '',
+            'app_version'=> $opts['version']       ?? '',
+            'app_author_url'    => $opts['author-url']  ?? '',
+            'app_download_url'  => $opts['download-url'] ?? '',
+        ];
+
+        if ( ! empty( $opts['owner-id'] ) ) {
+            $params['app_owner_id'] = (int) $opts['owner-id'];
+        }
+
+        $request = new Request( params: $params, method: 'POST' );
+
+        // Inject zip file into request if provided.
+        if ( $zip_file !== null ) {
+            $request = $this->inject_uploaded_file( $request, $zip_file, 'app_zip_file' );
+            if ( $request === null ) {
+                $this->cleanup( $zip_cleanup, $json_cleanup );
+                return;
+            }
+        }
+
+        // Inject app.json into request if provided.
+        if ( $json_file !== null ) {
+            $request = $this->inject_uploaded_file( $request, $json_file, 'app_json_file' );
+            if ( $request === null ) {
+                $this->cleanup( $zip_cleanup, $json_cleanup );
+                return;
+            }
+        }
+
+        return $request;
+
     }
 }

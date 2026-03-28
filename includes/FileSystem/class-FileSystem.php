@@ -28,7 +28,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @method bool is_writable(string $path) Tells whether the filename is writable.
  * @method bool is_stream(mixed $thing) Tells whether the given `thing` is a stream.
  * @method string|false get_contents(string $file) Reads the content of a file as string.
- * @method bool put_contents(string $path, string $contents, int $mode = FS_CHMOD_FILE) Write string content to the specified filename
+ * @method bool put_contents(string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION) Write string content to the specified filename
  * @method bool delete(string $file, bool $recursive = false, string|false $type = false) Deletes a file or directory.
  * @method bool mkdir(string $path, int|false $chmod = false, bool $recursive = true) Makes directory.
  * @method bool rmdir(string $path, bool $recursive = false) Removes directory.

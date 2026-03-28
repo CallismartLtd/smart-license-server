@@ -31,7 +31,7 @@ trait CLIFilesystemAwareTrait {
      * @param string $path Absolute local path.
      * @return string|null Temp path, or null on failure.
      */
-    private function resolve_local_file( string $path ): ?string {
+    private function resolve_local_file( string $path, bool $auto_clean = true ): ?string {
         $fs = smliser_filesystem();
 
         if ( ! $fs->exists( $path ) ) {
@@ -56,6 +56,12 @@ trait CLIFilesystemAwareTrait {
             return null;
         }
 
+        if ( $auto_clean ) {
+            \register_shutdown_function( function() use ( $destination ){
+                @unlink( $destination );
+            });
+        }
+
         return $destination;
     }
 
@@ -70,13 +76,13 @@ trait CLIFilesystemAwareTrait {
      * finally block.
      *
      * @param string $url      Remote URL.
-     * @param string $ext_hint Optional extension hint for logging only.
-     * @return array{0: string, 1: callable}|null
+     * @param bool $auto_clean Whether to enable automatic tmp file deletion.
+     * @return string|null
      */
-    private function download_to_tmp( string $url, string $ext_hint = '' ): ?array {
+    private function download_to_tmp( string $url, bool $auto_clean = true ): ?string {
         $this->line( sprintf( 'Downloading %s...', $url ) );
 
-        $temp_path = smliser_download_url( $url, timeout: 60, autoclean: false );
+        $temp_path = smliser_download_url( $url, timeout: 60, autoclean: $auto_clean  );
 
         if ( $temp_path instanceof \SmartLicenseServer\Exceptions\FileRequestException ) {
             $status  = $temp_path->get_error_data()['status'] ?? 0;
@@ -89,11 +95,7 @@ trait CLIFilesystemAwareTrait {
             return null;
         }
 
-        $cleanup = static function() use ( $temp_path ) {
-            @unlink( $temp_path );
-        };
-
-        return [ $temp_path, $cleanup ];
+        return $temp_path;
     }
 
     /**

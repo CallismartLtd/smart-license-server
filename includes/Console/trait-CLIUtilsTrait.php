@@ -47,7 +47,12 @@ trait CLIUtilsTrait {
     private function parse_options( array $args ): array {
         $opts = [];
 
-        foreach ( $args as $arg ) {
+        foreach ( $args as $k => $arg ) {
+
+            if ( is_string( $k ) ) {
+                $opts[$k] = $arg;
+                continue;
+            }
             if ( ! str_starts_with( $arg, '--' ) ) {
                 continue;
             }

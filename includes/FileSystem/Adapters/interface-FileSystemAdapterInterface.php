@@ -76,10 +76,10 @@ interface FileSystemAdapterInterface {
      *
      * @param string $path Absolute path to the file.
      * @param string $contents Data to write.
-     * @param int $mode File permissions (optional, default FS_CHMOD_FILE).
+     * @param int $mode File permissions (optional, default SMLISER_FILE_PERMISSION).
      * @return bool True on success, false on failure.
      */
-    public function put_contents( string $path, string $contents, int $mode = FS_CHMOD_FILE ): bool;
+    public function put_contents( string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION ): bool;
 
     /**
      * Delete a file or directory.

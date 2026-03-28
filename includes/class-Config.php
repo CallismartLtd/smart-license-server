@@ -37,8 +37,12 @@ use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
-
+/**
+ * Abstract configuration class for Smart License Server.
+ * 
+ * This class provides the foundational setup for the application environment, including
+ * parsing configuration, declaring constants, and initializing core components.
+ */
 abstract class Config implements EnvironmentProviderInterface {
     /**
      * The current environment provider instance.
@@ -159,8 +163,8 @@ abstract class Config implements EnvironmentProviderInterface {
      */
     final protected function setup( array $config ) {
         $this->parse_config( $config );
-        $this->declareGlobalConstants();
         $this->bootstrap_files();
+        $this->declareGlobalConstants();
         $this->setProps();
         $this->setGlobalQueueAdapter();
     }
@@ -563,7 +567,7 @@ abstract class Config implements EnvironmentProviderInterface {
          * @var string `smliser_failed_jobs`
          */
         define( 'SMLISER_FAILED_JOBS_TABLE', $this->env['db_prefix'] . 'smliser_failed_jobs' );
-        
+
         /**
          * Absolute path to the Smart License Server repository root directory.
          *
@@ -626,6 +630,20 @@ abstract class Config implements EnvironmentProviderInterface {
          * Temporary file prefix
          */
         define( 'SMLISER_UPLOAD_TMP_PREFIX', 'smliser_tmp_' );
+
+        /**
+         * Default file permission.
+         * 
+         * @var int
+         */
+        define( 'SMLISER_FILE_PERMISSION', ( fileperms( SMLISER_ABSPATH . 'index.php' ) & 0777 | 0644 ) );
+
+        /**
+         * Default directory permission.
+         * 
+         * @var int
+         */
+        define( 'SMLISER_DIR_PERMISSION', ( fileperms( SMLISER_ABSPATH ) & 0777 | 0755 ) );
 
     }
 
@@ -842,6 +860,7 @@ abstract class Config implements EnvironmentProviderInterface {
         require_once SMLISER_PATH . 'includes/Utils/functions.php';
         require_once SMLISER_PATH . 'includes/Utils/sanitization-functions.php';
         require_once SMLISER_PATH . 'includes/Utils/formating-functions.php';
+        require_once SMLISER_PATH . 'includes/Utils/filesystem-functions.php';
               
     }
 }

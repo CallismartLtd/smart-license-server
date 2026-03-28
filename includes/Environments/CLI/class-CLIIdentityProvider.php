@@ -103,7 +103,6 @@ final class CLIIdentityProvider extends AbstractIdentityProvider {
             return $principal;
 
         } catch ( Exception $e ) {
-            print_r( $e ); exit;
             return null;
         }
     }

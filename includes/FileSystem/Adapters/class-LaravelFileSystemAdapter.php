@@ -147,7 +147,7 @@ class LaravelFileSystemAdapter implements FileSystemAdapterInterface {
      * @param int $mode Optional permissions (ignored).
      * @return bool True on success, false on failure.
      */
-    public function put_contents( string $path, string $contents, int $mode = FS_CHMOD_FILE ): bool {
+    public function put_contents( string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION ): bool {
         try {
             return (bool) $this->fs->put( $path, $contents );
         } catch ( \Throwable $e ) {

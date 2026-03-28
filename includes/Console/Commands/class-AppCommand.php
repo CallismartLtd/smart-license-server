@@ -375,7 +375,7 @@ class AppCommand implements CommandInterface {
             $params['app_owner_id'] = (int) $opts['owner-id'];
         }
 
-        $request = new Request( $params, method: 'POST' );
+        $request = new Request( params: $params, method: 'POST' );
 
         // Inject zip file into request if provided.
         if ( $zip_file !== null ) {

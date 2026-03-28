@@ -254,7 +254,7 @@ abstract class Repository {
             return new Exception( 'file_saving_failed', 'Failed to save the uploaded ZIP file.', [ 'status' => 500 ] );
         }
 
-        @$this->chmod( $to, FS_CHMOD_FILE );
+        @$this->chmod( $to, SMLISER_FILE_PERMISSION );
 
         // Quick ZIP sanity check.
         if ( ! $this->is_valid_zip( $to ) ) {
@@ -324,13 +324,13 @@ abstract class Repository {
                 );
             }
 
-            if ( ! $this->mkdir( $base_folder, FS_CHMOD_DIR ) ) {
+            if ( ! $this->mkdir( $base_folder, SMLISER_DIR_PERMISSION ) ) {
                 return new Exception( 'repo_error', \sprintf( 'Unable to create %s directory.', $this->current_slug ), [ 'status' => 500 ] );
             }
             
         } else {
             // Update: ensure slug folder and app already exists.
-            if ( ! $this->is_dir( $base_folder ) && ! $this->mkdir( $base_folder, FS_CHMOD_DIR )) {
+            if ( ! $this->is_dir( $base_folder ) && ! $this->mkdir( $base_folder, SMLISER_DIR_PERMISSION )) {
                 return new Exception(
                     'app_not_found',
                     sprintf( 'The %s slug "%s" does not exist in the repository, and attempt to create one failed.', $this->current_slug, $slug ),
@@ -378,7 +378,7 @@ abstract class Repository {
                 throw new FileSystemException( 'Malformed assets directory.' );
             }
 
-            if ( ! $this->is_dir( $assets_dir ) && ! $this->mkdir( $assets_dir, FS_CHMOD_DIR, true ) ) {
+            if ( ! $this->is_dir( $assets_dir ) && ! $this->mkdir( $assets_dir, SMLISER_DIR_PERMISSION, true ) ) {
                 throw new FileSystemException( 'Unable to create asset directory.' );
             }
         } catch ( FileSystemException $e ) {
@@ -452,7 +452,7 @@ abstract class Repository {
                 throw new FileSystemException( 'Malformed assets directory.' );
             }
 
-            if ( ! $this->is_dir( $assets_dir ) && ! $this->mkdir( $assets_dir, FS_CHMOD_DIR, true ) ) {
+            if ( ! $this->is_dir( $assets_dir ) && ! $this->mkdir( $assets_dir, SMLISER_DIR_PERMISSION, true ) ) {
                 throw new FileSystemException( 'Unable to create asset directory.' );
             }
 
@@ -597,7 +597,7 @@ abstract class Repository {
         $slug = $this->real_slug( $slug );
 
         // Ensure trash base exists.
-        if ( ! $this->is_dir( $trash_dir ) && ! $this->mkdir( $trash_dir, FS_CHMOD_DIR, true ) ) {
+        if ( ! $this->is_dir( $trash_dir ) && ! $this->mkdir( $trash_dir, SMLISER_DIR_PERMISSION, true ) ) {
             return false;
         }
 
@@ -606,7 +606,7 @@ abstract class Repository {
         $destination = implode( DIRECTORY_SEPARATOR, [$trash_dir, $app_type, $slug] );
 
         // Ensure destination folder exists.
-        if ( ! $this->is_dir( $destination ) && ! $this->mkdir( $destination, FS_CHMOD_DIR, true ) ) {
+        if ( ! $this->is_dir( $destination ) && ! $this->mkdir( $destination, SMLISER_DIR_PERMISSION, true ) ) {
             return 'false';
         }
 
@@ -812,7 +812,7 @@ abstract class Repository {
                 }
 
                 // Set directory permissions.
-                $fs->chmod( $dir, FS_CHMOD_DIR, true );
+                $fs->chmod( $dir, SMLISER_DIR_PERMISSION, true );
             }
         }
 
@@ -821,7 +821,7 @@ abstract class Repository {
         // Protect the uploads directory.
         $protection = self::protect_dir( $directories['uploads'], $fs );
 
-        if ( is_smliser_error( $protection ) ) {
+        if (  $protection instanceof Exception ) {
             $exception->merge_from( $protection );
         }
 
@@ -869,7 +869,7 @@ abstract class Repository {
 
         if ( ! $fs->exists( $htaccess_path ) ) {
 
-            if ( ! $fs->put_contents( $htaccess_path, $htaccess_content, FS_CHMOD_FILE ) ) {
+            if ( ! $fs->put_contents( $htaccess_path, $htaccess_content, SMLISER_FILE_PERMISSION ) ) {
 
                 $message = sprintf(
                     self::safe_translate( 'Failed to protect directory: %s', 'smliser' ),

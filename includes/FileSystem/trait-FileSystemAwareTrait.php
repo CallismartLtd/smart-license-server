@@ -55,7 +55,7 @@ trait FileSystemAwareTrait {
         return $this->fs()->get_contents( $file );
     }
 
-    public function put_contents( string $path, string $contents, int $mode = FS_CHMOD_FILE ): bool {
+    public function put_contents( string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION ): bool {
         return $this->fs()->put_contents( $path, $contents, $mode );
     }
 
