@@ -29,6 +29,27 @@ trait CLIUtilsTrait {
     }
 
     /**
+     * Validate that required options are present.
+     * 
+     * @param array $opts Parsed options array.
+     * @param string[] $required_opts List of required option keys.
+     * @param string $usage Usage string to display on error.
+     * 
+     * @return bool True if all required options are present, false otherwise.
+     */
+    private function require_options( array $opts, array $required_opts, string $usage ): bool {
+        foreach ( $required_opts as $opt ) {
+            if ( ! isset( $opts[ $opt ] ) || empty( $opts[ $opt ] ) ) {
+                $this->error( sprintf( 'Missing required option: --%s', $opt ) );
+                $this->line( 'Usage: ' . $usage );
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Check that a principal is set on Guard.
      */
     private function require_auth(): bool {

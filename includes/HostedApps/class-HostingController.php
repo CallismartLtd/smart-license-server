@@ -79,14 +79,14 @@ class HostingController {
             static::check_app_ownership( $app );
 
             $name   = $request->get( 'app_name', null );
-
-            if ( empty( $name ) && ! $app->get_id() ) {
+            
+            if ( ! $app->exists() && empty( $name ) ) {
                 throw new RequestException( 'invalid_input', 'Application name is required.' , array( 'status' => 400 ) );
             }
 
             $author = $request->get( 'app_author', null );
 
-            if ( empty( $author ) && ! $app->get_id() ) {
+            if ( ! $app->exists() && empty( $author ) ) {
                 throw new RequestException( 'invalid_input', 'Application author name is required.' , array( 'status' => 400 ) );
             }
 
@@ -98,10 +98,10 @@ class HostingController {
                 $app->set_slug( $request->get( 'app_slug' ) );
             }
 
-            $app->set_name( $name );
-            $app->set_author( $author );
-            $app->set_author_profile( $author_url );
-            $app->set_version( $version );
+            $app->set_name( $name ?? $app->get_name() );
+            $app->set_author( $author ?? $app->get_author() );
+            $app->set_author_profile( $author_url ?? $app->get_author_profile() );
+            $app->set_version( $version ?? $app->get_version() );
             $app->set_file( $app_zip_file ?? '' );
 
             /*
@@ -128,7 +128,9 @@ class HostingController {
                     throw $updated;
                 }
 
-                if ( static::is_system_admin() && $request->hasValue( 'app_owner_id' ) ) {
+                $is_admin   = Guard::get_principal()?->is( 'system_admin' ) ?? false;
+
+                if ( $is_admin && $request->hasValue( 'app_owner_id' ) ) {
                     $app->set_owner_id( $request->get( 'app_owner_id' ) );
                 }
                 

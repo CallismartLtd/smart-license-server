@@ -17,6 +17,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostingController;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Abstract implementation of commands that are common to hosted applications.
@@ -74,12 +75,12 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         return implode( PHP_EOL, [
             'Subcommands:',
             "  create                                   Create a new {$type}.",
-            "  update <slug>                            Update an existing {$type}.",
-            "  upload-asset <slug>                      Upload a {$type} asset.",
-            "  change-status <slug> <status>            Change {$type} status.",
-            "  trash <slug>                             Move a {$type} to trash.",
-            "  delete <slug>                            Move a {$type} to trash (same as trash).",
-            "  purge <slug>                             Permanently delete {$type}.",
+            "  update --slug=<slug>                     Update an existing {$type}.",
+            "  upload-asset --slug=<slug>               Upload a {$type} asset.",
+            "  change-status --slug=<slug>              Change {$type} status.",
+            "  trash --slug=<slug>                      Move a {$type} to trash.",
+            "  delete --slug=<slug>                     Move a {$type} to trash (same as trash).",
+            "  purge --slug=<slug>                      Permanently delete {$type}.",
             "  help                                     Show this help message.",
             "",
             "Options for create / update:",
@@ -109,11 +110,11 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             "",
             "Examples:",
             "  smliser {$type} create --name=\"My {$name}\" --author=\"Dev\" --app-zip-file=/tmp/my-{$type}.zip",
-            "  smliser {$type} update my-{$type} --app-zip-url=https://example.com/{$type}.zip --version=2.0.0",
-            "  smliser {$type} upload-asset my-{$type} --asset-type=icons --path=/tmp/icon.png",
-            "  smliser {$type} change-status my-{$type} {$current_status}",
-            "  smliser {$type} trash my-{$type}",
-            "  smliser {$type} purge my-{$type}",
+            "  smliser {$type} update --slug=my-{$type} --app-zip-url=https://example.com/{$type}.zip --version=2.0.0",
+            "  smliser {$type} upload-asset --slug=my-{$type} --asset-type=icons --path=/tmp/icon.png",
+            "  smliser {$type} change-status --slug=my-{$type} --status={$current_status}",
+            "  smliser {$type} trash --slug=my-{$type}",
+            "  smliser {$type} purge --slug=my-{$type}",
         ] );
     }
 
@@ -166,7 +167,9 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
     */
 
     /**
-     * Create new app
+     * Create new app.
+     * 
+     * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
     private function create_app( array $args ) {
 
@@ -201,6 +204,38 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
      * Update an app
      */
     private function update_app( array $args ) {
+        if ( ! $this->require_auth() ) {
+            return;
+        }
+
+        $opts   = $this->parse_options( $args );
+        $usage  = sprintf( 'smliser %s update --slug=<slug> [options]', static::get_type() );
+
+        if ( ! $this->require_options( $opts, [ 'slug' ], $usage ) ) {
+            return;
+        }
+
+        $type   = static::get_type();
+        $this->start_timer();
+        $this->info( sprintf( 'Updating %s "%s"...', $type, $opts['name'] ?? '' ) );
+        
+        
+        $request    = $this->buildRequest( $opts );
+        if ( null === $request ) {
+            return;
+        }
+
+        // \var_dump( Guard::get_principal() ); exit;
+
+        $response = HostingController::save_app( $request );
+
+        if ( $response->ok() ) {
+            $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? '';
+
+            $this->done( sprintf( '%s "%s" updated successfully.', ucfirst( $type ), $slug ) );
+        } else {
+            $this->error( $response->get_error_message() ?: 'Update failed.' );
+        }
 
     }
 
@@ -391,6 +426,10 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
 
         if ( ! empty( $opts['owner-id'] ) ) {
             $params['app_owner_id'] = (int) $opts['owner-id'];
+        }
+
+        if ( ! empty( $opts['slug'] ) ) {
+            $params['app_slug'] = $opts['slug'];
         }
 
         $request = new Request( params: $params, method: 'POST' );

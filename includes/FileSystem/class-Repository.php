@@ -314,18 +314,20 @@ abstract class Repository {
             return new Exception( $e->get_error_code(), $e->get_error_message(), [ 'status' => 500 ] );
         }
 
+        $active_dirname    = rtrim( $this->current_dir, 's' ); // "plugins" => "plugin"
+
         if ( ! $update ) {
             // New upload: prevent overwriting existing slug.
             if ( $this->is_dir( $base_folder ) ) {
                 return new Exception(
                     'app_slug_exists',
-                    sprintf( 'The slug "%s" is not available, you can change the %s name and try again.', $slug, $this->current_slug ),
+                    sprintf( 'The slug "%s" is not available, you can change the %s name and try again.', $slug, $active_dirname ),
                     [ 'status' => 400 ]
                 );
             }
 
             if ( ! $this->mkdir( $base_folder, SMLISER_DIR_PERMISSION ) ) {
-                return new Exception( 'repo_error', \sprintf( 'Unable to create %s directory.', $this->current_slug ), [ 'status' => 500 ] );
+                return new Exception( 'repo_error', \sprintf( 'Unable to create %s directory.', basename( $base_folder ) ), [ 'status' => 500 ] );
             }
             
         } else {
@@ -333,7 +335,7 @@ abstract class Repository {
             if ( ! $this->is_dir( $base_folder ) && ! $this->mkdir( $base_folder, SMLISER_DIR_PERMISSION )) {
                 return new Exception(
                     'app_not_found',
-                    sprintf( 'The %s slug "%s" does not exist in the repository, and attempt to create one failed.', $this->current_slug, $slug ),
+                    sprintf( 'The %s slug "%s" does not exist in the repository, attempt to create one failed.', $this->current_dir, $slug ),
                     [ 'status' => 404 ]
                 );
             }

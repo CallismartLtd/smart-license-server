@@ -222,7 +222,7 @@ class AppCommand implements CommandInterface {
      * @param string $slug App slug
      */
     private function handle_get( string $type, string $slug ): void {
-        if ( ! $this->require_args( [ 'slug' => $slug, 'type' => $type ], 'smliser app get <type> <slug>' ) ) {
+        if ( ! $this->require_args( [ 'type' => $type, 'slug' => $slug ], 'smliser app get <type> <slug>' ) ) {
             return;
         }
 
@@ -281,132 +281,6 @@ class AppCommand implements CommandInterface {
     | FILE SUBCOMMANDS — auth required
     |--------------------------------------------
     */
-
-    /**
-     * Create or update a hosted application.
-     *
-     * Accepts a zip file via --path (local) or --url (remote download).
-     * For software apps, an app.json manifest can be provided via
-     * --app-json-path or --app-json-url.
-     *
-     * Usage:
-     *   smliser app save <slug> <type> [options]
-     *
-     * Options:
-     *   --name=<name>            Application display name. Required for new apps.
-     *   --author=<author>        Author name. Required for new apps.
-     *   --version=<version>      Version string.
-     *   --path=<path>            Absolute local path to the zip file.
-     *   --url=<url>              Remote URL to download the zip from.
-     *   --app-json-path=<path>   Absolute local path to app.json (software only).
-     *   --app-json-url=<url>     Remote URL to download app.json from (software only).
-     *   --author-url=<url>       Author profile URL.
-     *   --download-url=<url>     External download URL override.
-     *   --owner-id=<id>          Owner ID (system_admin only).
-     *
-     * @param array $args Remaining args after 'save'.
-     */
-    private function handle_save( array $args ): void {
-        $slug = $args[0] ?? null;
-        $type = $args[1] ?? null;
-
-        if ( ! $this->require_args(
-            [ 'slug' => $slug, 'type' => $type ],
-            'smliser app save <slug> <type> [--name=...] [--path=... | --url=...]'
-        ) ) {
-            return;
-        }
-
-        if ( ! $this->require_auth() ) {
-            return;
-        }
-
-        $opts = $this->parse_options( $args );
-
-        // Resolve zip file — --path takes precedence over --url.
-        $zip_file    = null;
-        $zip_cleanup = null;
-
-        if ( ! empty( $opts['path'] ) ) {
-            $zip_file = $this->resolve_local_file( (string) $opts['path'] );
-            if ( $zip_file === null ) {
-                return;
-            }
-        } elseif ( ! empty( $opts['url'] ) ) {
-            $result = $this->download_to_tmp( (string) $opts['url'], 'zip' );
-            if ( $result === null ) {
-                return;
-            }
-            [ $zip_file, $zip_cleanup ] = $result;
-        }
-
-        // Resolve app.json — --app-json-path takes precedence over --app-json-url.
-        $json_file    = null;
-        $json_cleanup = null;
-
-        if ( ! empty( $opts['app-json-path'] ) ) {
-            $json_file = $this->resolve_local_file( (string) $opts['app-json-path'] );
-            if ( $json_file === null ) {
-                return;
-            }
-        } elseif ( ! empty( $opts['app-json-url'] ) ) {
-            $result = $this->download_to_tmp( (string) $opts['app-json-url'], 'json' );
-            if ( $result === null ) {
-                return;
-            }
-            [ $json_file, $json_cleanup ] = $result;
-        }
-
-        $this->start_timer();
-        $this->info( sprintf( 'Saving %s "%s"...', $type, $slug ) );
-
-        // Build request params.
-        $params = [
-            'app_slug'   => $slug,
-            'app_type'   => $type,
-            'app_name'   => $opts['name']         ?? '',
-            'app_author' => $opts['author']        ?? '',
-            'app_version'=> $opts['version']       ?? '',
-            'app_author_url'    => $opts['author-url']  ?? '',
-            'app_download_url'  => $opts['download-url'] ?? '',
-        ];
-
-        if ( ! empty( $opts['owner-id'] ) ) {
-            $params['app_owner_id'] = (int) $opts['owner-id'];
-        }
-
-        $request = new Request( params: $params, method: 'POST' );
-
-        // Inject zip file into request if provided.
-        if ( $zip_file !== null ) {
-            $request = $this->inject_uploaded_file( $request, $zip_file, 'app_zip_file' );
-            if ( $request === null ) {
-                $this->cleanup( $zip_cleanup, $json_cleanup );
-                return;
-            }
-        }
-
-        // Inject app.json into request if provided.
-        if ( $json_file !== null ) {
-            $request = $this->inject_uploaded_file( $request, $json_file, 'app_json_file' );
-            if ( $request === null ) {
-                $this->cleanup( $zip_cleanup, $json_cleanup );
-                return;
-            }
-        }
-
-        try {
-            $response = HostingController::save_app( $request );
-
-            if ( $response->ok() ) {
-                $this->done( sprintf( '%s "%s" saved successfully.', ucfirst( $type ), $slug ) );
-            } else {
-                $this->error( $response->get_error_message() ?: 'Save failed.' );
-            }
-        } finally {
-            $this->cleanup( $zip_cleanup, $json_cleanup );
-        }
-    }
 
     /**
      * Upload one or more assets for a hosted application.
