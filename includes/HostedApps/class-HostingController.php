@@ -98,10 +98,10 @@ class HostingController {
                 $app->set_slug( $request->get( 'app_slug' ) );
             }
 
-            $app->set_name( $name ?? $app->get_name() );
-            $app->set_author( $author ?? $app->get_author() );
-            $app->set_author_profile( $author_url ?? $app->get_author_profile() );
-            $app->set_version( $version ?? $app->get_version() );
+            $app->set_name( $name ?: $app->get_name() );
+            $app->set_author( $author ?: $app->get_author() );
+            $app->set_author_profile( $author_url ?: $app->get_author_profile() );
+            $app->set_version( $version ?: $app->get_version() );
             $app->set_file( $app_zip_file ?? '' );
 
             /*
@@ -412,6 +412,13 @@ class HostingController {
             } else {
                 static::check_permissions( 'hosted_apps.edit_assets' );
                 $result = $repo_class->put_app_asset( $app_slug, $asset_file->get(0), $asset_type );
+
+                if ( is_smliser_error( $result ) ) {
+                    throw new RequestException(
+                        $result->get_error_code() ?: 'asset_upload_failed',
+                        $result->get_error_message(),
+                    );
+                }
             }
 
             \smliser_cache()->clear();
@@ -559,10 +566,11 @@ class HostingController {
             // since CleanTrashedAppsJob handles permanent deletion silently.
             if ( $status !== AbstractHostedApp::STATUS_TRASH ) {
                 ( new static )->dispatch_job( SendAppStatusChangedEmailJob::class, [
-                    'app_type'   => $app->get_type(),
-                    'app_slug'   => $app->get_slug(),
-                    'old_status' => $old_status,
-                    'new_status' => $status,
+                    'app_type'      => $app->get_type(),
+                    'app_slug'      => $app->get_slug(),
+                    'old_status'    =>  $old_status,
+                    'new_status'    => $status,
+                    'reason'        => $request->get( 'status_change_reason', '' ),
                 ] );
             }
 

@@ -44,11 +44,9 @@ trait CLIFilesystemAwareTrait {
             return null;
         }
 
-        $destination = sprintf(
-            '%s/%s%s',
+        $destination    = FileSystemHelper::join_path(
             SMLISER_TMP_DIR,
-            SMLISER_UPLOAD_TMP_PREFIX,
-            basename( $path )
+            SMLISER_UPLOAD_TMP_PREFIX . basename( $path )
         );
 
         if ( ! $fs->copy( $path, $destination ) ) {
@@ -130,6 +128,49 @@ trait CLIFilesystemAwareTrait {
 
         // Populate $_FILES so Request::parse_uploaded_files() picks it up.
         $_FILES[ $key ] = $file_entry;
+        $request->parse_uploaded_files();
+
+        return $request;
+    }
+
+    /**
+     * Inject multiple uploaded files of the same key into the request.
+     * 
+     * Constructs multiple file entries for the same key in the $_FILES array and allow the Request parser to handle them as an array of uploaded files.
+     * 
+     * @param Request $request The request to inject into.
+     * @param array $tmp_paths Array of temp file paths.
+     * @param string $key The file key (e.g. 'asset_files').
+     * @return Request|null
+     */
+    private function inject_uploaded_files( Request $request, array $tmp_paths, string $key ): ?Request {
+        $fs = smliser_filesystem();
+
+        $file_entries = [];
+        foreach ( $tmp_paths as $index => $tmp_path ) {
+            if ( ! $fs->exists( $tmp_path ) ) {
+                $this->error( sprintf( 'Temp file missing: %s', $tmp_path ) );
+                return null;
+            }
+
+            $file_entries[] = [
+                'name'     => basename( $tmp_path ),
+                'type'     => FileSystemHelper::get_mime_type( $tmp_path ),
+                'tmp_name' => $tmp_path,
+                'error'    => UPLOAD_ERR_OK,
+                'size'     => $fs->filesize( $tmp_path ),
+            ];
+        }
+
+        // Populate $_FILES with an array of file entries for the same key.
+        $_FILES[ $key ] = [
+            'name'     => array_column( $file_entries, 'name' ),
+            'type'     => array_column( $file_entries, 'type' ),
+            'tmp_name' => array_column( $file_entries, 'tmp_name' ),
+            'error'    => array_column( $file_entries, 'error' ),
+            'size'     => array_column( $file_entries, 'size' ),
+        ];
+
         $request->parse_uploaded_files();
 
         return $request;

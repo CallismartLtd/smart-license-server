@@ -1205,11 +1205,15 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return string|Exception The file path or Exception on failure.
      */
-    public function get_zip_file() {
+    public function get_zip_file() : string|Exception {
         $file = $this->get_file();
-        
-        if ( is_array( $file ) && isset( $file['tmp_name'] ) ) {
-            return $file['tmp_name'];
+
+        if ( $file instanceof UploadedFile ) {
+            if ( $file->is_upload_successful() ) {
+                return $file->get_tmp_path();
+            } else {
+                return new Exception( 'file_upload_error', $file->get_error_message(), array( 'status' => 400 ) );
+            }
         }
 
         return $file;

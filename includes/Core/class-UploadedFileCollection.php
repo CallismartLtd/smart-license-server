@@ -82,7 +82,7 @@ final class UploadedFileCollection implements IteratorAggregate, Countable {
      *
      * @param string              $key
      * @param array<string,mixed> $entry
-     * @return array<int,UploadedFile>
+     * @return UploadedFile[]
      */
     private static function normalize_multi_entry( string $key, array $entry ) : array {
 

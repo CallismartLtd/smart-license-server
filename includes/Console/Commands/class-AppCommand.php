@@ -128,7 +128,7 @@ class AppCommand implements CommandInterface {
 
         $result = HostedApplicationService::get_apps( compact( 'page', 'limit', 'status', 'types' ) );
 
-        $items      = $result['items']      ?? [];
+        $items      = $result['items'] ?? [];
         $pagination = $result['pagination'] ?? [];
 
         if ( empty( $items ) ) {

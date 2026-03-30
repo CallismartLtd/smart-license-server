@@ -57,6 +57,7 @@ class SendAppStatusChangedEmailJob implements JobHandlerInterface {
         $app_slug   = (string) $payload['app_slug']   ?? '';
         $old_status = $payload['old_status'] ?? '';
         $new_status = $payload['new_status'] ?? '';
+        $reason     = $payload['reason'] ?? null;
 
         $sent    = 0;
         $skipped = 0;
@@ -74,7 +75,7 @@ class SendAppStatusChangedEmailJob implements JobHandlerInterface {
         }
 
         foreach ( $emails as $email ) {
-            $message = ( new AppStatusChangedEmail( $app, $email, $old_status, $new_status ) )->to_message();
+            $message = ( new AppStatusChangedEmail( $app, $email, $old_status, $new_status, $reason ) )->to_message();
 
             if ( $message === null ) {
                 $skipped++;

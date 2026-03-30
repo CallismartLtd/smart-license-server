@@ -14,6 +14,9 @@ use SmartLicenseServer\Console\CLIFilesystemAwareTrait;
 use SmartLicenseServer\Console\CLIUtilsTrait;
 use SmartLicenseServer\Console\CommandInterface;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\FileSystemException;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostingController;
@@ -51,11 +54,11 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         match ( $subcommand ) {
             'create'        => $this->create_app( array_slice( $args, 1 ) ),
             'update'        => $this->update_app( array_slice( $args, 1 ) ),
-            'upload-asset'  => $this->upload_asset( $args[1] ?? '', $args[2] ?? '' ),
-            'change-status' => $this->change_status( $args[1] ?? null, $args[2] ?? null ),
-            'trash'         => $this->trash_app( $args[1] ?? '' ),
-            'delete'        => $this->trash_app( $args[1] ?? '', $args[2] ?? '' ),
-            'purge'         => $this->purge_app( $args[1] ?? '', $args[2] ?? '' ),
+            'upload-asset'  => $this->upload_asset( array_slice( $args, 1 ) ),
+            'change-status' => $this->change_status( array_slice( $args, 1 ) ),
+            'trash'         => $this->trash_app( array_slice( $args, 1 ) ),
+            'delete'        => $this->trash_app( array_slice( $args, 1 ) ),
+            'purge'         => $this->purge_app( array_slice( $args, 1 ) ),
             'help'          => $this->handle_help(),
             null            => $this->handle_default(),
             default         => $this->handle_unknown( $subcommand ),
@@ -104,7 +107,10 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             "  --url=<url>                              Remote URL to download asset from.",
             "  --asset-name=<name>                      Filename override (for replace operations).",
             "",
-            "Valid statuses for the change-status subcommand:",
+            "Options for change-status / trash / delete subcommands:",
+            "  --status=<status>                        New status for the {$type}.",
+            "-f, --force, -y, --yes                     Skip confirmation prompt.",
+            "Valid statuses:",
             "  {$valid_statuses}",
             "  (Note: 'trash' is managed via the trash/delete subcommands)",
             "",
@@ -191,7 +197,7 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         $response = HostingController::save_app( $request );
 
         if ( $response->ok() ) {
-            $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? '';
+            $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? static::get_type();
 
             $this->done( sprintf( '%s "%s" saved successfully.', ucfirst( $type ), $slug ) );
         } else {
@@ -225,12 +231,10 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             return;
         }
 
-        // \var_dump( Guard::get_principal() ); exit;
-
         $response = HostingController::save_app( $request );
 
         if ( $response->ok() ) {
-            $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? '';
+            $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? static::get_type();
 
             $this->done( sprintf( '%s "%s" updated successfully.', ucfirst( $type ), $slug ) );
         } else {
@@ -244,40 +248,27 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
      * 
      * Note: Only system administrators can do this.
      * 
-     * @param string $slug The app slug to trash.
+     * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function trash_app( string $slug ): void {
-        if ( ! $this->require_args(
-            [ 'slug' => $slug ],
-            sprintf( 'smliser %s trash <slug>', static::get_type() )
-        ) ) {
+    private function trash_app( array $args ): void {
+        $opts   = $this->parse_options( $args );
+        $slug   = $opts['slug'] ?? '';
+        $usage  = sprintf( 'smliser %s trash --slug=<slug>', static::get_type() );
+
+        if ( ! $this->require_args( [ 'slug' => $slug ], $usage ) ) {
             return;
         }
-
         if ( ! $this->require_auth() ) {
             return;
         }
 
-        if ( ! $this->confirm( sprintf( 'Move "%s" to trash?', $slug ) ) ) {
-            $this->line( 'Aborted.' );
-            return;
-        }
+        $args   = array(
+            "--slug=$slug",
+            "--status=" . AbstractHostedApp::STATUS_TRASH,
+            "--yes"
+        );
 
-        $this->start_timer();
-
-        $request = new Request( [
-            'app_slug'   => $slug,
-            'app_type'   => static::get_type(),
-            'app_status' => AbstractHostedApp::STATUS_TRASH,
-        ], method: 'POST' );
-
-        $response = HostingController::change_app_status( $request );
-
-        if ( $response->ok() ) {
-            $this->done( sprintf( '"%s" moved to trash.', $slug ) );
-        } else {
-            $this->error( $response->get_error_message() );
-        }
+        $this->change_status( $args );
     }
 
     /**
@@ -285,12 +276,15 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
      * 
      * Note: Only system administrators can do this.
      * 
-     * @param string $slug The app slug to flush.
+     * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function purge_app( string $slug ): void {
+    private function purge_app( array $args ): void {
+        $opts   = $this->parse_options( $args );
+        $slug   = $opts['slug'] ?? '';
+
         if ( ! $this->require_args(
             [ 'slug' => $slug ],
-            'smliser app purge <slug> <type>'
+            sprintf( 'smliser %s purge --slug=<slug>', static::get_type() )
         ) ) {
             return;
         }
@@ -306,50 +300,64 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             return;
         }
 
-        $prompt  = $this->prompt( sprintf( 'Type "yes" to confirm permanent deletion of "%s":', $slug ), '' );
-        if ( 'yes' !== strtolower( $prompt ) ) {
-            $this->line( 'Aborted.' );
-            return;
-        }
-
         $this->start_timer();
         
         $type   = static::get_type();
         $app    = HostedApplicationService::get_app_by_slug( $type, $slug );
 
         if ( ! $app ) {
-            $this->error( sprintf( 'App "%s" of type "%s" not found.', $slug, $type ) );
+            $this->error( sprintf( '%s with slug "%s" not found.', ucfirst( $type ), $slug ) );
             return;
         }
 
-        if ( true ) {
+        $prompt  = $this->prompt( sprintf( 'Type "yes" to confirm permanent deletion of "%s":', $app->get_name() ), '' );
+        if ( 'yes' !== strtolower( $prompt ) ) {
+            $this->line( 'Aborted.' );
+            return;
+        }
+
+        $repo_class = HostedApplicationService::get_app_repository_class( $type );
+
+        try {
+            $app_dir    = $repo_class->enter_slug( $slug );
+        } catch( FileSystemException ) {
+            // Maybe in trash?
+            $types      = \smliser_pluralize( $type );
+            $app_dir    = FileSystemHelper::join_path( SMLISER_TRASH_DIR, $types, $slug );
+        }
+
+        try {
+            $repo_class->delete( $app_dir, true );
+            $app->delete();
             $this->done( sprintf( '"%s" permanently deleted.', $slug ) );
-        } else {
-            $this->error( sprintf( 'Failed to delete "%s".', $slug ) );
+        } catch ( \Throwable $e ) {
+            $this->error( sprintf( 'Failed to delete "%s": %s', $slug, $e->getMessage() ) );
         }
     }
 
     /**
      * Change an application's status.
+     * 
+     * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function change_status( ?string $slug, ?string $status ): void {
-        if ( ! $this->require_args(
-            [ 'slug' => $slug, 'status' => $status ],
-            sprintf( 'smliser %s status <slug> <status>', static::get_type() )
-        ) ) {
+    private function change_status( array $args ) : void {
+        $opts   = $this->parse_options( $args );
+        $usage  = sprintf( 'smliser %s change-status --slug=<slug> --status=<status>', static::get_type() );
+        
+        if ( ! $this->require_options( $opts, [ 'slug', 'status' ], $usage ) ) {
             return;
         }
 
-        if ( $status === AbstractHostedApp::STATUS_TRASH ) {
-            $this->error( 'Use `smliser app trash <slug> <type>` to move an app to trash.' );
-            return;
-        }
+        $slug   = $opts['slug'];
+        $status = $opts['status'];
 
         if ( ! $this->require_auth() ) {
             return;
         }
 
-        if ( ! $this->confirm( sprintf( 'Change status of "%s" to "%s"?', $slug, $status ) ) ) {
+        $confirmed  = $opts['y'] ?? $opts['yes'] ?? $opts['force'] ?? $opts['f'] ?? false;
+
+        if ( ! $confirmed && ! $this->confirm( sprintf( 'Change status of "%s" to "%s"?', $slug, $status ) ) ) {
             $this->line( 'Aborted.' );
             return;
         }
@@ -372,10 +380,88 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
     }
 
     /**
-     * Upload app asset
+     * Upload app asset.
+     * 
+     * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function upload_asset() : void {
+    private function upload_asset( array $args ) : void {
 
+        $opts   = $this->parse_options( $args );
+        $usage  = sprintf( 'smliser %s upload-asset --slug=<slug> --asset-type=<type> [--path=<path> | --url=<url>] [--asset-name=<name>]', static::get_type() );
+
+        if ( ! $this->require_options( $opts, [ 'slug', 'asset-type' ], $usage ) ) {
+            return;
+        }
+
+        $request    = $this->buildAssetsRequest( $opts );
+
+        if ( ! $request ) {
+            return;
+        }
+
+        $response   = HostingController::app_asset_upload( $request );
+
+        if ( $response->ok() ) {
+            // Get the results of the upload.
+            $data       = $response->get_body();
+            $results    = $data['result'] ?? [];
+            
+
+            if ( $results instanceof Exception ) {
+                $this->error( $results->get_error_message() );
+                return;
+            }
+
+            if ( $request->has( 'asset_name' ) ) {
+                // This is a single file PUT request.
+                $t_header   = ['Asset Name', 'Asset URL'];
+                $t_row      = [
+                    [
+                        $results['asset_name'] ?? '',
+                        $results['asset_url'] ?? ''
+                    ]
+                ];
+
+                $this->table( $t_header, $t_row );
+                $this->done( 'Asset uploaded.', true );
+                return;
+            }
+            
+            $this->line( 'Upload results:' );
+            
+            $uploaded   = $results['uploaded'] ?? [];
+            $failed     = $results['failed'] ?? [];
+
+            if ( ! empty( $failed ) ) {
+                $this->table(
+                    ['Error', 'Message'],
+                    array_map( function( $er ) {
+                        return [key( $er ), smliser_implode_deep( $er ) ];
+                    }, $failed )
+                );                
+            } else {
+                $this->line( 'All assets uploaded successfully.' );
+                $t_header   = ['Asset Names', 'Asset URLs'];
+                $t_rows     = array_map( function( $asset ) {
+                    return [
+                        $asset['asset_name'] ?? '',
+                        $asset['asset_url'] ?? ''
+                    ];
+                }, $uploaded );
+
+                $this->table( $t_header, $t_rows );
+
+                $message = count( $uploaded ) === 1
+                    ? 'Asset uploaded.'
+                    : sprintf( '%d assets uploaded.', count( $uploaded ) );
+                $this->done( $message, true );
+
+            }
+
+
+        } else {
+            $this->error( $response->get_error_message() ?: 'Asset upload failed.' );
+        }
     }
 
     /**
@@ -454,5 +540,83 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
 
         return $request;
 
+    }
+
+    /**
+     * Build asset upload request object.
+     * 
+     * @param array $opts Parsed command options.
+     * @return Request|null The request object or null on failure.
+     */
+    private function buildAssetsRequest( array $opts ) : ?Request {
+        // Resolve asset file — --path takes precedence over --url.
+        $asset_files    = [];
+
+        if ( ! empty( $opts['path'] ) ) {
+            if ( is_array( $opts['path'] ) ) {
+                foreach ( $opts['path'] as $path ) {
+                    $asset_file = $this->resolve_local_file( (string) $path );
+                    if ( $asset_file === null ) {
+                        return null;
+                    }
+                    $asset_files[] = $asset_file;
+                }
+            } else {
+                $asset_file = $this->resolve_local_file( (string) $opts['path'] );
+                if ( $asset_file === null ) {
+                    return null;
+                }
+                $asset_files[] = $asset_file;
+            }
+
+        } elseif ( ! empty( $opts['url'] ) ) {
+            if ( is_array( $opts['url'] ) ) {
+                foreach ( $opts['url'] as $url ) {
+                    $asset_file = $this->download_to_tmp( (string) $url );
+                    if ( $asset_file === null ) {
+                        return null;
+                    }
+                    $asset_files[] = $asset_file;
+                }
+            } else {
+                $asset_file = $this->download_to_tmp( (string) $opts['url'] );
+                if ( $asset_file === null ) {
+                    return null;
+                }
+                $asset_files[] = $asset_file;
+            }
+        } else {
+            $this->error( 'Either --path or --url must be provided for the asset.' );
+            return null;
+        }
+
+        // Build request params.
+        $params = [
+            'app_type'   => static::get_type(),
+            'app_slug'   => $opts['slug'] ?? '',
+            'asset_type' => $opts['asset-type'] ?? '',
+        ];
+
+        $method = 'POST';
+
+        if ( ! empty( $opts['asset-name'] ) ) {
+            $params['asset_name']   = $opts['asset-name'];
+            $method                 = 'PUT';
+        }
+
+        $request = new Request( params: $params, method: $method );
+
+        // Inject asset files into request.
+        $request = $this->inject_uploaded_files( $request, $asset_files, 'asset_file' );
+        if ( $request === null ) {
+            return null;
+        }
+
+        if ( $request->has( 'asset_name' ) ) {
+            $asset_name = $request->get( 'asset_name' );
+            $request->get_files( 'asset_file' )?->get(0)?->set_new_name( $asset_name );
+        }
+
+        return $request;
     }
 }

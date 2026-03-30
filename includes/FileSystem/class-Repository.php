@@ -464,11 +464,13 @@ abstract class Repository {
 
             $asset_name = $this->validate_app_asset( $file, $asset_type, $assets_dir );
 
-            if ( is_smliser_error( $asset_name ) ) {
+            if ( $asset_name instanceof Exception ) {
                 throw new FileSystemException( $asset_name->get_error_message() );
             }
 
-            if ( 'screenshot' === $asset_type ) {
+            $is_screenshot  = (bool) preg_match( '#screenshots?#i', $asset_type );
+
+            if ( $is_screenshot ) {
                 $file_name  = $file->get_name( false );
                 if ( \str_starts_with( $file_name, 'screenshot-' ) ) {
                     $removable  = FileSystemHelper::join_path( $assets_dir, $file_name );
@@ -488,6 +490,8 @@ abstract class Repository {
             return compact( 'app_slug', 'app_type', 'asset_name', 'asset_url', 'asset_type' );
         } catch ( FileSystemException $e ) {
             return $e;
+        } catch ( Exception $e ) {
+            return new FileSystemException( $e->get_error_message() );
         }
     }
 
@@ -536,8 +540,9 @@ abstract class Repository {
         }
 
         $image_content  = $this->get_contents( $filename );
+        $is_malicious   = (bool) preg_match( '/<(script|php|eval|iframe|object|embed|form|input|button|link|style)[^>]*>/i', $image_content );
         
-        if ( preg_match( '/<(script|php|eval|iframe|object|embed|form|input|button|link|style)[^>]*>/i', $image_content ) ) {
+        if ( $is_malicious ) {
             return new Exception( 'malicious_content', 'Potentially malicious content detected in the image.' );
         }
 
