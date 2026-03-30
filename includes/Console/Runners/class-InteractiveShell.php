@@ -35,6 +35,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Runners;
 
+use SmartLicenseServer\Console\CLIWelcomeTrait;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Commands\SmliserCommand;
 
@@ -49,6 +50,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * and can replace CLIRunner at the entry point transparently.
  */
 class InteractiveShell extends SmliserCommand implements RunnerInterface {
+    use CLIWelcomeTrait;
 
     /*
     |--------------------------------------------
@@ -311,14 +313,17 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * @return void
      */
     private function print_banner(): void {
-        $version        = SMLISER_VER;
-        $quit_tokens    = implode( '", "', self::EXIT_TOKENS );
+        $version     = SMLISER_VER;
+        $quit_tokens = implode( '", "', self::EXIT_TOKENS );
 
-        echo PHP_EOL;
-        echo '  Smart License Server  v' . $version . PHP_EOL;
-        // echo '  Type "help" to list commands. Type "exit" to quit.' . PHP_EOL;
-        echo sprintf( '  Type "help" to list commands. Type "%s" to quit.', $quit_tokens ) . PHP_EOL;
-        echo PHP_EOL;
+        // Print ASCII logo from the trait constant.
+        $this->line( static::ASCII_LOGO );
+        // Version line
+        $this->line( $this->colorize( static::ANSI_BOLD, '  Smart License Server  v' . $version ) );
+
+        // Interactive instructions
+        $this->info( sprintf( '  Type "help" to list commands. Type "%s" to quit.', $quit_tokens ) );
+        $this->newline();
     }
 
     /**
@@ -327,7 +332,7 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * @return void
      */
     private function print_goodbye(): void {
-        echo 'Goodbye.' . PHP_EOL;
+        $this->line( 'Goodbye.' );
     }
 
     /**
