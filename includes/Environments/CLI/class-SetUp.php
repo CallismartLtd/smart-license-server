@@ -19,6 +19,8 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\CLI;
 
+use SmartLicenseServer\Cache\Cache;
+use SmartLicenseServer\Cache\CacheAdapterCollection;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\CLIRunner;
@@ -132,7 +134,7 @@ class SetUp extends Environment {
             );
         }
 
-        $this->dbConfig = new DBConfigDTO( [
+        $this->dbConfig = new DBConfigDTO([
             'driver'   => 'mysql',
             'host'     => $db_host,
             'port'     => $db_port,
@@ -140,7 +142,7 @@ class SetUp extends Environment {
             'username' => $db_user,
             'password' => $db_pass,
             'charset'  => $db_charset,
-        ] );
+        ]);
 
         // Store app_url for the URL methods.
         $this->app_url = $app_url;
@@ -156,6 +158,13 @@ class SetUp extends Environment {
         ];
 
         $this->setup( $env );
+
+        // Initialize the cache adapter if configured.
+        if ( isset( $_ENV['SMLISER_CACHE_ADAPTER'] ) ) {
+            $adapter_id = $_ENV['SMLISER_CACHE_ADAPTER'];
+            CacheAdapterCollection::instance()->set_default_adapter( $adapter_id );    
+        }
+
     }
 
     /**

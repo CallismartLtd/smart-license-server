@@ -42,6 +42,18 @@ class EnvironmentBootstrapException extends Exception {
             'message'   => 'The provided configuration is not supported.'
         ),
 
+        'invalid_cache_adapter'   => array(
+            'status'    => 500,
+            'title'     => 'Invalid Cache Adapter',
+            'message'   => 'The specified cache adapter is invalid or could not be initialized.'
+        ),
+
+        'invalid_settings_provider'   => array(
+            'status'    => 500,
+            'title'     => 'Invalid Settings Provider',
+            'message'   => 'The specified settings provider is invalid or could not be initialized.'
+        ),
+
         'unknown_error'   => array(
             'status'    => 500,
             'title'     => 'Unknown Errro',

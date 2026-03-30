@@ -75,4 +75,13 @@ class Settings {
             sprintf( 'Method %s::%s does not exist.', get_class( $this->adapter ), $method )
         );
     }
+
+    /**
+     * Get the underlying adapter
+     * 
+     * @return \SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface
+     */
+    public function get_adapter() : SettingsStorageInterface {
+        return $this->adapter;
+    }
 }

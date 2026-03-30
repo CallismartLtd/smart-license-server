@@ -35,6 +35,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Runners;
 
+use SmartLicenseServer\Console\ShellHistoryTrait;
 use SmartLicenseServer\Console\CLIWelcomeTrait;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Commands\SmliserCommand;
@@ -50,7 +51,9 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * and can replace CLIRunner at the entry point transparently.
  */
 class InteractiveShell extends SmliserCommand implements RunnerInterface {
+
     use CLIWelcomeTrait;
+    use ShellHistoryTrait;
 
     /*
     |--------------------------------------------
@@ -130,36 +133,22 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     */
 
     /**
-     * Print the prompt and read one line from STDIN.
+     * Read one line of input from STDIN, with history support.
      *
-     * Uses the readline extension when available so the operator gets
-     * ↑/↓ history navigation and in-line editing for free. Falls back
-     * to a plain fgets() prompt on systems without readline.
+     * Delegates entirely to CLIHistoryTrait::history_read_line() which
+     * selects the best available strategy for the current platform:
+     *   - readline extension  → native history + editing (all platforms)
+     *   - pure-PHP raw input  → in-memory history with ↑/↓ navigation
+     *   - plain fgets()       → non-TTY / piped input fallback
      *
      * @return string|null The trimmed input line, or null on EOF.
      */
     private function read_line(): ?string {
-        $prompt = 'smliser > ';
+        $prompt = sprintf( '[smart-license-server-%s] > ', SMLISER_VER );
 
-        if ( function_exists( 'readline' ) ) {
-            $line = readline( $prompt );
-
-            if ( $line === false ) {
-                return null;
-            }
-
-            if ( trim( $line ) !== '' ) {
-                readline_add_history( $line );
-            }
-
-            return $line;
-        }
-
-        // Plain fallback.
-        echo $prompt;
-        $line = fgets( STDIN );
-
-        return $line === false ? null : rtrim( $line, "\r\n" );
+        return $this->history_read_line(
+            $this->colorize( static::ANSI_GREEN, $prompt )
+        );
     }
 
     /*
@@ -251,9 +240,9 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * commands.
      *
      * Examples:
-     *   'app list --type=plugin'         → ['app', 'list', '--type=plugin']
+     *   'app list --type=plugin'           → ['app', 'list', '--type=plugin']
      *   'app search "my plugin" --limit=5' → ['app', 'search', 'my plugin', '--limit=5']
-     *   "cache get 'some key'"           → ['cache', 'get', 'some key']
+     *   "cache get 'some key'"             → ['cache', 'get', 'some key']
      *
      * @param  string   $line
      * @return string[]
@@ -268,8 +257,6 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
             $char = $line[ $i ];
 
             if ( $in_quote !== null ) {
-                // Inside a quoted string — only the matching closing
-                // quote ends the token; everything else is literal.
                 if ( $char === $in_quote ) {
                     $in_quote = null;
                 } else {
@@ -313,15 +300,10 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * @return void
      */
     private function print_banner(): void {
-        $version     = SMLISER_VER;
         $quit_tokens = implode( '", "', self::EXIT_TOKENS );
 
-        // Print ASCII logo from the trait constant.
         $this->line( static::ASCII_LOGO );
-        // Version line
-        $this->line( $this->colorize( static::ANSI_BOLD, '  Smart License Server  v' . $version ) );
-
-        // Interactive instructions
+        $this->line( $this->colorize( static::ANSI_BOLD, '  Smart License Server  v' . SMLISER_VER ) );
         $this->info( sprintf( '  Type "help" to list commands. Type "%s" to quit.', $quit_tokens ) );
         $this->newline();
     }
@@ -339,33 +321,22 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * Print the global help listing augmented with shell-specific
      * built-in commands (clear, exit) that are not in the registry.
      *
-     * Delegates the main command table to the inherited
-     * print_global_help() method so any future changes there are
-     * automatically reflected in the shell.
-     *
      * @return void
      */
     private function print_shell_help(): void {
         $this->print_global_help();
-        $clear_tokens = implode( ', ', [ '"clear"', '"cls"' ] );
-        $clear_length = strlen( $clear_tokens ) + 2;
+
+        $clear_tokens = '"clear", "cls"';
         $exit_tokens  = implode( ', ', array_map( fn( $t ) => "\"$t\"", self::EXIT_TOKENS ) );
-        $exit_length  = strlen( $exit_tokens ) + 2;
 
-        echo implode( PHP_EOL, [
-            'Shell built-ins:',
-            sprintf( '  %s  Clear the terminal screen.', str_pad( $clear_tokens, $clear_length, "\t" ) ),
-            sprintf( '  %s  End the interactive session.', str_pad( $exit_tokens, $exit_length, "\t" ) ),
-
-        ]);
+        echo 'Shell built-ins:' . PHP_EOL;
+        echo sprintf( '  %-30s  Clear the terminal screen.', $clear_tokens ) . PHP_EOL;
+        echo sprintf( '  %-30s  End the interactive session.', $exit_tokens ) . PHP_EOL;
         echo PHP_EOL;
     }
 
     /**
      * Clear the visible terminal screen.
-     *
-     * Uses the ANSI erase-screen escape sequence on POSIX systems
-     * and the `cls` command on Windows.
      *
      * @return void
      */

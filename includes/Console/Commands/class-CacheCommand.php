@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -142,7 +143,7 @@ class CacheCommand implements CommandInterface {
             $this->table(
                 [ 'Key', 'Value' ],
                 array_map(
-                    fn( $k, $v ) => [ $k, is_scalar( $v ) ? (string) $v : json_encode( $v ) ],
+                    fn( $k, $v ) => [ $k, Format::decode( $v )  ],
                     array_keys( (array) $value ),
                     array_values( (array) $value )
                 )
