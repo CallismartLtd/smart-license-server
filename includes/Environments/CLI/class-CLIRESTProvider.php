@@ -4,7 +4,7 @@
  *
  * A minimal no-op implementation of RESTProviderInterface for the CLI
  * environment. The CLI never serves HTTP requests so no route registration
- * or request dispatching is needed. This stub satisfies the Config
+ * or request dispatching is needed. This stub satisfies the Environment
  * bootstrap requirement that a rest_api_provider must be present.
  *
  * @author  Callistus Nwachukwu

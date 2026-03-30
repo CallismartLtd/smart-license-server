@@ -4,7 +4,7 @@
  *
  * Provides the Smart License Server environment adapter for command-line
  * execution. Follows the same pattern as the WordPress SetUp class —
- * extends Config, sets static::$envProvider, builds the $env array
+ * extends Environment, sets static::$envProvider, builds the $env array
  * from environment variables, and calls $this->setup().
  *
  * No hook system, no admin UI, no REST registration. The CLI caller
@@ -19,8 +19,12 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\CLI;
 
-use SmartLicenseServer\Config;
+use SmartLicenseServer\Environment;
+use SmartLicenseServer\Console\CommandRegistry;
+use SmartLicenseServer\Console\Runners\CLIRunner;
+use SmartLicenseServer\Console\Runners\InteractiveShell;
 use SmartLicenseServer\Core\DBConfigDTO;
+use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\Monetization\ProviderCollection;
@@ -34,7 +38,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Reads all configuration from environment variables so the
  * adapter has zero WordPress dependency.
  */
-class SetUp extends Config {
+class SetUp extends Environment {
 
     /*
     |----------------------
@@ -59,7 +63,10 @@ class SetUp extends Config {
      * Private constructor — use instance().
      */
     private function __construct() {
+        $this->loadDotEnv();
         $this->setProps();
+        $this->setPrincipal();
+        $this->init();
     }
 
     /**
@@ -82,11 +89,17 @@ class SetUp extends Config {
     */
 
     /**
+     * Load the .env file from the root directory.
+     * 
+     * @return void
+     */
+    private function loadDotEnv() : void {
+        ( new DotEnv( SMLISER_ABSPATH ) )
+        ->load();
+    }
+
+    /**
      * Read environment variables, build the $env array, and call setup().
-     *
-     * Mirrors SetUp::setProps() in the WordPress adapter — sets
-     * static::$envProvider, populates $this->dbConfig, and delegates
-     * the rest to Config::setup().
      *
      * @throws EnvironmentBootstrapException On missing required env variables.
      */
@@ -143,6 +156,29 @@ class SetUp extends Config {
         ];
 
         $this->setup( $env );
+    }
+
+    /**
+     * Sets the principal/current actor for the CLI environment.
+     * 
+     * @return void
+     */
+    private function setPrincipal() : void {
+        ( new CLIIdentityProvider() )
+        ->authenticate();
+    }
+
+    /**
+     * Initialize the CLI envionment and hand over the request to the runner.
+     * 
+     * @return void
+     */
+    private function init() : void {
+        $registry   = CommandRegistry::instance();
+        $argv       = $GLOBALS['argv'] ?? [];
+        $runner     = isset( $argv[1] ) ? new CLIRunner( $registry, $argv ) : new InteractiveShell( $registry );
+        
+        $runner->register();
     }
 
     /*

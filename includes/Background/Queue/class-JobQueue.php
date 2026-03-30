@@ -61,7 +61,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  * Follows the same singleton + adapter proxy pattern as Cache,
  * Database, and Mailer — one instance per runtime, constructed
- * with a concrete adapter in Config::setGlobalQueueAdapter().
+ * with a concrete adapter in Environment::setGlobalQueueAdapter().
  *
  * @method JobDTO          dispatch( JobDTO $job )                                                  Enqueue a job for background processing.
  * @method JobDTO|null     claim_next_job( ?string $queue = null )                                  Claim and return the next available job.

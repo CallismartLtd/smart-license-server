@@ -8,8 +8,6 @@
  * Version: 0.2.0
  */
 
-namespace SmartLicenseServer;
-
 use SmartLicenseServer\Environments\WordPress\SetUp;
 
 defined( 'ABSPATH' ) || exit;

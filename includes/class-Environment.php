@@ -38,12 +38,29 @@ use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 
 /**
- * Abstract configuration class for Smart License Server.
+ * Abstract environment bootstrap class for Smart License Server.
  * 
- * This class provides the foundational setup for the application environment, including
- * parsing configuration, declaring constants, and initializing core components.
+ * This class serves as the foundation for initializing the application environment
+ * in a runtime-agnostic way. It is responsible for:
+ * 
+ * - Parsing and validating configuration provided by the environment provider.
+ * - Declaring global constants (paths, table names, keys, etc.).
+ * - Instantiating and wiring core services and adapters, including:
+ *   - Database, Cache, Filesystem, and Settings APIs
+ *   - REST API provider
+ *   - Mailing service
+ *   - Job queue and background worker
+ *   - HTTP client
+ *   - Scheduler (lazy-loaded)
+ * - Providing accessors for all core components.
+ * 
+ * Note: This class does not handle request/response lifecycles; that responsibility
+ * belongs to the specific environment provider (e.g., CLI, HTTP).
+ * 
+ * @package SmartLicenseServer
+ * @since 0.2.0
  */
-abstract class Config implements EnvironmentProviderInterface {
+abstract class Environment implements EnvironmentProviderInterface {
     /**
      * The current environment provider instance.
      * 

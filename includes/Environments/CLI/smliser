@@ -21,13 +21,27 @@ if ( 'cli' !== PHP_SAPI ) {
     exit( 'This script can only be run from the command line.' );
 }
 
-// Resolve paths - adjust $app_root and $plugin_path to match your install.
-$app_root    = '/var/www/html/apiv1.callismart.local';
-$plugin_path = $app_root . '/wp-content/plugins/smart-license-server/';
+use SmartLicenseServer\Environments\CLI\SetUp;
+
+/**
+ * The absolute path to the Smart License Server root directory. Adjust as needed.
+ * 
+ * @example '/usr/local/www/smart-license-server'
+ * @var string
+ */
+$app_root   = '/var/www/html/apiv1.callismart.local';
+
+/**
+ * Absolute path to the Smart License Server source code directory. Adjust as needed.
+ * 
+ * @example '/usr/local/www/smart-license-server/app/'
+ * @var string
+ */
+$src_path   = $app_root . '/wp-content/plugins/smart-license-server/';
 
 // Core constants.
 define( 'SMLISER_ABSPATH',  $app_root . '/' );
-define( 'SMLISER_PATH',     $plugin_path );
+define( 'SMLISER_PATH',     $src_path );
 define( 'SMLISER_FILE',     __FILE__ );
 define( 'SMLISER_VER',      '0.2.0' );
 define( 'SMLISER_DB_VER',   '0.2.0' );
@@ -37,18 +51,5 @@ define( 'SMLISER_APP_NAME', 'Smart License Server' );
 // Register the autoloader.
 require_once SMLISER_PATH . 'includes/class-Autoloader.php';
 
-use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Console\Runners\CLIRunner;
-use SmartLicenseServer\Core\DotEnv;
-use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;
-use SmartLicenseServer\Environments\CLI\SetUp as CLISetUp;
-
-( new DotEnv( $app_root ) )->load();
-
 // Boot the CLI environment — database, settings, queue, scheduler.
-CLISetUp::instance();
-
-( new CLIIdentityProvider() )->authenticate();
-
-// Dispatch.
-( new CLIRunner( CommandRegistry::instance(), $argv ) )->register();
+SetUp::instance();

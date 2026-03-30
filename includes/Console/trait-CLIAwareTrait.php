@@ -34,7 +34,8 @@
  * ## ANSI colors
  *
  *   Auto-detected from the terminal. Falls back to plain text when
- *   output is piped or redirected.
+ *   output is piped or redirected, or when the terminal does not
+ *   support ANSI escape codes (legacy Windows console).
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Console
@@ -370,7 +371,7 @@ trait CLIAwareTrait {
     }
 
     /**
-     * Prompt the user for freeform input.
+     * Alias for prompt() — prompts the user for freeform input.
      *
      * @param string $question The question to display.
      * @param string $default  Default value if the user presses enter.
@@ -405,8 +406,14 @@ trait CLIAwareTrait {
     /**
      * Prompt the user for hidden input (passwords, secrets).
      *
-     * Input is not echoed to the terminal. Falls back to a plain
-     * ask() prompt on systems where stty is unavailable.
+     * Input is not echoed to the terminal where possible.
+     *
+     * Platform strategy:
+     *  - Linux / macOS: prefers readline hidden input, falls back to stty -echo.
+     *  - Windows:       uses `powershell Read-Host -AsSecureString` piped through
+     *                   a small ps1 snippet; falls back to plain fgets() when
+     *                   PowerShell is unavailable.
+     *  - All platforms: plain fgets() fallback when nothing else is available.
      *
      * @param string $question The question to display.
      * @return string The user's input.
@@ -414,17 +421,120 @@ trait CLIAwareTrait {
     public function secret( string $question ): string {
         echo $this->colorize( self::ANSI_CYAN, $question . ': ' );
 
-        // Disable terminal echo while reading.
-        if ( $this->stty_available() ) {
-            system( 'stty -echo' );
-            $input = trim( (string) fgets( STDIN ) );
-            system( 'stty echo' );
-            echo PHP_EOL; // Move past the hidden input line.
-        } else {
-            $input = trim( (string) fgets( STDIN ) );
+        if ( ! $this->is_tty() ) {
+            return trim( (string) fgets( STDIN ) );
         }
 
+        if ( $this->is_windows() ) {
+            return $this->windows_secret();
+        }
+
+        // Linux / macOS — prefer readline, fall back to stty.
+        if ( $this->readline_available() ) {
+            $input = $this->readline_hidden();
+            echo PHP_EOL;
+            return trim( $input );
+        }
+
+        if ( $this->stty_available() ) {
+            $this->stty_echo( false );
+            $input = fgets( STDIN );
+            $this->stty_echo( true );
+            echo PHP_EOL;
+            return trim( (string) $input );
+        }
+
+        // Plain fallback (input visible).
+        return trim( (string) fgets( STDIN ) );
+    }
+
+    /**
+     * Read hidden input on Windows via PowerShell's SecureString prompt.
+     *
+     * The ps1 one-liner reads a SecureString and converts it back to plain
+     * text so PHP receives it on stdout. Falls back to plain fgets() when
+     * PowerShell is not available.
+     *
+     * @return string
+     */
+    private function windows_secret(): string {
+        if ( ! $this->function_available( 'proc_open' ) ) {
+            return trim( (string) fgets( STDIN ) );
+        }
+
+        // PowerShell one-liner: read a masked line, echo the plain text.
+        $ps1 = '$s=Read-Host -AsSecureString;'
+             . '[Runtime.InteropServices.Marshal]::PtrToStringAuto('
+             . '[Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))';
+
+        $cmd         = 'powershell -NoProfile -NonInteractive -Command "' . $ps1 . '"';
+        $descriptors = [
+            0 => [ 'file', 'php://stdin',  'r' ],
+            1 => [ 'pipe', 'w' ],  // stdout — we read from this.
+            2 => [ 'file', 'php://stderr', 'w' ],
+        ];
+
+        $process = @proc_open( $cmd, $descriptors, $pipes );
+
+        if ( ! is_resource( $process ) ) {
+            // PowerShell unavailable — plain fallback.
+            return trim( (string) fgets( STDIN ) );
+        }
+
+        $input = stream_get_contents( $pipes[1] );
+        fclose( $pipes[1] );
+        proc_close( $process );
+
+        echo PHP_EOL;
+        return trim( (string) $input );
+    }
+
+    /**
+     * Read a line of input without echoing to the terminal using the readline extension.
+     *
+     * @return string
+     */
+    private function readline_hidden(): string {
+        $input = '';
+
+        readline_callback_handler_install( '', function( $line ) use ( &$input ) {
+            $input = $line;
+        });
+
+        while ( true ) {
+            $r = [ STDIN ];
+            $w = null;
+            $e = null;
+
+            if ( stream_select( $r, $w, $e, null ) ) {
+                readline_callback_read_char();
+                break;
+            }
+        }
+
+        readline_callback_handler_remove();
+
         return $input;
+    }
+
+    /**
+     * Enable or disable terminal echo using the stty command.
+     *
+     * No-op on Windows — stty is not available there.
+     *
+     * @param bool $enable True to restore echo; false to suppress it.
+     * @return void
+     */
+    private function stty_echo( bool $enable ): void {
+        if ( $this->is_windows() || ! $this->function_available( 'system' ) ) {
+            return;
+        }
+
+        if ( $enable ) {
+            @system( 'stty echo' );
+        } else {
+            @system( 'stty -echo' );
+        }
     }
 
     /*
@@ -531,17 +641,39 @@ trait CLIAwareTrait {
     /**
      * Whether the current terminal supports ANSI escape codes.
      *
-     * Detected once and cached. Uses stream_isatty() to check whether
-     * STDOUT is an interactive terminal. Piped or redirected output
-     * gets plain text.
+     * Detected once and cached. Detection strategy per platform:
+     *
+     *  - All platforms: stream_isatty( STDOUT ) must be true (i.e. not piped).
+     *  - Windows:       also requires either the ANSICON env var, ConEmu/CMDER,
+     *                   Windows Terminal (WT_SESSION), or a PHP build that
+     *                   natively enables VT processing (PHP >= 8.x on Win10+).
+     *  - Linux / macOS: TERM env var must be set and non-empty.
      *
      * @return bool
      */
     private function supports_ansi(): bool {
-        if ( $this->cli_ansi === null ) {
-            $this->cli_ansi = function_exists( 'stream_isatty' )
-                ? stream_isatty( STDOUT )
-                : ( DIRECTORY_SEPARATOR !== '\\' && getenv( 'TERM' ) !== false );
+        if ( $this->cli_ansi !== null ) {
+            return $this->cli_ansi;
+        }
+
+        // Not a real TTY — piped / redirected output never gets colors.
+        if ( function_exists( 'stream_isatty' ) && ! stream_isatty( STDOUT ) ) {
+            return $this->cli_ansi = false;
+        }
+
+        if ( $this->is_windows() ) {
+            // Windows Terminal sets WT_SESSION; ConEmu sets ConEmuANSI.
+            // ANSICON is a popular wrapper that adds ANSI support.
+            $this->cli_ansi = (
+                getenv( 'ANSICON' ) !== false
+                || getenv( 'ConEmuANSI' ) === 'ON'
+                || getenv( 'WT_SESSION' ) !== false
+                || getenv( 'TERM_PROGRAM' ) === 'vscode'
+            );
+        } else {
+            // Linux / macOS — require a non-empty TERM.
+            $term           = (string) getenv( 'TERM' );
+            $this->cli_ansi = $term !== '' && $term !== 'dumb';
         }
 
         return $this->cli_ansi;
@@ -586,12 +718,84 @@ trait CLIAwareTrait {
     /**
      * Whether the `stty` command is available on this system.
      *
-     * Used to determine whether secret() can suppress terminal echo.
+     * Always returns false on Windows — stty is a POSIX utility.
      *
      * @return bool
      */
     private function stty_available(): bool {
-        exec( 'stty 2>&1', $output, $exit_code );
-        return $exit_code === 0;
+        if ( $this->is_windows() || ! $this->function_available( 'exec' ) ) {
+            return false;
+        }
+
+        $output = [];
+        $exit   = 1;
+
+        @exec( 'stty -a 2>&1', $output, $exit );
+
+        return $exit === 0;
     }
+
+    /**
+     * Whether STDIN is connected to an interactive terminal (TTY).
+     *
+     * Tries stream_isatty() first (all platforms, PHP 7.2+), then
+     * posix_isatty() (Linux / macOS only), then returns false.
+     *
+     * @return bool
+     */
+    private function is_tty(): bool {
+        if ( function_exists( 'stream_isatty' ) ) {
+            return (bool) @stream_isatty( STDIN );
+        }
+
+        if ( ! $this->is_windows() && function_exists( 'posix_isatty' ) ) {
+            return (bool) @posix_isatty( STDIN );
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether the `readline` extension is available on this system.
+     *
+     * @return bool
+     */
+    private function readline_available(): bool {
+        return function_exists( 'readline_callback_handler_install' );
+    }
+
+    /**
+     * Whether the named function exists and has not been disabled via php.ini.
+     *
+     * @param string $function
+     * @return bool
+     */
+    private function function_available( string $function ): bool {
+        if ( ! function_exists( $function ) ) {
+            return false;
+        }
+
+        $disabled = ini_get( 'disable_functions' );
+        if ( ! empty( $disabled ) ) {
+            $disabled = array_map( 'trim', explode( ',', $disabled ) );
+            if ( in_array( $function, $disabled, true ) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the current runtime is Windows.
+     *
+     * Uses PHP_OS_FAMILY (PHP 7.2+) with a DIRECTORY_SEPARATOR fallback.
+     *
+     * @return bool
+     */
+    private function is_windows(): bool {
+        return ( defined( 'PHP_OS_FAMILY' ) ? PHP_OS_FAMILY : PHP_OS ) === 'Windows'
+            || DIRECTORY_SEPARATOR === '\\';
+    }
+
 }

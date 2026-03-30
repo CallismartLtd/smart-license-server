@@ -48,7 +48,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * The database abstraction instance.
      *
      * Injected at construction — this adapter never opens or closes
-     * the connection. Lifecycle is managed by Config::setGlobalDBAdapter().
+     * the connection. Lifecycle is managed by Environment::setGlobalDBAdapter().
      *
      * @var Database
      */

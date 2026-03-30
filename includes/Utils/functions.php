@@ -8,7 +8,7 @@
  * @package Smliser\functions
  */
 
-use SmartLicenseServer\Config;
+use SmartLicenseServer\Environment;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Email\Mailer;
@@ -1356,7 +1356,7 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
  * @return URL
  */
 function url( string $path = '', array $params = [] ) : URL {
-    return Config::env_provider()->url( $path, $params );
+    return Environment::env_provider()->url( $path, $params );
 }
 
 /**
@@ -1367,7 +1367,7 @@ function url( string $path = '', array $params = [] ) : URL {
  * @return URL
  */
 function adminUrl( string $path = '', array $params = [] ) : URL {
-    return Config::env_provider()->adminUrl( $path, $params );
+    return Environment::env_provider()->adminUrl( $path, $params );
 }
 
 /**
@@ -1378,7 +1378,7 @@ function adminUrl( string $path = '', array $params = [] ) : URL {
  * @return URL
  */
 function restAPIUrl( string $path = '', array $params = [] ) : URL {
-    return Config::env_provider()->restAPIUrl( $path, $params );
+    return Environment::env_provider()->restAPIUrl( $path, $params );
 }
 
 /**
@@ -1387,7 +1387,7 @@ function restAPIUrl( string $path = '', array $params = [] ) : URL {
  * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
  */
 function smliser_db() : \SmartLicenseServer\Database\Database {
-    return Config::env_provider()->database();
+    return Environment::env_provider()->database();
 }
 
 /**
@@ -1396,7 +1396,7 @@ function smliser_db() : \SmartLicenseServer\Database\Database {
  * @return FileSystem
  */
 function smliser_filesystem() : FileSystem {
-    return Config::env_provider()->filesystem();
+    return Environment::env_provider()->filesystem();
 }
 
 /**
@@ -1409,7 +1409,7 @@ function smliser_filesystem() : FileSystem {
  * @return \SmartLicenseServer\Background\Queue\JobQueue
  */
 function smliser_job_queue(): \SmartLicenseServer\Background\Queue\JobQueue {
-    return Config::env_provider()->job_queue();
+    return Environment::env_provider()->job_queue();
 }
  
 /**
@@ -1422,7 +1422,7 @@ function smliser_job_queue(): \SmartLicenseServer\Background\Queue\JobQueue {
  * @return \SmartLicenseServer\Background\Workers\QueueWorker
  */
 function smliser_queue_worker(): \SmartLicenseServer\Background\Workers\QueueWorker {
-    return Config::env_provider()->queue_worker();
+    return Environment::env_provider()->queue_worker();
 }
 
 /**
@@ -1431,7 +1431,7 @@ function smliser_queue_worker(): \SmartLicenseServer\Background\Workers\QueueWor
  * @return SmartLicenseServer\SettingsAPI\Settings
  */
 function smliser_settings_adapter() : SmartLicenseServer\SettingsAPI\Settings {
-    return Config::env_provider()->settings();
+    return Environment::env_provider()->settings();
 }
 
 /**
@@ -1440,7 +1440,7 @@ function smliser_settings_adapter() : SmartLicenseServer\SettingsAPI\Settings {
  * @return \SmartLicenseServer\Cache\Cache Singleton instance of the Cache class.
  */
 function smliser_cache() : \SmartLicenseServer\Cache\Cache {
-    return Config::env_provider()->cache();
+    return Environment::env_provider()->cache();
 }
 
 /**
@@ -1449,7 +1449,7 @@ function smliser_cache() : \SmartLicenseServer\Cache\Cache {
  * @return \SmartLicenseServer\Email\Mailer
  */
 function smliser_mailer() : Mailer {
-    return Config::env_provider()->mailer();
+    return Environment::env_provider()->mailer();
 }
 
 /**
@@ -1467,7 +1467,7 @@ function smliser_mailer() : Mailer {
  * @return \SmartLicenseServer\Background\Schedule\Scheduler
  */
 function smliser_scheduler(): \SmartLicenseServer\Background\Schedule\Scheduler {
-    return Config::env_provider()->scheduler();
+    return Environment::env_provider()->scheduler();
 }
 
 /**
@@ -1476,7 +1476,7 @@ function smliser_scheduler(): \SmartLicenseServer\Background\Schedule\Scheduler 
  * @return \SmartLicenseServer\Http\HttpClient
  */
 function smliser_http_client() : HttpClient {
-    return Config::env_provider()->httpClient();
+    return Environment::env_provider()->httpClient();
 }
 
 /**

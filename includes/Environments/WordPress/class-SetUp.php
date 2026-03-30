@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Admin\AdminConfiguration;
 use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
-use SmartLicenseServer\Config;
+use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\WPCLIRunner;
 use SmartLicenseServer\Core\DBConfigDTO;
@@ -25,7 +25,7 @@ use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
 /**
  * WordPress Environment setup class
  */
-class SetUp extends Config {
+class SetUp extends Environment {
     /**
      * The singleton instance of the environment.
      * 

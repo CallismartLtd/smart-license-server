@@ -11,7 +11,6 @@ namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CommandInterface;
 use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Console\Runners\CLIRunner;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 

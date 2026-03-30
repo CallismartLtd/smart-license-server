@@ -49,16 +49,17 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
     public function execute( array $args = [] ): void {
         $this->start_timer();
 
-        $subcommand = $args[0] ?? null;
+        $subcommand     = $args[0] ?? null;
+        $command_args   = array_slice( $args, 1 );
 
         match ( $subcommand ) {
-            'create'        => $this->create_app( array_slice( $args, 1 ) ),
-            'update'        => $this->update_app( array_slice( $args, 1 ) ),
-            'upload-asset'  => $this->upload_asset( array_slice( $args, 1 ) ),
-            'change-status' => $this->change_status( array_slice( $args, 1 ) ),
-            'trash'         => $this->trash_app( array_slice( $args, 1 ) ),
-            'delete'        => $this->trash_app( array_slice( $args, 1 ) ),
-            'purge'         => $this->purge_app( array_slice( $args, 1 ) ),
+            'create'        => $this->create_app( $command_args ),
+            'update'        => $this->update_app( $command_args ),
+            'upload-asset'  => $this->upload_asset( $command_args ),
+            'change-status' => $this->change_status( $command_args ),
+            'trash'         => $this->trash_app( $command_args ),
+            'delete'        => $this->trash_app( $command_args ),
+            'purge'         => $this->purge_app( $command_args ),
             'help'          => $this->handle_help(),
             null            => $this->handle_default(),
             default         => $this->handle_unknown( $subcommand ),
@@ -123,7 +124,6 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             "  smliser {$type} purge --slug=my-{$type}",
         ] );
     }
-
 
     /*
     |-------------------

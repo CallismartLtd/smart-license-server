@@ -9,9 +9,8 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Admin\AdminConfiguration;
-use SmartLicenseServer\Config;
+use SmartLicenseServer\Environment;
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Environments\WordPress\RESTAPI;
 
 use function add_submenu_page, get_current_screen, sprintf;
 
@@ -291,7 +290,7 @@ class AdminMenu {
      * Index REST API Documentation page.
      */
     public static function rest_api_documentation() {
-        $rest = Config::env_provider()->restProvider()->restAPIVersion();
+        $rest = Environment::env_provider()->restProvider()->restAPIVersion();
         ?>
             <div class="smliser-admin-api-description-section">
                 <h2 class="heading">REST API Documentation</h2>
