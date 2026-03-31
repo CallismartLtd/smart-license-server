@@ -14,7 +14,6 @@ namespace SmartLicenseServer\Monetization\Providers;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Http\HttpRequest;
-use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
