@@ -160,14 +160,26 @@ final class MonetizationRegistry {
      */
     public function get( $provider_id ) : ?MonetizationProviderInterface {
         $provider   = $this->core[ $provider_id ] ?? $this->custom[$provider_id] ?? null;
-        return $provider ? new $provider : null;
+
+        if ( $provider ) {
+            $provider   = new $provider;
+            $settings   = [];
+            
+            foreach ( $provider->get_settings_schema() as $key => $_ ) {
+                $settings[$key] = self::get_option( $provider::get_id(), $key );
+            }
+
+            $provider->set_settings( $settings );
+        }
+
+        return $provider ? $provider : null;
     }
 
     /**
      * Get all registered providers.
      *
      * @param bool $assoc Whether to preserve keys by provider_id.
-     * @return MonetizationProviderInterface[]
+     * @return array<int|string, class-string<MonetizationProviderInterface>>
      */
     public function all( $assoc = true ) : array {
         $all    = array_merge( $this->custom, $this->core );
@@ -292,7 +304,7 @@ final class MonetizationRegistry {
             $provider_options[ $provider_id ] = $all_options[ $provider_id ] ?? array();
         }
 
-        return $provider_options[ $provider_id ][ $option_name ] ?? '';
+        return $provider_options[ $provider_id ][ $option_name ] ?? null;
     }
     /**
      * Update an option for a monetization provider.

@@ -30,7 +30,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
      *
      * @var string $store_url
      */
-    protected $store_url = '';
+    protected static $store_url = '';
 
     /**
      * Checkout URL.
@@ -49,9 +49,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
      *
      */
     public function __construct() {
-        $this->store_url            = static::sanitize_web_url( MonetizationRegistry::get_option( $this->get_id(), 'store_url' ) );
-        $this->checkout_endpoint    = static::sanitize_text( MonetizationRegistry::get_option( $this->get_id(), 'checkout_url' ) );
-        $this->http_client          = new HttpClient();
+        $this->http_client = smliser_http_client();
     }
 
     /**
@@ -71,8 +69,8 @@ class WooCommerceProvider implements MonetizationProviderInterface {
     /**
      * {@inheritdoc}
      */
-    public function get_url() {
-        return $this->store_url;
+    public static function get_url() : string {
+        return self::$store_url;
     }
 
     /**
@@ -89,8 +87,8 @@ class WooCommerceProvider implements MonetizationProviderInterface {
         }
 
         $product_id = ! empty( $product_id ) ?  static::finish( $product_id, '/' ) : '{{product_id}}';
-        $base_url   = ! empty( $this->store_url ) ? static::finish( $this->store_url, '/' ) : '';
-        $checkout   = ! empty( $this->store_url ) ? static::finish( $this->checkout_endpoint, '/' ) : '';
+        $base_url   = ! empty( static::$store_url ) ? static::finish( static::$store_url, '/' ) : '';
+        $checkout   = ! empty( static::$store_url ) ? static::finish( $this->checkout_endpoint, '/' ) : '';
         
         return $base_url . $checkout . $product_id;
     }
@@ -113,7 +111,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
         }
 
         $cache_expiry   = static::default_ttl();
-        $endpoint       = $this->store_url . '/wp-json/wc/store/v1/products/' . $product_id;
+        $endpoint       = static::$store_url . '/wp-json/wc/store/v1/products/' . $product_id;
         $request        = HttpRequest::get( $endpoint )
         ->with_options( [ 'timeout' => 30 ] );
 
@@ -150,7 +148,6 @@ class WooCommerceProvider implements MonetizationProviderInterface {
 
         return $normalized;
     }
-
 
     /**
      * {@inheritdoc}
@@ -204,13 +201,13 @@ class WooCommerceProvider implements MonetizationProviderInterface {
         ];
 
         return [
-            'id'         => $product['id'] ?? 0,
-            'permalink'  => $product['permalink'] ?? '',
-            'currency'   => $currency,
-            'pricing'    => $pricing,
+            'id'            => $product['id'] ?? 0,
+            'url'           => $product['permalink'] ?? '',
+            'currency'      => $currency,
+            'pricing'       => $pricing,
             'checkout_url'  => $this->get_checkout_url( $product['id'] ?? '' ),
-            'images'     => $product['images'] ?? [],
-            'categories' => $product['categories'] ?? [],
+            'images'        => $product['images'] ?? [],
+            'categories'    => $product['categories'] ?? [],
         ];
     }
 
@@ -236,47 +233,35 @@ class WooCommerceProvider implements MonetizationProviderInterface {
     }
 
     /**
-     * Get WooCommerce Settings
+     * Get provider settings schema.
      */
-    public function get_settings() {
-        return array(
-            array(
-                'label' => 'Store URL',
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'store_url',
-                    'value' => $this->get_url(),
-                    'class' => 'smliser-form-label-row',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    )
-                )
+    public function get_settings_schema() : array {
+        return [
+            'store_url' => array(
+                'type'          => 'text',
+                'label'         => 'Store URL',
+                'default'       => static::$store_url,
+                'description'   => 'The base URL of your WooCommerce store (e.g. https://example.com).',
+                'required'      => true,
             ),
-            array(
-                'label' => 'Checkout URL/Endpoint',
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'checkout_url',
-                    'value' => $this->get_checkout_url( '', 'edit' ),
-                    'class' => 'smliser-form-label-row',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    )
-                )
+            'checkout_url' => array(
+                'type'          => 'text',
+                'label'         => 'Checkout URL/Endpoint',
+                'default'       => $this->get_checkout_url( '', 'edit' ),
+                'description'   => 'The URL path or endpoint for product checkouts (e.g. "checkout" or "cart").',
+                'required'      => true,
             ),
-        );
+        ];
     }
 
     /**
-     * WooCommerce allowed options
+     * Set settings.
+     * 
+     * @param array $settings
      */
-    public function get_allowed_options() {
-        return array(
-            'store_url' => 'Store URL',
-            'checkout_url' => 'Checkout URL/Endpoint',
-        );
+    public function set_settings( array $settings ) : void {
+        static::$store_url          = $settings['store_url'] ?? '';
+        $this->checkout_endpoint    = $settings['checkout_url'] ?? '';
     }
 
 }

@@ -48,7 +48,7 @@ interface MonetizationProviderInterface {
      *
      * @return string
      */
-    public function get_url();
+    public static function get_url() : string;
 
     /**
      * Get product information from this provider.
@@ -57,9 +57,9 @@ interface MonetizationProviderInterface {
      *
      * {
      *   id:                (int|string) Unique product ID in the provider system
-     *   permalink:         (string) Public-facing product URL
+     *   url:               (string) Public-facing product URL
      *   currency: {
-     *       code:              (string) ISO currency code (e.g. 'USD')
+     *       code:              (string) ISO4217 currency code (e.g. 'USD')
      *       symbol:            (string) Currency symbol (e.g. '$','€','₦')
      *       symbol_position:   (string) One of: 'left' | 'left_space' | 'right' | 'right_space'
      *       decimals:          (int) Decimal precision (default 2)
@@ -100,17 +100,26 @@ interface MonetizationProviderInterface {
     public function get_checkout_url( $product_id = '' );
 
     /**
-     * Get the provider settings
+     * Get provider settings schema.
      * 
-     * @return array $settings
+     * @return array{string: 
+     *  array{
+     *      type: string, 
+     *      label: string,
+     *      default: mixed, 
+     *      description: string, 
+     *      required: bool
+     *  }
+     * }
      */
-    public function get_settings();
+    public function get_settings_schema() : array;
 
     /**
-     * Get provider allowed options
-     * 
-     * @return array
+     * Set provider configuration.
+     *
+     * @param array<string, mixed> $settings
+     * @return void
      */
-    public function get_allowed_options();
+    public function set_settings( array $settings ) : void;
 }
 

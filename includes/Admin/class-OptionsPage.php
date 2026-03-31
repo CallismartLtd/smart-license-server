@@ -90,11 +90,24 @@ class OptionsPage {
      * Settings page for an individual monetization provider.
      */
     private static function monetization_provider_settings( Request $request ): void {
-        $provider_key = $request->get( 'provider' );
-        $provider     = MonetizationRegistry::instance()->get( $provider_key );
-        $name         = $provider?->get_name() ?? '';
-        $id           = $provider?->get_id() ?? '';
-        $settings     = $provider?->get_settings() ?? [];
+        $provider_key   = $request->get( 'provider' );
+        $provider       = MonetizationRegistry::instance()->get( $provider_key );
+        $name           = $provider?->get_name() ?? '';
+        $id             = $provider?->get_id() ?? '';
+        $schema         = $provider?->get_settings_schema();
+        $settings       = [];
+
+        foreach ( $schema as $key => $data ) {
+            $settings[] = array(
+                'label' => $data['label'] ?? '',
+                'help'  => $data['description'] ?? '',
+                'input' => array(
+                    'type'  => $data['type'] ?? 'text',
+                    'name'  => $key,
+                    'value' => MonetizationRegistry::get_option( $id, $key ) ?? $data['default'] ?? '',
+                )
+            );
+        }
 
         include_once SMLISER_PATH . 'templates/admin/options/monetizations.php';
     }

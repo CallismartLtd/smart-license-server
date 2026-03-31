@@ -129,8 +129,6 @@ class SettingsCommand implements CommandInterface {
             $formatted  = is_bool( $value ) ? sprintf( '%s', $value ? 'TRUE' : 'FALSE' ) : $value;
         }
 
-        var_dump( \gettype( $formatted ) ); exit;
-
         $this->info( "Settings value for [{$key}]:" );
         $this->table(
             ['Option Name', 'Option Value'],
