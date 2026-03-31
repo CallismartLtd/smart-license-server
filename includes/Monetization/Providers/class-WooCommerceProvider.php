@@ -9,11 +9,12 @@
  * @since 0.2.0
  */
 
-namespace SmartLicenseServer\Monetization;
+namespace SmartLicenseServer\Monetization\Providers;
 
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Http\HttpRequest;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -48,22 +49,22 @@ class WooCommerceProvider implements MonetizationProviderInterface {
      *
      */
     public function __construct() {
-        $this->store_url            = static::sanitize_web_url( ProviderCollection::get_option( $this->get_id(), 'store_url' ) );
-        $this->checkout_endpoint    = static::sanitize_text( ProviderCollection::get_option( $this->get_id(), 'checkout_url' ) );
+        $this->store_url            = static::sanitize_web_url( MonetizationRegistry::get_option( $this->get_id(), 'store_url' ) );
+        $this->checkout_endpoint    = static::sanitize_text( MonetizationRegistry::get_option( $this->get_id(), 'checkout_url' ) );
         $this->http_client          = new HttpClient();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function get_id() {
+    public static function get_id() : string {
         return 'woocommerce';
     }
 
     /**
      * {@inheritdoc}
      */
-    public function get_name() {
+    public static function get_name() : string {
         return 'WooCommerce';
     }
 

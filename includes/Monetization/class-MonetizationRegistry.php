@@ -10,7 +10,10 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use InvalidArgumentException;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface;
+use SmartLicenseServer\Monetization\Providers\WooCommerceProvider;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -20,21 +23,44 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * This class manages the registration and retrieval of different
  * monetization providers integrated with the Smart License Server.
  */
-class ProviderCollection {
+final class MonetizationRegistry {
     /**
      * Singleton instance.
      * 
      * @var self $instance
      */
-    protected static $instance = null;
+    private static $instance = null;
+
+    /**
+     * Core monetization providers.
+     *
+     * @var array<string, class-string<MonetizationProviderInterface>> $core
+     */
+    private $core = [];
+
+    /**
+     * Custom monetization providers.
+     *
+     * @var array<string, class-string<MonetizationProviderInterface>> $custom
+     */
+    private $custom = [];
+
+    /**
+     * Tracks whether core providers have been loaded.
+     * 
+     * @var bool $core_loaded
+     */
+    private $core_loaded = false;
 
     /**
      * Private constructor to prevent direct instantiation.
      */
-    private function __construct() {}
+    private function __construct() {
+        $this->load_core_providers();
+    }
 
     /**
-     * Get the singleton instance of the ProviderCollection.
+     * Get the singleton instance of the MonetizationRegistry.
      * 
      * @return self
      */
@@ -46,22 +72,54 @@ class ProviderCollection {
     }
 
     /**
-     * Registered providers.
-     *
-     * @var MonetizationProviderInterface[]
-     */
-    protected $providers = [];
-
-    /**
-     * Register a new monetization provider.
-     *
-     * @param MonetizationProviderInterface $provider
+     * Load core monetization providers into the registry.
+     * 
      * @return void
      */
-    public function register_provider( MonetizationProviderInterface $provider ) {
-        $id = $provider->get_id();
+    private function load_core_providers() : void {
+        if ( $this->core_loaded ) {
+            return;
+        }
 
-        $this->providers[ $id ] = $provider;
+        // All core providers.
+        $core_providers = [
+            WooCommerceProvider::get_id() => WooCommerceProvider::class,
+        ];
+
+        foreach ( $core_providers as $id => $class ) {
+            $this->assert_implements_interface( $class );
+
+            $this->core[$id] = $class;
+        }
+
+        $this->core_loaded = true;
+    }
+
+    /**
+     * Register a custom monetization provider.
+     * 
+     * If a core provider with the same name exists, registration is
+     * silently skipped — core providers always take precedence.
+     * 
+     * If a custom provider with the same name already exists it is
+     * replaced without error.
+     *
+     * @param class-string<MonetizationProviderInterface> $provider
+     * @return self
+     */
+    public function add( string $provider ) : self {
+        $this->assert_implements_interface( $provider );
+
+        $id = $provider::get_id();
+
+        // Core providers always win.
+        if ( isset( $this->core[$id] ) ) {
+            return $this;
+        }
+
+        $this->custom[$id] = $provider;
+
+        return $this;
     }
 
     /**
@@ -70,8 +128,8 @@ class ProviderCollection {
      * @param string $provider_id
      * @return bool
      */
-    public function has_provider( $provider_id ) {
-        return isset( $this->providers[ $provider_id ] );
+    public function has( $provider_id ) : bool{
+        return isset( $this->core[ $provider_id ] ) || isset( $this->custom[ $provider_id ] );
     }
 
     /**
@@ -80,11 +138,17 @@ class ProviderCollection {
      * @param string $provider_id
      * @return bool True if the provider was found and removed, false otherwise.
      */
-    public function unregister_provider( $provider_id ) {
-        if ( isset( $this->providers[ $provider_id ] ) ) {
-            unset( $this->providers[ $provider_id ] );
+    public function remove( $provider_id ) : bool {
+        // Guard against core providers removal.
+        if ( isset( $this->core[$provider_id] ) ) {
+            return false;
+        }
+
+        if ( isset( $this->custom[ $provider_id ] ) ) {
+            unset( $this->custom[ $provider_id ] );
             return true;
         }
+
         return false;
     }
 
@@ -94,8 +158,9 @@ class ProviderCollection {
      * @param string $provider_id
      * @return MonetizationProviderInterface|null
      */
-    public function get_provider( $provider_id ) {
-        return $this->providers[ $provider_id ] ?? null;
+    public function get( $provider_id ) : ?MonetizationProviderInterface {
+        $provider   = $this->core[ $provider_id ] ?? $this->custom[$provider_id] ?? null;
+        return $provider ? new $provider : null;
     }
 
     /**
@@ -104,8 +169,9 @@ class ProviderCollection {
      * @param bool $assoc Whether to preserve keys by provider_id.
      * @return MonetizationProviderInterface[]
      */
-    public function get_providers( $assoc = true ) {
-        return $assoc ? $this->providers : array_values( $this->providers );
+    public function all( $assoc = true ) : array {
+        $all    = array_merge( $this->custom, $this->core );
+        return $assoc ? $all : array_values( $all );
     }
 
     /**
@@ -257,10 +323,38 @@ class ProviderCollection {
 
         foreach ( $classes as $class ) {
             if ( in_array( MonetizationProviderInterface::class, class_implements( $class ) ) ) {
-                self::instance()->register_provider( new $class );
+                self::instance()->add( $class );
             }
         }
+    }
 
-        self::instance()->register_provider( new WooCommerceProvider );
+    /*
+    |--------------------------------------------
+    | PRIVATE HELPERS
+    |--------------------------------------------
+    */
+
+    /**
+     * Assert that a class implements MonetizationProviderInterface.
+     *
+     * @param string $class
+     * @throws InvalidArgumentException
+     */
+    private function assert_implements_interface( string $class ): void {
+        if ( ! class_exists( $class ) ) {
+            throw new InvalidArgumentException(
+                sprintf( 'MonetizationRegistry: class "%s" does not exist.', $class )
+            );
+        }
+
+        if ( ! in_array( MonetizationProviderInterface::class, class_implements( $class ) ?: [], true ) ) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'MonetizationRegistry: "%s" must implement %s.',
+                    $class,
+                    MonetizationProviderInterface::class
+                )
+            );
+        }
     }
 }

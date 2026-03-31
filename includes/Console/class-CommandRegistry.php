@@ -46,7 +46,6 @@ use SmartLicenseServer\Console\Commands\InstallRolesCommand;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
 use SmartLicenseServer\Console\Commands\SettingsCommand;
-use SmartLicenseServer\Console\Commands\SmliserCommand;
 use SmartLicenseServer\Console\Commands\WorkCommand;
 use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 
@@ -230,7 +229,7 @@ class CommandRegistry {
      * @return static Fluent.
      * @throws InvalidArgumentException If the class does not implement CommandInterface.
      */
-    public function register( string $class ): static {
+    public function register_command( string $class ): static {
         $this->assert_implements_interface( $class );
 
         $name = $class::name();
@@ -253,7 +252,7 @@ class CommandRegistry {
      */
     public function register_many( array $classes ): static {
         foreach ( $classes as $class ) {
-            $this->register( $class );
+            $this->register_command( $class );
         }
 
         return $this;

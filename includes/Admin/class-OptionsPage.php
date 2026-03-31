@@ -16,7 +16,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Email\EmailProviderCollection;
 use SmartLicenseServer\Email\Providers\EmailProviderInterface;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
-use SmartLicenseServer\Monetization\ProviderCollection;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 
 use function sprintf, smliser_settings_adapter;
 
@@ -78,10 +78,10 @@ class OptionsPage {
      * Monetization providers settings page.
      */
     private static function monetization_options( Request $request ): void {
-        if ( smliser_has_query_param( 'provider' ) ) {
+        if ( $request->has( 'provider' ) ) {
             self::monetization_provider_settings( $request );
         } else {
-            $providers = ProviderCollection::instance()->get_providers();
+            $providers = MonetizationRegistry::instance()->all();
             include_once SMLISER_PATH . 'templates/admin/options/monetization-providers.php';
         }
     }
@@ -91,7 +91,7 @@ class OptionsPage {
      */
     private static function monetization_provider_settings( Request $request ): void {
         $provider_key = $request->get( 'provider' );
-        $provider     = ProviderCollection::instance()->get_provider( $provider_key );
+        $provider     = MonetizationRegistry::instance()->get( $provider_key );
         $name         = $provider?->get_name() ?? '';
         $id           = $provider?->get_id() ?? '';
         $settings     = $provider?->get_settings() ?? [];

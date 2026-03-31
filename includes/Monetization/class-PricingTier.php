@@ -401,9 +401,9 @@ class PricingTier {
 
         );
 
-        $provider       = ProviderCollection::instance()->get_provider( $this->get_provider_id() );
+        $provider       = MonetizationRegistry::instance()->get_provider( $this->get_provider_id() );
         $product_data   = $provider ? $provider->get_product( $this->get_product_id() ) : [];
-        $valid_product  = ProviderCollection::validate_product_data( $product_data );
+        $valid_product  = MonetizationRegistry::validate_product_data( $product_data );
 
         if ( ! is_smliser_error( $valid_product ) ) {
             $data['product'] = $valid_product;

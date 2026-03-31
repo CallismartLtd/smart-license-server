@@ -12,7 +12,7 @@
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 use SmartLicenseServer\Monetization\Monetization,
-    SmartLicenseServer\Monetization\ProviderCollection;
+    SmartLicenseServer\Monetization\MonetizationRegistry;
 
 ;
 
@@ -23,7 +23,7 @@ $app_type   = smliser_get_query_param( 'type' );
 $is_new     = false;
 
 $object     = Monetization::get_by_app( $app_type, $id );
-$providers  = ProviderCollection::instance()->get_providers();
+$providers  = MonetizationRegistry::instance()->all();
 
 if ( empty( $object ) ) {
     $is_new = true;

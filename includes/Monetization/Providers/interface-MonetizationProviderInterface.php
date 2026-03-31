@@ -7,7 +7,7 @@
  * @since 0.2.0
  */
 
-namespace SmartLicenseServer\Monetization;
+namespace SmartLicenseServer\Monetization\Providers;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -34,14 +34,14 @@ interface MonetizationProviderInterface {
      *
      * @return string
      */
-    public function get_id();
+    public static function get_id() : string;
 
     /**
      * Get the provider name (human-readable).
      *
      * @return string
      */
-    public function get_name();
+    public static function get_name() : string;
 
     /**
      * Get the provider base URL or API endpoint.

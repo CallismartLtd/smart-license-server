@@ -29,7 +29,7 @@ use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
-use SmartLicenseServer\Monetization\ProviderCollection;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -203,7 +203,7 @@ class SetUp extends Environment {
      * by the job handlers that need them, not at bootstrap time.
      */
     public function load_monetization_providers(): void {
-        ProviderCollection::auto_load();
+        MonetizationRegistry::auto_load();
     }
 
     /**

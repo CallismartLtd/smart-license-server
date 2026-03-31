@@ -18,7 +18,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Adapters\WPDBAdapter;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
-use SmartLicenseServer\Monetization\ProviderCollection;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
 
@@ -141,7 +141,7 @@ class SetUp extends Environment {
      * Load monetization providers
      */
     public function load_monetization_providers() {
-        ProviderCollection::auto_load();
+        MonetizationRegistry::auto_load();
     }
 
     public static function url( string $path = '', array $qv = [] ) : URL {

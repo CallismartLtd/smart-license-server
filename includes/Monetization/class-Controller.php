@@ -59,7 +59,7 @@ class Controller {
 
             $features_array = array_map( 'trim', explode( ',', $features ) );
 
-            if ( ! ProviderCollection::instance()->has_provider( $provider_id ) ) {
+            if ( ! MonetizationRegistry::instance()->has( $provider_id ) ) {
                 throw new RequestException( 'invalid_provider', 'The selected monetization provider does not exist.', array( 'field_id' => 'provider_id', 'status' => 400 ) );
             }
 
@@ -183,7 +183,7 @@ class Controller {
                 throw new RequestException( 'required_param', __( 'Product ID is required.', 'smliser' ), ['status' => 400] );
             }
 
-            $provider   = ProviderCollection::instance()->get_provider( $provider_id );
+            $provider   = MonetizationRegistry::instance()->get_provider( $provider_id );
             
             if ( ! $provider ) {
                 throw new RequestException( 'resource_not_found', __( 'Invalid provider specified.', 'smliser' ), ['status' => 404] );
@@ -194,7 +194,7 @@ class Controller {
                 throw new RequestException( 'resource_not_found', __( 'Product not found from provider.', 'smliser' ), ['status' => 404] );
             }
 
-            $valid_product = ProviderCollection::validate_product_data( $product );
+            $valid_product = MonetizationRegistry::validate_product_data( $product );
 
             if ( is_smliser_error( $valid_product ) ) {
                 throw new RequestException( $valid_product->get_error_code(), $valid_product->get_error_message(), ['status' => 500] );
@@ -396,18 +396,18 @@ class Controller {
             
             $provider_id = $request->get( 'provider_id', null );
 
-            if ( ! $provider_id || ! ProviderCollection::instance()->has_provider( $provider_id ) ) {
+            if ( ! $provider_id || ! MonetizationRegistry::instance()->has( $provider_id ) ) {
                 throw new RequestException( 'access_restricted', sprintf( 'The provider "%s" is not supported.', $provider_id ?? 'Unknown' ), [ 'status' => 403] );
             }
 
-            $provider           = ProviderCollection::instance()->get_provider( $provider_id );
+            $provider           = MonetizationRegistry::instance()->get_provider( $provider_id );
             $allowed_options    = array_keys( (array) $provider->get_allowed_options() );
 
             foreach( $allowed_options as $name ) {
                 if ( $value = smliser_get_post_param( $name, null ) ) {
-                    ProviderCollection::update_option( $provider->get_id(), $name, $value );
+                    MonetizationRegistry::update_option( $provider->get_id(), $name, $value );
                 } else {
-                    ProviderCollection::update_option( $provider->get_id(), $name, '' );
+                    MonetizationRegistry::update_option( $provider->get_id(), $name, '' );
                 }
             }
 
