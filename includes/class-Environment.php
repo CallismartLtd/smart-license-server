@@ -180,7 +180,6 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     final protected function setup( array $config ) {
         $this->parse_config( $config );
-        $this->bootstrap_files();
         $this->declareGlobalConstants();
         $this->setProps();
         $this->setGlobalQueueAdapter();
@@ -865,20 +864,6 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         return $this->httpClient;
-    }
-
-    /**
-     * Include files
-     */
-    public function bootstrap_files() {
-        require_once SMLISER_PATH . 'vendor/autoload.php';
-
-        require_once SMLISER_PATH . 'includes/Utils/conditional-functions.php';
-        require_once SMLISER_PATH . 'includes/Utils/functions.php';
-        require_once SMLISER_PATH . 'includes/Utils/sanitization-functions.php';
-        require_once SMLISER_PATH . 'includes/Utils/formating-functions.php';
-        require_once SMLISER_PATH . 'includes/Utils/filesystem-functions.php';
-              
     }
 }
 

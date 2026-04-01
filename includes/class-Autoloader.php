@@ -1,13 +1,14 @@
 <?php
 /**
- * PSR-4 Autoloader for Smliser Plugin
+ * PSR-4 Autoloader for Smart License Server.
  * 
- * Handles the WordPress naming convention:
+ * Handles the our naming convention:
  * - class-ClassName.php
  * - interface-InterfaceName.php
  * - Other prefixes as needed
  * 
- * @package Smliser
+ * @package SmartLicenseServer
+ * @since   0.2.0
  */
 
 namespace SmartLicenseServer;
@@ -21,16 +22,25 @@ class Autoloader {
      * 
      * @var array
      */
-    private static $namespaces = array(
+    private static array $namespaces = array(
         'SmartLicenseServer\\' => SMLISER_PATH . 'includes/',
     );
-    
+
     /**
-     * File prefixes for WordPress naming convention
+     * Function directories to autoload
      * 
      * @var array
      */
-    private static $prefixes = array(
+    private static array $function_dirs = array(
+        SMLISER_PATH . 'includes/Utils/functions/',
+    );
+    
+    /**
+     * File prefixes for our naming convention
+     * 
+     * @var array
+     */
+    private static array $prefixes = array(
         'class-',
         'interface-',
         'trait-',
@@ -40,8 +50,9 @@ class Autoloader {
     /**
      * Register the autoloader
      */
-    public static function register() {
+    public static function boot() : void {
         spl_autoload_register( array( __CLASS__, 'autoload' ) );
+        static::autoload_functions();
     }
     
     /**
@@ -49,8 +60,8 @@ class Autoloader {
      * 
      * @param string $class The fully-qualified class name.
      */
-    public static function autoload( $class ) {       
-        // Check each registered namespace
+    public static function autoload( $class ) : void {       
+        // Check each registered namespace.
         foreach ( self::$namespaces as $namespace => $base_dir ) {
             // Does the class use the namespace prefix?
             $len = strlen( $namespace );
@@ -58,15 +69,15 @@ class Autoloader {
                 continue;
             }
             
-            // Get the relative class name
+            // Get the relative class name.
             $relative_class = substr( $class, $len );
             
             // Try to load the file
             $file = self::get_file_path( $base_dir, $relative_class );
             
-            if ( $file && file_exists( $file ) ) {
+            if ( $file ) {
                 require_once $file;
-                return;
+                break;
             }
         }
     }
@@ -78,10 +89,10 @@ class Autoloader {
      * @param string $class_name Relative class name
      * @return string|false File path or false if not found
      */
-    private static function get_file_path( $base_dir, $class_name ) {
-        // Replace namespace separators with directory separators
+    private static function get_file_path( $base_dir, $class_name ) : string|bool {
+        // Replace namespace separators with directory separators.
         $class_name = str_replace( '\\', DIRECTORY_SEPARATOR, $class_name );
-        // Try each prefix
+        // Try each prefix.
         foreach ( self::$prefixes as $prefix ) {
             // Convert ClassName to class-ClassName.php
             $filename = self::class_to_filename( $prefix, $class_name );
@@ -93,7 +104,7 @@ class Autoloader {
             }
         }
         
-        // Try without prefix as fallback (for edge cases)
+        // Try without prefix as fallback.
         $filename = $class_name . '.php';
         $full_path = $base_dir . $filename;
         
@@ -111,15 +122,15 @@ class Autoloader {
      * @param string $class_name The relative class name with namespace separators replaced
      * @return string The complete file path
      */
-    private static function class_to_filename( $prefix, $class_name ) {
+    private static function class_to_filename( string $prefix, string $class_name ) : string {
         // Split by directory separator.
         $parts = explode( DIRECTORY_SEPARATOR, $class_name );
         
         // Get the last part (actual class name).
-        $class_basename = array_pop( $parts );
+        $className = array_pop( $parts );
         
         // Add prefix to the class name.
-        $filename = $prefix . $class_basename . '.php';
+        $filename = $prefix . $className . '.php';
         
         // Rebuild the path: directory/prefix-ClassName.php
         if ( ! empty( $parts ) ) {
@@ -138,7 +149,30 @@ class Autoloader {
     public static function add_namespace( $namespace, $base_dir ) {
         self::$namespaces[ $namespace ] = rtrim( $base_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
     }
+
+    /**
+     * Add a function directory to autoload
+     * 
+     * @param string $dir The directory path
+     */
+    public static function add_function_dir( $dir ) {
+        self::$function_dirs[] = rtrim( $dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Autoload all function files in the Utils/function directory
+     */
+    private static function autoload_functions() {
+        require_once SMLISER_PATH . 'vendor/autoload.php';
+
+        foreach ( self::$function_dirs as $dir ) {
+            if ( is_dir( $dir ) ) {
+                foreach ( glob( $dir . '*.php' ) as $file ) {
+                    require_once $file;
+                }
+            }
+        }
+    }
 }
 
-// Register the autoloader
-Autoloader::register();
+Autoloader::boot();
