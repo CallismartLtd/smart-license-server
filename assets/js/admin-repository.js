@@ -9,7 +9,7 @@ class SmliserAdminRepository {
      */
     constructor( baseEl ) {
         this.baseEl = baseEl;
-
+        
         this._cacheElements();
         this._bindEvents();
         
@@ -21,10 +21,10 @@ class SmliserAdminRepository {
     _cacheElements() {
         if ( ! this.baseEl ) return;
 
-        this.galleryPreviewSection  = this.baseEl.querySelector( '.smliser-screenshot-gallery' );
-        this.allPreviewImages       = this.galleryPreviewSection.querySelectorAll( 'img.repo-image-preview' );
-        this.currentPreviewImage    = this.galleryPreviewSection.querySelector( '.smliser-gallery-preview_image img' );
-        this.currentImageTitle      = this.galleryPreviewSection.querySelector( '.smliser-gallery-preview_title' );
+        this.galleryPreviewSection  = this.baseEl?.querySelector( '.smliser-screenshot-gallery' );
+        this.allPreviewImages       = this.galleryPreviewSection?.querySelectorAll( 'img.repo-image-preview' );
+        this.currentPreviewImage    = this.galleryPreviewSection?.querySelector( '.smliser-gallery-preview_image img' );
+        this.currentImageTitle      = this.galleryPreviewSection?.querySelector( '.smliser-gallery-preview_title' );
         this.allMiniAnalytics       = document.querySelectorAll( 'canvas.smliser-app-mini-analytics' );
     }
 

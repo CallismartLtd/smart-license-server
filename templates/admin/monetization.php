@@ -148,7 +148,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
             <div class="smliser-admin-modal pricing-tier hidden">
                 <div class="smliser-admin-modal_content">
                     <span class="dashicons dashicons-dismiss remove-modal" title="remove" data-command="closeModal"></span>
-                    <h2>Add Pricing Tier</h2>
+                    <h2>Set Pricing Tier</h2>
                     <em>A pricing tier represents a specific license option for the application</em>
                     <form id="tier-form" class="smliser-admin-modal_content-form">
                         <input type="hidden" name="action" value="">
@@ -181,6 +181,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         </label>
                         <button type="submit" class="button smliser-nav-btn"><span class="dashicons dashicons-cloud"></span> Save</button>
                     </form>
+                    <div class="smliser-spinner"></div>
                 </div>
 
             </div>

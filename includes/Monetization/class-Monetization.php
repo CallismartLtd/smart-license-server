@@ -9,7 +9,10 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use DateTimeImmutable;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsInterface;
+use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -21,55 +24,55 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Each tier specifies its own provider, billing rules, and feature set.
  */
 class Monetization {
-    use SanitizeAwareTrait;
+    use SanitizeAwareTrait, DatePropertyAwareTrait;
     /**
      * The monetization ID.
      * 
      * @var int $id
      */
-    protected $id;
+    protected int $id = 0;
 
     /**
      * App type (e.g. plugin, theme).
      * 
      * @var string $app_type
      */
-    protected $app_type;
+    protected string $app_type = '';
 
     /**
      * The unique ID of the app this monetization belongs to.
      *
      * @var int
      */
-    protected $app_id;
+    protected int $app_id = 0;
 
     /**
      * Whether this monetization is enabled.
      * 
      * @var bool $enabled
      */
-    protected $enabled = false;
+    protected bool $enabled = false;
 
     /**
      * Collection of pricing tiers available for this monetization.
      *
-     * @var PricingTier[]
+     * @var array<int, PricingTier> $tiers Array of PricingTier objects, keyed by their ID.
      */
-    protected $tiers = [];
+    protected array $tiers = [];
 
     /**
      * Date this monetization was created.
      * 
-     * @var string $created_at
+     * @var DateTimeImmutable|null $created_at
      */
-    protected $created_at;
+    protected ?DateTimeImmutable $created_at = null;
 
     /**
      * Date this monetization was last updated.
      * 
-     * @var string $updated_at
+     * @var DateTimeImmutable|null $updated_at
      */
-    protected $updated_at;
+    protected ?DateTimeImmutable $updated_at = null;
 
     /**
      * Constructor.
@@ -86,7 +89,7 @@ class Monetization {
      *
      * @return int
      */
-    public function get_id() {
+    public function get_id() : int {
         return $this->id;
     }
 
@@ -95,7 +98,7 @@ class Monetization {
      * 
      * @return string
      */
-    public function get_app_type() {
+    public function get_app_type() : string {
         return $this->app_type;
     }
 
@@ -104,7 +107,7 @@ class Monetization {
      *
      * @return int
      */
-    public function get_app_id() {
+    public function get_app_id() : int {
         return $this->app_id;
     }    
 
@@ -113,7 +116,7 @@ class Monetization {
      *
      * @return bool
      */
-    public function get_enabled() {
+    public function get_enabled() : bool {
         return $this->enabled;
     }
 
@@ -122,40 +125,25 @@ class Monetization {
      *
      * @return PricingTier[]
      */
-    public function get_tiers() {
+    public function get_tiers() : array {
         return $this->tiers;
-    }
-
-    /**
-     * Find a pricing tier by its ID.
-     *
-     * @param int $tier_id
-     * @return PricingTier|null
-     */
-    public function get_tier( $tier_id ) {
-        foreach ( $this->tiers as $tier ) {
-            if ( $tier->get_id() === $tier_id ) {
-                return $tier;
-            }
-        }
-        return null;
     }
 
     /**
      * Get the creation date.
      * 
-     * @return string
+     * @return DateTimeImmutable|null
      */
-    public function get_created_at() {
+    public function get_created_at() : ?DateTimeImmutable {
         return $this->created_at;
     }
 
     /**
      * Get the last update date.
      * 
-     * @return string
+     * @return DateTimeImmutable|null
      */
-    public function get_updated_at() {
+    public function get_updated_at() : ?DateTimeImmutable {
         return $this->updated_at;
     }
 
@@ -168,9 +156,9 @@ class Monetization {
      * Set the monetization ID.
      *
      * @param int $id
-     * @return self
+     * @return static
      */
-    public function set_id( $id ) {
+    public function set_id( $id ) : static {
         $this->id = static::sanitize_int( $id );
         return $this;
     }
@@ -179,9 +167,9 @@ class Monetization {
      * Set the ID of the app associated with this monetization.
      * 
      * @param int $app_id
-     * @return self
+     * @return static
      */
-    public function set_app_id( $app_id ) {
+    public function set_app_id( $app_id ) : static {
         $this->app_id = static::sanitize_int( $app_id );
         return $this;
     }
@@ -190,9 +178,9 @@ class Monetization {
      * Set the app type (e.g. plugin, theme).
      * 
      * @param string $app_type
-     * @return self
+     * @return static
      */
-    public function set_app_type( $app_type ) {
+    public function set_app_type( $app_type ) : static {
         $this->app_type = static::sanitize_text( $app_type );
         return $this;
     }
@@ -201,9 +189,9 @@ class Monetization {
      * Set whether this monetization is enabled.
      *
      * @param bool $enabled
-     * @return self
+     * @return static
      */
-    public function set_enabled( $enabled ) {
+    public function set_enabled( $enabled ) : static {
         $this->enabled = (bool) $enabled;
         return $this;
     }
@@ -212,27 +200,17 @@ class Monetization {
      * Assign multiple pricing tiers to this monetization.
      *
      * @param PricingTier[] $tiers
-     * @return self
+     * @return static
      */
-    public function set_tiers( array $tiers ) {
+    public function set_tiers( array $tiers ) : static {
         foreach ( $tiers as $tier ) {
             if ( ! ( $tier instanceof PricingTier ) ) {
                 throw new \InvalidArgumentException( 'All elements of $tiers must be instances of "\SmartLicenseServer\Monetization\Monetization\PricingTier".' );
             }
+
+            $this->add_tier( $tier );
         }
 
-        $this->tiers = $tiers;
-        return $this;
-    }
-
-    /**
-     * Add a single pricing tier.
-     *
-     * @param PricingTier $tier
-     * @return self
-     */
-    public function add_tier( PricingTier $tier ) {
-        $this->tiers[] = $tier;
         return $this;
     }
 
@@ -240,20 +218,20 @@ class Monetization {
      * Set the creation date.
      * 
      * @param string $created_at
-     * @return self
+     * @return static
      */
-    public function set_created_at( $created_at ) {
-        $this->created_at = static::sanitize_text( $created_at );
+    public function set_created_at( $created_at )  : static {
+        $this->set_date_prop( $created_at, 'created_at' );
         return $this;
     }
     /**
      * Set the last update date.
      * 
      * @param string $updated_at
-     * @return self
+     * @return static
      */
-    public function set_updated_at( $updated_at ) {
-        $this->updated_at = static::sanitize_text( $updated_at );
+    public function set_updated_at( $updated_at ) : static {
+        $this->set_date_prop( $updated_at, 'updated_at' );
         return $this;
     }
 
@@ -268,14 +246,15 @@ class Monetization {
      *
      * @return bool True on success, false on failure.
      */
-    public function save() {
+    public function save() : bool {
         $db = smliser_db();
 
-        $data = [
+        $now    = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
+        $data   = [
             'app_type'  => $this->app_type,
             'app_id'    => $this->app_id,
             'enabled'    => $this->enabled ? 1 : 0,
-            'updated_at' => \gmdate( 'Y-m-d H:i:s' ),
+            'updated_at' => $now->format( 'Y-m-d H:i:s' ),
         ];
 
         if ( $this->id ) {
@@ -285,8 +264,9 @@ class Monetization {
             if ( false === $updated ) {
                 return false;
             }
+
         } else {
-            $data['created_at'] = \gmdate( 'Y-m-d H:i:s' );
+            $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
             $inserted           = $db->insert( SMLISER_MONETIZATION_TABLE, $data );
 
             if ( ! $inserted ) {
@@ -294,7 +274,10 @@ class Monetization {
             }
 
             $this->set_id( $db->get_insert_id() );
+            $this->set_created_at( $now );
         }
+
+        $this->set_updated_at( $now );
 
         // Save tiers
         foreach ( $this->tiers as $tier ) {
@@ -311,15 +294,20 @@ class Monetization {
      *
      * @return bool True on success, false on failure.
      */
-    public function delete() {
+    public function delete() : bool {
         $db = smliser_db();
 
         if ( ! $this->id ) {
             return false;
         }
 
-        $db->delete( SMLISER_PRICING_TIER_TABLE, [ 'monetization_id' => $this->id ] );
-        $deleted = $db->delete( SMLISER_MONETIZATION_TABLE, [ 'id' => $this->id ] );
+        // Atomic delete to prevent race conditions where tiers are deleted but monetization isn't, or vice versa.
+        $monetization_table = SMLISER_MONETIZATION_TABLE;
+        $pricing_tier_table = SMLISER_PRICING_TIER_TABLE;
+        $sql = "DELETE m, t FROM {$monetization_table} 
+            m LEFT JOIN {$pricing_tier_table} t ON m.id = t.monetization_id 
+        WHERE m.id = ?";
+        $deleted = $db->query( $db->prepare( $sql, [ $this->id ] ) );
 
         return false !== $deleted;
     }
@@ -330,8 +318,7 @@ class Monetization {
      * @param int $tier_id
      * @return bool True if successfully deleted, false otherwise.
      */
-    public function delete_tier( $tier_id ) {
-        // Make sure tier exists in runtime collection.
+    public function delete_tier( $tier_id ) : bool {
         $tier = $this->get_tier( $tier_id );
         if ( ! $tier ) {
             return false;
@@ -343,9 +330,7 @@ class Monetization {
         }
 
         // Sync in-memory tiers list.
-        $this->tiers = array_filter( $this->tiers, function( $t ) use ( $tier_id ) {
-            return $t->get_id() !== $tier_id;
-        });
+        $this->remove_tiers( $tier_id );
 
         return true;
     }
@@ -357,7 +342,7 @@ class Monetization {
      * @param int $id Monetization ID.
      * @return Monetization|null
      */
-    public static function get_by_id( $id ) {
+    public static function get_by_id( $id ) : ?static {
         $db     = smliser_db();
         $table  = SMLISER_MONETIZATION_TABLE;
         $sql    = "SELECT * FROM {$table} WHERE id = ?";
@@ -368,8 +353,8 @@ class Monetization {
             return null;
         }
 
-        $mon = new self();
-        $mon->set_id( $row['id'] ?? 0 )
+        $static = new static();
+        $static->set_id( $row['id'] ?? 0 )
             ->set_app_id( $row['app_id'] ?? '' )
             ->set_app_type( $row['app_type'] ?? '' )
             ->set_enabled( (bool) $row['enabled'] ?? false )
@@ -377,9 +362,9 @@ class Monetization {
             ->set_updated_at( $row['updated_at'] ?? '' );
 
         // hydrate tiers
-        $mon->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
+        $static->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
 
-        return $mon;
+        return $static;
     }
 
     /**
@@ -389,7 +374,7 @@ class Monetization {
      * @param int|string $app_id
      * @return Monetization|null
      */
-    public static function get_by_app( $app_type, $app_id ) {
+    public static function get_by_app( $app_type, $app_id ) : ?static {
         $db     = smliser_db();
         $table  = SMLISER_MONETIZATION_TABLE;
 
@@ -400,17 +385,17 @@ class Monetization {
             return null;
         }
 
-        $mon = new self();
-        $mon->set_id( $row['id'] ?? 0 )
+        $static = new static();
+        $static->set_id( $row['id'] ?? 0 )
             ->set_app_id( $row['app_id'] ?? 0 )
             ->set_app_type( $row['app_type'] ?? '' )
             ->set_enabled( (bool) $row['enabled'] ?? false )
             ->set_created_at( $row['created_at'] ?? '' )
             ->set_updated_at( $row['updated_at'] ?? '' );
 
-        $mon->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
+        $static->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
 
-        return $mon;
+        return $static;
     }
 
     /*
@@ -424,7 +409,7 @@ class Monetization {
      *
      * @return bool
      */
-    public function has_tiers() {
+    public function has_tiers() : bool {
         return ! empty( $this->tiers );
     }
 
@@ -433,7 +418,7 @@ class Monetization {
      *
      * @return bool
      */
-    public function is_enabled() {
+    public function is_enabled() : bool {
         return $this->enabled;
     }
 
@@ -442,7 +427,7 @@ class Monetization {
      *
      * @return bool
      */
-    public function is_active() {
+    public function is_active() : bool {
         return $this->is_enabled() && $this->has_tiers();
     }
 
@@ -451,8 +436,8 @@ class Monetization {
      * 
      * @return bool
      */
-    public function exists() {
-        return ! empty( $this->id );
+    public function exists() : bool {
+        return $this->id > 0;
     }
 
     /*
@@ -483,13 +468,52 @@ class Monetization {
     /**
      * Get the APP this monetization belongs to.
      * 
-     * @return \SmartLicenseServer\HostedApps\AbstractHostedApp|null
+     * @return HostedAppsInterface|null
      */
-    public function get_app() {
+    public function get_app() : ?HostedAppsInterface {
         if ( empty( $this->app_type ) || empty( $this->app_id ) ) {
             return null;
         }
 
         return HostedApplicationService::get_app_by_id( $this->app_type, $this->app_id );
+    }
+
+    /**
+     * Add a single pricing tier.
+     *
+     * @param PricingTier $tier
+     * @return static
+     */
+    public function add_tier( PricingTier $tier ) : static {
+        $t_id   = $tier->get_id();
+
+        $this->tiers[$t_id] = $tier;
+        return $this;
+    }
+
+    /**
+     * Remove the specified pricing tiers from the tiers list.
+     * 
+     * @param int[] $tier_ids Array of tier IDs to remove.
+     * @return static
+     */
+    public function remove_tiers( int ...$tier_ids ) : static {
+        foreach ( $tier_ids as $t_id ) {
+            $t_id   = static::sanitize_int( $t_id );
+            unset( $this->tiers[$t_id] );
+        }
+
+        return $this;
+    }
+
+    /**
+     * Find a pricing tier by its ID.
+     *
+     * @param int $tier_id
+     * @return PricingTier|null
+     */
+    public function get_tier( $tier_id ) : ?PricingTier {
+        $tier_id = static::sanitize_int( $tier_id );
+        return $this->tiers[$tier_id] ?? null;
     }
 }

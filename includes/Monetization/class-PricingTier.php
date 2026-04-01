@@ -30,35 +30,35 @@ class PricingTier {
      *
      * @var int
      */
-    protected $id;
+    protected int $id = 0;
 
     /**
      * The monetization ID this tier belongs to.
      * 
      * @var int $monetization_id
      */
-    protected $monetization_id;
+    protected int $monetization_id = 0;
 
     /**
      * The display name of the pricing tier (e.g., "Single Site", "Pro", "Lifetime").
      *
      * @var string
      */
-    protected $name;
+    protected string $name = '';
 
     /**
      * The product ID this tier belongs to.
      *
      * @var int|string
      */
-    protected $product_id;
+    protected int|string $product_id = 0;
 
     /**
      * The monetization provider ID (e.g., WooCommerce, EDD, etc.).
      *
      * @var string
      */
-    protected $provider_id;
+    protected string $provider_id = '';
 
     /**
      * The billing cycle for this pricing tier.
@@ -66,21 +66,21 @@ class PricingTier {
      *
      * @var string
      */
-    protected $billing_cycle = '';
+    protected string $billing_cycle = '';
 
     /**
      * The maximum number of sites this license tier supports.
      *
      * @var int
      */
-    protected $max_sites = 1;
+    protected int $max_sites = 1;
 
     /**
      * Features included in this tier (e.g., array of strings).
      *
      * @var array
      */
-    protected $features = [];
+    protected array $features = [];
 
     /**
      * Constructor.
@@ -96,9 +96,9 @@ class PricingTier {
     /** 
      *  The unique identifier for this pricing tier.
      * 
-     * @return int|string 
+     * @return int 
      */
-    public function get_id() { 
+    public function get_id() : int { 
         return $this->id;
     }
 
@@ -107,7 +107,7 @@ class PricingTier {
      * 
      * @return int
      */
-    public function get_monetization_id() {
+    public function get_monetization_id() : int {
         return $this->monetization_id;
     }
 
@@ -116,7 +116,7 @@ class PricingTier {
      * 
      * @return string 
      */
-    public function get_name() {
+    public function get_name() : string {
         return $this->name;
     }
 
@@ -125,7 +125,7 @@ class PricingTier {
      * 
      *  @return int|string 
      */
-    public function get_product_id() {
+    public function get_product_id() : int|string {
         return $this->product_id;
     }
 
@@ -134,7 +134,7 @@ class PricingTier {
      * 
      * @return string 
      */
-    public function get_provider_id() {
+    public function get_provider_id() : string {
         return $this->provider_id;
     }
 
@@ -143,7 +143,7 @@ class PricingTier {
      * 
      * @return string
      */
-    public function get_billing_cycle() {
+    public function get_billing_cycle() : string {
         return $this->billing_cycle;
     }
 
@@ -152,7 +152,7 @@ class PricingTier {
      * 
      * @return int
      */
-    public function get_max_sites() {
+    public function get_max_sites() : int {
         return $this->max_sites;
     }
 
@@ -161,7 +161,7 @@ class PricingTier {
      * 
      * @return array
      */
-    public function get_features() {
+    public function get_features() : array {
         return $this->features;
     }
 
@@ -175,9 +175,9 @@ class PricingTier {
      * Set ID
      * 
      * @param int $id
-     * @return self
+     * @return static
      */
-    public function set_id( $id ) {
+    public function set_id( $id ) : static {
         $this->id = static::sanitize_int( $id );
         return $this;
     }
@@ -186,9 +186,9 @@ class PricingTier {
      * Set monetization ID this tier belongs to.
      * 
      * @param int $monetization_id
-     * @return self
+     * @return static
      */
-    public function set_monetization_id( $monetization_id ) {
+    public function set_monetization_id( $monetization_id ) : static {
         $this->monetization_id = static::sanitize_int( $monetization_id );
         return $this;
     }
@@ -197,9 +197,9 @@ class PricingTier {
      * Set the name of this pricing tier.
      *
      * @param string $name The name of the pricing tier.
-     * @return self
+     * @return static
      */
-    public function set_name( $name ) {
+    public function set_name( $name ) : static {
         $this->name = static::sanitize_text( $name );
         return $this;
     }
@@ -208,9 +208,9 @@ class PricingTier {
      * Set the product ID this tier belongs to.
      *
      * @param int|string $product_id The product ID.
-     * @return self
+     * @return static
      */
-    public function set_product_id( $product_id ) {
+    public function set_product_id( $product_id ) : static {
         $this->product_id = is_numeric( $product_id ) ? static::sanitize_int( $product_id ) : static::sanitize_text( $product_id );
         return $this;
     }
@@ -219,9 +219,9 @@ class PricingTier {
      * Set the monetization provider ID for this tier.
      *
      * @param string $provider_id The provider ID (e.g., 'woocommerce', 'edd').
-     * @return self
+     * @return static
      */    
-    public function set_provider_id( $provider_id ) {
+    public function set_provider_id( $provider_id ) : static {
         $this->provider_id = static::sanitize_text( $provider_id );
         return $this;
     }
@@ -230,9 +230,9 @@ class PricingTier {
      * Set the billing cycle for this tier.
      *
      * @param string $billing_cycle Billing cycle (e.g., 'monthly', 'yearly', 'lifetime').
-     * @return self
+     * @return static
      */
-    public function set_billing_cycle( $billing_cycle ) {
+    public function set_billing_cycle( $billing_cycle ) : static {
         $this->billing_cycle = $billing_cycle;
         return $this;
     }
@@ -241,9 +241,9 @@ class PricingTier {
      * Set the maximum number of sites this tier supports.
      *
      * @param int $max_sites
-     * @return self
+     * @return static
      */
-    public function set_max_sites( $max_sites ) {
+    public function set_max_sites( $max_sites ) : static {
         $this->max_sites = (int) $max_sites;
         return $this;
     }
@@ -252,9 +252,9 @@ class PricingTier {
      * Set the features for this tier.
      *
      * @param array $features Array of feature strings.
-     * @return self
+     * @return static
      */
-    public function set_features( array $features ) {
+    public function set_features( array $features ) : static {
         $this->features = $features;
         return $this;
     }
@@ -270,7 +270,7 @@ class PricingTier {
      * 
      * @return bool True on success, false on failure.
      */
-    public function save() {
+    public function save() : bool {
         $db = smliser_db();
 
         $data = [
@@ -306,7 +306,7 @@ class PricingTier {
      * 
      * @return bool True on success, false on failure.
      */
-    public function delete() {
+    public function delete() : bool {
         $db = smliser_db();
 
         if ( ! $this->id ) {
@@ -322,9 +322,9 @@ class PricingTier {
      * Get a pricing tier by its ID.
      * 
      * @param int $id The ID of the pricing tier.
-     * @return self|null The Pricing Tier object if found, null otherwise.
+     * @return static|null The Pricing Tier object if found, null otherwise.
      */
-    public static function get_by_id( $id ) {
+    public static function get_by_id( $id ) : ?static {
         $db = smliser_db();
         $table  = \SMLISER_PRICING_TIER_TABLE;
 
@@ -335,8 +335,8 @@ class PricingTier {
             return null;
         }
 
-        $tier = new self();
-        $tier->set_monetization_id( $row['monetization_id'] ?? 0 )
+        $tier = ( new self() )
+            ->set_monetization_id( $row['monetization_id'] ?? 0 )
             ->set_id( $row['id'] ?? 0 )
             ->set_name( $row['name'] ?? '' )
             ->set_product_id( $row['product_id'] ?? 0 )
@@ -352,9 +352,9 @@ class PricingTier {
      * Get all pricing tiers by monetization ID.
      *
      * @param int $monetization_id The monetization ID.
-     * @return self[] Array of Pricing Tier objects.
+     * @return static[] Array of Pricing Tier objects.
      */
-    public static function get_by_monetization_id( $monetization_id ) {
+    public static function get_by_monetization_id( $monetization_id ) : array {
         $db     = smliser_db();
         $table  = \SMLISER_PRICING_TIER_TABLE;
 
@@ -367,8 +367,8 @@ class PricingTier {
 
         $tiers = [];
         foreach ( $rows as $row ) {
-            $tier = new self();
-            $tier->set_id( $row['id'] ?? 0 )
+            $tier = ( new static() )
+                ->set_id( $row['id'] ?? 0 )
                 ->set_monetization_id( $row['monetization_id'] ?? 0 )
                 ->set_name( $row['name'] ?? '' )
                 ->set_product_id( $row['product_id'] ?? 0 )
@@ -382,6 +382,43 @@ class PricingTier {
 
         return $tiers;
     }
+
+    /**
+     * Get a pricing tier by product ID and provider ID.
+     * 
+     * @param int|string $product_id    The product ID.
+     * @param string $provider_id       The provider ID.
+     * @return static|null The Pricing Tier object if found, null otherwise.
+     */
+    public static function get_by_product_and_provider( int|string $product_id, string $provider_id ) : ?static {
+        $db     = smliser_db();
+        $table  = \SMLISER_PRICING_TIER_TABLE;
+
+        $sql    = "SELECT * FROM {$table} WHERE product_id = ? AND provider_id = ? LIMIT 1";
+        $row    = $db->get_row( $sql, [$product_id, $provider_id] );
+
+        if ( null === $row ) {
+            return null;
+        }
+
+        $tier = ( new static() )
+            ->set_id( $row['id'] ?? 0 )
+            ->set_monetization_id( $row['monetization_id'] ?? 0 )
+            ->set_name( $row['name'] ?? '' )
+            ->set_product_id( $row['product_id'] ?? 0 )
+            ->set_provider_id( $row['provider_id'] ?? '' )
+            ->set_billing_cycle( $row['billing_cycle'] ?? '' )
+            ->set_max_sites( $row['max_sites'] ?? 0 )
+            ->set_features( Format::decode( $row['features'] ?? '' ) );
+
+        return $tier;
+    }
+
+    /*
+    |---------------------
+    | UTILITY METHODS
+    |---------------------
+    */
 
     /**
      * Format pricing tier to array

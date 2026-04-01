@@ -1902,6 +1902,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
         /**
          * Form Submit Handler
+         * 
+         * @param {MouseEvent} e
          */
         const submitForm = ( e ) => {
             e.preventDefault();
@@ -1917,22 +1919,25 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             const payLoad = new FormData( tierForm );
             payLoad.set( 'security', smliser_var.nonce );
 
+            const spinner = showSpinner( '.smliser-spinner', true );
+
             smliserFetch( smliser_var.ajaxURL, { method: 'POST', body: payLoad } )
-                .then( responseJson => {
-                    if ( responseJson.success ) {
-                        smliserNotify( responseJson.data?.message || 'Operation successful', 3000 );
-                        setTimeout( () => window.location.reload(), 3000 );
-                    } else {
-                        let errorMessage = responseJson.data?.message || 'An unknown error occurred.';
-                        let errorField   = responseJson.data?.field_id || null;
-                        if ( errorField ) highlightErrorField( errorField, errorMessage );
-                        smliserNotify( errorMessage, 6000 );
-                    }
-                })
-                .catch( error => {
-                    if ( error.field ) highlightErrorField( error.field, error.message );
-                    smliserNotify( error.message || 'An unexpected error occurred', 6000 );
-                });
+            .then( responseJson => {
+                if ( responseJson.success ) {
+                    smliserNotify( responseJson.data?.message || 'Operation successful', 3000 );
+                    setTimeout( () => window.location.reload(), 3000 );
+                } else {
+                    let errorMessage = responseJson.data?.message || 'An unknown error occurred.';
+                    let errorField   = responseJson.data?.field_id || null;
+                    if ( errorField ) highlightErrorField( errorField, errorMessage );
+                    smliserNotify( errorMessage, 6000 );
+                }
+            })
+            .catch( error => {
+                if ( error.field ) highlightErrorField( error.field, error.message );
+                smliserNotify( error.message || 'An unexpected error occurred', 6000 );
+            })
+            .finally( () => removeSpinner( spinner ) );
         };
 
         /**
@@ -1969,25 +1974,27 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
             deleteTier: async ( json ) => {
                 let tier = StringUtils.JSONparse( json );
-                const confirmed = SmliserModal.confirm( `Are you sure you want to delete tier "${tier.name}"?` );
-                if ( confirmed ) {
-                    const payLoad = new FormData();
-                    payLoad.set( 'action', 'smliser_delete_monetization_tier' );
-                    payLoad.set( 'security', smliser_var.nonce );
-                    payLoad.set( 'monetization_id', tier.monetization_id );
-                    payLoad.set( 'tier_id', tier.id );
-
-                    smliserFetch( smliser_var.ajaxURL, { method: 'POST', body: payLoad } )
-                        .then( responseJson => {
-                            if ( responseJson.success ) {
-                                smliserNotify( responseJson.data?.message || 'Tier deleted', 3000 );
-                                setTimeout( () => window.location.reload(), 2000 );
-                            } else {
-                                smliserNotify( responseJson.data?.message || 'Delete failed', 6000 );
-                            }
-                        })
-                        .catch( error => smliserNotify( error.message || 'Delete failed', 6000 ) );
+                const confirmed = await SmliserModal.confirm( `Are you sure you want to delete tier "${tier.name}"?` );
+                if ( ! confirmed ) {
+                    return;
                 }
+                const payLoad = new FormData();
+                payLoad.set( 'action', 'smliser_delete_monetization_tier' );
+                payLoad.set( 'security', smliser_var.nonce );
+                payLoad.set( 'monetization_id', tier.monetization_id );
+                payLoad.set( 'tier_id', tier.id );
+
+                smliserFetch( smliser_var.ajaxURL, { method: 'POST', body: payLoad } )
+                .then( responseJson => {
+                    if ( responseJson.success ) {
+                        smliserNotify( responseJson.data?.message || 'Tier deleted', 3000 );
+                        // setTimeout( () => window.location.reload(), 2000 );
+                    } else {
+                        smliserNotify( responseJson.data?.message || 'Delete failed', 6000 );
+                    }
+                })
+                .catch( error => smliserNotify( error.message || 'Delete failed', 6000 ) );
+                
             },
 
             closeModal: () => {
@@ -2082,31 +2089,15 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 payLoad.set( 'monetization_id', monetizationId );
                 payLoad.set( 'enabled', enabled );
 
-                fetch( smliser_var.ajaxURL, {
+                smliserFetchJSON( smliser_var.ajaxURL, {
                     method: 'POST',
                     body: payLoad,
-                })
-                .then( async response => {
-                    if ( ! response.ok ) {
-                        const contentType = response.headers.get( 'content-type' );
-                        let errorMessage = 'An error occurred';
-
-                        if ( contentType && contentType.includes( 'application/json' ) ) {
-                            const errorData = await response.json();
-                            errorMessage = errorData.data?.message || errorMessage;
-                            throw new Error( errorMessage );
-                        } else {
-                            const text = await response.text();
-                            throw new Error( text || errorMessage );
-                        }
-                    }
-                    return response.json();
                 })
                 .then( responseJson => {
                     if ( responseJson.success ) {
                         smliserNotify( responseJson.data?.message || 'Monetization updated', 3000 );
                     } else {
-                        smliserNotify( responseJson.data?.message || 'Update failed', 6000 );
+                        throw new Error( responseJson.data?.message || 'Update failed' );
                     }
                 })
                 .catch( error => {
