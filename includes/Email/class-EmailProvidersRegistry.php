@@ -30,7 +30,7 @@ use SmartLicenseServer\SettingsAPI\Settings;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class EmailProviderCollection {
+class EmailProvidersRegistry {
 
     /**
      * Singleton instance.
@@ -225,7 +225,7 @@ class EmailProviderCollection {
     public static function set_default_provider( string $provider_id ): bool {
         if ( ! static::instance()->has_provider( $provider_id ) ) {
             throw new InvalidArgumentException(
-                "EmailProviderCollection: cannot set default — provider '{$provider_id}' is not registered."
+                "EmailProvidersRegistry: cannot set default — provider '{$provider_id}' is not registered."
             );
         }
 

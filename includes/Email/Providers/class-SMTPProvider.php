@@ -21,7 +21,7 @@ use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use InvalidArgumentException;
-use SmartLicenseServer\Email\EmailProviderCollection;
+use SmartLicenseServer\Email\EmailProvidersRegistry;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -586,7 +586,7 @@ class SMTPProvider implements EmailProviderInterface {
      */
     protected function transmit( EmailMessage $message ): string {
         $from       = $message->get( 'from' ) ?? [];
-        $collection = EmailProviderCollection::instance();
+        $collection = smliser_emailProvidersRegistry();
         $from_email = $from['email'] ?? $this->settings['from_email'] ?? $collection->get_default_sender_email();
         $from_name  = $from['name']  ?? $this->settings['from_name']  ?? $collection->get_default_sender_name();
 

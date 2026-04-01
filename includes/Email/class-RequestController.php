@@ -31,9 +31,9 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $collection   = EmailProviderCollection::instance();
+            $collection   = smliser_emailProvidersRegistry();
 
-            $default_mailer_key = EmailProviderCollection::DEFAULT_PROVIDER_KEY;
+            $default_mailer_key = EmailProvidersRegistry::DEFAULT_PROVIDER_KEY;
 
             $provider_id     = static::sanitize_text( $request->get( $default_mailer_key ) );
 
@@ -51,8 +51,8 @@ class RequestController {
                 );
             }
 
-            $sender_name    = static::sanitize_text( $request->get( EmailProviderCollection::DEFAULT_SENDER_NAME_KEY, '' ) );
-            $sender_email   = static::sanitize_email( $request->get( EmailProviderCollection::DEFAULT_SENDER_EMAIL_KEY, '' ) );
+            $sender_name    = static::sanitize_text( $request->get( EmailProvidersRegistry::DEFAULT_SENDER_NAME_KEY, '' ) );
+            $sender_email   = static::sanitize_email( $request->get( EmailProvidersRegistry::DEFAULT_SENDER_EMAIL_KEY, '' ) );
 
             if ( empty( $sender_name ) ) {
                 throw new RequestException(
@@ -68,7 +68,7 @@ class RequestController {
                 );
             }
 
-            EmailProviderCollection::set_default_provider( $provider_id );
+            EmailProvidersRegistry::set_default_provider( $provider_id );
             $collection->set_default_sender_name( $sender_name );
             $collection->set_default_sender_email( $sender_email );
 
@@ -106,7 +106,7 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $collection  = EmailProviderCollection::instance();
+            $collection  = smliser_emailProvidersRegistry();
             $provider_id = static::sanitize_text( $request->get( 'provider_id' ) );
 
             if ( ! $provider_id ) {
@@ -143,7 +143,7 @@ class RequestController {
                 // Password field submitted with the masked placeholder —
                 // preserve the previously saved value rather than overwriting.
                 if ( $field['type'] === 'password' && $raw_value === '********' ) {
-                    $saved_settings[ $key ] = EmailProviderCollection::get_option( $provider_id, $key );
+                    $saved_settings[ $key ] = EmailProvidersRegistry::get_option( $provider_id, $key );
                     continue;
                 }
 
@@ -184,18 +184,18 @@ class RequestController {
                 );
             }
 
-            EmailProviderCollection::update_provider_settings( $provider_id, $saved_settings );
+            EmailProvidersRegistry::update_provider_settings( $provider_id, $saved_settings );
 
             // Optionally promote this provider to the system default.
             if ( (bool) $request->get( 'set_as_default', false ) ) {
-                EmailProviderCollection::set_default_provider( $provider_id );
+                EmailProvidersRegistry::set_default_provider( $provider_id );
             }
 
             return ( new Response( 200, [], [
                 'success' => true,
                 'data'    => [
                     'message'    => sprintf( '%s settings saved successfully.', $provider->get_name() ),
-                    'is_default' => EmailProviderCollection::get_default_provider_id() === $provider_id,
+                    'is_default' => EmailProvidersRegistry::get_default_provider_id() === $provider_id,
                 ],
             ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
@@ -220,7 +220,7 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $collection  = EmailProviderCollection::instance();
+            $collection  = smliser_emailProvidersRegistry();
             $provider_id = static::sanitize_text( $request->get( 'provider_id' ) );
             $recipient   = static::sanitize_email( $request->get( 'test_email' ) );
 

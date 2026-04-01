@@ -24,7 +24,7 @@ use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
 use SmartLicenseServer\Database\Adapters\MysqliAdapter;
 use SmartLicenseServer\Database\Adapters\PdoAdapter;
 use SmartLicenseServer\Database\Adapters\SqliteAdapter;
-use SmartLicenseServer\Email\EmailProviderCollection;
+use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Environments\EnvironmentProviderInterface;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
@@ -145,6 +145,13 @@ abstract class Environment implements EnvironmentProviderInterface {
      * @var Mailer $mailer
      */
     protected Mailer $mailer;
+
+    /**
+     * All email providers registry.
+     * 
+     * @var EmailProvidersRegistry $emailProviders
+     */
+    protected EmailProvidersRegistry $emailProviders;
 
     /**
      * Database configuration class.
@@ -742,7 +749,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     protected function setGlobalMailingAdapter() : void {
         // Instantiate the email collection with storage.
-        $collection     = EmailProviderCollection::instance( $this->settings );
+        $collection     = $this->emailProviders();
         $this->mailer   = new Mailer( $collection->get_provider_with_settings() );
     }
 
@@ -848,7 +855,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     }
 
     /**
-     * Get the task scheduler API instance.
+     * {@inheritDoc}
      * 
      * Intentionally lazy loaded.
      */
@@ -866,7 +873,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     }
 
     /**
-     * Get the global http client.
+     * {@inheritDoc}
      * 
      * Intentionally lazy loaded.
      */
@@ -889,6 +896,17 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         return $this->monetizationRegistry;
+    }
+
+    /**
+     * Get the email provider registry.
+     */
+    public function emailProviders() : EmailProvidersRegistry {
+        if ( ! isset( $this->emailProviders ) ) {
+            $this->emailProviders = EmailProvidersRegistry::instance( $this->settings );
+        }
+
+        return $this->emailProviders;
     }
 }
 

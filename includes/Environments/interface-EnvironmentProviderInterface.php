@@ -8,13 +8,17 @@
 namespace SmartLicenseServer\Environments;
 
 use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Database;
+use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\Http\HttpClient;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -115,9 +119,31 @@ interface EnvironmentProviderInterface {
     public function queue_worker(): QueueWorker;
 
     /**
+     * Get the task scheduler API instance.
+     */
+    public function scheduler(): Scheduler;
+
+    /**
      * Get the current request object.
      * 
      * @return Request
      */
     public function request() : Request;
+
+    /**
+     * Get the global http client.
+     */
+    public function httpClient() : HttpClient;
+
+    /**
+     * Get the monetization provider registry.
+     * 
+     * @return MonetizationRegistry
+     */
+    public function monetizationRegistry() : MonetizationRegistry;
+
+    /**
+     * Get the email provider registry.
+     */
+    public function emailProviders() : EmailProvidersRegistry;
 }

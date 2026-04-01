@@ -13,7 +13,7 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Cache\CacheAdapterCollection;
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Email\EmailProviderCollection;
+use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Providers\EmailProviderInterface;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
@@ -131,9 +131,9 @@ class OptionsPage {
             return;
         }
 
-        $collection       = EmailProviderCollection::instance();
+        $collection       = smliser_emailProvidersRegistry();
         $providers        = $collection->get_providers();
-        $default_provider = EmailProviderCollection::get_default_provider_id();
+        $default_provider = EmailProvidersRegistry::get_default_provider_id();
         $email_fields     = static::email_settings_fields();
 
         include_once SMLISER_PATH . 'templates/admin/options/email.php';
@@ -183,18 +183,18 @@ class OptionsPage {
      */
     private static function email_provider_settings( Request $request ): void {
         $provider_key = $request->get( 'provider' );
-        $collection   = EmailProviderCollection::instance();
+        $collection   = smliser_emailProvidersRegistry();
         $provider     = $collection->get_provider( $provider_key );
 
         $provider_name  = $provider?->get_name() ?? '';
         $provider_id    = $provider?->get_id() ?? '';
         $schema         = $provider?->get_settings_schema() ?? [];
-        $is_default     = EmailProviderCollection::get_default_provider_id() === $provider_id;
+        $is_default     = EmailProvidersRegistry::get_default_provider_id() === $provider_id;
 
         // Pre-populate each field with persisted value.
         $saved_settings = [];
         foreach ( $schema as $key => $_ ) {
-            $saved_settings[ $key ] = EmailProviderCollection::get_option( $provider_id, $key );
+            $saved_settings[ $key ] = EmailProvidersRegistry::get_option( $provider_id, $key );
         }
 
         include_once SMLISER_PATH . 'templates/admin/options/email-provider.php';
@@ -289,12 +289,12 @@ class OptionsPage {
                 'help'  => 'The email provider used for all outgoing system emails. Configure individual providers using the cards below.',
                 'input' => [
                     'type'  => 'select',
-                    'name'  => EmailProviderCollection::DEFAULT_PROVIDER_KEY,
-                    'value' => EmailProviderCollection::get_default_provider_id() ?? '',
+                    'name'  => EmailProvidersRegistry::DEFAULT_PROVIDER_KEY,
+                    'value' => EmailProvidersRegistry::get_default_provider_id() ?? '',
                     'class' => 'smliser-form-label-row smliser-auto-select2',
                     'options' => array_map(
                         static fn( EmailProviderInterface $p ) => $p->get_name(),
-                        EmailProviderCollection::instance()->get_providers()
+                        smliser_emailProvidersRegistry()->get_providers()
                     ),
                 ],
             ],
@@ -304,8 +304,8 @@ class OptionsPage {
                 'help'  => 'Sender name used in outgoing emails when the active provider does not have a From Name configured.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => EmailProviderCollection::DEFAULT_SENDER_NAME_KEY,
-                    'value' => EmailProviderCollection::instance()->get_default_sender_name(),
+                    'name'  => EmailProvidersRegistry::DEFAULT_SENDER_NAME_KEY,
+                    'value' => smliser_emailProvidersRegistry()->get_default_sender_name(),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -318,8 +318,8 @@ class OptionsPage {
                 'help'  => 'Sender email address used in outgoing emails when the active provider does not have a From Email configured.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => EmailProviderCollection::DEFAULT_SENDER_EMAIL_KEY,
-                    'value' => EmailProviderCollection::instance()->get_default_sender_email(),
+                    'name'  => EmailProvidersRegistry::DEFAULT_SENDER_EMAIL_KEY,
+                    'value' => smliser_emailProvidersRegistry()->get_default_sender_email(),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',

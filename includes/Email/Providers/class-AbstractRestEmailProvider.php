@@ -33,7 +33,7 @@ use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Http\HttpResponse;
 use InvalidArgumentException;
-use SmartLicenseServer\Email\EmailProviderCollection;
+use SmartLicenseServer\Email\EmailProvidersRegistry;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -222,7 +222,7 @@ abstract class AbstractRestEmailProvider implements EmailProviderInterface {
      */
     protected function resolve_sender( EmailMessage $message ): array {
         $from               = $message->get( 'from' ) ?? [];
-        $collection         = EmailProviderCollection::instance();
+        $collection         = smliser_emailProvidersRegistry();
         $default_from_email = $collection->get_default_sender_email();
         $default_from_name  = $collection->get_default_sender_name();
         return [

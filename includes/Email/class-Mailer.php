@@ -84,7 +84,7 @@ class Mailer {
     public static function with_provider( string|EmailProviderInterface $provider_id ): static {
         $provider = ( $provider_id instanceof EmailProviderInterface ) 
             ? $provider_id
-            : EmailProviderCollection::instance()->get_provider_with_settings( $provider_id );
+            : smliser_emailProvidersRegistry()->get_provider_with_settings( $provider_id );
 
         if ( $provider === null ) {
             throw new InvalidArgumentException(
@@ -102,7 +102,7 @@ class Mailer {
      * Set the active provider directly.
      *
      * Useful for testing — inject a mock provider without touching
-     * the EmailProviderCollection.
+     * the EmailProvidersRegistry.
      *
      * @param EmailProviderInterface $provider
      * @return static Fluent.
@@ -121,14 +121,14 @@ class Mailer {
      */
     public function get_provider(): EmailProviderInterface {
         if ( $this->provider === null ) {
-            $this->provider = EmailProviderCollection::instance()
+            $this->provider = smliser_emailProvidersRegistry()
                 ->get_provider_with_settings();
         }
 
         if ( $this->provider === null ) {
             throw new RuntimeException(
                 'Mailer: no email provider is configured. '
-                . 'Set a default provider via EmailProviderCollection::set_default_provider().'
+                . 'Set a default provider via EmailProvidersRegistry::set_default_provider().'
             );
         }
 

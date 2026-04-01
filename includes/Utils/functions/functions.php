@@ -11,6 +11,7 @@
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
@@ -1494,6 +1495,13 @@ function smliser_http_client() : HttpClient {
  */
 function smliser_monetization_registry() : MonetizationRegistry {
     return smliser_envProvider()->monetizationRegistry();
+}
+
+/**
+ * Email providers registry instance.
+ */
+function smliser_emailProvidersRegistry() : EmailProvidersRegistry {
+    return smliser_envProvider()->emailProviders();
 }
 
 /**
