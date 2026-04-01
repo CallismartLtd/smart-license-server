@@ -200,11 +200,11 @@ class HostingController {
 
             return ( new Response( 200, array(), $data ) )
             ->set_response_data( $request )
-            ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+            ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -424,12 +424,12 @@ class HostingController {
             \smliser_cache()->clear();
             
             return ( new Response( 200, array(), [ 'success' => true, 'result' => $result ] ) )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
 
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -495,12 +495,12 @@ class HostingController {
             \smliser_cache()->clear();
 
             return ( new Response( 200, array(), [ 'success' => true, 'data' => [ 'message' => 'Asset deleted successfully.' ] ] ) )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
 
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -582,12 +582,12 @@ class HostingController {
             );
 
             return ( new Response( 200, array(), smliser_safe_json_encode( [ 'success' => true, 'data' => $data ] ) ) )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
 
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 

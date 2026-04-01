@@ -254,7 +254,7 @@ class RequestController {
                 );
             }
 
-            $site_name = smliser_settings_adapter()->get( 'repository_name', SMLISER_APP_NAME, true );
+            $site_name = smliser_settings()->get( 'repository_name', SMLISER_APP_NAME, true );
 
             $message = ( new TestEmail( $recipient, $provider->get_name() ) )
                 ->to_message();

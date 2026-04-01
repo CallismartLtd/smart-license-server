@@ -93,7 +93,7 @@ class SettingsCommand implements CommandInterface {
 
         $this->start_timer();
 
-        $result = smliser_settings_adapter()->set( $name, $value );
+        $result = smliser_settings()->set( $name, $value );
 
         if ( $result ) {
             $this->done( 'Saved successfully', true );
@@ -116,7 +116,7 @@ class SettingsCommand implements CommandInterface {
             return;
         }
 
-        $value      = smliser_settings_adapter()->get( $key, null, true );
+        $value      = smliser_settings()->get( $key, null, true );
         $value      = Format::decode( $value );
 
 
@@ -156,7 +156,7 @@ class SettingsCommand implements CommandInterface {
             return;
         }
 
-        smliser_settings_adapter()->delete( $key )
+        smliser_settings()->delete( $key )
             ? $this->success( "Key [{$key}] deleted from settings." )
             : $this->error( "Failed to delete key [{$key}]. It may not exist." );
     }
@@ -165,7 +165,7 @@ class SettingsCommand implements CommandInterface {
      * Show the active adapter name and quick usage hint.
      */
     private function handle_default(): void {
-        $this->info( 'Active Settings Adapter: ' . get_class( smliser_settings_adapter()->get_adapter() ) );
+        $this->info( 'Active Settings Adapter: ' . get_class( smliser_settings()->get_adapter() ) );
         $this->newline();
         $this->line( 'Run `smliser settings help` to see available subcommands.' );
     }

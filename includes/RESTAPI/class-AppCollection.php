@@ -197,7 +197,7 @@ class AppCollection {
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
 
     }
@@ -240,7 +240,7 @@ class AppCollection {
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -278,7 +278,7 @@ class AppCollection {
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -341,7 +341,7 @@ class AppCollection {
         } catch( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -372,7 +372,7 @@ class AppCollection {
         } catch( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 
@@ -404,7 +404,7 @@ class AppCollection {
         } catch( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings_adapter()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         }
     }
 

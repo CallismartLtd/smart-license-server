@@ -133,7 +133,7 @@ class FileRequestController {
                 throw new FileRequestException( 'file_not_found' );
             }
             
-            $document = self::generate_license_document( $license, smliser_settings_adapter() );
+            $document = self::generate_license_document( $license, smliser_settings() );
 
             $file_props = [
                 'type'         => 'document',
@@ -293,7 +293,7 @@ class FileRequestController {
                 throw new FileRequestException( 'invalid_token' );
             }
             
-            $document = self::generate_license_document( $license, smliser_settings_adapter() );
+            $document = self::generate_license_document( $license, smliser_settings() );
 
             $file_props = [
                 'type'         => 'document',

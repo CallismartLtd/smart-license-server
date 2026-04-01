@@ -51,7 +51,7 @@ class PruneLicenseActivityLogsJob implements JobHandlerInterface {
         $retention_months = (int) ( $payload['retention_months'] ?? 3 );
         $expiration       = time() - ( $retention_months * MONTH_IN_SECONDS );
 
-        $logs = smliser_settings_adapter()->get(
+        $logs = smliser_settings()->get(
             \SmartLicenseServer\Analytics\RepositoryAnalytics::LICENSE_ACTIVITY_KEY,
             [],
             true
@@ -71,7 +71,7 @@ class PruneLicenseActivityLogsJob implements JobHandlerInterface {
         }
 
         if ( $pruned > 0 ) {
-            smliser_settings_adapter()->set(
+            smliser_settings()->set(
                 \SmartLicenseServer\Analytics\RepositoryAnalytics::LICENSE_ACTIVITY_KEY,
                 $logs,
                 true

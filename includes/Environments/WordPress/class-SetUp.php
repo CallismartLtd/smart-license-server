@@ -255,7 +255,7 @@ class SetUp extends Environment {
      * Print admin notices
      */
     public function print_admin_notices() {
-        $repo_version = \smliser_settings_adapter()->get( 'smliser_repo_version', 0 );
+        $repo_version = \smliser_settings()->get( 'smliser_repo_version', 0 );
         if ( SMLISER_VER === $repo_version ) {
             return;
         }

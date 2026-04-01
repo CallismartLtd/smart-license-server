@@ -169,7 +169,7 @@ class RepositoryAnalytics {
      * @return array $schedules An array of task logs
      */
     public static function get_license_activity_logs() : array {
-        $schedules  = \smliser_settings_adapter()->get( self::LICENSE_ACTIVITY_KEY, [] );
+        $schedules  = \smliser_settings()->get( self::LICENSE_ACTIVITY_KEY, [] );
         
         if ( empty( $schedules ) ) {
             return [];

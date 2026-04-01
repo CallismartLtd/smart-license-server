@@ -18,7 +18,7 @@ use SmartLicenseServer\Email\Providers\EmailProviderInterface;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 
-use function sprintf, smliser_settings_adapter;
+use function sprintf, smliser_settings;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -281,7 +281,7 @@ class OptionsPage {
      * @return array<int, array<string, mixed>>
      */
     protected static function email_settings_fields(): array {
-        $settings = smliser_settings_adapter();
+        $settings = smliser_settings();
 
         return [
             [
@@ -335,7 +335,7 @@ class OptionsPage {
      * @return array<int, array<string, mixed>>
      */
     public static function system_settings_fields(): array {
-        $settings = smliser_settings_adapter();
+        $settings = smliser_settings();
 
         return [
             [

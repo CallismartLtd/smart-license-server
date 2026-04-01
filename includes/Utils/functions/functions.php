@@ -541,7 +541,7 @@ function smliser_send_json( $data, $status_code = 200, $flags = 0 ) {
 
     if ( ! headers_sent() ) {
         status_header( $status_code );
-        header( 'Content-Type: application/json; charset=' . smliser_settings_adapter()->get( 'charset', 'UTF-8', false ) );
+        header( 'Content-Type: application/json; charset=' . smliser_settings()->get( 'charset', 'UTF-8', false ) );
     }
 
     echo smliser_safe_json_encode( $data, $flags ); // phpcs:ignore
@@ -671,7 +671,7 @@ function smliser_load_auth_footer() {
  * Get the base downloads url prefix.
  */
 function smliser_get_download_url_prefix() : string {
-    return (string) smliser_settings_adapter()->get( 'download_url_prefix', 'downloads', true );
+    return (string) smliser_settings()->get( 'download_url_prefix', 'downloads', true );
 }
 
 /**
@@ -680,7 +680,7 @@ function smliser_get_download_url_prefix() : string {
  * @return string
  */
 function smliser_get_repository_url_prefix() : string {
-    return (string) smliser_settings_adapter()->get( 'repository_url_prefix', 'repository', true );
+    return (string) smliser_settings()->get( 'repository_url_prefix', 'repository', true );
 }
 
 /**
@@ -1440,7 +1440,7 @@ function smliser_queue_worker(): \SmartLicenseServer\Background\Workers\QueueWor
  * 
  * @return SmartLicenseServer\SettingsAPI\Settings
  */
-function smliser_settings_adapter() : SmartLicenseServer\SettingsAPI\Settings {
+function smliser_settings() : SmartLicenseServer\SettingsAPI\Settings {
     return smliser_envProvider()->settings();
 }
 

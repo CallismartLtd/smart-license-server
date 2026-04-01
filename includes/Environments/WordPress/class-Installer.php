@@ -52,9 +52,9 @@ class Installer {
         $result = self::init_repo_dir();
 
         if ( is_smliser_error( $result ) ) {
-            \smliser_settings_adapter()->set( 'smliser_directory_error', $result->get_error_message() );
+            \smliser_settings()->set( 'smliser_directory_error', $result->get_error_message() );
         } else {
-            \smliser_settings_adapter()->delete( 'smliser_directory_error' );
+            \smliser_settings()->delete( 'smliser_directory_error' );
         }
 
         self::maybe_create_tables();

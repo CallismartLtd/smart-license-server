@@ -64,7 +64,7 @@ class Cache {
      * @return int
      */
     public function default_ttl() : int {
-        return (int) max( 0, smliser_settings_adapter()->get( 'default_cache_ttl', 0 ) );
+        return (int) max( 0, smliser_settings()->get( 'default_cache_ttl', 0 ) );
     }
 
     /**

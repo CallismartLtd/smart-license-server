@@ -77,7 +77,7 @@ final class IdentityService extends AbstractIdentityProvider {
      */
     protected function issuer() : string {
 
-        $adapter = \smliser_settings_adapter();
+        $adapter = \smliser_settings();
 
         $inst_id = $adapter->get( 'installation_uuid', false, true );
 

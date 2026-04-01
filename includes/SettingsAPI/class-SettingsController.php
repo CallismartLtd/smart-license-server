@@ -34,7 +34,7 @@ class SettingsController {
     public static function save_system_settings( Request $request ) : Response {
         try {
             static::is_system_admin();
-            $settings   = \smliser_settings_adapter();
+            $settings   = \smliser_settings();
             $collection = Collection::make( OptionsPage::system_settings_fields() );
             $fields     = $collection->map(
                 fn( $v ) => $v['input']['name'] ?? ''
@@ -88,7 +88,7 @@ class SettingsController {
                 fn( $v ) => $v['input']['name'] ?? ''
             );
 
-            $settings = smliser_settings_adapter();
+            $settings = smliser_settings();
 
             foreach ( $fields as $key ) {
                 if ( empty( $key ) ) {

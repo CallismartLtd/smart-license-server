@@ -52,7 +52,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     'input' => array(
                         'type'  => 'number',
                         'name'  => 'default_cache_ttl',
-                        'value' => smliser_settings_adapter()->get( 'default_cache_ttl', 0, true ),
+                        'value' => smliser_settings()->get( 'default_cache_ttl', 0, true ),
                         'attr'  => array(
                             'min'   => 0
                         )

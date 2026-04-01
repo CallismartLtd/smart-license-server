@@ -508,7 +508,7 @@ class Router implements RouterInterface {
     public static function parse_database_migration_request( Request $request ): void {
         static::guard( $request, 'manage_options' );
 
-        $repo_version = smliser_settings_adapter()->get( 'smliser_repo_version', 0 );
+        $repo_version = smliser_settings()->get( 'smliser_repo_version', 0 );
 
         if ( version_compare( $repo_version, SMLISER_VER, '>' ) ) {
             smliser_send_json_error( [ 'message' => 'No upgrade needed' ] );
@@ -518,7 +518,7 @@ class Router implements RouterInterface {
             Installer::db_migrate( $repo_version );
         }
 
-        smliser_settings_adapter()->set( 'smliser_repo_version', SMLISER_VER );
+        smliser_settings()->set( 'smliser_repo_version', SMLISER_VER );
 
         smliser_send_json_success( [
             'message' => sprintf(

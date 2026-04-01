@@ -54,7 +54,7 @@ class CacheRequestController {
             [$adapter, $saved_settings] = self::validate_settings_fields( $request );
 
             $ttl = (int) max( 0, $request->get( 'default_cache_ttl', 0 ) );
-            \smliser_settings_adapter()->set( 'default_cache_ttl', $ttl, true );
+            \smliser_settings()->set( 'default_cache_ttl', $ttl, true );
             CacheAdapterCollection::update_adapter_settings( $adapter_id, $saved_settings );
 
             $wants_reset = $is_default && $request->isEmpty( 'set_as_default' );
