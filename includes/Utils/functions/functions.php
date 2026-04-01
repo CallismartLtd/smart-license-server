@@ -20,6 +20,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Utils\MDParser;
 use SmartLicenseServer\Utils\Sanitizer;
 
@@ -1349,6 +1350,15 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
 }
 
 /**
+ * Get the environment provider instance.
+ * 
+ * @return \SmartLicenseServer\Environment
+ */
+function smliser_envProvider() : Environment {
+    return Environment::env_provider();
+}
+
+/**
  * Get the web application URL.
  * 
  * @param string $path Path(optional).
@@ -1356,7 +1366,7 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
  * @return URL
  */
 function url( string $path = '', array $params = [] ) : URL {
-    return Environment::env_provider()->url( $path, $params );
+    return smliser_envProvider()->url( $path, $params );
 }
 
 /**
@@ -1367,7 +1377,7 @@ function url( string $path = '', array $params = [] ) : URL {
  * @return URL
  */
 function adminUrl( string $path = '', array $params = [] ) : URL {
-    return Environment::env_provider()->adminUrl( $path, $params );
+    return smliser_envProvider()->adminUrl( $path, $params );
 }
 
 /**
@@ -1378,7 +1388,7 @@ function adminUrl( string $path = '', array $params = [] ) : URL {
  * @return URL
  */
 function restAPIUrl( string $path = '', array $params = [] ) : URL {
-    return Environment::env_provider()->restAPIUrl( $path, $params );
+    return smliser_envProvider()->restAPIUrl( $path, $params );
 }
 
 /**
@@ -1387,7 +1397,7 @@ function restAPIUrl( string $path = '', array $params = [] ) : URL {
  * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
  */
 function smliser_db() : \SmartLicenseServer\Database\Database {
-    return Environment::env_provider()->database();
+    return smliser_envProvider()->database();
 }
 
 /**
@@ -1396,7 +1406,7 @@ function smliser_db() : \SmartLicenseServer\Database\Database {
  * @return FileSystem
  */
 function smliser_filesystem() : FileSystem {
-    return Environment::env_provider()->filesystem();
+    return smliser_envProvider()->filesystem();
 }
 
 /**
@@ -1409,7 +1419,7 @@ function smliser_filesystem() : FileSystem {
  * @return \SmartLicenseServer\Background\Queue\JobQueue
  */
 function smliser_job_queue(): \SmartLicenseServer\Background\Queue\JobQueue {
-    return Environment::env_provider()->job_queue();
+    return smliser_envProvider()->job_queue();
 }
  
 /**
@@ -1422,7 +1432,7 @@ function smliser_job_queue(): \SmartLicenseServer\Background\Queue\JobQueue {
  * @return \SmartLicenseServer\Background\Workers\QueueWorker
  */
 function smliser_queue_worker(): \SmartLicenseServer\Background\Workers\QueueWorker {
-    return Environment::env_provider()->queue_worker();
+    return smliser_envProvider()->queue_worker();
 }
 
 /**
@@ -1431,7 +1441,7 @@ function smliser_queue_worker(): \SmartLicenseServer\Background\Workers\QueueWor
  * @return SmartLicenseServer\SettingsAPI\Settings
  */
 function smliser_settings_adapter() : SmartLicenseServer\SettingsAPI\Settings {
-    return Environment::env_provider()->settings();
+    return smliser_envProvider()->settings();
 }
 
 /**
@@ -1440,7 +1450,7 @@ function smliser_settings_adapter() : SmartLicenseServer\SettingsAPI\Settings {
  * @return \SmartLicenseServer\Cache\Cache Singleton instance of the Cache class.
  */
 function smliser_cache() : \SmartLicenseServer\Cache\Cache {
-    return Environment::env_provider()->cache();
+    return smliser_envProvider()->cache();
 }
 
 /**
@@ -1449,7 +1459,7 @@ function smliser_cache() : \SmartLicenseServer\Cache\Cache {
  * @return \SmartLicenseServer\Email\Mailer
  */
 function smliser_mailer() : Mailer {
-    return Environment::env_provider()->mailer();
+    return smliser_envProvider()->mailer();
 }
 
 /**
@@ -1467,7 +1477,7 @@ function smliser_mailer() : Mailer {
  * @return \SmartLicenseServer\Background\Schedule\Scheduler
  */
 function smliser_scheduler(): \SmartLicenseServer\Background\Schedule\Scheduler {
-    return Environment::env_provider()->scheduler();
+    return smliser_envProvider()->scheduler();
 }
 
 /**
@@ -1476,7 +1486,14 @@ function smliser_scheduler(): \SmartLicenseServer\Background\Schedule\Scheduler 
  * @return \SmartLicenseServer\Http\HttpClient
  */
 function smliser_http_client() : HttpClient {
-    return Environment::env_provider()->httpClient();
+    return smliser_envProvider()->httpClient();
+}
+
+/**
+ * Get the monetization registry instance.
+ */
+function smliser_monetization_registry() : MonetizationRegistry {
+    return smliser_envProvider()->monetizationRegistry();
 }
 
 /**

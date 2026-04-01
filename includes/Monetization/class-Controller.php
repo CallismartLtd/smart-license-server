@@ -59,7 +59,7 @@ class Controller {
 
             $features_array = array_map( 'trim', explode( ',', $features ) );
 
-            if ( ! MonetizationRegistry::instance()->has( $provider_id ) ) {
+            if ( ! smliser_monetization_registry()->has( $provider_id ) ) {
                 throw new RequestException( 'invalid_provider', 'The selected monetization provider does not exist.', array( 'field_id' => 'provider_id', 'status' => 400 ) );
             }
 
@@ -185,7 +185,7 @@ class Controller {
                 throw new RequestException( 'required_param', __( 'Product ID is required.', 'smliser' ), ['status' => 400] );
             }
 
-            $provider   = MonetizationRegistry::instance()->get( $provider_id );
+            $provider   = smliser_monetization_registry()->get( $provider_id );
             
             if ( ! $provider ) {
                 throw new RequestException( 'resource_not_found', __( 'Invalid provider specified.', 'smliser' ), ['status' => 404] );
@@ -398,11 +398,11 @@ class Controller {
             
             $provider_id = $request->get( 'provider_id', null );
 
-            if ( ! $provider_id || ! MonetizationRegistry::instance()->has( $provider_id ) ) {
+            if ( ! $provider_id || ! smliser_monetization_registry()->has( $provider_id ) ) {
                 throw new RequestException( 'access_restricted', sprintf( 'The provider "%s" is not supported.', $provider_id ?? 'Unknown' ), [ 'status' => 403] );
             }
 
-            $provider           = MonetizationRegistry::instance()->get( $provider_id );
+            $provider           = smliser_monetization_registry()->get( $provider_id );
             $allowed_options    = array_keys( $provider->get_settings_schema() );
 
             foreach( $allowed_options as $name ) {

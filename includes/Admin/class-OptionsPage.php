@@ -81,7 +81,7 @@ class OptionsPage {
         if ( $request->has( 'provider' ) ) {
             self::monetization_provider_settings( $request );
         } else {
-            $providers = MonetizationRegistry::instance()->all();
+            $providers = smliser_monetization_registry()->all();
             include_once SMLISER_PATH . 'templates/admin/options/monetization-providers.php';
         }
     }
@@ -91,7 +91,7 @@ class OptionsPage {
      */
     private static function monetization_provider_settings( Request $request ): void {
         $provider_key   = $request->get( 'provider' );
-        $provider       = MonetizationRegistry::instance()->get( $provider_key );
+        $provider       = smliser_monetization_registry()->get( $provider_key );
         $name           = $provider?->get_name() ?? '';
         $id             = $provider?->get_id() ?? '';
         $schema         = $provider?->get_settings_schema();

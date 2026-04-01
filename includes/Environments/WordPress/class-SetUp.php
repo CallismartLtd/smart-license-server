@@ -18,7 +18,6 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Adapters\WPDBAdapter;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
-use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
 
@@ -52,7 +51,6 @@ class SetUp extends Environment {
         
         add_action( 'init', [$this, 'route_register'], 9 );
         add_action( 'init', [$this, 'schedule_events'], 10 );
-        add_action( 'init', [$this, 'load_monetization_providers'], 10 );
         add_action( 'init', [$this->script_manager, 'register_scripts'], 10 );
         add_action( 'init', [$this->script_manager, 'register_styles'], 10 );
         
@@ -134,14 +132,6 @@ class SetUp extends Environment {
         }
 
         return static::$instance;
-    }
-
-
-    /**
-     * Load monetization providers
-     */
-    public function load_monetization_providers() {
-        MonetizationRegistry::auto_load();
     }
 
     public static function url( string $path = '', array $qv = [] ) : URL {

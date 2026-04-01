@@ -32,6 +32,7 @@ use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Http\HttpClient;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Settings;
@@ -174,9 +175,17 @@ abstract class Environment implements EnvironmentProviderInterface {
     protected HttpClient $httpClient;
 
     /**
-     * Environment configuration setup.
+     * Monetization provider registry.
      * 
-     * @param array $config Array of configuration options
+     * @var MonetizationRegistry $monetizationRegistry
+     */
+    protected MonetizationRegistry $monetizationRegistry;
+
+    /**
+     * Environment constructor.
+     * 
+     * @param array $config The environment configuration options.
+     * @throws EnvironmentBootstrapException If required configuration is missing or invalid.
      */
     final protected function setup( array $config ) {
         $this->parse_config( $config );
@@ -349,10 +358,6 @@ abstract class Environment implements EnvironmentProviderInterface {
 
         if ( ! isset( $this->cache ) ) {
             $this->setGlobalCacheAdapter();
-        }
-
-        if ( ! isset( $this->mailer ) ) {
-            $this->setGlobalMailingAdapter();
         }
 
         if ( ! isset( $this->request ) ) {
@@ -809,8 +814,15 @@ abstract class Environment implements EnvironmentProviderInterface {
 
     /**
      * Get the mailer API instance.
+     * 
+     * Lazily loaded by default since not all environments may require mailing capabilities, and
+     * some environments may want to inject their own mailer instance (e.g. for testing or to use a different email provider).
      */
     public function mailer() : Mailer {
+        if ( ! isset( $this->mailer ) ) {
+            $this->setGlobalMailingAdapter();
+        }
+
         return $this->mailer;
     }
 
@@ -856,7 +868,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Get the global http client.
      * 
-     * Intentionally lazy loaded
+     * Intentionally lazy loaded.
      */
     public function httpClient() : HttpClient {
         if ( ! isset( $this->httpClient ) ) {
@@ -864,6 +876,19 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         return $this->httpClient;
+    }
+
+    /**
+    * Get the monetization provider registry.
+    * 
+    * Intentionally lazy loaded.
+    */
+    public function monetizationRegistry() : MonetizationRegistry {
+        if ( ! isset( $this->monetizationRegistry ) ) {
+            $this->monetizationRegistry = MonetizationRegistry::instance( $this->settings );
+        }
+
+        return $this->monetizationRegistry;
     }
 }
 

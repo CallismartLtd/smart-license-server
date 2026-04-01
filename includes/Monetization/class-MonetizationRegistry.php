@@ -11,9 +11,11 @@
 namespace SmartLicenseServer\Monetization;
 
 use InvalidArgumentException;
+use RuntimeException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface;
 use SmartLicenseServer\Monetization\Providers\WooCommerceProvider;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -53,20 +55,36 @@ final class MonetizationRegistry {
     private $core_loaded = false;
 
     /**
-     * Private constructor to prevent direct instantiation.
+     * The settings storage adapter instance.
+     * 
+     * @var Settings $storage
      */
-    private function __construct() {
+    private static Settings $storage;
+
+    /**
+     * Private constructor to prevent direct instantiation.
+     * 
+     * @param Settings $storage
+     */
+    private function __construct( Settings $storage ) {
+        self::$storage = $storage;
         $this->load_core_providers();
     }
 
     /**
      * Get the singleton instance of the MonetizationRegistry.
      * 
+     * @param Settings|null $storage The settings storage adapter to use for provider options.
      * @return self
      */
-    public static function instance() {
+    public static function instance( ?Settings $storage = null ) {
         if ( self::$instance === null ) {
-            self::$instance = new self();
+            if ( null === $storage ) {
+                throw new RuntimeException(
+                    'MonetizationRegistry instance not initialized. A Settings storage API must be provided on first call.'
+                );
+            }
+            self::$instance = new self( $storage );
         }
         return self::$instance;
     }
@@ -307,7 +325,7 @@ final class MonetizationRegistry {
 
         // Load this provider's options into cache if not already loaded
         if ( ! isset( $provider_options[ $provider_id ] ) ) {
-            $all_options = \smliser_settings_adapter()->get( 'smliser_monetization_providers_options', array() );
+            $all_options = self::$storage->get( 'smliser_monetization_providers_options', array() );
             $provider_options[ $provider_id ] = $all_options[ $provider_id ] ?? array();
         }
 
@@ -322,29 +340,16 @@ final class MonetizationRegistry {
      * @return bool True if option value has changed, false if not or if update failed.
      */
     public static function update_option( $provider_id, $option_name, $value ) {
-        $all_options = \smliser_settings_adapter()->get( 'smliser_monetization_providers_options', array() );
+        $all_options = self::$storage->get( 'smliser_monetization_providers_options', array() );
 
         if ( ! isset( $all_options[ $provider_id ] ) || ! is_array( $all_options[ $provider_id ] ) ) {
             $all_options[ $provider_id ] = array();
         }
 
         $all_options[ $provider_id ][ $option_name ] = $value;
-        $updated = \smliser_settings_adapter()->set( 'smliser_monetization_providers_options', $all_options );
+        $updated = self::$storage->set( 'smliser_monetization_providers_options', $all_options );
 
         return $updated;
-    }
-
-    /**
-     * Autoload providers
-     */
-    public static function auto_load() {
-        $classes = get_declared_classes();
-
-        foreach ( $classes as $class ) {
-            if ( in_array( MonetizationProviderInterface::class, class_implements( $class ) ) ) {
-                self::instance()->add( $class );
-            }
-        }
     }
 
     /*

@@ -19,7 +19,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\CLI;
 
-use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterCollection;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
@@ -29,7 +28,6 @@ use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
-use SmartLicenseServer\Monetization\MonetizationRegistry;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -195,16 +193,6 @@ class SetUp extends Environment {
     | EnvironmentProviderInterface implementation
     |--------------------------------------------
     */
-
-    /**
-     * {@inheritdoc}
-     *
-     * No-op in CLI — monetization providers are loaded on demand
-     * by the job handlers that need them, not at bootstrap time.
-     */
-    public function load_monetization_providers(): void {
-        MonetizationRegistry::auto_load();
-    }
 
     /**
      * {@inheritdoc}

@@ -22,10 +22,6 @@ use SmartLicenseServer\SettingsAPI\Settings;
  * Defines the contracts every environment adapter most follow to fully load this application.
  */
 interface EnvironmentProviderInterface {
-    /**
-     * Load the monetization providers
-     */
-    public function load_monetization_providers();
 
     /**
      * Get the website URL.

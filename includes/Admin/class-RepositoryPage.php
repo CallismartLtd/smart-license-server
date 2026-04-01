@@ -12,7 +12,6 @@ use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\Monetization\Monetization;
@@ -382,7 +381,7 @@ class RepositoryPage {
         $is_new     = false;
 
         $monetization     = Monetization::get_by_app( $app_type, $id );
-        $providers  = MonetizationRegistry::instance()->all( false, true );
+        $providers  = smliser_monetization_registry()->all( false, true );
 
         if ( empty( $monetization ) ) {
             $is_new = true;

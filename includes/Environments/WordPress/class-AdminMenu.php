@@ -290,7 +290,7 @@ class AdminMenu {
      * Index REST API Documentation page.
      */
     public static function rest_api_documentation() {
-        $rest = Environment::env_provider()->restProvider()->restAPIVersion();
+        $rest = smliser_envProvider()->restProvider()->restAPIVersion();
         ?>
             <div class="smliser-admin-api-description-section">
                 <h2 class="heading">REST API Documentation</h2>
