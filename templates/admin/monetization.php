@@ -7,33 +7,14 @@
  * @subpackage Admin
  * @since 0.0.5 
  * @var SmartLicenseServer\Core\URL $url
+ * @var \SmartLicenseServer\Monetization\Monetization|null $monetization
+ * @var array<int|string, class-string<\SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface>|\SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface> $providers
+ * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $app
  */
 
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
-use SmartLicenseServer\Monetization\Monetization,
-    SmartLicenseServer\Monetization\MonetizationRegistry;
-
-;
-
-defined( 'SMLISER_ABSPATH' ) || exit; 
-
-$id         = smliser_get_query_param( 'app_id' );
-$app_type   = smliser_get_query_param( 'type' );
-$is_new     = false;
-
-$object     = Monetization::get_by_app( $app_type, $id );
-$providers  = MonetizationRegistry::instance()->all();
-
-if ( empty( $object ) ) {
-    $is_new = true;
-    $object = new Monetization();
-    $object->set_app_id( $id )
-        ->set_app_type( $app_type );
-}
-
-$app = $object->get_app();
-?>
+defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <div class="smliser-admin-repository-template repo-page">
     <?php AdminMenu::print_admin_top_menu( self::get_menu_args( $request, $app ) ); ?>
@@ -75,9 +56,9 @@ $app = $object->get_app();
                                 smliser_render_toggle_switch( array(
                                     'id'                   => 'monetization_enabled',
                                     'name'                 => 'enabled',
-                                    'value'                => $object->is_enabled() ? 1 : 0,
+                                    'value'                => $monetization->is_enabled() ? 1 : 0,
                                     'data-action'          => 'toggleMonetization',
-                                    'data-monetization-id' => intval( $object->get_id() ),
+                                    'data-monetization-id' => intval( $monetization->get_id() ),
                                 ) );
                                 ?>
                             </td>
@@ -88,12 +69,12 @@ $app = $object->get_app();
                 <div class="smliser-monetization-ui__software-tiers">
                     <h2>Tiers</h2>
                     <table class="widefat striped">
-                        <?php if ( empty( $object->get_tiers() ) ) : ?>
+                        <?php if ( empty( $monetization->get_tiers() ) ) : ?>
                             <tr>
                                 <td>No pricing tiers has been set</td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ( $object->get_tiers() as $tier ) : ?>
+                            <?php foreach ( $monetization->get_tiers() as $tier ) : ?>
                                 <?php
                                     $features = $tier->get_features();
                                     $features_str = is_array( $features ) ? implode( ', ', $features ) : (string) $features;
@@ -154,9 +135,9 @@ $app = $object->get_app();
                     <?php else: ?>
                         <?php foreach( $providers as $provider ): ?>
                             <div class="smliser-monetization-ui__monetization-provider">
-                                <p>Name: <strong><?php echo esc_html( $provider->get_name() ); ?></strong></p>
-                                <p>Base URL: <?php echo esc_html( $provider->get_url() ); ?></p>
-                                <p>Checkout URL: <?php echo esc_html( $provider->get_checkout_url() ); ?></p>
+                                <p>Name: <strong><?php echo esc_html( $provider::get_name() ); ?></strong></p>
+                                <p>Base URL: <?php echo esc_html( $provider::get_url() ); ?></p>
+                                <p>Checkout URL: <?php echo esc_html( $provider::get_checkout_url() ); ?></p>
 
                             </div>
                         <?php endforeach; ?>
@@ -171,9 +152,9 @@ $app = $object->get_app();
                     <em>A pricing tier represents a specific license option for the application</em>
                     <form id="tier-form" class="smliser-admin-modal_content-form">
                         <input type="hidden" name="action" value="">
-                        <input type="hidden" name="monetization_id" value="<?php echo intval( $object->get_id() ); ?>">
+                        <input type="hidden" name="monetization_id" value="<?php echo intval( $monetization->get_id() ); ?>">
                         <input type="hidden" name="app_id" value="<?php echo intval( $app->get_id() ); ?>">
-                        <input type="hidden" name="app_type" value="<?php echo esc_attr( $object->get_app_type() ); ?>">
+                        <input type="hidden" name="app_type" value="<?php echo esc_attr( $monetization->get_app_type() ); ?>">
                         <input type="hidden" name="tier_id">
                         <label for="tier_name">Tier Name:
                             <input type="text" name="tier_name" id="tier_name" field-name="Tier Name">
@@ -188,7 +169,7 @@ $app = $object->get_app();
                             <select name="provider_id" id="provider_id" field-name="Monetization Provider">
                                 <option value="">--Choose Provider--</option>
                                 <?php foreach( $providers as $provider ) : ?>
-                                    <option value="<?php echo esc_attr( $provider->get_id() ) ?>"><?php echo esc_html( $provider->get_name() ); ?></option>
+                                    <option value="<?php echo esc_attr( $provider::get_id() ) ?>"><?php echo esc_html( $provider::get_name() ); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </label>

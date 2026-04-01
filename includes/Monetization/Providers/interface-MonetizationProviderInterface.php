@@ -97,7 +97,7 @@ interface MonetizationProviderInterface {
      * @param string|int $product_id
      * @return string|null  Checkout URL, or null if not applicable.
      */
-    public function get_checkout_url( $product_id = '' );
+    public static function get_checkout_url( $product_id = '' );
 
     /**
      * Get provider settings schema.

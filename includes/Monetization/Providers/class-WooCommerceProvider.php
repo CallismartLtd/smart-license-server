@@ -36,7 +36,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
      * 
      * @var string $checkout_endpoint
      */
-    protected $checkout_endpoint = '';
+    protected static $checkout_endpoint = '';
 
     /**
      * HTTP client client API.
@@ -79,15 +79,15 @@ class WooCommerceProvider implements MonetizationProviderInterface {
      * @param string $context The context, valid options are `edit` and `view`.
      * @return string  Checkout URL.
      */
-    public function get_checkout_url( $product_id = '', $context = 'view' ) {
+    public static function get_checkout_url( $product_id = '', $context = 'view' ) {
 
         if ( 'edit' === $context ) {
-            return $this->checkout_endpoint;
+            return static::$checkout_endpoint;
         }
 
         $product_id = ! empty( $product_id ) ?  static::finish( $product_id, '/' ) : '{{product_id}}';
         $base_url   = ! empty( static::$store_url ) ? static::finish( static::$store_url, '/' ) : '';
-        $checkout   = ! empty( static::$store_url ) ? static::finish( $this->checkout_endpoint, '/' ) : '';
+        $checkout   = ! empty( static::$store_url ) ? static::finish( static::$checkout_endpoint, '/' ) : '';
         
         return $base_url . $checkout . $product_id;
     }
@@ -260,7 +260,7 @@ class WooCommerceProvider implements MonetizationProviderInterface {
      */
     public function set_settings( array $settings ) : void {
         static::$store_url          = $settings['store_url'] ?? '';
-        $this->checkout_endpoint    = $settings['checkout_url'] ?? '';
+        static::$checkout_endpoint  = $settings['checkout_url'] ?? '';
     }
 
 }

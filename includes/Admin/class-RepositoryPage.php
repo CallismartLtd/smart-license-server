@@ -15,6 +15,8 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
+use SmartLicenseServer\Monetization\Monetization;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Utils\Format;
 
@@ -375,7 +377,21 @@ class RepositoryPage {
      */
     private static function monetization_page( Request $request ) {
         $url    = \smliser_repo_page( 'admin' );
+        $id         = smliser_get_query_param( 'app_id' );
+        $app_type   = smliser_get_query_param( 'type' );
+        $is_new     = false;
 
+        $monetization     = Monetization::get_by_app( $app_type, $id );
+        $providers  = MonetizationRegistry::instance()->all( false, true );
+
+        if ( empty( $monetization ) ) {
+            $is_new = true;
+            $monetization = new Monetization();
+            $monetization->set_app_id( $id )
+                ->set_app_type( $app_type );
+        }
+
+        $app = $monetization->get_app();
         include_once SMLISER_PATH . 'templates/admin/monetization.php';
     }
 

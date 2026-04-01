@@ -178,11 +178,18 @@ final class MonetizationRegistry {
     /**
      * Get all registered providers.
      *
-     * @param bool $assoc Whether to preserve keys by provider_id.
-     * @return array<int|string, class-string<MonetizationProviderInterface>>
+     * @param bool $assoc Whether to preserve keys by provider_id(default: true).
+     * @param bool $objects Whether to instanciat the providers(default: false).
+     * @return array<int|string, class-string<MonetizationProviderInterface>|MonetizationProviderInterface>
      */
-    public function all( $assoc = true ) : array {
+    public function all( bool $assoc = true, bool $objects = false ) : array {
         $all    = array_merge( $this->custom, $this->core );
+
+        if ( $objects ) {
+            foreach ( $all as $id => &$value ) {
+                $value = $this->get( $id );
+            }
+        }
         return $assoc ? $all : array_values( $all );
     }
 
@@ -198,7 +205,7 @@ final class MonetizationRegistry {
         }
 
         // Required top-level fields
-        $required_top = [ 'id', 'permalink', 'currency', 'pricing', 'checkout_url' ];
+        $required_top = [ 'id', 'url', 'currency', 'pricing', 'checkout_url' ];
         foreach ( $required_top as $key ) {
             if ( ! array_key_exists( $key, $product ) ) {
                 return new Exception(
@@ -241,7 +248,7 @@ final class MonetizationRegistry {
         }
 
         // Enforce schema: keep only allowed keys
-        $allowed_keys = [ 'id', 'permalink', 'checkout_url', 'currency', 'pricing', 'images', 'categories' ];
+        $allowed_keys = [ 'id', 'url', 'checkout_url', 'currency', 'pricing', 'images', 'categories' ];
         $product      = array_intersect_key( $product, array_flip( $allowed_keys ) );
 
         // Normalize images
