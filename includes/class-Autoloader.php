@@ -34,6 +34,13 @@ class Autoloader {
     private static array $function_dirs = array(
         SMLISER_PATH . 'includes/Utils/functions/',
     );
+
+    /**
+     * Loaded function files
+     * 
+     * @var array
+     */
+    private static array $loaded_function_files = array();
     
     /**
      * File prefixes for our naming convention
@@ -155,22 +162,44 @@ class Autoloader {
      * 
      * @param string $dir The directory path
      */
-    public static function add_function_dir( $dir ) {
-        self::$function_dirs[] = rtrim( $dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+    public static function add_function_dir( $dir ) : void {
+        $dir = rtrim( $dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+
+        if ( ! in_array( $dir, self::$function_dirs, true ) ) {
+            self::$function_dirs[] = $dir;
+
+            // Immediately load functions from this directory.
+            self::load_function_dir( $dir );
+        }
     }
 
     /**
-     * Autoload all function files in the Utils/function directory
+     * Autoload all function files from registered function directories.
      */
-    private static function autoload_functions() {
+    private static function autoload_functions() : void {
         require_once SMLISER_PATH . 'vendor/autoload.php';
 
         foreach ( self::$function_dirs as $dir ) {
-            if ( is_dir( $dir ) ) {
-                foreach ( glob( $dir . '*.php' ) as $file ) {
-                    require_once $file;
-                }
+            self::load_function_dir( $dir );
+        }
+    }
+
+    /**
+     * Load function files from a directory, ensuring each file is only loaded once.
+     */
+    private static function load_function_dir( string $dir ) : void {
+        if ( ! is_dir( $dir ) ) {
+            return;
+        }
+
+        foreach ( glob( $dir . '*.php' ) as $file ) {
+            if ( isset( self::$loaded_function_files[ $file ] ) ) {
+                continue;
             }
+
+            require_once $file;
+
+            self::$loaded_function_files[ $file ] = true;
         }
     }
 }
