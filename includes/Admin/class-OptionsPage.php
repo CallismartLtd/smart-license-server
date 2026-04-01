@@ -11,7 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Admin;
 
-use SmartLicenseServer\Cache\CacheAdapterCollection;
+use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Providers\EmailProviderInterface;
@@ -131,10 +131,10 @@ class OptionsPage {
             return;
         }
 
-        $collection       = smliser_emailProvidersRegistry();
-        $providers        = $collection->get_providers();
-        $default_provider = EmailProvidersRegistry::get_default_provider_id();
-        $email_fields     = static::email_settings_fields();
+        $registry           = smliser_emailProvidersRegistry();
+        $providers          = $registry->get_providers();
+        $default_provider   = EmailProvidersRegistry::get_default_provider_id();
+        $email_fields       = static::email_settings_fields();
 
         include_once SMLISER_PATH . 'templates/admin/options/email.php';
     }
@@ -183,8 +183,8 @@ class OptionsPage {
      */
     private static function email_provider_settings( Request $request ): void {
         $provider_key = $request->get( 'provider' );
-        $collection   = smliser_emailProvidersRegistry();
-        $provider     = $collection->get_provider( $provider_key );
+        $registry   = smliser_emailProvidersRegistry();
+        $provider   = $registry->get_provider( $provider_key );
 
         $provider_name  = $provider?->get_name() ?? '';
         $provider_id    = $provider?->get_id() ?? '';
@@ -219,9 +219,9 @@ class OptionsPage {
             return;
         }
 
-        $collection       = CacheAdapterCollection::instance();
-        $providers        = $collection->get_adapters();
-        $default_provider = CacheAdapterCollection::get_default_adapter_id();
+        $cache_registry     = CacheAdapterRegistry::instance();
+        $providers          = $cache_registry->get_adapters();
+        $default_provider   = CacheAdapterRegistry::get_default_adapter_id();
 
         include_once SMLISER_PATH . 'templates/admin/options/cache.php';
     }
@@ -248,18 +248,18 @@ class OptionsPage {
      */
     private static function cache_adapter_settings( Request $request ): void {
         $adapter_key  = $request->get( 'adapter' );
-        $collection   = CacheAdapterCollection::instance();
+        $collection   = CacheAdapterRegistry::instance();
         $adapter      = $collection->get_adapter( $adapter_key );
 
         $adapter_name   = $adapter?->get_name() ?? '';
         $adapter_id     = $adapter?->get_id() ?? '';
         $schema         = $adapter?->get_settings_schema() ?? [];
-        $is_default     = CacheAdapterCollection::get_default_adapter_id() === $adapter_id;
+        $is_default     = CacheAdapterRegistry::get_default_adapter_id() === $adapter_id;
 
         // Pre-populate each field with persisted value.
         $saved_settings = [];
         foreach ( $schema as $key => $_ ) {
-            $saved_settings[ $key ] = CacheAdapterCollection::get_option( $adapter_id, $key );
+            $saved_settings[ $key ] = CacheAdapterRegistry::get_option( $adapter_id, $key );
         }
 
         include_once SMLISER_PATH . 'templates/admin/options/cache-adapter.php';

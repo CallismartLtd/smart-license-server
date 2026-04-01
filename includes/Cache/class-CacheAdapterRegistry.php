@@ -22,7 +22,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * Cache adapters manager file.
  */
-class CacheAdapterCollection {
+class CacheAdapterRegistry {
     /**
      * Singleton instance.
      *
@@ -215,7 +215,7 @@ class CacheAdapterCollection {
         if ( ! static::instance()->has_adapter( $adapter_id ) ) {
             throw new EnvironmentBootstrapException(
                 'mis_configuration',
-                "CacheAdapterCollection: cannot set default — adapter '{$adapter_id}' is not registered."
+                "CacheAdapterRegistry: cannot set default — adapter '{$adapter_id}' is not registered."
             );
         }
 

@@ -19,7 +19,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\CLI;
 
-use SmartLicenseServer\Cache\CacheAdapterCollection;
+use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\CLIRunner;
@@ -160,7 +160,7 @@ class SetUp extends Environment {
         // Initialize the cache adapter if configured.
         if ( isset( $_ENV['SMLISER_CACHE_ADAPTER'] ) ) {
             $adapter_id = $_ENV['SMLISER_CACHE_ADAPTER'];
-            CacheAdapterCollection::instance()->set_default_adapter( $adapter_id );    
+            CacheAdapterRegistry::instance()->set_default_adapter( $adapter_id );    
         }
 
     }

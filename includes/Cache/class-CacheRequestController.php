@@ -35,7 +35,7 @@ class CacheRequestController {
      * Reads all fields defined in the adapter's settings schema from the
      * request, validates required fields, skips masked password placeholders
      * so saved credentials are never overwritten with '********', then
-     * persists the full settings batch via CacheAdapterCollection.
+     * persists the full settings batch via CacheAdapterRegistry.
      *
      * Optionally sets the adapter as the system default if the
      * 'set_as_default' flag is present in the request.
@@ -48,28 +48,28 @@ class CacheRequestController {
             static::is_system_admin();
 
             $adapter_id         = static::sanitize_key( $request->get( 'adapter_id' ) );
-            $default_adapter_id = CacheAdapterCollection::get_default_adapter_id();
+            $default_adapter_id = CacheAdapterRegistry::get_default_adapter_id();
             $is_default         = $adapter_id === $default_adapter_id;
 
             [$adapter, $saved_settings] = self::validate_settings_fields( $request );
 
             $ttl = (int) max( 0, $request->get( 'default_cache_ttl', 0 ) );
             \smliser_settings()->set( 'default_cache_ttl', $ttl, true );
-            CacheAdapterCollection::update_adapter_settings( $adapter_id, $saved_settings );
+            CacheAdapterRegistry::update_adapter_settings( $adapter_id, $saved_settings );
 
             $wants_reset = $is_default && $request->isEmpty( 'set_as_default' );
 
             if ( (bool) $request->get( 'set_as_default', false ) ) {
-                CacheAdapterCollection::set_default_adapter( $adapter_id );
+                CacheAdapterRegistry::set_default_adapter( $adapter_id );
             } elseif ( $wants_reset ) {
-                CacheAdapterCollection::set_default_adapter( 'runtime' );
+                CacheAdapterRegistry::set_default_adapter( 'runtime' );
             }
 
             return ( new Response( 200, [], [
                 'success' => true,
                 'data'    => [
                     'message'    => sprintf( '%s settings saved successfully.', $adapter->get_name() ),
-                    'is_default' => CacheAdapterCollection::get_default_adapter_id() === $adapter_id,
+                    'is_default' => CacheAdapterRegistry::get_default_adapter_id() === $adapter_id,
                 ],
             ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
@@ -116,7 +116,7 @@ class CacheRequestController {
                 'success' => true,
                 'data'    => [
                     'message'    => sprintf( '%s connection test passed successfully.', $cloned->get_name() ),
-                    'is_default' => CacheAdapterCollection::get_default_adapter_id() === $cloned->get_id(),
+                    'is_default' => CacheAdapterRegistry::get_default_adapter_id() === $cloned->get_id(),
                 ],
             ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
@@ -443,7 +443,7 @@ class CacheRequestController {
      *         Tuple of [cloned adapter with settings applied, validated settings array].
      */
     private static function validate_settings_fields( Request $request ): array {
-        $collection = CacheAdapterCollection::instance();
+        $collection = CacheAdapterRegistry::instance();
         $adapter_id = static::sanitize_key( $request->get( 'adapter_id' ) );
 
         if ( ! $adapter_id ) {
@@ -474,7 +474,7 @@ class CacheRequestController {
             // preserve the previously saved value rather than overwriting
             // with the display mask.
             if ( ( $field['type'] ?? '' ) === 'password' && $raw_value === '********' ) {
-                $saved_settings[ $key ] = CacheAdapterCollection::get_option( $adapter_id, $key );
+                $saved_settings[ $key ] = CacheAdapterRegistry::get_option( $adapter_id, $key );
                 continue;
             }
 

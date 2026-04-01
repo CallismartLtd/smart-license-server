@@ -1,6 +1,6 @@
 <?php
 /**
- * Monetization Provider Collection Class file
+ * Monetization Provider Registry Class file
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer
@@ -20,7 +20,7 @@ use SmartLicenseServer\SettingsAPI\Settings;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Collection of available monetization providers.
+ * Registry of available monetization providers.
  * 
  * This class manages the registration and retrieval of different
  * monetization providers integrated with the Smart License Server.

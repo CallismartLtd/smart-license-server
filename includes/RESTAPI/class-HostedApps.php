@@ -25,7 +25,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * Dedicated REST API endpoint for perform CRUD operations on hosted apps. 
  */
-class AppCollection {
+class HostedApps {
     use CacheAwareTrait;
 
     /**

@@ -16,7 +16,7 @@ use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
-use SmartLicenseServer\Cache\CacheAdapterCollection;
+use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Database\Database;
@@ -726,7 +726,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     protected function setGlobalCacheAdapter() : void {
 
         if ( ! isset( $this->cacheAdapter ) ) {
-            $this->cacheAdapter = CacheAdapterCollection::instance( $this->settings )->get_adapter_with_settings();
+            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings )->get_adapter_with_settings();
         }
 
         $this->cache    = new Cache( $this->cacheAdapter );
@@ -748,9 +748,9 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Sets up the global mailing service to use the default provider.
      */
     protected function setGlobalMailingAdapter() : void {
-        // Instantiate the email collection with storage.
-        $collection     = $this->emailProviders();
-        $this->mailer   = new Mailer( $collection->get_provider_with_settings() );
+        // Instantiate the email registry with storage.
+        $registry     = $this->emailProviders();
+        $this->mailer   = new Mailer( $registry->get_provider_with_settings() );
     }
 
     /**

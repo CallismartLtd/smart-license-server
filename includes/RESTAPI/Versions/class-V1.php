@@ -308,8 +308,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_ROUTE,
                     'methods'       => ['GET'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_response' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_get_guard' ),
                     'args'          => self::get_repository_args(),
                     'category'      => 'repository',
                     'name'          => 'Repository Query',
@@ -319,8 +319,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_APP_ROUTE,
                     'methods'       => ['GET'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'single_app_get' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_get_guard' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'single_app_get' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_get_guard' ),
                     'args'          => self::get_repository_app_args(),
                     'category'      => 'repository',
                     'name'          => 'Get Single Application',
@@ -329,8 +329,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_APP_TYPE_ROUTE,
                     'methods'       => ['POST'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'create_app' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_unsafe_method_guard' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'create_app' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_unsafe_method_guard' ),
                     'args'          => self::get_app_write_args( 'POST' ),
                     'category'      => 'repository',
                     'name'          => 'Create a New Application',
@@ -339,8 +339,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_APP_ROUTE,
                     'methods'       => array( 'PUT', 'PATCH' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'update_app' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_unsafe_method_guard' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'update_app' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_unsafe_method_guard' ),
                     'args'          => self::get_app_write_args( 'PUT', 'PATCH' ),
                     'category'      => 'repository',
                     'name'          => 'Update an Existing Application',
@@ -349,8 +349,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_APP_ROUTE,
                     'methods'       => array( 'DELETE' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'delete_app' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'repository_unsafe_method_guard' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'delete_app' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_unsafe_method_guard' ),
                     'args'          => self::get_app_delete_args(),
                     'category'      => 'repository',
                     'name'          => 'Delete Existing Application'
@@ -360,8 +360,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::APP_ASSETS_TYPE_ROUTE,
                     'methods'       => array( 'POST' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'upload_app_assets' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'assets_management_guard' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'upload_app_assets' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'assets_management_guard' ),
                     'args'          => [],
                     'category'      => 'repository',
                     'name'          => 'App Asset Bulk Upload'
@@ -370,8 +370,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::APP_ASSET_TYPE_ROUTE,
                     'methods'       => array( 'PUT' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'update_app_asset' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'assets_management_guard' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'update_app_asset' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'assets_management_guard' ),
                     'args'          => [],
                     'category'      => 'repository',
                     'name'          => 'Create or Replace a Single App Asset'
@@ -380,8 +380,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::APP_ASSETS_ROUTE_BASE . self::ASSET_NAME_REGEX,
                     'methods'       => array( 'DELETE' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'delete_app_asset' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\AppCollection::class, 'assets_management_guard' ),
+                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'delete_app_asset' ),
+                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'assets_management_guard' ),
                     'args'          => [],
                     'category'      => 'repository',
                     'name'          => 'Create or Replace App Asset'

@@ -1,6 +1,6 @@
 <?php
 /**
- * Email Provider Collection Class file.
+ * Email Provider Registry Class file.
  *
  * Manages registration, retrieval, and settings persistence
  * for all available email providers.
@@ -24,7 +24,6 @@ use SmartLicenseServer\Email\Providers\PostmarkProvider;
 use SmartLicenseServer\Email\Providers\ResendProvider;
 use SmartLicenseServer\Email\Providers\AmazonSESProvider;
 use InvalidArgumentException;
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
