@@ -189,7 +189,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
         );
     }
 
-/**
+    /**
      * Test whether APCu is operational.
      *
      * APCu has no external connection to configure, so $settings is

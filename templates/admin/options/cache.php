@@ -41,12 +41,12 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                 <div class="smliser-provider-card <?php echo esc_attr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
 
                     <div class="smliser-provider-card__icon-wrap">
-                        <?php echo CacheProviderIcons::render( $provider_id, $provider->get_name() ); ?>
+                        <?php echo CacheProviderIcons::render( $provider_id, $provider::get_name() ); ?>
                     </div>
 
                     <div class="smliser-provider-card__body">
                         <span class="smliser-provider-card__name">
-                            <?php echo esc_html( $provider->get_name() ); ?>
+                            <?php echo esc_html( $provider::get_name() ); ?>
                         </span>
 
                         <?php if ( $is_default ) : ?>

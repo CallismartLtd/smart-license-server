@@ -62,12 +62,12 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                 <?php foreach ( $schema as $key => $field_schema ) :
                     // Build the field definition in the same shape smliser_render_input_field() expects.
                     $field = [
-                        'label' => $field_schema['label'],
+                        'label' => $field_schema['label'] ?? '',
                         'help'  => $field_schema['description'] ?? '',
                         'input' => [
-                            'type'     => $field_schema['type'],
+                            'type'     => $field_schema['type'] ?? 'text',
                             'name'     => $key,
-                            'value'    => $saved_settings[ $key ] ?? '',
+                            'value'    => ( empty( $saved_settings[ $key ] ) ? null : $saved_settings[ $key ] ) ?? $field_schema['default'] ?? '',
                         ],
                     ];
 

@@ -197,9 +197,9 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
             memory_total : 0,   // No fixed ceiling for a PHP array.
             uptime       : max( 0, $now - $this->born_at ),
             extra        : [
-                'persistent'     => false,
-                'total_slots'    => count( $this->cache ), // Includes expired-but-unevicted.
-                'expired_slots'  => count( $this->cache ) - $live_entries,
+                'persistent'        => false,
+                'total_slots'       => count( $this->cache ), // Includes expired-but-unevicted.
+                'expired_entries'   => count( $this->cache ) - $live_entries,
             ],
         );
     }

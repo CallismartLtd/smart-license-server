@@ -248,7 +248,7 @@ final class MonetizationRegistry extends AbstractRegistry {
         $class_string   = $this->get( $provider_id );
 
         if ( $class_string ) {
-            /** @var  MonetizationProviderInterface $provider */
+            /** @var MonetizationProviderInterface $provider */
             $provider   = new $class_string;
             $settings   = [];
 

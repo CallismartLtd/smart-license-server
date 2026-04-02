@@ -179,7 +179,7 @@ if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
                 <div class="smlcd-card__value"><?php echo number_format( $entries ); ?></div>
                 <div class="smlcd-card__detail">
                     <?php
-                    $expired = (int) ( $extra['expired_entries'] ?? $extra['expired_slots'] ?? 0 );
+                    $expired = (int) ( $extra['expired_entries'] ?? 0 );
                     echo $expired > 0
                         ? '<span class="smlcd-warn">' . number_format( $expired ) . ' expired</span>'
                         : 'All entries live';

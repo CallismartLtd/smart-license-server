@@ -91,10 +91,18 @@ class CacheAdapterRegistry extends AbstractRegistry {
      */
     public function get_adapter( ?string $adapter_id = null ): CacheAdapterInterface {
         $adapter_id     = $adapter_id ?? $this->get_default_adapter_id();
-        $class_string    = $this->get( $adapter_id );
+        $class_string   = $this->get( $adapter_id );
 
         if ( $class_string ) {
-            $adapter = new $class_string;
+            /** @var CacheAdapterInterface $adapter */
+            $adapter    = new $class_string;
+            $settings   = [];
+
+            foreach ( $adapter->get_settings_schema() as $name => $_ ) {
+                $settings[$name] = $this->get_option( $adapter::get_id(), $name );
+            }
+
+            $adapter->set_settings( $settings );
         }
 
         return $adapter;
@@ -198,8 +206,10 @@ class CacheAdapterRegistry extends AbstractRegistry {
      */
     public static function update_adapter_settings( string $adapter_id, array $settings ): bool {
         $storage     = static::instance()->settings;
-        $all_options = $storage->get( static::SETTINGS_KEY, [], true );
+        $all_options = (array) $storage->get( static::SETTINGS_KEY, [], true );
+        
         $all_options[ $adapter_id ] = $settings;
+        
         $saved = $storage->set( static::SETTINGS_KEY, $all_options, true );
 
         if ( $saved ) {

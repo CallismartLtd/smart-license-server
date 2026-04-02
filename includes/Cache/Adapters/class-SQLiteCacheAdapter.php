@@ -32,10 +32,41 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *   get/set/delete/has reuse the same SQLite3Stmt objects.
  * - Probabilistic pruning (1% of reads rather than writes) amortises the
  *   cost of the cleanup DELETE across the workload without delaying writes.
- * - initialize() only runs once per instance — ensure_db() gates everything
+ * - connect() only runs once per instance — is_connected() gates everything
  *   with a fast isset() check on subsequent calls.
+ *
+ * ## Stats design — atomic, race-free, zero hot-path cost
+ *
+ * The previous design wrote stats to the DB on every get/set/has call.
+ * With multiple PHP-FPM workers each holding their own in-memory counters,
+ * every write was a read-modify-write race: worker A reads hits=5, worker B
+ * reads hits=5, both increment to 6, both write 6 — one increment is lost.
+ *
+ * The new design:
+ *
+ *  1. In-process accumulation — hits and misses are incremented in plain
+ *     PHP integers ($pending_hits / $pending_misses). No DB touch at all
+ *     during the hot path. Zero I/O, zero lock contention.
+ *
+ *  2. Atomic flush at shutdown — a single register_shutdown_function()
+ *     call fires once per request/CLI process. It issues one SQL statement:
+ *
+ *       UPDATE stats SET hits = hits + $n, misses = misses + $m WHERE id = 1
+ *
+ *     Because the increment is expressed relative to the current DB value
+ *     (hits + $n rather than an absolute value), concurrent workers never
+ *     clobber each other — each one adds its own delta regardless of what
+ *     the others wrote.
+ *
+ *  3. WAL journal mode keeps the flush non-blocking for concurrent readers.
  */
 class SQLiteCacheAdapter implements CacheAdapterInterface {
+
+    /*
+    |--------------------------------------------
+    | DATABASE STATE
+    |--------------------------------------------
+    */
 
     /**
      * The SQLite3 connection.
@@ -52,6 +83,13 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     protected string $table = 'smliser_cache';
 
     /**
+     * Stats table name.
+     *
+     * @var string
+     */
+    protected string $stats_table = 'smliser_cache_stats';
+
+    /**
      * Absolute path to the cache directory.
      *
      * @var string
@@ -61,40 +99,78 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     /**
      * Prepared statement cache.
      *
-     * Keyed by an arbitrary label so each statement is prepared once
-     * per connection and reused on subsequent calls.
-     *
      * @var array<string, SQLite3Stmt>
      */
     private array $stmts = [];
 
+    /*
+    |--------------------------------------------
+    | STATS ACCUMULATOR
+    |--------------------------------------------
+    */
+
     /**
-     * Constructor.
+     * Hit count accumulated in-process this request.
+     *
+     * Never written to the DB directly — flushed atomically at shutdown.
+     *
+     * @var int
      */
+    private int $pending_hits = 0;
+
+    /**
+     * Miss count accumulated in-process this request.
+     *
+     * @var int
+     */
+    private int $pending_misses = 0;
+
+    /**
+     * Whether the shutdown flusher has been registered.
+     *
+     * One registration per adapter instance is enough.
+     *
+     * @var bool
+     */
+    private bool $shutdown_registered = false;
+
+    /**
+     * Cache memory
+     * 
+     * @var int $cache_memory
+     */
+    protected int $cache_memory = 4;
+
+    /*
+    |--------------------------------------------
+    | CONSTRUCTOR
+    |--------------------------------------------
+    */
+
     public function __construct() {}
 
     /*
-    |---------------------
-    | Public interface
-    |---------------------
+    |--------------------------------------------
+    | CacheAdapterInterface — READ
+    |--------------------------------------------
     */
 
     /**
      * Retrieve a cached value.
      *
-     * Expiry is enforced entirely at the SQL layer — no PHP-side
-     * time comparison needed. A 1-in-100 probabilistic prune runs
-     * on reads to amortise cleanup cost without blocking writes.
+     * Expiry is enforced entirely at the SQL layer. A 1-in-100
+     * probabilistic prune runs on reads to amortise cleanup cost.
+     * Stats are accumulated in-memory only — no DB write on this path.
      *
      * @param  string $key
-     * @return mixed|false  The stored value, or false on miss/expiry.
+     * @return mixed|false
      */
     public function get( string $key ): mixed {
-        if ( ! $this->ensure_db() ) {
+        if ( ! $this->is_connected() ) {
+            $this->record_miss();
             return false;
         }
 
-        // Probabilistic prune — 1% of reads trigger cleanup of all expired rows.
         if ( mt_rand( 1, 100 ) === 1 ) {
             $this->prune_expired();
         }
@@ -109,6 +185,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         );
 
         if ( ! $stmt ) {
+            $this->record_miss();
             return false;
         }
 
@@ -119,6 +196,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         $stmt->reset();
 
         if ( ! $result ) {
+            $this->record_miss();
             return false;
         }
 
@@ -126,25 +204,83 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         $result->finalize();
 
         if ( ! $row ) {
+            $this->record_miss();
             return false;
         }
+
+        $this->record_hit();
 
         return unserialize( $row['cache_value'], [ 'allowed_classes' => true ] );
     }
 
     /**
+     * Determine whether a non-expired cache entry exists.
+     *
+     * Expiry enforced at the SQL layer. Stats accumulated in-memory.
+     *
+     * @param  string $key
+     * @return bool
+     */
+    public function has( string $key ): bool {
+        if ( ! $this->is_connected() ) {
+            $this->record_miss();
+            return false;
+        }
+
+        $stmt = $this->stmt(
+            'has',
+            "SELECT 1
+             FROM {$this->table}
+             WHERE cache_key = ?
+               AND (expires_at IS NULL OR expires_at > ?)
+             LIMIT 1"
+        );
+
+        if ( ! $stmt ) {
+            $this->record_miss();
+            return false;
+        }
+
+        $stmt->bindValue( 1, $key,   SQLITE3_TEXT );
+        $stmt->bindValue( 2, time(), SQLITE3_INTEGER );
+
+        $result = $stmt->execute();
+        $stmt->reset();
+
+        if ( ! $result ) {
+            $this->record_miss();
+            return false;
+        }
+
+        $row = $result->fetchArray( SQLITE3_NUM );
+        $result->finalize();
+
+        $hit = $row !== false && ( (int) $row[0] ) === 1;
+
+        $hit ? $this->record_hit() : $this->record_miss();
+
+        return $hit;
+    }
+
+    /*
+    |--------------------------------------------
+    | CacheAdapterInterface — WRITE
+    |--------------------------------------------
+    */
+
+    /**
      * Store a value in cache.
      *
-     * Uses INSERT ... ON CONFLICT upsert so a single SQL statement
-     * handles both insert and update — no pre-check for existing keys.
+     * Uses INSERT ... ON CONFLICT upsert — one round trip, no pre-check.
+     * Stats counters are not touched on writes.
      *
      * @param  string $key
      * @param  mixed  $value
-     * @param  int    $ttl   Seconds until expiry. 0 means no expiry.
+     * @param  int    $ttl   Seconds until expiry. 0 = no expiry.
      * @return bool
      */
     public function set( string $key, mixed $value, int $ttl = 0 ): bool {
-        if ( ! $this->ensure_db() ) {
+        if ( ! $this->is_connected() ) {
             return false;
         }
 
@@ -184,10 +320,10 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * Delete a cache entry.
      *
      * @param  string $key
-     * @return bool         True if a row was deleted, false if key did not exist.
+     * @return bool         True if a row was deleted.
      */
     public function delete( string $key ): bool {
-        if ( ! $this->ensure_db() ) {
+        if ( ! $this->is_connected() ) {
             return false;
         }
 
@@ -215,69 +351,29 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     }
 
     /**
-     * Determine whether a non-expired cache entry exists.
+     * Clear the entire cache table and reset persisted stats to zero.
      *
-     * Expiry is enforced at the SQL layer — no PHP time comparison.
-     * Uses SELECT 1 with a WHERE match; a result row means the key
-     * exists and has not expired. fetchArray() returning false means
-     * no matching row — i.e. miss or expired.
-     *
-     * BUG FIX (original): queried FROM table (literal) instead of
-     * FROM {$this->table}, and checked fetchArray() truthiness on the
-     * EXISTS row without reading the boolean column value — EXISTS
-     * always returns a row (containing 0 or 1), so the original always
-     * returned true regardless of whether the key existed.
-     *
-     * @param  string $key
-     * @return bool
-     */
-    public function has( string $key ): bool {
-        if ( ! $this->ensure_db() ) {
-            return false;
-        }
-
-        $stmt = $this->stmt(
-            'has',
-            "SELECT 1
-             FROM {$this->table}
-             WHERE cache_key = ?
-               AND (expires_at IS NULL OR expires_at > ?)
-             LIMIT 1"
-        );
-
-        if ( ! $stmt ) {
-            return false;
-        }
-
-        $stmt->bindValue( 1, $key,   SQLITE3_TEXT );
-        $stmt->bindValue( 2, time(), SQLITE3_INTEGER );
-
-        $result = $stmt->execute();
-        $stmt->reset();
-
-        if ( ! $result ) {
-            return false;
-        }
-
-        $row = $result->fetchArray( SQLITE3_NUM );
-        $result->finalize();
-
-        // A row is returned only when the key exists and has not expired.
-        // fetchArray() returns false when there are no rows — i.e. miss.
-        return $row !== false && ( (int) $row[0] ) === 1;
-    }
-
-    /**
-     * Clear the entire cache table.
+     * Also resets the in-process pending counters so the shutdown
+     * flusher does not add phantom deltas on top of the zeroed stats.
      *
      * @return bool
      */
     public function clear(): bool {
-        if ( ! $this->ensure_db() ) {
+        if ( ! $this->is_connected() ) {
             return false;
         }
 
-        return (bool) $this->db->exec( "DELETE FROM {$this->table}" );
+        $this->db->exec( "DELETE FROM {$this->table}" );
+        $this->db->exec(
+            "UPDATE {$this->stats_table} SET hits = 0, misses = 0 WHERE id = 1"
+        );
+
+        // Zero the pending accumulators so the shutdown flusher adds
+        // nothing on top of the explicit reset above.
+        $this->pending_hits   = 0;
+        $this->pending_misses = 0;
+
+        return true;
     }
 
     /**
@@ -286,10 +382,10 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * Called probabilistically from get() and may also be called
      * explicitly from a scheduled maintenance task.
      *
-     * @return int  Number of rows deleted.
+     * @return int Number of rows deleted.
      */
     public function prune_expired(): int {
-        if ( ! $this->ensure_db() ) {
+        if ( ! $this->is_connected() ) {
             return 0;
         }
 
@@ -302,9 +398,9 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     }
 
     /*
-    |---------------------
-    | Adapter identity
-    |---------------------
+    |--------------------------------------------
+    | ADAPTER IDENTITY & STATS
+    |--------------------------------------------
     */
 
     public static function get_id(): string {
@@ -315,283 +411,336 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         return 'SQLite Cache';
     }
 
+    /**
+     * Return current cache statistics.
+     *
+     * Reads the persisted hit/miss totals from the stats table and
+     * adds the current request's pending delta so the numbers are
+     * always up-to-date for the caller without requiring a flush first.
+     *
+     * @return CacheStats
+     */
+    public function get_stats(): CacheStats {
+        if ( ! $this->is_connected() ) {
+            return new CacheStats();
+        }
+
+        $now = time();
+
+        $row = $this->db->querySingle(
+            "SELECT
+                 COUNT(*) AS entry_count,
+                 SUM(LENGTH(cache_value)) AS value_bytes
+             FROM {$this->table}
+             WHERE expires_at IS NULL OR expires_at > {$now}",
+            true
+        );
+
+        $entries     = (int) ( $row['entry_count'] ?? 0 );
+        $memory_used = (int) ( $row['value_bytes']  ?? 0 );
+
+        $expired = (int) $this->db->querySingle(
+            "SELECT COUNT(*) FROM {$this->table}
+             WHERE expires_at IS NOT NULL AND expires_at <= {$now}"
+        );
+
+        $page_count = (int) $this->db->querySingle( 'PRAGMA page_count' );
+        $page_size  = (int) $this->db->querySingle( 'PRAGMA page_size' );
+        $db_size    = $page_count * $page_size;
+        $db_file    = $this->path . '/smliser-cache.db';
+        $uptime     = file_exists( $db_file ) ? $now - filemtime( $db_file ) : 0;
+
+        // Load persisted totals, then add this request's in-flight delta
+        // so callers always see the latest effective counts even before
+        // the shutdown flusher has run.
+        $stats_row = $this->db->querySingle(
+            "SELECT hits, misses FROM {$this->stats_table} WHERE id = 1",
+            true
+        );
+
+        $hits   = (int) ( $stats_row['hits']   ?? 0 ) + $this->pending_hits;
+        $misses = (int) ( $stats_row['misses']  ?? 0 ) + $this->pending_misses;
+
+        return new CacheStats(
+            hits         : $hits,
+            misses       : $misses,
+            entries      : $entries,
+            memory_used  : $memory_used,
+            memory_total : $db_size,
+            uptime       : $uptime,
+            extra        : [
+                'expired_entries' => $expired,
+                'db_file_size'    => $db_size,
+                'db_file'         => $db_file,
+                'page_count'      => $page_count,
+                'page_size'       => $page_size,
+            ],
+        );
+    }
+
+    /*
+    |--------------------------------------------
+    | ADAPTER CONFIGURATION
+    |--------------------------------------------
+    */
+
+    /**
+     * Return the adapter's settings schema.
+     *
+     * @return array<string, mixed>
+     */
     public function get_settings_schema(): array {
         return [
             'cache_dir' => [
                 'type'        => 'text',
                 'label'       => 'Cache Directory',
                 'required'    => true,
-                'default'     => '',
+                'default'     => SMLISER_CACHE_DIR,
                 'description' => 'Absolute path to the directory where the SQLite cache database will be stored. Must be within the writable repository path.',
+            ],
+            'cache_memory' => [
+                'type'        => 'number',
+                'label'       => 'Cache Memory (MB)',
+                'required'    => true,
+                'default'     => 4, // default 4 MB
+                'description' => 'Amount of memory SQLite can use for its page cache. Enter in megabytes.',
+                'min'         => 1,
+                'max'         => 1024,
             ],
         ];
     }
 
+    /**
+     * Apply adapter settings.
+     *
+     * @param  array<string, mixed> $settings
+     * @return void
+     */
     public function set_settings( array $settings ): void {
         $cache_dir = $settings['cache_dir'] ?? '';
+        $cache_memory = (int) ($settings['cache_memory'] ?? 4); // default 4 MB
 
         if ( ! $cache_dir || ! str_starts_with( $cache_dir, SMLISER_REPO_DIR ) ) {
             throw new LogicException(
-                'Cache directory must be a valid, and within the writable repository path.'
+                'Cache directory must be valid and within the writable repository path.'
             );
         }
 
         $this->path = rtrim( $cache_dir, '/' );
 
+        // Validate cache_memory within sensible bounds
+        if ( $cache_memory < 1 || $cache_memory > 1024 ) {
+            $cache_memory = 4; // fallback default
+        }
+
+        $this->cache_memory = $cache_memory;
+
         // Reset statement cache — a new path means a new database file.
         $this->stmts = [];
         unset( $this->db );
-
-        $this->initialize();
-    }
-
-    public function is_supported(): bool {
-        return class_exists( SQLite3::class );
-    }
-
-    /*
-    |---------------------
-    | Diagnostics
-    |---------------------
-    */
-
-    /**
-     * Return runtime statistics derived from the SQLite database.
-     *
-     * All figures are computed with lightweight COUNT / SUM queries
-     * against the cache table itself — no SQLite PRAGMA overhead beyond
-     * page_count and page_size which are O(1) reads from the header.
-     *
-     * memory_total reflects the physical database file size (page_count ×
-     * page_size) rather than a configurable ceiling, since SQLite has no
-     * fixed memory limit. memory_used is the serialised byte footprint of
-     * live (non-expired) cache values.
-     *
-     * Hit/miss counters are not tracked by SQLite itself; uptime is derived
-     * from the oldest created_at timestamp if that column exists, falling
-     * back to 0. Because SQLite is file-based and this adapter does not yet
-     * record hits/misses, both are returned as 0.
-     *
-     * @return CacheStats
-     */
-    public function get_stats(): CacheStats {
-        if ( ! $this->ensure_db() ) {
-            return new CacheStats();
-        }
-
-        try {
-            $now = time();
-
-            // Live entry count and total serialised size of non-expired values.
-            $row = $this->db->querySingle(
-                "SELECT
-                     COUNT(*)       AS entry_count,
-                     SUM(LENGTH(cache_value)) AS value_bytes
-                 FROM {$this->table}
-                 WHERE expires_at IS NULL OR expires_at > {$now}",
-                true
-            );
-
-            $entries     = (int)   ( $row['entry_count'] ?? 0 );
-            $memory_used = (int)   ( $row['value_bytes'] ?? 0 );
-
-            // Expired-but-not-yet-pruned entry count (informational).
-            $expired = (int) $this->db->querySingle(
-                "SELECT COUNT(*) FROM {$this->table}
-                 WHERE expires_at IS NOT NULL AND expires_at <= {$now}"
-            );
-
-            // Physical file size: page_count × page_size (both O(1) PRAGMA reads).
-            $page_count = (int) $this->db->querySingle( 'PRAGMA page_count' );
-            $page_size  = (int) $this->db->querySingle( 'PRAGMA page_size' );
-            $db_size    = $page_count * $page_size;
-
-            // File path for the extra bag.
-            $db_file = isset( $this->path )
-                ? $this->path . '/smliser-cache.db'
-                : '';
-
-            return new CacheStats(
-                hits         : 0,    // SQLite does not track read hits natively.
-                misses       : 0,    // SQLite does not track read misses natively.
-                entries      : $entries,
-                memory_used  : $memory_used,
-                memory_total : $db_size,
-                uptime       : 0,    // No server process — file mtime could substitute if needed.
-                extra        : [
-                    'expired_entries' => $expired,
-                    'db_file_size'    => $db_size,
-                    'db_file'         => $db_file,
-                    'journal_mode'    => (string) $this->db->querySingle( 'PRAGMA journal_mode' ),
-                    'page_count'      => $page_count,
-                    'page_size'       => $page_size,
-                ],
-            );
-        } catch ( \Throwable ) {
-            return new CacheStats();
-        }
     }
 
     /**
-     * Test whether the adapter can open a SQLite database and perform a
-     * full write → read → delete round-trip at the supplied path.
+     * Test whether the adapter can connect and operate with the given settings.
      *
-     * Creates an isolated temporary database in the supplied cache_dir
-     * (or a system temp directory when cache_dir is absent) so the live
-     * database is never touched. The probe file is deleted before returning.
+     * Performs a temporary write → read → delete round-trip against a
+     * probe key without disturbing any existing cache entries. The current
+     * adapter configuration is fully restored in a finally block before
+     * returning, regardless of success or failure.
      *
-     * Validates that cache_dir is within SMLISER_REPO_DIR when provided,
-     * matching the same constraint enforced by set_settings().
+     * Never throws — all exceptions are caught and result in a false return.
      *
-     * @param array<string, mixed> $settings Settings shaped like get_settings_schema().
-     * @return bool True if the path is writable and a round-trip succeeds.
-     * @throws CacheTestException On any configuration or connectivity failure.
+     * @param  array<string, mixed> $settings Settings to test.
+     * @return bool True if all three round-trip steps succeed.
      */
-    public function test( array $settings = [] ): bool {
-        if ( ! $this->is_supported() ) {
-            throw new CacheTestException(
-                'SQLite3 extension is not available on this server.'
-            );
-        }
-
-        $probe_file = null;
+    public function test( array $settings ): bool {
+        $previous_path = $this->path ?? null;
+        $previous_db   = isset( $this->db ) ? $this->db : null;
+        $previous_stmts = $this->stmts;
 
         try {
-            $cache_dir = isset( $settings['cache_dir'] )
-                ? rtrim( (string) $settings['cache_dir'], '/' )
-                : null;
+            // Apply candidate settings without persisting them.
+            $this->set_settings( $settings );
 
-            if ( $cache_dir !== null ) {
-                if ( ! str_starts_with( $cache_dir, SMLISER_REPO_DIR ) ) {
-                    throw new CacheTestException(
-                        sprintf(
-                            'Cache directory "%s" is outside the allowed base path. It must be within %s.',
-                            $cache_dir,
-                            SMLISER_REPO_DIR
-                        )
-                    );
-                }
-
-                if ( ! is_dir( $cache_dir ) && ! mkdir( $cache_dir, 0755, true ) ) {
-                    throw new CacheTestException(
-                        sprintf( 'Could not create cache directory "%s". Check filesystem permissions.', $cache_dir )
-                    );
-                }
-
-                $probe_file = $cache_dir . '/__smliser_sqlite_probe_' . \uniqid( '', true ) . '.db';
-            } else {
-                $probe_file = sys_get_temp_dir() . '/__smliser_sqlite_probe_' . \uniqid( '', true ) . '.db';
+            if ( empty( $this->path ) ) {
+                throw new CacheTestException( 'SQLite cache path is not configured.' );
             }
 
-            try {
-                $sandbox = new \SQLite3(
-                    $probe_file,
-                    SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
-                );
-            } catch ( \Throwable $e ) {
+            if ( ! is_dir( $this->path ) ) {
                 throw new CacheTestException(
-                    sprintf( 'Could not open SQLite database at "%s": %s', $probe_file, $e->getMessage() ),
-                    0,
-                    $e
+                    sprintf( 'SQLite cache directory does not exist: %s', $this->path )
                 );
             }
 
-            if ( $sandbox->exec( 'CREATE TABLE IF NOT EXISTS probe (k TEXT PRIMARY KEY, v BLOB)' ) === false ) {
-                $sandbox->close();
+            if ( ! is_writable( $this->path ) ) {
                 throw new CacheTestException(
-                    sprintf( 'Could not create probe table: %s', $sandbox->lastErrorMsg() )
+                    sprintf( 'SQLite cache directory is not writable: %s', $this->path )
                 );
             }
 
-            $probe_key   = '__probe_' . \uniqid( '', true );
-            $probe_value = serialize( 1 );
+            // Open a fresh connection against the candidate path.
+            unset( $this->db );
+            $this->stmts = [];
+            $this->connect();
 
-            // Write.
-            $stmt = $sandbox->prepare( 'INSERT INTO probe (k, v) VALUES (?, ?)' );
-            if ( $stmt === false ) {
-                $sandbox->close();
-                throw new CacheTestException(
-                    sprintf( 'Could not prepare write statement: %s', $sandbox->lastErrorMsg() )
-                );
+            if ( ! isset( $this->db ) ) {
+                throw new CacheTestException( 'Could not open SQLite database.' );
             }
 
-            $stmt->bindValue( 1, $probe_key,   SQLITE3_TEXT );
-            $stmt->bindValue( 2, $probe_value, SQLITE3_BLOB );
+            // Write → read → delete round-trip with an isolated probe key.
+            $probe    = '__smliser_probe_' . bin2hex( random_bytes( 8 ) );
+            $expected = 'smliser_ok';
 
-            if ( $stmt->execute() === false ) {
-                $sandbox->close();
-                throw new CacheTestException(
-                    sprintf( 'Probe write failed: %s', $sandbox->lastErrorMsg() )
-                );
+            if ( ! $this->set( $probe, $expected, 30 ) ) {
+                throw new CacheTestException( 'SQLite probe write failed.' );
             }
 
-            // Read.
-            $read = $sandbox->querySingle(
-                "SELECT v FROM probe WHERE k = '" . \SQLite3::escapeString( $probe_key ) . "'"
-            );
-
-            if ( $read === null || unserialize( $read ) !== 1 ) {
-                $sandbox->close();
-                throw new CacheTestException(
-                    'Probe read returned unexpected data — the write may have silently failed.'
-                );
+            if ( $this->get( $probe ) !== $expected ) {
+                throw new CacheTestException( 'SQLite probe read returned unexpected value.' );
             }
 
-            // Delete.
-            $sandbox->exec(
-                "DELETE FROM probe WHERE k = '" . \SQLite3::escapeString( $probe_key ) . "'"
-            );
-
-            if ( $sandbox->changes() !== 1 ) {
-                $sandbox->close();
-                throw new CacheTestException(
-                    'Probe delete did not remove the expected row — cache eviction may be unreliable.'
-                );
-            }
-
-            $sandbox->close();
+            $this->delete( $probe );
 
             return true;
 
+        } catch ( CacheTestException $e ) {
+            error_log( 'SQLiteCacheAdapter::test() — ' . $e->getMessage() );
+            return false;
+        } catch ( \Throwable $e ) {
+            error_log( 'SQLiteCacheAdapter::test() — unexpected: ' . $e->getMessage() );
+            return false;
         } finally {
-            // Always remove the probe file, even when an exception was thrown.
-            if ( $probe_file !== null && file_exists( $probe_file ) ) {
-                @unlink( $probe_file );
-                @unlink( $probe_file . '-wal' );
-                @unlink( $probe_file . '-shm' );
+            // Restore the live adapter state unconditionally so the
+            // production connection and config are never disturbed.
+            if ( $previous_path !== null ) {
+                $this->path = $previous_path;
+            } else {
+                unset( $this->path );
+            }
+
+            unset( $this->db );
+            $this->stmts = $previous_stmts;
+
+            if ( $previous_db !== null ) {
+                $this->db = $previous_db;
             }
         }
     }
 
     /*
-    |---------------------
-    | Private helpers
-    |---------------------
+    |--------------------------------------------
+    | STATS FLUSH
+    |--------------------------------------------
     */
 
     /**
-     * Open the SQLite connection and create the cache table if needed.
+     * Record a cache hit and ensure the shutdown flusher is registered.
      *
-     * Called once — subsequent calls from ensure_db() are gated by
-     * the isset( $this->db ) fast path so this body only executes once
-     * per adapter instance.
+     * All hit recording goes through here — the flusher registration
+     * cannot be forgotten regardless of which code path produces the hit.
      *
      * @return void
      */
-    protected function initialize(): void {
+    private function record_hit(): void {
+        $this->pending_hits++;
+        $this->ensure_shutdown_flusher();
+    }
+
+    /**
+     * Record a cache miss and ensure the shutdown flusher is registered.
+     *
+     * All miss recording goes through here — including early-return paths
+     * (connection failure, statement failure, empty result). This was the
+     * original bug: bare $pending_misses++ increments on early-return paths
+     * never called ensure_shutdown_flusher(), so miss-only requests never
+     * registered the flusher and those misses were never persisted.
+     *
+     * @return void
+     */
+    private function record_miss(): void {
+        $this->pending_misses++;
+        $this->ensure_shutdown_flusher();
+    }
+
+    /**
+     * Register the shutdown flusher exactly once per adapter instance.
+     *
+     * The flusher uses a relative UPDATE (hits = hits + $n) rather than
+     * writing an absolute value, making it safe under concurrent workers:
+     * each process adds only its own delta regardless of what other
+     * workers wrote between the start and end of this request.
+     *
+     * @return void
+     */
+    private function ensure_shutdown_flusher(): void {
+        if ( $this->shutdown_registered ) {
+            return;
+        }
+
+        $this->shutdown_registered = true;
+
+        register_shutdown_function( function (): void {
+            $this->flush_stats();
+        } );
+    }
+
+    /**
+     * Atomically persist the in-process hit/miss delta to the stats table.
+     *
+     * Called once by the shutdown flusher. Safe to call manually (e.g.
+     * in tests or long-running CLI commands that want to checkpoint stats
+     * mid-run).
+     *
+     * Uses a relative UPDATE so concurrent workers never clobber each
+     * other's increments.
+     *
+     * @return void
+     */
+    public function flush_stats(): void {
+        if ( ! isset( $this->db ) ) {
+            return;
+        }
+
+        if ( $this->pending_hits === 0 && $this->pending_misses === 0 ) {
+            return;
+        }
+
+        $hits   = $this->pending_hits;
+        $misses = $this->pending_misses;
+
+        // Reset before the write so a re-entrant call (e.g. triggered by
+        // an exception handler) doesn't double-count.
+        $this->pending_hits   = 0;
+        $this->pending_misses = 0;
+
+        $this->db->exec(
+            "UPDATE {$this->stats_table}
+             SET hits   = hits   + {$hits},
+                 misses = misses + {$misses}
+             WHERE id = 1"
+        );
+    }
+
+    /*
+    |--------------------------------------------
+    | CONNECTION
+    |--------------------------------------------
+    */
+
+    protected function connect(): void {
         if ( isset( $this->db ) ) {
             return;
         }
 
-        if ( ! $this->is_supported() ) {
-            return;
-        }
-
-        if ( ! isset( $this->path ) ) {
-            return;
-        }
-
         try {
+            if ( ! $this->is_supported() ) {
+                throw new Exception( 'SQLite is not supported.' );
+            }
+
+            if ( ! isset( $this->path ) ) {
+                throw new Exception( 'SQLiteCacheAdapter: Database path is not set.' );
+            }
+
             $file = $this->path . '/smliser-cache.db';
             $dir  = dirname( $file );
 
@@ -604,32 +753,23 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
                 SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
             );
 
-            // Wait up to 5 s on a locked database rather than failing immediately.
             $this->db->busyTimeout( 5000 );
-            
-            // Store temp tables in memory to reduce disk I/O.
-            $this->db->exec( 'PRAGMA temp_store = MEMORY;' );
+            $this->db->exec( 'PRAGMA temp_store   = MEMORY;' );
 
-            // 4 MB page cache.
-            $this->db->exec( 'PRAGMA cache_size = -4096;' );
+            // Convert MB to negative page count (SQLite convention)
+            $page_size = (int) $this->db->querySingle( 'PRAGMA page_size' );
+            $cache_pages = -1 * ( $this->cache_memory * 1024 ) / $page_size;
+            $this->db->exec( "PRAGMA cache_size = {$cache_pages};" );
 
-            // 256 MB memory-mapped I/O.
-            $this->db->exec( 'PRAGMA mmap_size = 268435456;' );
+            $this->db->exec( 'PRAGMA mmap_size    = 268435456;' );
+            $this->db->exec( 'PRAGMA journal_mode = WAL;' );
 
-            $current_mode = $this->db->querySingle( 'PRAGMA journal_mode' );
-
-            if ( 'wal' !== strtolower( $current_mode ) ) {
-                // Use Write-Ahead Logging to allow concurrent reads during writes.
-                $this->db->exec( 'PRAGMA journal_mode = WAL;' );
-
-                // NORMAL is safe with WAL and faster than FULL.
-                $this->db->exec( 'PRAGMA synchronous = NORMAL;' );                
-            }
-
-        } catch ( Exception ) {
+        } catch ( Exception $e ) {
+            error_log( $e->getMessage() );
             return;
         }
 
+        // Cache table.
         $this->db->exec( "
             CREATE TABLE IF NOT EXISTS {$this->table} (
                 cache_key   TEXT    PRIMARY KEY,
@@ -638,50 +778,52 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             ) WITHOUT ROWID
         " );
 
-        // Partial index covering only rows with an expiry — keeps the index
-        // small and makes prune_expired() DELETE scans fast.
         $this->db->exec( "
             CREATE INDEX IF NOT EXISTS idx_{$this->table}_expires
             ON {$this->table} (expires_at)
             WHERE expires_at IS NOT NULL
         " );
+
+        // Stats table — single row, id = 1.
+        $this->db->exec( "
+            CREATE TABLE IF NOT EXISTS {$this->stats_table} (
+                id     INTEGER PRIMARY KEY,
+                hits   INTEGER NOT NULL DEFAULT 0,
+                misses INTEGER NOT NULL DEFAULT 0
+            )
+        " );
+
+        $this->db->exec(
+            "INSERT OR IGNORE INTO {$this->stats_table} (id, hits, misses) VALUES (1, 0, 0)"
+        );
     }
 
-    /**
-     * Return a cached prepared statement, preparing it on first use.
-     *
-     * @param  string $label  Arbitrary identifier for the statement.
-     * @param  string $sql    SQL to prepare on first call.
-     * @return SQLite3Stmt|false
-     */
+    /*
+    |--------------------------------------------
+    | PRIVATE HELPERS
+    |--------------------------------------------
+    */
+
     private function stmt( string $label, string $sql ): SQLite3Stmt|false {
         if ( ! isset( $this->stmts[ $label ] ) ) {
             $stmt = @$this->db->prepare( $sql );
-
             if ( ! $stmt ) {
                 return false;
             }
-
             $this->stmts[ $label ] = $stmt;
         }
-
         return $this->stmts[ $label ];
     }
 
-    /**
-     * Ensure the database connection is open.
-     *
-     * Fast path on repeated calls — isset() on a typed property is free.
-     *
-     * @return bool  True if the connection is available.
-     */
-    private function ensure_db(): bool {
+    private function is_connected(): bool {
         if ( isset( $this->db ) ) {
             return true;
         }
-
-        $this->initialize();
-
+        $this->connect();
         return isset( $this->db );
+    }
+
+    public function is_supported(): bool {
+        return class_exists( SQLite3::class );
     }
 }

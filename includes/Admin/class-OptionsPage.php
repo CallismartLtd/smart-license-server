@@ -220,7 +220,7 @@ class OptionsPage {
         }
 
         $cache_registry     = CacheAdapterRegistry::instance();
-        $providers          = $cache_registry->all();
+        $providers          = $cache_registry->all( true, true );
         $default_provider   = CacheAdapterRegistry::get_default_adapter_id();
 
         include_once SMLISER_PATH . 'templates/admin/options/cache.php';

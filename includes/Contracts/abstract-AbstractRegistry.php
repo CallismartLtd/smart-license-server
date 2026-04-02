@@ -115,7 +115,7 @@ abstract class AbstractRegistry implements RegistryInterface {
 
         if ( $objects ) {
             foreach ( $all as $id => &$value ) {
-                $value = $this->get( $id );
+                $value = new $value;
             }
         }
         return $assoc ? $all : array_values( $all );
