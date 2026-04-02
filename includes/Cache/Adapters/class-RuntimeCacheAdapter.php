@@ -134,11 +134,11 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'runtime';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'Runtime Cache';
     }
 
@@ -204,7 +204,7 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
         );
     }
 
-/**
+    /**
      * Test whether this adapter is operational with the supplied settings.
      *
      * RuntimeCacheAdapter has no configuration and no external connection,

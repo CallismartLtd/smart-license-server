@@ -91,7 +91,7 @@ class OptionsPage {
      */
     private static function monetization_provider_settings( Request $request ): void {
         $provider_key   = $request->get( 'provider' );
-        $provider       = smliser_monetization_registry()->get( $provider_key );
+        $provider       = smliser_monetization_registry()->get_provider( $provider_key );
         $name           = $provider?->get_name() ?? '';
         $id             = $provider?->get_id() ?? '';
         $schema         = $provider?->get_settings_schema();
@@ -220,7 +220,7 @@ class OptionsPage {
         }
 
         $cache_registry     = CacheAdapterRegistry::instance();
-        $providers          = $cache_registry->get_adapters();
+        $providers          = $cache_registry->all();
         $default_provider   = CacheAdapterRegistry::get_default_adapter_id();
 
         include_once SMLISER_PATH . 'templates/admin/options/cache.php';

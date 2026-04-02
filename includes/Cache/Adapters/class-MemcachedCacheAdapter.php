@@ -212,11 +212,11 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'memcached';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'Memcached';
     }
 

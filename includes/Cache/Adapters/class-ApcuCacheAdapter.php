@@ -125,11 +125,11 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'apcu';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'APCu Cache';
     }
 

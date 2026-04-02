@@ -252,7 +252,7 @@ abstract class Environment implements EnvironmentProviderInterface {
                 \implode( ', ', $missing_config )
             );
 
-            throw new EnvironmentBootstrapException( 'mis_configuration', $message );
+            throw new EnvironmentBootstrapException( 'misconfiguration', $message );
         }
 
         $this->env  = $parsed_config;
@@ -726,7 +726,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     protected function setGlobalCacheAdapter() : void {
 
         if ( ! isset( $this->cacheAdapter ) ) {
-            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings )->get_adapter_with_settings();
+            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings )->get_adapter();
         }
 
         $this->cache    = new Cache( $this->cacheAdapter );

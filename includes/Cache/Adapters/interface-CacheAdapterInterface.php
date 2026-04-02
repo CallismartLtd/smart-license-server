@@ -13,10 +13,11 @@
 namespace SmartLicenseServer\Cache\Adapters;
 
 use SmartLicenseServer\Cache\CacheStats;
+use SmartLicenseServer\Contracts\ServiceProviderInterface;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-interface CacheAdapterInterface {
+interface CacheAdapterInterface extends ServiceProviderInterface {
 
     /**
      * Retrieve a cached value by key.
@@ -59,27 +60,6 @@ interface CacheAdapterInterface {
      */
     public function clear(): bool;
 
-    /**
-    |----------------------
-    | ADAPTER IDENTITY
-    |----------------------
-    */
-
-    /**
-     * Get the adapter ID
-     * 
-     * @return string
-     */
-    public function get_id() : string;
-
-    /**
-     * Get provider display name.
-     *
-     * Example: "Redis Cache", "Memcached", "APCu Cache".
-     *
-     * @return string
-     */
-    public function get_name() : string;
 
     /**
      * Return required configuration fields.

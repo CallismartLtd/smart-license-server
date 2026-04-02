@@ -14,6 +14,8 @@ use SmartLicenseServer\Cache\Adapters\RuntimeCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\MemcachedCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\RedisCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter;
+use SmartLicenseServer\Contracts\AbstractRegistry;
+use SmartLicenseServer\Contracts\RegistryInterface;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -22,20 +24,13 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * Cache adapters manager file.
  */
-class CacheAdapterRegistry {
+class CacheAdapterRegistry extends AbstractRegistry {
     /**
      * Singleton instance.
      *
      * @var self|null
      */
     protected static ?self $instance = null;
-
-    /**
-     * Registered adapters keyed by adapter ID.
-     *
-     * @var array<string, CacheAdapterInterface>
-     */
-    protected array $adapters = [];
 
     /**
      * In-memory cache for persisted adapter options.
@@ -53,14 +48,15 @@ class CacheAdapterRegistry {
      */
     protected Settings $settings;
 
-    const DEFAULT_ADAPTER_KEY      = 'cache_default_adapter';
-    const SETTINGS_KEY              = 'cache_adapter_options';
+    const DEFAULT_ADAPTER_KEY   = 'cache_default_adapter';
+    const SETTINGS_KEY          = 'cache_adapter_options';
 
     /**
      * Private constructor — use instance() or create().
      */
     private function __construct( Settings $settings ) {
         $this->settings = $settings;
+        $this->load_core();
     }
 
     /*
@@ -78,113 +74,28 @@ class CacheAdapterRegistry {
     public static function instance( ?Settings $settings = null ): static {
         if ( static::$instance === null ) {
             if ( ! $settings ) {
-                throw new EnvironmentBootstrapException( 'mis_configuration', 'Cache adapter collection API requires a storage API' );
+                throw new EnvironmentBootstrapException( 'misconfiguration', 'Cache adapter collection API requires a storage API' );
             }
 
             static::$instance = new static( $settings );
-            static::$instance->load_core_adapters();
         }
 
         return static::$instance;
     }
 
-    /*
-    |---------------------
-    | ADAPTER MANAGEMENT
-    |---------------------
-    */
-
     /**
-     * Register a cache adapter.
+     * Return a registered adapter by ID with settings applied.
      *
-     * Replaces any previously registered adapter with the same ID.
-     *
-     * @param CacheAdapterInterface $adapter
-     * @return void
-     */
-    public function register_adapter( CacheAdapterInterface $adapter ): void {
-        $this->adapters[ $adapter->get_id() ] = $adapter;
-    }
-
-    /**
-     * Unregister a adapter by its ID.
-     *
-     * @param string $adapter_id
-     * @return bool True if the adapter was found and removed, false otherwise.
-     */
-    public function unregister_adapter( string $adapter_id ): bool {
-        if ( ! isset( $this->adapters[ $adapter_id ] ) ) {
-            return false;
-        }
-
-        unset( $this->adapters[ $adapter_id ] );
-        return true;
-    }
-
-    /**
-     * Check whether a adapter is registered.
-     *
-     * @param string $adapter_id
-     * @return bool
-     */
-    public function has_adapter( string $adapter_id ): bool {
-        return isset( $this->adapters[ $adapter_id ] );
-    }
-
-    /**
-     * Return a registered adapter by ID without settings applied.
-     *
-     * @param string $adapter_id
+     * @param string $adapter_id The adapter ID(default to the adapter in settings).
      * @return CacheAdapterInterface|null
      */
-    public function get_adapter( string $adapter_id ): ?CacheAdapterInterface {
-        return $this->adapters[ $adapter_id ] ?? null;
-    }
+    public function get_adapter( ?string $adapter_id = null ): CacheAdapterInterface {
+        $adapter_id     = $adapter_id ?? $this->get_default_adapter_id();
+        $class_string    = $this->get( $adapter_id );
 
-    /**
-     * Return all registered adapters.
-     *
-     * @param bool $assoc Whether to key the array by adapter ID.
-     * @return array<string, CacheAdapterInterface>|CacheAdapterInterface[]
-     */
-    public function get_adapters( bool $assoc = true ): array {
-        return $assoc ? $this->adapters : array_values( $this->adapters );
-    }
-
-    /**
-     * Return a adapter with its persisted settings applied.
-     *
-     * If no adapter ID is given, the default adapter is used.
-     *
-     * A clone is returned so the shared registered instance is never
-     * mutated — concurrent calls with different settings stay isolated.
-     *
-     * @param string|null $adapter_id
-     * @return CacheAdapterInterface|null
-     * @throws InvalidArgumentException If settings validation fails.
-     */
-    public function get_adapter_with_settings( ?string $adapter_id = null ): ?CacheAdapterInterface {
-        $adapter_id = $adapter_id ?? static::get_default_adapter_id();
-
-        if ( $adapter_id === null ) {
-            return null;
+        if ( $class_string ) {
+            $adapter = new $class_string;
         }
-
-        $adapter = $this->get_adapter( $adapter_id );
-
-        if ( $adapter === null ) {
-            return null;
-        }
-
-        // Clone before applying settings to protect the shared registered instance.
-        $adapter = clone $adapter;
-
-        $saved_settings = [];
-        foreach ( $adapter->get_settings_schema() as $key => $_ ) {
-            $saved_settings[ $key ] = static::get_option( $adapter_id, $key );
-        }
-
-        $adapter->set_settings( $saved_settings );
 
         return $adapter;
     }
@@ -212,9 +123,9 @@ class CacheAdapterRegistry {
      * @throws InvalidArgumentException If the adapter is not registered.
      */
     public static function set_default_adapter( string $adapter_id ): bool {
-        if ( ! static::instance()->has_adapter( $adapter_id ) ) {
+        if ( ! static::instance()->has( $adapter_id ) ) {
             throw new EnvironmentBootstrapException(
-                'mis_configuration',
+                'misconfiguration',
                 "CacheAdapterRegistry: cannot set default — adapter '{$adapter_id}' is not registered."
             );
         }
@@ -312,17 +223,17 @@ class CacheAdapterRegistry {
      *
      * @return void
      */
-    protected function load_core_adapters(): void {
+    protected function load_core(): void {
         $core_adapters = [
-            new RuntimeCacheAdapter,
-            new ApcuCacheAdapter,
-            new MemcachedCacheAdapter,
-            new RedisCacheAdapter,
-            new SQLiteCacheAdapter,
+            RuntimeCacheAdapter::class,
+            ApcuCacheAdapter::class,
+            MemcachedCacheAdapter::class,
+            RedisCacheAdapter::class,
+            SQLiteCacheAdapter::class,
         ];
 
         foreach ( $core_adapters as $adapter ) {
-            $this->register_adapter( $adapter );
+            $this->add( $adapter );
         }
     }
 }

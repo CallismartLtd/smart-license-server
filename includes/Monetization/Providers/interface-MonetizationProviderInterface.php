@@ -9,6 +9,8 @@
 
 namespace SmartLicenseServer\Monetization\Providers;
 
+use SmartLicenseServer\Contracts\ServiceProviderInterface;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -27,21 +29,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * - Gumroad
  * - Local Smart License Server provider
  */
-interface MonetizationProviderInterface {
-
-    /**
-     * Get the provider unique key (e.g. 'woocommerce', 'edd', 'local').
-     *
-     * @return string
-     */
-    public static function get_id() : string;
-
-    /**
-     * Get the provider name (human-readable).
-     *
-     * @return string
-     */
-    public static function get_name() : string;
+interface MonetizationProviderInterface extends ServiceProviderInterface {
 
     /**
      * Get the provider base URL or API endpoint.

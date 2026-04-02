@@ -307,11 +307,11 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     |---------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'sqlitecache';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'SQLite Cache';
     }
 

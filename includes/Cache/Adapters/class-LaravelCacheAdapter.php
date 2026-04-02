@@ -83,11 +83,11 @@ class LaravelCacheAdapter implements CacheAdapterInterface {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'laravelcache';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'Laravel Cache API';
     }
 

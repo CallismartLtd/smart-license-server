@@ -24,7 +24,7 @@ class EnvironmentBootstrapException extends Exception {
             'message'   => 'No supported database adapter found or initialized. See DBConfigDTO::allowed_keys()'
         ),
         
-        'mis_configuration'   => array(
+        'misconfiguration'   => array(
             'status'    => 500,
             'title'     => 'Misconfiguration',
             'message'   => 'The Smart License Server is misconfigured.'
