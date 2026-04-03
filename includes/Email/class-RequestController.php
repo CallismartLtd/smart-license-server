@@ -31,11 +31,9 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $collection   = smliser_emailProvidersRegistry();
-
+            $registry           = smliser_emailProvidersRegistry();
             $default_mailer_key = EmailProvidersRegistry::DEFAULT_PROVIDER_KEY;
-
-            $provider_id     = static::sanitize_text( $request->get( $default_mailer_key ) );
+            $provider_id        = static::sanitize_text( $request->get( $default_mailer_key ) );
 
             if ( ! $provider_id ) {
                 throw new RequestException(
@@ -44,7 +42,7 @@ class RequestController {
                 );
             }
 
-            if ( ! $collection->has_provider( $provider_id) ) {
+            if ( ! $registry->has( $provider_id) ) {
                 throw new RequestException(
                     'validation_failed',
                     sprintf( 'Invalid email provider.' )
@@ -69,8 +67,8 @@ class RequestController {
             }
 
             EmailProvidersRegistry::set_default_provider( $provider_id );
-            $collection->set_default_sender_name( $sender_name );
-            $collection->set_default_sender_email( $sender_email );
+            $registry->set_default_sender_name( $sender_name );
+            $registry->set_default_sender_email( $sender_email );
 
             $response_data  = array(
                 'success'   => true,
@@ -106,7 +104,7 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $collection  = smliser_emailProvidersRegistry();
+            $registry  = smliser_emailProvidersRegistry();
             $provider_id = static::sanitize_text( $request->get( 'provider_id' ) );
 
             if ( ! $provider_id ) {
@@ -116,7 +114,7 @@ class RequestController {
                 );
             }
 
-            $provider = $collection->get_provider( $provider_id );
+            $provider = $registry->get_provider( $provider_id );
 
             if ( $provider === null ) {
                 throw new RequestException(
@@ -220,7 +218,7 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $collection  = smliser_emailProvidersRegistry();
+            $registry  = smliser_emailProvidersRegistry();
             $provider_id = static::sanitize_text( $request->get( 'provider_id' ) );
             $recipient   = static::sanitize_email( $request->get( 'test_email' ) );
 
@@ -245,7 +243,7 @@ class RequestController {
                 );
             }
 
-            $provider = $collection->get_provider_with_settings( $provider_id );
+            $provider = $registry->get_provider( $provider_id );
 
             if ( $provider === null ) {
                 throw new RequestException(

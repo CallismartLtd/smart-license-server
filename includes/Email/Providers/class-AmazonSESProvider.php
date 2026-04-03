@@ -67,11 +67,11 @@ class AmazonSESProvider extends AbstractRestEmailProvider {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'amazon_ses';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'Amazon SES';
     }
 

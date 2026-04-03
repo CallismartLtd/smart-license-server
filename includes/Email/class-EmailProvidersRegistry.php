@@ -24,12 +24,13 @@ use SmartLicenseServer\Email\Providers\PostmarkProvider;
 use SmartLicenseServer\Email\Providers\ResendProvider;
 use SmartLicenseServer\Email\Providers\AmazonSESProvider;
 use InvalidArgumentException;
+use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class EmailProvidersRegistry {
+class EmailProvidersRegistry  extends AbstractRegistry {
 
     /**
      * Singleton instance.
@@ -39,27 +40,20 @@ class EmailProvidersRegistry {
     protected static ?self $instance = null;
 
     /**
-     * Registered providers keyed by provider ID.
-     *
-     * @var array<string, EmailProviderInterface>
-     */
-    protected array $providers = [];
-
-    /**
-     * In-memory cache for persisted provider options.
-     *
-     * Keyed by provider ID. Busted whenever update_option() is called.
-     *
-     * @var array<string, array<string, mixed>>
-     */
-    protected static array $options_cache = [];
-
-    /**
      * The settings API used to set/get settings from storage.
      * 
      * @var Settings $settings
      */
     protected Settings $settings;
+
+    /**
+     * In-memory cache for persisted provider options.
+     *
+     * Keyed by adapter ID. Busted whenever update_option() is called.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    protected static array $settings_store = [];
 
     const DEFAULT_PROVIDER_KEY      = 'email_default_provider';
     const SETTINGS_KEY              = 'email_providers_options';
@@ -71,6 +65,7 @@ class EmailProvidersRegistry {
      */
     private function __construct( Settings $settings ) {
         $this->settings = $settings;
+        $this->load_core();
     }
 
     /*
@@ -92,7 +87,6 @@ class EmailProvidersRegistry {
             }
 
             static::$instance = new static( $settings );
-            static::$instance->load_core_providers();
         }
 
         return static::$instance;
@@ -105,96 +99,30 @@ class EmailProvidersRegistry {
     */
 
     /**
-     * Register an email provider.
-     *
-     * Replaces any previously registered provider with the same ID.
-     *
-     * @param EmailProviderInterface $provider
-     * @return void
-     */
-    public function register_provider( EmailProviderInterface $provider ): void {
-        $this->providers[ $provider->get_id() ] = $provider;
-    }
-
-    /**
-     * Unregister a provider by its ID.
-     *
-     * @param string $provider_id
-     * @return bool True if the provider was found and removed, false otherwise.
-     */
-    public function unregister_provider( string $provider_id ): bool {
-        if ( ! isset( $this->providers[ $provider_id ] ) ) {
-            return false;
-        }
-
-        unset( $this->providers[ $provider_id ] );
-        return true;
-    }
-
-    /**
-     * Check whether a provider is registered.
-     *
-     * @param string $provider_id
-     * @return bool
-     */
-    public function has_provider( string $provider_id ): bool {
-        return isset( $this->providers[ $provider_id ] );
-    }
-
-    /**
-     * Return a registered provider by ID without settings applied.
-     *
-     * @param string $provider_id
-     * @return EmailProviderInterface|null
-     */
-    public function get_provider( string $provider_id ): ?EmailProviderInterface {
-        return $this->providers[ $provider_id ] ?? null;
-    }
-
-    /**
-     * Return all registered providers.
-     *
-     * @param bool $assoc Whether to key the array by provider ID.
-     * @return array<string, EmailProviderInterface>|EmailProviderInterface[]
-     */
-    public function get_providers( bool $assoc = true ): array {
-        return $assoc ? $this->providers : array_values( $this->providers );
-    }
-
-    /**
      * Return a provider with its persisted settings applied.
      *
      * If no provider ID is given, the default provider is used.
      *
-     * A clone is returned so the shared registered instance is never
-     * mutated — concurrent calls with different settings stay isolated.
      *
      * @param string|null $provider_id
      * @return EmailProviderInterface|null
      * @throws InvalidArgumentException If settings validation fails.
      */
-    public function get_provider_with_settings( ?string $provider_id = null ): ?EmailProviderInterface {
-        $provider_id = $provider_id ?? static::get_default_provider_id();
+    public function get_provider( ?string $provider_id = null ): ?EmailProviderInterface {
+        $provider_id    = $provider_id ?? static::get_default_provider_id();
+        $class_string   = $this->get( $provider_id );
+        $provider       = null;
+        if ( $class_string ) {
+            /** @var EmailProviderInterface $provider */
+            $provider = new $class_string;
+            $settings = [];
 
-        if ( $provider_id === null ) {
-            return null;
+            foreach ( $provider->get_settings_schema() as $key => $_ ) {
+                $settings[ $key ] = static::get_option( $provider_id, $key );
+            }
+
+            $provider->set_settings( $settings );            
         }
-
-        $provider = $this->get_provider( $provider_id );
-
-        if ( $provider === null ) {
-            return null;
-        }
-
-        // Clone before applying settings to protect the shared registered instance.
-        $provider = clone $provider;
-
-        $saved_settings = [];
-        foreach ( $provider->get_settings_schema() as $key => $_ ) {
-            $saved_settings[ $key ] = static::get_option( $provider_id, $key );
-        }
-
-        $provider->set_settings( $saved_settings );
 
         return $provider;
     }
@@ -222,7 +150,7 @@ class EmailProvidersRegistry {
      * @throws InvalidArgumentException If the provider is not registered.
      */
     public static function set_default_provider( string $provider_id ): bool {
-        if ( ! static::instance()->has_provider( $provider_id ) ) {
+        if ( ! static::instance()->has( $provider_id ) ) {
             throw new InvalidArgumentException(
                 "EmailProvidersRegistry: cannot set default — provider '{$provider_id}' is not registered."
             );
@@ -248,12 +176,12 @@ class EmailProvidersRegistry {
      * @return mixed
      */
     public static function get_option( string $provider_id, string $option_name ): mixed {
-        if ( ! isset( static::$options_cache[ $provider_id ] ) ) {
-            $all_options = static::instance()->settings->get( static::SETTINGS_KEY, [], true );
-            static::$options_cache[ $provider_id ] = $all_options[ $provider_id ] ?? [];
+        if ( ! isset( static::$settings_store[ $provider_id ] ) ) {
+            $all_options    = static::instance()->settings->get( static::SETTINGS_KEY, [], true );
+            static::$settings_store[ $provider_id ] = $all_options[ $provider_id ] ?? [];
         }
-
-        $default    = '';
+        
+        $default    = null;
 
         if ( 'from_email' === $option_name ) {
             $default    = static::instance()->get_default_sender_email();
@@ -261,11 +189,11 @@ class EmailProvidersRegistry {
             $default    = static::instance()->get_default_sender_name();
         }
 
-        return static::$options_cache[ $provider_id ][ $option_name ] ?? $default;
+        return static::$settings_store[$provider_id][ $option_name ] ?? $default;
     }
 
     /**
-     * Persist an option value for a provider and bust the cache.
+     * Persist an option value for a provider.
      *
      * @param string $provider_id
      * @param string $option_name
@@ -276,8 +204,8 @@ class EmailProvidersRegistry {
         $settings       = static::instance()->settings;
         $all_options    = $settings->get( static::SETTINGS_KEY, [], true );
 
-        if ( ! isset( $all_options[ $provider_id ] ) || ! is_array( $all_options[ $provider_id ] ) ) {
-            $all_options[ $provider_id ] = [];
+        if ( ! is_array( $all_options ) ) {
+            $all_options    = [];
         }
 
         $all_options[ $provider_id ][ $option_name ] = $value;
@@ -285,15 +213,15 @@ class EmailProvidersRegistry {
         $saved = $settings->set( static::SETTINGS_KEY, $all_options, true );
 
         if ( $saved ) {
-            // Bust the cache for this provider so the next get_option() reads fresh data.
-            unset( static::$options_cache[ $provider_id ] );
+            // Bust the cache for this adapter so the next get_option() reads fresh data.
+            unset( static::$settings_store[ $provider_id ] );
         }
 
         return $saved;
     }
 
     /**
-     * Persist all settings for a provider at once and bust the cache.
+     * Persist all settings for a provider at once.
      *
      * More efficient than calling update_option() per key when saving
      * an entire settings form submission.
@@ -306,13 +234,8 @@ class EmailProvidersRegistry {
         $storage                        = static::instance()->settings;
         $all_options                    = $storage->get( static::SETTINGS_KEY, [], true );
         $all_options[ $provider_id ]    = $settings;
-        $saved                          = $storage->set( static::SETTINGS_KEY, $all_options, true );
-
-        if ( $saved ) {
-            unset( static::$options_cache[ $provider_id ] );
-        }
-
-        return $saved;
+        
+        return $storage->set( static::SETTINGS_KEY, $all_options, true );
     }
 
     /**
@@ -367,20 +290,20 @@ class EmailProvidersRegistry {
      *
      * @return void
      */
-    protected function load_core_providers(): void {
+    protected function load_core(): void {
         $core_providers = [
-            new PHPMailProvider(),
-            new SMTPProvider(),
-            new BrevoProvider(),
-            new SendGridProvider(),
-            new MailgunProvider(),
-            new PostmarkProvider(),
-            new ResendProvider(),
-            new AmazonSESProvider(),
+            PHPMailProvider::class,
+            SMTPProvider::class,
+            BrevoProvider::class,
+            SendGridProvider::class,
+            MailgunProvider::class,
+            PostmarkProvider::class,
+            ResendProvider::class,
+            AmazonSESProvider::class,
         ];
 
         foreach ( $core_providers as $provider ) {
-            $this->register_provider( $provider );
+            $this->add( $provider );
         }
     }
 }

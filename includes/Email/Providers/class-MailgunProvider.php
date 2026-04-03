@@ -42,11 +42,11 @@ class MailgunProvider extends AbstractRestEmailProvider {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'mailgun';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'Mailgun';
     }
 

@@ -106,11 +106,11 @@ class SMTPProvider implements EmailProviderInterface {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'smtp';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'SMTP';
     }
 

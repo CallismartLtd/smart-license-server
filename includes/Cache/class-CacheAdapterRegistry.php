@@ -89,9 +89,10 @@ class CacheAdapterRegistry extends AbstractRegistry {
      * @param string $adapter_id The adapter ID(default to the adapter in settings).
      * @return CacheAdapterInterface|null
      */
-    public function get_adapter( ?string $adapter_id = null ): CacheAdapterInterface {
+    public function get_adapter( ?string $adapter_id = null ) : ?CacheAdapterInterface {
         $adapter_id     = $adapter_id ?? $this->get_default_adapter_id();
         $class_string   = $this->get( $adapter_id );
+        $adapter        = null;
 
         if ( $class_string ) {
             /** @var CacheAdapterInterface $adapter */

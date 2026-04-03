@@ -34,11 +34,11 @@ class BrevoProvider extends AbstractRestEmailProvider {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'brevo';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'Brevo';
     }
 

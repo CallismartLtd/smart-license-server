@@ -33,11 +33,11 @@ class PostmarkProvider extends AbstractRestEmailProvider {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'postmark';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'Postmark';
     }
 

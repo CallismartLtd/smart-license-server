@@ -33,11 +33,11 @@ class ResendProvider extends AbstractRestEmailProvider {
     |----------------------
     */
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'resend';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'Resend';
     }
 

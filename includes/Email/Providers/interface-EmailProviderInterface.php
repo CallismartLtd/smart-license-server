@@ -11,28 +11,11 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email\Providers;
 
+use SmartLicenseServer\Contracts\ServiceProviderInterface;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 
-interface EmailProviderInterface {
-
-    /**
-     * Get unique provider identifier.
-     *
-     * Example: "php_mail", "brevo", "sendgrid".
-     *
-     * @return string
-     */
-    public function get_id() : string;
-
-    /**
-     * Get provider display name.
-     *
-     * Example: "PHP Mail", "Brevo", "SendGrid".
-     *
-     * @return string
-     */
-    public function get_name() : string;
+interface EmailProviderInterface extends ServiceProviderInterface{
 
     /**
      * Return required configuration fields.

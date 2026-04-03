@@ -24,11 +24,11 @@ class PHPMailProvider implements EmailProviderInterface {
 
     protected array $settings = [];
 
-    public function get_id(): string {
+    public static function get_id(): string {
         return 'php_mail';
     }
 
-    public function get_name(): string {
+    public static function get_name(): string {
         return 'PHP Mail';
     }
 
