@@ -8,7 +8,7 @@
  */
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Console\Commands;
+namespace SmartLicenseServer\Console\Commands\Apps;
 
 use SmartLicenseServer\Console\CLIFilesystemAwareTrait;
 use SmartLicenseServer\Console\CLIUtilsTrait;
@@ -20,7 +20,6 @@ use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostingController;
-use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Abstract implementation of commands that are common to hosted applications.

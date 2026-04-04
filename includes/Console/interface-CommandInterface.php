@@ -19,32 +19,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Console command contract.
- *
- * ## Implementing a command
- *
- *   class AppCommand implements CommandInterface {
- *       use CLIAwareTrait;
- *
- *       public static function name(): string        { return 'app'; }
- *       public static function description(): string { return 'Manage hosted applications.'; }
- *
- *       public static function synopsis(): string {
- *           return 'smliser app <subcommand> [arguments]';
- *       }
- *
- *       public static function help(): string {
- *           return implode( PHP_EOL, [
- *               'Subcommands:',
- *               '  list                          List all hosted applications.',
- *               '  get <slug> <type>             Show details for a specific app.',
- *               '  status <slug> <type> <status> Change an app status.',
- *           ]);
- *       }
- *
- *       public function execute( array $args = [] ): void {
- *           // dispatch subcommands...
- *       }
- *   }
  */
 interface CommandInterface {
 

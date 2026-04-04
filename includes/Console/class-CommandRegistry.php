@@ -37,7 +37,7 @@ namespace SmartLicenseServer\Console;
 
 use InvalidArgumentException;
 use RuntimeException;
-use SmartLicenseServer\Console\Commands\AppCommand;
+use SmartLicenseServer\Console\Commands\Apps\AppCommand;
 use SmartLicenseServer\Console\Commands\Apps\PluginCommand;
 use SmartLicenseServer\Console\Commands\Apps\SoftwareCommand;
 use SmartLicenseServer\Console\Commands\Apps\ThemeCommand;

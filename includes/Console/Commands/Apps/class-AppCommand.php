@@ -32,7 +32,7 @@
 
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Console\Commands;
+namespace SmartLicenseServer\Console\Commands\Apps;
 
 use SmartLicenseServer\Console\CLIFilesystemAwareTrait;
 use SmartLicenseServer\Console\CLIUtilsTrait;
@@ -41,7 +41,6 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostingController;
-use SmartLicenseServer\Security\Context\Guard;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -275,117 +274,6 @@ class AppCommand implements CommandInterface {
             $status
         ) );
     }
-
-    /*
-    |--------------------------------------------
-    | FILE SUBCOMMANDS — auth required
-    |--------------------------------------------
-    */
-
-    /**
-     * Upload one or more assets for a hosted application.
-     *
-     * Usage:
-     *   smliser app upload-asset <slug> <type> --asset-type=<type> [--path=... | --url=...]
-     *
-     * Options:
-     *   --asset-type=<type>   Asset type (icons, banners, screenshots, cover, screenshot).
-     *   --path=<path>         Absolute local path to the asset file.
-     *   --url=<url>           Remote URL to download the asset from.
-     *   --asset-name=<name>   Asset filename override (used for PUT/replace operations).
-     *
-     * @param array $args Remaining args after 'upload-asset'.
-     */
-    private function handle_upload_asset( array $args ): void {
-        $slug = $args[0] ?? null;
-        $type = $args[1] ?? null;
-
-        if ( ! $this->require_args(
-            [ 'slug' => $slug, 'type' => $type ],
-            'smliser app upload-asset <slug> <type> --asset-type=<type> [--path=... | --url=...]'
-        ) ) {
-            return;
-        }
-
-        if ( ! $this->require_auth() ) {
-            return;
-        }
-
-        $opts       = $this->parse_options( $args );
-        $asset_type = $opts['asset-type'] ?? null;
-        $asset_name = $opts['asset-name'] ?? null;
-
-        if ( empty( $asset_type ) ) {
-            $this->error( 'Missing required option: --asset-type=<type>' );
-            $this->line( 'Valid types: icons, banners, screenshots, cover, screenshot' );
-            return;
-        }
-
-        // Resolve asset file.
-        $asset_file = null;
-        $cleanup    = null;
-
-        if ( ! empty( $opts['path'] ) ) {
-            $asset_file = $this->resolve_local_file( (string) $opts['path'] );
-            if ( $asset_file === null ) {
-                return;
-            }
-        } elseif ( ! empty( $opts['url'] ) ) {
-            $result = $this->download_to_tmp( (string) $opts['url'] );
-            if ( $result === null ) {
-                return;
-            }
-            [ $asset_file, $cleanup ] = $result;
-        } else {
-            $this->error( 'Provide an asset file via --path=<path> or --url=<url>.' );
-            return;
-        }
-
-        $this->start_timer();
-        $this->info( sprintf( 'Uploading %s asset for "%s"...', $asset_type, $slug ) );
-
-        $params = [
-            'app_slug'   => $slug,
-            'app_type'   => $type,
-            'asset_type' => $asset_type,
-        ];
-
-        if ( $asset_name !== null ) {
-            $params['asset_name'] = $asset_name;
-        }
-
-        $request = new Request( $params, method: 'POST' );
-        $request = $this->inject_uploaded_file( $request, $asset_file, 'asset_file' );
-
-        if ( $request === null ) {
-            $this->cleanup( $cleanup );
-            return;
-        }
-
-        try {
-            $response = HostingController::app_asset_upload( $request );
-
-            if ( $response->ok() ) {
-                $this->done( sprintf( 'Asset uploaded for "%s".', $slug ) );
-            } else {
-                $this->error( $response->get_error_message() ?: 'Asset upload failed.' );
-            }
-        } finally {
-            $this->cleanup( $cleanup );
-        }
-    }
-
-    /*
-    |--------------------------------------------
-    | FILE HELPERS
-    |--------------------------------------------
-    */
-
-    /*
-    |--------------------------------------------
-    | WRITE SUBCOMMANDS — auth required
-    |--------------------------------------------
-    */
 
     /*
     |--------------------------------------------

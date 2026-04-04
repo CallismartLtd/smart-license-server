@@ -8,8 +8,6 @@
  */
 namespace SmartLicenseServer\Console\Commands\Apps;
 
-use SmartLicenseServer\Console\Commands\AbstractHostedAppCommand;
-
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**

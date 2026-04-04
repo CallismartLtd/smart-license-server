@@ -15,7 +15,6 @@ use SmartLicenseServer\Cache\Adapters\MemcachedCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\RedisCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter;
 use SmartLicenseServer\Contracts\AbstractRegistry;
-use SmartLicenseServer\Contracts\RegistryInterface;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -52,7 +51,7 @@ class CacheAdapterRegistry extends AbstractRegistry {
     const SETTINGS_KEY          = 'cache_adapter_options';
 
     /**
-     * Private constructor — use instance() or create().
+     * Private constructor — use instance().
      */
     private function __construct( Settings $settings ) {
         $this->settings = $settings;
