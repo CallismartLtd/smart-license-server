@@ -60,10 +60,10 @@ final class AdminConfiguration {
      * @throws EnvironmentBootstrapException
      */
     public function register( string $key, array $data, ?int $position = null ) : void {
-
         $this->boot();
+        $key    = $this->canonical_key( $key );
 
-        // Validate key
+        // Validate key.
         if ( '' === $key ) {
             throw new EnvironmentBootstrapException(
                 'menu_error',
@@ -71,7 +71,7 @@ final class AdminConfiguration {
             );
         }
 
-        // Prevent duplicate keys
+        // Prevent duplicate keys.
         if ( isset( $this->menu[ $key ] ) ) {
             throw new EnvironmentBootstrapException(
                 'menu_error',
@@ -79,7 +79,7 @@ final class AdminConfiguration {
             );
         }
 
-        // Validate required fields
+        // Validate required fields.
         foreach ( [ 'title', 'slug', 'handler' ] as $field ) {
             if ( empty( $data[ $field ] ) ) {
                 throw new EnvironmentBootstrapException(
@@ -89,7 +89,7 @@ final class AdminConfiguration {
             }
         }
 
-        // Validate handler
+        // Validate handler.
         if ( ! is_callable( $data['handler'] ) ) {
             throw new EnvironmentBootstrapException(
                 'menu_error',
@@ -97,7 +97,7 @@ final class AdminConfiguration {
             );
         }
 
-        // Normalize
+        // Normalize.
         $menu = [
             'title'   => (string) $data['title'],
             'slug'    => trim( (string) $data['slug'], '/' ),
@@ -115,17 +115,6 @@ final class AdminConfiguration {
     |------------
     */
 
-    /**
-     * Insert a menu item into the registry at a given position.
-     *
-     * If position is null or out of bounds, the item is appended.
-     *
-     * @param string   $key
-     * @param array    $menu
-     * @param int|null $position
-     *
-     * @return void
-     */
     /**
      * Insert a menu item into the registry at a given position.
      *
@@ -181,8 +170,8 @@ final class AdminConfiguration {
      * @return array{title: string, slug: string, handler: callable, icon: string}|null
      */
     public function get( string $key ) : ?array {
-
         $this->boot();
+        $key    = $this->canonical_key( $key );
 
         return $this->menu[ $key ] ?? null;
     }
@@ -194,8 +183,8 @@ final class AdminConfiguration {
      * @return bool
      */
     public function has( string $key ) : bool {
-
         $this->boot();
+        $key    = $this->canonical_key( $key );
 
         return isset( $this->menu[ $key ] );
     }
@@ -208,6 +197,7 @@ final class AdminConfiguration {
      */
     public function remove( string $key ) : bool {
         $this->boot();
+        $key    = $this->canonical_key( $key );
 
         if ( ! $this->has( $key ) ) {
             return false;
@@ -266,7 +256,7 @@ final class AdminConfiguration {
             ],
             'accounts' => [
                 'title'   => 'Accounts',
-                'slug'    => 'access-control',
+                'slug'    => 'accounts',
                 'handler' => [ AccessControlPage::class, 'router' ],
                 'icon'    => 'ti ti-users-group',
             ],
@@ -299,6 +289,17 @@ final class AdminConfiguration {
     }
 
     /**
+     * Normalizes menu key.
+     * 
+     * 
+     * @param string $key
+     * @return string
+     */
+    private function canonical_key( string $key ) : string {
+        return \str_replace( '-', '_', $key );
+    }
+
+    /**
      * Update menu title.
      *
      * @param string $key
@@ -306,7 +307,7 @@ final class AdminConfiguration {
      * @return void
      */
     public function set_title( string $key, string $title ) : void {
-
+        $key    = $this->canonical_key( $key );
         $this->assert_menu_exists( $key );
 
         if ( '' === trim( $title ) ) {
@@ -327,7 +328,7 @@ final class AdminConfiguration {
      * @return void
      */
     public function set_slug( string $key, string $slug ) : void {
-
+        $key    = $this->canonical_key( $key );
         $this->assert_menu_exists( $key );
 
         $slug = trim( $slug, '/' );
@@ -350,7 +351,7 @@ final class AdminConfiguration {
      * @return void
      */
     public function set_handler( string $key, callable $handler ) : void {
-
+        $key    = $this->canonical_key( $key );
         $this->assert_menu_exists( $key );
 
         if ( ! is_callable( $handler ) ) {
@@ -371,7 +372,7 @@ final class AdminConfiguration {
      * @return void
      */
     public function set_icon( string $key, string $icon ) : void {
-
+        $key    = $this->canonical_key( $key );
         $this->assert_menu_exists( $key );
 
         $this->menu[ $key ]['icon'] = $icon;
@@ -384,11 +385,10 @@ final class AdminConfiguration {
      * @return int
      */
     protected function get_index( string $key ) : int {
-
         $this->boot();
 
-        $keys = array_keys( $this->menu );
-        $index = array_search( $key, $keys, true );
+        $keys   = array_keys( $this->menu );
+        $index  = array_search( $key, $keys, true );
 
         if ( false === $index ) {
             throw new EnvironmentBootstrapException(
@@ -443,8 +443,8 @@ final class AdminConfiguration {
      * @return void
      */
     public function move_up( string $key ) : void {
-
-        $index = $this->get_index( $key );
+        $key    = $this->canonical_key( $key );
+        $index  = $this->get_index( $key );
 
         if ( $index === 0 ) {
             return; // already at top
@@ -460,8 +460,8 @@ final class AdminConfiguration {
      * @return void
      */
     public function move_down( string $key ) : void {
-
-        $index = $this->get_index( $key );
+        $key    = $this->canonical_key( $key );
+        $index  = $this->get_index( $key );
 
         if ( $index === count( $this->menu ) - 1 ) {
             return; // already at bottom
@@ -478,7 +478,7 @@ final class AdminConfiguration {
      * @return void
      */
     public function move_to( string $key, int $position ) : void {
-
+        $key    = $this->canonical_key( $key );
         $this->move_to_index( $key, $position );
     }
 
@@ -490,8 +490,8 @@ final class AdminConfiguration {
      * @return void
      */
     public function move_after( string $key, string $targetKey ) : void {
-
-        $targetIndex = $this->get_index( $targetKey );
+        $key            = $this->canonical_key( $key );
+        $targetIndex    = $this->get_index( $targetKey );
 
         // New index is right after target
         $this->move_to_index( $key, $targetIndex + 1 );
@@ -505,8 +505,9 @@ final class AdminConfiguration {
      * @return void
      */
     public function move_before( string $key, string $targetKey ) : void {
-
-        $targetIndex = $this->get_index( $targetKey );
+        $key            = $this->canonical_key( $key );
+        $targetKey      = $this->canonical_key( $key );
+        $targetIndex    = $this->get_index( $targetKey );
 
         $this->move_to_index( $key, $targetIndex );
     }
@@ -518,6 +519,7 @@ final class AdminConfiguration {
      * @return void
      */
     public function move_to_top( string $key ) : void {
+        $key    = $this->canonical_key( $key );
         $this->move_to_index( $key, 0 );
     }
 
@@ -528,6 +530,7 @@ final class AdminConfiguration {
      * @return void
      */
     public function move_to_bottom( string $key ) : void {
+        $key    = $this->canonical_key( $key );
         $this->move_to_index( $key, count( $this->menu ) );
     }
 }

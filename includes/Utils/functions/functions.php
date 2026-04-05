@@ -170,7 +170,7 @@ function smliser_admin_repo_tab( $tab = 'add-new', $args = array() ) {
  */
 function smliser_access_control_page_url() : URL {
     return adminUrl( 'admin.php' )->add_query_params([
-        'page'  => 'smliser-access-control',
+        'page'  => 'smliser-accounts',
     ]);
 }
 
@@ -382,7 +382,6 @@ function smliser_parse_user_agent( $user_agent_string ) {
         $info['device']
     ) );
 }
-
 
 /**
  * Get user agent agent.

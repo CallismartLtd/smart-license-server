@@ -58,7 +58,7 @@ class AdminMenu {
 
         $this->config->register( 'api_doc', $new_menu );
 
-        $slug   = sprintf( '%s-admin', $this->prefix );
+        $slug   = sprintf( '%s-overview', $this->prefix );
         add_menu_page( SMLISER_APP_NAME, SMLISER_APP_NAME, 'manage_options', $slug, array( $this, 'dispatch_request' ), self::MENU_ICON, 3.1 );
 
         foreach ( $this->config->all() as $key => $menu ) {
@@ -73,9 +73,10 @@ class AdminMenu {
      */
     public function submenu_index_name() {
         global $submenu;
-
-        if ( isset( $submenu['smliser-admin'] ) ) {
-            $submenu['smliser-admin'][0][0] = 'Overview';
+        
+        $slug   = sprintf( '%s-overview', $this->prefix );
+        if ( isset( $submenu[$slug] ) ) {
+            $submenu[$slug][0][0] = 'Overview';
         }
     }
 
@@ -267,19 +268,18 @@ class AdminMenu {
      * Dispatch the WordPress menu call to the handler with the request object.
      */
     public function dispatch_request() : void {
-        $screen         = get_current_screen();
-        $page_config    = match( $screen->id ) {
-            'toplevel_page_smliser-admin'                       => $this->config->get( 'overview' ),
-            'smart-license-server_page_smliser-repository'      => $this->config->get( 'repository' ),
-            'smart-license-server_page_smliser-licenses'        => $this->config->get( 'licenses' ),
-            'smart-license-server_page_smliser-bulk-messages'   => $this->config->get( 'bulk_messages' ),
-            'smart-license-server_page_smliser-access-control'  => $this->config->get( 'accounts' ),
-            'smart-license-server_page_smliser-settings'        => $this->config->get( 'settings' ),
-            'smart-license-server_page_smliser-api-doc'         => $this->config->get( 'api_doc' ),
-            default                                             => '',
-        };
+        $page   = $this->request->get( 'page' );
 
-        $handler    = $page_config['handler'] ?? '';
+        if ( strpos( $page, 'smliser-' ) === 0 ) {
+
+            $slug = str_replace( 'smliser-', '', $page );
+            $menu = $this->config->get( $slug );
+            $handler = $menu['handler'] ?? null;
+        } else {
+            $dashboard  = $this->config->get( 'overview' );
+            $handler    = $dashboard['handler'];
+        }
+
 
         if ( is_callable( $handler ) ) {
             $handler( $this->request );
