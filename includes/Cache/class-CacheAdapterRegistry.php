@@ -47,6 +47,19 @@ class CacheAdapterRegistry extends AbstractRegistry {
      */
     protected Settings $settings;
 
+    /**
+     * All core cache adapters.
+     * 
+     * @var array<int, class-string<CacheAdapterInterface>>
+     */
+    private static array $core_adapters = [
+        RuntimeCacheAdapter::class,
+        ApcuCacheAdapter::class,
+        MemcachedCacheAdapter::class,
+        RedisCacheAdapter::class,
+        SQLiteCacheAdapter::class,
+    ];
+
     const DEFAULT_ADAPTER_KEY   = 'cache_default_adapter';
     const SETTINGS_KEY          = 'cache_adapter_options';
 
@@ -55,7 +68,7 @@ class CacheAdapterRegistry extends AbstractRegistry {
      */
     private function __construct( Settings $settings ) {
         $this->settings = $settings;
-        $this->load_core();
+        // $this->load_core();
     }
 
     /*
@@ -234,16 +247,14 @@ class CacheAdapterRegistry extends AbstractRegistry {
      * @return void
      */
     protected function load_core(): void {
-        $core_adapters = [
-            RuntimeCacheAdapter::class,
-            ApcuCacheAdapter::class,
-            MemcachedCacheAdapter::class,
-            RedisCacheAdapter::class,
-            SQLiteCacheAdapter::class,
-        ];
-
-        foreach ( $core_adapters as $adapter ) {
-            $this->add( $adapter );
+        if ( $this->core_loaded ) {
+            return;
         }
+
+        foreach ( static::$core_adapters as $adapter ) {
+            $this->core[ $adapter::get_id() ] = $adapter;
+        }
+
+        $this->core_loaded = true;
     }
 }
