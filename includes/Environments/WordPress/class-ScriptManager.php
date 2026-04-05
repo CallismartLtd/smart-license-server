@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Security\Permission\Capability;
 use SmartLicenseServer\Security\Permission\Role;
@@ -18,6 +19,11 @@ wp_localize_script;
  * Manages JavaScript and CSS files.
  */
 final class ScriptManager {
+    /**
+     * Class constructor.
+     */
+    public function __construct( private Request $request ) {}
+
     /**
      * All CSS files and their dependencies.
      */
@@ -242,22 +248,25 @@ final class ScriptManager {
         if ( is_admin() ) {
             wp_enqueue_script( 'smliser-modal' );
         }
-        if ( is_admin() && 'toplevel_page_smliser-admin' === $s || 'smart-license-server_page_smliser-repository' === $s ) {
+        
+        $enqueue_chart  = is_admin() && in_array( $this->request->get( 'page'), ['smliser-overview', 'smliser-repository'] );
+
+        if ( $enqueue_chart ) {
             wp_enqueue_script( 'smliser-chart' );
         }
 
-        if ( 'smart-license-server_page_smliser-repository' === $s ) {
+        if ( 'smliser-repository' === $this->request->get( 'page' ) ) {
             wp_enqueue_media();
             wp_enqueue_script( 'smliser-apps-uploader' );
             wp_enqueue_script( 'smliser-json-editor' );
             wp_enqueue_script( 'smliser-admin-repository' );
         }
 
-        if ( 'smart-license-server_page_smliser-access-control' === $s ) {
+        if ( 'smliser-access-control' === $this->request->get( 'page' ) ) {
             wp_enqueue_script( 'smliser-role-builder' );
         }
 
-        if ( 'smart-license-server_page_smliser-settings' === $s ) {
+        if ( 'smliser-settings' === $this->request->get( 'page' ) ) {
             wp_enqueue_script( 'smliser-cache-stats' );
         }
 
@@ -268,17 +277,16 @@ final class ScriptManager {
     /**
      * Load styles
      */
-    public function enqueue_styles( $s ) {
+    public function enqueue_styles() {
         wp_enqueue_style( 'smliser-datetime-picker' );
         wp_enqueue_style( 'select2' );
         wp_enqueue_style( 'smliser-styles' );
         wp_enqueue_style( 'smliser-form-styles' );
-    
-        if ( is_admin() ) {
-            wp_enqueue_style( 'smliser-modal' );
-        }
 
-        if ( 'smart-license-server_page_smliser-repository' === $s ) {
+        wp_enqueue_style( 'smliser-modal' );
+        
+
+        if ( 'smliser-repository' === $this->request->get( 'page' ) ) {
             wp_enqueue_style( 'smliser-apps-uploader' );
             wp_enqueue_style( 'smliser-json-editor' );
         }
@@ -287,11 +295,11 @@ final class ScriptManager {
             wp_enqueue_style( 'smliser-tabler-icons' );
         }
 
-        if ( 'smart-license-server_page_smliser-access-control' === $s ) {
+        if ( 'smliser-access-control' === $this->request->get( 'page' ) ) {
             wp_enqueue_style( 'smliser-role-builder' );
         }
 
-        if ( 'smart-license-server_page_smliser-settings' === $s ) {
+        if ( 'smliser-settings' === $this->request->get( 'page' ) ) {
             wp_enqueue_style( 'smliser-cache-stats' );
         }
     

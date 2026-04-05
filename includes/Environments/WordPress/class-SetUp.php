@@ -117,7 +117,7 @@ class SetUp extends Environment {
         $this->setup( $env );
         
         $this->auth             = new IdentityService;
-        $this->script_manager   = new ScriptManager;
+        $this->script_manager   = new ScriptManager( $this->request );
         $this->menu             = new AdminMenu( new AdminConfiguration, $this->request );
     }
 

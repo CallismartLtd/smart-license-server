@@ -9,10 +9,9 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Admin\AdminConfiguration;
-use SmartLicenseServer\Environment;
 use SmartLicenseServer\Core\Request;
 
-use function add_submenu_page, get_current_screen, sprintf;
+use function add_submenu_page, add_menu_page, parse_args, is_bool, sprintf;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -269,11 +268,16 @@ class AdminMenu {
      * Dispatch the WordPress menu call to the handler with the request object.
      */
     public function dispatch_request() : void {
-        $page   = $this->request->get( 'page' );
+        if ( ! $this->request->hasValue( 'page' ) ) {
+            return;
+        }
 
-        if ( strpos( $page, 'smliser-' ) === 0 ) {
+        $page   = (string) $this->request->get( 'page' );
+        $prefix = sprintf( '%s-', $this->prefix );
 
-            $slug = str_replace( 'smliser-', '', $page );
+        if ( strpos( $page, $prefix ) === 0 ) {
+
+            $slug = substr( $page, strlen( $prefix ) );
             $menu = $this->config->get( $slug );
             $handler = $menu['handler'] ?? null;
         } else {
