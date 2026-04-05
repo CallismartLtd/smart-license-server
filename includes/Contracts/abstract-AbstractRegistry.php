@@ -48,9 +48,9 @@ abstract class AbstractRegistry implements RegistryInterface {
      * @param class-string $class_string
      * @return self
      */
-    public function add( string $class_string ) : self {
+    final public function add( string $class_string ) : self {
+        $this->ensure_core();
         $this->assert_implements_interface( $class_string );
-
         $id = $class_string::get_id();
 
         // Core providers always win.
@@ -70,6 +70,7 @@ abstract class AbstractRegistry implements RegistryInterface {
      * @return bool
      */
     public function has( $provider_id ) : bool{
+        $this->ensure_core();
         return isset( $this->core[ $provider_id ] ) || isset( $this->custom[ $provider_id ] );
     }
 
@@ -80,6 +81,7 @@ abstract class AbstractRegistry implements RegistryInterface {
      * @return bool True if the provider was found and removed, false otherwise.
      */
     public function remove( $provider_id ) : bool {
+        $this->ensure_core();
         // Guard against core providers removal.
         if ( isset( $this->core[$provider_id] ) ) {
             return false;
@@ -100,6 +102,7 @@ abstract class AbstractRegistry implements RegistryInterface {
      * @return class-string|null
      */
     public function get( $provider_id ) : ?string {
+        $this->ensure_core();
         return $this->core[ $provider_id ] ?? $this->custom[$provider_id] ?? null;
     }
 
@@ -111,6 +114,7 @@ abstract class AbstractRegistry implements RegistryInterface {
      * @return array<int|string, class-string<ServiceProviderInterface>|ServiceProviderInterface>
      */
     public function all( bool $assoc = true, bool $objects = false ) : array {
+        $this->ensure_core();
         $all    = array_merge( $this->custom, $this->core );
 
         if ( $objects ) {
@@ -142,6 +146,21 @@ abstract class AbstractRegistry implements RegistryInterface {
                     ServiceProviderInterface::class
                 )
             );
+        }
+    }
+
+    /*
+    |---------------------
+    | PRIVATE HELPERS
+    |---------------------
+    */
+
+    /**
+     * Ensure core providers are loaded
+     */
+    private function ensure_core()  : void {
+        if ( ! $this->core_loaded ) {
+            $this->load_core();
         }
     }
 
