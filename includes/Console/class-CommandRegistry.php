@@ -48,13 +48,14 @@ use SmartLicenseServer\Console\Commands\ScheduleCommand;
 use SmartLicenseServer\Console\Commands\SettingsCommand;
 use SmartLicenseServer\Console\Commands\WorkCommand;
 use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
+use SmartLicenseServer\Contracts\AbstractRegistry;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Central console command registry.
  */
-class CommandRegistry {
+class CommandRegistry extends AbstractRegistry {
 
     /*
     |----------------------
@@ -69,38 +70,24 @@ class CommandRegistry {
      */
     private static ?self $instance = null;
 
-    /*
-    |----------------------
-    | REGISTRY STATE
-    |----------------------
-    */
-
     /**
-     * Core command class strings keyed by command name.
-     *
-     * Core commands are registered at bootstrap and are never
-     * removable — they form the guaranteed public API of the system.
-     *
-     * @var array<string, class-string<CommandInterface>>
-     */
-    private array $core = [];
-
-    /**
-     * Custom command class strings keyed by command name.
-     *
-     * Custom commands are registered by third-party integrators and
-     * can be removed at any time before the runner dispatches.
-     *
-     * @var array<string, class-string<CommandInterface>>
-     */
-    private array $custom = [];
-
-    /**
-     * Flags whether core commands has been registered.
+     * Core commands.
      * 
-     * @var bool $core_booted
+     * @var array<int, class-string<CommandInterface>>
      */
-    private bool $core_booted   = false;
+    private array $core_commands  = [
+        WorkCommand::class,
+        ScheduleCommand::class,
+        WorkScheduleCommand::class,
+        MigrateCommand::class,
+        InstallRolesCommand::class,
+        CacheCommand::class,
+        AppCommand::class,
+        PluginCommand::class,
+        ThemeCommand::class,
+        SoftwareCommand::class,
+        SettingsCommand::class
+    ];
 
     /*
     |----------------------
@@ -112,7 +99,7 @@ class CommandRegistry {
      * Private constructor — use instance().
      */
     private function __construct() {
-        $this->boot_core();
+        $this->load_core();
     }
 
     /*
@@ -176,35 +163,22 @@ class CommandRegistry {
     /**
      * Boot core commands at once.
      *
-     * @return static Fluent.
+     * @return void.
      */
-    private function boot_core(): static {
+    protected function load_core() : void {
 
-        if ( $this->core_booted ) {
-            return $this;
+        if ( $this->core_loaded ) {
+            return;
         }
 
-        $this->core_booted = true;
-
-        $core_commands  = [
-            WorkCommand::class,
-            ScheduleCommand::class,
-            WorkScheduleCommand::class,
-            MigrateCommand::class,
-            InstallRolesCommand::class,
-            CacheCommand::class,
-            AppCommand::class,
-            PluginCommand::class,
-            ThemeCommand::class,
-            SoftwareCommand::class,
-            SettingsCommand::class
-        ];
-
-        foreach ( $core_commands as $class ) {
+        foreach ( $this->core_commands as $class ) {
             $this->register_core( $class );
         }
 
-        return $this;
+        unset( $this->core_commands );
+
+        $this->core_loaded = true;
+
     }
 
     /*
@@ -214,37 +188,6 @@ class CommandRegistry {
     */
 
     /**
-     * Register a custom command.
-     *
-     * Custom commands are registered by third-party integrators.
-     * They can be removed at any time via unregister().
-     *
-     * If a core command with the same name exists, registration is
-     * silently skipped — core commands always take precedence.
-     *
-     * If a custom command with the same name already exists it is
-     * replaced without error.
-     *
-     * @param class-string<CommandInterface> $class Fully-qualified command class name.
-     * @return static Fluent.
-     * @throws InvalidArgumentException If the class does not implement CommandInterface.
-     */
-    public function register_command( string $class ): static {
-        $this->assert_implements_interface( $class );
-
-        $name = $class::name();
-
-        // Core commands always win — skip silently.
-        if ( isset( $this->core[ $name ] ) ) {
-            return $this;
-        }
-
-        $this->custom[ $name ] = $class;
-
-        return $this;
-    }
-
-    /**
      * Register multiple custom commands at once.
      *
      * @param array<class-string<CommandInterface>> $classes
@@ -252,94 +195,10 @@ class CommandRegistry {
      */
     public function register_many( array $classes ): static {
         foreach ( $classes as $class ) {
-            $this->register_command( $class );
+            $this->add( $class );
         }
 
         return $this;
-    }
-
-    /*
-    |--------------------------------------------
-    | REMOVAL
-    |--------------------------------------------
-    */
-
-    /**
-     * Unregister a custom command by name.
-     *
-     * Core commands cannot be removed — this method silently ignores
-     * attempts to unregister a core command so third-party code cannot
-     * accidentally break the system contract.
-     *
-     * @param string $name The command name e.g. 'work:schedule'.
-     * @return bool True if a custom command was removed, false otherwise.
-     */
-    public function unregister( string $name ): bool {
-        if ( isset( $this->core[ $name ] ) ) {
-            return false; // Core commands are protected.
-        }
-
-        if ( isset( $this->custom[ $name ] ) ) {
-            unset( $this->custom[ $name ] );
-            return true;
-        }
-
-        return false;
-    }
-
-    /*
-    |--------------------------------------------
-    | RETRIEVAL
-    |--------------------------------------------
-    */
-
-    /**
-     * Return all registered commands — core and custom — keyed by name.
-     *
-     * @return array<string, class-string<CommandInterface>>
-     */
-    public function all(): array {
-        return array_merge( $this->core, $this->custom );
-    }
-
-    /**
-     * Return only core commands keyed by name.
-     *
-     * @return array<string, class-string<CommandInterface>>
-     */
-    public function core(): array {
-        return $this->core;
-    }
-
-    /**
-     * Return only custom commands keyed by name.
-     *
-     * @return array<string, class-string<CommandInterface>>
-     */
-    public function custom(): array {
-        return $this->custom;
-    }
-
-    /**
-     * Return a single command class string by name.
-     *
-     * Looks in core first, then custom.
-     *
-     * @param string $name The command name.
-     * @return class-string<CommandInterface>|null The command class, or null if not found.
-     */
-    public function get( string $name ): ?string {
-        return $this->core[ $name ] ?? $this->custom[ $name ] ?? null;
-    }
-
-    /**
-     * Whether a command with the given name is registered.
-     *
-     * @param string $name The command name.
-     * @return bool
-     */
-    public function has( string $name ): bool {
-        return isset( $this->core[ $name ] ) || isset( $this->custom[ $name ] );
     }
 
     /**
@@ -374,7 +233,7 @@ class CommandRegistry {
      * @param string $class
      * @throws InvalidArgumentException
      */
-    private function assert_implements_interface( string $class ): void {
+    protected function assert_implements_interface( string $class ): void {
         if ( ! class_exists( $class ) ) {
             throw new InvalidArgumentException(
                 sprintf( 'CommandRegistry: class "%s" does not exist.', $class )

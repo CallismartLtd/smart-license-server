@@ -69,7 +69,7 @@ abstract class AbstractRegistry implements RegistryInterface {
      * @param string $provider_id
      * @return bool
      */
-    public function has( $provider_id ) : bool{
+    public function has( $provider_id ) : bool {
         $this->ensure_core();
         return isset( $this->core[ $provider_id ] ) || isset( $this->custom[ $provider_id ] );
     }
@@ -164,10 +164,40 @@ abstract class AbstractRegistry implements RegistryInterface {
         }
     }
 
+    /*
+    |------------------
+    | ABSTRACT METHODS
+    |------------------
+    */
+
     /**
      * Load core adapters/providers.
      * 
      * @return void
      */
     abstract protected function load_core() : void;
+
+    /*
+    |--------------------------------------------
+    | RETRIEVAL
+    |--------------------------------------------
+    */
+
+    /**
+     * Return only core commands keyed by name.
+     *
+     * @return array<string, class-string<CommandInterface>>
+     */
+    public function core(): array {
+        return $this->core;
+    }
+
+    /**
+     * Return only custom commands keyed by name.
+     *
+     * @return array<string, class-string<CommandInterface>>
+     */
+    public function custom(): array {
+        return $this->custom;
+    }
 } 
