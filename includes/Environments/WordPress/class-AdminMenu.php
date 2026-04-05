@@ -62,7 +62,8 @@ class AdminMenu {
         add_menu_page( SMLISER_APP_NAME, SMLISER_APP_NAME, 'manage_options', $slug, array( $this, 'dispatch_request' ), self::MENU_ICON, 3.1 );
 
         foreach ( $this->config->all() as $key => $menu ) {
-            if ( 'overview' === $key ) continue;
+            if ( 'overview' === $key ) continue; // Already registered.
+
             $base_slug   = sprintf( '%s-%s', $this->prefix, $menu['slug'] );
             add_submenu_page( $slug, $menu['title'], $menu['title'], 'manage_options', $base_slug, [$this, 'dispatch_request'] );
         }
