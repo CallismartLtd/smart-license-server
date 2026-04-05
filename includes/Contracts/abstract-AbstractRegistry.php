@@ -27,7 +27,7 @@ abstract class AbstractRegistry implements RegistryInterface {
      *
      * @var array<string, class-string> $custom
      */
-    protected $custom = [];
+    protected $custom   = [];
 
     /**
      * Tracks whether core providers/adapters have been loaded.
