@@ -34,6 +34,15 @@ final class MonetizationRegistry extends AbstractRegistry {
     private static $instance = null;
 
     /**
+     * Monetization providers.
+     * 
+     * @param array<int, class-string<>>
+     */
+    private array $core_providers = [
+        WooCommerceProvider::class,
+    ];
+
+    /**
      * The settings storage adapter instance.
      * 
      * @var Settings $storage
@@ -47,7 +56,6 @@ final class MonetizationRegistry extends AbstractRegistry {
      */
     private function __construct( Settings $storage ) {
         self::$storage = $storage;
-        $this->load_core();
     }
 
     /**
@@ -78,15 +86,10 @@ final class MonetizationRegistry extends AbstractRegistry {
             return;
         }
 
-        // All core providers.
-        $core_providers = [
-            WooCommerceProvider::get_id() => WooCommerceProvider::class,
-        ];
+        foreach ( $this->core_providers as $class_string ) {
+            $this->assert_implements_interface( $class_string );
 
-        foreach ( $core_providers as $id => $class ) {
-            $this->assert_implements_interface( $class );
-
-            $this->core[$id] = $class;
+            $this->core[$class_string::get_id()] = $class_string;
         }
 
         $this->core_loaded = true;

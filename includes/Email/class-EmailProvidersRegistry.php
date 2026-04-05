@@ -47,6 +47,22 @@ class EmailProvidersRegistry  extends AbstractRegistry {
     protected Settings $settings;
 
     /**
+     * Core email service providers.
+     * 
+     * @var array<int, class-string<EmailProviderInterface>>
+     */
+    private $core_providers = [
+        PHPMailProvider::class,
+        SMTPProvider::class,
+        BrevoProvider::class,
+        SendGridProvider::class,
+        MailgunProvider::class,
+        PostmarkProvider::class,
+        ResendProvider::class,
+        AmazonSESProvider::class,
+    ];
+
+    /**
      * In-memory cache for persisted provider options.
      *
      * Keyed by adapter ID. Busted whenever update_option() is called.
@@ -65,7 +81,7 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      */
     private function __construct( Settings $settings ) {
         $this->settings = $settings;
-        $this->load_core();
+        // $this->load_core();
     }
 
     /*
@@ -291,19 +307,16 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      * @return void
      */
     protected function load_core(): void {
-        $core_providers = [
-            PHPMailProvider::class,
-            SMTPProvider::class,
-            BrevoProvider::class,
-            SendGridProvider::class,
-            MailgunProvider::class,
-            PostmarkProvider::class,
-            ResendProvider::class,
-            AmazonSESProvider::class,
-        ];
-
-        foreach ( $core_providers as $provider ) {
-            $this->add( $provider );
+        if ( $this->core_loaded ) {
+            return;
         }
+
+        foreach ( $this->core_providers as $provider ) {
+            $this->core[$provider::get_id()] = $provider;
+        }
+
+        unset( $this->core_providers );
+
+        $this->core_loaded = true;
     }
 }
