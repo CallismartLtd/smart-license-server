@@ -43,6 +43,15 @@ final class MonetizationRegistry extends AbstractRegistry {
     ];
 
     /**
+     * In-memory cache for persisted provider options.
+     *
+     * Keyed by provider ID. Busted whenever update_option() is called.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    protected static array $settings_store = [];
+
+    /**
      * The settings storage adapter instance.
      * 
      * @var Settings $storage
@@ -205,15 +214,12 @@ final class MonetizationRegistry extends AbstractRegistry {
      * @return mixed The option value or empty string if not set.
      */
     public static function get_option( $provider_id, $option_name ) {
-        static $provider_options = array();
-
-        // Load this provider's options into cache if not already loaded
-        if ( ! isset( $provider_options[ $provider_id ] ) ) {
-            $all_options = self::$storage->get( 'smliser_monetization_providers_options', array() );
-            $provider_options[ $provider_id ] = $all_options[ $provider_id ] ?? array();
+        if ( ! isset( static::$settings_store[ $provider_id ] ) ) {
+            $all_options = self::$storage->get( 'smliser_monetization_providers_options', [] );
+            static::$settings_store[ $provider_id ] = $all_options[ $provider_id ] ?? [];
         }
 
-        return $provider_options[ $provider_id ][ $option_name ] ?? null;
+        return static::$settings_store[ $provider_id ][ $option_name ] ?? null;
     }
 
     /**
@@ -225,14 +231,18 @@ final class MonetizationRegistry extends AbstractRegistry {
      * @return bool True if option value has changed, false if not or if update failed.
      */
     public static function update_option( $provider_id, $option_name, $value ) {
-        $all_options = self::$storage->get( 'smliser_monetization_providers_options', array() );
+        $all_options = self::$storage->get( 'smliser_monetization_providers_options', [] );
 
         if ( ! isset( $all_options[ $provider_id ] ) || ! is_array( $all_options[ $provider_id ] ) ) {
-            $all_options[ $provider_id ] = array();
+            $all_options[ $provider_id ] = [];
         }
 
         $all_options[ $provider_id ][ $option_name ] = $value;
         $updated = self::$storage->set( 'smliser_monetization_providers_options', $all_options );
+
+        if ( $updated ) {
+            unset( static::$settings_store[ $provider_id ] );
+        }
 
         return $updated;
     }

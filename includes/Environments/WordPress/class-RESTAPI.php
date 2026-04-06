@@ -33,10 +33,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 class RESTAPI implements RESTProviderInterface {
     use SanitizeAwareTrait;
-    /**
-     * The current REST API version instance.
-     */
-    private ?RESTInterface $restAPIVersion;
 
     /**
      * Holds the current WP_REST_Request object.
@@ -64,9 +60,7 @@ class RESTAPI implements RESTProviderInterface {
      *
      * @param RESTInterface $rest
      */
-    public function __construct( RESTInterface $rest ) {
-        $this->restAPIVersion = $rest;
-        
+    public function __construct( private RESTInterface $restAPIVersion ) {        
         add_filter( 'rest_request_before_callbacks', [$this, 'rest_request_before_callbacks'], -1, 3 );
         add_filter( 'rest_post_dispatch', [$this, 'filter_response'], 10, 3 );
         add_filter( 'rest_pre_dispatch', [$this, 'enforce_https'], 10, 3 );

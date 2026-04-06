@@ -81,7 +81,6 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      */
     private function __construct( Settings $settings ) {
         $this->settings = $settings;
-        // $this->load_core();
     }
 
     /*

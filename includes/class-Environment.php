@@ -37,6 +37,7 @@ use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
+use SmartLicenseServer\Admin\AdminConfiguration;
 
 /**
  * Abstract environment bootstrap class for Smart License Server.
@@ -187,6 +188,8 @@ abstract class Environment implements EnvironmentProviderInterface {
      * @var MonetizationRegistry $monetizationRegistry
      */
     protected MonetizationRegistry $monetizationRegistry;
+
+    protected AdminConfiguration $adminMenuConfiguration;
 
     /**
      * Environment constructor.
@@ -749,8 +752,8 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     protected function setGlobalMailingAdapter() : void {
         // Instantiate the email registry with storage.
-        $registry     = $this->emailProviders();
-        $this->mailer   = new Mailer( $registry->get_provider_with_settings() );
+        $registry       = $this->emailProviders();
+        $this->mailer   = new Mailer( $registry->get_provider() );
     }
 
     /**

@@ -506,7 +506,7 @@ final class AdminConfiguration {
      */
     public function move_before( string $key, string $targetKey ) : void {
         $key            = $this->canonical_key( $key );
-        $targetKey      = $this->canonical_key( $key );
+        $targetKey      = $this->canonical_key( $targetKey );
         $targetIndex    = $this->get_index( $targetKey );
 
         $this->move_to_index( $key, $targetIndex );
