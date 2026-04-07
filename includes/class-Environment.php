@@ -38,6 +38,9 @@ use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 use SmartLicenseServer\Admin\AdminConfiguration;
+use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
+use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
+use SmartLicenseServer\Events\EventServiceProvider;
 
 /**
  * Abstract environment bootstrap class for Smart License Server.
@@ -199,9 +202,10 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     final protected function setup( array $config ) {
         $this->parse_config( $config );
-        $this->declareGlobalConstants();
+        $this->declareGlobalConstants();        
         $this->setProps();
-        $this->setGlobalQueueAdapter();
+        
+        smliser_dispatch( new EnvironmentBooted );
     }
 
     /*
@@ -352,6 +356,9 @@ abstract class Environment implements EnvironmentProviderInterface {
             $this->{$prop_k}    = $this->env[$env_k];
         }
 
+        EventServiceProvider::instance()->boot();
+        smliser_dispatch( new \SmartLicenseServer\Events\Bootstrap\EnvironmentBooting() );
+
         // Auto provisions.
 
         if ( ! isset( $this->database ) ) {
@@ -373,6 +380,12 @@ abstract class Environment implements EnvironmentProviderInterface {
         if ( ! isset( $this->request ) ) {
             $this->request = new Request;
         }
+
+        if ( ! isset( $this->job_queue ) || ! isset( $this->queue_worker ) ) {
+            $this->setGlobalQueueAdapter();
+        }
+
+        smliser_dispatch( new EnvironmentReady );
     }
 
     /**

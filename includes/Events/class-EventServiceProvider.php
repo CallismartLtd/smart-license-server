@@ -28,7 +28,7 @@
  *
  * ## Booting
  *
- * Called once at application startup (e.g. from Config::setup() or SetUp):
+ * Called once at application startup (e.g. from Environment::setup() or SetUp):
  *
  *   EventServiceProvider::instance()->boot();
  *
