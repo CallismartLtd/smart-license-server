@@ -101,13 +101,12 @@ class AsyncEventJob implements JobHandlerInterface {
             throw new RuntimeException( 'AsyncEventJob::build_dto() called without an event.' );
         }
 
-        return new JobDTO( [
-            'job_type' => static::job_type(),
-            'payload'  => [
-                'event_class' => $this->event->name(),
-                'event_data'  => $this->event->to_array(),
-            ],
-        ] );
+        return new JobDTO([
+            JobDTO::KEY_ID          => static::get_job_name(),
+            JobDTO::KEY_JOB_CLASS   =>$this->event->name(),
+            JobDTO::KEY_PAYLOAD     => $this->event->to_array(),
+            JobDTO::KEY_PRIORITY    => 5
+        ]);
     }
 
     /*
@@ -147,6 +146,6 @@ class AsyncEventJob implements JobHandlerInterface {
 
         $event = $event_class::from_array( $event_data );
 
-        EventDispatcher::instance()->dispatch( $event );
+        return EventDispatcher::instance()->dispatch( $event );
     }
 }

@@ -121,7 +121,7 @@ class MessageController {
                     }
             }
 
-            $url    = smliser_bulk_messages_page()
+            $url    = smliser_bulk_messages_url()
             ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
             $response = ( new Response( 200, [], '' ) )

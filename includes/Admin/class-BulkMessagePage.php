@@ -117,7 +117,7 @@ class BulkMessagePage {
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Bulk Messages',
-                    'url'   => smliser_bulk_messages_page(),
+                    'url'   => smliser_bulk_messages_url(),
                     'icon'  => 'ti ti-home-filled'
                 ),
 

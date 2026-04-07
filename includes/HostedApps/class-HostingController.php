@@ -628,7 +628,7 @@ class HostingController {
                 $app->save() && $affected++;
             }
 
-            $url = smliser_repo_page( 'admin' )
+            $url = smliser_repository_url( 'admin' )
                 ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
             $response = ( new Response( 200, [], '' ) )
@@ -639,7 +639,7 @@ class HostingController {
             return $response;
 
         } catch ( Exception $e ) {
-            $url = smliser_repo_page( 'admin' )
+            $url = smliser_repository_url( 'admin' )
                 ->add_query_param( 'message', \sprintf( 'Error: %s', $e->get_error_message() ) );
 
             return ( new Response() )

@@ -6,9 +6,6 @@
  * against event class names and called in priority order when the
  * corresponding event is dispatched.
  *
- * Works identically in WordPress and CLI environments — it is a
- * self-contained PHP dispatcher with no dependency on WP hooks.
- *
  * ## Quick reference
  *
  *   // Get the dispatcher
@@ -299,7 +296,7 @@ class EventDispatcher {
      * @return void
      */
     public function dispatch_async( AbstractEvent $event ): void {
-        smliser_job_queue()->push( new Jobs\AsyncEventJob( $event ) );
+        smliser_job_queue()->dispatch( new Jobs\AsyncEventJob( $event ) );
     }
 
     /*

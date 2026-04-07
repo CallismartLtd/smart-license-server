@@ -215,14 +215,14 @@ class RepositoryPage {
         $type   = $request->get( 'type' );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repo_page( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
@@ -252,27 +252,27 @@ class RepositoryPage {
         $type   = $request->get( 'type' );
         
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
         $file   = \sprintf( '%s/templates/admin/repository/view-%s.php', SMLISER_PATH, $type );
 
         if ( ! file_exists( $file ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" edit file does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" edit file does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
 
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repo_page( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
         $repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
 
-        $url                    = smliser_repo_page( 'admin' );
+        $url                    = smliser_repository_url( 'admin' );
         $download_actions       = [
             'action' => 'smliser_admin_download',
             'type'   => $app->get_type(),
@@ -375,7 +375,7 @@ class RepositoryPage {
      * Manage plugin monetization page
      */
     private static function monetization_page( Request $request ) {
-        $url    = \smliser_repo_page( 'admin' );
+        $url    = \smliser_repository_url( 'admin' );
         $id         = smliser_get_query_param( 'app_id' );
         $app_type   = smliser_get_query_param( 'type' );
         $is_new     = false;
@@ -535,13 +535,13 @@ class RepositoryPage {
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Repository',
-                    'url'   => \smliser_repo_page( 'admin' ),
+                    'url'   => \smliser_repository_url( 'admin' ),
                     'icon'  => 'ti ti-home-filled'
                 ),
 
                 array(
                     'label' => smliser_pluralize( $app?->get_type() ?? $app_type ),
-                    'url'   => smliser_repo_page( 'admin' )->add_query_param( 'type', ( $app?->get_type() ?? '' ) ),
+                    'url'   => smliser_repository_url( 'admin' )->add_query_param( 'type', ( $app?->get_type() ?? '' ) ),
                     'icon'  => 'ti ti-folder-open'
                 ),
                 array(

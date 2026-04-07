@@ -71,7 +71,7 @@ class LicensePage {
         
         $licenses       = $license_data['items'] ?? [];
         $pagination     = $license_data['pagination'] ?? [];
-        $add_url        = smliser_license_admin_action_page( 'add-new' );
+        $add_url        = smliser_license_page()->add_query_param( 'tab', 'add-new' );
     
         include_once SMLISER_PATH . 'templates/admin/license/dashboard.php';
     
@@ -95,7 +95,7 @@ class LicensePage {
         ]);
         $licenses       = $license_data['items'] ?? [];
         $pagination     = $license_data['pagination'] ?? [];
-        $add_url        = smliser_license_admin_action_page( 'add-new' );
+        $add_url        = smliser_license_page()->add_query_param( 'tab', 'add-new' );
     
         include_once SMLISER_PATH . 'templates/admin/license/search.php';
     

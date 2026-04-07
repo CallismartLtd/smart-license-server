@@ -99,8 +99,17 @@ class URL implements JsonSerializable{
      *
      * @return string Full URL.
      */
-    public function get_href(): string {
+    public function url(): string {
         return self::build_url( $this->components );
+    }
+
+    /**
+     * Get the full URL string (reconstructed from components).
+     *
+     * @return string Full URL.
+     */
+    public function get_href(): string {
+        return $this->url();
     }
 
     /**

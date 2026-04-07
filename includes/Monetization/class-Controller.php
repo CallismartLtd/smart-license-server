@@ -326,12 +326,17 @@ class Controller {
                 'license'   => $license->to_array()
             ];
             $code   = $license_exists ? 200 : 201;
-            $url    = ( new URL( smliser_license_admin_action_page( 'edit', $license->get_id() ) ) )
-                ->add_query_param( 'message', 'Saved' );
 
-            $response = new Response( $code, [], $response_data );
+            $params = [
+                'tab'           => 'edit',
+                'license_id'    => $license->get_id(),
+                'message'       => 'Saved'
+            ];
+
+            $url        = smliser_license_page()->add_query_params( $params );
+            $response   = new Response( $code, [], $response_data );
             $response->set_header( 'Content-Type', 'application/json; charset=utf-8' )
-            ->set_header( 'Location', $url->get_href() );
+            ->set_header( 'Location', $url->url() );
 
             return $response;
         } catch ( RequestException $e ) {

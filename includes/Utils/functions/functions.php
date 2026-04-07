@@ -45,55 +45,6 @@ function smliser_debug_enabled() : bool {
 }
 
 /**
- * The License page url function
- * can be useful to get the url to the License page in all scenerio
- */
-function smliser_license_page() {
-    return adminUrl( 'admin.php', ['page' => 'smliser-licenses'] );
-}
-
-/**
- * Get the repository URL.
- * 
- * @param string $context
- */
-function smliser_repo_page( string $context = '' ) : URL {
-
-    if ( 'admin' === $context ) {
-        $url = adminUrl( 'admin.php' )
-        ->add_query_param( 'page', 'smliser-repository' );
-    } else {
-        $url    = url( smliser_get_repository_url_prefix() );
-    }
-
-    return $url;
-}
-
-/**
- * Bulk messages URL
- */
-function smliser_bulk_messages_page() : URL {
-    $url    = adminUrl( 'admin.php' )
-    ->add_query_params([
-        'page'  => 'smliser-bulk-messages'
-    ]);
-
-    return $url;
-}
-
-/**
- * The settings page URL
- */
-function smliser_options_url() : URL {
-    $url    = adminUrl( 'admin.php' )
-    ->add_query_params([
-        'page'  => 'smliser-settings'
-    ]);
-
-    return $url;
-}
-
-/**
  * Not found container
  * 
  * @param string $text Message to show
@@ -107,17 +58,6 @@ function smliser_not_found_container( $text ) {
 
     <?php
     return ob_get_clean();
-}
-
-/**
- * Tells whether the given string is an empty date.
- */
-function smliser_is_empty_date( $date_string ) {
-    // Trim the date string to remove any surrounding whitespace
-    $date_string = trim( $date_string );
-
-    // Check if the date string is empty or equals '0000-00-00'
-    return empty( $date_string ) || $date_string === '0000-00-00';
 }
 
 /**
@@ -158,7 +98,7 @@ function smliser_admin_repo_tab( $tab = 'add-new', $args = array() ) {
     
     $args['tab'] = $tab;
 
-    $url = smliser_repo_page( 'admin' )->add_query_params( $args );
+    $url = smliser_repository_url( 'admin' )->add_query_params( $args );
 
     return $url;
 }
@@ -396,30 +336,6 @@ function smliser_get_user_agent( bool $raw = false ) {
     }
 
     return smliser_parse_user_agent( $user_agent_string );
-}
-
-/**
- * Extract the token from the authorization header.
- * 
- * @param Request $request The current request object.
- * @return string|null The extracted token or null if not found.
- */
-function smliser_get_auth_token( Request $request ) {
-    // Get the authorization header.
-    $headers = $request->get_headers();
-    
-    if ( isset( $headers['authorization'] ) ) {
-        $auth_header = $headers['authorization'][0];
-        
-        // Extract the token using a regex match for Bearer token.
-        if ( preg_match( '/Bearer\s(\S+)/', $auth_header, $matches ) ) {
-            return $matches[1]; // Return the token.
-        } else {
-            $auth_header;
-        }
-    }
-    
-    return null;
 }
 
 /**
@@ -694,39 +610,6 @@ function smliser_document_download_url( int $id = 0 ) : URL {
     $path           = implode( '/', [$downloads_slug,'document', $id] );
 
     return url( $path );
-}
-
-/**
- * Retrieve the Authorization header from the client request.
- *
- * @return string|null The Authorization header value or null if not found.
- */
-function smliser_get_authorization_header() {
-    $headers = [];
-
-    // Use getallheaders() if it exists
-    if ( function_exists( 'getallheaders' ) ) {
-        $headers = getallheaders();
-        // Normalize header keys to lowercase
-        $headers = array_change_key_case( $headers, CASE_LOWER );
-    }
-
-    // Check the Authorization header in getallheaders result
-    if ( isset( $headers['authorization'] ) ) {
-        return unslash( $headers['authorization'] );
-    }
-
-    // Fallback to Apache-specific headers
-    if ( isset( $_SERVER['HTTP_AUTHORIZATION'] ) ) {
-        return unslash( $_SERVER['HTTP_AUTHORIZATION'] );
-    }
-
-    // Fallback to other possible server variables
-    if ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ) {
-        return unslash( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] );
-    }
-
-    return null;
 }
 
 /**
@@ -1501,6 +1384,13 @@ function smliser_monetization_registry() : MonetizationRegistry {
  */
 function smliser_emailProvidersRegistry() : EmailProvidersRegistry {
     return smliser_envProvider()->emailProviders();
+}
+
+/**
+ * Get the current request object.
+ */
+function smliser_request() : Request {
+    return smliser_envProvider()->request();
 }
 
 /**
