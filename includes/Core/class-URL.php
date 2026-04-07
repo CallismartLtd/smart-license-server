@@ -572,7 +572,7 @@ class URL implements JsonSerializable{
      * @return string Full URL.
      */
     public function __toString(): string {
-        return $this->get_href();
+        return $this->url();
     }
 
     /**

@@ -1,0 +1,527 @@
+<?php
+/**
+ * HTML Rendering Functions API
+ */
+
+use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Utils\Sanitizer;
+
+/**
+ * Renders a reusable, prefixed toggle switch component.
+ *
+ * @param array $attrs Associative array of attributes for the input element.
+ *                     Supported: id, name, value, class, and any custom data-* or aria-* attributes.
+ *                     Example:
+ *                     [
+ *                        'id' => 'autosave_toggle',
+ *                        'name' => 'autosave',
+ *                        'value' => 1, // 1 for checked, 0 for unchecked
+ *                        'data-group' => 'editor',
+ *                        'aria-label' => 'Enable autosave',
+ *                     ]
+ *
+ * @return void
+ */
+function smliser_render_toggle_switch( $attrs = array() ) {
+    $defaults = array(
+        'id'    => uniqid( 'smliser_toggle_' ),
+        'name'  => 'toggle_switch',
+        'value' => 0,
+        'class' => 'smliser_toggle-switch-input',
+    );
+
+    $attrs = array_merge( $defaults, $attrs );
+
+    // Extract value to determine checked state
+    $value = (int) $attrs['value'];
+    unset( $attrs['value'] );
+
+    // Build attribute string
+    $attr_str = '';
+    foreach ( $attrs as $key => $val ) {
+        if ( is_bool( $val ) ) {
+            $attr_str .= $val ? sprintf( ' %s', esc_attr( $key ) ) : '';
+        } else {
+            $attr_str .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $val ) );
+        }
+    }
+
+    printf(
+        '<div class="smliser_toggle-switch-container">
+            <input type="checkbox"%1$s value="1" %2$s />
+            <label for="%3$s" class="smliser_toggle-switch-label">
+                <span class="smliser_toggle-switch-slider"></span>
+            </label>
+        </div>',
+        $attr_str,
+        checked( $value, 1, false ),
+        esc_attr( $attrs['id'] )
+    );
+}
+
+/**
+ * Render form input field.
+ *
+ * Supports an optional help icon that displays a tooltip describing
+ * the field. The help icon is rendered inline after the label text,
+ * before the input element.
+ *
+ * Basic usage:
+ *
+ *   smliser_render_input_field( array(
+ *       'label' => 'API Key',
+ *       'help'  => 'Your secret API key. Do not share this with anyone.',
+ *       'input' => array(
+ *           'type'  => 'password',
+ *           'name'  => 'api_key',
+ *           'value' => '',
+ *       ),
+ *   ) );
+ *
+ * The help text is exposed via:
+ *   - An aria-label on the icon button (screen readers).
+ *   - A data-help attribute (JS tooltip hook).
+ *   - A <span class="smliser-help-tooltip"> sibling (CSS tooltip fallback).
+ *
+ * @param array $args {
+ *     @type string $label          Field label text.
+ *     @type string $help           Optional help text shown in the tooltip.
+ *     @type array  $input {
+ *         @type string $type       Input type (text, password, select, etc.). Default 'text'.
+ *         @type string $name       Input name attribute.
+ *         @type string $value      Input value.
+ *         @type string $class      Wrapper/label class. Default 'smliser-form-label-row'.
+ *         @type array  $options    Options for select/radio inputs.
+ *         @type array  $attr       Additional HTML attributes as key => value pairs.
+ *     }
+ * }
+ */
+function smliser_render_input_field( array $args = [] ): void {
+    $default_args = array(
+        'label' => '',
+        'help'  => '',
+        'input' => array(
+            'type'    => 'text',
+            'name'    => '',
+            'value'   => '',
+            'class'   => 'smliser-form-label-row',
+            'options' => array(),
+            'attr'    => array(),
+        ),
+    );
+
+    $parsed_args = parse_args_recursive( $args, $default_args );
+    $input       = $parsed_args['input'];
+    $type        = $input['type'];
+    $help        = trim( $parsed_args['help'] );
+
+    // Build attributes string.
+    $attr_str = '';
+    if ( ! empty( $input['attr'] ) && is_array( $input['attr'] ) ) {
+        foreach ( $input['attr'] as $key => $val ) {
+            $attr_str .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $val ) );
+        }
+    }
+
+    $id = ! empty( $input['attr']['id'] ) ? $input['attr']['id'] : $input['name'];
+
+    // Hidden fields: no label, no help icon.
+    if ( 'hidden' === $type ) {
+        printf(
+            '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
+            esc_attr( $type ),
+            esc_attr( $input['name'] ),
+            esc_attr( $id ),
+            esc_attr( $input['value'] ),
+            $attr_str
+        );
+        return;
+    }
+
+    // Open label.
+    printf(
+        '<label for="%1$s" class="%2$s">',
+        esc_attr( $id ),
+        esc_attr( $input['class'] )
+    );
+
+    // Label text + optional help icon, grouped so they sit inline.
+    echo '<span class="smliser-field-label-text">';
+    echo '<span>' . esc_html( $parsed_args['label'] ) . '</span>';
+
+    if ( '' !== $help ) {
+        smliser_render_field_help_icon( $help, $id );
+    }
+
+    echo '</span>'; // .smliser-field-label-text
+
+    // Input element.
+    switch ( $type ) {
+        case 'textarea':
+            printf(
+                '<textarea name="%1$s" id="%2$s"%3$s>%4$s</textarea>',
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                $attr_str,
+                esc_textarea( $input['value'] )
+            );
+            break;
+
+        case 'select':
+            printf(
+                '<select name="%1$s" id="%2$s"%3$s>',
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                $attr_str
+            );
+            foreach ( $input['options'] as $val => $label ) {
+                printf(
+                    '<option value="%1$s" %2$s>%3$s</option>',
+                    esc_attr( $val ),
+                    selected( $input['value'], $val, false ),
+                    esc_html( $label )
+                );
+            }
+            echo '</select>';
+            break;
+
+        case 'checkbox':
+        case 'radio':
+            printf(
+                '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s" %5$s%6$s>',
+                esc_attr( $type ),
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                esc_attr( $input['value'] ),
+                checked( $input['value'], true, false ),
+                $attr_str
+            );
+            break;
+
+        case 'password':
+            echo '<div class="smliser-password-field-wrapper">';
+            printf(
+                '<input type="password" name="%1$s" id="%2$s" value="%3$s" class="smliser-password-input"%4$s>',
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                esc_attr( $input['value'] ),
+                $attr_str
+            );
+            printf(
+                '<button type="button" class="smliser-password-toggle" data-target="%1$s" aria-label="%2$s">
+                    <svg class="smliser-eye-icon smliser-eye-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg class="smliser-eye-icon smliser-eye-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;" aria-hidden="true">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </button>',
+                esc_attr( $id ),
+                esc_attr__( 'Toggle password visibility', 'smliser' )
+            );
+            echo '</div>';
+            break;
+
+        default:
+            printf(
+                '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
+                esc_attr( $type ),
+                esc_attr( $input['name'] ),
+                esc_attr( $id ),
+                esc_attr( $input['value'] ),
+                $attr_str
+            );
+            break;
+    }
+
+    echo '</label>';
+}
+
+/**
+ * Render a help icon with an associated tooltip for a form field.
+ *
+ * Outputs a <button> (so it is focusable and keyboard-accessible) containing
+ * a question-mark SVG. The tooltip text is attached three ways:
+ *
+ *   1. aria-label  — read aloud by screen readers on focus/hover.
+ *   2. data-help   — picked up by any JS tooltip library you wire up.
+ *   3. A visually-hidden <span class="smliser-help-tooltip"> sibling that
+ *      can be shown with pure CSS for environments without JS.
+ *
+ * The button carries aria-describedby pointing at the tooltip span so
+ * assistive technology can also read the full text when the element is
+ * focused, not just its label.
+ *
+ * @param string $help_text  The descriptive text to display.
+ * @param string $field_id   The ID of the field this help icon belongs to,
+ *                           used to generate a unique tooltip ID.
+ */
+function smliser_render_field_help_icon( string $help_text, string $field_id ): void {
+    $tooltip_id = esc_attr( $field_id ) . '-help-tooltip';
+
+    printf(
+        '<span class="smliser-help-icon-wrap">
+            <button
+                type="button"
+                class="smliser-help-icon"
+                aria-label="%1$s"
+                aria-describedby="%2$s"
+                data-help="%1$s"
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                    <text x="12" y="17" text-anchor="middle" font-size="13" font-weight="600" font-family="sans-serif" fill="currentColor">?</text>
+                </svg>
+            </button>
+            <span id="%2$s" class="smliser-help-tooltip" role="tooltip">%3$s</span>
+        </span>',
+        esc_attr( $help_text ),
+        esc_attr( $tooltip_id ),
+        esc_html( $help_text )
+    );
+}
+
+/**
+ * Prints an indepth analysis of the given URL.
+ * 
+ * @param string $url
+ */
+function smliser_dump_url( $url ) : void {
+    $dump   = ( new URL( $url ) )->dump();
+    // Pretty print for debugging
+    echo '<pre style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; font-family: \'Courier New\', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto;">';
+    echo '<strong style="color: #4ec9b0; font-size: 16px;">🔍 URL DEBUG DUMP</strong>' . "\n";
+    echo str_repeat('─', 80) . "\n\n";
+    
+    // Full URL
+    echo '<span style="color: #569cd6;">📌 FULL URL:</span> ' . "\n";
+    echo '   <span style="color: #ce9178;">' . htmlspecialchars( $dump['url']['full_url'] ) . '</span>' . "\n\n";
+    
+    // Origin
+    echo '<span style="color: #569cd6;">🌐 ORIGIN:</span> ' . "\n";
+    echo '   <span style="color: #ce9178;">' . htmlspecialchars( $dump['url']['origin'] ?? 'N/A' ) . '</span>' . "\n\n";
+    
+    // Components
+    echo '<span style="color: #569cd6;">🧩 COMPONENTS:</span>' . "\n";
+    foreach ( $dump['components'] as $key => $value ) {
+        $color = $value !== null ? '#b5cea8' : '#808080';
+        $display = $value ?? '<span style="color: #808080; font-style: italic;">not set</span>';
+        echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: %s;">%s</span>' . "\n", 
+            str_pad( $key, 10 ), 
+            $color, 
+            $display 
+        );
+    }
+    echo "\n";
+    
+    // Query Parameters
+    echo '<span style="color: #569cd6;">🔗 QUERY PARAMETERS:</span>' . "\n";
+    if ( empty( $dump['query_params'] ) ) {
+        echo '   <span style="color: #808080; font-style: italic;">No query parameters</span>' . "\n";
+    } else {
+        foreach ( $dump['query_params'] as $key => $value ) {
+            if ( is_array( $value ) ) {
+                echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">[%s]</span>' . "\n",
+                    htmlspecialchars( $key ),
+                    htmlspecialchars( implode( ', ', $value ) )
+                );
+            } else {
+                echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">%s</span>' . "\n",
+                    htmlspecialchars( $key ),
+                    htmlspecialchars( (string) $value )
+                );
+            }
+        }
+    }
+    echo "\n";
+    
+    // Validation States
+    echo '<span style="color: #569cd6;">✅ VALIDATION:</span>' . "\n";
+    foreach ( $dump['validation'] as $key => $value ) {
+        $icon = $value ? '✓' : '✗';
+        $color = $value ? '#4ec9b0' : '#f48771';
+        echo sprintf( '   <span style="color: %s;">%s</span> <span style="color: #9cdcfe;">%s</span>' . "\n",
+            $color,
+            $icon,
+            str_replace( '_', ' ', $key )
+        );
+    }
+    echo "\n";
+    
+    // Presence Checks
+    echo '<span style="color: #569cd6;">🔎 PRESENCE CHECKS:</span>' . "\n";
+    foreach ( $dump['has'] as $key => $value ) {
+        $icon = $value ? '●' : '○';
+        $color = $value ? '#4ec9b0' : '#808080';
+        echo sprintf( '   <span style="color: %s;">%s</span> <span style="color: #9cdcfe;">has_%s</span>' . "\n",
+            $color,
+            $icon,
+            $key
+        );
+    }
+    echo "\n";
+    
+    // Raw Components
+    echo '<span style="color: #569cd6;">⚙️  RAW COMPONENTS ARRAY:</span>' . "\n";
+    echo '<span style="color: #808080;">';
+    print_r( $dump['raw_components'] );
+    echo '</span>';
+    
+    echo str_repeat('─', 80) . "\n";
+    echo '</pre>';
+}
+
+/**
+ * Kills appliaction execution and displays HTML page with an error message.
+ *
+ * This function complements the `die()` PHP function. The difference is that
+ * HTML will be displayed to the user. It is recommended to use this function
+ * only when the execution should not continue any further. It is not recommended
+ * to call this function very often, and try to handle as many errors as possible
+ * silently or more gracefully.
+ *
+ * As a shorthand, the desired HTTP response code may be passed as an integer to
+ * the `$title` parameter (the default title would apply) or the `$args` parameter.
+ *
+ *
+ * @param string|SmartLicenseServer\Exception  $message Optional. Error message. If this is an error object,
+ *                                  and not an Ajax or XML-RPC request, the error's messages are used.
+ *                                  Default empty string.
+ * @param string|int       $title   Optional. Error title. If `$message` is a `SmartLicenseServer\Exceptions\Exception;` object,
+ *                                  error data with the key 'title' may be used to specify the title.
+ *                                  If `$title` is an integer, then it is treated as the response code.
+ *                                  Default empty string.
+ * @param string|array|int $args {
+ *     Optional. Arguments to control behavior. If `$args` is an integer, then it is treated
+ *     as the response code. Default empty array.
+ *
+ *     @type int    $response       The HTTP response code. Default 200 for Ajax requests, 500 otherwise.
+ *     @type string $link_url       A URL to include a link to. Only works in combination with $link_text.
+ *                                  Default empty string.
+ *     @type string $link_text      A label for the link to include. Only works in combination with $link_url.
+ *                                  Default empty string.
+ *     @type bool   $back_link      Whether to include a link to go back. Default false.
+ *                                  Default is the value of is_rtl().
+ *     @type string $charset        Character set of the HTML output. Default 'utf-8'.
+ *     @type string $code           Error code to use. Default is 'smliser_error', or the main error code if $message
+ *                                  is a WP_Error.
+ *     @type bool   $exit           Whether to exit the process after completion. Default true.
+ * }
+ */
+function smliser_abort_request( $message = '', $title = '', $args = [] ) {
+    $defaults = [
+        'response'  => 500, // Default HTTP status for a fatal error
+        'link_url'  => '',
+        'link_text' => '',
+        'back_link' => false,
+        'charset'   => 'utf-8',
+        'code'      => 'smliser_error',
+        'exit'      => true,
+    ];
+
+    // Handle HTTP response code passed as an integer shorthand.
+    if ( is_int( $title ) ) {
+        $args = [ 'response' => $title ];
+        $title = '';
+    } elseif ( is_int( $args ) ) {
+        $args = [ 'response' => $args ];
+    }
+    
+    // Resolve final configuration array
+    $r = parse_args( $args, $defaults );
+
+    $error_object = null;
+    if ( is_smliser_error( $message ) ) {
+        $error_object = $message;
+
+        // Fetch primary data from the error object's internal structure
+        $error_data = $error_object->get_error_data();
+
+        // Overwrite defaults with structured error data
+        $r['response'] = $error_data['status'] ?? $r['response'];
+        $r['code']     = $error_object->get_error_code() ?: $r['code'];
+        $title         = $title ?: ($error_data['title'] ?? 'Application Error');
+        
+
+        $message = smliser_debug_enabled() ? sprintf( '<pre>%s</pre>', $error_object->__toString() ) : $error_object->get_error_message();
+    }
+    
+    // Fallback if initial message was empty string
+    $message = $message ?: 'An unknown fatal error occurred.';
+    $title   = $title ?: 'Fatal Error';
+
+    if ( function_exists( 'wp_die' ) && $error_object === null ) {
+        // If we only have string inputs, use the native WP handler
+        // Note: $error_object is not passed here as it complicates wp_die's native flow.
+        wp_die( $message, $title, $r );
+    }
+
+    $http_response_code = (int) $r['response'];
+    if ( ! headers_sent() ) {
+        http_response_code( $http_response_code );
+        header( "Content-Type: text/html; charset={$r['charset']}" );
+    }
+
+    // --- 5. Prepare HTML Content ---
+    $link_html = '';
+
+    if ( ! empty( $r['link_url'] ) && ! empty( $r['link_text'] ) ) {
+        $link_html .= '<p><a href="' . esc_url( $r['link_url'] ) . '">' . esc_html( $r['link_text'] ) . '</a></p>';
+    }
+
+    if ( $r['back_link'] ) {
+        $link_html .= '<p><a href="javascript:history.back()">Go Back</a></p>';
+    }
+
+    $safe_message = $message;
+    $safe_title   = $title;
+
+    // --- 6. Output and Exit ---
+    die( '
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="' . esc_attr( $r['charset'] ) . '">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>' . $safe_title . '</title>
+        <style>
+            body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 50px; }
+            .error-container { max-width: 80%; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1); overflow-wrap: anywhere }
+            h1 { color: #e74c3c; margin-top: 0; font-size: 24px; }
+            p { font-size: 16px; color: #333; }
+            a { color: #3498db; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+            pre div { max-width: 100%; background-color: #f1f1f1; overflow-x: auto; padding: 10px; scrollbar-width: thin; }
+        </style>
+    </head>
+    <body>
+        <div class="error-container">
+            ' . $safe_message
+            . '<p>' . $link_html . '</p>
+        </div>
+    </body>
+    </html>' );
+
+    // The die() call above handles the exit, but this line is left for explicit clarity.
+    if ( $r['exit'] ) {
+        exit;
+    }
+}
+
+/**
+ * Not found container
+ * 
+ * @param string $text Message to show
+ */
+function smliser_not_found_container( $text ) {
+    ob_start();
+    ?>
+    <div class="smliser-not-found-container">
+        <p><?php echo Sanitizer::sanitize_html( $text ) ?> </p>
+    </div>
+
+    <?php
+    return ob_get_clean();
+}

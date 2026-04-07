@@ -163,7 +163,6 @@ class Sanitizer {
         $url = self::check_invalid_utf8( $url );
         $url = trim( $url );
 
-        // Use esc_url for comprehensive sanitization
         return self::esc_url( $url );
     }
 
