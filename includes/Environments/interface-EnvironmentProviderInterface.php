@@ -21,6 +21,7 @@ use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
+use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
  * Defines the contracts every environment adapter most follow to fully load this application.
@@ -144,6 +145,15 @@ interface EnvironmentProviderInterface {
 
     /**
      * Get the email provider registry.
+     * 
+     * @return EmailProvidersRegistry
      */
     public function emailProviders() : EmailProvidersRegistry;
+
+    /**
+     * Get the template locator instance.
+     * 
+     * @return TemplateLocator
+     */
+    public function templateLocator() : TemplateLocator;
 }

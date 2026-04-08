@@ -545,7 +545,7 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
  * @return \SmartLicenseServer\Environment
  */
 function smliser_envProvider() : Environment {
-    return Environment::env_provider();
+    return Environment::envProvider();
 }
 
 /**

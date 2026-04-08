@@ -41,6 +41,8 @@ use SmartLicenseServer\Admin\AdminConfiguration;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
 use SmartLicenseServer\Events\EventServiceProvider;
+use SmartLicenseServer\Templates\TemplateDiscovery;
+use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
  * Abstract environment bootstrap class for Smart License Server.
@@ -192,7 +194,19 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     protected MonetizationRegistry $monetizationRegistry;
 
+    /**
+     * Admin page configuration.
+     * 
+     * @var AdminConfiguration $adminMenuConfiguration
+     */
     protected AdminConfiguration $adminMenuConfiguration;
+
+    /**
+     * Template locator.
+     * 
+     * 
+     */
+    protected TemplateLocator $templateLocator;
 
     /**
      * Environment constructor.
@@ -866,7 +880,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Get the environment provider instance
      */
-    public static function env_provider() : static {
+    public static function envProvider() : static {
         return static::$envProvider;
     }
 
@@ -923,6 +937,21 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         return $this->emailProviders;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function templateLocator() : TemplateLocator {
+        if ( ! isset( $this->templateLocator ) ) {
+            $this->templateLocator  = new TemplateLocator();
+            $discovery              = new TemplateDiscovery( $this->templateLocator );
+
+            // Core templates auto-discovered at priority 0.
+            $discovery->discover( 'core', SMLISER_PATH . '/templates', 0 );
+        }
+
+        return $this->templateLocator;
     }
 }
 
