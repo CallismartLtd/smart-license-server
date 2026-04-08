@@ -18,7 +18,7 @@ use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
 
-use function defined, array_unshift, sprintf, smliser_json_encode_attr;
+use function defined, array_unshift, sprintf, smliser_json_encode_attr, smliser_render_template, compact;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -75,7 +75,8 @@ class AccessControlPage {
      */
     public static function dashboard( Request $request ) {
         $account_summaries  = ContextServiceProvider::get_accounts_summary_report();
-        include_once SMLISER_PATH . 'templates/admin/accounts/dashboard.php';
+        $vars               = compact( 'request', 'account_summaries' );
+        smliser_render_template( 'admin.accounts.index', $vars );
     
     }
 
@@ -91,7 +92,9 @@ class AccessControlPage {
         $entity_class   = User::class;
         $type           = 'user';
 
-        include_once SMLISER_PATH . 'templates/admin/accounts/principals-subjects-list.php';
+        $vars           = compact( 'request', 'all', 'entity_class', 'type' );
+
+        smliser_render_template( 'admin.accounts.principals', $vars );
     }
 
     /**
@@ -240,12 +243,14 @@ class AccessControlPage {
             $collection = Collection::make( $role_obj->to_array() );
             $role       = $collection->toArray();
 
-            unset( $collection );
         } else {
             $role = null;
         }
 
-        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
+        $vars           = compact( 'request', 'form_fields', 'avatar_name',
+        'avatar_url', 'role', 'title', 'roles_title' );
+
+        smliser_render_template( 'admin.accounts.access-control-form', $vars );
     }
 
     /**
@@ -260,7 +265,9 @@ class AccessControlPage {
         $entity_class   = Organization::class;
         $type           = 'organization';
 
-        include_once SMLISER_PATH . 'templates/admin/accounts/principals-subjects-list.php';
+        $vars           = compact( 'request', 'all', 'entity_class', 'type' );
+
+        smliser_render_template( 'admin.accounts.principals', $vars );
     }
 
     /**
@@ -274,7 +281,6 @@ class AccessControlPage {
         $organization   = Organization::get_by_id( $org_id );
 
         $title          = sprintf( '%s Organization', $organization ? 'Edit' : 'Add New' );
-        $roles_title    = sprintf( '%s Organization Role', $organization ? 'Update' : 'Set' );
 
         $_org_statuses  = Organization::get_allowed_statuses();
         $_status_titles = array_map( 'ucwords', array_values( $_org_statuses ) );
@@ -360,7 +366,10 @@ class AccessControlPage {
 
         $avatar_name    = $organization ? 'View image' : $avatar_url->basename();
 
-        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
+        $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
+        'title', 'organization',  );
+
+        smliser_render_template( 'admin.accounts.access-control-form', $vars );
     }
 
     /**
@@ -488,7 +497,10 @@ class AccessControlPage {
 
         $avatar_name    = $member ? 'View image' : $avatar_url->basename();
 
-        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
+        $vars = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
+        'title', 'organization', 'role', 'roles_title'  );
+
+        smliser_render_template( 'admin.accounts.access-control-form', $vars );
     }
 
     /**
@@ -641,7 +653,9 @@ class AccessControlPage {
         $all            = ServiceAccount::get_all( $page, $limit );
         $entity_class   = ServiceAccount::class;
         $type           = 'Service Account';
-        include_once SMLISER_PATH . 'templates/admin/accounts/principals-subjects-list.php';       
+        $vars           = compact( 'request', 'all', 'entity_class', 'type' );
+
+        smliser_render_template( 'admin.accounts.principals', $vars );      
     }
 
     /**
@@ -786,7 +800,10 @@ class AccessControlPage {
 
         $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
 
-        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
+        $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url', 'role',
+        'title', 'roles_title' );
+
+        smliser_render_template( 'admin.accounts.access-control-form', $vars );
     }
 
     /**
@@ -794,7 +811,7 @@ class AccessControlPage {
      * 
      * @param Request $request
      */
-    protected static function print_header( Request $request ) {
+    public static function print_header( Request $request ) {
         $tab        = $request->get( 'tab' );
         $title      = match( $tab ) {
             'users'             => 'Users',

@@ -9,9 +9,11 @@
  * @var \SmartLicenseServer\Core\Request $request
  */
 
+use SmartLicenseServer\Admin\AccessControlPage;
+
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-admin-repository-template">
-    <?php self::print_header( $request ); ?>
+    <?php AccessControlPage::print_header( $request ); ?>
     
     <div class="smliser-admin-table-body">
 

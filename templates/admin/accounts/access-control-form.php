@@ -14,6 +14,7 @@
  * @var \SmartLicenseServer\Core\Request $request
  */
 
+use SmartLicenseServer\Admin\AccessControlPage;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -32,7 +33,7 @@ if ( $render_image_only ) {
 ?>
 
 <div class="smliser-admin-repository-template" role="main">
-    <?php self::print_header( $request ); ?>
+    <?php AccessControlPage::print_header( $request ); ?>
 
     <form  class="smliser-access-control-form" 
         method="post" 
@@ -154,8 +155,8 @@ if ( $render_image_only ) {
                 </h2>
 
                 <ul class="smliser-organization-members-list" role="list">
-
-                    <?php foreach ( (array) $organization?->get_members() as $member ) : ?>
+                    
+                    <?php foreach ( $organization?->get_members() as $member ) : ?>
 
                         <li class="smliser-org-member" role="listitem">
 

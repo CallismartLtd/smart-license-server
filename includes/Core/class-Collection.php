@@ -15,7 +15,6 @@ use JsonSerializable;
 use ArrayIterator;
 use Countable;
 use IteratorAggregate;
-use Traversable;
 
 /**
  * Class Collection
@@ -734,9 +733,9 @@ class Collection implements IteratorAggregate, Countable, ArrayAccess, JsonSeria
 	/**
 	 * Retrieve an external iterator.
 	 *
-	 * @return Traversable
+	 * @return ArrayIterator<int, mixed>
 	 */
-	public function getIterator(): Traversable {
+	public function getIterator(): ArrayIterator {
 		return new ArrayIterator( $this->items );
 	}
 

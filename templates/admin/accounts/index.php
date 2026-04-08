@@ -10,6 +10,8 @@
  * @see SmartLicenseServer\Security\Context\ContextServiceProvider::get_accounts_summary_report()
  */
 
+use SmartLicenseServer\Admin\AccessControlPage;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -64,7 +66,7 @@ function smliser_get_status_class( $has_issues ) {
 ?>
 
 <div class="smliser-admin-repository-template">
-    <?php self::print_header( $request ); ?>
+    <?php AccessControlPage::print_header( $request ); ?>
 
     <div class="smliser-account-summary-wrapper">
 

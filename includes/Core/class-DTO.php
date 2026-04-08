@@ -394,7 +394,12 @@ class DTO implements \IteratorAggregate, \Countable, \ArrayAccess, \JsonSerializ
         return count( $this->props );
     }
 
-    public function getIterator(): \Traversable {
+	/**
+	 * Retrieve an external iterator.
+	 *
+	 * @return ArrayIterator<string, mixed>
+	 */
+    public function getIterator(): \ArrayIterator {
         return new ArrayIterator( $this->props );
     }
 

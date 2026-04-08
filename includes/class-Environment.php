@@ -948,7 +948,7 @@ abstract class Environment implements EnvironmentProviderInterface {
             $discovery              = new TemplateDiscovery( $this->templateLocator );
 
             // Core templates auto-discovered at priority 0.
-            $discovery->discover( 'core', SMLISER_PATH . '/templates', 0 );
+            $discovery->discover( 'core', SMLISER_PATH . '/templates/', 0 );
         }
 
         return $this->templateLocator;

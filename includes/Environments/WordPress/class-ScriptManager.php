@@ -262,7 +262,7 @@ final class ScriptManager {
             wp_enqueue_script( 'smliser-admin-repository' );
         }
 
-        if ( 'smliser-access-control' === $this->request->get( 'page' ) ) {
+        if ( 'smliser-accounts' === $this->request->get( 'page' ) ) {
             wp_enqueue_script( 'smliser-role-builder' );
         }
 
@@ -295,7 +295,7 @@ final class ScriptManager {
             wp_enqueue_style( 'smliser-tabler-icons' );
         }
 
-        if ( 'smliser-access-control' === $this->request->get( 'page' ) ) {
+        if ( 'smliser-accounts' === $this->request->get( 'page' ) ) {
             wp_enqueue_style( 'smliser-role-builder' );
         }
 

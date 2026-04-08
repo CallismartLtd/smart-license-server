@@ -12,7 +12,6 @@ use ArrayIterator;
 use Countable;
 use IteratorAggregate;
 use JsonSerializable;
-use Traversable;
 use SmartLicenseServer\Security\Actors\OrganizationMember;
 
 /**
@@ -103,7 +102,7 @@ class OrganizationMembers implements IteratorAggregate, Countable, JsonSerializa
      * @return OrganizationMember[]
      */
     public function all(): array {
-        return array_values( $this->members );
+        return $this->members;
     }
 
     /**
@@ -161,9 +160,9 @@ class OrganizationMembers implements IteratorAggregate, Countable, JsonSerializa
     /**
      * Iterate over members.
      *
-     * @return Traversable
+     * @return ArrayIterator<int, OrganizationMember>
      */
-    public function getIterator(): Traversable {
+    public function getIterator(): ArrayIterator {
         return new ArrayIterator( $this->members );
     }
 

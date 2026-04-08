@@ -108,7 +108,8 @@ class DashboardPage {
             ],
         ];
 
-        include_once SMLISER_PATH . 'templates/admin-dashboard.php';
+        $vars   = \compact( 'totals', 'metrics' );
+        \smliser_render_template( 'admin.index', $vars );
     }
 
     /**
