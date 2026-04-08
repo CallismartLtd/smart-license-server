@@ -12,12 +12,13 @@
  * @since   0.2.0
  */
 
+use SmartLicenseServer\Admin\OptionsPage;
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\Cache\CacheProviderIcons;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-$menu_args = static::get_menu_args( $request );
+$menu_args = OptionsPage::get_menu_args( $request );
 
 $extra        = $stats->get( 'extra', [] );
 $hits         = (int) $stats->get( 'hits',         0 );

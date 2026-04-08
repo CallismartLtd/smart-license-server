@@ -18,7 +18,7 @@ use SmartLicenseServer\Email\Providers\EmailProviderInterface;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 
-use function sprintf, smliser_settings;
+use function sprintf, smliser_settings, smliser_render_template, compact;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -64,14 +64,15 @@ class OptionsPage {
      * General settings page.
      */
     private static function general_settings( Request $request ): void {
-        include_once SMLISER_PATH . 'templates/admin/options/general.php';
+        
+        smliser_render_template( 'admin.options.index', compact( 'request' ) );
     }
 
     /**
      * Permalink/routes settings page.
      */
     private static function routes_setting( Request $request ): void {
-        include_once SMLISER_PATH . '/templates/admin/options/routing.php';
+        smliser_render_template( 'admin.options.routing', compact( 'request' ) );
     }
 
     /**
@@ -80,10 +81,11 @@ class OptionsPage {
     private static function monetization_options( Request $request ): void {
         if ( $request->has( 'provider' ) ) {
             self::monetization_provider_settings( $request );
-        } else {
-            $providers = smliser_monetization_registry()->all();
-            include_once SMLISER_PATH . 'templates/admin/options/monetization-providers.php';
-        }
+            return;
+        } 
+        
+        $providers = smliser_monetization_registry()->all();
+        smliser_render_template( 'admin.options.monetization-providers', compact( 'request', 'providers' ) );   
     }
 
     /**
@@ -109,7 +111,8 @@ class OptionsPage {
             );
         }
 
-        include_once SMLISER_PATH . 'templates/admin/options/monetizations.php';
+        $vars   = compact( 'request', 'provider', 'name', 'settings', 'id' );
+        smliser_render_template( 'admin.options.monetizations', $vars );
     }
 
     /**
@@ -121,7 +124,7 @@ class OptionsPage {
      * otherwise renders the provider list with global email settings.
      */
     private static function email_options( Request $request ): void {
-        if ( smliser_has_query_param( 'provider' ) ) {
+        if ( $request->has( 'provider' ) ) {
             self::email_provider_settings( $request );
             return;
         }
@@ -136,7 +139,8 @@ class OptionsPage {
         $default_provider   = EmailProvidersRegistry::get_default_provider_id();
         $email_fields       = static::email_settings_fields();
 
-        include_once SMLISER_PATH . 'templates/admin/options/email.php';
+        $vars   = compact( 'registry', 'request', 'email_fields', 'providers', 'default_provider' );
+        smliser_render_template( 'admin.options.email.index', $vars );
     }
 
     /**
@@ -147,13 +151,14 @@ class OptionsPage {
      */
     private static function email_template_options( Request $request ): void {
         if ( smliser_has_query_param( 'template' ) ) {
-            self::email_template_detail( $request );
+            self::email_template_editor( $request );
             return;
         }
 
         $templates = EmailTemplateRegistry::all();
 
-        include_once SMLISER_PATH . 'templates/admin/options/email-templates.php';
+        $vars       = compact( 'request', 'templates' );
+        smliser_render_template( 'admin.options.email.templates', $vars );
     }
 
     /**
@@ -162,7 +167,7 @@ class OptionsPage {
      * Provides the preview render and enable/disable/reset controls
      * for a single template type.
      */
-    private static function email_template_detail( Request $request ): void {
+    private static function email_template_editor( Request $request ): void {
         $key   = $request->get( 'template' );
         $entry = EmailTemplateRegistry::entry( $key );
 
@@ -175,7 +180,9 @@ class OptionsPage {
         $preview_html = $preview?->render();
         $current_url  = smliser_get_current_url()->remove_query_param( 'message' );
 
-        include_once SMLISER_PATH . 'templates/admin/options/email-template-editor.php';
+        $vars   = compact( 'entry', 'current_url', 'preview', 'preview_html' );
+
+        smliser_render_template( 'admin.options.email.editor', $vars );
     }
 
     /**
@@ -197,7 +204,9 @@ class OptionsPage {
             $saved_settings[ $key ] = EmailProvidersRegistry::get_option( $provider_id, $key );
         }
 
-        include_once SMLISER_PATH . 'templates/admin/options/email-provider.php';
+        $vars   = compact( 'request', 'saved_settings', 'provider', 'provider_id', 'provider_key',
+        'provider_name', 'schema', 'is_default' );
+        smliser_render_template( 'admin.options.email.form', $vars );
     }
 
     /**
@@ -223,7 +232,8 @@ class OptionsPage {
         $providers          = $cache_registry->all( true, true );
         $default_provider   = CacheAdapterRegistry::get_default_adapter_id();
 
-        include_once SMLISER_PATH . 'templates/admin/options/cache.php';
+        $vars   = compact( 'request', 'cache_registry', 'providers', 'default_provider' );
+        smliser_render_template( 'admin.options.cache.index', $vars );
     }
 
     /**
@@ -240,7 +250,8 @@ class OptionsPage {
         $adapter_name = $cache->get_name();
         $is_supported = $cache->is_supported();
 
-        include_once SMLISER_PATH . 'templates/admin/options/cache-stats.php';
+        $vars   = compact( 'request', 'cache', 'stats', 'adapter_id', 'adapter_name', 'is_supported' );
+        smliser_render_template( 'admin.options.cache.stats', $vars );
     }
 
     /**
@@ -262,7 +273,9 @@ class OptionsPage {
             $saved_settings[ $key ] = CacheAdapterRegistry::get_option( $adapter_id, $key );
         }
 
-        include_once SMLISER_PATH . 'templates/admin/options/cache-adapter.php';
+        $vars   = compact( 'request', 'adapter', 'adapter_name', 'adapter_key', 'schema', 
+        'is_default', 'adapter_id' );
+        smliser_render_template( 'admin.options.cache.form', $vars );
     }
 
     /*

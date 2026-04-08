@@ -1,17 +1,18 @@
 <?php
 /**
- * Application monetization providers settings page.
+ * Hosted application monetization provider settings page.
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicensseServer\templates
  * @see \SmartLicenseServer\Admin\OptionsPage::provider_settings()
  */
 
+use SmartLicenseServer\Admin\OptionsPage;
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit; 
 
-$args   = static::get_menu_args( $request );
+$args   = OptionsPage::get_menu_args( $request );
 
 $current_label  = end( $args['breadcrumbs'] )['label'];
 $args['breadcrumbs'][1]  = array(

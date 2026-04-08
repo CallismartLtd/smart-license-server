@@ -1,17 +1,18 @@
 <?php
 /**
- * Page set up options template.
+ * Page routing options template.
  * 
  * @author Callistus
  * @package Smliser\templates
  * @since 0.2.0
  */
 
+use SmartLicenseServer\Admin\OptionsPage;
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-$menu_args = static::get_menu_args();
+$menu_args = OptionsPage::get_menu_args( $request );
 ?>
 
 <div class="smliser-admin-page">
@@ -34,7 +35,7 @@ $menu_args = static::get_menu_args();
         <input type="hidden" name="action" value="smliser_save_route_options">
 
         <div class="smliser-options-form_body">
-            <?php foreach ( static::get_routing_fields() as $field ) : ?>
+            <?php foreach ( OptionsPage::get_routing_fields() as $field ) : ?>
                 <?php smliser_render_input_field( $field ); ?>
             <?php endforeach; ?>
 

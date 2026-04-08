@@ -7,13 +7,14 @@
  * @see \SmartLicenseServer\Admin\RepositoryPage::edit_page()
  */
 
+use SmartLicenseServer\Admin\RepositoryPage;
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 $max_upload_size_bytes  = wp_max_upload_size();
 $max_upload_size_mb     = $max_upload_size_bytes / 1024 / 1024;
-$args                   = self::get_menu_args( $request, isset( $app ) ? $app : null );
+$args                   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );
 
 if ( ! isset( $app ) ) {
     unset(

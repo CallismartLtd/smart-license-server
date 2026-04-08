@@ -15,9 +15,10 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\Monetization\Monetization;
-use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Utils\Format;
+
+use function compact, smliser_render_template;
 
 /**
  * The Admin repository page handler
@@ -90,7 +91,9 @@ class RepositoryPage {
             $page_title = sprintf( 'Status: %s', $status );
         }
 
-        include SMLISER_PATH . 'templates/admin/repository/dashboard.php';
+        $vars   = compact( 'add_url', 'apps', 'page_title', 'pagination', 'current_url', 'request',
+        'type', 'status' );
+        smliser_render_template( 'admin.repository.index', $vars );
 
     }
 
@@ -181,7 +184,9 @@ class RepositoryPage {
             )
         );
         
-        include SMLISER_PATH . 'templates/admin/repository/search.php';
+        $vars   = compact( 'add_url', 'apps', 'pagination', 'current_url', 'request', 'menu_args',
+        'app_types' );
+        smliser_render_template( 'admin.repository.search', $vars );
     }
 
     /**
@@ -190,9 +195,7 @@ class RepositoryPage {
     private static function upload_page( Request $request ) {
         $type = $request->get( 'type', null );
 
-        $app_upload_dashboard   = SMLISER_PATH . 'templates/admin/repository/upload.php';
-        $app_upload_template    = SMLISER_PATH . 'templates/admin/repository/uploader.php';
-        $app_upload_page        = $type ? $app_upload_template : $app_upload_dashboard;
+        $slug       = $type ? 'uploader' : 'upload';
 
         $type_title = $type ? ucfirst( $type ) : '';
         $title      = \sprintf( 'Upload New %s', $type_title );
@@ -204,7 +207,9 @@ class RepositoryPage {
             'url'   => smliser_get_current_url()->remove_query_param(  'app_id', 'type', 'tab' ),
             'icon'  => 'ti ti-arrow-back'
         );
-        include_once $app_upload_page;
+
+        $vars   = compact( 'type_title', 'app_action', 'title', 'request', 'essential_fields', 'type' );
+        smliser_render_template( "admin.repository.{$slug}", $vars );
     }
 
     /**
@@ -240,8 +245,10 @@ class RepositoryPage {
         );
         $essential_fields   = self::prepare_essential_app_fields( $request, $app );
         $type_title         = ucfirst( $type );
-        $file               = sprintf( SMLISER_PATH . 'templates/admin/repository/edit-%s.php', $type );
-        include_once $file;
+        
+        $vars   = compact( 'type_title', 'app_action', 'request', 'essential_fields', 'type',
+        'app' );
+        smliser_render_template( "admin.repository.edit-{$type}", $vars );
     }
 
     /**
@@ -257,11 +264,6 @@ class RepositoryPage {
         }
 
         $file   = \sprintf( '%s/templates/admin/repository/view-%s.php', SMLISER_PATH, $type );
-
-        if ( ! file_exists( $file ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" edit file does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
-            return;
-        }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
 
@@ -365,10 +367,8 @@ class RepositoryPage {
             ],
         ];
 
-        
-        $route_descriptions     = V1::describe_routes( 'repository' );   
-
-        include_once $file;
+        $vars   = compact( 'app', 'request', 'template_content', 'template_header', 'template_sidebar' );
+        smliser_render_template( "admin.repository.view-{$type}", $vars );
     }
 
     /**
@@ -380,8 +380,8 @@ class RepositoryPage {
         $app_type   = smliser_get_query_param( 'type' );
         $is_new     = false;
 
-        $monetization     = Monetization::get_by_app( $app_type, $id );
-        $providers  = smliser_monetization_registry()->all( false, true );
+        $monetization   = Monetization::get_by_app( $app_type, $id );
+        $providers      = smliser_monetization_registry()->all( false, true );
 
         if ( empty( $monetization ) ) {
             $is_new = true;
@@ -390,8 +390,9 @@ class RepositoryPage {
                 ->set_app_type( $app_type );
         }
 
-        $app = $monetization->get_app();
-        include_once SMLISER_PATH . 'templates/admin/monetization.php';
+        $app    = $monetization->get_app();
+        $vars   = compact( 'request', 'monetization', 'is_new', 'app', 'url', 'providers', );
+        smliser_render_template( 'admin.repository.monetization', $vars );
     }
 
     /**
@@ -518,7 +519,7 @@ class RepositoryPage {
      * @param HostedAppsInterface|null $app
      * @return array
      */
-    protected static function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
+    public static function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
         $tab        = $request->get( 'tab', '' );
         $app_type   = \ucfirst( $app?->get_type() ?? $request->get( 'type', '' ) );
         $app_name   = $app?->get_name() ?? '';
