@@ -50,8 +50,6 @@ final class ScriptManager {
      * Enqueue scripts (WordPress specific).
      */
     public function enqueue_scripts() {
-        $allJS = JS::all( $this->script_suffix() );
-
         wp_enqueue_script( 'smliser-datetime-picker' );
         wp_enqueue_script( 'select2' );
         wp_enqueue_script( 'smliser-script' );
@@ -88,8 +86,6 @@ final class ScriptManager {
      * Enqueue CSS (WordPress specific)
      */
     public function enqueue_styles() {
-        $allCSS = CSS::all( $this->script_suffix() );
-
         wp_enqueue_style( 'smliser-datetime-picker' );
         wp_enqueue_style( 'select2' );
         wp_enqueue_style( 'smliser-styles' );

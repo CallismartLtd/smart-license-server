@@ -29,6 +29,16 @@ function adminUrl( string $path = '', array $params = [] ) : URL {
 }
 
 /**
+ * Assets url
+ * 
+ * @param string $path Path(optional).
+ * @param array<string, string> $params Associative array of query params.
+ */
+function assetsUrl( string $path = '', array $params = [] ) :URL {
+    return smliser_envProvider()->assets_url( $path, $params );
+}
+
+/**
  * Get the REST API URL.
  * 
  * @param string $path Path(optional).

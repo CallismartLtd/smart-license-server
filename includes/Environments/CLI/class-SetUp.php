@@ -222,7 +222,8 @@ class SetUp extends Environment {
      */
     public static function restAPIUrl( string $path = '', array $qv = [] ): URL {
         $namespace = static::$envProvider->restProvider()->namespace();
-        return static::url( 'wp-json/' . $namespace . '/' . ltrim( $path, '/' ), $qv );
+        return static::url( $namespace, $qv )
+            ->append_path( $path );
     }
 
     /**
@@ -230,8 +231,9 @@ class SetUp extends Environment {
      *
      * No assets directory served in CLI — returns the base URL.
      */
-    public static function assets_url( string $path = '' ): URL {
-        return static::url( 'assets/' . ltrim( $path, '/' ) );
+    public static function assets_url( string $path = '', $params = [] ): URL {
+        return static::url( 'assets', $params )
+            ->append_path( $path );
     }
 
     /**
