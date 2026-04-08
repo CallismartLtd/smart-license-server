@@ -24,7 +24,7 @@ $download_url   = \adminUrl()
         'type'              => 'license_document'
     ]);
 /** @var array $args */
-$args   = self::get_menu_args( $request );
+$args   = LicensePage::get_menu_args( $request );
 
 \array_unshift(
     $args['actions'],
@@ -92,7 +92,7 @@ $args   = self::get_menu_args( $request );
                     <h2>Info</h2>
                     <p><span class="dashicons dashicons-database-view"></span> License ID: <?php echo esc_html( intval( $license->get_id() ) ) ?></p>
                     <p><span class="dashicons dashicons-yes-alt"></span> Status: <?php echo esc_html( $license->get_status() ) ?></p>
-                    <p><span class="dashicons dashicons-businessman"></span> Client: <?php echo esc_html( $client_fullname ) ?></p>
+                    <p><span class="dashicons dashicons-businessman"></span> Licensee: <?php echo esc_html( $licensee ) ?></p>
                 </div>
 
                 <div class="smliser-admin-view-page-header-child">

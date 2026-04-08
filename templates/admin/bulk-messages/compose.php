@@ -4,6 +4,7 @@
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\templates
+ * @var \SmartLicenseServer\Messaging\BulkMessages|null $message
  */
 
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
@@ -12,27 +13,47 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
 
 <div class="smliser-admin-page">
     <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
+    <?php if ( empty( $message ) && $request->has( 'msg_id' ) ) : ?>
+        <?php echo smliser_not_found_container( __( 'Invalid or deleted message', 'smliser' ) ); // phpcs:ignore ?>
+    <?php else : ?>
+        <form class="smliser-compose-message-container">
+            <div class="smliser-compose-message-container_left">
+                <div class="smliser-compose-message-form-row">
+                    <label for="subject"><?php esc_html_e( 'Subject', 'smliser' ); ?></label>
+                    <input type="text" name="subject" value="<?php echo esc_attr( $message?->get_subject()?: '' ); ?>" id="subject" class="smliser-form-input">
+                </div>
 
-    <form class="smliser-compose-message-container">
-        <div class="smliser-compose-message-container_left">
-            <div class="smliser-compose-message-form-row">
-                <label for="subject"><?php esc_html_e( 'Subject', 'smliser' ); ?></label>
-                <input type="text" name="subject" id="subject" class="smliser-form-input">
+                <div class="smliser-compose-message-form-row">
+                    <textarea name="message_body" id="message-body" class="hidden">
+                        <?php echo wp_kses_post( $message?->get_body() ?: '' ); ?>
+                    </textarea>
+                </div>
+                
             </div>
+            <div class="smliser-compose-message-container_right">
+                <div class="smliser-compose-message-form-row">
+                    <label for="smliser-app-select"><?php esc_html_e( 'Choose App(s)', 'smliser' ); ?></label>
+                    <select id="smliser-app-select" name="associated_apps[]" title="<?php esc_html_e( 'Select a hosted application to associate this message with.', 'smliser' ); ?>" multiple>
+                        <?php if ( $message ) : ?>
+                            <?php foreach ( $message->get_associated_apps() as $type => $slugs ) : ?>
+                                <optgroup label="<?php echo esc_html( ucfirst( $type ) ); ?>">
+                                    <?php if ( is_array( $slugs ) ) : ?>
+                                        <?php foreach ( $slugs as $slug ) : ?>
+                                            <option value="<?php printf( '%s:%s', esc_attr( $type ), esc_attr( $slug ) ); ?>" selected><?php echo esc_html( $slug ) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <option value="<?php printf( '%s:%s', esc_attr( $type ), esc_attr( $slugs ) ); ?>" selected><?php echo esc_html( $slugs ) ?></option>
+                                    <?php endif; ?>
+                                </optgroup>
 
-            <div class="smliser-compose-message-form-row">
-                <textarea name="message_body" id="message-body" class="hidden"></textarea>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
+                <input type="hidden" name="message_id" value="<?php echo esc_attr( $message?->get_id() ?: 0 ); ?>">
+                <button type="submit" class="button" title="<?php esc_html_e( 'Update this message', 'smliser' ); ?>"><?php esc_html_e( 'Update', 'smliser' ); ?></button>
             </div>
-            
-        </div>
-        <div class="smliser-compose-message-container_right">
-            <div class="smliser-compose-message-form-row">
-                <label for="smliser-app-select"><?php esc_html_e( 'Choose App(s)', 'smliser' ); ?></label>
-                <select id="smliser-app-select" name="associated_apps[]" title="<?php esc_html_e( 'Select a hosted application to associate this message with.', 'smliser' ); ?>" multiple></select>
-            </div>
-            
-            <button type="submit" class="button" title="<?php esc_html_e( 'Publish this message', 'smliser' ); ?>"><?php esc_html_e( 'Publish', 'smliser' ); ?></button>
-        </div>
-    </form>
+        </form>
+    <?php endif; ?>
 </div>
 <?php wp_enqueue_script( 'smliser-tinymce' );

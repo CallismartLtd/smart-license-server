@@ -14,6 +14,8 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 
+use function compact, smliser_render_template;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -72,9 +74,9 @@ class LicensePage {
         $licenses       = $license_data['items'] ?? [];
         $pagination     = $license_data['pagination'] ?? [];
         $add_url        = smliser_license_page()->add_query_param( 'tab', 'add-new' );
-    
-        include_once SMLISER_PATH . 'templates/admin/license/dashboard.php';
-    
+
+        $vars   = compact( 'request', 'current_url', 'licenses', 'pagination', 'add_url' );
+        smliser_render_template( 'admin.license.index', $vars );    
     }
 
     /**
@@ -97,7 +99,8 @@ class LicensePage {
         $pagination     = $license_data['pagination'] ?? [];
         $add_url        = smliser_license_page()->add_query_param( 'tab', 'add-new' );
     
-        include_once SMLISER_PATH . 'templates/admin/license/search.php';
+        $vars   = compact( 'request', 'current_url', 'licenses', 'pagination', 'add_url' );
+        smliser_render_template( 'admin.license.search', $vars );  
     
     }
 
@@ -107,7 +110,9 @@ class LicensePage {
     private static function add_license_page( Request $request ) : void {
         $form_fields    = static::get_form_fields();
         $tab            = $request->get( 'tab' );
-        include_once SMLISER_PATH . 'templates/admin/license/license-form.php';
+
+        $vars   = compact( 'request', 'form_fields', 'tab' );
+        smliser_render_template( 'admin.license.form', $vars );
     }
 
     /**
@@ -120,7 +125,8 @@ class LicensePage {
         $tab            = $request->get( 'tab' );
         
         $form_fields    = static::get_form_fields( $license );
-        include_once SMLISER_PATH . 'templates/admin/license/license-form.php';
+        $vars           = compact( 'request', 'form_fields', 'tab', 'license', 'license_id' );
+        smliser_render_template( 'admin.license.form', $vars );
     
     }
 
@@ -128,22 +134,26 @@ class LicensePage {
      * License view page
      */
     private static function view_license_page( Request $request ) : void {
-        $license_id         = $request->get( 'license_id' );
-        $route_descriptions = V1::describe_routes('license');   
-
-        $license    = License::get_by_id( $license_id );
+        $license_id     = $request->get( 'license_id' );
+        $license        = License::get_by_id( $license_id );
         $licensed_app   = $license?->get_app();
+
+        $vars   = compact( 'request', 'license', 'licensed_app', 'license_id' );
         if ( $license ) {
-            $client_fullname    = $license->get_licensee_fullname();
-            $delete_url         = ( new URL( admin_url() ) )
+            $licensee   = $license->get_licensee_fullname();
+            $delete_url = ( new URL( admin_url() ) )
                 ->add_query_params([
                     'action'        => 'smliser_delete_license',
                     'license_id'    => $license_id,
                     'smliser_nonce' => wp_create_nonce( 'smliser_delete_license_nonce' )
-                ]);    
-        }
+                ]);
 
-        include_once SMLISER_PATH . 'templates/admin/license/view-license.php';    
+            $vars['licensee']    = $licensee;
+            $vars['delete_url']         = $delete_url;
+        }
+        
+        smliser_render_template( 'admin.license.view', $vars );
+   
     }
 
     /**
@@ -151,8 +161,7 @@ class LicensePage {
      */
     private static function license_logs_page( Request $request ) : void {
         $all_tasks  = RepositoryAnalytics::get_license_activity_logs();
-
-        include_once SMLISER_PATH . 'templates/admin/license/logs.php';
+        smliser_render_template( 'admin.license.logs', compact( 'all_tasks', 'request' ) );
     }
 
     /**
@@ -160,7 +169,7 @@ class LicensePage {
      * 
      * @return array
      */
-    protected static function get_menu_args( Request $request ) : array {
+    public static function get_menu_args( Request $request ) : array {
         $tab        = $request->get( 'tab' );
         $license_id = $request->get( 'license_id' );
         $title  = match ( $tab ) {

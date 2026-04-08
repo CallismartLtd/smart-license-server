@@ -7,12 +7,13 @@
  * @var SmartLicenseServer\Monetization\License[] $licenses
  */
 
+use SmartLicenseServer\Admin\LicensePage;
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /** @var array $args */
-$args   = self::get_menu_args( $request );
+$args   = LicensePage::get_menu_args( $request );
 
 unset( $args['breadcrumbs'][0] ); // Remove the home link.
 

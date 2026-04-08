@@ -7,12 +7,13 @@
  * @var SmartLicenseServer\Monetization\License[] $licenses
  */
 
+use SmartLicenseServer\Admin\LicensePage;
 use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /** @var array $args */
-$args   = self::get_menu_args( $request );
+$args   = LicensePage::get_menu_args( $request );
 
 \array_unshift(
     $args['actions'],
@@ -36,10 +37,10 @@ $args   = self::get_menu_args( $request );
     <?php AdminMenu::print_admin_top_menu( $args ); ?>
     <div class="smliser-app-search-page smliser-table-wrapper">
             <form class="smliser-admin-search" method="GET" action="<?php echo esc_url( $current_url->get_href() ) ?>">
-                <input type="hidden" name="page" value="licenses">
-                <input type="hidden" name="tab" value="search">
+                <input type="hidden" name="page" value="<?php echo esc_attr( $request->get( 'page' ) ) ?>">
+                <input type="hidden" name="tab" value="<?php echo esc_attr( $request->get( 'tab' ) ) ?>">
                 
-                <input type="search" name="search_term" value="<?php echo $request->get( 'search_term' ) ?>" id="smliser-license-search-input" placeholder="Search licenses...">
+                <input type="search" name="search_term" value="<?php echo esc_html( $request->get( 'search_term' ) ) ?>" id="smliser-license-search-input" placeholder="Search licenses...">
                 <button type="submit" class="button smliser-btn">Search</button>
             </form>
             

@@ -11,6 +11,8 @@
 
 namespace SmartLicenseServer\Analytics;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use SmartLicenseServer\Background\Jobs\Analytics\LogLicenseActivityJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 
@@ -166,20 +168,30 @@ class RepositoryAnalytics {
     /**
      * Get license verification log for the last three month.
      * 
-     * @return array $schedules An array of task logs
+     * @return array{int, array{
+     *      license_id: int, 
+     *      event_type: string,
+     *      ip_address: string,
+     *      user_agent: string,
+     *      website: string,
+     *      comment: string,
+     *      duration: string,
+     *      created_at: int
+     *  }
+     * } An array of task logs
      */
     public static function get_license_activity_logs() : array {
-        $schedules  = \smliser_settings()->get( self::LICENSE_ACTIVITY_KEY, [] );
+        $logs   = \smliser_settings()->get( self::LICENSE_ACTIVITY_KEY, [] );
         
-        if ( empty( $schedules ) ) {
+        if ( empty( $logs ) ) {
             return [];
         }
 
-        if ( ! is_array( $schedules ) ) {
-            $schedules = (array) $schedules;
+        if ( ! is_array( $logs ) ) {
+            $logs = (array) $logs;
         }
 
-        return $schedules;
+        return $logs;
     }
 
     /**
@@ -203,13 +215,14 @@ class RepositoryAnalytics {
             JobDTO::make(
                 job_class : LogLicenseActivityJob::class,
                 payload   : [
-                    'license_id' => $data['license_id'] ?? 'N/A',
-                    'event_type' => $data['event_type'] ?? 'activation',
-                    'ip_address' => $data['ip_address'] ?? smliser_get_client_ip(),
-                    'user_agent' => $data['user_agent'] ?? smliser_get_user_agent(),
-                    'website'    => $data['website']    ?? 'N/A',
-                    'comment'    => $data['comment']    ?? 'N/A',
-                    'duration'   => $data['duration']   ?? 'N/A',
+                    'license_id'    => $data['license_id'] ?? 'N/A',
+                    'event_type'    => $data['event_type'] ?? 'activation',
+                    'ip_address'    => $data['ip_address'] ?? smliser_get_client_ip(),
+                    'user_agent'    => $data['user_agent'] ?? smliser_get_user_agent(),
+                    'website'       => $data['website']    ?? 'N/A',
+                    'comment'       => $data['comment']    ?? 'N/A',
+                    'duration'      => $data['duration']   ?? 'N/A',
+                    'created_at'    => time()
                 ],
             )
         );

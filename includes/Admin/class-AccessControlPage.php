@@ -513,7 +513,8 @@ class AccessControlPage {
         $limit  = (int) $request->get( 'limit', 25 );
         $owners = Owner::get_all( $page, $limit );
 
-        include_once SMLISER_PATH . 'templates/admin/accounts/owners.php';
+        $vars   = compact( 'owners', 'request' );
+        smliser_render_template( 'admin.accounts.owners', $vars );
     }
 
     /**
@@ -552,7 +553,7 @@ class AccessControlPage {
 
         }
 
-        $form_fields    = array(
+        $form_fields = array(
             array(
                 'label' => '',
                 'input' => array(
@@ -639,7 +640,9 @@ class AccessControlPage {
      
         );
 
-        include_once SMLISER_PATH . 'templates/admin/accounts/access-control-form.php';
+        $vars = compact( 'request', 'form_fields', 'title' );
+
+        smliser_render_template( 'admin.accounts.access-control-form', $vars );
     }
 
     /**

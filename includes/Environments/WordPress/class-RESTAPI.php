@@ -508,7 +508,7 @@ class RESTAPI implements RESTProviderInterface {
         $url = ( new URL( $url ) )
             ->sanitize();
         
-        return $url->get_href();
+        return $url->url();
     }
 
     /**
@@ -546,7 +546,7 @@ class RESTAPI implements RESTProviderInterface {
             return new WP_Error( 'rest_invalid_param', __( 'Only HTTPS URLs are allowed.', 'smliser' ), array( 'status' => 400 ) );
         }
 
-        if ( ! $url->validate( true ) ) {
+        if ( ! $url->validate() ) {
             return new WP_Error( 'rest_invalid_param', __( 'The URL does not resolve to a valid host.', 'smliser' ), array( 'status' => 400 ) );
         }
 

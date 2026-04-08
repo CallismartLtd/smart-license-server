@@ -10,7 +10,8 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Messaging\BulkMessages;
-use SmartLicenseServer\RESTAPI\Versions\V1;
+
+use function compact, smliser_render_template;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -26,11 +27,9 @@ class BulkMessagePage {
     public static function router( Request $request ) : void {
         $tab = $request->get( 'tab' );
         switch ( $tab ) {
-            case 'compose-new':
-                self::compose_message_page( $request );
-                break;
             case 'edit':
-                self::edit_message_page( $request );
+            case 'compose-new':
+                self::message_editor( $request );
                 break;
             case 'search':
                 self::search_page( $request );
@@ -52,8 +51,9 @@ class BulkMessagePage {
         $pagination     = $msg_data['pagination'] ?? [];
         $current_url    = smliser_get_current_url();
         $menu_args      = static::get_menu_args( $request );
-        include_once SMLISER_PATH . 'templates/admin/bulk-messages/dashboard.php';
-    
+        
+        $vars           = compact( 'messages', 'current_url', 'menu_args', 'pagination' );
+        smliser_render_template( 'admin.bulk-messages.index', $vars );
     }
 
     /**
@@ -61,9 +61,13 @@ class BulkMessagePage {
      * 
      * @param Request $request
      */
-    private static function compose_message_page( Request $request ) : void {
-        $menu_args      = static::get_menu_args( $request );
-        include_once SMLISER_PATH . 'templates/admin/bulk-messages/compose.php';
+    private static function message_editor( Request $request ) : void {
+        $message_id = $request->get( 'msg_id' );
+        $menu_args  = static::get_menu_args( $request );
+        $message    = BulkMessages::get_message( $message_id );
+        $vars       = compact( 'menu_args', 'request', 'message' );
+        
+        smliser_render_template( 'admin.bulk-messages.compose', $vars );
     }
 
     /**
@@ -75,8 +79,8 @@ class BulkMessagePage {
         $message_id = $request->get( 'msg_id' );
         $menu_args  = static::get_menu_args( $request );
         $message    = BulkMessages::get_message( $message_id );
-   
-        include_once SMLISER_PATH . 'templates/admin/bulk-messages/edit.php';
+        $vars   = compact( 'menu_args', 'message', 'request',  );
+        smliser_render_template( 'admin.bulk-messages.edit', $vars );
     }
 
     /**
@@ -94,7 +98,9 @@ class BulkMessagePage {
         $messages       = $msg_data['items'] ?? [];
         $pagination     = $msg_data['pagination'] ?? [];
 
-        include_once SMLISER_PATH . 'templates/admin/bulk-messages/search.php';
+        $vars           = compact( 'current_url', 'menu_args', 'search', 'messages', 'pagination' );
+
+        smliser_render_template( 'admin.bulk-messages.search', $vars );
        
     }
 
@@ -129,7 +135,7 @@ class BulkMessagePage {
                 array(
                     'title' => 'Compose new message',
                     'label' => 'Compose New',
-                    'url'   => smliser_get_current_url()->add_query_param( 'tab', 'compose-new' ),
+                    'url'   => \smliser_bulk_messages_url()->add_query_param( 'tab', 'compose-new' ),
                     'icon'  => 'ti ti-plus',
                     'active'    => 'compose-new' === $tab
                 ),

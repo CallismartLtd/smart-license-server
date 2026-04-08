@@ -289,7 +289,7 @@ class TemplateLocator {
         ksort( $known );
         return $known;
     }
-    
+
     /*
     |----------------
     | PRIVATE HELPERS
@@ -302,13 +302,13 @@ class TemplateLocator {
      * Using a dedicated method keeps the extract() scope clean —
      * no locator internals ($this, $slug, etc.) leak into the template.
      *
-     * @param string               $__path
+     * @param string               $__templateFile
      * @param array<string, mixed> $data
      */
-    private function load( string $__path, array $data ) : void {
-        // phpcs:ignore WordPress.PHP.DontExtract.extract_extract
-        extract( $data, EXTR_SKIP );
-        require $__path;
+    private function load( string $__templateFile, array $data ) : void {
+        
+        extract( $data, EXTR_SKIP ); // phpcs:ignore
+        require $__templateFile;
     }
 
     /**
