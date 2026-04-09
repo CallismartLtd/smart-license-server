@@ -79,6 +79,13 @@ class Request {
     private array $params = [];
 
     /**
+     * Stores sanitized parameters
+     * 
+     * @var array
+     */
+    private $sanitized_params   = [];
+
+    /**
      * Holds the files uploaded
      * 
      * @var array<string, UploadedFileCollection>
@@ -181,10 +188,23 @@ class Request {
      *
      * @param string $parameter
      * @param mixed  $default Optional default value if parameter is not set.
+     * @param bool   $sanitize Whether to automatically sanitize the value of the param.
      * @return mixed
      */
-    public function get( string $parameter, $default = null ) {
-        return $this->params[ $parameter ] ?? $default;
+    public function get( string $parameter, $default = null, bool $sanitize = true ) : mixed {
+        if ( ! $sanitize ) {
+            return $this->params[ $parameter ] ?? $default;
+        }
+
+        if ( isset( $this->sanitized_params[$parameter] ) ) {
+            return $this->sanitized_params[$parameter];
+        }
+
+        if ( isset( $this->params[$parameter] ) ) {
+            $this->sanitized_params[$parameter] = static::sanitize_auto( $this->params[ $parameter ] );
+        }
+
+        return $this->sanitized_params[ $parameter ] ?? $default;
     }
 
     /**
@@ -196,19 +216,19 @@ class Request {
      * @return mixed
      */
     public function getTyped( string $parameter, string $type = 'string', $default = null ) {
-        $value = $this->get( $parameter, $default );
+        $value = $this->get( $parameter, $default, false );
         
         if ( $value === $default ) {
             return $value;
         }
 
         return match ( $type ) {
-            'int', 'integer' => (int) $value,
-            'float', 'double' => (float) $value,
-            'bool', 'boolean' => (bool) $value,
-            'array' => (array) $value,
-            'string' => (string) $value,
-            default => $value,
+            'int', 'integer'    => (int) $value,
+            'float', 'double'   => (float) $value,
+            'bool', 'boolean'   => (bool) $value,
+            'array'             => (array) $value,
+            'string'            => (string) $value,
+            default             => $value,
         };
     }
 
@@ -217,12 +237,13 @@ class Request {
      * 
      * @param array $parameters Array of parameter names
      * @param mixed $default    Default value for missing parameters
+     * @param bool   $sanitize Whether to automatically sanitize the value of the param.
      * @return array
      */
-    public function getMany( array $parameters, $default = null ): array {
+    public function getMany( array $parameters, $default = null, bool $sanitize = true ): array {
         $result = [];
         foreach ( $parameters as $param ) {
-            $result[ $param ] = $this->get( $param, $default );
+            $result[ $param ] = $this->get( $param, $default, $sanitize );
         }
         return $result;
     }
@@ -322,6 +343,17 @@ class Request {
         }
 
         return false;
+    }
+
+    /**
+     * Tells whether the value of a parameter matches expected value.
+     * 
+     * @param string $param The parameter key.
+     * @param mixed  $expected  The expected value.
+     * @return bool
+     */
+    public function param_matches( string $param, mixed $expected ) : bool {
+        return $this->get( $param ) === $expected;
     }
 
     /**

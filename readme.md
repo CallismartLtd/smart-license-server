@@ -92,13 +92,13 @@ Whether you distribute plugins, themes, standalone software, or custom applicati
 
 # Smart License Server - Developer REST API Guide
 
-**Base Namespace:** `/wp-json/smliser/v1`
+**Base Namespace:** `/smliser/v1`
 
 ---
 
 ### 1. License Activation
 
-**Endpoint:** `/wp-json/smliser/v1/license-activation/`
+**Endpoint:** `/smliser/v1/license-activation/`
 **Method:** `POST`
 **Description:** Activates a license key for a specific domain, returning a download token, license expiry, and optional site secret for new domains.
 

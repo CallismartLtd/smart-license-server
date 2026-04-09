@@ -1,11 +1,13 @@
 <?php
 /*
- * Plugin Name: Smart license Server
- * Plugin URI: https://callismart.com.ng/smart-license-server
- * Description: Private plugin, themes and software repository with licensing and monetization feature.
- * Author: Callistus Nwachukwu
- * Author URI: https://callismart.com.ng/callistus
- * Version: 0.2.0
+ * Plugin Name:         Smart license Server
+ * Plugin URI:          https://callismart.com.ng/smart-license-server
+ * Description:         Private plugin, themes and software repository with licensing and monetization feature.
+ * Author:              Callistus Nwachukwu
+ * Author URI:          https://callismart.com.ng/callistus
+ * Version:             0.2.0
+ * Requires at least:   6.8
+ * Requires PHP:        8.4
  */
 
 use SmartLicenseServer\Environments\WordPress\SetUp;

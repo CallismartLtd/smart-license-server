@@ -71,10 +71,6 @@ class EnvironmentBootstrapException extends Exception {
         $error  = $this->error_map[$code] ?? $this->error_map['unknown_error'];
 
         $message    = $message ?: $error['message'];
-        if ( ! \function_exists( 'smliser_safe_json_encode' ) ) {
-            require_once SMLISER_PATH . 'includes/Utils/functions.php';
-        }
-        
         parent::__construct( $code, $message, $error );
     }
 }
