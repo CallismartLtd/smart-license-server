@@ -96,10 +96,11 @@ class SetUp extends Environment {
         $rest_api_provider  = new RESTAPI( new V1 );
         $secret             = SECURE_AUTH_KEY;
         $salt               = SECURE_AUTH_SALT;
+        // $admin_menu_config  = new AdminConfiguration;
         
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
         'filesystem_adapter', 'cache_adapter', 'settings_provider', 'database_adapter',
-        'rest_api_provider', 'salt', 'secret'
+        'rest_api_provider', 'salt', 'secret',
         
         );
 
@@ -118,9 +119,7 @@ class SetUp extends Environment {
         
         $this->auth             = new IdentityService;
         $this->script_manager   = new ScriptManager( $this->request );
-        
-        $this->adminMenuConfiguration   = new AdminConfiguration;
-        $this->menu                     = new AdminMenu( $this->adminMenuConfiguration, $this->request );
+        $this->menu             = new AdminMenu( $this->adminMenuConfiguration(), $this->request );
     }
 
     /**

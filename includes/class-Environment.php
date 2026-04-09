@@ -246,6 +246,7 @@ abstract class Environment implements EnvironmentProviderInterface {
             'settings_provider'     => null,
             'database_adapter'      => null,
             'rest_api_provider'     => null,
+            'admin_menu_config'     => null
 
         );
 
@@ -347,7 +348,8 @@ abstract class Environment implements EnvironmentProviderInterface {
             'settings_provider'     => 'settingsStorage',
             'database_adapter'      => 'dbadapter',
             'rest_api_provider'     => 'restProvider',
-            'http_client'           => 'httpClient'
+            'http_client'           => 'httpClient',
+            'admin_menu_config'     => 'adminMenuConfiguration'
         ];
 
         foreach ( $prop_map as $env_k => $prop_k ) {
@@ -952,6 +954,17 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         return $this->templateLocator;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function adminMenuConfiguration() : AdminConfiguration {
+        if ( ! isset( $this->adminMenuConfiguration ) ) {
+            $this->adminMenuConfiguration = new AdminConfiguration;
+        }
+        
+        return $this->adminMenuConfiguration;
     }
 }
 

@@ -7,6 +7,7 @@
 
 namespace SmartLicenseServer\Environments;
 
+use SmartLicenseServer\Admin\AdminConfiguration;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Background\Workers\QueueWorker;
@@ -156,4 +157,9 @@ interface EnvironmentProviderInterface {
      * @return TemplateLocator
      */
     public function templateLocator() : TemplateLocator;
+
+    /**
+     * Get the admin menu configuration
+     */
+    public function adminMenuConfiguration() : AdminConfiguration;
 }
