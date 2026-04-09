@@ -147,14 +147,16 @@ class Request {
             } catch( \Exception $e ) {}
         }
 
-        $params             = empty( $params ) ? $_REQUEST : $params;
-        $this->method       = ! empty( $method ) ? strtoupper( $method ) : ( $_SERVER['REQUEST_METHOD'] ?? 'GET' );
-        $this->uri          = ! empty( $uri ) ? $uri : ( $_SERVER['REQUEST_URI'] ?? '/' );
-        $raw_headers        = empty( $headers ) ? $this->parse_default_headers() : $headers;
+        $this->method   = ! empty( $method ) ? strtoupper( $method ) : ( $_SERVER['REQUEST_METHOD'] ?? 'GET' );
+        $this->uri      = ! empty( $uri ) ? $uri : ( $_SERVER['REQUEST_URI'] ?? '/' );
+        
+        $raw_headers    = empty( $headers ) ? $this->parse_default_headers() : $headers;
+        $this->set_headers( $raw_headers );
+
+        $params = empty( $params ) ? $this->parse_params() : $params;
+        $this->set_params( $params );
         
         $this->parse_uploaded_files();
-        $this->set_headers( $raw_headers );
-        $this->set_params( $params );
     }
 
     /**
@@ -616,29 +618,6 @@ class Request {
     }
 
     /**
-     * Parse default HTTP headers.
-     * 
-     * @return array
-     */
-    public static function parse_default_headers(): array {
-        $headers = [];
-
-        if ( function_exists( 'getallheaders' ) ) {
-            $headers = (array) getallheaders();
-        } else {
-            // Fallback for environments where getallheaders() is not available.
-            foreach ( $_SERVER as $key => $value ) {
-                if ( str_starts_with( $key, 'HTTP_' ) ) {
-                    $header = str_replace( '_', '-', substr( $key, 5 ) );
-                    $headers[ $header ] = $value;
-                }
-            }
-        }
-
-        return $headers;
-    }
-
-    /**
      * Convert request to array representation.
      * 
      * @return array
@@ -660,16 +639,6 @@ class Request {
      */
     public function startTime() : float {
         return $this->startTime;
-    }
-
-    /**
-     * Parse and normalize uploaded files into collections.
-     */
-    public function parse_uploaded_files() : void {
-
-        foreach ( $_FILES as $key => $_ ) {
-            $this->files[ $key ] = UploadedFileCollection::from_files( $key );
-        }
     }
 
     /**
@@ -699,4 +668,71 @@ class Request {
         return $this->files[ $key ] ?? null;
     }
 
+    /*
+    |-----------------------
+    | DEFAULT PARSERS
+    |-----------------------
+    */
+
+    /**
+     * Parse default HTTP headers.
+     * 
+     * @return array
+     */
+    public static function parse_default_headers(): array {
+        $headers = [];
+
+        if ( function_exists( 'getallheaders' ) ) {
+            $headers = (array) getallheaders();
+        } else {
+            // Fallback for environments where getallheaders() is not available.
+            foreach ( $_SERVER as $key => $value ) {
+                if ( str_starts_with( $key, 'HTTP_' ) ) {
+                    $header = str_replace( '_', '-', substr( $key, 5 ) );
+                    $headers[ $header ] = $value;
+                }
+            }
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Parse and normalize uploaded files into collections.
+     */
+    public function parse_uploaded_files() : void {
+
+        foreach ( $_FILES as $key => $_ ) {
+            $this->files[ $key ] = UploadedFileCollection::from_files( $key );
+        }
+    }
+
+    /**
+     * Parse parameters
+     * 
+     * @return array
+     */
+    public function parse_params() : array {
+        if ( $this->isJson() ) {
+            $raw_data   = \file_get_contents( 'php://input' );
+            $data       = \json_decode( $raw_data, true );
+
+            if ( ! \is_array( $data ) ) {
+
+                if ( \json_last_error() !== \JSON_ERROR_NONE ) {
+                    $data   = [];
+                } else {
+                    $data   = (array)  $data;
+                }
+                
+            }
+
+            $data   = \array_merge( $_REQUEST, $data );
+            
+        } else {
+            $data   = $_REQUEST;
+        }
+
+        return $data;
+    }
 }

@@ -525,3 +525,24 @@ function smliser_not_found_container( $text ) {
     <?php
     return ob_get_clean();
 }
+
+/**
+ * Rest API documentation page
+ */
+function smliser_rest_documentation() {
+$rest = smliser_envProvider()->restProvider()->restAPIVersion();
+?>
+    <div class="smliser-admin-api-description-section">
+        <h2 class="heading">REST API Documentation</h2>
+        <div class="smliser-api-base-url">
+            <strong>Base URL:</strong>
+            <code><?php echo esc_url( restAPIUrl() ); ?></code>
+        </div>
+        
+        <?php foreach ( $rest::describe_routes() as $path => $html ) : 
+            echo $html;
+        endforeach; ?>
+    </div>
+
+<?php
+}

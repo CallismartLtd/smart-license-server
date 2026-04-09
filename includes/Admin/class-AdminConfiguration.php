@@ -59,4 +59,15 @@ final class AdminConfiguration extends AbstractDashboardRegistry {
             ],
         ];
     }
+
+    /**
+     * Determine whether a key represents the root/overview menu item.
+     *
+     * @param string $key Already canonicalized.
+     * @return bool
+     */
+    public function is_root_menu( string $key ) : bool {
+        $key    = $this->canonical_key( $key );
+        return 'overview' === $key;
+    }
 }

@@ -740,8 +740,8 @@ class MultipartStreamParser {
     public function __construct( $stream, string $boundary, array $limits, MultipartRequestParser $parent, bool $debug = false ) {
         $this->stream          = $stream;
         $this->boundary        = $boundary;
-        $this->boundary_marker = "--{$boundary}";
-        $this->boundary_close  = "--{$boundary}--";
+        $this->boundary_marker = "--{$this->boundary}";
+        $this->boundary_close  = "--{$this->boundary}--";
         $this->limits          = $limits;
         $this->parent          = $parent;
         $this->debug           = $debug || defined( 'SMLISER_DEBUG_MULTIPART' );

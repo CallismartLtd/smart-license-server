@@ -387,19 +387,15 @@ abstract class AbstractDashboardRegistry {
      * @param string $key
      * @return string
      */
-    private function canonical_key( string $key ) : string {
+    protected function canonical_key( string $key ) : string {
         return str_replace( '-', '_', $key );
     }
 
     /**
-     * Determine whether a key represents the root/overview menu item.
+     * Determine whether a key represents the root menu item.
      *
-     * Override in subclasses if your root menu key differs from 'overview'.
-     *
-     * @param string $key Already canonicalized.
+     * @param string $key.
      * @return bool
      */
-    protected function is_root_menu( string $key ) : bool {
-        return 'overview' === $key;
-    }
+    abstract public function is_root_menu( string $key ) : bool;
 }

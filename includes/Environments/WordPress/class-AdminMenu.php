@@ -52,7 +52,7 @@ class AdminMenu {
         $new_menu   = array(
             'slug'      => 'api-doc',
             'title'     => 'API Doc',
-            'handler'   => [$this, 'rest_api_documentation']
+            'handler'   => 'smliser_rest_documentation'
         );
 
         $this->config->register( 'api_doc', $new_menu );
@@ -61,7 +61,7 @@ class AdminMenu {
         add_menu_page( SMLISER_APP_NAME, SMLISER_APP_NAME, 'manage_options', $slug, array( $this, 'dispatch_request' ), self::MENU_ICON, 3.1 );
 
         foreach ( $this->config->all() as $key => $menu ) {
-            if ( 'overview' === $key ) continue; // Already registered.
+            if ( $this->config->is_root_menu( $key ) ) continue; // Already registered.
 
             $base_slug   = sprintf( '%s-%s', $this->prefix, $menu['slug'] );
             add_submenu_page( $slug, $menu['title'], $menu['title'], 'manage_options', $base_slug, [$this, 'dispatch_request'] );
@@ -273,7 +273,7 @@ class AdminMenu {
         }
 
         $page   = (string) $this->request->get( 'page' );
-        $prefix = sprintf( '%s-', $this->prefix );
+        $prefix = "{$this->prefix}-";
 
         if ( strpos( $page, $prefix ) === 0 ) {
 
@@ -289,26 +289,5 @@ class AdminMenu {
         if ( is_callable( $handler ) ) {
             $handler( $this->request );
         }
-    }
-
-    /**
-     * Index REST API Documentation page.
-     */
-    public static function rest_api_documentation() {
-        $rest = smliser_envProvider()->restProvider()->restAPIVersion();
-        ?>
-            <div class="smliser-admin-api-description-section">
-                <h2 class="heading">REST API Documentation</h2>
-                <div class="smliser-api-base-url">
-                    <strong>Base URL:</strong>
-                    <code><?php echo esc_url( restAPIUrl() ); ?></code>
-                </div>
-                
-                <?php foreach ( $rest::describe_routes() as $path => $html ) : 
-                    echo $html;
-                endforeach; ?>
-            </div>
-    
-        <?php
     }
 }
