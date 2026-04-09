@@ -11,7 +11,6 @@ namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
@@ -876,6 +875,6 @@ class AccessControlPage {
             array_unshift( $args['breadcrumbs'], $home );
         }
 
-        AdminMenu::print_admin_top_menu( $args );
+        smliser_print_admin_content_header( $args );
     }
 }

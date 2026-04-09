@@ -10,14 +10,13 @@
  */
 
 use SmartLicenseServer\Admin\LicensePage;
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 ?>
 
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( LicensePage::get_menu_args( $request ) ); ?>
+    <?php smliser_print_admin_content_header( LicensePage::get_menu_args( $request ) ); ?>
 
     <div class="smliser-admin-body">
         <div class="notice notice-info" style="margin: 15px;">

@@ -6,11 +6,10 @@
  * @package SmartLicenseServer\templates
  */
 
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 unset( $menu_args['breadcrumbs'][0] ); 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
+    <?php smliser_print_admin_content_header( $menu_args ); ?>
     <div class="smliser-table-wrapper">
         <?php if ( $notice = smliser_get_query_param( 'message' ) ) : ?>
             <?php wp_admin_notice( $notice, ['type' => 'success', 'dismissible' => true] ) ?>

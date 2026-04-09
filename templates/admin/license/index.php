@@ -8,7 +8,6 @@
  */
 
 use SmartLicenseServer\Admin\LicensePage;
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -36,7 +35,7 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
 );
 ?>
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( $args ); ?>
+    <?php smliser_print_admin_content_header( $args ); ?>
     <div class="smliser-table-wrapper">
         <?php if ( $message = $request->get( 'message' ) ) : ?>
             <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>

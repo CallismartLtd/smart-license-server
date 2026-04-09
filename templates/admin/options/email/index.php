@@ -13,7 +13,6 @@
  */
 
 use SmartLicenseServer\Admin\OptionsPage;
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\Email\EmailProviderIcons;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -23,7 +22,7 @@ $menu_args = OptionsPage::get_menu_args( $request );
 $current_url = smliser_get_current_url()->remove_query_param( 'message', 'section', 'provider' );
 ?>
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
+    <?php smliser_print_admin_content_header( $menu_args ); ?>
 
     <form action="" class="smliser-options-form">
         <input type="hidden" name="action" value="smliser_save_default_email_settings" />

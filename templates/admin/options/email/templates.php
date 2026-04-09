@@ -10,7 +10,6 @@
  */
 
 use SmartLicenseServer\Admin\OptionsPage;
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -59,7 +58,7 @@ $group_colors = [
 ?>
 
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
+    <?php smliser_print_admin_content_header( $menu_args ); ?>
 
     <!-- Group filter -->
     <div class="smliser-template-filter" style="margin:16px 20px 0;">

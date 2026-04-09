@@ -4,7 +4,6 @@
  */
 
 use SmartLicenseServer\Admin\LicensePage;
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) ||  exit; 
 
@@ -25,7 +24,7 @@ if ( 'add-new' !== $tab ) {
 ?>
 
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( $args ); ?>
+    <?php smliser_print_admin_content_header( $args ); ?>
 
     <form class="smliser-form-container smliser-license-form">
         <?php foreach( $form_fields as $field ) : ?>

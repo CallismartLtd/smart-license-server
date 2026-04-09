@@ -8,7 +8,6 @@
  */
 
 use SmartLicenseServer\Admin\OptionsPage;
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -17,7 +16,7 @@ unset( $menu_args['breadcrumbs'][0] );
 
 ?>
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
+    <?php smliser_print_admin_content_header( $menu_args ); ?>
     
     <form action="" class="smliser-options-form">
         <input type="hidden" name="action" value="smliser_save_system_options" />

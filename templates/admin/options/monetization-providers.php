@@ -7,11 +7,10 @@
  */
 
 use SmartLicenseServer\Admin\OptionsPage;
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit; ?>
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( OptionsPage::get_menu_args( $request ) ); ?>
+    <?php smliser_print_admin_content_header( OptionsPage::get_menu_args( $request ) ); ?>
     <div class="smliser-table-wrapper">
         <table class="smliser-table widefat striped">
             <thead>

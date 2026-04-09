@@ -12,7 +12,6 @@
  * @var \SmartLicenseServer\Core\URL $current_url
  */
 
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
@@ -80,7 +79,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
 }
 ?>
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( $menu_args ); ?>
+    <?php smliser_print_admin_content_header( $menu_args ); ?>
     <div class="smliser-table-wrapper">
       
         <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>

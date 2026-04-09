@@ -530,19 +530,203 @@ function smliser_not_found_container( $text ) {
  * Rest API documentation page
  */
 function smliser_rest_documentation() {
-$rest = smliser_envProvider()->restProvider()->restAPIVersion();
-?>
-    <div class="smliser-admin-api-description-section">
-        <h2 class="heading">REST API Documentation</h2>
-        <div class="smliser-api-base-url">
-            <strong>Base URL:</strong>
-            <code><?php echo esc_url( restAPIUrl() ); ?></code>
+    $rest = smliser_envProvider()->restProvider()->restAPIVersion();
+    ?>
+        <div class="smliser-admin-api-description-section">
+            <h2 class="heading">REST API Documentation</h2>
+            <div class="smliser-api-base-url">
+                <strong>Base URL:</strong>
+                <code><?php echo esc_url( restAPIUrl() ); ?></code>
+            </div>
+            
+            <?php foreach ( $rest::describe_routes() as $path => $html ) : 
+                echo $html;
+            endforeach; ?>
         </div>
-        
-        <?php foreach ( $rest::describe_routes() as $path => $html ) : 
-            echo $html;
-        endforeach; ?>
-    </div>
 
-<?php
+    <?php
+}
+
+/**
+ * Render the Smart License Server admin top navigation header.
+ *
+ * @param array $args {
+ *     @type array  $breadcrumbs
+ *     @type array  $actions
+ *     @type string $nav_class
+ *     @type string $content_class
+ *     @type array  $attributes
+ * }
+ * @param bool $echo
+ *
+ * @return string|null
+ */
+function smliser_print_admin_content_header( array $args = array(), bool $echo = true ) {
+
+    $defaults = array(
+        'breadcrumbs'   => array(),
+        'actions'       => array(),
+        'nav_class'     => '',
+        'content_class' => '',
+        'attributes'    => array(),
+    );
+
+    $args = parse_args( $args, $defaults );
+
+    $print_active = fn ( bool $cond ) => $cond ? ' active' : '';
+
+    /**
+     * Helper to render arbitrary attributes safely.
+     */
+    $render_attributes = static function ( array $attributes ) : string {
+
+        $html = '';
+
+        foreach ( $attributes as $key => $value ) {
+
+            if ( is_bool( $value ) ) {
+                if ( $value ) {
+                    $html .= ' ' . esc_attr( $key );
+                }
+                continue;
+            }
+
+            $html .= sprintf(
+                ' %s="%s"',
+                esc_attr( $key ),
+                esc_attr( $value )
+            );
+        }
+
+        return $html;
+    };
+
+    ob_start();
+    ?>
+
+    <nav
+        class="smliser-top-nav <?php echo esc_attr( $args['nav_class'] ); ?>"
+        <?php echo $render_attributes( $args['attributes'] ); // phpcs:ignore ?>
+    >
+        <div class="smliser-top-nav-content <?php echo esc_attr( $args['content_class'] ); ?>">
+
+            <?php if ( ! empty( $args['breadcrumbs'] ) ) : ?>
+                <div class="smliser-breadcrumb">
+
+                    <?php
+                    $breadcrumb_count = count( $args['breadcrumbs'] );
+                    $current_index    = 0;
+
+                    foreach ( $args['breadcrumbs'] as $breadcrumb ) :
+
+                        $current_index++;
+
+                        $breadcrumb = parse_args(
+                            $breadcrumb,
+                            array(
+                                'label'      => '',
+                                'url'        => '',
+                                'icon'       => '',
+                                'class'      => '',
+                                'attributes' => array(),
+                            )
+                        );
+
+                        $tag = ! empty( $breadcrumb['url'] ) ? 'a' : 'span';
+                        ?>
+
+                        <<?php echo esc_html( $tag ); ?>
+                            class="<?php echo esc_attr( $breadcrumb['class'] ); ?>"
+                            <?php if ( 'a' === $tag ) : ?>
+                                href="<?php echo esc_url( $breadcrumb['url'] ); ?>"
+                            <?php endif; ?>
+                            <?php echo $render_attributes( $breadcrumb['attributes'] ); // phpcs:ignore ?>
+                        >
+
+                            <?php if ( ! empty( $breadcrumb['icon'] ) ) : ?>
+                                <i class="<?php echo esc_attr( $breadcrumb['icon'] ); ?>"></i>
+                            <?php endif; ?>
+
+                            <?php echo esc_html( $breadcrumb['label'] ); ?>
+
+                        </<?php echo esc_html( $tag ); ?>>
+
+                        <?php if ( $current_index < $breadcrumb_count ) : ?>
+                            <span>/</span>
+                        <?php endif; ?>
+
+                    <?php endforeach; ?>
+
+                </div>
+            <?php endif; ?>
+
+
+            <?php if ( ! empty( $args['actions'] ) ) : ?>
+                <div class="smliser-quick-actions">
+
+                    <?php foreach ( $args['actions'] as $action ) :
+
+                        $action = parse_args(
+                            $action,
+                            array(
+                                'label'      => '',
+                                'url'        => '',
+                                'title'      => '',
+                                'icon'       => '',
+                                'active'     => false,
+                                'class'      => '',
+                                'attributes' => array(),
+                                'target'     => '',
+                                'rel'        => '',
+                                'data'       => array(),
+                            )
+                        );
+
+                        /**
+                         * Merge data-* attributes
+                         */
+                        foreach ( (array) $action['data'] as $data_key => $data_value ) {
+                            $action['attributes'][ 'data-' . $data_key ] = $data_value;
+                        }
+
+                        ?>
+
+                        <a
+                            class="smliser-menu-link<?php echo esc_attr( $print_active( (bool) $action['active'] ) ); ?> <?php echo esc_attr( $action['class'] ); ?>"
+                            href="<?php echo esc_url( $action['url'] ); ?>"
+                            title="<?php echo esc_attr( $action['title'] ); ?>"
+                            <?php if ( ! empty( $action['target'] ) ) : ?>
+                                target="<?php echo esc_attr( $action['target'] ); ?>"
+                            <?php endif; ?>
+                            <?php if ( ! empty( $action['rel'] ) ) : ?>
+                                rel="<?php echo esc_attr( $action['rel'] ); ?>"
+                            <?php endif; ?>
+                            <?php echo $render_attributes( $action['attributes'] ); // phpcs:ignore ?>
+                        >
+
+                            <?php if ( ! empty( $action['icon'] ) ) : ?>
+                                <i class="<?php echo esc_attr( $action['icon'] ); ?>"></i>
+                            <?php endif; ?>
+
+                            <?php echo esc_html( $action['label'] ); ?>
+
+                        </a>
+
+                    <?php endforeach; ?>
+
+                </div>
+            <?php endif; ?>
+
+        </div>
+    </nav>
+
+    <?php
+    $output = ob_get_clean();
+
+    if ( true === $echo ) {
+        echo $output; // phpcs:ignore
+        return null;
+    }
+
+    return $output;
 }

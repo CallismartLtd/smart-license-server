@@ -8,7 +8,6 @@
  */
 
 use SmartLicenseServer\Admin\LicensePage;
-use SmartLicenseServer\Environments\WordPress\AdminMenu;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -34,7 +33,7 @@ $args   = LicensePage::get_menu_args( $request );
 );
 ?>
 <div class="smliser-admin-page">
-    <?php AdminMenu::print_admin_top_menu( $args ); ?>
+    <?php smliser_print_admin_content_header( $args ); ?>
     <div class="smliser-app-search-page smliser-table-wrapper">
             <form class="smliser-admin-search" method="GET" action="<?php echo esc_url( $current_url->get_href() ) ?>">
                 <input type="hidden" name="page" value="<?php echo esc_attr( $request->get( 'page' ) ) ?>">
