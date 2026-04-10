@@ -11,7 +11,7 @@ use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-final class AdminConfiguration extends AbstractDashboardRegistry {
+final class AdminDashboardRegistry extends AbstractDashboardRegistry {
 
     protected function boot() : void {
         if ( $this->booted ) {

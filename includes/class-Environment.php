@@ -37,7 +37,8 @@ use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
-use SmartLicenseServer\Admin\AdminConfiguration;
+use SmartLicenseServer\Admin\AdminDashboardRegistry;
+use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
 use SmartLicenseServer\Events\EventServiceProvider;
@@ -195,16 +196,23 @@ abstract class Environment implements EnvironmentProviderInterface {
     protected MonetizationRegistry $monetizationRegistry;
 
     /**
-     * Admin page configuration.
+     * Admin dashboard registry.
      * 
-     * @var AdminConfiguration $adminMenuConfiguration
+     * @var AdminDashboardRegistry $adminDashboardRegistry
      */
-    protected AdminConfiguration $adminMenuConfiguration;
+    protected AdminDashboardRegistry $adminDashboardRegistry;
+
+    /**
+     * Client dashboard registry.
+     * 
+     * @var AdminDashboardRegistry $adminDashboardRegistry
+     */
+    protected ClientDashboardRegistry $clientDashboardRegistry;
 
     /**
      * Template locator.
      * 
-     * 
+     * @var TemplateLocator $templateLocator
      */
     protected TemplateLocator $templateLocator;
 
@@ -349,7 +357,7 @@ abstract class Environment implements EnvironmentProviderInterface {
             'database_adapter'      => 'dbadapter',
             'rest_api_provider'     => 'restProvider',
             'http_client'           => 'httpClient',
-            'admin_menu_config'     => 'adminMenuConfiguration'
+            'admin_menu_config'     => 'adminDashboardRegistry'
         ];
 
         foreach ( $prop_map as $env_k => $prop_k ) {
@@ -959,12 +967,23 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * {@inheritdoc}
      */
-    public function adminMenuConfiguration() : AdminConfiguration {
-        if ( ! isset( $this->adminMenuConfiguration ) ) {
-            $this->adminMenuConfiguration = new AdminConfiguration;
+    public function adminDashboardRegistry() : AdminDashboardRegistry {
+        if ( ! isset( $this->adminDashboardRegistry ) ) {
+            $this->adminDashboardRegistry = new AdminDashboardRegistry;
         }
         
-        return $this->adminMenuConfiguration;
+        return $this->adminDashboardRegistry;
+    }
+
+    /**
+     * Get the client dashboard registry
+     */
+    public function clientDashboardRegistry() : ClientDashboardRegistry {
+        if ( ! isset( $this->clientDashboardRegistry ) ) {
+            $this->clientDashboardRegistry  = new ClientDashboardRegistry;
+        }
+
+        return $this->clientDashboardRegistry;
     }
 }
 

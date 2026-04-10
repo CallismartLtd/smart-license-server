@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Admin\AdminConfiguration;
+use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
@@ -96,7 +96,7 @@ class SetUp extends Environment {
         $rest_api_provider  = new RESTAPI( new V1 );
         $secret             = SECURE_AUTH_KEY;
         $salt               = SECURE_AUTH_SALT;
-        // $admin_menu_config  = new AdminConfiguration;
+        // $admin_menu_config  = new AdminDashboardRegistry;
         
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
         'filesystem_adapter', 'cache_adapter', 'settings_provider', 'database_adapter',
@@ -119,7 +119,7 @@ class SetUp extends Environment {
         
         $this->auth             = new IdentityService;
         $this->script_manager   = new ScriptManager( $this->request );
-        $this->menu             = new AdminMenu( $this->adminMenuConfiguration(), $this->request );
+        $this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request );
     }
 
     /**

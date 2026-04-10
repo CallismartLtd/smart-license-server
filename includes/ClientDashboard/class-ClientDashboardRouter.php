@@ -26,9 +26,7 @@ class ClientDashboardRouter {
     /**
      * @param ClientDashboardRegistry $registry
      */
-    public function __construct(
-        protected ClientDashboardRegistry $registry
-    ) {}
+    private function __construct() {}
 
     /*
     |-----------
@@ -45,12 +43,12 @@ class ClientDashboardRouter {
      * @param Request $request
      * @return Response
      */
-    public function dispatch( Request $request ) : Response {
+    public static function dispatch( Request $request ) : Response {
         $slug    = (string) $request->get( 'dashboard_slug', '' );
-        $handler = $this->registry->get_handler( $slug );
+        $handler = \smliser_envProvider()->clientDashboardRegistry()->get_handler( $slug );
 
         if ( null === $handler ) {
-            return $this->not_found( $slug );
+            return static::not_found( $slug );
         }
 
         return $handler->handle( $request );
@@ -65,9 +63,9 @@ class ClientDashboardRouter {
      * @param Request $request
      * @return bool|Response
      */
-    public function guard( Request $request ) : bool|Response {
+    public static function guard( Request $request ) : bool|Response {
         $slug    = (string) $request->get( 'dashboard_slug', '' );
-        $handler = $this->registry->get_handler( $slug );
+        $handler = \smliser_envProvider()->clientDashboardRegistry()->get_handler( $slug );
 
         if ( null === $handler ) {
             return true;
@@ -88,7 +86,7 @@ class ClientDashboardRouter {
      * @param string $slug
      * @return Response
      */
-    protected function not_found( string $slug ) : Response {
+    protected static function not_found( string $slug ) : Response {
         $response = new Response( 404 );
         $response->add_error(
             'dashboard_not_found',

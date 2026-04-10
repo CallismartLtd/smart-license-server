@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Admin\AdminConfiguration;
+use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Core\Request;
 
 use function add_submenu_page, add_menu_page, parse_args, is_bool, sprintf;
@@ -33,14 +33,14 @@ class AdminMenu {
     /**
      * 
      */
-    private AdminConfiguration $config;
+    private AdminDashboardRegistry $config;
 
     /**
      * Constructor
      * 
      * @param Request $request The  current request object.
      */
-    public function __construct( AdminConfiguration $config, Request $request ) {
+    public function __construct( AdminDashboardRegistry $config, Request $request ) {
         $this->config   = $config;
         $this->request  = $request;
     }

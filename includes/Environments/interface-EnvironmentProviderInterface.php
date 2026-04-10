@@ -7,11 +7,12 @@
 
 namespace SmartLicenseServer\Environments;
 
-use SmartLicenseServer\Admin\AdminConfiguration;
+use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Cache\Cache;
+use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Database;
@@ -159,7 +160,12 @@ interface EnvironmentProviderInterface {
     public function templateLocator() : TemplateLocator;
 
     /**
-     * Get the admin menu configuration
+     * Get the admin dashboard registry
      */
-    public function adminMenuConfiguration() : AdminConfiguration;
+    public function adminDashboardRegistry() : AdminDashboardRegistry;
+
+    /**
+     * Get the client dashboard registry
+     */
+    public function clientDashboardRegistry() : ClientDashboardRegistry;
 }
