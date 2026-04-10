@@ -10,9 +10,12 @@
  * No variables required.
  */
 
+use SmartLicenseServer\Assets\AssetsManager;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 ?>
+<?php AssetsManager::print_scripts( 'smliser-client-dashboard' ); ?>
 </div><!-- /.smlcd-layout -->
 </body>
 </html>

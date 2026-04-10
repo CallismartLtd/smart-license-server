@@ -22,25 +22,25 @@ final class JS {
         return [
             'smliser-script' => [
                 'src'    => assetsUrl( sprintf( 'js/main-script%s.js', $suffix ) ),
-                'deps'   => ['jquery'],
+                'deps'   => ['smliser-jquery', 'select2', 'smliser-datetime-picker', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'smliser-apps-uploader' => [
                 'src'    => assetsUrl( sprintf( 'js/apps-uploader%s.js', $suffix ) ),
-                'deps'   => ['jquery', 'smliser-script'],
+                'deps'   => ['smliser-jquery', 'smliser-script'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'select2' => [
                 'src'    => assetsUrl( sprintf( 'js/Select2/select2%s.js', $suffix ) ),
-                'deps'   => ['jquery'],
+                'deps'   => ['smliser-jquery'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'smliser-tinymce' => [
                 'src'    => assetsUrl( 'js/tinymce/tinymce.min.js' ),
-                'deps'   => ['jquery'],
+                'deps'   => ['smliser-jquery'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
@@ -52,25 +52,25 @@ final class JS {
             ],
             'smliser-role-builder' => [
                 'src'    => assetsUrl( sprintf( 'js/role-builder%s.js', $suffix ) ),
-                'deps'   => ['jquery'],
+                'deps'   => ['smliser-jquery'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'smliser-chart' => [
                 'src'    => assetsUrl( 'js/Chartjs/chart.min.js' ),
-                'deps'   => ['jquery'],
+                'deps'   => ['smliser-jquery'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'smliser-modal' => [
                 'src'    => assetsUrl( sprintf( 'js/smliser-modal%s.js', $suffix ) ),
-                'deps'   => ['jquery'],
+                'deps'   => ['smliser-jquery'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'smliser-json-editor' => [
                 'src'    => assetsUrl( sprintf( 'js/smliser-json-editor%s.js', $suffix ) ),
-                'deps'   => ['jquery', 'smliser-script', 'smliser-modal'],
+                'deps'   => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
@@ -82,13 +82,13 @@ final class JS {
             ],
             'smliser-email-editor' => [
                 'src'    => assetsUrl( sprintf( 'js/email-editor%s.js', $suffix ) ),
-                'deps'   => ['jquery', 'smliser-script', 'smliser-modal'],
+                'deps'   => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'smliser-cache-stats' => [
                 'src'    => assetsUrl( sprintf( 'js/cache-stats%s.js', $suffix ) ),
-                'deps'   => ['jquery', 'smliser-script', 'smliser-modal'],
+                'deps'   => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
@@ -97,7 +97,14 @@ final class JS {
                 'deps'   => [],
                 'ver'    => SMLISER_VER,
                 'footer' => true
-            ]
+            ],
+
+            'smliser-client-dashboard' => [
+                'src'    => assetsUrl( sprintf( 'js/client-dashboard%s.js', $suffix ) ),
+                'deps'   => ['smliser-script', 'smliser-modal'],
+                'ver'    => SMLISER_VER,
+                'footer' => true
+            ],
         ];
     }
 }

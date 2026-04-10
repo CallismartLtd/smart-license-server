@@ -279,7 +279,6 @@ class RESTAPI implements RESTProviderInterface {
         }
     }
 
-
     /**
      * Prepare and enhance REST route arguments with WordPress-specific
      * sanitization and validation callbacks.
@@ -350,7 +349,6 @@ class RESTAPI implements RESTProviderInterface {
      * @return bool|\WP_Error|null
      */
     public function authenticate() {
-
         $request = $this->get_request();
         $route   = $this->guess_route();
 
@@ -358,9 +356,14 @@ class RESTAPI implements RESTProviderInterface {
             return null;
         }
 
+        if ( Guard::has_principal() ) {
+            return true;
+        }
+
         if ( $this->is_license_service_route() || $this->is_reauthentication_route() ) {
             // License endpoints uses license key for authentication.
-            // Reauthentication route is used to reauthenticate download token requests, which also uses license key for authentication.
+            // Reauthentication route is used to reauthenticate download token requests, 
+            // which also uses license key for authentication.
             return null;
         }
 
@@ -371,8 +374,8 @@ class RESTAPI implements RESTProviderInterface {
             // No token provided.
             if ( ! $bearer_token ) {
 
-                // Allow anonymous GET requests.
-                if ( $request->isGet() ) {
+                // Allow anonymous GET requests except for the client dashboard.
+                if ( $request->isGet() && ! $this->route_matches( 'dashboard' ) ) {
                     return false;
                 }
 

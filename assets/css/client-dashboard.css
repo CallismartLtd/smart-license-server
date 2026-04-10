@@ -3,56 +3,104 @@
  *
  * Naming convention: .smlcd-* (SmartLicenseServer Client Dashboard)
  *
+ * Theme:
+ *   [data-theme="dark"]   — default, applied by JS on boot
+ *   [data-theme="light"]  — toggled via theme button
+ *
  * Layout:
- *   smlcd-layout         — flex root (sidebar + main)
- *   smlcd-sidebar        — fixed-width left navigation
- *   smlcd-main           — flex-grow content column
- *   smlcd-topbar         — top bar inside main
- *   smlcd-content-area   — scrollable content region
+ *   smlcd-layout          — flex root (sidebar + main)
+ *   smlcd-sidebar         — collapsible left navigation
+ *   smlcd-main            — flex-grow content column
+ *   smlcd-topbar          — top bar with three pluggable slots:
+ *                             .smlcd-topbar-left   (toggle button)
+ *                             .smlcd-topbar-center (breadcrumb / page title)
+ *                             .smlcd-topbar-right  (actions, theme toggle, avatar)
+ *   smlcd-content-area    — scrollable content region
+ *   smlcd-backdrop        — mobile overlay behind open sidebar
  *
  * States:
- *   smlcd-layout--collapsed  — sidebar hidden (toggled by JS)
+ *   smlcd-layout--collapsed — sidebar collapsed (JS-toggled)
+ *   smlcd-backdrop--visible — mobile backdrop shown
  */
 
 /*
-|------------------
-| TOKENS
-|------------------
+|--------------------------------------------------
+| DESIGN TOKENS — DARK (default)
+|--------------------------------------------------
 */
-:root {
-    --smlcd-sidebar-width:       240px;
-    --smlcd-sidebar-collapsed:   0px;
-    --smlcd-topbar-height:       56px;
-    --smlcd-transition:          220ms ease;
+:root,
+[data-theme="dark"] {
+    --smlcd-sidebar-width:      240px;
+    --smlcd-topbar-height:      56px;
+    --smlcd-transition:         200ms ease;
+    --smlcd-radius:             7px;
+    --smlcd-radius-sm:          5px;
 
-    --smlcd-color-bg:            #0f1117;
-    --smlcd-color-sidebar-bg:    #161b27;
-    --smlcd-color-topbar-bg:     #161b27;
-    --smlcd-color-surface:       #1e2536;
-    --smlcd-color-border:        #2a3147;
+    --smlcd-color-bg:           #0d1117;
+    --smlcd-color-sidebar-bg:   #161c2a;
+    --smlcd-color-topbar-bg:    #161c2a;
+    --smlcd-color-surface:      #1e2638;
+    --smlcd-color-surface-2:    #252e42;
+    --smlcd-color-border:       #252e42;
+    --smlcd-color-border-soft:  rgba( 255, 255, 255, 0.05 );
 
-    --smlcd-color-text-primary:  #e8eaf0;
-    --smlcd-color-text-muted:    #7a84a0;
-    --smlcd-color-text-hint:     #4a536b;
+    --smlcd-color-text-primary: #e6eaf2;
+    --smlcd-color-text-muted:   #7680a0;
+    --smlcd-color-text-hint:    #434d66;
 
-    --smlcd-color-accent:        #4f7ef7;
-    --smlcd-color-accent-soft:   rgba( 79, 126, 247, 0.12 );
+    --smlcd-color-accent:       #4f80f7;
+    --smlcd-color-accent-hover: #6494ff;
+    --smlcd-color-accent-soft:  rgba( 79, 128, 247, 0.13 );
 
-    --smlcd-color-error:         #e05c6b;
-    --smlcd-color-error-soft:    rgba( 224, 92, 107, 0.10 );
+    --smlcd-color-error:        #e05c6b;
+    --smlcd-color-error-soft:   rgba( 224, 92, 107, 0.10 );
 
-    --smlcd-nav-item-height:     44px;
-    --smlcd-nav-accent-width:    3px;
-    --smlcd-radius:              6px;
+    --smlcd-color-success:      #34c78a;
+    --smlcd-color-warning:      #f0a033;
 
-    --smlcd-font:                'DM Sans', system-ui, sans-serif;
-    --smlcd-font-mono:           'JetBrains Mono', ui-monospace, monospace;
+    --smlcd-nav-item-height:    42px;
+    --smlcd-nav-accent-width:   3px;
+
+    --smlcd-shadow-sidebar:     4px 0 32px rgba( 0, 0, 0, 0.5 );
+    --smlcd-shadow-topbar:      0 1px 0 var( --smlcd-color-border );
+
+    --smlcd-font:               'DM Sans', system-ui, sans-serif;
+    --smlcd-font-mono:          'JetBrains Mono', ui-monospace, monospace;
 }
 
 /*
-|------------------
+|--------------------------------------------------
+| DESIGN TOKENS — LIGHT
+|--------------------------------------------------
+*/
+[data-theme="light"] {
+    --smlcd-color-bg:           #f4f6fb;
+    --smlcd-color-sidebar-bg:   #ffffff;
+    --smlcd-color-topbar-bg:    #ffffff;
+    --smlcd-color-surface:      #eef1f8;
+    --smlcd-color-surface-2:    #e4e8f2;
+    --smlcd-color-border:       #dde2ed;
+    --smlcd-color-border-soft:  rgba( 0, 0, 0, 0.05 );
+
+    --smlcd-color-text-primary: #1a2236;
+    --smlcd-color-text-muted:   #6272a0;
+    --smlcd-color-text-hint:    #aab2cc;
+
+    --smlcd-color-accent:       #3b6ff0;
+    --smlcd-color-accent-hover: #2d5ee0;
+    --smlcd-color-accent-soft:  rgba( 59, 111, 240, 0.09 );
+
+    --smlcd-color-error:        #c73d4e;
+    --smlcd-color-error-soft:   rgba( 199, 61, 78, 0.08 );
+
+    --smlcd-shadow-sidebar:     4px 0 24px rgba( 0, 0, 0, 0.10 );
+    --smlcd-shadow-topbar:      0 1px 0 var( --smlcd-color-border );
+}
+
+/*
+|--------------------------------------------------
 | RESET / BASE
-|------------------
+|--------------------------------------------------
 */
 .smlcd-body {
     margin: 0;
@@ -63,6 +111,7 @@
     font-size: 14px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .smlcd-body *,
@@ -72,19 +121,40 @@
 }
 
 /*
-|------------------
-| LAYOUT
-|------------------
+|--------------------------------------------------
+| ROOT LAYOUT
+|--------------------------------------------------
 */
 .smlcd-layout {
     display: flex;
     min-height: 100vh;
+    position: relative;
 }
 
 /*
-|------------------
+|--------------------------------------------------
+| MOBILE BACKDROP
+|--------------------------------------------------
+*/
+.smlcd-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba( 0, 0, 0, 0.55 );
+    z-index: 90;
+    opacity: 0;
+    transition: opacity var( --smlcd-transition );
+}
+
+.smlcd-backdrop--visible {
+    display: block;
+    opacity: 1;
+}
+
+/*
+|--------------------------------------------------
 | SIDEBAR
-|------------------
+|--------------------------------------------------
 */
 .smlcd-sidebar {
     width: var( --smlcd-sidebar-width );
@@ -94,61 +164,85 @@
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    transition: width var( --smlcd-transition ), opacity var( --smlcd-transition );
+    transition:
+        width var( --smlcd-transition ),
+        transform var( --smlcd-transition ),
+        opacity var( --smlcd-transition );
     overflow: hidden;
+    z-index: 100;
 }
 
+/* Desktop collapse — shrink to zero width */
 .smlcd-layout--collapsed .smlcd-sidebar {
-    width: var( --smlcd-sidebar-collapsed );
+    width: 0;
     opacity: 0;
     pointer-events: none;
+}
+
+.smlcd-layout--open .smlcd-sidebar {
+    transform: translateX( 0 );
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .smlcd-sidebar-header {
     height: var( --smlcd-topbar-height );
     display: flex;
     align-items: center;
-    padding: 0 20px;
+    padding: 0 18px;
     border-bottom: 1px solid var( --smlcd-color-border );
     flex-shrink: 0;
+    gap: 10px;
 }
 
 .smlcd-sidebar-brand {
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
     color: var( --smlcd-color-text-muted );
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
 }
 
 .smlcd-sidebar-footer {
     margin-top: auto;
-    padding: 16px 20px;
+    padding: 14px 18px;
     border-top: 1px solid var( --smlcd-color-border );
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .smlcd-sidebar-role {
-    display: block;
-    font-size: 11px;
+    font-size: 10.5px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var( --smlcd-color-text-hint );
 }
 
 /*
-|------------------
+|--------------------------------------------------
 | NAVIGATION
-|------------------
+|--------------------------------------------------
 */
 .smlcd-nav {
     flex: 1;
-    padding: 12px 0;
+    padding: 10px 0;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+.smlcd-nav-section {
+    padding: 18px 18px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var( --smlcd-color-text-hint );
 }
 
 .smlcd-nav-item {
@@ -158,7 +252,7 @@
     gap: 10px;
     width: 100%;
     height: var( --smlcd-nav-item-height );
-    padding: 0 20px;
+    padding: 0 18px;
     background: none;
     border: none;
     border-left: var( --smlcd-nav-accent-width ) solid transparent;
@@ -184,7 +278,8 @@
 .smlcd-nav-item:focus-visible {
     color: var( --smlcd-color-text-primary );
     background: var( --smlcd-color-accent-soft );
-    border-left-color: var( --smlcd-color-accent );
+    outline: 2px solid var( --smlcd-color-accent );
+    outline-offset: -2px;
 }
 
 .smlcd-nav-item--active {
@@ -197,31 +292,47 @@
 .smlcd-nav-icon {
     font-size: 16px;
     flex-shrink: 0;
-    opacity: 0.75;
-    transition: opacity var( --smlcd-transition );
+    color: var( --smlcd-color-text-hint );
+    transition: color var( --smlcd-transition );
 }
 
-.smlcd-nav-item:hover     .smlcd-nav-icon,
-.smlcd-nav-item--active   .smlcd-nav-icon {
-    opacity: 1;
+.smlcd-nav-item:hover   .smlcd-nav-icon,
+.smlcd-nav-item--active .smlcd-nav-icon {
+    color: var( --smlcd-color-accent );
 }
 
 .smlcd-nav-label {
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+.smlcd-nav-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: var( --smlcd-color-accent );
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 9px;
+    flex-shrink: 0;
+}
+
 .smlcd-nav-empty {
-    padding: 20px;
+    padding: 20px 18px;
     color: var( --smlcd-color-text-hint );
     font-size: 13px;
     margin: 0;
 }
 
 /*
-|------------------
+|--------------------------------------------------
 | MAIN COLUMN
-|------------------
+|--------------------------------------------------
 */
 .smlcd-main {
     flex: 1;
@@ -232,77 +343,142 @@
 }
 
 /*
-|------------------
-| TOPBAR
-|------------------
+|--------------------------------------------------
+| TOPBAR — THREE PLUGGABLE SLOTS
+|--------------------------------------------------
+|
+|  [.smlcd-topbar-left]  [.smlcd-topbar-center]  [.smlcd-topbar-right]
+|   sidebar toggle         page title / crumb       icons + avatar
+|
 */
 .smlcd-topbar {
     height: var( --smlcd-topbar-height );
     background: var( --smlcd-color-topbar-bg );
-    border-bottom: 1px solid var( --smlcd-color-border );
+    box-shadow: var( --smlcd-shadow-topbar );
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
+    padding: 0 16px 0 12px;
     flex-shrink: 0;
-    gap: 12px;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
 }
 
-.smlcd-sidebar-toggle {
+.smlcd-topbar-left {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: none;
-    border: none;
-    border-radius: var( --smlcd-radius );
-    color: var( --smlcd-color-text-muted );
-    font-size: 18px;
-    cursor: pointer;
-    transition: color var( --smlcd-transition ), background var( --smlcd-transition );
+    gap: 6px;
     flex-shrink: 0;
-    outline: none;
 }
 
-.smlcd-sidebar-toggle:hover {
-    color: var( --smlcd-color-text-primary );
-    background: var( --smlcd-color-surface );
+.smlcd-topbar-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    padding: 0 8px;
 }
 
-.smlcd-sidebar-toggle:focus-visible {
+.smlcd-page-title {
+    font-size: 14px;
+    font-weight: 500;
     color: var( --smlcd-color-text-primary );
-    background: var( --smlcd-color-surface );
-    outline: 2px solid var( --smlcd-color-accent );
-    outline-offset: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
 }
 
 .smlcd-topbar-right {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-left: auto;
-}
-
-.smlcd-principal-name {
-    font-size: 13px;
-    color: var( --smlcd-color-text-muted );
+    gap: 2px;
+    flex-shrink: 0;
 }
 
 /*
-|------------------
+|--------------------------------------------------
+| ICON BUTTON — reusable in topbar right slot
+|--------------------------------------------------
+*/
+.smlcd-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: none;
+    border: none;
+    border-radius: var( --smlcd-radius-sm );
+    color: var( --smlcd-color-text-muted );
+    font-size: 17px;
+    cursor: pointer;
+    transition:
+        color var( --smlcd-transition ),
+        background var( --smlcd-transition );
+    flex-shrink: 0;
+    outline: none;
+    position: relative;
+}
+
+.smlcd-icon-btn:hover {
+    color: var( --smlcd-color-text-primary );
+    background: var( --smlcd-color-surface );
+}
+
+.smlcd-icon-btn:focus-visible {
+    outline: 2px solid var( --smlcd-color-accent );
+    outline-offset: 2px;
+    color: var( --smlcd-color-text-primary );
+}
+
+/* Dot badge — e.g. unread notifications */
+.smlcd-icon-btn__badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 7px;
+    height: 7px;
+    background: var( --smlcd-color-accent );
+    border-radius: 50%;
+    border: 2px solid var( --smlcd-color-topbar-bg );
+}
+
+/* Principal name */
+.smlcd-principal-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var( --smlcd-color-text-muted );
+    padding: 0 8px;
+    white-space: nowrap;
+}
+
+/* Topbar slot divider */
+.smlcd-topbar-divider {
+    width: 1px;
+    height: 20px;
+    background: var( --smlcd-color-border );
+    flex-shrink: 0;
+    margin: 0 4px;
+}
+
+/*
+|--------------------------------------------------
 | CONTENT AREA
-|------------------
+|--------------------------------------------------
 */
 .smlcd-content-area {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 28px 32px;
     position: relative;
 }
 
 .smlcd-content {
     max-width: 1100px;
+    width: 100%;
 }
 
 .smlcd-content[hidden] {
@@ -310,9 +486,9 @@
 }
 
 /*
-|------------------
+|--------------------------------------------------
 | LOADER
-|------------------
+|--------------------------------------------------
 */
 .smlcd-loader {
     display: flex;
@@ -320,7 +496,7 @@
     gap: 10px;
     color: var( --smlcd-color-text-muted );
     font-size: 13px;
-    padding: 12px 0;
+    padding: 16px 0;
 }
 
 .smlcd-loader[hidden] {
@@ -334,7 +510,7 @@
     border: 2px solid var( --smlcd-color-border );
     border-top-color: var( --smlcd-color-accent );
     border-radius: 50%;
-    animation: smlcd-spin 0.7s linear infinite;
+    animation: smlcd-spin 0.65s linear infinite;
     flex-shrink: 0;
 }
 
@@ -343,20 +519,19 @@
 }
 
 /*
-|------------------
+|--------------------------------------------------
 | ERROR STATE
-|------------------
+|--------------------------------------------------
 */
 .smlcd-error {
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    padding: 16px 20px;
+    padding: 16px 18px;
     background: var( --smlcd-color-error-soft );
     border: 1px solid var( --smlcd-color-error );
     border-radius: var( --smlcd-radius );
-    color: var( --smlcd-color-error );
-    max-width: 560px;
+    max-width: 540px;
 }
 
 .smlcd-error[hidden] {
@@ -365,6 +540,7 @@
 
 .smlcd-error .ti-alert-circle {
     font-size: 18px;
+    color: var( --smlcd-color-error );
     flex-shrink: 0;
     margin-top: 1px;
 }
@@ -380,7 +556,7 @@
 .smlcd-error-retry {
     background: none;
     border: 1px solid var( --smlcd-color-error );
-    border-radius: var( --smlcd-radius );
+    border-radius: var( --smlcd-radius-sm );
     color: var( --smlcd-color-error );
     font-family: inherit;
     font-size: 12px;
@@ -388,20 +564,26 @@
     cursor: pointer;
     flex-shrink: 0;
     transition: background var( --smlcd-transition );
+    outline: none;
 }
 
 .smlcd-error-retry:hover {
     background: var( --smlcd-color-error-soft );
 }
 
+.smlcd-error-retry:focus-visible {
+    outline: 2px solid var( --smlcd-color-error );
+    outline-offset: 2px;
+}
+
 /*
-|------------------
+|--------------------------------------------------
 | SCROLLBARS
-|------------------
+|--------------------------------------------------
 */
 .smlcd-nav::-webkit-scrollbar,
 .smlcd-content-area::-webkit-scrollbar {
-    width: 4px;
+    width: 3px;
 }
 
 .smlcd-nav::-webkit-scrollbar-track,
@@ -412,29 +594,68 @@
 .smlcd-nav::-webkit-scrollbar-thumb,
 .smlcd-content-area::-webkit-scrollbar-thumb {
     background: var( --smlcd-color-border );
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 /*
-|------------------
-| RESPONSIVE
-|------------------
+|--------------------------------------------------
+| RESPONSIVE — MOBILE ( ≤ 768px )
+|--------------------------------------------------
+| Sidebar becomes a fixed overlay. The backdrop sits
+| between the sidebar and page content. The layout
+| itself does not shrink.
+|--------------------------------------------------
 */
 @media ( max-width: 768px ) {
+
     .smlcd-sidebar {
         position: fixed;
         top: 0;
         left: 0;
         height: 100%;
-        z-index: 100;
-        box-shadow: 4px 0 24px rgba( 0, 0, 0, 0.4 );
+        width: var( --smlcd-sidebar-width );
+        transform: translateX( -100% );
+        box-shadow: var( --smlcd-shadow-sidebar );
+        transition:
+            transform var( --smlcd-transition ),
+            opacity var( --smlcd-transition );
     }
 
-    .smlcd-layout--collapsed .smlcd-sidebar {
-        width: 0;
+    .smlcd-main {
+        width: 100%;
     }
 
     .smlcd-content-area {
-        padding: 20px 16px;
+        padding: 18px 16px;
     }
+
+    .smlcd-topbar {
+        padding: 0 12px;
+    }
+
+    .smlcd-principal-name {
+        display: none;
+    }
+
+    .smlcd-topbar-center {
+        padding: 0 4px;
+    }
+
+}
+
+/*
+|--------------------------------------------------
+| RESPONSIVE — TABLET ( 769px – 1024px )
+|--------------------------------------------------
+*/
+@media ( min-width: 769px ) and ( max-width: 1024px ) {
+
+    :root {
+        --smlcd-sidebar-width: 210px;
+    }
+
+    .smlcd-content-area {
+        padding: 22px 24px;
+    }
+
 }

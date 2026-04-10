@@ -26,12 +26,13 @@ class OverviewHandler implements DashboardHandlerInterface {
     }
 
     public static function handle( Request $request ) : Response {
-        $html = smliser_render_template_to_string( 'client-dashboard.sections.overview', [
+        $html = smliser_render_template_to_string( 'frontend.sections.index', [
             'principal' => Guard::get_principal(),
         ] );
 
+        $data   = [ 'html' => $html];
         return ( new Response( 200 ) )
-            ->set_header( 'Content-Type', 'text/html; charset=utf-8' )
-            ->set_body( $html );
+            ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
+            ->set_body( $data );
     }
 }

@@ -73,28 +73,28 @@ class V1 implements RESTInterface {
      * 
      * @var string
      */
-    private const LCENSE_ACTIVATION = '/license-activation/' . self::APP_ROUTE_REGEX;
+    private const LICENSE_ACTIVATION = '/license-activation/' . self::APP_ROUTE_REGEX;
 
     /** 
      * License deactivation route
      * 
      * @var string
      */
-    private const LCENSE_DEACTIVATION = '/license-deactivation/';
+    private const LICENSE_DEACTIVATION = '/license-deactivation/';
 
     /**
      * License uninstallation route.
      * 
      * @var string
      */
-    private const LCENSE_UNINSTALL = '/license-uninstallation/';
+    private const LICENSE_UNINSTALL = '/license-uninstallation/';
 
     /**
      * License validity route.
      * 
      * @var string
      */
-    private const LCENSE_VALIDITY = '/license-validity-test/'. self::APP_ROUTE_REGEX;
+    private const LICENSE_VALIDITY = '/license-validity-test/'. self::APP_ROUTE_REGEX;
 
     /** 
      * Route to query the entire repository.
@@ -169,7 +169,13 @@ class V1 implements RESTInterface {
      * Client dashboard content route.
      * Slug is a path segment: /dashboard/{slug}
      */
-    private const CLIENT_DASHBOARD_ROUTE = '/dashboard/(?P<dashboard_slug>[a-zA-Z0-9_-]+)';
+    private const CLIENT_DASHBOARD_ROUTE = '/client-dashboard/(?P<dashboard_slug>[a-zA-Z0-9_-]+)';
+    
+    /**
+     * Client dashboard content route.
+     * Slug is a path segment: /dashboard/{slug}
+     */
+    private const CLIENT_POST_ROUTE = '/client-dashboard/(?P<post_action>[a-zA-Z0-9_-]+)';
 
     /**
      * Get all route definitions for the API.
@@ -247,7 +253,7 @@ class V1 implements RESTInterface {
             'routes'    => array(
                 // License Activation Route
                 array(
-                    'route'         => self::LCENSE_ACTIVATION,
+                    'route'         => self::LICENSE_ACTIVATION,
                     'methods'       => ['POST'],
                     'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'activation_response' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'activation_permission_callback' ),
@@ -258,7 +264,7 @@ class V1 implements RESTInterface {
 
                 // License Deactivation Route
                 array(
-                    'route'         => self::LCENSE_DEACTIVATION,
+                    'route'         => self::LICENSE_DEACTIVATION,
                     'methods'       => array( 'POST' ),
                     'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_response' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_permission' ),
@@ -269,7 +275,7 @@ class V1 implements RESTInterface {
 
                 // License Uninstallation Route.
                 array(
-                    'route'         => self::LCENSE_UNINSTALL,
+                    'route'         => self::LICENSE_UNINSTALL,
                     'methods'       => array( 'POST' ),
                     'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_response' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_permission' ),
@@ -280,7 +286,7 @@ class V1 implements RESTInterface {
 
                 // License Validity Test Route.
                 array(
-                    'route'         => self::LCENSE_VALIDITY,
+                    'route'         => self::LICENSE_VALIDITY,
                     'methods'       => ['POST'],
                     'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_response' ),
                     'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_permission' ),
@@ -434,6 +440,16 @@ class V1 implements RESTInterface {
                     'args'     => [],
                     'category' => 'client-dashboard',
                     'name'     => 'Client Dashboard Content',
+                ),
+                
+                array(
+                    'route'    => self::CLIENT_POST_ROUTE,
+                    'methods'  => [ 'POST' ],
+                    'handler'  => [ ClientDashboardRouter::class, 'post_dispatch' ],
+                    'guard'    => [ ClientDashboardRouter::class, 'post_guard' ],
+                    'args'     => [],
+                    'category' => 'client-dashboard',
+                    'name'     => 'Client Dashboard Post',
                 ),
             ),
         );

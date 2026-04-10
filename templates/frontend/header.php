@@ -62,11 +62,11 @@ $app_name    = defined( 'SMLISER_APP_NAME' ) ? SMLISER_APP_NAME : 'Dashboard';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo esc_html( $app_name ); ?> — Dashboard</title>
 
-    <link rel="stylesheet" href="<?php echo esc_url( AssetsManager::getCSSUrl( 'smliser-tabler-icons' ) ); ?>">
-    <link rel="stylesheet" href="<?php echo esc_url( AssetsManager::getCSSUrl( 'smliser-client-dashboard' ) ); ?>">
+    <?php AssetsManager::print_styles( 'smliser-client-dashboard' ); ?>
 
     <meta name="smliser-rest-base" content="<?php echo esc_attr( $rest_base ); ?>">
     <meta name="smliser-active-slug" content="<?php echo esc_attr( $active_slug ); ?>">
+
 </head>
 <body class="smlcd-body">
 

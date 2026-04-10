@@ -17,7 +17,6 @@ namespace SmartLicenseServer\ClientDashboard;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
-use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
