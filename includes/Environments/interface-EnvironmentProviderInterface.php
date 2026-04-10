@@ -65,7 +65,7 @@ interface EnvironmentProviderInterface {
      * 
      * @param string $path
      */
-    public static function assets_url( string $path = '', array $params = [] ) : URL;
+    public static function assetsUrl( string $path = '', array $params = [] ) : URL;
 
     /**
      * Check key filesystem directories for read/write access.

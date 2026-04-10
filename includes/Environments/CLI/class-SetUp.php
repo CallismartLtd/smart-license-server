@@ -231,7 +231,7 @@ class SetUp extends Environment {
      *
      * No assets directory served in CLI — returns the base URL.
      */
-    public static function assets_url( string $path = '', $params = [] ): URL {
+    public static function assetsUrl( string $path = '', $params = [] ): URL {
         return static::url( 'assets', $params )
             ->append_path( $path );
     }

@@ -35,7 +35,7 @@ function adminUrl( string $path = '', array $params = [] ) : URL {
  * @param array<string, string> $params Associative array of query params.
  */
 function assetsUrl( string $path = '', array $params = [] ) :URL {
-    return smliser_envProvider()->assets_url( $path, $params );
+    return smliser_envProvider()->assetsUrl( $path, $params );
 }
 
 /**

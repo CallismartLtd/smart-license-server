@@ -155,7 +155,7 @@ class SetUp extends Environment {
         ->add_query_params( $qv );
     }
     
-    public static function assets_url( string $path = '', array $qv = [] ) : URL {
+    public static function assetsUrl( string $path = '', array $qv = [] ) : URL {
         $path   = FileSystemHelper::join_path( '/assets/', $path );
         return ( new URL( SMLISER_URL ) )
             ->append_path( $path )
