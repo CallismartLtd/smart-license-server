@@ -1,0 +1,73 @@
+<?php
+/**
+ * Client Dashboard Header Template
+ *
+ * Header layout for the client-facing dashboard.
+ * Renders the html head, body and layout opening tags.
+ *
+ * Expected variables (extracted by TemplateLocator):
+ *
+ * @var array<string, array{title: string, slug: string, handler: callable, icon: string}> $menu
+ *     Ordered menu items from ClientDashboardRegistry.
+ *
+ * @var string $rest_base
+ *     Full REST base URL for dashboard content requests.
+ *     e.g. https://example.com/wp-json/smliser/v1/dashboard/
+ *
+ * @var string $active_slug
+ *     The slug of the initially active menu section.
+ */
+
+use SmartLicenseServer\Assets\AssetsManager;
+use SmartLicenseServer\Security\Context\Guard;
+
+defined( 'SMLISER_ABSPATH' ) || exit;
+
+/*
+|------------------
+| AUTH GUARD
+|------------------
+|
+| Verify the principal is set before rendering anything.
+| Guard::get_principal() returns null when no authenticated
+| session exists for this request.
+|
+*/
+$principal = Guard::get_principal();
+
+if ( ! $principal ) {
+    $login_url = smliser_resolve_template( 'auth.login' )
+        ? url( 'auth/login' )
+        : url( '' );
+
+    header( 'Location: ' . esc_url( $login_url ) );
+    exit;
+}
+
+/*
+|------------------
+| DEFAULTS
+|------------------
+*/
+$menu        = $menu        ?? [];
+$rest_base   = $rest_base   ?? '';
+$active_slug = $active_slug ?? array_key_first( $menu ) ?? '';
+$app_name    = defined( 'SMLISER_APP_NAME' ) ? SMLISER_APP_NAME : 'Dashboard';
+
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo esc_html( $app_name ); ?> — Dashboard</title>
+
+    <link rel="stylesheet" href="<?php echo esc_url( AssetsManager::getCSSUrl( 'smliser-tabler-icons' ) ); ?>">
+    <link rel="stylesheet" href="<?php echo esc_url( AssetsManager::getCSSUrl( 'smliser-client-dashboard' ) ); ?>">
+
+    <meta name="smliser-rest-base" content="<?php echo esc_attr( $rest_base ); ?>">
+    <meta name="smliser-active-slug" content="<?php echo esc_attr( $active_slug ); ?>">
+</head>
+<body class="smlcd-body">
+
+<div class="smlcd-layout" id="smlcd-layout">

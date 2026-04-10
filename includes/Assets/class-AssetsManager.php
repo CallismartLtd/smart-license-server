@@ -37,6 +37,50 @@ final class AssetsManager {
     }
 
     /**
+     * Get a single CSS asset definition.
+     *
+     * @param string $handle
+     * @return array<string, mixed>|null
+     */
+    public static function getCSS( string $handle ) : ?array {
+        $all = self::allCSS();
+        return $all[ $handle ] ?? null;
+    }
+
+    /**
+     * Get a single JS asset definition.
+     *
+     * @param string $handle
+     * @return array<string, mixed>|null
+     */
+    public static function getJS( string $handle ) : ?array {
+        $all = self::allJS();
+        return $all[ $handle ] ?? null;
+    }
+
+    /**
+     * Get only the CSS asset URL.
+     *
+     * @param string $handle
+     * @return string|null
+     */
+    public static function getCSSUrl( string $handle ) : ?string {
+        $asset = self::getCSS( $handle );
+        return $asset['src'] ?? null;
+    }
+
+    /**
+     * Get only the JS asset URL.
+     *
+     * @param string $handle
+     * @return string|null
+     */
+    public static function getJSUrl( string $handle ) : ?string {
+        $asset = self::getJS( $handle );
+        return $asset['src'] ?? null;
+    }
+
+    /**
      * Return the asset definitions required by the standalone email editor page.
      *
      * Scripts are ordered so that dependencies come before dependants:

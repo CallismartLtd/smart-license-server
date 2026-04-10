@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\RESTAPI\Versions;
 
+use SmartLicenseServer\ClientDashboard\ClientDashboardRouter;
 use SmartLicenseServer\RESTAPI\RESTInterface;
 
 use function defined;
@@ -163,6 +164,12 @@ class V1 implements RESTInterface {
      * @var string
      */
     private const BULK_MESSAGES_ROUTE = '/bulk-messages/';
+
+    /**
+     * Client dashboard content route.
+     * Slug is a path segment: /dashboard/{slug}
+     */
+    private const CLIENT_DASHBOARD_ROUTE = '/dashboard/(?P<dashboard_slug>[a-zA-Z0-9_-]+)';
 
     /**
      * Get all route definitions for the API.
@@ -418,6 +425,15 @@ class V1 implements RESTInterface {
                     'args'          => self::get_bulk_messages_args(),
                     'category'      => 'bulk-messages',
                     'name'          => 'Bulk Messages',
+                ),
+                array(
+                    'route'    => self::CLIENT_DASHBOARD_ROUTE,
+                    'methods'  => [ 'GET' ],
+                    'handler'  => [ ClientDashboardRouter::class, 'dispatch' ],
+                    'guard'    => [ ClientDashboardRouter::class, 'guard' ],
+                    'args'     => [],
+                    'category' => 'client-dashboard',
+                    'name'     => 'Client Dashboard Content',
                 ),
             ),
         );

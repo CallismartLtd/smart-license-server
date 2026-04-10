@@ -148,7 +148,9 @@ class SetUp extends Environment {
     }
 
     public static function restAPIUrl( string $path = '', array $qv = [] ) : URL {
-        return ( new URL( rest_url() ) )
+        $namespace = static::$envProvider->restProvider()->namespace();
+
+        return ( new URL( rest_url( $namespace ) ) )
         ->append_path( $path )
         ->add_query_params( $qv );
     }

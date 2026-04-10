@@ -8,8 +8,6 @@
 
 namespace SmartLicenseServer\Assets;
 
-use SmartLicenseServer\Environments\WordPress\SetUp;
-
 final class CSS {
 
     /**
@@ -83,6 +81,12 @@ final class CSS {
             'smliser-cache-stats' => [
                 'src'   => assetsUrl( sprintf( 'css/cache-stats%s.css', $suffix ) ),
                 'deps'  => ['smliser-styles', 'smliser-modal'],
+                'ver'   => SMLISER_VER,
+                'media' => 'all'
+            ],
+            'smliser-client-dashboard' => [
+                'src'   => assetsUrl( sprintf( 'css/client-dashboard%s.css', $suffix ) ),
+                'deps'  => ['smliser-modal'],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ]

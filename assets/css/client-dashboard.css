@@ -1,0 +1,440 @@
+/**
+ * Client Dashboard Styles
+ *
+ * Naming convention: .smlcd-* (SmartLicenseServer Client Dashboard)
+ *
+ * Layout:
+ *   smlcd-layout         — flex root (sidebar + main)
+ *   smlcd-sidebar        — fixed-width left navigation
+ *   smlcd-main           — flex-grow content column
+ *   smlcd-topbar         — top bar inside main
+ *   smlcd-content-area   — scrollable content region
+ *
+ * States:
+ *   smlcd-layout--collapsed  — sidebar hidden (toggled by JS)
+ */
+
+/*
+|------------------
+| TOKENS
+|------------------
+*/
+:root {
+    --smlcd-sidebar-width:       240px;
+    --smlcd-sidebar-collapsed:   0px;
+    --smlcd-topbar-height:       56px;
+    --smlcd-transition:          220ms ease;
+
+    --smlcd-color-bg:            #0f1117;
+    --smlcd-color-sidebar-bg:    #161b27;
+    --smlcd-color-topbar-bg:     #161b27;
+    --smlcd-color-surface:       #1e2536;
+    --smlcd-color-border:        #2a3147;
+
+    --smlcd-color-text-primary:  #e8eaf0;
+    --smlcd-color-text-muted:    #7a84a0;
+    --smlcd-color-text-hint:     #4a536b;
+
+    --smlcd-color-accent:        #4f7ef7;
+    --smlcd-color-accent-soft:   rgba( 79, 126, 247, 0.12 );
+
+    --smlcd-color-error:         #e05c6b;
+    --smlcd-color-error-soft:    rgba( 224, 92, 107, 0.10 );
+
+    --smlcd-nav-item-height:     44px;
+    --smlcd-nav-accent-width:    3px;
+    --smlcd-radius:              6px;
+
+    --smlcd-font:                'DM Sans', system-ui, sans-serif;
+    --smlcd-font-mono:           'JetBrains Mono', ui-monospace, monospace;
+}
+
+/*
+|------------------
+| RESET / BASE
+|------------------
+*/
+.smlcd-body {
+    margin: 0;
+    padding: 0;
+    background: var( --smlcd-color-bg );
+    color: var( --smlcd-color-text-primary );
+    font-family: var( --smlcd-font );
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+.smlcd-body *,
+.smlcd-body *::before,
+.smlcd-body *::after {
+    box-sizing: border-box;
+}
+
+/*
+|------------------
+| LAYOUT
+|------------------
+*/
+.smlcd-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/*
+|------------------
+| SIDEBAR
+|------------------
+*/
+.smlcd-sidebar {
+    width: var( --smlcd-sidebar-width );
+    min-height: 100vh;
+    background: var( --smlcd-color-sidebar-bg );
+    border-right: 1px solid var( --smlcd-color-border );
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: width var( --smlcd-transition ), opacity var( --smlcd-transition );
+    overflow: hidden;
+}
+
+.smlcd-layout--collapsed .smlcd-sidebar {
+    width: var( --smlcd-sidebar-collapsed );
+    opacity: 0;
+    pointer-events: none;
+}
+
+.smlcd-sidebar-header {
+    height: var( --smlcd-topbar-height );
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid var( --smlcd-color-border );
+    flex-shrink: 0;
+}
+
+.smlcd-sidebar-brand {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var( --smlcd-color-text-muted );
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.smlcd-sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px;
+    border-top: 1px solid var( --smlcd-color-border );
+    flex-shrink: 0;
+}
+
+.smlcd-sidebar-role {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var( --smlcd-color-text-hint );
+}
+
+/*
+|------------------
+| NAVIGATION
+|------------------
+*/
+.smlcd-nav {
+    flex: 1;
+    padding: 12px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.smlcd-nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: var( --smlcd-nav-item-height );
+    padding: 0 20px;
+    background: none;
+    border: none;
+    border-left: var( --smlcd-nav-accent-width ) solid transparent;
+    color: var( --smlcd-color-text-muted );
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 400;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        color var( --smlcd-transition ),
+        background var( --smlcd-transition ),
+        border-color var( --smlcd-transition );
+    white-space: nowrap;
+    outline: none;
+}
+
+.smlcd-nav-item:hover {
+    color: var( --smlcd-color-text-primary );
+    background: var( --smlcd-color-accent-soft );
+}
+
+.smlcd-nav-item:focus-visible {
+    color: var( --smlcd-color-text-primary );
+    background: var( --smlcd-color-accent-soft );
+    border-left-color: var( --smlcd-color-accent );
+}
+
+.smlcd-nav-item--active {
+    color: var( --smlcd-color-text-primary );
+    background: var( --smlcd-color-accent-soft );
+    border-left-color: var( --smlcd-color-accent );
+    font-weight: 500;
+}
+
+.smlcd-nav-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    opacity: 0.75;
+    transition: opacity var( --smlcd-transition );
+}
+
+.smlcd-nav-item:hover     .smlcd-nav-icon,
+.smlcd-nav-item--active   .smlcd-nav-icon {
+    opacity: 1;
+}
+
+.smlcd-nav-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.smlcd-nav-empty {
+    padding: 20px;
+    color: var( --smlcd-color-text-hint );
+    font-size: 13px;
+    margin: 0;
+}
+
+/*
+|------------------
+| MAIN COLUMN
+|------------------
+*/
+.smlcd-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/*
+|------------------
+| TOPBAR
+|------------------
+*/
+.smlcd-topbar {
+    height: var( --smlcd-topbar-height );
+    background: var( --smlcd-color-topbar-bg );
+    border-bottom: 1px solid var( --smlcd-color-border );
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.smlcd-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    border-radius: var( --smlcd-radius );
+    color: var( --smlcd-color-text-muted );
+    font-size: 18px;
+    cursor: pointer;
+    transition: color var( --smlcd-transition ), background var( --smlcd-transition );
+    flex-shrink: 0;
+    outline: none;
+}
+
+.smlcd-sidebar-toggle:hover {
+    color: var( --smlcd-color-text-primary );
+    background: var( --smlcd-color-surface );
+}
+
+.smlcd-sidebar-toggle:focus-visible {
+    color: var( --smlcd-color-text-primary );
+    background: var( --smlcd-color-surface );
+    outline: 2px solid var( --smlcd-color-accent );
+    outline-offset: 2px;
+}
+
+.smlcd-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.smlcd-principal-name {
+    font-size: 13px;
+    color: var( --smlcd-color-text-muted );
+}
+
+/*
+|------------------
+| CONTENT AREA
+|------------------
+*/
+.smlcd-content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px;
+    position: relative;
+}
+
+.smlcd-content {
+    max-width: 1100px;
+}
+
+.smlcd-content[hidden] {
+    display: none;
+}
+
+/*
+|------------------
+| LOADER
+|------------------
+*/
+.smlcd-loader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var( --smlcd-color-text-muted );
+    font-size: 13px;
+    padding: 12px 0;
+}
+
+.smlcd-loader[hidden] {
+    display: none;
+}
+
+.smlcd-loader-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var( --smlcd-color-border );
+    border-top-color: var( --smlcd-color-accent );
+    border-radius: 50%;
+    animation: smlcd-spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes smlcd-spin {
+    to { transform: rotate( 360deg ); }
+}
+
+/*
+|------------------
+| ERROR STATE
+|------------------
+*/
+.smlcd-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var( --smlcd-color-error-soft );
+    border: 1px solid var( --smlcd-color-error );
+    border-radius: var( --smlcd-radius );
+    color: var( --smlcd-color-error );
+    max-width: 560px;
+}
+
+.smlcd-error[hidden] {
+    display: none;
+}
+
+.smlcd-error .ti-alert-circle {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.smlcd-error-message {
+    flex: 1;
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var( --smlcd-color-text-primary );
+}
+
+.smlcd-error-retry {
+    background: none;
+    border: 1px solid var( --smlcd-color-error );
+    border-radius: var( --smlcd-radius );
+    color: var( --smlcd-color-error );
+    font-family: inherit;
+    font-size: 12px;
+    padding: 4px 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background var( --smlcd-transition );
+}
+
+.smlcd-error-retry:hover {
+    background: var( --smlcd-color-error-soft );
+}
+
+/*
+|------------------
+| SCROLLBARS
+|------------------
+*/
+.smlcd-nav::-webkit-scrollbar,
+.smlcd-content-area::-webkit-scrollbar {
+    width: 4px;
+}
+
+.smlcd-nav::-webkit-scrollbar-track,
+.smlcd-content-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.smlcd-nav::-webkit-scrollbar-thumb,
+.smlcd-content-area::-webkit-scrollbar-thumb {
+    background: var( --smlcd-color-border );
+    border-radius: 4px;
+}
+
+/*
+|------------------
+| RESPONSIVE
+|------------------
+*/
+@media ( max-width: 768px ) {
+    .smlcd-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 100;
+        box-shadow: 4px 0 24px rgba( 0, 0, 0, 0.4 );
+    }
+
+    .smlcd-layout--collapsed .smlcd-sidebar {
+        width: 0;
+    }
+
+    .smlcd-content-area {
+        padding: 20px 16px;
+    }
+}
