@@ -74,7 +74,7 @@
 |--------------------------------------------------
 */
 [data-theme="light"] {
-    --smlcd-color-bg:           #f4f6fb;
+    --smlcd-color-bg:           #f1f1f1;
     --smlcd-color-sidebar-bg:   #ffffff;
     --smlcd-color-topbar-bg:    #ffffff;
     --smlcd-color-surface:      #eef1f8;
@@ -340,6 +340,7 @@
     flex-direction: column;
     min-width: 0;
     overflow: hidden;
+    color: var( --smlcd-color-text-primary );
 }
 
 /*
@@ -474,6 +475,8 @@
     overflow-x: hidden;
     padding: 28px 32px;
     position: relative;
+    background: var(--smlcd-color-bg);
+    color: var( --smlcd-color-text-primary );
 }
 
 .smlcd-content {
@@ -483,6 +486,17 @@
 
 .smlcd-content[hidden] {
     display: none;
+}
+
+.smlcd-content a {
+    color: var(--smlcd-color-accent);
+}
+
+.smlcd-content p,
+.smlcd-content h1,
+.smlcd-content h2,
+.smlcd-content h3 {
+    color: inherit;
 }
 
 /*
@@ -623,6 +637,7 @@
 
     .smlcd-main {
         width: 100%;
+        background: var(--smlcd-color-bg);
     }
 
     .smlcd-content-area {

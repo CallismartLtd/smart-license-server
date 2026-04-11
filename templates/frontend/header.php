@@ -20,6 +20,7 @@
 
 use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\SettingsAPI\UserSettings;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -49,10 +50,13 @@ if ( ! $principal ) {
 | DEFAULTS
 |------------------
 */
-$menu        = $menu        ?? [];
-$rest_base   = $rest_base   ?? '';
-$active_slug = $active_slug ?? array_key_first( $menu ) ?? '';
-$app_name    = defined( 'SMLISER_APP_NAME' ) ? SMLISER_APP_NAME : 'Dashboard';
+$menu           = $menu ?? [];
+$rest_base      = $rest_base   ?? '';
+$active_slug    = $active_slug ?? array_key_first( $menu ) ?? '';
+$app_name       = defined( 'SMLISER_APP_NAME' ) ? SMLISER_APP_NAME : 'Dashboard';
+$settings       = UserSettings::for( $principal->get_actor() );
+$theme          = $settings->get( 'theme' );
+$collapsed      = (bool) $settings->get( 'sidebar_collapsed' );
 
 ?>
 <!DOCTYPE html>
@@ -70,4 +74,4 @@ $app_name    = defined( 'SMLISER_APP_NAME' ) ? SMLISER_APP_NAME : 'Dashboard';
 </head>
 <body class="smlcd-body">
 
-<div class="smlcd-layout" id="smlcd-layout">
+<div class="smlcd-layout<?php echo $collapsed ? ' smlcd-layout--collapsed' : '' ?>" id="smlcd-layout" data-theme="<?php echo esc_attr( $theme ); ?>">

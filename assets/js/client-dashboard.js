@@ -51,9 +51,26 @@ class SmliserClientDashboard {
     init() {
         this.bindEvents();
 
-        if ( this.ACTIVE_SLUG ) {
-            this.loadSection( this.ACTIVE_SLUG );
+        const slugFromHash = this.getSlugFromHash();
+        const slug = slugFromHash || this.ACTIVE_SLUG;
+
+        if ( slug ) {
+            this.loadSection( slug, false, false );
         }
+    }
+
+    /*
+    |--------------------------------------------------
+    | HASH MANAGEMENT
+    |--------------------------------------------------
+    */
+    getSlugFromHash() {
+        const hash = window.location.hash.replace( /^#/, '' );
+        return hash || null;
+    }
+
+    setSlugHash( slug ) {
+        window.location.hash = slug;
     }
 
     /*
@@ -108,9 +125,9 @@ class SmliserClientDashboard {
     }
 
     /*
-    |--------------------------------------------------
+    |----------------------------
     | THEME (SERVER CONTROLLED)
-    |--------------------------------------------------
+    |----------------------------
     */
     applyTheme( theme ) {
 
@@ -145,9 +162,9 @@ class SmliserClientDashboard {
     }
 
     /*
-    |--------------------------------------------------
+    |------------------------------------
     | SIDEBAR (SERVER CONTROLLED STATE)
-    |--------------------------------------------------
+    |------------------------------------
     */
     collapseSidebar() {
 
@@ -156,12 +173,14 @@ class SmliserClientDashboard {
 
         this.toggleBtn?.setAttribute( 'aria-expanded', 'false' );
 
-        this.savePreference( 'sidebar_collapsed', true );
-
         if ( this.isMobile() ) {
             this.backdrop?.classList.remove( 'smlcd-backdrop--visible' );
             document.body.style.overflow = '';
+            return;
         }
+
+        // Sidebar preference for non-mobile.
+        this.savePreference( 'sidebar_collapsed', true );
     }
 
     expandSidebar() {
@@ -171,12 +190,14 @@ class SmliserClientDashboard {
 
         this.toggleBtn?.setAttribute( 'aria-expanded', 'true' );
 
-        this.savePreference( 'sidebar_collapsed', false );
-
         if ( this.isMobile() ) {
             this.backdrop?.classList.add( 'smlcd-backdrop--visible' );
             document.body.style.overflow = 'hidden';
+            return;
         }
+
+        // Sidebar preference for non-mobile.
+        this.savePreference( 'sidebar_collapsed', false );
     }
 
     toggleSidebar() {
@@ -254,12 +275,17 @@ class SmliserClientDashboard {
     | SECTION LOADER
     |--------------------------------------------------
     */
-    async loadSection( slug, force = false ) {
+    async loadSection( slug, force = false, updateHash = true ) {
 
         if ( ! slug || ! this.REST_BASE ) return;
 
         this.setLoading( true );
         this.setActive( slug );
+
+        // Update URL fragment unless explicitly suppressed
+        if ( updateHash ) {
+            this.setSlugHash( slug );
+        }
 
         if ( this.isMobile() ) {
             this.collapseSidebar();
@@ -319,6 +345,23 @@ class SmliserClientDashboard {
             this.loadSection( item.dataset.slug );
         } );
 
+        /*
+        |------------------------------------
+        | HASH CHANGE LISTENER
+        | Handles browser back/forward buttons
+        | and direct hash navigation
+        |------------------------------------
+        */
+        window.addEventListener( 'hashchange', () => {
+
+            const slug = this.getSlugFromHash();
+
+            if ( slug ) {
+                // Don't update hash again (updateHash = false)
+                this.loadSection( slug, false, false );
+            }
+        } );
+
         window.addEventListener( 'resize', () => {
 
             if ( ! this.isMobile() ) {
@@ -337,7 +380,4 @@ class SmliserClientDashboard {
 | BOOTSTRAP
 |--------------------------------------------------
 */
-document.addEventListener(
-    'DOMContentLoaded',
-    () => new SmliserClientDashboard()
-);
+document.addEventListener( 'DOMContentLoaded', () => new SmliserClientDashboard() );
