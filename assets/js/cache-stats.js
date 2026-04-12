@@ -7,7 +7,7 @@
  *                       to the global smliserActionBtns handler.
  *  3. Auto-refresh    — re-render after any smliser:action_success event.
  *
- * Depends on: smliser_var.ajaxURL, smliser_var.nonce,
+ * Depends on: smliser_var.ajaxURL, smliser_var.csrf_token,
  *             SmliserModal.confirm, smliserActionBtns, smliserFetchJSON.
  *
  * @package SmartLicenseServer
@@ -88,7 +88,7 @@
         cards.classList.add( 'smlcd-cards--loading' );
 
         try {
-            const url    = ajaxUrl( 'smliser_cache_get_stats', smliser_var.nonce );
+            const url    = ajaxUrl( 'smliser_cache_get_stats', smliser_var.csrf_token );
             const result = await smliserFetchJSON( url, { method: 'GET' } );
 
             if ( result.success && result.data?.stats ) {

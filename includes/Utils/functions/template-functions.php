@@ -7,6 +7,7 @@
  * @package SmartLicenseServer\Utils\Functions
  */
 
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Templates\TemplateLocator;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -94,4 +95,25 @@ function smliser_render_template_if_exists( string $slug, array $data = [] ) : b
  */
 function smliser_list_templates() : array {
     return smliser_envProvider()->templateLocator()->list_discovered();
+}
+
+/**
+ * Get the client dashboard template registry.
+ */
+function clientDashboardRegistry() : \SmartLicenseServer\ClientDashboard\ClientDashboardRegistry {
+    return smliser_envProvider()->clientDashboardRegistry();
+}
+
+/**
+ * Get the authentication template registry.
+ */
+function authTemplateRegistry() : \SmartLicenseServer\ClientDashboard\AuthTemplateRegistry {
+    return smliser_envProvider()->authTemplateRegistry();
+}
+
+/**
+ * Automatically return a frontend template registry based on the current user auth status.
+ */
+function smliserFrontendTemplate() {
+    return Guard::has_principal() ? clientDashboardRegistry() : authTemplateRegistry();
 }

@@ -20,6 +20,7 @@
 
 namespace SmartLicenseServer\ClientDashboard;
 
+use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 use SmartLicenseServer\Templates\TemplateLocator;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -32,18 +33,23 @@ class ClientDashboardRenderer {
     |--------------------
     */
 
-    public const SHELL_TEMPLATE   = 'frontend.shell';
-    public const HEADER_TEMPLATE  = 'frontend.header';
-    public const MENU_TEMPLATE    = 'frontend.menu';
-    public const CONTENT_TEMPLATE = 'frontend.content';
-    public const FOOTER_TEMPLATE  = 'frontend.footer';
+    public const SHELL_TEMPLATE             = 'frontend.shell';
+    public const HEADER_TEMPLATE            = 'frontend.header';
+    public const MENU_TEMPLATE              = 'frontend.menu';
+    public const CONTENT_TEMPLATE           = 'frontend.content';
+    public const AUTH_INDEX_TEMPLATE        = 'frontend.auth.index';
+    public const AUTH_LOGIN_TEMPLATE        = 'frontend.auth.login';
+    public const AUTH_SIGNUP_TEMPLATE       = 'frontend.auth.signup';
+    public const AUTH_FORGOT_PWD_TEMPLATE   = 'frontend.auth.forgot-password';
+    public const AUTH_2FA_TEMPLATE          = 'frontend.auth.2fa';
+    public const FOOTER_TEMPLATE            = 'frontend.footer';
 
     /**
      * @param ClientDashboardRegistry $registry
      * @param TemplateLocator         $locator
      */
     public function __construct(
-        protected ClientDashboardRegistry $registry,
+        protected AbstractDashboardRegistry $registry,
         protected TemplateLocator $locator
     ) {}
 

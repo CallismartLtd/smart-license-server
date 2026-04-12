@@ -89,6 +89,12 @@ final class CSS {
                 'deps'  => ['smliser-modal', 'smliser-tabler-icons'],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
+            ],
+            'smliser-login' => [
+                'src'   => assetsUrl( sprintf( 'css/login%s.css', $suffix ) ),
+                'deps'  => ['smliser-client-dashboard', 'smliser-modal'],
+                'ver'   => SMLISER_VER,
+                'media' => 'all'
             ]
         ];
     }

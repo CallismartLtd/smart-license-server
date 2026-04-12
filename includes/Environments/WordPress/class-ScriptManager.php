@@ -116,7 +116,7 @@ final class ScriptManager {
     private function allVars() : array {
         return [
             'ajaxURL'           => adminUrl( 'admin-ajax.php' )->get_href(),
-            'nonce'             => wp_create_nonce( 'smliser_nonce' ),
+            'csrf_token'        => wp_create_nonce( 'smliser_nonce' ),
             'admin_url'         => \adminUrl()->get_href(),
             'wp_spinner_gif'    => \adminUrl( 'images/spinner.gif' )->get_href(),
             'wp_spinner_gif_2x' => \adminUrl( 'images/spinner-2x.gif' )->get_href(),

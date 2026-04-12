@@ -38,6 +38,7 @@ use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
+use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
@@ -208,6 +209,13 @@ abstract class Environment implements EnvironmentProviderInterface {
      * @var AdminDashboardRegistry $adminDashboardRegistry
      */
     protected ClientDashboardRegistry $clientDashboardRegistry;
+
+    /**
+     * Authentication template registry.
+     * 
+     * @var AuthTemplateRegistry $authTemplateRegistry
+     */
+    protected AuthTemplateRegistry $authTemplateRegistry;
 
     /**
      * Template locator.
@@ -984,6 +992,17 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         return $this->clientDashboardRegistry;
+    }
+
+    /**
+     * Get the authentication template registry
+     */
+    public function authTemplateRegistry() : AuthTemplateRegistry {
+        if ( ! isset( $this->authTemplateRegistry ) ) {
+            $this->authTemplateRegistry  = new AuthTemplateRegistry;
+        }
+
+        return $this->authTemplateRegistry;
     }
 }
 

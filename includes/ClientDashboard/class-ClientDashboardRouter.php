@@ -47,7 +47,8 @@ class ClientDashboardRouter {
      */
     public static function dispatch( Request $request ) : Response {
         $slug    = (string) $request->get( 'dashboard_slug', '' );
-        $handler = \smliser_envProvider()->clientDashboardRegistry()->get_handler( $slug );
+        
+        $handler = smliserFrontendTemplate()->get_handler( $slug );
 
         if ( null === $handler ) {
             return static::not_found( $slug );
@@ -63,11 +64,11 @@ class ClientDashboardRouter {
      * if no slug is matched (dispatch will return 404 anyway).
      *
      * @param Request $request
-     * @return bool|Response
+     * @return bool|RequestException
      */
-    public static function guard( Request $request ) : bool|Response {
+    public static function guard( Request $request ) : bool|RequestException {
         $slug    = (string) $request->get( 'dashboard_slug', '' );
-        $handler = \smliser_envProvider()->clientDashboardRegistry()->get_handler( $slug );
+        $handler = smliserFrontendTemplate()->get_handler( $slug );
 
         if ( null === $handler ) {
             return true;

@@ -13,6 +13,7 @@ namespace SmartLicenseServer\ClientDashboard;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Exceptions\RequestException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -36,9 +37,9 @@ interface DashboardHandlerInterface {
      * with an error status to reject.
      *
      * @param Request $request
-     * @return bool|Response
+     * @return bool|RequestException
      */
-    public static function guard( Request $request ) : bool|Response;
+    public static function guard( Request $request ) : bool|RequestException;
 
     /**
      * Return the menu slug this handler owns.

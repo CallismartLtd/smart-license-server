@@ -13,13 +13,16 @@
 
 namespace SmartLicenseServer\ClientDashboard;
 
-use SmartLicenseServer\ClientDashboard\TemplateHandlers\Overview;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\ForgotPassword;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\Signup;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\TwoFactorAuth;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class ClientDashboardRegistry extends AbstractDashboardRegistry {
+class AuthTemplateRegistry extends AbstractDashboardRegistry {
     /*
     |-------------
     | BOOTSTRAP
@@ -37,11 +40,21 @@ class ClientDashboardRegistry extends AbstractDashboardRegistry {
         }
 
         $this->menu = [
-            'overview' => [
-                'title'   => 'Overview',
-                'slug'    => 'overview',
-                'handler' => [ Overview::class, 'handle' ],
-                'icon'    => 'ti ti-home',
+            'login' => [
+                'slug'    => 'login',
+                'handler' => [ Login::class, 'handle' ],
+            ],
+            'signup' => [
+                'slug'    => 'signup',
+                'handler' => [ Signup::class, 'handle' ],
+            ],
+            'forgot_password' => [
+                'slug'    => 'forgot-password',
+                'handler' => [ ForgotPassword::class, 'handle' ],
+            ],
+            '2fa' => [
+                'slug'    => '2fa',
+                'handler' => [ TwoFactorAuth::class, 'handle' ],
             ],
 
         ];

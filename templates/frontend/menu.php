@@ -21,13 +21,11 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 $menu        = $menu        ?? [];
 $active_slug = $active_slug ?? '';
-$app_name    = defined( 'SMLISER_APP_NAME' ) ? SMLISER_APP_NAME : 'Dashboard';
-
 ?>
 <aside class="smlcd-sidebar" id="smlcd-sidebar" role="navigation" aria-label="Dashboard navigation">
 
     <div class="smlcd-sidebar-header">
-        <span class="smlcd-sidebar-brand"><?php echo esc_html( $app_name ); ?></span>
+        <span class="smlcd-sidebar-brand" title="<?php echo esc_attr( $repo_name ); ?>"><?php echo esc_html( $repo_name ); ?></span>
     </div>
 
     <?php if ( ! empty( $menu ) ) : ?>

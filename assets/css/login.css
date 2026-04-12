@@ -1,0 +1,860 @@
+/**
+ * SmartLicenseServer Auth Styles
+ *
+ * Unified styling for all authentication forms:
+ * - Login
+ * - Signup
+ * - Forgot Password
+ * - 2FA
+ *
+ * Dark theme matching dashboard aesthetic.
+ * Scoped under .smlag-* (Smart License Auth Generic) prefix.
+ *
+ * Uses Tabler Icons (ti-*)
+ */
+
+/* -----------------------------------------------
+ * RESET & BASE
+ * ----------------------------------------------- */
+
+.smlag-container,
+.smlag-container * {
+    box-sizing: border-box;
+}
+
+/* -----------------------------------------------
+ * CONTAINER
+ * ----------------------------------------------- */
+
+.smlag-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+    background: linear-gradient( 135deg, #0f172a 0%, #1e293b 100% );
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    width: 100%;
+    margin: 0;
+}
+
+/* -----------------------------------------------
+ * CARD
+ * ----------------------------------------------- */
+
+.smlag-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 2rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    box-shadow: 0 20px 25px -5px rgba( 0, 0, 0, 0.3 );
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* -----------------------------------------------
+ * CONTENT AREA (forms injected here)
+ * ----------------------------------------------- */
+
+#smlag-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* -----------------------------------------------
+ * HEADER
+ * ----------------------------------------------- */
+
+.smlag-header {
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+.smlag-brand {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.5px;
+    word-break: break-word;
+}
+
+.smlag-subtitle {
+    display: block;
+    font-size: 0.875rem;
+    color: #cbd5e1;
+    font-weight: 400;
+    margin: 0;
+}
+
+.smlag-description {
+    display: block;
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    font-weight: 400;
+    margin-top: 0.5rem;
+    line-height: 1.5;
+}
+
+/* -----------------------------------------------
+ * ALERTS (Errors & Success)
+ * ----------------------------------------------- */
+
+.smlag-alert {
+    padding: 0.875rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    margin: 0;
+}
+
+.smlag-alert-icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.smlag-alert-icon i {
+    font-size: 1.25rem;
+}
+
+.smlag-alert-error {
+    background: #7f1d1d;
+    border: 1px solid #991b1b;
+    color: #fecaca;
+}
+
+.smlag-alert-success {
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: #86efac;
+}
+
+.smlag-alert-info {
+    background: #1e3a8a;
+    border: 1px solid #1e40af;
+    color: #bfdbfe;
+}
+
+.smlag-alert[hidden] {
+    display: none;
+}
+
+/* -----------------------------------------------
+ * FORM
+ * ----------------------------------------------- */
+
+.smlag-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+}
+
+.smlag-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.smlag-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.smlag-label i {
+    font-size: 0.875rem;
+}
+
+.smlag-label-required {
+    color: #ef4444;
+    font-weight: 700;
+    margin-left: 0.25rem;
+}
+
+/* -----------------------------------------------
+ * INPUTS
+ * ----------------------------------------------- */
+
+.smlag-input,
+.smlag-textarea,
+.smlag-select {
+    padding: 0.75rem 1rem;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #f1f5f9;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color 200ms, box-shadow 200ms;
+    margin: 0;
+    width: 100%;
+}
+
+.smlag-input::placeholder,
+.smlag-textarea::placeholder {
+    color: #64748b;
+}
+
+.smlag-input:focus,
+.smlag-textarea:focus,
+.smlag-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba( 59, 130, 246, 0.1 );
+}
+
+.smlag-input:hover:not(:focus),
+.smlag-textarea:hover:not(:focus),
+.smlag-select:hover:not(:focus) {
+    border-color: #475569;
+}
+
+.smlag-input:disabled,
+.smlag-textarea:disabled,
+.smlag-select:disabled {
+    background: #1e293b;
+    color: #64748b;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.smlag-input.smlag-input--error,
+.smlag-textarea.smlag-textarea--error {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba( 220, 38, 38, 0.1 );
+}
+
+.smlag-textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.smlag-select {
+    appearance: none;
+    background-image: url( "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23cbd5e1' d='M6 9L1 4h10z'/%3E%3C/svg%3E" );
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+}
+
+/* -----------------------------------------------
+ * HELP TEXT
+ * ----------------------------------------------- */
+
+.smlag-help-text {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.smlag-help-text i {
+    font-size: 0.8125rem;
+}
+
+/* -----------------------------------------------
+ * CHECKBOX & RADIO
+ * ----------------------------------------------- */
+
+.smlag-checkbox,
+.smlag-radio {
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+    accent-color: #3b82f6;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.smlag-checkbox:focus,
+.smlag-radio:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.smlag-checkbox:hover,
+.smlag-radio:hover {
+    accent-color: #2563eb;
+}
+
+.smlag-checkbox:disabled,
+.smlag-radio:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Checkbox/Radio with label wrapper */
+
+.smlag-checkbox-wrapper,
+.smlag-radio-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #cbd5e1;
+    margin: 0;
+}
+
+.smlag-checkbox-wrapper label,
+.smlag-radio-wrapper label {
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+/* -----------------------------------------------
+ * BUTTON
+ * ----------------------------------------------- */
+
+.smlag-button {
+    padding: 0.75rem 1rem;
+    background: #3b82f6;
+    border: 1px solid #3b82f6;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 200ms, border-color 200ms, box-shadow 200ms;
+    width: 100%;
+    margin: 0.5rem 0 0 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.smlag-button:hover:not(:disabled) {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+
+.smlag-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba( 59, 130, 246, 0.3 );
+}
+
+.smlag-button:active:not(:disabled) {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    box-shadow: 0 0 0 3px rgba( 59, 130, 246, 0.2 );
+}
+
+.smlag-button:disabled {
+    background: #475569;
+    border-color: #475569;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.smlag-button i {
+    font-size: 1rem;
+}
+
+/* Button variants */
+
+.smlag-button--secondary {
+    background: transparent;
+    border-color: #475569;
+    color: #cbd5e1;
+}
+
+.smlag-button--secondary:hover:not(:disabled) {
+    background: #1e293b;
+    border-color: #64748b;
+    color: #e2e8f0;
+}
+
+.smlag-button--small {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    width: auto;
+}
+
+.smlag-button--full {
+    width: 100%;
+}
+
+/* -----------------------------------------------
+ * BUTTON LOADING STATE
+ * ----------------------------------------------- */
+
+.smlag-button.smlag-button--loading {
+    pointer-events: none;
+}
+
+.smlag-button--loading .smlag-button-text {
+    opacity: 0;
+    position: absolute;
+}
+
+.smlag-button--loading::after {
+    content: '';
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba( 255, 255, 255, 0.3 );
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: smlag-spin 0.8s linear infinite;
+}
+
+@keyframes smlag-spin {
+    to {
+        transform: rotate( 360deg );
+    }
+}
+
+/* -----------------------------------------------
+ * DIVIDER
+ * ----------------------------------------------- */
+
+.smlag-divider {
+    margin: 1rem 0;
+    border: 0;
+    border-top: 1px solid #334155;
+    height: 0;
+}
+
+.smlag-divider-with-text {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.smlag-divider-with-text::before,
+.smlag-divider-with-text::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid #334155;
+}
+
+.smlag-divider-text {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+/* -----------------------------------------------
+ * FOOTER
+ * ----------------------------------------------- */
+
+.smlag-footer {
+    margin-top: 0;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #cbd5e1;
+}
+
+.smlag-footer p {
+    margin: 0.5rem 0;
+}
+
+.smlag-footer a {
+    color: #3b82f6;
+    text-decoration: none;
+    transition: color 200ms;
+    font-weight: 500;
+}
+
+.smlag-footer a:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.smlag-footer a:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* -----------------------------------------------
+ * LOADER
+ * ----------------------------------------------- */
+
+.smlag-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem 2rem;
+}
+
+.smlag-loader-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid rgba( 59, 130, 246, 0.2 );
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: smlag-spin 0.8s linear infinite;
+}
+
+.smlag-loader-text {
+    font-size: 0.875rem;
+    color: #cbd5e1;
+}
+
+.smlag-loader[hidden] {
+    display: none;
+}
+
+/* -----------------------------------------------
+ * ERROR STATE
+ * ----------------------------------------------- */
+
+.smlag-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    text-align: center;
+}
+
+.smlag-error-icon {
+    font-size: 3rem;
+    color: #ef4444;
+}
+
+.smlag-error-icon i {
+    font-size: 3rem;
+}
+
+.smlag-error-message {
+    margin: 0;
+    color: #cbd5e1;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.smlag-error-retry {
+    margin-top: 0.5rem;
+}
+
+.smlag-error[hidden] {
+    display: none;
+}
+
+/* -----------------------------------------------
+ * PROGRESS STEPS (for signup, 2fa, etc.)
+ * ----------------------------------------------- */
+
+.smlag-steps {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    justify-content: center;
+}
+
+.smlag-step {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: #334155;
+    border: 1px solid #475569;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: background-color 200ms, border-color 200ms;
+}
+
+.smlag-step.smlag-step--active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.smlag-step.smlag-step--complete {
+    background: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+}
+
+.smlag-step-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+/* -----------------------------------------------
+ * OTP INPUT (for 2FA)
+ * ----------------------------------------------- */
+
+.smlag-otp-group {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.smlag-otp-input {
+    width: 3rem;
+    height: 3rem;
+    padding: 0.5rem;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #f1f5f9;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-align: center;
+    font-family: monospace;
+    transition: border-color 200ms, box-shadow 200ms;
+}
+
+.smlag-otp-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba( 59, 130, 246, 0.1 );
+}
+
+.smlag-otp-input:hover:not(:focus) {
+    border-color: #475569;
+}
+
+.smlag-otp-input::placeholder {
+    color: #64748b;
+}
+
+/* -----------------------------------------------
+ * PASSWORD STRENGTH METER
+ * ----------------------------------------------- */
+
+.smlag-password-strength {
+    margin-top: 0.5rem;
+}
+
+.smlag-password-strength-bar {
+    height: 0.25rem;
+    background: #334155;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.smlag-password-strength-fill {
+    height: 100%;
+    background: #ef4444;
+    transition: width 200ms, background-color 200ms;
+}
+
+.smlag-password-strength-fill.smlag-strength--weak {
+    width: 33%;
+    background: #ef4444;
+}
+
+.smlag-password-strength-fill.smlag-strength--medium {
+    width: 66%;
+    background: #f59e0b;
+}
+
+.smlag-password-strength-fill.smlag-strength--strong {
+    width: 100%;
+    background: #10b981;
+}
+
+.smlag-password-strength-text {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* -----------------------------------------------
+ * RESPONSIVE
+ * ----------------------------------------------- */
+
+@media ( max-width: 640px ) {
+    .smlag-container {
+        padding: 1rem;
+        min-height: auto;
+        min-height: 100dvh;
+    }
+
+    .smlag-card {
+        padding: 1.5rem;
+    }
+
+    .smlag-brand {
+        font-size: 1.25rem;
+    }
+
+    .smlag-alert {
+        font-size: 0.8125rem;
+    }
+
+    .smlag-form {
+        gap: 0.875rem;
+    }
+
+    .smlag-input,
+    .smlag-textarea,
+    .smlag-select {
+        font-size: 16px;
+        /* Prevent zoom on iOS */
+    }
+}
+
+/* -----------------------------------------------
+ * PRINT MEDIA
+ * ----------------------------------------------- */
+
+@media print {
+    .smlag-container {
+        display: none;
+    }
+}
+
+/* -----------------------------------------------
+ * DARK MODE (Respects system preference)
+ * ----------------------------------------------- */
+
+@media ( prefers-color-scheme: light ) {
+    .smlag-container {
+        background: linear-gradient( 135deg, #f8fafc 0%, #e2e8f0 100% );
+    }
+
+    .smlag-card {
+        background: #ffffff;
+        border-color: #e2e8f0;
+    }
+
+    .smlag-brand {
+        color: #0f172a;
+    }
+
+    .smlag-subtitle,
+    .smlag-description,
+    .smlag-label,
+    .smlag-checkbox-wrapper,
+    .smlag-radio-wrapper {
+        color: #475569;
+    }
+
+    .smlag-input,
+    .smlag-textarea,
+    .smlag-select {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .smlag-input::placeholder,
+    .smlag-textarea::placeholder {
+        color: #94a3b8;
+    }
+
+    .smlag-input:focus,
+    .smlag-textarea:focus,
+    .smlag-select:focus {
+        box-shadow: 0 0 0 3px rgba( 59, 130, 246, 0.15 );
+    }
+
+    .smlag-footer a {
+        color: #0284c7;
+    }
+
+    .smlag-footer a:hover {
+        color: #0369a1;
+    }
+
+    .smlag-help-text {
+        color: #64748b;
+    }
+
+    .smlag-divider-text {
+        color: #64748b;
+    }
+}
+
+/* -----------------------------------------------
+ * ACCESSIBILITY
+ * ----------------------------------------------- */
+
+/* High contrast mode support */
+@media ( prefers-contrast: more ) {
+    .smlag-alert-error {
+        border-width: 2px;
+    }
+
+    .smlag-alert-success {
+        border-width: 2px;
+    }
+
+    .smlag-alert-info {
+        border-width: 2px;
+    }
+
+    .smlag-button {
+        border-width: 2px;
+    }
+
+    .smlag-input,
+    .smlag-textarea,
+    .smlag-select {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media ( prefers-reduced-motion: reduce ) {
+    .smlag-button,
+    .smlag-input,
+    .smlag-textarea,
+    .smlag-select,
+    .smlag-footer a,
+    .smlag-step {
+        transition: none;
+    }
+
+    .smlag-button--loading::after,
+    .smlag-loader-spinner {
+        animation: none;
+        border: 2px solid #3b82f6;
+    }
+}
+
+/* Focus visible (keyboard navigation) */
+.smlag-input:focus-visible,
+.smlag-button:focus-visible,
+.smlag-checkbox:focus-visible,
+.smlag-radio:focus-visible,
+.smlag-footer a:focus-visible,
+.smlag-select:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}

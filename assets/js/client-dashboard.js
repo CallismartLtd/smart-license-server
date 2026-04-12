@@ -40,6 +40,8 @@ class SmliserClientDashboard {
         this.retryBtn  = document.getElementById( 'smlcd-error-retry' );
         this.themeIcon = document.getElementById( 'smlcd-theme-icon' );
 
+        if ( ! this.area ) return;
+
         this.init();
     }
 
@@ -224,6 +226,7 @@ class SmliserClientDashboard {
     |--------------------------------------------------
     */
     setLoading( loading ) {
+        if ( ! this.area ) return;
 
         this.area.setAttribute( 'aria-busy', String( loading ) );
 

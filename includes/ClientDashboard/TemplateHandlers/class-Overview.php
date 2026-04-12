@@ -1,25 +1,24 @@
 <?php
 
-namespace SmartLicenseServer\ClientDashboard\Handlers;
+namespace SmartLicenseServer\ClientDashboard\TemplateHandlers;
 
 use SmartLicenseServer\ClientDashboard\DashboardHandlerInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Context\Guard;
 
-class OverviewHandler implements DashboardHandlerInterface {
+class Overview implements DashboardHandlerInterface {
 
     public static function slug() : string {
         return 'overview';
     }
 
-    public static function guard( Request $request ) : bool|Response {
+    public static function guard( Request $request ) : bool|RequestException {
         $principal = Guard::get_principal();
 
         if ( ! $principal ) {
-            $response = new Response( 401 );
-            $response->add_error( 'unauthorized', 'Authentication required.' );
-            return $response;
+            return new RequestException( 'unauthorized', 'Authentication required.' );
         }
 
         return true;
@@ -30,9 +29,8 @@ class OverviewHandler implements DashboardHandlerInterface {
             'principal' => Guard::get_principal(),
         ] );
 
-        $data   = [ 'html' => $html];
         return ( new Response( 200 ) )
             ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
-            ->set_body( $data );
+            ->set_body( [ 'html' => $html ] );
     }
 }

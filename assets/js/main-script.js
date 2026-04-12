@@ -875,7 +875,7 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
     const url      = new URL( smliser_var.ajaxURL );
 
     url.searchParams.set( 'action', 'smliser_admin_security_entity_search' );
-    url.searchParams.set( 'security', smliser_var.nonce );
+    url.searchParams.set( 'security', smliser_var.csrf_token );
     url.searchParams.set( 'entity_type', options.entityType );
 
     $select2.select2({
@@ -1118,7 +1118,7 @@ async function smliserActionBtns( e ) {
         const url = new URL( baseUrl, window.location.origin );
         
         url.searchParams.set( 'action', args.action );
-        url.searchParams.set( 'security', smliser_var.nonce );
+        url.searchParams.set( 'security', smliser_var.csrf_token );
 
         // Determine method and body based on payLoad presence
         const hasPayload = args.payLoad && Object.keys(args.payLoad).length > 0;
@@ -1340,7 +1340,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 if ( ! ( submittedForm instanceof HTMLFormElement ) ) return;
                 const payLoad   = new FormData( submittedForm );
                 const url       = smliser_var.ajaxURL;
-                payLoad.set( 'security', smliser_var.nonce );
+                payLoad.set( 'security', smliser_var.csrf_token );
                 const submitBtn = submittedForm.querySelector( 'button[type="submit"]' );
                 
                 submitBtn?.setAttribute( 'disabled', 'disabled' );
@@ -1471,7 +1471,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 let url         = new URL( smliser_var.ajaxURL );
                 const payLoad   = new FormData( e.getBody( 'form' ) );
                 payLoad.set( 'action', 'smliser_generate_download_token' );
-                payLoad.set( 'security', smliser_var.nonce );
+                payLoad.set( 'security', smliser_var.csrf_token );
 
                 const response  = await smliserFetchJSON( url, {
                     method: 'POST',
@@ -1728,7 +1728,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             // Construct the URL
             let updateUrl = new URL( smliser_var.ajaxURL );
             updateUrl.searchParams.set( 'action', 'smliser_upgrade' );
-            updateUrl.searchParams.set( 'security', smliser_var.nonce );
+            updateUrl.searchParams.set( 'security', smliser_var.csrf_token );
         
             // Fetch request
             fetch( updateUrl )
@@ -1779,7 +1779,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 url.searchParams.set( 'action', 'smliser_app_status_action' );
                 url.searchParams.set( 'app_slug', requestArgs.slug );
                 url.searchParams.set( 'app_type', requestArgs.type );
-                url.searchParams.set( 'security', smliser_var.nonce );
+                url.searchParams.set( 'security', smliser_var.csrf_token );
                 url.searchParams.set( 'app_status', requestArgs.status );
                 
                 fetch(url)
@@ -1917,7 +1917,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             }
 
             const payLoad = new FormData( tierForm );
-            payLoad.set( 'security', smliser_var.nonce );
+            payLoad.set( 'security', smliser_var.csrf_token );
 
             const spinner = showSpinner( '.smliser-spinner', true );
 
@@ -1980,7 +1980,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 }
                 const payLoad = new FormData();
                 payLoad.set( 'action', 'smliser_delete_monetization_tier' );
-                payLoad.set( 'security', smliser_var.nonce );
+                payLoad.set( 'security', smliser_var.csrf_token );
                 payLoad.set( 'monetization_id', tier.monetization_id );
                 payLoad.set( 'tier_id', tier.id );
 
@@ -2042,7 +2042,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 // Fetch provider product
                 const params = new URLSearchParams({
                     action: 'smliser_get_product_data',
-                    security: smliser_var.nonce,
+                    security: smliser_var.csrf_token,
                     provider_id: tier.provider_id,
                     product_id: tier.product_id,
                 });
@@ -2085,7 +2085,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             toggleMonetization: ( monetizationId, enabled ) => {
                 const payLoad = new FormData();
                 payLoad.set( 'action', 'smliser_toggle_monetization' );
-                payLoad.set( 'security', smliser_var.nonce );
+                payLoad.set( 'security', smliser_var.csrf_token );
                 payLoad.set( 'monetization_id', monetizationId );
                 payLoad.set( 'enabled', enabled );
 
@@ -2217,7 +2217,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             }
 
             const payLoad = new FormData( bulkMessageForm );
-            payLoad.set( 'security', smliser_var.nonce );
+            payLoad.set( 'security', smliser_var.csrf_token );
             payLoad.set( 'action', 'smliser_publish_bulk_message' );
             
             const submitBtn = bulkMessageForm.querySelector( 'button[type="submit"]' );
@@ -2306,7 +2306,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             const url   = new URL( smliser_var.ajaxURL );
 
             url.searchParams.set( 'action', 'smliser_remove_licensed_domain' );
-            url.searchParams.set( 'security', smliser_var.nonce );
+            url.searchParams.set( 'security', smliser_var.csrf_token );
             url.searchParams.set( 'license_id', queryParam.get( 'license_id' ) );
             url.searchParams.set( 'domain', domain );
             
@@ -2378,7 +2378,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 });
             }
 
-            payLoad.set( 'security', smliser_var.nonce );
+            payLoad.set( 'security', smliser_var.csrf_token );
             let spinner = showSpinner( '.smliser-spinner', true );
 
             try {
@@ -2448,7 +2448,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                         const url   = new URL( smliser_var.ajaxURL );
 
                         url.searchParams.set( 'action', 'smliser_delete_org_member' );
-                        url.searchParams.set( 'security', smliser_var.nonce );
+                        url.searchParams.set( 'security', smliser_var.csrf_token );
                         url.searchParams.set( 'organization_id', qv.get( 'org_id' ) );
                         url.searchParams.set( 'member_id', deleteMemberBtn.dataset.memberId );
                         url.searchParams.set( 'action', 'smliser_delete_org_member' );
@@ -2809,7 +2809,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
                 const url   = new URL( smliser_var.ajaxURL );
                 url.searchParams.set( 'action', 'smliser_access_control_delete' );
-                url.searchParams.set( 'security', smliser_var.nonce );
+                url.searchParams.set( 'security', smliser_var.csrf_token );
 
                 Object.entries( args ).forEach( ( [key, value] ) => {
                     url.searchParams.set( key, value );
@@ -2861,7 +2861,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             const payLoad   = new FormData( e.target.closest( 'form' ) );
             const url       = new URL( smliser_var.ajaxURL );
             url.searchParams.set( 'action', 'smliser_save_license' );
-            url.searchParams.set( 'security', smliser_var.nonce );
+            url.searchParams.set( 'security', smliser_var.csrf_token );
             smliserFetch( url.href,
                 {
                     credentials: 'same-origin',
@@ -2925,7 +2925,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             const enabling = currentState === '0'; // if currently disabled, we are enabling
 
             payLoad.set( 'action',       'smliser_toggle_email_template' );
-            payLoad.set( 'security',     smliser_var.nonce );
+            payLoad.set( 'security',     smliser_var.csrf_token );
             payLoad.set( 'template_key', tempKey );
             payLoad.set( 'new_state',    enabling ? '1' : '0' );
 
@@ -2994,7 +2994,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             testCacheAdapterBtn.disabled    = true;
             const payLoad   = new FormData( form );
             payLoad.set( 'action', 'smliser_test_cache_adapter_settings' );
-            payLoad.set( 'security', smliser_var.nonce );
+            payLoad.set( 'security', smliser_var.csrf_token );
 
             try {
                 const testResult    = await smliserFetchJSON( smliser_var.ajaxURL, {

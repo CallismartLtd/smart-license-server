@@ -244,7 +244,7 @@ class AppUploader {
         if ( ! e.submitter?.classList.contains( 'authoritatively' ) ) return;
 
         const payLoad = new FormData( e.currentTarget );
-        payLoad.set( 'security', smliser_var.nonce );
+        payLoad.set( 'security', smliser_var.csrf_token );
 
         if ( this.editor ) {
             const jsonString    = await this.editor.getJSON( true );
@@ -566,7 +566,7 @@ class AppUploader {
         const endpoint = new URL( `${ smliser_var.admin_url }admin-post.php` );
         endpoint.searchParams.set( 'action',    'smliser_download_image' );
         endpoint.searchParams.set( 'image_url', imageUrl );
-        endpoint.searchParams.set( 'security',  smliser_var.nonce );
+        endpoint.searchParams.set( 'security',  smliser_var.csrf_token );
 
         const spinner = showSpinner( '.smliser-spinner.modal' );
 
@@ -762,7 +762,7 @@ class AppUploader {
         try {
             const url = new URL( smliser_var.ajaxURL );
             url.searchParams.set( 'action',   'smliser_app_asset_upload' );
-            url.searchParams.set( 'security', smliser_var.nonce );
+            url.searchParams.set( 'security', smliser_var.csrf_token );
 
             const payLoad = new FormData();
             payLoad.set( 'app_slug',   this.currentConfig.get( 'app_slug' ) );
@@ -917,7 +917,7 @@ class AppUploader {
         const payLoad = new FormData();
         Object.entries( config ).forEach( ( [key, val] ) => payLoad.set( key, val ) );
         payLoad.set( 'action',   'smliser_app_asset_delete' );
-        payLoad.set( 'security', smliser_var.nonce );
+        payLoad.set( 'security', smliser_var.csrf_token );
 
         btn.setAttribute( 'disabled', true );
 
