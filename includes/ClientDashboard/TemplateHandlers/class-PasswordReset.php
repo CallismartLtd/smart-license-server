@@ -8,7 +8,7 @@
  * @package SmartLicenseServer\ClientDashboard\Auth\Handlers
  */
 
-namespace SmartLicenseServer\ClientDashboard\Auth\Handlers;
+namespace SmartLicenseServer\ClientDashboard\TemplateHandlers;
 
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\ClientDashboard\DashboardHandlerInterface;

@@ -2,10 +2,6 @@
 /**
  * Prune license activity logs job class file.
  *
- * Replaces the inline pruning that currently runs inside
- * RepositoryAnalytics::get_license_activity_logs() on every read.
- * Moving it here means reads are never blocked by a write operation.
- *
  * ## Recommended schedule
  *
  *   Run nightly via cron or WordPress scheduled event.

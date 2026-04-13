@@ -2,29 +2,6 @@
 /**
  * Log license activity job class file.
  *
- * Moves the synchronous read-modify-write in
- * RepositoryAnalytics::log_license_activity() off the request
- * lifecycle and into the background queue.
- *
- * ## Dispatch site (in RepositoryAnalytics::log_license_activity())
- *
- *   // Replace the synchronous write with a dispatch:
- *   smliser_job_queue()->dispatch(
- *       JobDTO::make(
- *           job_class : LogLicenseActivityJob::class,
- *           payload   : [
- *               'license_id' => $data['license_id'] ?? 'N/A',
- *               'event_type' => $data['event_type'] ?? 'activation',
- *               'ip_address' => $data['ip_address'] ?? smliser_get_client_ip(),
- *               'user_agent' => $data['user_agent'] ?? smliser_get_user_agent(),
- *               'website'    => $data['website']    ?? 'N/A',
- *               'comment'    => $data['comment']    ?? 'N/A',
- *               'duration'   => $data['duration']   ?? 'N/A',
- *           ],
- *           queue : JobDTO::QUEUE_DEFAULT,
- *       )
- *   );
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Background\Jobs\Analytics
  * @since   0.2.0

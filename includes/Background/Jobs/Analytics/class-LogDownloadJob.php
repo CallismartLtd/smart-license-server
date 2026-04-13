@@ -2,35 +2,6 @@
 /**
  * Log download job class file.
  *
- * Moves the synchronous DB insert and download counter update from
- * AppsAnalytics::log_download() off the request lifecycle and into
- * the background queue.
- *
- * This is a distinct event from LogClientAccessJob — it tracks download
- * count specifically via DOWNLOAD_COUNT_META_KEY, whereas LogClientAccessJob
- * tracks general client access via CLIENT_ACCESS_META_KEY.
- *
- * Both jobs are dispatched independently for a download event, mirroring
- * the original two-callback design in FileRequestController:
- *
- *   $response->register_after_serve_callback( [AppsAnalytics::class, 'log_download'], [$app] );
- *   $response->register_after_serve_callback( [AppsAnalytics::class, 'log_client_access'], [$app, 'download'] );
- *
- * ## Dispatch site (in AppsAnalytics::log_download())
- *
- *   // Replace the delegation to log_client_access() with a direct dispatch:
- *   smliser_job_queue()->dispatch(
- *       JobDTO::make(
- *           job_class : LogDownloadJob::class,
- *           payload   : [
- *               'app_type'    => $app->get_type(),
- *               'app_slug'    => $app->get_slug(),
- *               'fingerprint' => hash( 'sha256', smliser_get_client_ip() . '|' . smliser_get_user_agent( true ) ),
- *               'created_at'  => gmdate( 'Y-m-d H:i:s' ),
- *           ],
- *       )
- *   );
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Background\Jobs\Analytics
  * @since   0.2.0

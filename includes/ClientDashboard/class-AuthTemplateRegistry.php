@@ -13,9 +13,9 @@
 
 namespace SmartLicenseServer\ClientDashboard;
 
-use SmartLicenseServer\ClientDashboard\Auth\Handlers\PasswordReset;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\ForgotPassword;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\PasswordReset;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Signup;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\TwoFactorAuth;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;

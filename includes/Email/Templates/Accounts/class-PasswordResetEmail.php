@@ -21,16 +21,20 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class PasswordResetEmail extends EmailTemplate {
 
     /**
-     * @param User   $user       The user requesting the reset.
-     * @param string $to         Recipient email address.
-     * @param string $reset_url  The password reset link.
-     * @param int    $expires_in Number of minutes until the reset link expires.
+     * @param User   $user         The user requesting the reset.
+     * @param string $to           Recipient email address.
+     * @param string $reset_url    The password reset link.
+     * @param int    $expires_in   Number of minutes until the reset link expires.
+     * @param string $ip_address   IP address of the requesting user.
+     * @param string $user_agent   User agent of the requesting client.
      */
     public function __construct(
         private readonly User   $user,
         private readonly string $to,
         private readonly string $reset_url,
-        private readonly int    $expires_in = 30
+        private readonly int    $expires_in,
+        private readonly string $ip_address,
+        private readonly string $user_agent
     ) {}
 
     static public function template_key(): string {
@@ -54,15 +58,19 @@ class PasswordResetEmail extends EmailTemplate {
             '{{display_name}}' => $this->user->get_display_name(),
             '{{reset_url}}'    => $this->reset_url,
             '{{expires_in}}'   => (string) $this->expires_in,
+            '{{ip_address}}'   => $this->ip_address,
+            '{{user_agent}}'   => $this->user_agent,
         ] );
     }
 
     protected function body(): string {
-        $vars         = $this->variables();
-        $display_name = htmlspecialchars( $vars['{{display_name}}'],  ENT_QUOTES, 'UTF-8' );
-        $reset_url    = htmlspecialchars( $vars['{{reset_url}}'],     ENT_QUOTES, 'UTF-8' );
-        $expires_in   = htmlspecialchars( $vars['{{expires_in}}'],    ENT_QUOTES, 'UTF-8' );
-        $support      = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $vars           = $this->variables();
+        $display_name   = htmlspecialchars( $vars['{{display_name}}'],  ENT_QUOTES, 'UTF-8' );
+        $reset_url      = htmlspecialchars( $vars['{{reset_url}}'],     ENT_QUOTES, 'UTF-8' );
+        $expires_in     = htmlspecialchars( $vars['{{expires_in}}'],    ENT_QUOTES, 'UTF-8' );
+        $support        = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $ip_address     = htmlspecialchars( $vars['{{ip_address}}'], ENT_QUOTES, 'UTF-8' );
+        $user_agent     = htmlspecialchars( $vars['{{user_agent}}'], ENT_QUOTES, 'UTF-8' );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
@@ -93,6 +101,14 @@ class PasswordResetEmail extends EmailTemplate {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                style="background-color:#fffbeb;border:1px solid #fde68a;border-radius:8px;
                       margin:0 0 24px;">
+            <tr>
+                <td style="padding:14px 20px;">
+                    <p style="margin:0;font-size:13px;color:#92400e;line-height:1.5;">
+                        Request made from IP: <strong>{$ip_address}</strong><br>
+                        Device: <strong>{$user_agent}</strong>
+                    </p>
+                </td>
+            </tr>
             <tr>
                 <td style="padding:14px 20px;">
                     <p style="margin:0;font-size:13px;color:#92400e;line-height:1.5;">
@@ -129,7 +145,14 @@ class PasswordResetEmail extends EmailTemplate {
 
     public static function preview(): static {
         $user = User::from_array( [ 'display_name' => 'Jane Doe' ] );
-        return new static( $user, 'preview@example.com', 'https://example.com/reset?token=xxxx', 30 );
+        return new static(
+            $user, 
+            'preview@example.com', 
+            'https://example.com/reset?token=xxxx', 
+            30,
+            smliser_get_client_ip(),
+            \smliser_get_user_agent()
+        );
     }
 
     public function get_blocks(): array {

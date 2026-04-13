@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
+use SmartLicenseServer\Background\Jobs\Accounts\PasswordResetJob;
+use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
@@ -21,6 +23,7 @@ use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 
 final class IdentityService extends AbstractIdentityProvider {
+    use QueueAwareTrait;
     /**
      * Get provider ID.
      *
@@ -309,6 +312,16 @@ final class IdentityService extends AbstractIdentityProvider {
             ->add_query_params( ['key' => $reset_key] )
             ->set_hash( 'reset-password' );
 
-
+        $this->dispatch_job(
+            PasswordResetJob::class,
+            [
+                'user_id'       => $user->get_id(),
+                'recipient'     => $user->get_email(),
+                'reset_url'     => $reset_link,
+                'expires_in'    => 60,
+                'ip_address'    => \smliser_get_client_ip(),
+                'user_agent'    => \smliser_get_user_agent()
+            ]
+        );
     }
 }

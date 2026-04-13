@@ -153,6 +153,7 @@ class SetUp extends Environment {
             'rest_api_provider' => new CLIRESTProvider(),
             'secret'            => $_ENV['SMLISER_SECRET'] ?? '',
             'salt'              => $_ENV['SMLISER_SALT'] ?? '',
+            'identity_provider' => new CLIIdentityProvider
         ];
 
         $this->setup( $env );

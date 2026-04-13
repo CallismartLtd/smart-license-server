@@ -2,27 +2,6 @@
 /**
  * Log client access job class file.
  *
- * Moves the synchronous DB insert and meta counter update from
- * AppsAnalytics::log_client_access() off the request lifecycle
- * and into the background queue.
- *
- * ## Dispatch site (in AppsAnalytics::log_client_access())
- *
- *   // Replace the synchronous write with a dispatch:
- *   smliser_job_queue()->dispatch(
- *       JobDTO::make(
- *           job_class : LogClientAccessJob::class,
- *           payload   : [
- *               'app_type'   => $app->get_type(),
- *               'app_slug'   => $app->get_slug(),
- *               'event_type' => $event_type,
- *               'fingerprint'=> hash( 'sha256', smliser_get_client_ip() . '|' . smliser_get_user_agent( true ) ),
- *               'created_at' => gmdate( 'Y-m-d H:i:s' ),
- *           ],
- *           queue : JobDTO::QUEUE_DEFAULT,
- *       )
- *   );
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Background\Jobs\Analytics
  * @since   0.2.0
