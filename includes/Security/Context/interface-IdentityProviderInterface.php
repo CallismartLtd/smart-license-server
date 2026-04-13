@@ -46,5 +46,5 @@ interface IdentityProviderInterface {
      * @param string $email The user email
      * @return void
      */
-    public function forgot_password( $email ) : void;
+    public function forgot_password( string $email ) : void;
 }

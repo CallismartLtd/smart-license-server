@@ -168,7 +168,7 @@ class Licenses {
      * @return Response
      */
     public static function deactivation_response( Request $request ) : Response {
-        $domain = smliser_get_base_url( $request->get( 'domain' ) );
+        $domain = smliser_url_origin( $request->get( 'domain' ) );
         /** @var License $license */
         $license            = $request->get( 'smliser_resource' );
         $original_status    = $license->get_status();
@@ -232,7 +232,7 @@ class Licenses {
      * @param Request $request The REST Request Object
      */
     public static function uninstallation_response( Request $request ) : Response {
-        $domain = smliser_get_base_url( $request->get( 'domain' ) );
+        $domain = smliser_url_origin( $request->get( 'domain' ) );
         /** @var License $license */
         $license        = $request->get( 'smliser_resource' );
         $response_data  = array(

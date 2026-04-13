@@ -13,6 +13,7 @@
 
 namespace SmartLicenseServer\ClientDashboard;
 
+use SmartLicenseServer\ClientDashboard\Auth\Handlers\PasswordReset;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\ForgotPassword;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Signup;
@@ -55,6 +56,11 @@ class AuthTemplateRegistry extends AbstractDashboardRegistry {
             '2fa' => [
                 'slug'    => '2fa',
                 'handler' => [ TwoFactorAuth::class, 'handle' ],
+            ],
+
+            'reset_password' => [
+                'slug'    => 'reset-password',
+                'handler' => [ PasswordReset::class, 'handle' ],
             ],
 
         ];

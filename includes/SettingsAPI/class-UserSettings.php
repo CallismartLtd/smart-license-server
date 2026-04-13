@@ -15,7 +15,11 @@ use SmartLicenseServer\Security\Actors\User;
  * User settings API
  */
 class UserSettings {
-    const OPTIONS_KEY   = 'smliser_user_%d_options';
+    const OPTIONS_KEY                       = 'smliser_user_%d_options';
+    const PWD_RESET_NAME                    = 'password_reset_key';
+    const DASHBOARD_THEME_NAME              = 'theme';
+    const DASHBOARD_SIDEBAR_COLLAPSED_NAME  = 'sidebar_collapsed';
+    const LOCALE                            = 'locale';
 
     public function __construct( 
         private User $user,

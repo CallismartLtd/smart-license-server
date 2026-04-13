@@ -18,6 +18,7 @@ use SmartLicenseServer\Security\Context\Principal;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
+use SmartLicenseServer\SettingsAPI\UserSettings;
 
 final class IdentityService extends AbstractIdentityProvider {
     /**
@@ -226,11 +227,14 @@ final class IdentityService extends AbstractIdentityProvider {
      * 
      * Logon using credentials
      */
-    public function logon( string $email, string $pwd, bool $remember = false ): RequestException|Principal {
+    public function logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ): RequestException|Principal {
         $wp_user    = \wp_signon(
             [
                 'user_login'    => $email,
-                'user_password' => $pwd,
+                // Ugly hack.
+                // WordPress magic quotes mutates global variable which affects 
+                // the value of hashed passwords.
+                'user_password' => \addslashes( $pwd ),
                 'remember'      => $remember
 
             ],
@@ -238,15 +242,19 @@ final class IdentityService extends AbstractIdentityProvider {
         );
 
         if ( $wp_user instanceof \WP_Error ) {
+            $code       = $wp_user->get_error_code();
+            $message    = \strip_tags( $wp_user->get_error_message() );
 
-            if ( \email_exists( $email ) ) {
-                return new RequestException(
-                    $wp_user->get_error_code(),
-                    $wp_user->get_error_message()
-                );
+            if ( 'incorrect_password' === $code ) {
+                $message = 'The password you entered is incorrect.';
             }
-
+            return new RequestException(
+                $code,
+                $message
+            );
         }
+
+        wp_set_current_user( $wp_user->ID );
 
         $this->authenticate();
 
@@ -264,7 +272,43 @@ final class IdentityService extends AbstractIdentityProvider {
         throw new \Exception('Not implemented');
     }
 
-    public function forgot_password( $email ): void {
-        throw new \Exception('Not implemented');
+    /**
+     * {@inheritdoc}
+     * 
+     * Perform password reset for a user identified by email.
+     * Silently fails if email is invalid or user not found (security best practice).
+     */
+    public function forgot_password( string $email ): void {
+        if ( '' === $email || ! \is_email( $email ) ) {
+            return;
+        }
+
+        $user   = User::get_by_email( $email );
+
+        if ( ! $user ) {
+            return;
+        }
+
+        $settings   = UserSettings::for( $user );
+        $reset_key = $settings->get( UserSettings::PWD_RESET_NAME );
+
+        if ( $reset_key && str_contains( $reset_key, '|' ) ) {
+            // A reset key already exists and is valid for 1 hour.
+            list( $key, $timestamp ) = explode( '|', $reset_key );
+
+            if ( time() - (int) $timestamp < \HOUR_IN_SECONDS ) {
+                // Still valid, do not generate a new one.
+                return;
+            }
+        } else {
+            $reset_key  = \smliser_generate_uuid_v4() . '|' . time();
+            $settings->set( UserSettings::PWD_RESET_NAME, $reset_key );
+        }
+
+        $reset_link = smliser_client_dashboard_url()
+            ->add_query_params( ['key' => $reset_key] )
+            ->set_hash( 'reset-password' );
+
+
     }
 }

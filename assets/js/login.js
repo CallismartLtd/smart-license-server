@@ -43,6 +43,15 @@ class SmliserAuth {
             'meta[name="smliser-repo-name"]'
         )?.content ?? 'Dashboard';
 
+
+        this.ACTIVE_SLUG = document.querySelector(
+            'meta[name="smliser-active-slug"]'
+        )?.content ?? '';
+
+        this.ALLOWED_SLUGS  = document.querySelector(
+            'meta[name="smliser-allowed-slugs"]'
+        )?.content ?? '';
+
         /*
         |--------------------------------------------------
         | ELEMENTS
@@ -74,11 +83,11 @@ class SmliserAuth {
     init() {
         this.bindEvents();
 
-        const formSlug = this.getFormSlugFromHash();
+        const formSlug = this.getSlug();
         const slug = formSlug || this.DEFAULT_FORM;
 
         if ( slug ) {
-            this.loadForm( slug );
+            this.loadForm( slug, true, false );
         }
     }
 
@@ -92,8 +101,20 @@ class SmliserAuth {
         return hash || null;
     }
 
-    setFormHash( slug ) {
-        window.location.hash = slug;
+    getSlug() {
+        const allowedSlugs  = this.ALLOWED_SLUGS.split( '|' );
+        const slugFromHash  = this.getFormSlugFromHash();
+
+        return allowedSlugs.includes( slugFromHash ) ? slugFromHash : this.ACTIVE_SLUG;        
+    }
+
+    setFormHash( slug ) {        
+        const update    = this.getFormSlugFromHash() !== slug;        
+        
+        if ( update ) {
+            window.location.hash = slug;
+        }
+        
     }
 
     /*
@@ -101,13 +122,15 @@ class SmliserAuth {
     | FORM LOADING (with cache)
     |--------------------------------------------------
     */
-    async loadForm( slug, force = false ) {
+    async loadForm( slug, force = false, addSlug = false ) {
         if ( ! slug || ! this.REST_BASE ) return;
 
         this.setLoading( true );
 
-        // Update URL fragment unless explicitly suppressed
-        this.setFormHash( slug );
+        // Update URL fragment unless explicitly suppressed    .
+        if ( addSlug ) this.setFormHash( slug );
+        
+            
 
         try {
             const html = await this.fetchFormHTML( slug, force );
@@ -140,7 +163,7 @@ class SmliserAuth {
     |--------------------------------------------------
     */
     async fetchFormHTML( slug, force = false ) {
-        const url = this.REST_BASE + slug;
+        const url = new URL( this.REST_BASE + slug );
 
         if ( ! force && this.cache.has( url ) ) {
             return this.cache.get( url );
@@ -169,6 +192,11 @@ class SmliserAuth {
     */
     setLoading( loading ) {
         this.content.setAttribute( 'aria-busy', String( loading ) );
+        if ( loading ) {
+            this.content.hidden = true;
+        } else {
+            this.content.hidden = false;
+        }
         this.loader.hidden = ! loading;
         this.content.hidden = loading;
         this.error.hidden = true;
@@ -182,7 +210,7 @@ class SmliserAuth {
 
         this.errorMsg.textContent = message || 'Something went wrong. Please try again.';
 
-        this.retryBtn.onclick = () => this.loadForm( slug, true );
+        this.retryBtn.onclick = () => this.loadForm( slug, true, true );
     }
 
     /*
@@ -202,10 +230,9 @@ class SmliserAuth {
 
         // Extract form data
         const formData = new FormData( form );
-        const payload = Object.fromEntries( formData );
 
         try {
-            const response = await this.submitForm( formType, payload );
+            const response = await this.submitForm( formType, formData );
 
             if ( response.success ) {
                 this.handleFormSuccess( response, formType );
@@ -215,7 +242,6 @@ class SmliserAuth {
 
         } catch ( err ) {
             this.showFormError( err.message );
-            console.error( 'Form submission error:', err );
         }
     }
 
@@ -240,10 +266,9 @@ class SmliserAuth {
         const response = await smliserFetchJSON( url, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'credentials': 'same-origin'
             },
-            body: JSON.stringify( payload ),
+            body: payload,
         } );
 
         return response;
@@ -262,16 +287,16 @@ class SmliserAuth {
             redirect.hash = '';
             setTimeout( () => {
                 window.location.href = redirect.href;
-            }, 1000 );
+            }, 3000 );
         } else if ( formType === 'signup' ) {
             // Show success message, redirect to login
             this.showFormSuccess( response.message || 'Account created successfully!' );
             setTimeout( () => {
-                this.loadForm( 'login' );
+                this.loadForm( 'login', false );
             }, 2000 );
         } else if ( formType === 'forgot-password' ) {
             // Show success message
-            this.showFormSuccess( response.message || 'Check your email for password reset link.' );
+            this.replaceFormWithSuccess( response.message || 'Check your email for password reset link.' );
         }
     }
 
@@ -316,6 +341,29 @@ class SmliserAuth {
         alert.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
     }
 
+    replaceFormWithSuccess( message ) {
+        this.content.innerHTML = `
+            <div class="smlag-header">
+                <span class="smlag-brand">${ this.escapeHtml( this.REPO_NAME ) }</span>
+            </div>
+
+            <div class="smlag-success-state">
+                <div class="smlag-form-alert smlag-form-alert-success" role="status">
+                    ${ this.escapeHtml( message ) }
+                </div>
+
+                <div class="smlag-success-actions">
+                    <a href="#login" class="smlag-btn smlag-btn-primary">
+                        Back to login
+                    </a>
+                </div>
+            </div>
+        `;
+
+        // Rebind links (important for SPA navigation)
+        this.bindFormEvents();
+    }
+
     /*
     |--------------------------------------------------
     | UTILITY: HTML ESCAPE
@@ -354,7 +402,7 @@ class SmliserAuth {
             link.addEventListener( 'click', ( e ) => {
                 e.preventDefault();
                 const href = link.getAttribute( 'href' ).replace( /^#/, '' );
-                this.loadForm( href );
+                this.loadForm( href, false );
             } );
         } );
 

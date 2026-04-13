@@ -21,11 +21,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 class RequestException extends Exception {
 
-    /**
-     * Map of error slugs to their default data (HTTP Status, Title, and Message).
-     *
-     * @var array
-     */
     protected static $error_map = [
 
         // 400 Bad Request Errors.
@@ -60,54 +55,6 @@ class RequestException extends Exception {
             'message' => 'A parameter has an unexpected type or format.'
         ],
 
-        'payload_too_large' => [
-            'status'  => 413,
-            'title'   => 'Payload Too Large',
-            'message' => 'The request payload exceeded the maximum required size.'
-        ],
-        'unsupported_media_type' => [
-            'status'  => 415,
-            'title'   => 'Unsupported Media Type',
-            'message' => 'The request content type is not supported by this endpoint.'
-        ],
-
-        'requires_multipart_form_data' => [
-            'status'  => 415,
-            'title'   => 'Unsupported Content Type',
-            'message' => 'Content-Type header value must be multipart/form-data.'
-        ],
-        'validation_failed' => [
-            'status'  => 422,
-            'title'   => 'Validation Failed',
-            'message' => 'Some input fields did not pass validation checks.'
-        ],
-        'resource_conflict' => [
-            'status'  => 409,
-            'title'   => 'Conflict',
-            'message' => 'The request could not be completed due to a resource conflict.'
-        ],
-        'duplicate_entry' => [
-            'status'  => 409,
-            'title'   => 'Duplicate Entry',
-            'message' => 'A resource with the same unique identifier already exists.'
-        ],
-        'email_exists' => [
-            'status'  => 409,
-            'title'   => 'Email Conflict',
-            'message' => 'The provided email is not available.'
-        ],
-
-        'app_slug_exists' => [
-            'status'  => 409,
-            'title'   => 'App Slug Conflict',
-            'message' => 'The provided slug for this application is not available.'
-        ],
-        'precondition_failed' => [
-            'status'  => 412,
-            'title'   => 'Precondition Failed',
-            'message' => 'A required precondition for this request was not met.'
-        ],
-
         // 401 Unauthorized Errors.
         'missing_auth' => [
             'status'  => 401,
@@ -119,7 +66,6 @@ class RequestException extends Exception {
             'title'   => 'Invalid Credentials',
             'message' => 'The provided API key or token is incorrect or expired.'
         ],
-
         'token_expired' => [
             'status'  => 401,
             'title'   => 'Session Expired',
@@ -130,6 +76,13 @@ class RequestException extends Exception {
             'title'   => 'Invalid Signature',
             'message' => 'The request signature could not be verified.'
         ],
+        'incorrect_password' => [
+            'status'  => 401,
+            'title'   => 'Incorrect Password',
+            'message' => 'The password you entered is incorrect.'
+        ],
+
+        // 403 Forbidden Errors.
         'unauthorized_scope' => [
             'status'  => 403,
             'title'   => 'Insufficient Scope',
@@ -140,8 +93,6 @@ class RequestException extends Exception {
             'title'   => 'Unathorized App Access',
             'message' => 'Sorry, you do not have the correct app ownership permission.'
         ],
-
-        // 403 Forbidden Errors.
         'permission_denied' => [
             'status'  => 403,
             'title'   => 'Forbidden',
@@ -174,13 +125,11 @@ class RequestException extends Exception {
             'title'   => 'Not Found',
             'message' => 'The requested API endpoint does not exist.'
         ],
-
         'resource_not_found' => [
             'status'  => 404,
             'title'   => 'Resource Not Found',
             'message' => 'The requested resource could not be located.'
         ],
-
         'app_not_found' => [
             'status'  => 404,
             'title'   => 'Application Not Found',
@@ -206,7 +155,62 @@ class RequestException extends Exception {
             'message' => 'The server timed out waiting for the request to complete.'
         ],
 
-        // 409–429 Rate/Quota/Conflict Related.
+        // 409 Conflict
+        'resource_conflict' => [
+            'status'  => 409,
+            'title'   => 'Conflict',
+            'message' => 'The request could not be completed due to a resource conflict.'
+        ],
+        'duplicate_entry' => [
+            'status'  => 409,
+            'title'   => 'Duplicate Entry',
+            'message' => 'A resource with the same unique identifier already exists.'
+        ],
+        'email_exists' => [
+            'status'  => 409,
+            'title'   => 'Email Conflict',
+            'message' => 'The provided email is not available.'
+        ],
+        'app_slug_exists' => [
+            'status'  => 409,
+            'title'   => 'App Slug Conflict',
+            'message' => 'The provided slug for this application is not available.'
+        ],
+
+        // 412 Precondition Failed
+        'precondition_failed' => [
+            'status'  => 412,
+            'title'   => 'Precondition Failed',
+            'message' => 'A required precondition for this request was not met.'
+        ],
+
+        // 413 Payload Too Large
+        'payload_too_large' => [
+            'status'  => 413,
+            'title'   => 'Payload Too Large',
+            'message' => 'The request payload exceeded the maximum required size.'
+        ],
+
+        // 415 Unsupported Media Type
+        'unsupported_media_type' => [
+            'status'  => 415,
+            'title'   => 'Unsupported Media Type',
+            'message' => 'The request content type is not supported by this endpoint.'
+        ],
+        'requires_multipart_form_data' => [
+            'status'  => 415,
+            'title'   => 'Unsupported Content Type',
+            'message' => 'Content-Type header value must be multipart/form-data.'
+        ],
+
+        // 422 Unprocessable Entity
+        'validation_failed' => [
+            'status'  => 422,
+            'title'   => 'Validation Failed',
+            'message' => 'Some input fields did not pass validation checks.'
+        ],
+
+        // 429 Rate Limiting
         'rate_limited' => [
             'status'  => 429,
             'title'   => 'Rate Limit Exceeded',
@@ -234,25 +238,33 @@ class RequestException extends Exception {
             'title'   => 'Filesystem Error',
             'message' => 'A file or directory operation failed unexpectedly.'
         ],
-        'service_unavailable' => [
-            'status'  => 503,
-            'title'   => 'Service Unavailable',
-            'message' => 'The service is temporarily unavailable or under maintenance.'
-        ],
+
+        // 501 Not Implemented
         'not_implemented' => [
             'status'  => 501,
             'title'   => 'Method not implemented',
             'message' => 'The server does not support the action requested.'
         ],
-        'gateway_timeout' => [
-            'status'  => 504,
-            'title'   => 'Gateway Timeout',
-            'message' => 'The upstream service did not respond in time.'
-        ],
+
+        // 502 Bad Gateway
         'dependency_failure' => [
             'status'  => 502,
             'title'   => 'Bad Gateway',
             'message' => 'An external dependency or microservice failed to respond correctly.'
+        ],
+
+        // 503 Service Unavailable
+        'service_unavailable' => [
+            'status'  => 503,
+            'title'   => 'Service Unavailable',
+            'message' => 'The service is temporarily unavailable or under maintenance.'
+        ],
+
+        // 504 Gateway Timeout
+        'gateway_timeout' => [
+            'status'  => 504,
+            'title'   => 'Gateway Timeout',
+            'message' => 'The upstream service did not respond in time.'
         ],
 
     ];
@@ -267,24 +279,27 @@ class RequestException extends Exception {
      * @param string|null $custom_message Optional custom message.
      * @param mixed $custom_data Optional custom data array to merge with defaults.
      */
-    public function __construct( string $error_slug, ?string $custom_message = null, $custom_data = [] ) {        
-        
-        if ( ! isset( static::$error_map[ $error_slug ] ) ) {
-            $error_slug = 'invalid_input';
-        }
+    public function __construct( string $error_slug, ?string $custom_message = null, $custom_data = [] ) {
 
-        $default_data = static::$error_map[ $error_slug ];
-        $message      = $custom_message ?: $default_data['message'];
-        
-        $data = array_merge( 
-            [ 
-                'status' => $default_data['status'], 
+        $has_map = isset( static::$error_map[ $error_slug ] );
+
+        $default_data = $has_map
+            ? static::$error_map[ $error_slug ]
+            : static::$error_map['invalid_input'];
+
+        // Do NOT mutate slug — preserve original
+        $resolved_slug = $error_slug;
+
+        $message = $custom_message ?? $default_data['message'];
+
+        $data = array_merge(
+            [
+                'status' => $default_data['status'],
                 'title'  => $default_data['title'],
-            ], 
-            $custom_data 
+            ],
+            $custom_data
         );
 
-        // Pass the constructed data up to the base Exception class.
-        parent::__construct( $error_slug, $message, $data );
+        parent::__construct( $resolved_slug, $message, $data );
     }
 }

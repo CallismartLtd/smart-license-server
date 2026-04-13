@@ -96,9 +96,10 @@ class SettingsController {
                 }
 
                 $default    = match( $key ) {
-                    'repository_url_prefix' => $settings->get( $key, 'repository', true ),
-                    'download_url_prefix'   => $settings->get( $key, 'downloads', true ),
-                    default                 => ''
+                    'repository_url_prefix'         => $settings->get( $key, 'repository', true ),
+                    'download_url_prefix'           => $settings->get( $key, 'downloads', true ),
+                    'client_dashboard_url_prefix'   => $settings->get( $key, 'client-dashboard', true ),
+                    default                         => ''
                 };
 
                 $value  = static::sanitize_slug( $request->get( $key, $default ) ) ?: $default;

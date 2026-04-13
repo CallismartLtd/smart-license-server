@@ -69,14 +69,15 @@ if ( $principal ) {
 |--------------------------------------------------
 */
 smliser_render_template( ClientDashboardRenderer::HEADER_TEMPLATE, [
-    'menu'        => $menu,
-    'rest_base'   => $rest_base,
-    'active_slug' => $active_slug,
-    'principal'   => $principal,
-    'styles'      => $styles,
-    'repo_name'   => $repo_name,
-    'theme'       => $theme,
-    'collapsed'   => $collapsed,
+    'menu'          => $menu,
+    'rest_base'     => $rest_base,
+    'active_slug'   => $active_slug,
+    'principal'     => $principal,
+    'styles'        => $styles,
+    'repo_name'     => $repo_name,
+    'theme'         => $theme,
+    'collapsed'     => $collapsed,
+    'allowed_slugs' => smliserFrontendTemplate()->slugs()
 ] );
 
 /*

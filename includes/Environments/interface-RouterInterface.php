@@ -344,14 +344,6 @@ interface RouterInterface {
     public static function parse_delete_cache_by_prefix_request( Request $request ): void;
 
     /**
-     * Parse request to delete cache by pattern.
-     * 
-     * @param Request $request
-     * @return void
-     */
-    public static function parse_delete_cache_by_pattern_request( Request $request ): void;
-
-    /**
      * Parse request to flush expired cache data.
      * 
      * @param Request $request
@@ -366,6 +358,14 @@ interface RouterInterface {
      * @return void
      */
     public static function parse_get_top_cache_keys_request( Request $request ): void;
+
+    /**
+     * Render the client dashboard shell.
+     * 
+     * @param Request $request
+     * @return void
+     */
+    public static function render_client_dashboard( Request $request ) : void;
 
     
 }

@@ -341,6 +341,17 @@ class SetUp extends Environment {
             'top'
         );
 
+        /**
+         * Client dashboard route
+         */
+        $dashboard_slug = smliser_get_client_dashboard_url_prefix();
+        
+        add_rewrite_rule(
+            '^' . $dashboard_slug . '$',
+            'index.php?pagename=smliser-dashboard',
+            'top'
+        );
+
         /*
         |------------------------
         | Software download rules

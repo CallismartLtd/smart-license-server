@@ -274,7 +274,7 @@ class Request {
      * Magic getter.
      */
     public function __get( string $name ) {
-        return $this->get( $name );
+        return $this->get( $name, null, false );
     }
 
     /**
@@ -301,7 +301,7 @@ class Request {
      * @return bool
      */
     public function isEmpty( string $parameter ): bool {
-        return empty( $this->get( $parameter ) );
+        return empty( $this->get( $parameter, null, false ) );
     }
 
     /**

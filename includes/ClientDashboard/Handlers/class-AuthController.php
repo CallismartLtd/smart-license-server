@@ -18,6 +18,7 @@ namespace SmartLicenseServer\ClientDashboard\Handlers;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Exceptions\RequestException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -53,11 +54,11 @@ class AuthController {
 
         $principal = \identityProvider()->logon( $username, $password, $remember );
 
-        if ( ! $principal ) {
+        if ( $principal instanceof RequestException ) {
             return static::error_response(
                 401,
-                'invalid_credentials',
-                'Invalid username or password.'
+                $principal->get_error_code(),
+                $principal->get_error_message()
             );
         }
 
@@ -66,7 +67,7 @@ class AuthController {
             200,
             [
                 'success'  => true,
-                'message'  => 'Login successful',
+                'message'  => sprintf( 'Welcome back, %s.', $principal->get_display_name() ),
                 'redirect' => '/dashboard',
             ]
         );
@@ -90,12 +91,12 @@ class AuthController {
     public static function handle_signup( Request $request ) : Response {
 
         // Extract request data
-        $full_name         = (string) $request->post( 'full_name', '' );
-        $email             = (string) $request->post( 'email', '' );
-        $password          = (string) $request->post( 'password', '' );
-        $password_confirm  = (string) $request->post( 'password_confirm', '' );
-        $agree_terms       = (bool) $request->post( 'agree_terms', false );
-        $nonce             = (string) $request->post( '_wpnonce_signup', '' );
+        $full_name         = (string) $request->get( 'full_name', '' );
+        $email             = (string) $request->get( 'email', '' );
+        $password          = (string) $request->get( 'password', '' );
+        $password_confirm  = (string) $request->get( 'password_confirm', '' );
+        $agree_terms       = (bool) $request->get( 'agree_terms', false );
+        $nonce             = (string) $request->get( '_wpnonce_signup', '' );
 
         // Verify CSRF nonce
         if ( ! static::verify_nonce( $nonce, 'smliser_auth_signup' ) ) {
@@ -154,9 +155,9 @@ class AuthController {
     }
 
     /*
-    |--------------------------------------------------
+    |---------------------
     | FORGOT PASSWORD
-    |--------------------------------------------------
+    |---------------------
     */
 
     /**
@@ -164,23 +165,11 @@ class AuthController {
      *
      * Sends password reset link to email address.
      *
-     * @param Request $request Contains: email, _wpnonce_forgot
+     * @param Request $request
      * @return Response JSON response
      */
     public static function handle_forgot_password( Request $request ) : Response {
-
-        // Extract request data
-        $email = (string) $request->post( 'email', '' );
-        $nonce = (string) $request->post( '_wpnonce_forgot', '' );
-
-        // Verify CSRF nonce
-        if ( ! static::verify_nonce( $nonce, 'smliser_auth_forgot_password' ) ) {
-            return static::error_response(
-                401,
-                'invalid_nonce',
-                'Security token expired. Please try again.'
-            );
-        }
+        $email = (string) $request->get( 'email', '' );
 
         // Validate email
         if ( empty( $email ) || ! static::is_valid_email( $email ) ) {
@@ -191,32 +180,14 @@ class AuthController {
             );
         }
 
-        // Find user by email via environment provider
-        $principal = \smliser_envProvider()->find_user_by_email( $email );
+        // Don't reveal if email exists (security best practice).
+        \identityProvider()->forgot_password( $email );
 
-        if ( ! $principal ) {
-            // Don't reveal if email exists (security best practice)
-            return static::success_response(
-                200,
-                [
-                    'success' => true,
-                    'message' => 'If an account exists for this email, you will receive a password reset link shortly.',
-                ]
-            );
-        }
-
-        // Generate reset token
-        $reset_token = static::generate_password_reset_token( $principal );
-
-        // Send reset email
-        static::send_password_reset_email( $principal, $email, $reset_token );
-
-        // Return success
         return static::success_response(
             200,
             [
                 'success' => true,
-                'message' => 'Check your email for a password reset link. The link will expire in 1 hour.',
+                'message' => 'If an account exists for this email, you will receive a password reset link shortly.',
             ]
         );
     }
@@ -249,9 +220,9 @@ class AuthController {
         }
 
         // Extract request data
-        $verification_code = (string) $request->post( 'verification_code', '' );
-        $backup_code       = (string) $request->post( 'backup_code', '' );
-        $nonce             = (string) $request->post( '_wpnonce_2fa', '' );
+        $verification_code = (string) $request->get( 'verification_code', '' );
+        $backup_code       = (string) $request->get( 'backup_code', '' );
+        $nonce             = (string) $request->get( '_wpnonce_2fa', '' );
 
         // Verify CSRF nonce
         if ( ! static::verify_nonce( $nonce, 'smliser_auth_2fa' ) ) {
@@ -400,148 +371,9 @@ class AuthController {
 
     /*
     |--------------------------------------------------
-    | HELPERS - EMAIL
-    |--------------------------------------------------
-    */
-
-    /**
-     * Send verification email to new account.
-     *
-     * @param mixed $principal
-     * @param string $email
-     * @return void
-     */
-    private static function send_verification_email( $principal, string $email ) : void {
-        if ( ! $principal ) return;
-
-        // Generate verification token
-        $verification_token = static::generate_email_verification_token( $principal );
-
-        // Build verification link
-        $verify_url = smliser_url( 'auth/verify-email', [
-            'token' => $verification_token,
-            'email' => $email,
-        ] );
-
-        // Prepare email
-        $subject = 'Verify your email address';
-        $message = sprintf(
-            "Please verify your email by clicking this link:\n\n%s\n\nThis link will expire in 24 hours.",
-            $verify_url
-        );
-
-        // Send via environment provider
-        \smliser_envProvider()->send_email( $email, $subject, $message );
-    }
-
-    /**
-     * Send password reset email.
-     *
-     * @param mixed $principal
-     * @param string $email
-     * @param string $reset_token
-     * @return void
-     */
-    private static function send_password_reset_email(
-        $principal,
-        string $email,
-        string $reset_token
-    ) : void {
-        // Build reset link
-        $reset_url = smliser_url( 'auth/reset-password', [
-            'token' => $reset_token,
-            'email' => $email,
-        ] );
-
-        // Prepare email
-        $subject = 'Reset your password';
-        $message = sprintf(
-            "Click this link to reset your password:\n\n%s\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, you can ignore this email.",
-            $reset_url
-        );
-
-        // Send via environment provider
-        \smliser_envProvider()->send_email( $email, $subject, $message );
-    }
-
-    /*
-    |--------------------------------------------------
-    | HELPERS - TOKENS
-    |--------------------------------------------------
-    */
-
-    /**
-     * Generate email verification token.
-     *
-     * @param mixed $principal
-     * @return string Token
-     */
-    private static function generate_email_verification_token( $principal ) : string {
-        $token = bin2hex( random_bytes( 32 ) );
-        $cache_key = "email_verification_{$principal->get_id()}";
-        
-        \smliser_cache()->set(
-            $cache_key,
-            $token,
-            86400  // 24 hours
-        );
-        
-        return $token;
-    }
-
-    /**
-     * Generate password reset token.
-     *
-     * @param mixed $principal
-     * @return string Token
-     */
-    private static function generate_password_reset_token( $principal ) : string {
-        $token = bin2hex( random_bytes( 32 ) );
-        $cache_key = "password_reset_{$principal->get_id()}";
-        
-        \smliser_cache()->set(
-            $cache_key,
-            $token,
-            3600  // 1 hour
-        );
-        
-        return $token;
-    }
-
-    /*
-    |--------------------------------------------------
     | HELPERS - SESSION MANAGEMENT
     |--------------------------------------------------
     */
-
-    /**
-     * Set remember me cookie.
-     *
-     * @param mixed $principal
-     * @return void
-     */
-    private static function set_remember_cookie( $principal ) : void {
-        $token = bin2hex( random_bytes( 32 ) );
-        $expiry = time() + ( 7 * 86400 );  // 7 days
-
-        // Store token mapping principal ID
-        \smliser_cache()->set(
-            "remember_me_{$token}",
-            $principal->get_id(),
-            604800  // 7 days
-        );
-
-        // Set cookie
-        setcookie(
-            'smliser_remember',
-            $token,
-            $expiry,
-            '/',
-            '',
-            true,  // secure
-            true   // httponly
-        );
-    }
 
     /**
      * Get partially authenticated principal (for 2FA flow).

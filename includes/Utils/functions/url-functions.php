@@ -152,12 +152,12 @@ function smliser_access_control_page_url() : URL {
 }
 
 /**
- * Get the base website address from a given URL, handling localhost and other environments.
+ * Get the URL origin.
  *
  * @param string $url The URL to parse.
  * @return string The base website address.
  */
-function smliser_get_base_url( string $url ) {
+function smliser_url_origin( string $url ) {
     $url    = new URL( $url );
     return $url->get_origin();
 }
@@ -176,6 +176,28 @@ function smliser_get_download_url_prefix() : string {
  */
 function smliser_get_repository_url_prefix() : string {
     return (string) smliser_settings()->get( 'repository_url_prefix', 'repository', true );
+}
+
+/**
+ * Get the client dashboard URL prefix.
+ * 
+ * @return string
+ */
+function smliser_get_client_dashboard_url_prefix() : string {
+    return (string) smliser_settings()->get( 'client_dashboard_url_prefix', 'client-dashboard', true );
+}
+
+/**
+ * Get the client dashboard URL.
+ * 
+ * @param string $path Optional path to append to the dashboard URL.
+ * @param array<string, string> $params Associative array of query params.
+ * @return URL
+ */
+function smliser_client_dashboard_url( string $path = '', array $params = [] ) : URL {
+    return url( smliser_get_client_dashboard_url_prefix() )
+    ->append_path( $path )
+    ->add_query_params( $params );
 }
 
 /**

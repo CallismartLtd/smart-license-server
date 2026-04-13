@@ -22,6 +22,10 @@ class SmliserClientDashboard {
             'meta[name="smliser-active-slug"]'
         )?.content ?? '';
 
+        this.ALLOWED_SLUGS  = document.querySelector(
+            'meta[name="smliser-allowed-slugs"]'
+        )?.content ?? '';
+
         /*
         |--------------------------------------------------
         | ELEMENTS
@@ -53,8 +57,7 @@ class SmliserClientDashboard {
     init() {
         this.bindEvents();
 
-        const slugFromHash = this.getSlugFromHash();
-        const slug = slugFromHash || this.ACTIVE_SLUG;
+        const slug = this.getSlug();
 
         if ( slug ) {
             this.loadSection( slug, false, false );
@@ -62,13 +65,20 @@ class SmliserClientDashboard {
     }
 
     /*
-    |--------------------------------------------------
-    | HASH MANAGEMENT
-    |--------------------------------------------------
+    |-----------------------
+    | SLUG MANAGEMENT
+    |-----------------------
     */
     getSlugFromHash() {
         const hash = window.location.hash.replace( /^#/, '' );
         return hash || null;
+    }
+
+    getSlug() {
+        const allowedSlugs  = this.ALLOWED_SLUGS.split( '|' );
+        const slugFromHash  = this.getSlugFromHash();
+
+        return allowedSlugs.includes( slugFromHash ) ? slugFromHash : this.ACTIVE_SLUG;        
     }
 
     setSlugHash( slug ) {
@@ -76,9 +86,9 @@ class SmliserClientDashboard {
     }
 
     /*
-    |--------------------------------------------------
+    |-------------------------
     | SERVER PREFERENCE SYNC
-    |--------------------------------------------------
+    |-------------------------
     */
     async savePreference( key, value ) {
 

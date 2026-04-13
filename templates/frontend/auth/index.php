@@ -27,15 +27,14 @@ $repo_name = $repo_name ?? 'Dashboard';
 ?>
 <div class="smlag-container">
     <div class="smlag-card">
-
-        <!-- Content area where auth forms are dynamically injected -->
-        <div id="smlag-content" aria-live="polite" aria-busy="false"></div>
-
         <!-- Loading state: shown while fetching form -->
         <div class="smlag-loader" id="smlag-loader" hidden aria-label="Loading">
             <span class="smlag-loader-spinner" aria-hidden="true"></span>
             <span class="smlag-loader-text">Loading...</span>
         </div>
+        
+        <!-- Content area where auth forms are dynamically injected -->
+        <div id="smlag-content" aria-live="polite" aria-busy="false"></div>
 
         <!-- Error state: shown if form fetch fails -->
         <div class="smlag-error" id="smlag-error" hidden role="alert">
@@ -51,7 +50,3 @@ $repo_name = $repo_name ?? 'Dashboard';
 
     </div>
 </div>
-
-<!-- Meta tags used by smliser-auth.js -->
-<meta name="smliser-rest-base" content="<?php echo esc_attr( $rest_base ); ?>">
-<meta name="smliser-repo-name" content="<?php echo esc_attr( $repo_name ); ?>">

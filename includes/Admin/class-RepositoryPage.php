@@ -120,10 +120,7 @@ class RepositoryPage {
             ]
         ];
         
-        if ( $request->has( 'app_search', false ) ) {
-
-            // pp( $request->get( 'app_types' ) );
-           
+        if ( $request->has( 'app_search', false ) ) {           
             $types          = $request->get( 'app_types' );
             $types          = str_contains( $types, '|' ) ? explode( '|', $types ) : (array) $types;
             $search_term    = $request->get( 'app_search', '' );

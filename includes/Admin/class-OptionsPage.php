@@ -504,6 +504,19 @@ class OptionsPage {
     public static function get_routing_fields(): array {
         return [
             [
+                'label' => 'Client Dashboard URL Prefix',
+                'help'  => 'The URL segment that appears before the client dashboard page. For example: https://example.com/dashboard/',
+                'input' => [
+                    'type'  => 'text',
+                    'name'  => 'client_dashboard_url_prefix',
+                    'value' => \smliser_get_client_dashboard_url_prefix(),
+                    'attr'  => [
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ],
+                ],
+            ],
+            [
                 'label' => 'Repository URL Prefix',
                 'help'  => 'The URL segment that appears before repository pages. For example: https://example.com/repository/',
                 'input' => [

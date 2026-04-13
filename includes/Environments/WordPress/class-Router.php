@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Cache\CacheRequestController;
+use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Email\RequestController as EmailRequestController;
 use SmartLicenseServer\Environments\RouterInterface;
@@ -37,20 +38,24 @@ class Router implements RouterInterface {
      * Handle incoming requests for this application.
      */
     public static function init_request(): void {
-        $trigger = get_query_var( 'pagename' );
+        // Single Request instance — all parsers read from this.
+        $request    = \smliser_request();
+        $trigger    = get_query_var( 'pagename' );
 
-        if ( ! $trigger && isset( $_REQUEST['action'] ) ) {
-            $trigger = static::sanitize_text( $_REQUEST['action'] );
+        if ( $trigger ) {
+            $request->set( 'smliser_pagename', $trigger );
+        }
+
+        if ( ! $trigger && $request->hasValue( 'action' ) ) {
+            $trigger = $request->get( 'action' );
         }
 
         if ( empty( $trigger ) || ! is_string( $trigger ) ) {
             return;
         }
 
-        // Single Request instance — all parsers read from this.
-        $request = new Request();
-
         $handler_map = [
+            'smliser-dashboard'                             => [ __CLASS__, 'render_client_dashboard' ],
             'smliser-downloads'                             => function( Request $r ) { ( self::resolve_download_request_parser() )( $r ); },
             'smliser-repository-assets'                     => [ __CLASS__, 'parse_app_asset_request' ],
             'smliser-uploads'                               => [ __CLASS__, 'parse_uploads_dir_request' ],
@@ -94,7 +99,6 @@ class Router implements RouterInterface {
             'smliser_cache_get_stats'                       => [ __CLASS__, 'parse_get_cache_stats_request' ],
             'smliser_cache_clear_all'                       => [ __CLASS__, 'parse_clear_all_cache_request' ],
             'smliser_cache_delete_by_prefix'                => [ __CLASS__, 'parse_delete_cache_by_prefix_request' ],
-            'smliser_cache_delete_by_pattern'               => [ __CLASS__, 'parse_delete_cache_by_pattern_request' ],
             'smliser_cache_flush_expired'                   => [ __CLASS__, 'parse_flush_expired_cache_request' ],
             'smliser_cache_get_top_keys'                    => [ __CLASS__, 'parse_get_top_cache_keys_request' ],
         ];
@@ -823,15 +827,6 @@ class Router implements RouterInterface {
         exit;
     }
 
-    public static function parse_delete_cache_by_pattern_request( Request $request ): void {
-        static::guard( $request, 'manage_options' );
-
-        CacheRequestController::delete_cache_by_pattern( $request )
-        ->send();
-
-        exit;
-    }
-
     public static function parse_flush_expired_cache_request( Request $request ): void {
         static::guard( $request, 'manage_options' );
 
@@ -845,6 +840,19 @@ class Router implements RouterInterface {
         static::guard( $request, 'manage_options' );
 
         CacheRequestController::get_top_cache_keys( $request )
+        ->send();
+
+        exit;
+    }
+
+    public static function render_client_dashboard( Request $request ): void {
+        $registry       = smliserFrontendTemplate();
+        $locator        = smliser_template_locator();
+
+        $renderer       = new ClientDashboardRenderer( $registry, $locator );
+        $rest_base      = restAPIUrl( 'client-dashboard' );
+        
+        $renderer->asResponse( $rest_base )
         ->send();
 
         exit;

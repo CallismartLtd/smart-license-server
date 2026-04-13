@@ -65,6 +65,10 @@
     gap: 1.5rem;
 }
 
+#smlag-content[hidden] {
+    display: none;
+}
+
 /* -----------------------------------------------
  * HEADER
  * ----------------------------------------------- */
@@ -151,6 +155,46 @@
 }
 
 .smlag-alert[hidden] {
+    display: none;
+}
+
+/* -----------------------------------------------
+ * FORM ALERTS (dynamically created by JS)
+ * ----------------------------------------------- */
+
+.smlag-form-alert {
+    padding: 0.875rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0 0 1rem 0;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY( -10px );
+    }
+    to {
+        opacity: 1;
+        transform: translateY( 0 );
+    }
+}
+
+.smlag-form-alert-error {
+    background: #7f1d1d;
+    border: 1px solid #991b1b;
+    color: #fecaca;
+}
+
+.smlag-form-alert-success {
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: #86efac;
+}
+
+.smlag-form-alert[hidden] {
     display: none;
 }
 
@@ -715,6 +759,11 @@
 
     .smlag-alert {
         font-size: 0.8125rem;
+    }
+
+    .smlag-form-alert {
+        font-size: 0.8125rem;
+        padding: 0.75rem 0.875rem;
     }
 
     .smlag-form {

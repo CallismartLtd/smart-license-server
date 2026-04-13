@@ -21,6 +21,7 @@
 namespace SmartLicenseServer\ClientDashboard;
 
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
+use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Templates\TemplateLocator;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -41,6 +42,7 @@ class ClientDashboardRenderer {
     public const AUTH_LOGIN_TEMPLATE        = 'frontend.auth.login';
     public const AUTH_SIGNUP_TEMPLATE       = 'frontend.auth.signup';
     public const AUTH_FORGOT_PWD_TEMPLATE   = 'frontend.auth.forgot-password';
+    public const AUTH_RESET_PWD_TEMPLATE    = 'frontend.auth.reset-password';
     public const AUTH_2FA_TEMPLATE          = 'frontend.auth.2fa';
     public const FOOTER_TEMPLATE            = 'frontend.footer';
 
@@ -75,9 +77,9 @@ class ClientDashboardRenderer {
         $active_slug = $active_slug ?: array_key_first( $menu ) ?? '';
 
         $this->locator->render( self::SHELL_TEMPLATE, [
-            'menu'        => $menu,
-            'rest_base'   => rtrim( $rest_base, '/' ) . '/',
-            'active_slug' => $active_slug,
+            'menu'          => $menu,
+            'rest_base'     => rtrim( $rest_base, '/' ) . '/',
+            'active_slug'   => $active_slug,
         ] );
     }
 
@@ -149,5 +151,18 @@ class ClientDashboardRenderer {
         ob_start();
         $this->render( $rest_base, $active_slug );
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Return as HTTP response object.
+     * 
+     * @param string $rest_base
+     * @param string $active_slug
+     * @return Response
+     */
+    public function asResponse( string $rest_base, string $active_slug = '' ) : Response {
+        return ( new Response )
+            ->set_body( $this->render_to_string( $rest_base, $active_slug ) )
+            ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
     }
 }
