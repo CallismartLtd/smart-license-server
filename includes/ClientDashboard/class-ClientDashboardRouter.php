@@ -15,6 +15,7 @@
 
 namespace SmartLicenseServer\ClientDashboard;
 
+use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -111,10 +112,25 @@ class ClientDashboardRouter {
      * @param Request $request
      * @return Response
      */
-    public static function post_dispatch( Request $request ) : Response {    
-        $data   = static::handle_post_action( $request );
+    public static function post_dispatch( Request $request ) : Response {
+        $post_action    = $request->get( 'post_action' );
+        $status_code    = 200;
 
-        return ( new Response( 200 ) )
+        if ( in_array( $post_action, \authTemplateRegistry()->slugs(), true ) ) {
+            $action = str_replace( '-', '_', $post_action );
+            $method = "handle_{$action}";
+
+            if ( ! \method_exists( AuthController::class, $method ) ) {
+                $data           = [ 'success' => false, 'message' => 'Unable to handle authentication'];
+                $status_code    = 500;
+            }
+
+            return AuthController::$method( $request );
+        } else {
+            $data   = static::handle_post_action( $request );
+        }
+
+        return ( new Response( $status_code ) )
             ->set_body( $data )
             ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
     }
@@ -131,6 +147,20 @@ class ClientDashboardRouter {
         }
 
         if ( ! Guard::has_principal() ) {
+            $pattern = implode(
+                '|',
+                array_map(
+                    static fn( string $slug ) : string => preg_quote( $slug, '#' ),
+                    \authTemplateRegistry()->slugs()
+                )
+            );
+
+            $is_auth = static::uri_end_matches( "client-dashboard/({$pattern})", $request->uri() );
+
+            if ( $is_auth ) {
+                return true;
+            }
+
             return new RequestException( 'missing_auth' );
         }
 
@@ -141,7 +171,7 @@ class ClientDashboardRouter {
      * Handles all possible post action a client can perform in the dashboard
      * 
      * @param Request $request
-     * @return array
+     * @return array{success: bool, message: string} $result
      */
     private static function handle_post_action( Request $request ) : array {
         $post_action    = $request->get( 'post_action' );
@@ -179,5 +209,26 @@ class ClientDashboardRouter {
         $saved  = $user_settings->set( $key, $value );
 
         return [ 'success' => $saved, 'message' => ( $saved ? 'Saved' : 'Something went wrong' )];
+    }
+
+    private static function uri_end_matches( string $pattern, string $uri ) : bool {
+        $namespace = trim( \smliser_envProvider()->rest_namespace(), '/' );
+
+        // Normalize URI
+        $uri = ltrim( $uri, '/' );
+
+        // Find namespace position
+        $pos = strpos( $uri, $namespace );
+
+        if ( $pos === false ) {
+            return false;
+        }
+
+        // Slice from namespace onward
+        $uri = substr( $uri, $pos );
+
+        $namespace = preg_quote( $namespace, '#' );
+
+        return (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $uri );
     }
 }

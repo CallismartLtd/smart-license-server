@@ -8,7 +8,6 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
@@ -32,7 +31,6 @@ class SetUp extends Environment {
      */
     private static ?self $instance = null;
 
-    protected IdentityService $auth;
     protected ScriptManager $script_manager;
     protected AdminMenu $menu;
 
@@ -42,7 +40,7 @@ class SetUp extends Environment {
     private function __construct() {
         $this->setProps();
 
-        add_action( 'set_current_user', [$this->auth, 'authenticate'] );
+        add_action( 'set_current_user', [$this->identityProvider, 'authenticate'] );
         add_action( 'admin_menu', [$this->menu, 'register_menus'] );
         add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
 
@@ -96,11 +94,10 @@ class SetUp extends Environment {
         $rest_api_provider  = new RESTAPI( new V1 );
         $secret             = SECURE_AUTH_KEY;
         $salt               = SECURE_AUTH_SALT;
-        // $admin_menu_config  = new AdminDashboardRegistry;
-        
+        $identity_provider  = new IdentityService;        
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
         'filesystem_adapter', 'cache_adapter', 'settings_provider', 'database_adapter',
-        'rest_api_provider', 'salt', 'secret',
+        'rest_api_provider', 'salt', 'secret', 'identity_provider'
         
         );
 
@@ -117,7 +114,6 @@ class SetUp extends Environment {
         
         $this->setup( $env );
         
-        $this->auth             = new IdentityService;
         $this->script_manager   = new ScriptManager( $this->request );
         $this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request );
     }

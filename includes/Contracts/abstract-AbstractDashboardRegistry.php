@@ -142,6 +142,22 @@ abstract class AbstractDashboardRegistry {
     }
 
     /**
+     * Get all registered menu slugs (ordered).
+     *
+     * @return string[]
+     */
+    public function slugs() : array {
+        $this->boot();
+
+        return array_values(
+            array_map(
+                static fn( array $item ) : string => $item['slug'],
+                $this->menu
+            )
+        );
+    }
+
+    /**
      * Get a single menu item.
      *
      * @param string $key

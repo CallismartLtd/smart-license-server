@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
+use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\AbstractIdentityProvider;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
@@ -18,58 +20,6 @@ use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
 
 final class IdentityService extends AbstractIdentityProvider {
-
-    public function authenticate() : ?Principal {
-
-        if ( ! is_user_logged_in() ) {
-            return null;
-        }
-
-        if ( Guard::has_principal() ) {
-            return Guard::get_principal();
-        }
-
-        $wp_user      = wp_get_current_user();
-        $issuer       = $this->issuer();
-        $external_id  = (string) $wp_user->ID;
-
-        $actor = $this->find_actor( $issuer, $external_id );
-
-        if ( ! $actor ) {
-            // The logged WordPress user is yet to be federated into
-            // Smart License Server.
-            return null;
-        }
-        
-        $owner  = $this->get_actor_owner();
-
-        if ( ! $owner || ! $owner->exists() ) {
-            // Actor has not yet switched ownership context.
-            $owner = ContextServiceProvider::get_default_owner( $actor );
-        }
-
-        // No owner yet?
-        if ( ! $owner ) {
-            // A user must be a resource owner to act for self.
-            return null;
-        }
-
-        // Owner subject can be an organization or the user.
-        $owner_subject  = ContextServiceProvider::get_owner_subject( $owner );
-        $role           = ContextServiceProvider::get_principal_role( $actor, $owner_subject );
-
-        // Users without roles cannot act.
-        if ( ! $role ) {
-            return null;
-        }
-
-        $principal = new Principal( $actor, $role, $owner );
-
-        Guard::set_principal( $principal );
-
-        return $principal;
-    }
-
     /**
      * Get provider ID.
      *
@@ -117,7 +67,7 @@ final class IdentityService extends AbstractIdentityProvider {
      * @param int       $wp_user_id     The WordPress user ID.
      * @param int|User  $user   ID or an instance of @see `\SmartLicenseServer\Security\Actors\User`
      */
-    public function sync_user( int $wp_user_id, User|int $user ) : bool {
+    protected function sync_user( int $wp_user_id, User|int $user ) : bool {
         $user   = is_int( $user ) ? User::get_by_id( $user ) : $user;
 
         if ( ! $user ) {
@@ -126,6 +76,12 @@ final class IdentityService extends AbstractIdentityProvider {
 
         return $this->add( $user->get_id(), $this->issuer(), $wp_user_id );
     }
+
+    /*
+    |-----------------
+    | PUBLIC METHODS
+    |-----------------
+    */
 
     /**
      * Auto automatically federate WordPress administrators into Smart License Server.
@@ -212,5 +168,103 @@ final class IdentityService extends AbstractIdentityProvider {
 
         // Sync to federation table.
         $this->sync_user( $wp_user_id, $user );
+    }
+
+    public function authenticate() : ?Principal {
+
+        if ( ! is_user_logged_in() ) {
+            return null;
+        }
+
+        if ( Guard::has_principal() ) {
+            return Guard::get_principal();
+        }
+
+        $wp_user      = wp_get_current_user();
+        $issuer       = $this->issuer();
+        $external_id  = (string) $wp_user->ID;
+
+        $actor = $this->find_actor( $issuer, $external_id );
+
+        if ( ! $actor ) {
+            // The logged WordPress user is yet to be federated into
+            // Smart License Server.
+            return null;
+        }
+        
+        $owner  = $this->get_actor_owner();
+
+        if ( ! $owner || ! $owner->exists() ) {
+            // Actor has not yet switched ownership context.
+            $owner = ContextServiceProvider::get_default_owner( $actor );
+        }
+
+        // No owner yet?
+        if ( ! $owner ) {
+            // A user must be a resource owner to act for self.
+            return null;
+        }
+
+        // Owner subject can be an organization or the user.
+        $owner_subject  = ContextServiceProvider::get_owner_subject( $owner );
+        $role           = ContextServiceProvider::get_principal_role( $actor, $owner_subject );
+
+        // Users without roles cannot act.
+        if ( ! $role ) {
+            return null;
+        }
+
+        $principal = new Principal( $actor, $role, $owner );
+
+        Guard::set_principal( $principal );
+
+        return $principal;
+    }
+
+    /**
+     * {@inheritdoc}
+     * 
+     * Logon using credentials
+     */
+    public function logon( string $email, string $pwd, bool $remember = false ): RequestException|Principal {
+        $wp_user    = \wp_signon(
+            [
+                'user_login'    => $email,
+                'user_password' => $pwd,
+                'remember'      => $remember
+
+            ],
+            true
+        );
+
+        if ( $wp_user instanceof \WP_Error ) {
+
+            if ( \email_exists( $email ) ) {
+                return new RequestException(
+                    $wp_user->get_error_code(),
+                    $wp_user->get_error_message()
+                );
+            }
+
+        }
+
+        $this->authenticate();
+
+        $principal  = Guard::get_principal();
+
+        if ( ! $principal ) {
+            return new RequestException( 'authentication_error', 'Unable to set current user.' );
+        }
+
+        return $principal;
+
+    }
+
+    public function signup( Request $request ): RequestException|Principal {
+        throw new \Exception('Not implemented');
+    }
+
+    public function forgot_password( $email ): void {
+        throw new \Exception('Not implemented');
     }
 }

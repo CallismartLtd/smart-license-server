@@ -30,7 +30,9 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\CLI;
 
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\AbstractIdentityProvider;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
@@ -126,5 +128,17 @@ final class CLIIdentityProvider extends AbstractIdentityProvider {
             ?? ( getenv( 'SMLISER_CLI_API_KEY' ) ?: null );
 
         return ! empty( $key ) ? (string) $key : null;
+    }
+
+    public function logon( string $email, string $pwd, bool $remember = false ): RequestException|Principal {
+        throw new \Exception( 'Not implemented' );
+    }
+
+    public function signup( Request $request ): RequestException|Principal {
+        throw new \Exception( 'Not implemented' );
+    }
+
+    public function forgot_password( $email ): void {
+        throw new \Exception( 'Not implemented' );
     }
 }

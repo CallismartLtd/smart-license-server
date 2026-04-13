@@ -43,6 +43,7 @@ use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
 use SmartLicenseServer\Events\EventServiceProvider;
+use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\Templates\TemplateDiscovery;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -225,6 +226,11 @@ abstract class Environment implements EnvironmentProviderInterface {
     protected TemplateLocator $templateLocator;
 
     /**
+     * The identity provider.
+     */
+    protected IdentityProviderInterface $identityProvider;
+
+    /**
      * Environment constructor.
      * 
      * @param array $config The environment configuration options.
@@ -262,7 +268,8 @@ abstract class Environment implements EnvironmentProviderInterface {
             'settings_provider'     => null,
             'database_adapter'      => null,
             'rest_api_provider'     => null,
-            'admin_menu_config'     => null
+            'admin_menu_config'     => null,
+            'identity_provider'     => null,
 
         );
 
@@ -275,7 +282,8 @@ abstract class Environment implements EnvironmentProviderInterface {
             'secret', 'salt',
             'repo_path',
             'uploads_dir',
-            'rest_api_provider'
+            'rest_api_provider',
+            'identity_provider'
         ];
 
         foreach ( $parsed_config as $key => $value ) {
@@ -365,7 +373,8 @@ abstract class Environment implements EnvironmentProviderInterface {
             'database_adapter'      => 'dbadapter',
             'rest_api_provider'     => 'restProvider',
             'http_client'           => 'httpClient',
-            'admin_menu_config'     => 'adminDashboardRegistry'
+            'admin_menu_config'     => 'adminDashboardRegistry',
+            'identity_provider'     => 'identityProvider',
         ];
 
         foreach ( $prop_map as $env_k => $prop_k ) {
@@ -1003,6 +1012,13 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         return $this->authTemplateRegistry;
+    }
+
+    /**
+     * Get the identity provider.
+     */
+    public function identityProvider() : IdentityProviderInterface {
+        return $this->identityProvider;
     }
 }
 

@@ -360,7 +360,7 @@ class RESTAPI implements RESTProviderInterface {
             return true;
         }
 
-        if ( $this->is_license_service_route() || $this->is_reauthentication_route() ) {
+        if ( $this->is_license_service_route() || $this->is_reauthentication_route() || $this->is_auth_route() ) {
             // License endpoints uses license key for authentication.
             // Reauthentication route is used to reauthenticate download token requests, 
             // which also uses license key for authentication.
@@ -620,6 +620,21 @@ class RESTAPI implements RESTProviderInterface {
         
         $pattern = 'license-activation|license-deactivation|license-uninstallation|license-validity-test';
         return $this->route_matches( "({$pattern})" );
+    }
+
+    /**
+     * Tells whether the current route is authentication route.
+     * 
+     * @return bool
+     */
+    protected function is_auth_route() : bool {
+        if ( ! isset( $this->current_route ) ) {
+            $this->guess_route();
+        }
+
+        $pattern    = implode( '|', \authTemplateRegistry()->slugs() );
+
+        return $this->route_matches( "client-dashboard/({$pattern})" );
     }
 
     /**

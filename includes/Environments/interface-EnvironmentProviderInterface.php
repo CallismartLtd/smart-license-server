@@ -22,6 +22,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
+use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -168,4 +169,9 @@ interface EnvironmentProviderInterface {
      * Get the client dashboard registry
      */
     public function clientDashboardRegistry() : ClientDashboardRegistry;
+
+    /**
+     * Get the identity provider.
+     */
+    public function identityProvider() : IdentityProviderInterface;
 }

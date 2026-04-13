@@ -241,6 +241,7 @@ class SmliserAuth {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'credentials': 'same-origin'
             },
             body: JSON.stringify( payload ),
         } );
@@ -255,11 +256,13 @@ class SmliserAuth {
     */
     handleFormSuccess( response, formType ) {
         if ( formType === 'login' ) {
-            // Redirect to dashboard
-            const redirect = response.redirect || '/dashboard';
+            this.showFormSuccess( response.message );
+            const redirect  = new URL( window.location.href );
+
+            redirect.hash = '';
             setTimeout( () => {
-                window.location.href = redirect;
-            }, 300 );
+                window.location.href = redirect.href;
+            }, 1000 );
         } else if ( formType === 'signup' ) {
             // Show success message, redirect to login
             this.showFormSuccess( response.message || 'Account created successfully!' );

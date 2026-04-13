@@ -22,6 +22,7 @@ use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
+use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\Utils\MDParser;
 use SmartLicenseServer\Utils\Sanitizer;
 
@@ -665,6 +666,13 @@ function smliser_emailProvidersRegistry() : EmailProvidersRegistry {
  */
 function smliser_request() : Request {
     return smliser_envProvider()->request();
+}
+
+/**
+ * Get the identity provider.
+ */
+function identityProvider() : IdentityProviderInterface {
+    return smliser_envProvider()->identityProvider();
 }
 
 /**
