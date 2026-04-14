@@ -8,8 +8,6 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Background\Jobs\Accounts\PasswordResetJob;
-use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
@@ -20,10 +18,9 @@ use SmartLicenseServer\Security\Context\Principal;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
-use SmartLicenseServer\SettingsAPI\UserSettings;
 
 final class IdentityService extends AbstractIdentityProvider {
-    use QueueAwareTrait;
+    
     /**
      * Get provider ID.
      *
@@ -291,37 +288,5 @@ final class IdentityService extends AbstractIdentityProvider {
         if ( ! $user ) {
             return;
         }
-
-        $settings   = UserSettings::for( $user );
-        $reset_key = $settings->get( UserSettings::PWD_RESET_NAME );
-
-        if ( $reset_key && str_contains( $reset_key, '|' ) ) {
-            // A reset key already exists and is valid for 1 hour.
-            list( $key, $timestamp ) = explode( '|', $reset_key );
-
-            if ( time() - (int) $timestamp < \HOUR_IN_SECONDS ) {
-                // Still valid, do not generate a new one.
-                return;
-            }
-        } else {
-            $reset_key  = \smliser_generate_uuid_v4() . '|' . time();
-            $settings->set( UserSettings::PWD_RESET_NAME, $reset_key );
-        }
-
-        $reset_link = smliser_client_dashboard_url()
-            ->add_query_params( ['key' => $reset_key] )
-            ->set_hash( 'reset-password' );
-
-        $this->dispatch_job(
-            PasswordResetJob::class,
-            [
-                'user_id'       => $user->get_id(),
-                'recipient'     => $user->get_email(),
-                'reset_url'     => $reset_link,
-                'expires_in'    => 60,
-                'ip_address'    => \smliser_get_client_ip(),
-                'user_agent'    => \smliser_get_user_agent()
-            ]
-        );
     }
 }

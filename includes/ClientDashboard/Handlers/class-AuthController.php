@@ -16,13 +16,21 @@
 
 namespace SmartLicenseServer\ClientDashboard\Handlers;
 
+use SmartLicenseServer\Background\Jobs\Accounts\PasswordResetJob;
+use SmartLicenseServer\Background\Queue\QueueAwareTrait;
+use SmartLicenseServer\Core\Dates\DateDuration;
+use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\SettingsAPI\UserSettings;
+use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 class AuthController {
+    use QueueAwareTrait, TokenDeliveryTrait;
 
     /*
     |--------------------------------------------------
@@ -180,16 +188,136 @@ class AuthController {
             );
         }
 
-        // Don't reveal if email exists (security best practice).
-        \identityProvider()->forgot_password( $email );
+        $response_data  = [
+            'success' => true,
+            'message' => 'If an account exists for this email, you will receive a password reset link shortly.',
+        ];
 
-        return static::success_response(
-            200,
-            [
-                'success' => true,
-                'message' => 'If an account exists for this email, you will receive a password reset link shortly.',
-            ]
+        $user   = User::get_by_email( $email );
+
+        if ( ! $user ) {
+            return static::success_response( 200, $response_data );
+        }
+
+        ( new static )->password_recovery( $user );
+
+        return static::success_response( 200, $response_data );
+    }
+
+    /**
+     * Handle password reset.
+     * 
+     * @param Request $request
+     * @return Response
+     */
+    // public static function handle_reset_password( Request $request ) : Response {
+        
+    // }
+
+    /**
+     * Handle password recovery process.
+     *
+     * @param User $user
+     */
+    private function password_recovery( User $user ) : void {
+
+        $cache = \smliser_cache();
+
+        $raw_key = static::generate_secure_token();
+
+        $payload = [
+            'id'        => $user->get_id(),
+            'timestamp' => time(),
+            'nonce'     => $raw_key,
+        ];
+
+        $encoded_payload = \smliser_safe_json_encode( $payload );
+
+        $secret = self::derive_key();
+
+        // Signature now includes full payload INCLUDING nonce.
+        $signature = self::hmac_hash( $encoded_payload, $secret, 'sha256' );
+
+        $token = self::base64url_encode(
+            sprintf( '%s.%s', $encoded_payload, $signature )
         );
+
+        // Store hashed token for single-use protection.
+        $cache_key = sprintf(
+            '%s_%d',
+            UserSettings::PWD_RESET_NAME,
+            $user->get_id()
+        );
+
+        $cache->set(
+            $cache_key,
+            hash( 'sha256', $token ),
+            DateDuration::fromHours(1)->toSeconds()
+        );
+
+        $reset_link = smliser_client_dashboard_url()
+            ->add_query_params( array( 'key' => $token ) )
+            ->set_hash( 'reset-password' );
+
+        ( new static )->dispatch_job(
+            PasswordResetJob::class,
+            array(
+                'user_id'    => $user->get_id(),
+                'recipient'  => $user->get_email(),
+                'reset_url'  => $reset_link,
+                'expires_in' => 3600,
+                'ip_address' => \smliser_get_client_ip(),
+                'user_agent' => \smliser_get_user_agent(),
+            )
+        );
+    }
+
+    /**
+     * Verify password reset token.
+     *
+     * @param string $token
+     * @return array{valid: bool, user_id?: int, reason?: string}
+     */
+    public static function verify_password_reset_token( #[\SensitiveParameter] string $token ) : array {
+        $cache = \smliser_cache();
+        $decoded = self::base64url_decode( $token );
+
+        if ( ! $decoded || ! str_contains( $decoded, '.' ) ) {
+            return ['valid' => false, 'reason' => 'Invalid token format'];
+        }
+
+        [ $encoded_payload, $signature ] = explode( '.', $decoded, 2 );
+
+        $expected_signature = self::hmac_hash( $encoded_payload, self::derive_key(), 'sha256' );
+        
+        if ( ! hash_equals( $expected_signature, $signature ) ) {
+            return ['valid' => false, 'reason' => 'Invalid signature'];
+        }
+
+        $payload = json_decode( $encoded_payload, true );
+        if ( ! is_array( $payload ) || empty( $payload['id'] ) ) {
+            return ['valid' => false, 'reason' => 'Invalid payload'];
+        }
+
+        $issuedAt = TimestampValue::fromTimestamp( (int) $payload['timestamp'] );
+        if ( $issuedAt->addHours(1)->isPast() ) {
+            return ['valid' => false, 'reason' => 'Token expired'];
+        }
+
+        $cache_key = sprintf( '%s_%d', UserSettings::PWD_RESET_NAME, $payload['id'] );
+        $stored_hash = $cache->get( $cache_key );
+        $current_hash = hash( 'sha256', $token );
+
+        if ( ! $stored_hash || ! hash_equals( $stored_hash, $current_hash ) ) {
+            return ['valid' => false, 'reason' => 'Token already used or invalidated'];
+        }
+
+        $cache->delete( $cache_key );
+
+        return [
+            'valid'   => true,
+            'user_id' => (int) $payload['id'],
+        ];
     }
 
     /*
@@ -401,20 +529,6 @@ class AuthController {
     | HELPERS - NONCE VERIFICATION
     |--------------------------------------------------
     */
-
-    /**
-     * Verify CSRF nonce.
-     *
-     * @param string $nonce The nonce to verify
-     * @param string $action The nonce action
-     * @return bool
-     */
-    private static function verify_nonce( string $nonce, string $action ) : bool {
-        // TODO: Implement nonce verification based on your framework
-        // This should verify that the nonce was generated and hasn't expired
-        // Placeholder implementation returns true - replace with actual logic
-        return ! empty( $nonce );
-    }
 
     /*
     |--------------------------------------------------

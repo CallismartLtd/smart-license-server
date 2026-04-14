@@ -10,6 +10,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Core\DateDuration;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
@@ -501,7 +502,7 @@ class Controller {
                 throw new RequestException( 'resource_not_found', 'This license does not exist.' );
             }
 
-            $default_expiry = (int) ( 10 * DAY_IN_SECONDS );
+            $default_expiry = (int) DateDuration::fromDays( 10 )->toSeconds();
 
             $expiry         = $request->get( 'expiry', $default_expiry ) ?: $default_expiry;
 

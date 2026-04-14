@@ -42,15 +42,13 @@ class PasswordReset implements DashboardHandlerInterface {
         $token = (string) $request->get( 'token', '' );
         $email = (string) $request->get( 'email', '' );
 
-        // if ( empty( $token ) || empty( $email ) ) {
-        //     return (new Response( 400 ))
-        //         ->set_body( [
-        //             'success' => false,
-        //             'code'    => 'missing_token',
-        //             'message' => 'Invalid or missing reset token.',
-        //         ] )
-        //         ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-        // }
+        if ( empty( $token ) || empty( $email ) ) {
+            return new RequestException(
+                'missing_token',
+                'Invalid or missing reset token.',
+                ['status' => 400 ]
+            );
+        }
 
         // Validate that token hasn't expired and is valid
         // This would be checked in the form render method as well

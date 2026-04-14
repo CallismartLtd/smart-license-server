@@ -41,7 +41,7 @@ interface IdentityProviderInterface {
     public function signup( Request $request ) : RequestException|Principal;
 
     /**
-     * Handle forgot password
+     * Get password
      * 
      * @param string $email The user email
      * @return void

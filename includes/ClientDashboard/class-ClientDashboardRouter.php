@@ -120,12 +120,15 @@ class ClientDashboardRouter {
             $action = str_replace( '-', '_', $post_action );
             $method = "handle_{$action}";
 
-            if ( ! \method_exists( AuthController::class, $method ) ) {
-                $data           = [ 'success' => false, 'message' => 'Unable to handle authentication'];
-                $status_code    = 500;
+            if ( \method_exists( AuthController::class, $method ) ) {
+                
+                return AuthController::$method( $request );
+
             }
 
-            return AuthController::$method( $request );
+            $data           = [ 'success' => false, 'message' => 'Unable to handle authentication request.'];
+            $status_code    = 500;
+
         } else {
             $data   = static::handle_post_action( $request );
         }
