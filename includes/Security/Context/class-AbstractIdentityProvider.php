@@ -49,6 +49,31 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
     }
 
     /**
+     * Lookup external ID of a an actor
+     * 
+     * @param string $issuer The identity provider ID
+     * @param int $user_id The User ID
+     * @return string|null
+     */
+    protected function find_external_id( string $issuer, int $user_id ) : ?string {
+        $db    = smliser_db();
+        $table = SMLISER_IDENTITY_FEDERATION_TABLE;
+
+        $sql = sprintf(
+            'SELECT external_id FROM %s WHERE issuer = ? AND user_id = ? LIMIT 1',
+            $table
+        );
+
+        $row = $db->get_row( $sql, [ $issuer, $user_id ] );
+
+        if ( ! $row ) {
+            return null;
+        }
+
+        return $row['external_id'];
+    }
+
+    /**
      * Persist new federation mapping.
      *
      * @param int    $user_id

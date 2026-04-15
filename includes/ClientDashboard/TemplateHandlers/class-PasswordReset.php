@@ -12,6 +12,7 @@ namespace SmartLicenseServer\ClientDashboard\TemplateHandlers;
 
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\ClientDashboard\DashboardHandlerInterface;
+use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -38,11 +39,9 @@ class PasswordReset implements DashboardHandlerInterface {
      * @return bool|RequestException
      */
     public static function guard( Request $request ) : bool|RequestException {
-        // Token should be in query string: ?token=XXX
         $token = (string) $request->get( 'token', '' );
-        $email = (string) $request->get( 'email', '' );
 
-        if ( empty( $token ) || empty( $email ) ) {
+        if ( empty( $token ) ) {
             return new RequestException(
                 'missing_token',
                 'Invalid or missing reset token.',
@@ -50,9 +49,14 @@ class PasswordReset implements DashboardHandlerInterface {
             );
         }
 
-        // Validate that token hasn't expired and is valid
-        // This would be checked in the form render method as well
-        // You could add stricter validation here if needed
+        $check  = AuthController::verify_password_reset_token( $token );
+
+        if ( ! ( $check['valid'] ?? false ) ) {
+            return new RequestException(
+                'token_error',
+                $check['reason'] ?? 'Unknown error occured.',
+            );
+        }
 
         return true;
     }
@@ -66,10 +70,10 @@ class PasswordReset implements DashboardHandlerInterface {
     public static function handle( Request $request ) : Response {
         // Get token and email from query string
         $token = (string) $request->get( 'token', '' );
-        $email = (string) $request->get( 'email', '' );
-        $html   = \smliser_render_template_to_string( ClientDashboardRenderer::AUTH_RESET_PWD_TEMPLATE,[
+
+        $html   = \smliser_render_template_to_string( 
+            ClientDashboardRenderer::AUTH_RESET_PWD_TEMPLATE,[
             'token' => $token,
-            'email' => $email
         ]);
 
         // Return JSON response with form HTML and header

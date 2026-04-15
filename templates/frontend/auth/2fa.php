@@ -113,11 +113,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
     <!-- Hidden field to hold the full OTP code -->
     <input type="hidden" name="verification_code" id="smlag-verification-code" />
 
-    <!-- CSRF Nonce -->
-    <?php if ( function_exists( 'wp_nonce_field' ) ) : ?>
-        <?php wp_nonce_field( 'smliser_auth_2fa', '_wpnonce_2fa' ); ?>
-    <?php endif; ?>
-
     <!-- Submit button -->
     <button type="submit" class="smlag-button" id="smlag-2fa-submit">
         <span class="smlag-button-text">

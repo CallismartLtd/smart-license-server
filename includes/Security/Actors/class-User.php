@@ -345,7 +345,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * Get by email
      * 
      * @param string $email
-     * @return static
+     * @return static|null
      */
     public static function get_by_email( string $email ) : ?static {
         static $users = [];

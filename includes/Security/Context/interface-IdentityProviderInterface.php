@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Security\Context;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\Actors\User;
 
 /**
  * Contracts that all identity service providers MUST implement.
@@ -41,10 +42,18 @@ interface IdentityProviderInterface {
     public function signup( Request $request ) : RequestException|Principal;
 
     /**
-     * Get password
+     * Reset user password
      * 
-     * @param string $email The user email
+     * @param User $user The user object
+     * @param string $new_pwd The new user password
+     * @return bool
+     */
+    public function reset_password( User $user, string $new_pwd ) : bool;
+
+    /**
+     * Logout the current actor.
+     * 
      * @return void
      */
-    public function forgot_password( string $email ) : void;
+    public function logout() : void;
 }

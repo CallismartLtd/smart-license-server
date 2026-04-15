@@ -75,11 +75,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
         <label for="smlag-login-remember">Keep me signed in for 7 days</label>
     </div>
 
-    <!-- CSRF Nonce -->
-    <?php if ( function_exists( 'wp_nonce_field' ) ) : ?>
-        <?php wp_nonce_field( 'smliser_auth_login', '_wpnonce_login' ); ?>
-    <?php endif; ?>
-
     <!-- Submit button -->
     <button type="submit" class="smlag-button" id="smlag-login-submit">
         <span class="smlag-button-text">

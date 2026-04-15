@@ -30,6 +30,8 @@ class SmliserAuth {
         */
         this.cache = new Map();
 
+        this.currentURL = new URL( window.location.href );
+
         /*
         |--------------------------------------------------
         | CONFIGURATION
@@ -129,8 +131,6 @@ class SmliserAuth {
 
         // Update URL fragment unless explicitly suppressed    .
         if ( addSlug ) this.setFormHash( slug );
-        
-            
 
         try {
             const html = await this.fetchFormHTML( slug, force );
@@ -165,6 +165,10 @@ class SmliserAuth {
     async fetchFormHTML( slug, force = false ) {
         const url = new URL( this.REST_BASE + slug );
 
+        if ( this.currentURL.hash === '#reset-password' ) {
+            url.searchParams.set( 'token', this.currentURL.searchParams.get( 'key' ) );
+        }
+        
         if ( ! force && this.cache.has( url ) ) {
             return this.cache.get( url );
         }
@@ -210,7 +214,14 @@ class SmliserAuth {
 
         this.errorMsg.textContent = message || 'Something went wrong. Please try again.';
 
-        this.retryBtn.onclick = () => this.loadForm( slug, true, true );
+        if ( 'reset-password' === slug ) {
+            this.currentURL.searchParams.delete( 'key' );
+            this.currentURL.hash        = 'login';
+            this.retryBtn.textContent   = 'Back to sign in';
+            this.retryBtn.onclick       = () => window.location.href = this.currentURL.href;
+        } else {
+            this.retryBtn.onclick = () => this.loadForm( slug, true, true );
+        }
     }
 
     /*
@@ -232,6 +243,7 @@ class SmliserAuth {
         const formData = new FormData( form );
 
         try {
+            this.setLoading( true );
             const response = await this.submitForm( formType, formData );
 
             if ( response.success ) {
@@ -242,6 +254,8 @@ class SmliserAuth {
 
         } catch ( err ) {
             this.showFormError( err.message );
+        } finally {
+            this.setLoading( false );
         }
     }
 
@@ -285,6 +299,9 @@ class SmliserAuth {
             const redirect  = new URL( window.location.href );
 
             redirect.hash = '';
+            if ( redirect.searchParams.has( 'key' ) ) {
+                redirect.searchParams.delete( 'key' );
+            }
             setTimeout( () => {
                 window.location.href = redirect.href;
             }, 3000 );
@@ -294,9 +311,11 @@ class SmliserAuth {
             setTimeout( () => {
                 this.loadForm( 'login', false );
             }, 2000 );
-        } else if ( formType === 'forgot-password' ) {
+        } else if ( ['forgot-password', 'reset-password'].includes( formType ) ) {
+            const defaultMessage   = 'forgot-password' === formType ?
+            'Check your email for password reset link.' : 'Successful.' ;
             // Show success message
-            this.replaceFormWithSuccess( response.message || 'Check your email for password reset link.' );
+            this.replaceFormWithSuccess( response.message || defaultMessage );
         }
     }
 
@@ -308,6 +327,9 @@ class SmliserAuth {
     showFormError( message ) {
         const form = this.content.querySelector( 'form' );
         if ( ! form ) return;
+
+        form.querySelector( '.smlag-form-alert-success' )?.remove();
+
 
         let alert = form.querySelector( '.smlag-form-alert-error' );
 
@@ -326,6 +348,8 @@ class SmliserAuth {
     showFormSuccess( message ) {
         const form = this.content.querySelector( 'form' );
         if ( ! form ) return;
+
+        form.querySelector( '.smlag-form-alert-error' )?.remove();
 
         let alert = form.querySelector( '.smlag-form-alert-success' );
 

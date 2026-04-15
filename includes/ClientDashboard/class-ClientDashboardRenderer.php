@@ -40,6 +40,7 @@ class ClientDashboardRenderer {
     public const CONTENT_TEMPLATE           = 'frontend.content';
     public const AUTH_INDEX_TEMPLATE        = 'frontend.auth.index';
     public const AUTH_LOGIN_TEMPLATE        = 'frontend.auth.login';
+    public const AUTH_LOGOUT_TEMPLATE        = 'frontend.auth.logout';
     public const AUTH_SIGNUP_TEMPLATE       = 'frontend.auth.signup';
     public const AUTH_FORGOT_PWD_TEMPLATE   = 'frontend.auth.forgot-password';
     public const AUTH_RESET_PWD_TEMPLATE    = 'frontend.auth.reset-password';

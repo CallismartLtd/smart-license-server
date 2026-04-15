@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Exceptions\SecurityException;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\AbstractIdentityProvider;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
@@ -18,6 +19,8 @@ use SmartLicenseServer\Security\Context\Principal;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
+use WP_Error;
+use WP_User;
 
 final class IdentityService extends AbstractIdentityProvider {
     
@@ -78,6 +81,24 @@ final class IdentityService extends AbstractIdentityProvider {
         return $this->add( $user->get_id(), $this->issuer(), $wp_user_id );
     }
 
+    /**
+     * Set the current WordPress user
+     * 
+     * @param WP_User $wp_user
+     * @param bool $remember
+     * @return WP_User
+     */
+    protected function set_current_user( WP_User $wp_user, bool $remember = false ) : WP_User {
+        wp_set_auth_cookie( $wp_user->ID, $remember );
+        wp_set_current_user( $wp_user->ID, $wp_user->user_login );
+        
+        do_action( 'wp_login', $wp_user->user_login, $wp_user );
+        
+        $this->authenticate();
+
+        return $wp_user;
+    }
+
     /*
     |-----------------
     | PUBLIC METHODS
@@ -118,7 +139,6 @@ final class IdentityService extends AbstractIdentityProvider {
             return;
         }
 
-        // We are creating a new User.
         $user           = new User;
         $password_hash  = password_hash( wp_generate_password(), PASSWORD_ARGON2ID );
         $user->set_display_name( $wp_user->display_name )
@@ -171,8 +191,12 @@ final class IdentityService extends AbstractIdentityProvider {
         $this->sync_user( $wp_user_id, $user );
     }
 
+    /**
+     * Authenticates and sets the principal.
+     * 
+     * @return Principal|null 
+     */
     public function authenticate() : ?Principal {
-
         if ( ! is_user_logged_in() ) {
             return null;
         }
@@ -228,35 +252,25 @@ final class IdentityService extends AbstractIdentityProvider {
      * Logon using credentials
      */
     public function logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ): RequestException|Principal {
-        $wp_user    = \wp_signon(
-            [
-                'user_login'    => $email,
-                // Ugly hack.
-                // WordPress magic quotes mutates global variable which affects 
-                // the value of hashed passwords.
-                'user_password' => \addslashes( $pwd ),
-                'remember'      => $remember
+        // Try environment provider users.
+        // $login    = new RequestException( 'invalid_user' );//$this->wp_user_logon( $email, $pwd, $remember );
+        $login    = $this->wp_user_logon( $email, $pwd, $remember );
 
-            ],
-            true
-        );
 
-        if ( $wp_user instanceof \WP_Error ) {
-            $code       = $wp_user->get_error_code();
-            $message    = \strip_tags( $wp_user->get_error_message() );
-
-            if ( 'incorrect_password' === $code ) {
-                $message = 'The password you entered is incorrect.';
+        if ( $login instanceof RequestException ) {
+            if ( 'invalid_user' !== $login->get_error_code() ) {
+                // Valid wp user, return error.
+                return $login;
             }
-            return new RequestException(
-                $code,
-                $message
-            );
+
+            // Try direct user login.
+            $login    = $this->smliser_user_logon( $email, $pwd, $remember );
+
+            if ( $login instanceof RequestException ) {
+                return $login;
+            }
+            
         }
-
-        wp_set_current_user( $wp_user->ID );
-
-        $this->authenticate();
 
         $principal  = Guard::get_principal();
 
@@ -265,7 +279,96 @@ final class IdentityService extends AbstractIdentityProvider {
         }
 
         return $principal;
+    }
 
+    /**
+     * Directly logon a \SmartLicenseServer\Security\Actors\User and auto federate.
+     * 
+     * @param string $email
+     * @param string $pwd
+     * @param bool $remember
+     * @return RequestException|WP_User
+     */
+    public function smliser_user_logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ) : RequestException|WP_User {
+        if ( ! User::email_exists( $email ) ) {
+            return new RequestException(
+                'invalid_user',
+                'Unknown email address.',
+                ['status' => 401]
+            );
+        }
+
+        /** @var \SmartLicenseServer\Security\Actors\User $user */
+        $user   = User::get_by_email( $email );
+
+        if ( ! password_verify( $pwd, $user->get_password_hash() ) ) {
+            return new RequestException( 'incorrect_password' );
+        }
+
+        if ( ! \email_exists( $user->get_email() ) ) {
+            $wp_user    = $this->create_wp_user( $email, $pwd );
+
+            if ( $wp_user instanceof RequestException ) {
+                return $wp_user;
+            }
+
+        } else {
+            $wp_user    = \get_user_by( 'email', $user->get_email() );
+
+            if ( ! $wp_user ) { // Edge case
+                return new RequestException(
+                    'invalid_user',
+                    'Unknown email address.'
+                );
+            }
+        }
+
+        if ( ! $this->find_actor( $this->issuer(), $wp_user->ID ) ) {
+            $this->sync_user( $wp_user->ID, $user );
+        }
+
+        return $this->set_current_user( $wp_user, $remember );
+    }
+
+    /**
+     * Logon a WP_User.
+     * 
+     * @param string $email
+     * @param string $pwd
+     * @param bool $remember
+     * @return RequestException|WP_User
+     */
+    public function wp_user_logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ) : RequestException|WP_User {
+        $wp_user    = \wp_signon(
+            [
+                'user_login'    => $email,
+                'user_password' => $pwd,
+                'remember'      => $remember
+
+            ],
+            true
+        );
+
+        if ( $wp_user instanceof WP_Error ) {
+            $code       = $wp_user->get_error_code();
+
+            if ( 'invalid_email' === $code ) {
+                $code   = 'invalid_user';
+            }
+
+            $message    = \strip_tags( $wp_user->get_error_message() );
+
+            if ( 'incorrect_password' === $code ) {
+                $message = 'The password you entered is incorrect.';
+            }
+
+            return new RequestException(
+                $code,
+                $message
+            );
+        }
+
+        return $this->set_current_user( $wp_user, $remember );
     }
 
     public function signup( Request $request ): RequestException|Principal {
@@ -273,20 +376,87 @@ final class IdentityService extends AbstractIdentityProvider {
     }
 
     /**
+     * Create a WP_User.
+     * 
+     * @param string $email
+     * @param string $pwd
+     * @param string $username
+     */
+    private function create_wp_user( string $email, string $pwd, string $username = '' ) : RequestException|WP_User {
+        if ( \email_exists( $email ) ) {
+            return new RequestException(
+                'email_not_available',
+                'The provided email is not available.'
+            );
+        }
+
+        $username   = sanitize_user( current( explode( '@', $email ) ), true );
+
+        if ( \username_exists( $username ) ) {
+            do {
+                $username .= \wp_generate_password( 4, false );
+            } while( \username_exists( $username ) );
+        }
+
+        $wp_user_id = wp_create_user( $username, $pwd, $email );
+
+        if ( $wp_user_id instanceof WP_Error ) {
+            return new RequestException(
+                $wp_user_id->get_error_code(),
+                $wp_user_id->get_error_message(),
+                ['status' => 401 ]
+            );
+        }
+
+        $wp_user    = get_user( $wp_user_id );
+
+        if ( ! $wp_user ) {
+            return new RequestException(
+                'user_not_created',
+                'Unable to create WordPress user, try again.'
+            );
+        }
+
+        return $wp_user;
+    }
+
+    /**
      * {@inheritdoc}
      * 
      * Perform password reset for a user identified by email.
-     * Silently fails if email is invalid or user not found (security best practice).
      */
-    public function forgot_password( string $email ): void {
-        if ( '' === $email || ! \is_email( $email ) ) {
-            return;
+    public function reset_password( User $user, string $new_pwd ): bool {
+        if ( '' === $new_pwd ) {
+            throw new SecurityException(
+                'empty_password',
+                'New password cannot be empty.'
+            );
         }
 
-        $user   = User::get_by_email( $email );
+        $password_hash  = password_hash( $new_pwd, \PASSWORD_ARGON2ID );
 
-        if ( ! $user ) {
-            return;
+        if ( ! $user->set_password_hash( $password_hash )->save() ) {
+            throw new SecurityException(
+                'password_save_error',
+                'Unable to set new password',
+                ['status' => 500 ]    
+            );
         }
+
+        $wp_user_id = $this->find_external_id( $this->issuer(), $user->get_id() );
+
+        if ( $wp_user_id ) {
+            wp_set_password( $new_pwd, (int) $wp_user_id );
+        }
+
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function logout() : void {
+        wp_logout();
+        Guard::clear_principal();
     }
 }

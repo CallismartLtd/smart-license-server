@@ -150,7 +150,7 @@ class Installer {
      * Attempt to auto provision WordPress admin to have access to this application.
      */
     private static function maybe_auto_provision_wp_admin() : void {
-        (new IdentityService )->auto_provision();
+        ( new IdentityService )->auto_provision();
     }
 
     /**

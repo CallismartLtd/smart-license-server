@@ -60,11 +60,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
         </p>
     </div>
 
-    <!-- CSRF Nonce -->
-    <?php if ( function_exists( 'wp_nonce_field' ) ) : ?>
-        <?php wp_nonce_field( 'smliser_auth_forgot_password', '_wpnonce_forgot' ); ?>
-    <?php endif; ?>
-
     <!-- Submit button -->
     <button type="submit" class="smlag-button" id="smlag-forgot-submit">
         <span class="smlag-button-text">

@@ -6,7 +6,8 @@
  * Contains token in query string: ?token=XXX&email=user@example.com
  * User enters new password, token is sent with form.
  *
- * Form submission via AJAX to {rest_base}auth/reset-password
+ * @var string $email The user email.
+ * @var string $token The password reset token
  */
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -36,9 +37,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 <!-- Form -->
 <form class="smlag-form" method="post" id="smlag-reset-password-form">
 
-    <input type="hidden" id="smlag-reset-token" name="token" value="" />
-
-    <input type="hidden" id="smlag-reset-email" name="email" value="" />
+    <input type="hidden" id="smlag-reset-token" name="token" value="<?php echo esc_attr( $token ); ?>" />
 
     <!-- New password field -->
     <div class="smlag-form-group">

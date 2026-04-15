@@ -121,9 +121,7 @@ class ClientDashboardRouter {
             $method = "handle_{$action}";
 
             if ( \method_exists( AuthController::class, $method ) ) {
-                
                 return AuthController::$method( $request );
-
             }
 
             $data           = [ 'success' => false, 'message' => 'Unable to handle authentication request.'];
