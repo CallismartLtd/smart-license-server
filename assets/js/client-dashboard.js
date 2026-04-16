@@ -31,18 +31,19 @@ class SmliserClientDashboard {
         | ELEMENTS
         |--------------------------------------------------
         */
-        this.layout    = document.getElementById( 'smlcd-layout' );
-        this.sidebar   = document.getElementById( 'smlcd-sidebar' );
-        this.backdrop  = document.getElementById( 'smlcd-backdrop' );
-        this.toggleBtn = document.getElementById( 'smlcd-sidebar-toggle' );
-        this.themeBtn  = document.getElementById( 'smlcd-theme-toggle' );
-        this.area      = document.getElementById( 'smlcd-content-area' );
-        this.content   = document.getElementById( 'smlcd-content' );
-        this.loader    = document.getElementById( 'smlcd-loader' );
-        this.error     = document.getElementById( 'smlcd-error' );
-        this.errorMsg  = document.getElementById( 'smlcd-error-message' );
-        this.retryBtn  = document.getElementById( 'smlcd-error-retry' );
-        this.themeIcon = document.getElementById( 'smlcd-theme-icon' );
+        this.layout     = document.querySelector( '#smlcd-layout' );
+        this.sidebar    = document.querySelector( '#smlcd-sidebar' );
+        this.backdrop   = document.querySelector( '#smlcd-backdrop' );
+        this.toggleBtn  = document.querySelector( '#smlcd-sidebar-toggle' );
+        this.themeBtn   = document.querySelector( '#smlcd-theme-toggle' );
+        this.area       = document.querySelector( '#smlcd-content-area' );
+        this.content    = document.querySelector( '#smlcd-content' );
+        this.loader     = document.querySelector( '#smlcd-loader' );
+        this.error      = document.querySelector( '#smlcd-error' );
+        this.errorMsg   = document.querySelector( '#smlcd-error-message' );
+        this.retryBtn   = document.querySelector( '#smlcd-error-retry' );
+        this.themeIcon  = document.querySelector( '#smlcd-theme-icon' );
+        this.logoutBtn  = document.querySelector( '#smlcd-logout' );
 
         if ( ! this.area ) return;
 
@@ -87,9 +88,16 @@ class SmliserClientDashboard {
 
     /*
     |-------------------------
-    | SERVER PREFERENCE SYNC
+    | HTTP HELPERS
     |-------------------------
     */
+   
+    /**
+     * Save dashboard preference.
+     * 
+     * @param {String} key The name of the preference to save.
+     * @param {any} value The value
+     */
     async savePreference( key, value ) {
 
         try {
@@ -110,11 +118,11 @@ class SmliserClientDashboard {
         }
     }
 
-    /*
-    |--------------------------------------------------
-    | FETCH (with cache)
-    |--------------------------------------------------
-    */
+    /**
+     * 
+     * @param {String} url The dashboard content URL.
+     * @param {Object} options  
+     */
     async dashboardFetch( url, options = {} ) {
 
         const force = options.force === true;
@@ -134,6 +142,54 @@ class SmliserClientDashboard {
         this.cache.set( url, response.html );
 
         return response.html;
+    }
+
+    async submitForm( formSlug, payload ) {
+        const url = this.REST_BASE + formSlug;
+
+        const response = await smliserFetchJSON( url, {
+            method: 'POST',
+            headers: {
+                'credentials': 'same-origin'
+            },
+            body: payload,
+        } );
+
+        return response;
+    }
+
+    /**
+     * 
+     * @param {MouseEvent} event 
+     */
+    async logoutHandler( event ) {
+        event.preventDefault();
+        const confirmed = await SmliserModal.confirm({
+            'title': 'Confirm Logout',
+            'message': 'Are you sure you want to logout? You\'ll need to sign in again to access your account.',
+            'cancelText': 'Stay Logged in',
+            'confirmText': 'Logout'
+        });
+
+        if ( ! confirmed ) return;
+
+        const payLoad   = new FormData;
+        try {
+            const response  = await this.submitForm( 'logout', payLoad );
+            
+            if ( response.success ) {
+                await SmliserModal.success( response.message ?? 'Logout successful' );
+                window.location.reload();
+            } else {
+                throw {message: response.message ?? 'Something went wrong' }
+            }
+        } catch( err ) {
+            await SmliserModal.error( err.message, 'Logout failed' );
+        }
+        
+
+
+        
     }
 
     /*
@@ -357,6 +413,8 @@ class SmliserClientDashboard {
 
             this.loadSection( item.dataset.slug );
         } );
+
+        this.logoutBtn?.addEventListener( 'click', this.logoutHandler.bind(this) );
 
         /*
         |------------------------------------

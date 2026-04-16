@@ -26,6 +26,7 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
@@ -36,7 +37,7 @@ class AuthController {
 
     /*
     |--------------------------------------------------
-    | LOGIN
+    | LOGIN/LOGOUT
     |--------------------------------------------------
     */
 
@@ -51,7 +52,7 @@ class AuthController {
      */
     public static function handle_login( Request $request ) : Response {
         $username   = (string) $request->get( 'username', '' );
-        $password   = (string) $request->get( 'password', '', false );
+        $password   = (string) $_POST['password'] ?? '';
         $remember   = (bool) $request->get( 'remember', false );
 
         if ( empty( $username ) || empty( $password ) ) {
@@ -80,6 +81,32 @@ class AuthController {
                 'message'  => sprintf( 'Welcome back, %s.', $principal->get_display_name() ),
                 'redirect' => '/dashboard',
             ]
+        );
+    }
+
+    /**
+     * Handle logout.
+     * 
+     * @return Response
+     */
+    public static function handle_logout() : Response {
+        $principal  = Guard::get_principal();
+
+        if ( ! $principal ) {
+            return static::error_response(
+                400,
+                'already_logged_out',
+                'Already logged out'
+            );
+        }
+
+        \identityProvider()->logout();
+
+        $actor_name = $principal->get_display_name();
+
+        return static::success_response(
+            200,
+            [ 'message' => sprintf( 'Good bye %s', $actor_name ) ]
         );
     }
 

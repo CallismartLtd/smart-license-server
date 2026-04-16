@@ -30,13 +30,20 @@ class Format {
     /**
      * Format seconds into readable duration.
      */
-    public static function duration( int $seconds ): string {
+    public static function duration( int $seconds, string $format = 'long' ): string {
 
         $units = [
             'day'    => 86400,
             'hour'   => 3600,
             'minute' => 60,
             'second' => 1,
+        ];
+
+        $short = [
+            'day'    => 'd',
+            'hour'   => 'h',
+            'minute' => 'm',
+            'second' => 's',
         ];
 
         $parts = [];
@@ -46,12 +53,18 @@ class Format {
             $value = intdiv( $seconds, $div );
 
             if ( $value > 0 ) {
-                $parts[] = $value . ' ' . $name . ( $value > 1 ? 's' : '' );
+
+                if ( $format === 'short' ) {
+                    $parts[] = $value . $short[$name];
+                } else {
+                    $parts[] = $value . ' ' . $name . ( $value > 1 ? 's' : '' );
+                }
+
                 $seconds %= $div;
             }
         }
 
-        return $parts ? implode( ' ', $parts ) : '0 seconds';
+        return $parts ? implode( ' ', $parts ) : ( $format === 'short' ? '0s' : '0 seconds' );
     }
 
     /**

@@ -386,9 +386,9 @@ class RedisCacheAdapter implements CacheAdapterInterface {
             $misses = (int) ( $info['keyspace_misses'] ?? 0 );
 
             // used_memory reflects actual heap allocation by Redis.
-            $memory_used  = (int) ( $info['used_memory']      ?? 0 );
+            $memory_used  = (int) ( $info['used_memory'] ?? 0 );
             // maxmemory is 0 when no limit is configured.
-            $memory_total = (int) ( $info['maxmemory']         ?? 0 );
+            $memory_total = (int) ( $info['maxmemory'] ?? 0 );
 
             // Uptime in seconds from the 'server' section.
             $uptime = (int) ( $info['uptime_in_seconds'] ?? 0 );

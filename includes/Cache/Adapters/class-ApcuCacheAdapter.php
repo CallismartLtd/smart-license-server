@@ -181,10 +181,11 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
             memory_total : $memory_total,
             uptime       : $uptime,
             extra        : [
-                'num_slots'     => (int) ( $info['num_slots']     ?? 0 ),
-                'num_expunges'  => (int) ( $info['expunges']      ?? 0 ),
-                'num_inserts'   => (int) ( $info['num_inserts']   ?? 0 ),
-                'file_upload_progress' => (bool) \ini_get( 'apc.rfc1867' ),
+                'num_slots'             => (int) ( $info['num_slots']     ?? 0 ),
+                'num_expunges'          => (int) ( $info['expunges']      ?? 0 ),
+                'expired_entries'       => (int) ( $info['expunges']      ?? 0 ),
+                'num_inserts'           => (int) ( $info['num_inserts']   ?? 0 ),
+                'file_upload_progress'  => (bool) \ini_get( 'apc.rfc1867' ),
             ],
         );
     }

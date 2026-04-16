@@ -55,9 +55,10 @@ $active_slug = $active_slug ?? '';
     <?php endif; ?>
 
     <div class="smlcd-sidebar-footer">
-        <span class="smlcd-sidebar-role">
-            <?php echo esc_html( $principal->get_role()->get_slug() ?? '' ); ?>
-        </span>
+        <button class="smlcd-sidebar-role smlcd-btn" id="smlcd-logout"> 
+            <i class="ti ti-logout"></i>
+            Logout
+        </button>
     </div>
 
 </aside>

@@ -111,8 +111,8 @@ class CacheAdapterRegistry extends AbstractRegistry {
             $adapter    = new $class_string;
             $settings   = [];
 
-            foreach ( $adapter->get_settings_schema() as $name => $_ ) {
-                $settings[$name] = $this->get_option( $adapter::get_id(), $name );
+            foreach ( $adapter->get_settings_schema() as $name => $default ) {
+                $settings[$name] = $this->get_option( $adapter::get_id(), $name, $default['default'] ?? '' );
             }
 
             $adapter->set_settings( $settings );
@@ -170,13 +170,13 @@ class CacheAdapterRegistry extends AbstractRegistry {
      * @param string $option_name
      * @return mixed
      */
-    public static function get_option( string $adapter_id, string $option_name ): mixed {
+    public static function get_option( string $adapter_id, string $option_name, mixed $default = '' ): mixed {
         if ( ! isset( static::$settings_store[ $adapter_id ] ) ) {
             $all_options = static::instance()->settings->get( static::SETTINGS_KEY, [], true );
             static::$settings_store[ $adapter_id ] = $all_options[ $adapter_id ] ?? [];
         }
 
-        return static::$settings_store[ $adapter_id ][ $option_name ] ?? '';
+        return static::$settings_store[ $adapter_id ][ $option_name ] ?? $default;
     }
 
     /**

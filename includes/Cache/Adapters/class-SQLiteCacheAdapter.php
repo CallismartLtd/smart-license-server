@@ -97,6 +97,13 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     protected string $path;
 
     /**
+     * Database file name
+     * 
+     * @var string $db_filename
+     */
+    protected string $db_filename = 'smliser-cache.db';
+
+    /**
      * Prepared statement cache.
      *
      * @var array<string, SQLite3Stmt>
@@ -135,11 +142,18 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     private bool $shutdown_registered = false;
 
     /**
-     * Cache memory
+     * Page cache memory
      * 
      * @var int $cache_memory
      */
     protected int $cache_memory = 4;
+
+    /**
+     * Maximum storage memory (MB)
+     * 
+     * @var int $storage_limit
+     */
+    protected int $storage_limit = 512;
 
     /*
     |--------------------------------------------
@@ -444,10 +458,10 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
              WHERE expires_at IS NOT NULL AND expires_at <= {$now}"
         );
 
-        $page_count = (int) $this->db->querySingle( 'PRAGMA page_count' );
+        $page_count = (int) $this->db->querySingle( 'PRAGMA max_page_count' );
         $page_size  = (int) $this->db->querySingle( 'PRAGMA page_size' );
         $db_size    = $page_count * $page_size;
-        $db_file    = $this->path . '/smliser-cache.db';
+        $db_file    = $this->db_file();
         $uptime     = file_exists( $db_file ) ? $now - filemtime( $db_file ) : 0;
 
         // Load persisted totals, then add this request's in-flight delta
@@ -491,21 +505,34 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      */
     public function get_settings_schema(): array {
         return [
+            'db_filename' => [
+                'type'        => 'text',
+                'label'       => 'Cache File Name',
+                'required'    => false,
+                'default'     => $this->db_filename,
+                'description' => 'The SQLite database file name(default: smliser-cache.db).',
+            ],
+
             'cache_dir' => [
                 'type'        => 'text',
                 'label'       => 'Cache Directory',
                 'required'    => true,
-                'default'     => SMLISER_CACHE_DIR,
+                'default'     => rtrim( SMLISER_CACHE_DIR, '/' ) . '/',
                 'description' => 'Absolute path to the directory where the SQLite cache database will be stored. Must be within the writable repository path.',
             ],
             'cache_memory' => [
                 'type'        => 'number',
                 'label'       => 'Cache Memory (MB)',
+                'required'    => false,
+                'default'     => $this->cache_memory,
+                'description' => 'Amount of memory SQLite can use for its page cache. Enter in megabytes(default: 4 MB).',
+            ],
+            'storage_limit' => [
+                'type'        => 'number',
+                'label'       => 'Disk Storage Limit (MB)',
                 'required'    => true,
-                'default'     => 4, // default 4 MB
-                'description' => 'Amount of memory SQLite can use for its page cache. Enter in megabytes.',
-                'min'         => 1,
-                'max'         => 1024,
+                'default'     => $this->storage_limit,
+                'description' => 'Maximum disk space the cache database is allowed to occupy. Once reached, further writes will fail until space is cleared.',
             ],
         ];
     }
@@ -517,8 +544,10 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @return void
      */
     public function set_settings( array $settings ): void {
-        $cache_dir = $settings['cache_dir'] ?? '';
-        $cache_memory = (int) ($settings['cache_memory'] ?? 4); // default 4 MB
+        $cache_dir      = $settings['cache_dir'] ?? '';
+        $cache_memory   = (int) ( $settings['cache_memory'] ?? $this->cache_memory );
+        $storage_limit  = (int) ( $settings['storage_limit'] ?? $this->storage_limit );
+        $db_filename    = (string) ( $settings['db_filename'] ?? $this->db_filename );
 
         if ( ! $cache_dir || ! str_starts_with( $cache_dir, SMLISER_REPO_DIR ) ) {
             throw new LogicException(
@@ -529,11 +558,17 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         $this->path = rtrim( $cache_dir, '/' );
 
         // Validate cache_memory within sensible bounds
-        if ( $cache_memory < 1 || $cache_memory > 1024 ) {
-            $cache_memory = 4; // fallback default
+        if ( $cache_memory !== $this->cache_memory && ( $cache_memory < 1 || $cache_memory > 1024 ) ) {
+            $cache_memory = $this->cache_memory; // fallback default.
         }
 
-        $this->cache_memory = $cache_memory;
+        if ( '' === $db_filename ) {
+            $db_filename    = $this->db_filename;
+        }
+
+        $this->cache_memory     = $cache_memory;
+        $this->storage_limit    = $storage_limit;
+        $this->db_filename      = $db_filename;
 
         // Reset statement cache — a new path means a new database file.
         $this->stmts = [];
@@ -544,46 +579,39 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * Test whether the adapter can connect and operate with the given settings.
      *
      * Performs a temporary write → read → delete round-trip against a
-     * probe key without disturbing any existing cache entries. The current
-     * adapter configuration is fully restored in a finally block before
-     * returning, regardless of success or failure.
-     *
-     * Never throws — all exceptions are caught and result in a false return.
+     * probe key without disturbing any existing cache entries.
      *
      * @param  array<string, mixed> $settings Settings to test.
      * @return bool True if all three round-trip steps succeed.
      */
     public function test( array $settings ): bool {
-        $previous_path = $this->path ?? null;
-        $previous_db   = isset( $this->db ) ? $this->db : null;
-        $previous_stmts = $this->stmts;
-
+        $sandbox    = new static;
         try {
             // Apply candidate settings without persisting them.
-            $this->set_settings( $settings );
+            $sandbox->set_settings( $settings );
 
-            if ( empty( $this->path ) ) {
+            if ( empty( $sandbox->path ) ) {
                 throw new CacheTestException( 'SQLite cache path is not configured.' );
             }
 
-            if ( ! is_dir( $this->path ) ) {
+            if ( ! is_dir( $sandbox->path ) ) {
                 throw new CacheTestException(
-                    sprintf( 'SQLite cache directory does not exist: %s', $this->path )
+                    sprintf( 'SQLite cache directory does not exist: %s', $sandbox->path )
                 );
             }
 
-            if ( ! is_writable( $this->path ) ) {
+            if ( ! is_writable( $sandbox->path ) ) {
                 throw new CacheTestException(
-                    sprintf( 'SQLite cache directory is not writable: %s', $this->path )
+                    sprintf( 'SQLite cache directory is not writable: %s', $sandbox->path )
                 );
             }
 
             // Open a fresh connection against the candidate path.
-            unset( $this->db );
-            $this->stmts = [];
-            $this->connect();
+            unset( $sandbox->db );
+            $sandbox->stmts = [];
+            $sandbox->connect();
 
-            if ( ! isset( $this->db ) ) {
+            if ( ! isset( $sandbox->db ) ) {
                 throw new CacheTestException( 'Could not open SQLite database.' );
             }
 
@@ -591,40 +619,34 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             $probe    = '__smliser_probe_' . bin2hex( random_bytes( 8 ) );
             $expected = 'smliser_ok';
 
-            if ( ! $this->set( $probe, $expected, 30 ) ) {
+            if ( ! $sandbox->set( $probe, $expected, 30 ) ) {
                 throw new CacheTestException( 'SQLite probe write failed.' );
             }
 
-            if ( $this->get( $probe ) !== $expected ) {
+            if ( $sandbox->get( $probe ) !== $expected ) {
                 throw new CacheTestException( 'SQLite probe read returned unexpected value.' );
             }
 
-            $this->delete( $probe );
+            $sandbox->delete( $probe );
 
             return true;
 
         } catch ( CacheTestException $e ) {
-            error_log( 'SQLiteCacheAdapter::test() — ' . $e->getMessage() );
-            return false;
+            throw $e;
         } catch ( \Throwable $e ) {
-            error_log( 'SQLiteCacheAdapter::test() — unexpected: ' . $e->getMessage() );
-            return false;
+            throw new CacheTestException( $e->getMessage() );
         } finally {
-            // Restore the live adapter state unconditionally so the
-            // production connection and config are never disturbed.
-            if ( $previous_path !== null ) {
-                $this->path = $previous_path;
-            } else {
-                unset( $this->path );
+            if ( isset( $sandbox->db ) ) {
+                $sandbox->db->close();
             }
 
-            unset( $this->db );
-            $this->stmts = $previous_stmts;
+            $files  = glob( $sandbox->db_file() . '*' );
 
-            if ( $previous_db !== null ) {
-                $this->db = $previous_db;
+            foreach( (array) $files as $file ) {
+                @unlink( $file );
             }
         }
+            
     }
 
     /*
@@ -741,7 +763,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
                 throw new Exception( 'SQLiteCacheAdapter: Database path is not set.' );
             }
 
-            $file = $this->path . '/smliser-cache.db';
+            $file = $this->db_file();
             $dir  = dirname( $file );
 
             if ( ! is_dir( $dir ) ) {
@@ -760,6 +782,9 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             $page_size = (int) $this->db->querySingle( 'PRAGMA page_size' );
             $cache_pages = -1 * ( $this->cache_memory * 1024 ) / $page_size;
             $this->db->exec( "PRAGMA cache_size = {$cache_pages};" );
+
+            $max_pages = ($this->storage_limit * 1024 * 1024) / $page_size;
+            $this->db->exec( "PRAGMA max_page_count = " . (int) $max_pages . ";" );
 
             $this->db->exec( 'PRAGMA mmap_size    = 268435456;' );
             $this->db->exec( 'PRAGMA journal_mode = WAL;' );
@@ -825,5 +850,9 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
 
     public function is_supported(): bool {
         return class_exists( SQLite3::class );
+    }
+
+    private function db_file() : string {
+        return rtrim( $this->path, '/' ) . '/' . $this->db_filename;
     }
 }

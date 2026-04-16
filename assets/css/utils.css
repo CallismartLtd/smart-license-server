@@ -1,0 +1,1494 @@
+/**
+ * SmartLicenseServer Client Dashboard — Utilities & Components
+ *
+ * Naming convention: .smlcd-* (consistent with main stylesheet)
+ *
+ * Sections:
+ *   TYPOGRAPHY        — headings, text styles, font utilities
+ *   SPACING           — margin / padding utilities
+ *   DISPLAY           — flex, grid, visibility helpers
+ *   CARDS & SURFACES  — containers, panels, card layouts
+ *   FORMS             — inputs, selects, checkboxes, radio buttons
+ *   BUTTONS           — primary, secondary, danger, outline styles
+ *   TABLES            — table layouts with striping, hover effects
+ *   BADGES & PILLS    — status indicators, tags, labels
+ *   ALERTS            — success, warning, error, info messages
+ *   DIVIDERS & LINES  — hr, borders, separators
+ *   STATES            — disabled, readonly, loading, empty
+ *   RESPONSIVE GRID   — basic responsive utilities
+ *   ANIMATIONS        — transitions, fades, slides
+ *
+ */
+
+/*
+|--------------------------------------------------
+| TYPOGRAPHY — Headings, Text Styles
+|--------------------------------------------------
+*/
+
+/* Heading styles */
+.smlcd-h1,
+.smlcd-h2,
+.smlcd-h3,
+.smlcd-h4,
+.smlcd-h5,
+.smlcd-h6 {
+    margin: 0 0 12px 0;
+    color: var( --smlcd-color-text-primary );
+    font-family: var( --smlcd-font );
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.smlcd-h1 {
+    font-size: 28px;
+    margin-bottom: 16px;
+}
+
+.smlcd-h2 {
+    font-size: 22px;
+    margin-bottom: 14px;
+}
+
+.smlcd-h3 {
+    font-size: 18px;
+    margin-bottom: 12px;
+}
+
+.smlcd-h4 {
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+
+.smlcd-h5 {
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.smlcd-h6 {
+    font-size: 12px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Text styles */
+.smlcd-text-primary {
+    color: var( --smlcd-color-text-primary );
+}
+
+.smlcd-text-muted {
+    color: var( --smlcd-color-text-muted );
+}
+
+.smlcd-text-hint {
+    color: var( --smlcd-color-text-hint );
+}
+
+.smlcd-text-error {
+    color: var( --smlcd-color-error );
+}
+
+.smlcd-text-success {
+    color: var( --smlcd-color-success );
+}
+
+.smlcd-text-warning {
+    color: var( --smlcd-color-warning );
+}
+
+.smlcd-text-accent {
+    color: var( --smlcd-color-accent );
+}
+
+/* Text decoration & weight */
+.smlcd-text-bold {
+    font-weight: 600;
+}
+
+.smlcd-text-medium {
+    font-weight: 500;
+}
+
+.smlcd-text-normal {
+    font-weight: 400;
+}
+
+.smlcd-text-small {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.smlcd-text-code {
+    font-family: var( --smlcd-font-mono );
+    font-size: 12px;
+    background: var( --smlcd-color-surface );
+    padding: 2px 6px;
+    border-radius: var( --smlcd-radius-sm );
+    color: var( --smlcd-color-accent );
+}
+
+.smlcd-text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.smlcd-text-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.smlcd-text-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Text alignment */
+.smlcd-text-left {
+    text-align: left;
+}
+
+.smlcd-text-center {
+    text-align: center;
+}
+
+.smlcd-text-right {
+    text-align: right;
+}
+
+/*
+|--------------------------------------------------
+| SPACING — Margin / Padding Utilities
+|--------------------------------------------------
+| Scale: 4px (xs), 8px (sm), 12px (md), 16px (lg),
+|        20px (xl), 28px (2xl), 36px (3xl)
+|--------------------------------------------------
+*/
+
+/* Margin utilities */
+.smlcd-m-0   { margin: 0; }
+.smlcd-m-xs  { margin: 4px; }
+.smlcd-m-sm  { margin: 8px; }
+.smlcd-m-md  { margin: 12px; }
+.smlcd-m-lg  { margin: 16px; }
+.smlcd-m-xl  { margin: 20px; }
+.smlcd-m-2xl { margin: 28px; }
+.smlcd-m-3xl { margin: 36px; }
+
+.smlcd-mt-0   { margin-top: 0; }
+.smlcd-mt-xs  { margin-top: 4px; }
+.smlcd-mt-sm  { margin-top: 8px; }
+.smlcd-mt-md  { margin-top: 12px; }
+.smlcd-mt-lg  { margin-top: 16px; }
+.smlcd-mt-xl  { margin-top: 20px; }
+.smlcd-mt-2xl { margin-top: 28px; }
+.smlcd-mt-3xl { margin-top: 36px; }
+
+.smlcd-mb-0   { margin-bottom: 0; }
+.smlcd-mb-xs  { margin-bottom: 4px; }
+.smlcd-mb-sm  { margin-bottom: 8px; }
+.smlcd-mb-md  { margin-bottom: 12px; }
+.smlcd-mb-lg  { margin-bottom: 16px; }
+.smlcd-mb-xl  { margin-bottom: 20px; }
+.smlcd-mb-2xl { margin-bottom: 28px; }
+.smlcd-mb-3xl { margin-bottom: 36px; }
+
+.smlcd-mx-0   { margin-left: 0; margin-right: 0; }
+.smlcd-mx-xs  { margin-left: 4px; margin-right: 4px; }
+.smlcd-mx-sm  { margin-left: 8px; margin-right: 8px; }
+.smlcd-mx-md  { margin-left: 12px; margin-right: 12px; }
+.smlcd-mx-lg  { margin-left: 16px; margin-right: 16px; }
+.smlcd-mx-xl  { margin-left: 20px; margin-right: 20px; }
+
+.smlcd-my-0   { margin-top: 0; margin-bottom: 0; }
+.smlcd-my-xs  { margin-top: 4px; margin-bottom: 4px; }
+.smlcd-my-sm  { margin-top: 8px; margin-bottom: 8px; }
+.smlcd-my-md  { margin-top: 12px; margin-bottom: 12px; }
+.smlcd-my-lg  { margin-top: 16px; margin-bottom: 16px; }
+.smlcd-my-xl  { margin-top: 20px; margin-bottom: 20px; }
+
+/* Padding utilities */
+.smlcd-p-0   { padding: 0; }
+.smlcd-p-xs  { padding: 4px; }
+.smlcd-p-sm  { padding: 8px; }
+.smlcd-p-md  { padding: 12px; }
+.smlcd-p-lg  { padding: 16px; }
+.smlcd-p-xl  { padding: 20px; }
+.smlcd-p-2xl { padding: 28px; }
+.smlcd-p-3xl { padding: 36px; }
+
+.smlcd-pt-0   { padding-top: 0; }
+.smlcd-pt-xs  { padding-top: 4px; }
+.smlcd-pt-sm  { padding-top: 8px; }
+.smlcd-pt-md  { padding-top: 12px; }
+.smlcd-pt-lg  { padding-top: 16px; }
+.smlcd-pt-xl  { padding-top: 20px; }
+
+.smlcd-pb-0   { padding-bottom: 0; }
+.smlcd-pb-xs  { padding-bottom: 4px; }
+.smlcd-pb-sm  { padding-bottom: 8px; }
+.smlcd-pb-md  { padding-bottom: 12px; }
+.smlcd-pb-lg  { padding-bottom: 16px; }
+.smlcd-pb-xl  { padding-bottom: 20px; }
+
+.smlcd-px-0   { padding-left: 0; padding-right: 0; }
+.smlcd-px-xs  { padding-left: 4px; padding-right: 4px; }
+.smlcd-px-sm  { padding-left: 8px; padding-right: 8px; }
+.smlcd-px-md  { padding-left: 12px; padding-right: 12px; }
+.smlcd-px-lg  { padding-left: 16px; padding-right: 16px; }
+.smlcd-px-xl  { padding-left: 20px; padding-right: 20px; }
+
+.smlcd-py-0   { padding-top: 0; padding-bottom: 0; }
+.smlcd-py-xs  { padding-top: 4px; padding-bottom: 4px; }
+.smlcd-py-sm  { padding-top: 8px; padding-bottom: 8px; }
+.smlcd-py-md  { padding-top: 12px; padding-bottom: 12px; }
+.smlcd-py-lg  { padding-top: 16px; padding-bottom: 16px; }
+.smlcd-py-xl  { padding-top: 20px; padding-bottom: 20px; }
+
+/* Gap utilities (for flex/grid) */
+.smlcd-gap-xs  { gap: 4px; }
+.smlcd-gap-sm  { gap: 8px; }
+.smlcd-gap-md  { gap: 12px; }
+.smlcd-gap-lg  { gap: 16px; }
+.smlcd-gap-xl  { gap: 20px; }
+
+/*
+|--------------------------------------------------
+| DISPLAY & LAYOUT — Flex, Grid, Visibility
+|--------------------------------------------------
+*/
+
+.smlcd-flex {
+    display: flex;
+}
+
+.smlcd-flex-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.smlcd-flex-row {
+    display: flex;
+    flex-direction: row;
+}
+
+.smlcd-flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.smlcd-flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.smlcd-flex-start {
+    display: flex;
+    align-items: flex-start;
+}
+
+.smlcd-flex-end {
+    display: flex;
+    align-items: flex-end;
+}
+
+.smlcd-flex-wrap {
+    flex-wrap: wrap;
+}
+
+.smlcd-flex-nowrap {
+    flex-wrap: nowrap;
+}
+
+.smlcd-flex-1 {
+    flex: 1;
+}
+
+.smlcd-flex-shrink-0 {
+    flex-shrink: 0;
+}
+
+.smlcd-grid {
+    display: grid;
+}
+
+.smlcd-grid-cols-2 {
+    display: grid;
+    grid-template-columns: repeat( 2, 1fr );
+    gap: 16px;
+}
+
+.smlcd-grid-cols-3 {
+    display: grid;
+    grid-template-columns: repeat( 3, 1fr );
+    gap: 16px;
+}
+
+.smlcd-grid-cols-4 {
+    display: grid;
+    grid-template-columns: repeat( 4, 1fr );
+    gap: 16px;
+}
+
+/* Visibility */
+.smlcd-hidden {
+    display: none;
+}
+
+.smlcd-visible {
+    display: block;
+}
+
+.smlcd-invisible {
+    visibility: hidden;
+}
+
+.smlcd-inline {
+    display: inline;
+}
+
+.smlcd-inline-block {
+    display: inline-block;
+}
+
+/*
+|--------------------------------------------------
+| CARDS & SURFACES — Containers, Panels
+|--------------------------------------------------
+*/
+
+.smlcd-card {
+    background: var( --smlcd-color-surface );
+    border: 1px solid var( --smlcd-color-border );
+    border-radius: var( --smlcd-radius );
+    padding: 20px;
+    transition:
+        background var( --smlcd-transition ),
+        border-color var( --smlcd-transition ),
+        box-shadow var( --smlcd-transition );
+}
+
+.smlcd-card:hover {
+    border-color: var( --smlcd-color-border-soft );
+}
+
+.smlcd-card--elevated {
+    background: var( --smlcd-color-surface-2 );
+    box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.15 );
+}
+
+.smlcd-card--bordered {
+    border: 2px solid var( --smlcd-color-accent );
+}
+
+.smlcd-card--accent-soft {
+    background: var( --smlcd-color-accent-soft );
+    border-color: var( --smlcd-color-accent );
+}
+
+.smlcd-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var( --smlcd-color-border );
+}
+
+.smlcd-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var( --smlcd-color-text-primary );
+    margin: 0;
+}
+
+.smlcd-card-subtitle {
+    font-size: 12px;
+    color: var( --smlcd-color-text-muted );
+    margin: 4px 0 0 0;
+}
+
+.smlcd-card-body {
+    padding: 0;
+}
+
+.smlcd-card-footer {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var( --smlcd-color-border );
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.smlcd-section {
+    background: var( --smlcd-color-surface );
+    border: 1px solid var( --smlcd-color-border );
+    border-radius: var( --smlcd-radius );
+    overflow: hidden;
+}
+
+.smlcd-section-header {
+    padding: 16px 20px;
+    background: var( --smlcd-color-surface-2 );
+    border-bottom: 1px solid var( --smlcd-color-border );
+}
+
+.smlcd-section-body {
+    padding: 20px;
+}
+
+.smlcd-section-footer {
+    padding: 16px 20px;
+    background: var( --smlcd-color-surface-2 );
+    border-top: 1px solid var( --smlcd-color-border );
+}
+
+.smlcd-panel {
+    background: var( --smlcd-color-surface );
+    padding: 16px 20px;
+    border-radius: var( --smlcd-radius );
+    border-left: 3px solid var( --smlcd-color-border );
+    transition: border-color var( --smlcd-transition );
+}
+
+.smlcd-panel--info {
+    border-left-color: var( --smlcd-color-accent );
+    background: var( --smlcd-color-accent-soft );
+}
+
+.smlcd-panel--success {
+    border-left-color: var( --smlcd-color-success );
+}
+
+.smlcd-panel--warning {
+    border-left-color: var( --smlcd-color-warning );
+}
+
+.smlcd-panel--error {
+    border-left-color: var( --smlcd-color-error );
+    background: var( --smlcd-color-error-soft );
+}
+
+/*
+|--------------------------------------------------
+| FORMS — Inputs, Selects, Checkboxes, Radio
+|--------------------------------------------------
+*/
+
+.smlcd-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.smlcd-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.smlcd-form-group--inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.smlcd-form-group--row {
+    flex-direction: row;
+    gap: 16px;
+}
+
+.smlcd-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var( --smlcd-color-text-primary );
+    display: block;
+}
+
+.smlcd-label-required::after {
+    content: ' *';
+    color: var( --smlcd-color-error );
+}
+
+.smlcd-label-hint {
+    font-size: 12px;
+    color: var( --smlcd-color-text-muted );
+    display: block;
+    margin-top: 4px;
+}
+
+.smlcd-input,
+.smlcd-textarea,
+.smlcd-select {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    background: var( --smlcd-color-surface );
+    border: 1px solid var( --smlcd-color-border );
+    border-radius: var( --smlcd-radius-sm );
+    color: var( --smlcd-color-text-primary );
+    font-family: var( --smlcd-font );
+    font-size: 13.5px;
+    line-height: 1.5;
+    transition:
+        border-color var( --smlcd-transition ),
+        background var( --smlcd-transition ),
+        box-shadow var( --smlcd-transition );
+    outline: none;
+}
+
+.smlcd-input:focus,
+.smlcd-textarea:focus,
+.smlcd-select:focus {
+    border-color: var( --smlcd-color-accent );
+    box-shadow: 0 0 0 3px var( --smlcd-color-accent-soft );
+}
+
+.smlcd-input:hover,
+.smlcd-textarea:hover,
+.smlcd-select:hover {
+    border-color: var( --smlcd-color-border-soft );
+}
+
+.smlcd-input::placeholder {
+    color: var( --smlcd-color-text-hint );
+}
+
+.smlcd-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.smlcd-textarea.smlcd-textarea--sm {
+    min-height: 60px;
+}
+
+.smlcd-textarea.smlcd-textarea--lg {
+    min-height: 160px;
+}
+
+/* Input states */
+.smlcd-input:disabled,
+.smlcd-textarea:disabled,
+.smlcd-select:disabled {
+    background: var( --smlcd-color-surface-2 );
+    color: var( --smlcd-color-text-muted );
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.smlcd-input:read-only,
+.smlcd-textarea:read-only {
+    background: var( --smlcd-color-surface-2 );
+    border-color: var( --smlcd-color-border );
+    cursor: default;
+}
+
+/* Input error state */
+.smlcd-input--error,
+.smlcd-textarea--error,
+.smlcd-select--error {
+    border-color: var( --smlcd-color-error );
+    background: var( --smlcd-color-error-soft );
+}
+
+.smlcd-input--error:focus,
+.smlcd-textarea--error:focus,
+.smlcd-select--error:focus {
+    box-shadow: 0 0 0 3px rgba( 224, 92, 107, 0.2 );
+}
+
+/* Input success state */
+.smlcd-input--success,
+.smlcd-textarea--success,
+.smlcd-select--success {
+    border-color: var( --smlcd-color-success );
+}
+
+.smlcd-input--success:focus,
+.smlcd-textarea--success:focus,
+.smlcd-select--success:focus {
+    box-shadow: 0 0 0 3px rgba( 52, 199, 138, 0.15 );
+}
+
+/* Input sizes */
+.smlcd-input--sm {
+    padding: 8px 10px;
+    font-size: 12px;
+}
+
+.smlcd-input--lg {
+    padding: 12px 14px;
+    font-size: 14px;
+}
+
+/* Help text */
+.smlcd-form-help {
+    font-size: 12px;
+    color: var( --smlcd-color-text-muted );
+    display: block;
+    margin-top: 4px;
+}
+
+.smlcd-form-error {
+    font-size: 12px;
+    color: var( --smlcd-color-error );
+    display: block;
+    margin-top: 4px;
+}
+
+/* Checkbox & Radio */
+.smlcd-checkbox,
+.smlcd-radio {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.smlcd-checkbox input,
+.smlcd-radio input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var( --smlcd-color-accent );
+}
+
+.smlcd-checkbox label,
+.smlcd-radio label {
+    cursor: pointer;
+    font-size: 13px;
+    color: var( --smlcd-color-text-primary );
+    margin: 0;
+}
+
+.smlcd-checkbox input:disabled,
+.smlcd-radio input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.smlcd-checkbox input:disabled + label,
+.smlcd-radio input:disabled + label {
+    color: var( --smlcd-color-text-muted );
+    cursor: not-allowed;
+}
+
+/* Checkbox group */
+.smlcd-checkbox-group,
+.smlcd-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.smlcd-checkbox-group--inline,
+.smlcd-radio-group--inline {
+    flex-direction: row;
+    gap: 20px;
+}
+
+/* Select custom styling prep */
+.smlcd-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237680a0' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 32px;
+}
+
+/*
+|--------------------------------------------------
+| LINKS — Anchor Styles
+|--------------------------------------------------
+*/
+
+.smlcd-link {
+    color: var(--smlcd-color-accent);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color var(--smlcd-transition), text-decoration var(--smlcd-transition);
+}
+
+.smlcd-link:hover {
+    color: var(--smlcd-color-accent-hover);
+    text-decoration: underline;
+}
+
+.smlcd-link:focus-visible {
+    outline: 2px solid var(--smlcd-color-accent);
+    outline-offset: 2px;
+}
+
+.smlcd-link:visited {
+    opacity: 0.9;
+}
+
+/*
+|--------------------------------------------------
+| BUTTONS — Primary, Secondary, Danger, Outline
+|--------------------------------------------------
+*/
+
+.smlcd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var( --smlcd-color-accent );
+    color: #fff;
+    border: none;
+    border-radius: var( --smlcd-radius-sm );
+    font-family: var( --smlcd-font );
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        background var( --smlcd-transition ),
+        border-color var( --smlcd-transition ),
+        box-shadow var( --smlcd-transition ),
+        transform 100ms ease;
+    outline: none;
+    white-space: nowrap;
+    text-decoration: none;
+    user-select: none;
+}
+
+.smlcd-btn:hover {
+    background: var( --smlcd-color-accent-hover );
+    transform: translateY( -1px );
+}
+
+.smlcd-btn:active {
+    transform: translateY( 0 );
+}
+
+.smlcd-btn:focus-visible {
+    outline: 2px solid var( --smlcd-color-accent );
+    outline-offset: 2px;
+}
+
+.smlcd-btn:disabled {
+    background: var( --smlcd-color-surface-2 );
+    color: var( --smlcd-color-text-muted );
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+}
+
+/* Button variants */
+.smlcd-btn--secondary {
+    background: var( --smlcd-color-surface-2 );
+    color: var( --smlcd-color-text-primary );
+    border: 1px solid var( --smlcd-color-border );
+}
+
+.smlcd-btn--secondary:hover {
+    background: var( --smlcd-color-surface );
+    border-color: var( --smlcd-color-border-soft );
+}
+
+.smlcd-btn--outline {
+    background: transparent;
+    color: var( --smlcd-color-accent );
+    border: 1.5px solid var( --smlcd-color-accent );
+}
+
+.smlcd-btn--outline:hover {
+    background: var( --smlcd-color-accent-soft );
+    border-color: var( --smlcd-color-accent-hover );
+}
+
+.smlcd-btn--danger {
+    background: var( --smlcd-color-error );
+    color: #fff;
+}
+
+.smlcd-btn--danger:hover {
+    background: #d94b5e;
+}
+
+.smlcd-btn--danger--outline {
+    background: transparent;
+    color: var( --smlcd-color-error );
+    border: 1.5px solid var( --smlcd-color-error );
+}
+
+.smlcd-btn--danger--outline:hover {
+    background: var( --smlcd-color-error-soft );
+    border-color: #d94b5e;
+}
+
+.smlcd-btn--success {
+    background: var( --smlcd-color-success );
+    color: #fff;
+}
+
+.smlcd-btn--success:hover {
+    background: #2ab378;
+}
+
+.smlcd-btn--ghost {
+    background: transparent;
+    color: var( --smlcd-color-text-primary );
+    border: 1px solid transparent;
+}
+
+.smlcd-btn--ghost:hover {
+    background: var( --smlcd-color-surface );
+    border-color: var( --smlcd-color-border );
+}
+
+/* Button sizes */
+.smlcd-btn--sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    gap: 6px;
+}
+
+.smlcd-btn--lg {
+    padding: 12px 24px;
+    font-size: 14px;
+    gap: 10px;
+}
+
+/* Button full width */
+.smlcd-btn--block {
+    width: 100%;
+}
+
+/* Button with icon */
+.smlcd-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    background: var( --smlcd-color-surface );
+    border: 1px solid var( --smlcd-color-border );
+    border-radius: var( --smlcd-radius-sm );
+    color: var( --smlcd-color-text-muted );
+    font-size: 16px;
+    cursor: pointer;
+    transition:
+        color var( --smlcd-transition ),
+        background var( --smlcd-transition ),
+        border-color var( --smlcd-transition );
+    outline: none;
+}
+
+.smlcd-btn-icon:hover {
+    color: var( --smlcd-color-text-primary );
+    background: var( --smlcd-color-surface-2 );
+    border-color: var( --smlcd-color-border-soft );
+}
+
+.smlcd-btn-icon:focus-visible {
+    outline: 2px solid var( --smlcd-color-accent );
+    outline-offset: 2px;
+}
+
+.smlcd-btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/*
+|--------------------------------------------------
+| TABLES — Layouts, Striping, Hover Effects
+|--------------------------------------------------
+*/
+
+.smlcd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    color: var( --smlcd-color-text-primary );
+}
+
+.smlcd-table thead {
+    background: var( --smlcd-color-surface-2 );
+    border-bottom: 1px solid var( --smlcd-color-border );
+}
+
+.smlcd-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var( --smlcd-color-text-primary );
+    white-space: nowrap;
+    user-select: none;
+}
+
+.smlcd-table tbody tr {
+    border-bottom: 1px solid var( --smlcd-color-border );
+    transition: background var( --smlcd-transition );
+}
+
+.smlcd-table tbody tr:hover {
+    background: var( --smlcd-color-surface );
+}
+
+.smlcd-table td {
+    padding: 14px 16px;
+    color: var( --smlcd-color-text-primary );
+}
+
+.smlcd-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+/* Striped rows */
+.smlcd-table--striped tbody tr:nth-child( even ) {
+    background: var( --smlcd-color-surface );
+}
+
+.smlcd-table--striped tbody tr:nth-child( even ):hover {
+    background: var( --smlcd-color-surface-2 );
+}
+
+/* Compact table */
+.smlcd-table--compact th,
+.smlcd-table--compact td {
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+/* Table container for horizontal scroll on mobile */
+.smlcd-table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.smlcd-table-container::-webkit-scrollbar {
+    height: 3px;
+}
+
+.smlcd-table-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.smlcd-table-container::-webkit-scrollbar-thumb {
+    background: var( --smlcd-color-border );
+    border-radius: 3px;
+}
+
+/* Cell alignment */
+.smlcd-table-cell--center {
+    text-align: center;
+}
+
+.smlcd-table-cell--right {
+    text-align: right;
+}
+
+.smlcd-table-cell--nowrap {
+    white-space: nowrap;
+}
+
+/*
+|--------------------------------------------------
+| BADGES & PILLS — Status Indicators, Tags
+|--------------------------------------------------
+*/
+
+.smlcd-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var( --smlcd-color-accent );
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 12px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    width: fit-content;
+}
+
+.smlcd-badge--secondary {
+    background: var( --smlcd-color-surface );
+    color: var( --smlcd-color-text-primary );
+    border: 1px solid var( --smlcd-color-border );
+}
+
+.smlcd-badge--success {
+    background: var( --smlcd-color-success );
+}
+
+.smlcd-badge--warning {
+    background: var( --smlcd-color-warning );
+    color: #000;
+}
+
+.smlcd-badge--error {
+    background: var( --smlcd-color-error );
+}
+
+.smlcd-badge--outline {
+    background: transparent;
+    color: var( --smlcd-color-accent );
+    border: 1px solid var( --smlcd-color-accent );
+}
+
+.smlcd-badge--sm {
+    padding: 2px 8px;
+    font-size: 10px;
+}
+
+.smlcd-badge--lg {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.smlcd-badge--dismissible {
+    padding-right: 6px;
+}
+
+.smlcd-badge-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+    flex-shrink: 0;
+    transition: opacity var( --smlcd-transition );
+}
+
+.smlcd-badge-close:hover {
+    opacity: 0.7;
+}
+
+/* Tag pill (variant) */
+.smlcd-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: var( --smlcd-color-accent-soft );
+    color: var( --smlcd-color-accent );
+    border: 1px solid var( --smlcd-color-accent );
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    width: fit-content;
+}
+
+.smlcd-tag--removable {
+    padding-right: 4px;
+}
+
+/*
+|--------------------------------------------------
+| ALERTS — Success, Warning, Error, Info
+|--------------------------------------------------
+*/
+
+.smlcd-alert {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var( --smlcd-radius );
+    border-left: 4px solid var( --smlcd-color-accent );
+    background: var( --smlcd-color-accent-soft );
+    color: var( --smlcd-color-text-primary );
+}
+
+.smlcd-alert--info {
+    border-left-color: var( --smlcd-color-accent );
+    background: var( --smlcd-color-accent-soft );
+}
+
+.smlcd-alert--success {
+    border-left-color: var( --smlcd-color-success );
+    background: rgba( 52, 199, 138, 0.10 );
+}
+
+.smlcd-alert--warning {
+    border-left-color: var( --smlcd-color-warning );
+    background: rgba( 240, 160, 51, 0.10 );
+}
+
+.smlcd-alert--error {
+    border-left-color: var( --smlcd-color-error );
+    background: var( --smlcd-color-error-soft );
+}
+
+.smlcd-alert-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.smlcd-alert-icon.ti-info-circle   { color: var( --smlcd-color-accent ); }
+.smlcd-alert-icon.ti-check-circle  { color: var( --smlcd-color-success ); }
+.smlcd-alert-icon.ti-alert-triangle { color: var( --smlcd-color-warning ); }
+.smlcd-alert-icon.ti-alert-circle  { color: var( --smlcd-color-error ); }
+
+.smlcd-alert-content {
+    flex: 1;
+}
+
+.smlcd-alert-title {
+    font-weight: 600;
+    font-size: 13.5px;
+    margin: 0 0 4px 0;
+    color: var( --smlcd-color-text-primary );
+}
+
+.smlcd-alert-message {
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.5;
+    color: var( --smlcd-color-text-primary );
+}
+
+.smlcd-alert-close {
+    background: none;
+    border: none;
+    color: var( --smlcd-color-text-muted );
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    flex-shrink: 0;
+    transition: color var( --smlcd-transition );
+    outline: none;
+}
+
+.smlcd-alert-close:hover {
+    color: var( --smlcd-color-text-primary );
+}
+
+/*
+|--------------------------------------------------
+| DIVIDERS & LINES
+|--------------------------------------------------
+*/
+
+.smlcd-hr {
+    border: none;
+    border-top: 1px solid var( --smlcd-color-border );
+    margin: 20px 0;
+    padding: 0;
+}
+
+.smlcd-hr--soft {
+    border-top-color: var( --smlcd-color-border-soft );
+}
+
+.smlcd-divider {
+    width: 1px;
+    background: var( --smlcd-color-border );
+}
+
+.smlcd-divider--horizontal {
+    height: 1px;
+    background: var( --smlcd-color-border );
+    margin: 16px 0;
+}
+
+.smlcd-divider--vertical {
+    width: 1px;
+    height: 100%;
+    background: var( --smlcd-color-border );
+}
+
+/*
+|--------------------------------------------------
+| STATES — Disabled, Readonly, Loading, Empty
+|--------------------------------------------------
+*/
+
+.smlcd-disabled,
+.smlcd-card:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.smlcd-readonly {
+    background: var( --smlcd-color-surface-2 );
+    cursor: default;
+}
+
+.smlcd-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: var( --smlcd-color-text-muted );
+}
+
+.smlcd-empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: var( --smlcd-color-text-hint );
+}
+
+.smlcd-empty-state-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var( --smlcd-color-text-primary );
+    margin-bottom: 8px;
+}
+
+.smlcd-empty-state-message {
+    font-size: 13px;
+    color: var( --smlcd-color-text-muted );
+    margin-bottom: 20px;
+    max-width: 300px;
+}
+
+.smlcd-empty-state-action {
+    display: flex;
+    gap: 8px;
+}
+
+.smlcd-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.smlcd-skeleton {
+    background: linear-gradient(
+        90deg,
+        var( --smlcd-color-surface ) 0%,
+        var( --smlcd-color-surface-2 ) 50%,
+        var( --smlcd-color-surface ) 100%
+    );
+    background-size: 200% 100%;
+    animation: smlcd-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes smlcd-skeleton-pulse {
+    0%, 100% { background-position: 200% 0; }
+    50% { background-position: -200% 0; }
+}
+
+.smlcd-skeleton--circle {
+    border-radius: 50%;
+}
+
+.smlcd-skeleton--rounded {
+    border-radius: var( --smlcd-radius );
+}
+
+/*
+|--------------------------------------------------
+| RESPONSIVE GRID — Basic Responsive Utilities
+|--------------------------------------------------
+*/
+
+/* Two-column grid (responsive) */
+.smlcd-grid-responsive {
+    display: grid;
+    grid-template-columns: repeat( auto-fit, minmax( 320px, 1fr ) );
+    gap: 20px;
+}
+
+/* Aspect ratio containers */
+.smlcd-aspect-square {
+    aspect-ratio: 1 / 1;
+}
+
+.smlcd-aspect-video {
+    aspect-ratio: 16 / 9;
+}
+
+/*
+|--------------------------------------------------
+| ANIMATIONS & TRANSITIONS
+|--------------------------------------------------
+*/
+
+.smlcd-fade-in {
+    animation: smlcd-fade-in 300ms ease-out;
+}
+
+@keyframes smlcd-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.smlcd-slide-in-up {
+    animation: smlcd-slide-in-up 300ms ease-out;
+}
+
+@keyframes smlcd-slide-in-up {
+    from {
+        opacity: 0;
+        transform: translateY( 10px );
+    }
+    to {
+        opacity: 1;
+        transform: translateY( 0 );
+    }
+}
+
+.smlcd-slide-in-left {
+    animation: smlcd-slide-in-left 300ms ease-out;
+}
+
+@keyframes smlcd-slide-in-left {
+    from {
+        opacity: 0;
+        transform: translateX( -10px );
+    }
+    to {
+        opacity: 1;
+        transform: translateX( 0 );
+    }
+}
+
+.smlcd-slide-in-right {
+    animation: smlcd-slide-in-right 300ms ease-out;
+}
+
+@keyframes smlcd-slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX( 10px );
+    }
+    to {
+        opacity: 1;
+        transform: translateX( 0 );
+    }
+}
+
+.smlcd-pulse {
+    animation: smlcd-pulse 2s cubic-bezier( 0.4, 0, 0.6, 1 ) infinite;
+}
+
+@keyframes smlcd-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.smlcd-bounce {
+    animation: smlcd-bounce 0.5s ease-in-out;
+}
+
+@keyframes smlcd-bounce {
+    0%, 100% {
+        transform: translateY( 0 );
+    }
+    50% {
+        transform: translateY( -4px );
+    }
+}
+
+/*
+|--------------------------------------------------
+| UTILITY MODIFIERS FOR RESPONSIVE BEHAVIOR
+|--------------------------------------------------
+*/
+
+/* Mobile-only utilities */
+@media ( max-width: 768px ) {
+
+    .smlcd-hidden-mobile {
+        display: none;
+    }
+
+    .smlcd-visible-mobile {
+        display: block;
+    }
+
+    .smlcd-grid-cols-2,
+    .smlcd-grid-cols-3,
+    .smlcd-grid-cols-4 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .smlcd-btn-group {
+        gap: 6px;
+    }
+
+    .smlcd-form-group--row {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .smlcd-table--compact th,
+    .smlcd-table--compact td {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+}
+
+/* Tablet utilities */
+@media ( min-width: 769px ) and ( max-width: 1024px ) {
+
+    .smlcd-hidden-tablet {
+        display: none;
+    }
+
+    .smlcd-grid-cols-4 {
+        grid-template-columns: repeat( 2, 1fr );
+    }
+
+}
+
+/* Desktop-only utilities */
+@media ( min-width: 1025px ) {
+
+    .smlcd-hidden-desktop {
+        display: none;
+    }
+
+}
+
+/*
+|--------------------------------------------------
+| PRINT STYLES
+|--------------------------------------------------
+*/
+
+@media print {
+
+    .smlcd-no-print {
+        display: none;
+    }
+
+    .smlcd-btn,
+    .smlcd-icon-btn,
+    .smlcd-btn-icon {
+        display: none;
+    }
+
+}

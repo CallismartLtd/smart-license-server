@@ -14,6 +14,7 @@
 
 use SmartLicenseServer\Admin\OptionsPage;
 use SmartLicenseServer\Cache\CacheProviderIcons;
+use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -44,37 +45,8 @@ $mem_grade = $mem_pct === null ? 'neutral'
     : ( $mem_pct >= 90 ? 'bad' : ( $mem_pct >= 70 ? 'warn' : 'good' ) );
 
 // Capability flags
-$supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime', 'arraycache' ], true );
+$supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], true ); ?>
 
-// Nonce for all AJAX actions
-$nonce = wp_create_nonce( 'smliser_cache_actions' );
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-if ( ! function_exists( 'smliser_cs_fmt_bytes' ) ) {
-    function smliser_cs_fmt_bytes( int $bytes ): string {
-        if ( $bytes <= 0 ) return '0 B';
-        $u = [ 'B', 'KB', 'MB', 'GB' ];
-        $i = (int) floor( log( $bytes, 1024 ) );
-        return round( $bytes / ( 1024 ** $i ), 2 ) . ' ' . $u[ $i ];
-    }
-}
-
-if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
-    function smliser_cs_fmt_duration( int $s ): string {
-        if ( $s <= 0 ) return '—';
-        $d   = intdiv( $s, 86400 );
-        $h   = intdiv( $s % 86400, 3600 );
-        $m   = intdiv( $s % 3600, 60 );
-        $sec = $s % 60;
-        $p   = [];
-        if ( $d )           $p[] = "{$d}d";
-        if ( $h )           $p[] = "{$h}h";
-        if ( $m )           $p[] = "{$m}m";
-        if ( $sec && ! $d ) $p[] = "{$sec}s";
-        return implode( ' ', $p ) ?: '< 1s';
-    }
-}
-?>
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
 
@@ -112,7 +84,6 @@ if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
                         class="smlcd-btn smlcd-btn--ghost smliser-action-button"
                         data-args='<?php echo esc_attr( smliser_safe_json_encode( [
                             'action'  => 'smliser_cache_flush_expired',
-                            'payLoad' => [ 'security' => $nonce ],
                         ] ) ); ?>'>
                     <i class="ti ti-clock-off"></i> Flush Stale
                 </button>
@@ -123,14 +94,22 @@ if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
                         data-confirm="This will clear ALL cached data for <?php echo esc_attr( $adapter_name ); ?>. Are you sure?"
                         data-args='<?php echo esc_attr( smliser_safe_json_encode( [
                             'action'  => 'smliser_cache_clear_all',
-                            'payLoad' => [ 'security' => $nonce ],
                         ] ) ); ?>'>
                     <i class="ti ti-trash"></i> Flush Cache
                 </button>
 
                 <a href="<?php echo esc_url( smliser_get_current_url()->remove_query_param( 'section' ) ); ?>"
                    class="smlcd-btn smlcd-btn--secondary">
-                    <i class="ti ti-settings"></i> Adapters
+                    <i class="ti ti-database-search"></i> Adapters
+                </a>
+
+                <a href="<?php 
+                    echo esc_url( smliser_get_current_url()
+                        ->remove_query_param( 'section' )
+                        ->add_query_param( 'adapter', $adapter_id )
+                     ); ?>"
+                   class="smlcd-btn smlcd-btn--secondary">
+                    <i class="ti ti-settings"></i> Configuration
                 </a>
             </div>
         </div>
@@ -193,17 +172,17 @@ if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
                     <?php if ( $mem_pct !== null ) : ?>
                         <?php echo $mem_pct; ?><span class="smlcd-card__unit">%</span>
                     <?php elseif ( $memory_used > 0 ) : ?>
-                        <?php echo esc_html( smliser_cs_fmt_bytes( $memory_used ) ); ?>
+                        <?php echo esc_html( Format::bytes( $memory_used ) ); ?>
                     <?php else : ?>
                         <span class="smlcd-card__na">—</span>
                     <?php endif; ?>
                 </div>
                 <div class="smlcd-card__detail">
                     <?php if ( $has_mem_ceil ) : ?>
-                        <?php echo esc_html( smliser_cs_fmt_bytes( $memory_used ) ); ?>
-                        of <?php echo esc_html( smliser_cs_fmt_bytes( $memory_total ) ); ?>
+                        <?php echo esc_html( Format::bytes( $memory_used ) ); ?>
+                        of <?php echo esc_html( Format::bytes( $memory_total ) ); ?>
                     <?php elseif ( $memory_used > 0 ) : ?>
-                        <?php echo esc_html( smliser_cs_fmt_bytes( $memory_used ) ); ?> · No fixed ceiling
+                        <?php echo esc_html( Format::bytes( $memory_used ) ); ?> · No fixed ceiling
                     <?php else : ?>
                         Not reported
                     <?php endif; ?>
@@ -214,7 +193,7 @@ if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
                 <div class="smlcd-card__label">Uptime</div>
                 <div class="smlcd-card__value">
                     <?php if ( $uptime > 0 ) : ?>
-                        <?php echo esc_html( smliser_cs_fmt_duration( $uptime ) ); ?>
+                        <?php echo esc_html( Format::duration( $uptime, 'short' ) ); ?>
                     <?php else : ?>
                         <span class="smlcd-card__na">—</span>
                     <?php endif; ?>
@@ -222,7 +201,7 @@ if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
                 <div class="smlcd-card__detail">
                     <?php if ( $uptime > 0 ) : ?>
                         Since last restart
-                    <?php elseif ( in_array( $adapter_id, [ 'runtime', 'arraycache' ], true ) ) : ?>
+                    <?php elseif ( 'runtime' === $adapter_id ) : ?>
                         Request-scoped
                     <?php else : ?>
                         Not reported
@@ -232,7 +211,7 @@ if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
 
         </div><!-- /#smlcd-stat-cards -->
 
-        <!-- ── Performance breakdown ──────────────────────────────────────── -->
+        <!-- ── Performance breakdown -->
         <?php if ( $tracks_hits ) : ?>
         <div class="smlcd-perf" id="smlcd-perf">
             <div class="smlcd-perf__header">
@@ -278,7 +257,7 @@ if ( ! function_exists( 'smliser_cs_fmt_duration' ) ) {
                 <span class="smlcd-perf__mem-label">Memory pressure</span>
                 <div class="smlcd-perf__mem-track">
                     <div class="smlcd-perf__mem-fill smlcd-perf__mem-fill--<?php echo $mem_grade; ?>"
-                         style="width: <?php echo min( $mem_pct, 100 ); ?>%"></div>
+                        style="width: <?php echo min( $mem_pct, 100 ); ?>%"></div>
                 </div>
                 <span class="smlcd-perf__mem-pct smlcd-perf__mem-pct--<?php echo $mem_grade; ?>"><?php echo $mem_pct; ?>%</span>
             </div>

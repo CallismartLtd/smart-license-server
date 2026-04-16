@@ -333,7 +333,7 @@ class RESTAPI implements RESTProviderInterface {
      */
     public function get_request() : Request {
         if ( ! isset( $this->request ) ) {
-            $this->request = new Request;
+            $this->request = smliser_request();
         }
 
         return $this->request;

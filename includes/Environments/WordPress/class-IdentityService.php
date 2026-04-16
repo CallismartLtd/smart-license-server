@@ -253,7 +253,6 @@ final class IdentityService extends AbstractIdentityProvider {
      */
     public function logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ): RequestException|Principal {
         // Try environment provider users.
-        // $login    = new RequestException( 'invalid_user' );//$this->wp_user_logon( $email, $pwd, $remember );
         $login    = $this->wp_user_logon( $email, $pwd, $remember );
 
 

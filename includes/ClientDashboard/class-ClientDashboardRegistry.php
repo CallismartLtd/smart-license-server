@@ -2,12 +2,7 @@
 /**
  * Client Dashboard Registry
  *
- * Extends AbstractDashboardRegistry for the client-facing dashboard.
- * Boots with no hardcoded defaults — all menus are registered by the
- * application at bootstrap time.
- *
- * Enforces that every registered handler implements DashboardHandlerInterface.
- *
+ * @author Callistus Nwachukwu
  * @package SmartLicenseServer\ClientDashboard
  */
 
@@ -19,6 +14,27 @@ use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
+/**
+ * Dashboard menu and content callback registry.
+ * 
+ * 
+ * Extends AbstractDashboardRegistry for the client-facing dashboard.
+ * Boots with no hardcoded defaults — all menus are registered by the
+ * application at bootstrap time.
+ *
+ * Enforces that every registered handler implements DashboardHandlerInterface.
+ * 
+ * @example to register a menu in the client dashboard:
+ * ```php
+ *     clientDashboardRegistry()->register( 'licenses', [
+ *          'title'   => 'License',
+ *          'slug'    => 'licenses',
+ *          'handler' => [LicenseHandler::class, 'handle'],
+ *          'icon'    => 'ti ti-creative-commons-nd',
+ *      ] );
+ * 
+ *
+ */
 class ClientDashboardRegistry extends AbstractDashboardRegistry {
     /*
     |-------------
