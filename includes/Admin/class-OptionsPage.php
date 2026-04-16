@@ -274,7 +274,7 @@ class OptionsPage {
         }
 
         $vars   = compact( 'request', 'adapter', 'adapter_name', 'adapter_key', 'schema', 
-        'is_default', 'adapter_id' );
+        'is_default', 'adapter_id', 'saved_settings' );
         smliser_render_template( 'admin.options.cache.form', $vars );
     }
 

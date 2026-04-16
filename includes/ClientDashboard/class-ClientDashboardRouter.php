@@ -130,7 +130,7 @@ class ClientDashboardRouter {
 
         } else {
             $data           = static::handle_post_action( $request );
-            $status_code    = $data['success'] ? 200 : $status_code;
+            $status_code    = ( $data['success'] ?? false ) ? 200 : $status_code;
         }
 
         return ( new Response( $status_code ) )
