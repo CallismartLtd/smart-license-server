@@ -87,27 +87,19 @@ class AuthController {
     /**
      * Handle logout.
      * 
-     * @return Response
+     * @return array{success: bool, message: string}
      */
-    public static function handle_logout() : Response {
+    public static function handle_logout() : array {
         $principal  = Guard::get_principal();
 
         if ( ! $principal ) {
-            return static::error_response(
-                400,
-                'already_logged_out',
-                'Already logged out'
-            );
+            return ['success' => false, 'message' => 'Already logged out'];
         }
 
         \identityProvider()->logout();
 
         $actor_name = $principal->get_display_name();
-
-        return static::success_response(
-            200,
-            [ 'message' => sprintf( 'Good bye %s', $actor_name ) ]
-        );
+        return [ 'success' => true, 'message' => sprintf( 'Good bye %s', $actor_name ) ];
     }
 
     /*

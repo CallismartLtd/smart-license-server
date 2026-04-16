@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\ClientDashboard;
 
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
+use SmartLicenseServer\ClientDashboard\Handlers\ClientSettingsController;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\SecurityException;
 
@@ -33,7 +34,8 @@ class ClientDashboardPostRegistry {
      * @var array<string, callable> $core_actions
      */
     private array $core_actions = [
-        'logout'    => [AuthController::class, 'handle_logout']
+        'logout'            => [AuthController::class, 'handle_logout'],
+        'user-preference'   => [ClientSettingsController::class, 'set_user_preference']
     ];
 
     /**

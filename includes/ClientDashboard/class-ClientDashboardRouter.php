@@ -16,6 +16,7 @@
 namespace SmartLicenseServer\ClientDashboard;
 
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
+use SmartLicenseServer\ClientDashboard\Handlers\ClientSettingsController;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -114,7 +115,7 @@ class ClientDashboardRouter {
      */
     public static function post_dispatch( Request $request ) : Response {
         $post_action    = $request->get( 'post_action' );
-        $status_code    = 200;
+        $status_code    = 401;
 
         if ( in_array( $post_action, \authTemplateRegistry()->slugs(), true ) ) {
             $action = str_replace( '-', '_', $post_action );
@@ -128,7 +129,8 @@ class ClientDashboardRouter {
             $status_code    = 500;
 
         } else {
-            $data   = static::handle_post_action( $request );
+            $data           = static::handle_post_action( $request );
+            $status_code    = $data['success'] ? 200 : $status_code;
         }
 
         return ( new Response( $status_code ) )
@@ -176,40 +178,15 @@ class ClientDashboardRouter {
      */
     private static function handle_post_action( Request $request ) : array {
         $post_action    = $request->get( 'post_action' );
+        $registry       = ClientDashboardPostRegistry::instance();
 
-        switch( $post_action ) {
-            case 'user-preference':
-                $key    = $request->get( 'key', null );
-                if ( ! $key ) {
-                    $result = [ 'success' => false, 'message' => 'User preference key must be set.'];
-                    break;
-                }
-
-                $value  = $request->get( 'value', '' );
-                $result = static::set_user_preference( $key, $value );
-                break;
-            default:
-            $result = ['success' => false, 'message' => 'Unknown post action'];
+        if ( ! $registry->has( $post_action ) ) {
+            return [ 'success' => false, 'message' => 'Unknown post action'];
         }
 
-        return $result;
-    }
+        $result = $registry->dispatch( $post_action, $request );
 
-
-    /**
-     * Set the user dashboard preference.
-     * 
-     * @param $key The prefernce key.
-     * @param $value The preference value
-     * @return array
-     */
-    private static function set_user_preference( string $key, string $value ) : array {
-        $principal      = Guard::get_principal();
-        $user_settings  = UserSettings::for( $principal->get_actor() );
-
-        $saved  = $user_settings->set( $key, $value );
-
-        return [ 'success' => $saved, 'message' => ( $saved ? 'Saved' : 'Something went wrong' )];
+        return (array) $result;
     }
 
     private static function uri_end_matches( string $pattern, string $uri ) : bool {
