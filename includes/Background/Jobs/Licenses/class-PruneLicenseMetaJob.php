@@ -53,7 +53,7 @@ class PruneLicenseMetaJob implements JobHandlerInterface {
      * @param array $payload Unused.
      * @return array{deleted: int}
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $db         = smliser_db();
         $meta_table = SMLISER_LICENSE_META_TABLE;
         $table      = SMLISER_LICENSE_TABLE;

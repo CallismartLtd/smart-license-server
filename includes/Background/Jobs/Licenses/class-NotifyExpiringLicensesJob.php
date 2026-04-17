@@ -70,7 +70,7 @@ class NotifyExpiringLicensesJob implements JobHandlerInterface {
      * }
      * @return array{notified: int, skipped: int, ineligible: int}
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $days_before = max( 1, (int) ( $payload['days_before'] ?? 7 ) );
         $batch_size  = max( 1, (int) ( $payload['batch_size']  ?? 100 ) );
 

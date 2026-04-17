@@ -44,7 +44,7 @@ class LogDownloadJob implements JobHandlerInterface {
      * @param array<string, mixed> $payload
      * @return bool True on successful insert, false otherwise.
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $app_type    = (string) ( $payload['app_type']    ?? '' );
         $app_slug    = (string) ( $payload['app_slug']    ?? '' );
         $fingerprint = (string) ( $payload['fingerprint'] ?? '' );

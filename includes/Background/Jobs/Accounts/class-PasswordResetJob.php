@@ -42,7 +42,7 @@ class PasswordResetJob implements JobHandlerInterface {
      * @param array<string, mixed> $payload
      * @return bool|array.
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $user_id    = (int) $payload['user_id'] ?? 0;
         $user       = User::get_by_id( $user_id );
 

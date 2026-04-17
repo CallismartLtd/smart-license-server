@@ -57,7 +57,7 @@ class SendAppOwnershipChangedEmailJob implements JobHandlerInterface {
      * }
      * @return array{sent: int, skipped: int}
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $app_type          = (string) $payload['app_type'] ?? '';
         $app_slug          = (string) $payload['app_slug'] ?? '';
         $previous_owner_id = (int) ( $payload['previous_owner_id'] ?? 0 );

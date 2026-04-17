@@ -47,7 +47,7 @@ class CleanTrashedAppsJob implements JobHandlerInterface {
      * }
      * @return array{deleted: int, failed: int}
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $days_in_trash = max( 1, (int) ( $payload['days_in_trash'] ?? 30 ) );
         $batch_size    = max( 1, (int) ( $payload['batch_size']    ?? 50 ) );
 

@@ -47,25 +47,22 @@ class PruneAnalyticsLogsJob implements JobHandlerInterface {
      * @param array<string, mixed> $payload
      * @return int Number of rows deleted.
      */
-    public function handle( array $payload ): mixed {
-        $retention_days = (int) ( $payload['retention_days'] ?? 90 );
+    public function handle( array $payload = [] ): mixed {
+        $default_retention  = (int) \smliser_settings()->get( 'log_retention_days', 90, true );
+        $retention_days = (int) ( $payload['retention_days'] ?? $default_retention );
         $cutoff         = gmdate( 'Y-m-d H:i:s', strtotime( "-{$retention_days} days" ) );
 
-        $result = smliser_db()->query(
+        $affected = (int) smliser_db()->get_var(
             'DELETE FROM ' . SMLISER_ANALYTICS_LOGS_TABLE . ' WHERE created_at < ?',
             [ $cutoff ]
         );
 
-        if ( $result === false ) {
+        if ( ! $affected ) {
             return 0;
         }
 
-        // Return affected row count if the statement supports it.
-        if ( is_object( $result ) && method_exists( $result, 'rowCount' ) ) {
-            return (int) $result->rowCount();
-        }
-
-        return 0;
+        return $affected;
+        
     }
 
     /**

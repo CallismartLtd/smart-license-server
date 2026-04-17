@@ -84,7 +84,7 @@ interface JobHandlerInterface {
      * @return mixed                        Any result value, or null.
      * @throws \Throwable                   On any unrecoverable failure.
      */
-    public function handle( array $payload ): mixed;
+    public function handle( array $payload = [] ): mixed;
 
     /**
      * Return a short human-readable name for this job type.

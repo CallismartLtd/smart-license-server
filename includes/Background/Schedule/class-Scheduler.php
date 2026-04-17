@@ -46,6 +46,13 @@ use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\SettingsAPI\Settings;
 use DateTimeImmutable;
 use RuntimeException;
+use SmartLicenseServer\Background\Jobs\Analytics\PruneAnalyticsLogsJob;
+use SmartLicenseServer\Background\Jobs\Analytics\PruneLicenseActivityLogsJob;
+use SmartLicenseServer\Background\Jobs\Apps\CleanTrashedAppsJob;
+use SmartLicenseServer\Background\Jobs\Licenses\ExpireLicensesJob;
+use SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob;
+use SmartLicenseServer\Background\Jobs\Licenses\PruneLicenseMetaJob;
+use SmartLicenseServer\Background\Jobs\Monetization\CleanExpiredTokensJob;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -117,6 +124,7 @@ class Scheduler {
      */
     private function __construct( Settings $settings ) {
         $this->settings = $settings;
+        $this->load_core_tasks();
     }
 
     /*
@@ -137,15 +145,14 @@ class Scheduler {
      * @throws RuntimeException If called before Settings is available.
      */
     public static function instance( ?Settings $settings = null ): static {
-        if ( static::$instance === null ) {
-            if ( $settings === null ) {
+        if ( null === static::$instance ) {
+            if ( null === $settings ) {
                 throw new RuntimeException(
                     'Scheduler: Settings instance is required on first initialisation.'
                 );
             }
 
             static::$instance = new static( $settings );
-            static::$instance->load_core_tasks();
         }
 
         return static::$instance;
@@ -163,13 +170,14 @@ class Scheduler {
      * Returns the ScheduledTask so the fluent schedule methods
      * can be chained immediately:
      *
-     *   smliser_scheduler()->call( $fn )->daily_at( '02:00' );
+     *   smliser_scheduler()->call( 'schedule_id', $fn )->daily_at( '02:00' );
      *
+     * @param string $id The Schedule ID.
      * @param callable $callable Any PHP callable.
      * @return ScheduledTask Fluent — chain schedule methods on the returned object.
      */
-    public function call( callable $callable ): ScheduledTask {
-        $task = new ScheduledTask( $callable );
+    public function call( string $id, callable $callable ): ScheduledTask {
+        $task = new ScheduledTask( $id, $callable );
         $this->register( $task );
         return $task;
     }
@@ -196,6 +204,7 @@ class Scheduler {
         string $queue   = JobDTO::QUEUE_LOW
     ): ScheduledTask {
         $task = new ScheduledTask(
+            $job_class,
             function() use ( $job_class, $payload, $queue ) {
                 smliser_job_queue()->dispatch(
                     JobDTO::make(
@@ -444,91 +453,74 @@ class Scheduler {
      */
     protected function load_core_tasks(): void {
         // Prune raw analytics log entries weekly.
-        $this->dispatch(
-            \SmartLicenseServer\Background\Jobs\Analytics\PruneAnalyticsLogsJob::class,
-            [ 'retention_days' => 90 ]
-        )
-        ->weekly_on( 'sunday', '03:00' )
-        ->label( 'Prune Analytics Logs' )
-        ->id( 'prune_analytics_logs' );
-
+        $this->dispatch( PruneAnalyticsLogsJob::class )
+            ->id( 'prune_analytics_logs' )
+            ->weekly_on( 'sunday', '03:00' )
+            ->label( PruneAnalyticsLogsJob::get_job_name() );
+        
         // Prune license activity log entries nightly.
-        $this->dispatch(
-            \SmartLicenseServer\Background\Jobs\Analytics\PruneLicenseActivityLogsJob::class,
-            [ 'retention_months' => 3 ]
-        )
-        ->daily_at( '02:00' )
-        ->label( 'Prune License Activity Logs' )
-        ->id( 'prune_license_activity_logs' );
-
-        // Release stale running jobs every 15 minutes.
-        $this->call( function() {
-            smliser_job_queue()->release_stale_running_jobs();
-        })
-        ->every_minutes( 15 )
-        ->label( 'Release Stale Running Jobs' )
-        ->id( 'release_stale_running_jobs' );
-
-        // Purge completed jobs older than 7 days, nightly.
-        $this->call( function() {
-            smliser_job_queue()->purge_completed_jobs( 7 );
-        })
-        ->daily_at( '01:00' )
-        ->label( 'Purge Completed Jobs' )
-        ->id( 'purge_completed_jobs' );
+        $this->dispatch( PruneLicenseActivityLogsJob::class )
+            ->id( 'prune_license_activity_logs' )
+            ->daily_at( '02:00' )
+            ->label( PruneLicenseActivityLogsJob::get_job_name() );
 
         // Mark licenses past their end_date as expired and notify licensees.
-        $this->dispatch(
-            \SmartLicenseServer\Background\Jobs\Licenses\ExpireLicensesJob::class,
-            [ 'batch_size' => 100 ]
-        )
-        ->daily_at( '00:30' )
-        ->label( 'Expire Licenses' )
-        ->id( 'expire_licenses' );
+        $this->dispatch( ExpireLicensesJob::class, [ 'batch_size' => 100 ] )
+            ->id( 'expired_licenses_job' )
+            ->daily_at( '00:30' )
+            ->label( 'Expire Licenses' );
 
         // Send 7-day expiry reminder to licensees.
         $this->dispatch(
-            \SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob::class,
+            NotifyExpiringLicensesJob::class,
             [ 'days_before' => 7, 'batch_size' => 100 ]
         )
-        ->daily_at( '08:00' )
-        ->label( 'License Expiry Reminder — 7 Days' )
-        ->id( 'notify_expiring_licenses_7d' );
+            ->id( 'notify_expiring_licenses_7d' )
+            ->daily_at( '08:00' )
+            ->label( 'License Expiry Reminder — 7 Days' );
 
         // Send 3-day expiry reminder to licensees.
         $this->dispatch(
-            \SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob::class,
+            NotifyExpiringLicensesJob::class,
             [ 'days_before' => 3, 'batch_size' => 100 ]
         )
-        ->daily_at( '08:00' )
-        ->label( 'License Expiry Reminder — 3 Days' )
-        ->id( 'notify_expiring_licenses_3d' );
+            ->id( 'notify_expiring_licenses_3d' )
+            ->daily_at( '08:00' )
+            ->label( 'License Expiry Reminder — 3 Days' );
 
         // Prune orphaned license meta rows weekly.
-        $this->dispatch(
-            \SmartLicenseServer\Background\Jobs\Licenses\PruneLicenseMetaJob::class,
-            []
-        )
-        ->weekly_on( 'sunday', '04:00' )
-        ->label( 'Prune License Meta' )
-        ->id( 'prune_license_meta' );
+        $this->dispatch( PruneLicenseMetaJob::class )
+            ->id( 'prune_license_meta' )
+            ->weekly_on( 'sunday', '04:00' )
+            ->label( 'Prune License Meta' );
 
         // Clean expired download tokens every 4 hours.
-        $this->dispatch(
-            \SmartLicenseServer\Background\Jobs\Monetization\CleanExpiredTokensJob::class,
-            []
-        )
-        ->every_hours( 4 )
-        ->label( 'Clean Expired Download Tokens' )
-        ->id( 'clean_expired_tokens' );
+        $this->dispatch( CleanExpiredTokensJob::class )
+            ->id( 'clean_expired_tokens' )
+            ->every_hours( 4 )
+            ->label( 'Clean Expired Download Tokens' );
 
         // Permanently delete trashed apps older than 30 days — weekly.
         $this->dispatch(
-            \SmartLicenseServer\Background\Jobs\Apps\CleanTrashedAppsJob::class,
+            CleanTrashedAppsJob::class,
             [ 'days_in_trash' => 30, 'batch_size' => 50 ]
         )
-        ->weekly_on( 'sunday', '05:00' )
-        ->label( 'Clean Trashed Apps' )
-        ->id( 'clean_trashed_apps' );
+            ->id( 'clean_trashed_apps' )
+            ->weekly_on( 'sunday', '05:00' )
+            ->label( 'Clean Trashed Apps' );
+
+       // Release stale running jobs every 15 minutes.
+        $this->call( 'release_stale_running_jobs', function() {
+            smliser_job_queue()->release_stale_running_jobs();
+        })
+            ->every_minutes( 15 )
+            ->label( 'Release Stale Running Jobs' );
+
+        // Purge completed jobs older than 7 days, nightly.
+        $this->call( 'purge_completed_jobs', function() {
+            smliser_job_queue()->purge_completed_jobs( 7 );
+        })
+            ->daily_at( '01:00' )
+            ->label( 'Purge Completed Jobs' );
     }
 }

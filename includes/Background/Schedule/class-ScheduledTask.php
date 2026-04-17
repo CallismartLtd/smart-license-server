@@ -35,8 +35,10 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Schedule;
 
+use Closure;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use ReflectionFunction;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -72,9 +74,9 @@ class ScheduledTask {
     private string $label = '';
 
     /*
-    |----------------------
+    |-------------
     | CALLABLE
-    |----------------------
+    |-------------
     */
 
     /**
@@ -124,26 +126,30 @@ class ScheduledTask {
     private ?int $day_of_month = null;
 
     /*
-    |----------------------
+    |---------------
     | CONSTRUCTOR
-    |----------------------
+    |---------------
     */
 
     /**
      * Constructor.
      *
+     * @param string   $id       Task ID.
      * @param callable $callable The callable to invoke when this task is due.
-     * @param string   $id       Optional explicit task ID. Auto-generated if empty.
      */
-    public function __construct( callable $callable, string $id = '' ) {
+    public function __construct( string $id, callable $callable ) {
+        if ( empty( $id ) ) {
+            throw new InvalidArgumentException( 'ScheduledTask: Task ID must not be empty.' );
+        }
+
+        $this->id       = $id;
         $this->callable = $callable;
-        $this->id       = $id !== '' ? $id : $this->generate_id( $callable );
     }
 
     /*
-    |--------------------------------------------
+    |------------------------------
     | FLUENT SCHEDULE DEFINITION
-    |--------------------------------------------
+    |------------------------------
     */
 
     /**
@@ -321,6 +327,47 @@ class ScheduledTask {
     }
 
     /**
+     * Compute the first eligible run time for a task that has never run.
+     *
+     * @param DateTimeImmutable $now
+     * @return DateTimeImmutable
+     */
+    private function compute_first_run( DateTimeImmutable $now ): DateTimeImmutable {
+        $first = $now;
+
+        if ( $this->time_of_day !== null ) {
+            [ $h, $m ] = explode( ':', $this->time_of_day );
+            $first = $first->setTime( (int) $h, (int) $m, 0 );
+
+            // If time has already passed today, move to next interval.
+            if ( $first < $now ) {
+                $first = $first->modify( "+{$this->interval_seconds} seconds" );
+            }
+        }
+
+        if ( $this->day_of_week !== null ) {
+            $days_ahead = ( $this->day_of_week - (int) $first->format( 'w' ) + 7 ) % 7;
+            if ( $days_ahead > 0 ) {
+                $first = $first->modify( "+{$days_ahead} days" );
+            }
+        }
+
+        if ( $this->day_of_month !== null ) {
+            $first = $first->setDate(
+                (int) $first->format( 'Y' ),
+                (int) $first->format( 'm' ),
+                $this->day_of_month
+            );
+
+            if ( $first < $now ) {
+                $first = $first->modify( '+1 month' );
+            }
+        }
+
+        return $first;
+    }
+
+    /**
      * Compute the next run datetime after the given last run time.
      *
      * @param DateTimeImmutable $last_ran_at
@@ -362,9 +409,9 @@ class ScheduledTask {
     }
 
     /*
-    |--------------------------------------------
+    |------------------
     | INSPECTION API
-    |--------------------------------------------
+    |------------------
     */
 
     /**
@@ -382,7 +429,7 @@ class ScheduledTask {
      * @return string
      */
     public function get_label(): string {
-        return $this->label !== '' ? $this->label : $this->id;
+        return $this->label;
     }
 
     /**
@@ -423,52 +470,65 @@ class ScheduledTask {
         };
     }
 
+    /**
+     * Describe the callable.
+     * 
+     * @return string
+     */
+    public function describe_callable() : string {
+        $callable   = $this->callable;
+        // Simple function name
+        if ( is_string( $callable ) ) {
+
+            // "Class::method"
+            if ( str_contains( $callable, '::' ) ) {
+                return $callable . '()';
+            }
+
+            return $callable . '()';
+        }
+
+        // Array callable
+        if ( is_array( $callable ) ) {
+
+            [ $target, $method ] = $callable;
+
+            // Static method
+            if ( is_string( $target ) ) {
+                return $target . '::' . $method . '()';
+            }
+
+            // Object method
+            if ( is_object( $target ) ) {
+                return get_class( $target )
+                    . '->' . $method . '()';
+            }
+        }
+
+        // Closure
+        if ( $callable instanceof Closure ) {
+            $ref = new ReflectionFunction( $callable );
+
+            return sprintf(
+                'Closure(%s:%d)',
+                basename( $ref->getFileName() ),
+                $ref->getStartLine()
+            );
+        }
+
+        // Invokable object
+        if ( is_object( $callable ) && method_exists( $callable, '__invoke' ) ) {
+            return get_class( $callable ) . '()';
+        }
+
+        return 'Unknown callable';
+    }
+
     /*
     |--------------------------------------------
     | PRIVATE HELPERS
     |--------------------------------------------
     */
-
-    /**
-     * Compute the first eligible run time for a task that has never run.
-     *
-     * @param DateTimeImmutable $now
-     * @return DateTimeImmutable
-     */
-    private function compute_first_run( DateTimeImmutable $now ): DateTimeImmutable {
-        $first = $now;
-
-        if ( $this->time_of_day !== null ) {
-            [ $h, $m ] = explode( ':', $this->time_of_day );
-            $first = $first->setTime( (int) $h, (int) $m, 0 );
-
-            // If time has already passed today, move to next interval.
-            if ( $first < $now ) {
-                $first = $first->modify( "+{$this->interval_seconds} seconds" );
-            }
-        }
-
-        if ( $this->day_of_week !== null ) {
-            $days_ahead = ( $this->day_of_week - (int) $first->format( 'w' ) + 7 ) % 7;
-            if ( $days_ahead > 0 ) {
-                $first = $first->modify( "+{$days_ahead} days" );
-            }
-        }
-
-        if ( $this->day_of_month !== null ) {
-            $first = $first->setDate(
-                (int) $first->format( 'Y' ),
-                (int) $first->format( 'm' ),
-                $this->day_of_month
-            );
-
-            if ( $first < $now ) {
-                $first = $first->modify( '+1 month' );
-            }
-        }
-
-        return $first;
-    }
 
     /**
      * Assert that a time string is in valid H:i format.
@@ -526,39 +586,39 @@ class ScheduledTask {
      */
     private function generate_id( callable $callable ): string {
 
-        // Function name
+        // Function name.
         if ( is_string( $callable ) ) {
             return 'func:' . strtolower( $callable );
         }
 
-        // Class method or object method
+        // Class method or object method.
         if ( is_array( $callable ) ) {
 
-            $target = $callable[0];
+            $class  = $callable[0];
             $method = $callable[1];
 
-            // Static method
-            if ( is_string( $target ) ) {
-                return 'static:' . $target . '::' . $method;
+            // Static method.
+            if ( is_string( $class ) ) {
+                return 'static:' . $class . '::' . $method;
             }
 
-            // Object method
-            if ( is_object( $target ) ) {
-                return 'object:' . get_class( $target ) . '::' . $method . '#' . spl_object_hash( $target );
+            // Object method.
+            if ( is_object( $class ) ) {
+                return 'object:' . get_class( $class ) . '::' . $method . '#' . spl_object_hash( $class );
             }
         }
 
-        // Closure
+        // Closure.
         if ( $callable instanceof \Closure ) {
             return 'closure:' . spl_object_hash( $callable );
         }
 
-        // Invokable object
+        // Invokable object.
         if ( is_object( $callable ) && method_exists( $callable, '__invoke' ) ) {
             return 'invokable:' . get_class( $callable ) . '#' . spl_object_hash( $callable );
         }
 
-        // Fallback
+        // Fallback.
         return 'task:' . md5( uniqid( '', true ) );
     }
 }

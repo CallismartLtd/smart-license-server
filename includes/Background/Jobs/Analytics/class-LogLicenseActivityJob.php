@@ -46,7 +46,7 @@ class LogLicenseActivityJob implements JobHandlerInterface {
      * @param array<string, mixed> $payload
      * @return bool True on success.
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $activities = smliser_settings()->get( RepositoryAnalytics::LICENSE_ACTIVITY_KEY, [] );
         if ( ! \is_array( $activities ) ) {
             $activities =   [];

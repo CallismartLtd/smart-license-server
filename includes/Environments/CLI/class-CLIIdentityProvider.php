@@ -34,6 +34,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
+use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\AbstractIdentityProvider;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
@@ -134,11 +135,15 @@ final class CLIIdentityProvider extends AbstractIdentityProvider {
         throw new \Exception( 'Not implemented' );
     }
 
+    public function logout() : void {
+        Guard::clear_principal();
+    }
+
     public function signup( Request $request ): RequestException|Principal {
         throw new \Exception( 'Not implemented' );
     }
 
-    public function forgot_password( $email ): void {
-        throw new \Exception( 'Not implemented' );
+    public function reset_password(User $user, string $new_pwd): bool {
+        throw new \Exception('Not implemented');
     }
 }

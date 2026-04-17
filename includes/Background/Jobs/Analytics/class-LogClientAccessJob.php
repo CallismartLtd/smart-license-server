@@ -45,7 +45,7 @@ class LogClientAccessJob implements JobHandlerInterface {
      * @param array<string, mixed> $payload
      * @return bool True on successful insert, false otherwise.
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $app_type    = (string) ( $payload['app_type']    ?? '' );
         $app_slug    = (string) ( $payload['app_slug']    ?? '' );
         $event_type  = (string) ( $payload['event_type']  ?? '' );

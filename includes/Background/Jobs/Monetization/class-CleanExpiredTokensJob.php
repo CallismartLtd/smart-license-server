@@ -54,7 +54,7 @@ class CleanExpiredTokensJob implements JobHandlerInterface {
      * @param array $payload Unused.
      * @return array{deleted: int}
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $db    = smliser_db();
         $table = SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
 

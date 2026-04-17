@@ -62,7 +62,7 @@ class ExpireLicensesJob implements JobHandlerInterface {
      * }
      * @return array{expired: int, notified: int, skipped: int}
      */
-    public function handle( array $payload ): mixed {
+    public function handle( array $payload = [] ): mixed {
         $batch_size = max( 1, (int) ( $payload['batch_size'] ?? 100 ) );
         $db         = smliser_db();
         $table      = SMLISER_LICENSE_TABLE;
