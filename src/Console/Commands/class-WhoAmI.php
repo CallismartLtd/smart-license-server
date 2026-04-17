@@ -36,7 +36,7 @@ class WhoAmI implements CommandInterface {
 
 
     public function execute( array $args = [] ): void {
-        if (  Guard::has_principal() ) {
+        if ( ! Guard::has_principal() ) {
             $this->error( 'Guest' );
         } else {
             $this->info( Guard::get_principal()->get_display_name() );

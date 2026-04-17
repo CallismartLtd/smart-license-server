@@ -186,7 +186,7 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
         if ( in_array( $command, [ 'help', '-h', '--help' ], true ) ) {
             $target = $args[0] ?? null;
 
-            if ( $target !== null && $this->registry->has( $target ) ) {
+            if ( null !== $target && $this->registry->has( $target ) ) {
                 $this->print_command_help( $this->registry->get( $target ) );
             } else {
                 $this->print_shell_help();
@@ -204,7 +204,7 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
         // ── Registry lookup ──────────────────────────────────────────
         $class = $this->registry->get( $command );
 
-        if ( $class === null ) {
+        if ( null === $class ) {
             $this->print_error( sprintf( 'Unknown command "%s". Type "help" for a list.', $command ) );
             return;
         }
@@ -225,9 +225,9 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     }
 
     /*
-    |--------------------------------------------
+    |-------------
     | TOKENIZER
-    |--------------------------------------------
+    |-------------
     */
 
     /**
@@ -248,10 +248,10 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * @return string[]
      */
     private function tokenize( string $line ): array {
-        $tokens   = [];
-        $current  = '';
-        $in_quote = null; // null | '"' | "'"
-        $length   = strlen( $line );
+        $tokens     = [];
+        $current    = '';
+        $in_quote   = null; // null | '"' | "'"
+        $length     = strlen( $line );
 
         for ( $i = 0; $i < $length; $i++ ) {
             $char = $line[ $i ];
