@@ -85,11 +85,7 @@ class FileSystem {
      * Uses the underlying adapter where possible.
      *
      * @param string|array $dirs A single path or an array of directories to test.
-     * @return array An associative array where key = dir path, value = [
-     *               'readable' => bool,
-     *               'writable' => bool,
-     *               'error'    => string|null
-     *             ]
+     * @return array<string, array{readable: bool, writable: bool, error: string|null}>
      */
     public function test_dirs_read_write( string|array $dirs ): array {
 
@@ -149,6 +145,15 @@ class FileSystem {
         }
 
         return $results;
+    }
+
+    /**
+     * Get the underlying adapter instance
+     * 
+     * @return FileSystemAdapterInterface
+     */
+    public function get_adaper() : FileSystemAdapterInterface {
+        return $this->adapter;
     }
 
 }
