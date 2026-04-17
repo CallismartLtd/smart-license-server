@@ -20,12 +20,13 @@ if ( defined( 'SMLISER_ABSPATH' ) ) {
 
 define( 'SMLISER_ABSPATH', \ABSPATH );
 define( 'SMLISER_PATH', __DIR__ . '/' );
+define( 'SMLISER_SRC_DIR', __DIR__ . '/src/' );
 define( 'SMLISER_FILE', __FILE__ );
 define( 'SMLISER_VER', '0.2.0' );
 define( 'SMLISER_DB_VER', '0.2.0' );
 define( 'SMLISER_URL', plugin_dir_url( __FILE__ ) );
 define( 'SMLISER_APP_NAME', 'Smart License Server' );
 
-require_once SMLISER_PATH . 'includes/class-Autoloader.php';
+require_once SMLISER_SRC_DIR . 'class-Autoloader.php';
 
 SetUp::instance();

@@ -23,7 +23,7 @@ class Autoloader {
      * @var array
      */
     private static array $namespaces = array(
-        'SmartLicenseServer\\' => SMLISER_PATH . 'includes/',
+        'SmartLicenseServer\\' => SMLISER_SRC_DIR,
     );
 
     /**
@@ -32,7 +32,7 @@ class Autoloader {
      * @var array
      */
     private static array $function_dirs = array(
-        SMLISER_PATH . 'includes/Utils/functions/',
+        SMLISER_SRC_DIR . 'Utils/functions/',
     );
 
     /**
