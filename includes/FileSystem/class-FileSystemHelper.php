@@ -37,12 +37,14 @@ class FileSystemHelper {
      * Initializes the map properties.
      */
     protected static function init_maps(): void {
-        if ( isset( self::$ext_mime_type_map, self::$mimes_to_ext_map ) ) {
-            return;
+        if ( ! isset( self::$ext_mime_type_map ) ) {
+            self::$ext_mime_type_map = include_once \SMLISER_PATH . 'includes/FileSystem/bundles/ext-2-mime-type-map.php';
         }
 
-        self::$ext_mime_type_map = include \SMLISER_PATH . 'includes/FileSystem/bundles/ext-2-mime-type-map.php';
-        self::$mimes_to_ext_map  = include \SMLISER_PATH . 'includes/FileSystem/bundles/mime-type-2-ext-map.php';
+        if ( ! isset( self::$mimes_to_ext_map  ) ) {
+            self::$mimes_to_ext_map  = include_once \SMLISER_PATH . 'includes/FileSystem/bundles/mime-type-2-ext-map.php';
+
+        }
     }
 
     /**

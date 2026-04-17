@@ -1,34 +1,32 @@
 <?php
 /**
- * MIME type - preferred file extension map.
+ * MIME type to preferred file extension map (2026 Updated).
  *
  * This map is used by the FileSystemHelper to determine the *safe* file extension
  * based on the file's binary signature (MIME type).
  *
- * @package SmartLicenseServer\FileSystem\FileSystem
- * @author Callistus
+ * Updated for 2026: Removed legacy variants, added modern formats (AVIF, WebP video),
+ * consolidated duplicates, and organized by category.
+ *
+ * @package SmartLicenseServer\FileSystem\bundles
+ * @author Callistus Nwachukwu
+ * @updated 2026
  */
 
 return [
 
-    // --- Images ---
+    // --- Images (Modern & Legacy) ---
     'image/jpeg'                    => 'jpg',
-    'image/pjpeg'                   => 'jpg', // IE/Legacy variant
     'image/png'                     => 'png',
     'image/gif'                     => 'gif',
     'image/webp'                    => 'webp',
+    'image/avif'                    => 'avif',
     'image/bmp'                     => 'bmp',
     'image/x-icon'                  => 'ico',
     'image/svg+xml'                 => 'svg',
     'image/tiff'                    => 'tif',
     'image/heif'                    => 'heif',
     'image/heic'                    => 'heic',
-    'image/x-bmp'                   => 'bmp',
-    'image/x-ms-bmp'                => 'bmp',
-    'image/jpg'                     => 'jpg', // legacy variant
-    'image/avif'                    => 'avif', // modern image format
-    'video/avi'                     => 'avi', // fallback for some systems
-
 
     // --- Documents ---
     'application/pdf'               => 'pdf',
@@ -41,13 +39,22 @@ return [
     'text/plain'                    => 'txt',
     'text/csv'                      => 'csv',
     'text/tab-separated-values'     => 'tsv',
+    'text/markdown'                 => 'md',
     'application/rtf'               => 'rtf',
     'application/json'              => 'json',
     'application/xml'               => 'xml',
     'text/xml'                      => 'xml',
     'application/x-yaml'            => 'yaml',
 
-    // --- Archives (Expanded for Software Distribution) ---
+    // --- OpenDocument Formats ---
+    'application/vnd.oasis.opendocument.text'           => 'odt',
+    'application/vnd.oasis.opendocument.spreadsheet'    => 'ods',
+    'application/vnd.oasis.opendocument.presentation'   => 'odp',
+    'application/vnd.oasis.opendocument.graphics'       => 'odg',
+    'application/vnd.oasis.opendocument.formula'        => 'odf',
+    'application/vnd.oasis.opendocument.database'       => 'odb',
+
+    // --- Archives (Software Distribution) ---
     'application/zip'               => 'zip',
     'application/x-zip-compressed'  => 'zip',
     'application/x-tar'             => 'tar',
@@ -59,7 +66,7 @@ return [
     'application/vnd.rar'           => 'rar',
     'application/x-apple-diskimage' => 'dmg',
     'application/x-iso9660-image'   => 'iso',
-    
+
     // --- Audio ---
     'audio/mpeg'                    => 'mp3',
     'audio/wav'                     => 'wav',
@@ -69,16 +76,17 @@ return [
     'audio/webm'                    => 'webm',
     'audio/mp4'                     => 'm4a',
 
-    // --- Video ---
+    // --- Video (Including WebP/WebM Modern Formats) ---
     'video/mp4'                     => 'mp4',
+    'video/webm'                    => 'webm',
     'video/x-msvideo'               => 'avi',
     'video/x-ms-wmv'                => 'wmv',
     'video/mpeg'                    => 'mpeg',
-    'video/webm'                    => 'webm',
     'video/ogg'                     => 'ogv',
     'video/3gpp'                    => '3gp',
     'video/quicktime'               => 'mov',
     'video/x-flv'                   => 'flv',
+    'video/x-matroska'              => 'mkv',
 
     // --- Code & Scripts ---
     'text/html'                     => 'html',
@@ -91,37 +99,47 @@ return [
     'application/x-sh'              => 'sh',
     'application/x-perl'            => 'pl',
     'application/x-python'          => 'py',
+    'text/x-c++'                    => 'cpp',
+    'text/x-java-source'            => 'java',
+    'application/typescript'        => 'ts',
+    'text/jsx'                      => 'jsx',
+    'text/tsx'                      => 'tsx',
+    'text/x-vue'                    => 'vue',
+    'text/x-go'                     => 'go',
+    'text/x-rust'                   => 'rs',
+    'application/x-sql'             => 'sql',
 
     // --- Fonts ---
     'font/otf'                      => 'otf',
     'font/ttf'                      => 'ttf',
     'font/woff'                     => 'woff',
     'font/woff2'                    => 'woff2',
-    'application/vnd.ms-fontobject' => 'eot', // Embedded OpenType
+    'application/vnd.ms-fontobject' => 'eot',
 
-    // --- Executables / System Files ---
-    'application/octet-stream'      => 'bin', // Generic binary data (often default)
-    'application/x-msdownload'      => 'exe', // Windows executable
-    'application/x-dosexec'         => 'exe', // DOS executable
-    'application/vnd.android.package-archive' => 'apk', // Android Package
+    // --- Executables & System Files ---
+    'application/octet-stream'      => 'bin',
+    'application/x-msdownload'      => 'exe',
+    'application/x-msdos-program'   => 'exe',
+    'application/vnd.android.package-archive' => 'apk',
+    'application/x-rpm'             => 'rpm',
+    'application/x-deb'             => 'deb',
 
-    // --- Vendor/WordPress Specific ---
+    // --- Web & Mobile ---
     'application/x-wordpress-plugin' => 'zip',
     'application/x-wordpress-theme'  => 'zip',
-    'application/vnd.mozilla.xul+xml' => 'xul', // Mozilla/Firefox specific
-    'application/x-shockwave-flash' => 'swf', // Flash
+    'application/manifest+json'     => 'webmanifest',
+    'application/wasm'              => 'wasm',
+    'application/x-xpinstall'       => 'xpi',
+    'application/x-chrome-extension' => 'crx',
 
-    // --- Additional Useful MIME Types ---
-    'text/markdown'                 => 'md',
-    'text/x-log'                    => 'log',
-    'application/x-msi'             => 'msi',
-    'application/vnd.apple.installer+xml' => 'pkg', // macOS installer
+    // --- Certificates & Keys ---
     'application/x-x509-ca-cert'    => 'crt',
     'application/pkix-cert'         => 'cer',
     'application/x-pem-file'        => 'pem',
     'application/x-openssl-key'     => 'key',
-    'application/x-rpm'             => 'rpm',
-    'application/x-deb'             => 'deb',
-    'application/wasm'              => 'wasm', // WebAssembly
-    'application/manifest+json'     => 'webmanifest',
+
+    // --- Other ---
+    'text/x-log'                    => 'log',
+    'application/x-msi'             => 'msi',
+    'application/vnd.apple.installer+xml' => 'pkg',
 ];
