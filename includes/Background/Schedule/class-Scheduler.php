@@ -127,12 +127,6 @@ class Scheduler {
         $this->load_core_tasks();
     }
 
-    /*
-    |----------------------
-    | SINGLETON ACCESS
-    |----------------------
-    */
-
     /**
      * Return the singleton instance, creating it on first access.
      *
@@ -159,9 +153,9 @@ class Scheduler {
     }
 
     /*
-    |--------------------------------------------
+    |---------------------
     | TASK REGISTRATION
-    |--------------------------------------------
+    |---------------------
     */
 
     /**
@@ -248,9 +242,9 @@ class Scheduler {
     }
 
     /*
-    |--------------------------------------------
+    |----------
     | RUNNER
-    |--------------------------------------------
+    |----------
     */
 
     /**
@@ -290,9 +284,9 @@ class Scheduler {
     }
 
     /*
-    |--------------------------------------------
+    |--------------------
     | INSPECTION API
-    |--------------------------------------------
+    |--------------------
     */
 
     /**
@@ -395,9 +389,9 @@ class Scheduler {
     }
 
     /*
-    |--------------------------------------------
+    |------------------------
     | STATE PERSISTENCE
-    |--------------------------------------------
+    |------------------------
     */
 
     /**
@@ -438,9 +432,9 @@ class Scheduler {
     }
 
     /*
-    |--------------------------------------------
+    |----------------
     | CORE TASKS
-    |--------------------------------------------
+    |----------------
     */
 
     /**
@@ -453,73 +447,52 @@ class Scheduler {
      */
     protected function load_core_tasks(): void {
         // Prune raw analytics log entries weekly.
-        $this->dispatch( PruneAnalyticsLogsJob::class )
-            ->id( 'prune_analytics_logs' )
+        $this->call( 'prune_analytics_logs', [ CoreSchedules::class, 'pruneAnalyticsJob' ] )
             ->weekly_on( 'sunday', '03:00' )
             ->label( PruneAnalyticsLogsJob::get_job_name() );
         
         // Prune license activity log entries nightly.
-        $this->dispatch( PruneLicenseActivityLogsJob::class )
-            ->id( 'prune_license_activity_logs' )
+        $this->call( 'prune_license_activity_logs', [ CoreSchedules::class, 'pruneLicenseActivityJob' ] )
             ->daily_at( '02:00' )
             ->label( PruneLicenseActivityLogsJob::get_job_name() );
 
         // Mark licenses past their end_date as expired and notify licensees.
-        $this->dispatch( ExpireLicensesJob::class, [ 'batch_size' => 100 ] )
-            ->id( 'expired_licenses_job' )
+        $this->call( 'expired_licenses_job', [ CoreSchedules::class, 'markExpiredLicenses' ] )
             ->daily_at( '00:30' )
             ->label( 'Expire Licenses' );
 
         // Send 7-day expiry reminder to licensees.
-        $this->dispatch(
-            NotifyExpiringLicensesJob::class,
-            [ 'days_before' => 7, 'batch_size' => 100 ]
-        )
-            ->id( 'notify_expiring_licenses_7d' )
+        $this->call( 'notify_expiring_licenses_7d', [ CoreSchedules::class, 'sendExpiringLicense7Days'] )
             ->daily_at( '08:00' )
             ->label( 'License Expiry Reminder — 7 Days' );
-
+        
         // Send 3-day expiry reminder to licensees.
-        $this->dispatch(
-            NotifyExpiringLicensesJob::class,
-            [ 'days_before' => 3, 'batch_size' => 100 ]
-        )
-            ->id( 'notify_expiring_licenses_3d' )
+        $this->call( 'notify_expiring_licenses_3d', [ CoreSchedules::class, 'sendExpiringLicense3Days'] )
             ->daily_at( '08:00' )
             ->label( 'License Expiry Reminder — 3 Days' );
 
         // Prune orphaned license meta rows weekly.
-        $this->dispatch( PruneLicenseMetaJob::class )
-            ->id( 'prune_license_meta' )
+        $this->call( 'prune_license_meta', [ CoreSchedules::class, 'pruneOphanedLicenseMeta' ] )
             ->weekly_on( 'sunday', '04:00' )
             ->label( 'Prune License Meta' );
 
         // Clean expired download tokens every 4 hours.
-        $this->dispatch( CleanExpiredTokensJob::class )
-            ->id( 'clean_expired_tokens' )
+        $this->call( 'clean_expired_tokens', [ CoreSchedules::class, 'pruneExpiredDownloadtoken' ] )
             ->every_hours( 4 )
             ->label( 'Clean Expired Download Tokens' );
 
         // Permanently delete trashed apps older than 30 days — weekly.
-        $this->dispatch(
-            CleanTrashedAppsJob::class,
-            [ 'days_in_trash' => 30, 'batch_size' => 50 ]
-        )
-            ->id( 'clean_trashed_apps' )
+        $this->call( 'clean_trashed_apps', [ CoreSchedules::class, 'deleteTrashedApps' ] )
             ->weekly_on( 'sunday', '05:00' )
             ->label( 'Clean Trashed Apps' );
 
        // Release stale running jobs every 15 minutes.
-        $this->call( 'release_stale_running_jobs', function() {
-            smliser_job_queue()->release_stale_running_jobs();
-        })
+        $this->call( 'release_stale_running_jobs', [CoreSchedules::class, 'releaseStaleJobs' ] )
             ->every_minutes( 15 )
             ->label( 'Release Stale Running Jobs' );
 
         // Purge completed jobs older than 7 days, nightly.
-        $this->call( 'purge_completed_jobs', function() {
-            smliser_job_queue()->purge_completed_jobs( 7 );
-        })
+        $this->call( 'purge_completed_jobs', [ CoreSchedules::class, 'purgeCompletedJobs' ])
             ->daily_at( '01:00' )
             ->label( 'Purge Completed Jobs' );
     }
