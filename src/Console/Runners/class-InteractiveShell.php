@@ -341,7 +341,7 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * @return void
      */
     private function clear_screen(): void {
-        if ( DIRECTORY_SEPARATOR === '\\' ) {
+        if ( $this->is_windows() ) {
             @system( 'cls' );
         } else {
             echo "\033[2J\033[H";

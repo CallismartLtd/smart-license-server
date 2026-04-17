@@ -46,6 +46,7 @@ use SmartLicenseServer\Console\Commands\InstallRolesCommand;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
 use SmartLicenseServer\Console\Commands\SettingsCommand;
+use SmartLicenseServer\Console\Commands\WhoAmI;
 use SmartLicenseServer\Console\Commands\WorkCommand;
 use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 use SmartLicenseServer\Contracts\AbstractRegistry;
@@ -54,6 +55,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Central console command registry.
+ * 
+ * @method CommandInterface[] all() 
  */
 class CommandRegistry extends AbstractRegistry {
 
@@ -76,6 +79,7 @@ class CommandRegistry extends AbstractRegistry {
      * @var array<int, class-string<CommandInterface>>
      */
     private array $core_commands  = [
+        WhoAmI::class,
         WorkCommand::class,
         ScheduleCommand::class,
         WorkScheduleCommand::class,

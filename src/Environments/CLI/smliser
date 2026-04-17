@@ -40,13 +40,77 @@ $app_root   = '/var/www/html/apiv1.callismart.local';
 $src_path   = $app_root . '/wp-content/plugins/smart-license-server/';
 
 // Core constants.
+/**
+ * Absolute path to the Smart License Server application root.
+ *
+ * Represents the base directory of the hosting environment when running
+ * outside WordPress (CLI mode).
+ *
+ * @var string
+ */
 define( 'SMLISER_ABSPATH',  $app_root . '/' );
-define( 'SMLISER_PATH',     $src_path );
-define( 'SMLISER_FILE',     __FILE__ );
+
+/**
+ * Absolute path to the Smart License Server installation directory.
+ *
+ * Points to the plugin/app root where core files and resources reside.
+ *
+ * @var string
+ */
+define( 'SMLISER_PATH', $src_path );
+
+/**
+ * Absolute path to the CLI bootstrap file.
+ *
+ * Used for runtime reference and execution context identification.
+ *
+ * @var string
+ */
+define( 'SMLISER_FILE', __FILE__ );
+
+/**
+ * Absolute path to the Smart License Server source directory.
+ *
+ * Used for autoloading and resolving internal class files.
+ *
+ * @var string
+ */
 define( 'SMLISER_SRC_DIR', SMLISER_PATH . 'src/' );
-define( 'SMLISER_VER',      '0.2.0' );
-define( 'SMLISER_DB_VER',   '0.2.0' );
-define( 'SMLISER_URL',      '' );
+
+/**
+ * Current application version.
+ *
+ * Used for version tracking, compatibility checks, and CLI output.
+ *
+ * @var string
+ */
+define( 'SMLISER_VER', '0.2.0' );
+
+/**
+ * Current database schema version.
+ *
+ * Used to determine whether database migrations or updates are required.
+ *
+ * @var string
+ */
+define( 'SMLISER_DB_VER', '0.2.0' );
+
+/**
+ * Base URL for the application.
+ *
+ * Not applicable in CLI context, therefore defined as an empty string.
+ *
+ * @var string
+ */
+define( 'SMLISER_URL', '' );
+
+/**
+ * Human-readable application name.
+ *
+ * Used in CLI output, logs, and system identification.
+ *
+ * @var string
+ */
 define( 'SMLISER_APP_NAME', 'Smart License Server' );
 
 // Register the autoloader.
