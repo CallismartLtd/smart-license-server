@@ -13,5 +13,10 @@
     },
     "require-dev": {
         "php-stubs/wp-cli-stubs": "^2.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "SmartLicenseServer\\": "src/"
+        }
     }
 }

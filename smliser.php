@@ -98,6 +98,6 @@ define( 'SMLISER_URL', plugin_dir_url( __FILE__ ) );
  */
 define( 'SMLISER_APP_NAME', 'Smart License Server' );
 
-require_once SMLISER_SRC_DIR . 'class-Autoloader.php';
+require_once SMLISER_SRC_DIR . 'Autoloader.php';
 
 SetUp::instance();

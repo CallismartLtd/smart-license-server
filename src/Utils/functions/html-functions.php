@@ -613,7 +613,7 @@ function smliser_abort_request( $message = '', $title = '', $args = [] ) {
     $safe_title   = $title;
 
     // --- 6. Output and Exit ---
-    die( '
+    print_r( '
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -638,7 +638,6 @@ function smliser_abort_request( $message = '', $title = '', $args = [] ) {
     </body>
     </html>' );
 
-    // The die() call above handles the exit, but this line is left for explicit clarity.
     if ( $r['exit'] ) {
         exit;
     }

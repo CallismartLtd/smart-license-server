@@ -2,11 +2,6 @@
 /**
  * PSR-4 Autoloader for Smart License Server.
  * 
- * Handles the our naming convention:
- * - class-ClassName.php
- * - interface-InterfaceName.php
- * - Other prefixes as needed
- * 
  * @package SmartLicenseServer
  * @since   0.2.0
  */
@@ -43,22 +38,11 @@ class Autoloader {
     private static array $loaded_function_files = array();
     
     /**
-     * File prefixes for our naming convention
-     * 
-     * @var array
-     */
-    private static array $prefixes = array(
-        'class-',
-        'interface-',
-        'trait-',
-        'abstract-',
-    );
-    
-    /**
      * Register the autoloader
      */
     public static function boot() : void {
-        spl_autoload_register( array( __CLASS__, 'autoload' ) );
+        static::require_vendor();
+        // spl_autoload_register( array( __CLASS__, 'autoload' ), true, false );
         static::autoload_functions();
     }
     
@@ -67,7 +51,8 @@ class Autoloader {
      * 
      * @param string $class The fully-qualified class name.
      */
-    public static function autoload( $class ) : void {       
+    public static function autoload( $class ) : void {    
+        error_log( 'autoload called' );   
         // Check each registered namespace.
         foreach ( self::$namespaces as $namespace => $base_dir ) {
             // Does the class use the namespace prefix?
@@ -99,52 +84,10 @@ class Autoloader {
     private static function get_file_path( $base_dir, $class_name ) : string|bool {
         // Replace namespace separators with directory separators.
         $class_name = str_replace( '\\', DIRECTORY_SEPARATOR, $class_name );
-        // Try each prefix.
-        foreach ( self::$prefixes as $prefix ) {
-            // Convert ClassName to class-ClassName.php
-            $filename = self::class_to_filename( $prefix, $class_name );
-             
-            $full_path = $base_dir . $filename;
-            
-            if ( file_exists( $full_path ) ) {
-                return $full_path;
-            }
-        }
-        
-        // Try without prefix as fallback.
-        $filename = $class_name . '.php';
-        $full_path = $base_dir . $filename;
+        $filename   = $class_name . '.php';
+        $full_path  = $base_dir . $filename;
         
         return file_exists( $full_path ) ? $full_path : false;
-    }
-    
-    /**
-     * Convert class name to filename
-     * 
-     * Examples:
-     * - Admin\Menu + class- → Admin/class-Menu.php
-     * - Database\DatabaseAdapterInterface + interface- → Database/interface-DatabaseAdapterInterface.php
-     * 
-     * @param string $prefix     The file prefix (class-, interface-, etc.)
-     * @param string $class_name The relative class name with namespace separators replaced
-     * @return string The complete file path
-     */
-    private static function class_to_filename( string $prefix, string $class_name ) : string {
-        // Split by directory separator.
-        $parts = explode( DIRECTORY_SEPARATOR, $class_name );
-        
-        // Get the last part (actual class name).
-        $className = array_pop( $parts );
-        
-        // Add prefix to the class name.
-        $filename = $prefix . $className . '.php';
-        
-        // Rebuild the path: directory/prefix-ClassName.php
-        if ( ! empty( $parts ) ) {
-            return implode( DIRECTORY_SEPARATOR, $parts ) . DIRECTORY_SEPARATOR . $filename;
-        }
-        
-        return $filename;
     }
     
     /**
@@ -177,11 +120,16 @@ class Autoloader {
      * Autoload all function files from registered function directories.
      */
     private static function autoload_functions() : void {
-        require_once SMLISER_PATH . 'vendor/autoload.php';
-
         foreach ( self::$function_dirs as $dir ) {
             self::load_function_dir( $dir );
         }
+    }
+
+    /**
+     * Require composer autoloader
+     */
+    private static function require_vendor() : void {
+        require_once SMLISER_PATH . 'vendor/autoload.php';
     }
 
     /**
