@@ -176,13 +176,11 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
         $command = array_shift( $tokens ); // first token = command name
         $args    = $tokens;
 
-        // ── Built-in: version ────────────────────────────────────────
         if ( in_array( $command, [ 'version', '-v', '--version' ], true ) ) {
             $this->print_info();
             return;
         }
 
-        // ── Built-in: help ───────────────────────────────────────────
         if ( in_array( $command, [ 'help', '-h', '--help' ], true ) ) {
             $target = $args[0] ?? null;
 
@@ -195,13 +193,11 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
             return;
         }
 
-        // ── Built-in: clear ──────────────────────────────────────────
         if ( in_array( $command, [ 'clear', 'cls' ], true ) ) {
             $this->clear_screen();
             return;
         }
 
-        // ── Registry lookup ──────────────────────────────────────────
         $class = $this->registry->get( $command );
 
         if ( null === $class ) {

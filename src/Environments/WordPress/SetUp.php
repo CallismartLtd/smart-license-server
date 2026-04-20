@@ -94,6 +94,7 @@ class SetUp extends Environment {
         $rest_api_provider  = new RESTAPI( new V1 );
         $secret             = SECURE_AUTH_KEY;
         $salt               = SECURE_AUTH_SALT;
+        $debug_mode         = \wp_debug_mode();
         $identity_provider  = new IdentityService;        
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
         'filesystem_adapter', 'cache_adapter', 'settings_provider', 'database_adapter',

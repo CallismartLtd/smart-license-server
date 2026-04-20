@@ -122,9 +122,24 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Environment configuration data.
      * 
-     * @var array $env
+     * @var array{db_prefix: '', absolute_path: '', secret: null, salt: null, repo_path: '', uploads_dir: '', filesystem_adapter: null, cache_adapter: null, settings_provider: null, database_adapter: null, rest_api_provider: null, admin_menu_config: null, identity_provider: null, debug_mode: bool}
      */
-    protected ?array $env;
+    protected array $env = [
+        'db_prefix'             => '',
+        'absolute_path'         => '',
+        'secret'                => null,
+        'salt'                  => null,
+        'repo_path'             => '',
+        'uploads_dir'           => '',
+        'filesystem_adapter'    => null,
+        'cache_adapter'         => null,
+        'settings_provider'     => null,
+        'database_adapter'      => null,
+        'rest_api_provider'     => null,
+        'admin_menu_config'     => null,
+        'identity_provider'     => null,
+        'debug_mode'            => false
+    ];
 
     /**
      * The current request object.
@@ -256,22 +271,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      * @param array $env_config The configuration options from the environment adapter.
      */
     private function parse_config( $env_config ) : void {
-        $default_config = array(
-            'db_prefix'             => '',
-            'absolute_path'         => '',
-            'secret'                => null,
-            'salt'                  => null,
-            'repo_path'             => '',
-            'uploads_dir'           => '',
-            'filesystem_adapter'    => null,
-            'cache_adapter'         => null,
-            'settings_provider'     => null,
-            'database_adapter'      => null,
-            'rest_api_provider'     => null,
-            'admin_menu_config'     => null,
-            'identity_provider'     => null,
-
-        );
+        $default_config = $this->env;
 
         $parsed_config  = array_intersect_key( array_merge( $default_config, $env_config ), $default_config );
         $missing_config = [];
@@ -729,6 +729,15 @@ abstract class Environment implements EnvironmentProviderInterface {
          * @var int
          */
         define( 'SMLISER_DIR_PERMISSION', ( fileperms( SMLISER_ABSPATH ) & 0777 | 0755 ) );
+
+        if ( ! defined( 'APP_DEBUG' ) ) {
+            /**
+             * Debug mode flag.
+             * 
+             * @var bool
+             */
+            define( 'APP_DEBUG', $this->env['debug_mode'] );
+        }
 
     }
 

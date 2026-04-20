@@ -7,7 +7,7 @@
  *
  * Usage — auto-detection:
  *
- *   $client   = new HttpClient();
+ *   $client   = smliser_http_client();
  *   $request  = HttpRequest::post( 'https://api.example.com/send', $body )
  *                   ->with_header( 'Authorization', 'Bearer ' . $token )
  *                   ->with_json( $data );

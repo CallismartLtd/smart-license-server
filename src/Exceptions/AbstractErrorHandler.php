@@ -27,6 +27,7 @@ abstract class AbstractErrorHandler {
         'charset'       => 'utf-8',
         'code'          => 'smliser_error',
         'exit'          => true,
+        'debug'         => false
     ];
 
     /**
@@ -69,7 +70,7 @@ abstract class AbstractErrorHandler {
      *
      * @var bool
      */
-    protected static bool $debug_mode = false;
+    protected static bool $global_debug_mode = false;
 
     /**
      * Global log handler callback.
@@ -86,8 +87,8 @@ abstract class AbstractErrorHandler {
      * @return void
      */
     public static function configure( bool $debug = false, ?\Closure $log_handler = null ) : void {
-        static::$debug_mode = $debug;
-        static::$log_handler = $log_handler;
+        static::$global_debug_mode  = $debug;
+        static::$log_handler        = $log_handler;
     }
 
     /**
@@ -303,13 +304,13 @@ abstract class AbstractErrorHandler {
     }
 
     /**
-     * Enable/disable debug mode.
+     * Enable/disable debug mode for current instance.
      *
      * @param bool $debug Whether to enable debug mode.
      * @return self
      */
     public function setDebug( bool $debug ) : self {
-        static::$debug_mode = $debug;
+        $this->config['debug'] = $debug;
         return $this;
     }
 
@@ -319,7 +320,7 @@ abstract class AbstractErrorHandler {
      * @return bool
      */
     public function isDebug() : bool {
-        return static::$debug_mode;
+        return $this->config['debug'] ?? static::$global_debug_mode;
     }
 
     /**
@@ -451,32 +452,25 @@ abstract class AbstractErrorHandler {
      * @return bool Return true to stop PHP's internal error handler.
      */
     public static function handleError( int $errno, string $errstr, string $errfile, int $errline ) : bool {
-        $error_types = [
-            E_ERROR                 => 'Fatal Error',
-            E_WARNING               => 'Warning',
-            E_PARSE                 => 'Parse Error',
-            E_NOTICE                => 'Notice',
-            E_CORE_ERROR            => 'Core Fatal Error',
-            E_CORE_WARNING          => 'Core Warning',
-            E_COMPILE_ERROR         => 'Compile Error',
-            E_COMPILE_WARNING       => 'Compile Warning',
-            E_USER_ERROR            => 'User Error',
-            E_USER_WARNING          => 'User Warning',
-            E_USER_NOTICE           => 'User Notice',
-            E_RECOVERABLE_ERROR     => 'Recoverable Error',
-            E_DEPRECATED            => 'Deprecated',
-            E_USER_DEPRECATED       => 'User Deprecated',
-        ];
 
-        if ( defined( 'E_STRICT' ) ) {
-            $error_types[E_STRICT] = 'Strict Notice';
-        }
-
-        $title = $error_types[ $errno ] ?? 'Unknown Error';
+        $title = static::getErrorTitle( $errno );
 
         // Non-fatal errors: log and continue.
-        if ( in_array( $errno, [ E_WARNING, E_NOTICE, E_DEPRECATED, E_USER_NOTICE, E_USER_WARNING ], true ) ) {
-            error_log( "{$title}: {$errstr} in " . basename( $errfile ) . " on line {$errline}" );
+        if ( ! static::isFatalError( $errno ) ) {
+
+            $exception = new Exception(
+                'non_fatal_' . $errno,
+                $errstr,
+                [
+                    'status' => 500,
+                    'title'  => $title,
+                    'file'   => $errfile,
+                    'line'   => $errline,
+                ]
+            );
+
+            static::logError( $exception );
+
             return true;
         }
 
@@ -497,7 +491,7 @@ abstract class AbstractErrorHandler {
 
         // Display using handler.
         static::create( $exception )
-            ->setDebug( static::$debug_mode )
+            ->setDebug( static::$global_debug_mode )
             ->display();
 
         return true;
@@ -522,10 +516,10 @@ abstract class AbstractErrorHandler {
                 'uncaught_exception',
                 $exception->getMessage(),
                 [
-                    'status' => 500,
-                    'title' => get_class( $exception ),
-                    'file' => $exception->getFile(),
-                    'line' => $exception->getLine(),
+                    'status'    => 500,
+                    'title'     => get_class( $exception ),
+                    'file'      => $exception->getFile(),
+                    'line'      => $exception->getLine(),
                 ]
             );
         }
@@ -535,7 +529,7 @@ abstract class AbstractErrorHandler {
 
         // Display using handler.
         static::create( $exception )
-            ->setDebug( static::$debug_mode )
+            ->setDebug( static::$global_debug_mode )
             ->display();
     }
 
@@ -555,16 +549,9 @@ abstract class AbstractErrorHandler {
         $error = error_get_last();
 
         // Only handle fatal errors.
-        if ( ! $error || ! in_array( $error['type'], [ E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR ], true ) ) {
+        if ( ! $error || ! static::isFatalError( $error['type'] ) ) {
             return;
         }
-
-        $error_types = [
-            E_ERROR => 'Fatal Error',
-            E_PARSE => 'Parse Error',
-            E_CORE_ERROR => 'Core Fatal Error',
-            E_COMPILE_ERROR => 'Compile Error',
-        ];
 
         // Create Exception object from shutdown error - respects Exception class.
         $exception = new Exception(
@@ -572,7 +559,7 @@ abstract class AbstractErrorHandler {
             $error['message'],
             [
                 'status' => 500,
-                'title' => $error_types[ $error['type'] ] ?? 'Fatal Error',
+                'title' => static::getErrorTitle( $error['type'] ),
                 'file' => $error['file'] ?? 'unknown',
                 'line' => $error['line'] ?? 0,
             ]
@@ -581,10 +568,10 @@ abstract class AbstractErrorHandler {
         // Log error.
         static::logError( $exception );
 
-        // Display without exit on shutdown.
+        // Display, exit on critical errors.
         static::create( $exception )
             ->setDebug( false )
-            ->setExit( false )
+            ->setExit( true )
             ->display();
     }
 
@@ -597,7 +584,7 @@ abstract class AbstractErrorHandler {
      * Usage:
      *   HttpErrorHandler::registerHandlers();
      *   // Or with custom configuration:
-     *   ErrorHandler::configure( true, $logger_callback );
+     *   AbstractErrorHandler::configure( true, $logger_callback );
      *   HttpErrorHandler::registerHandlers();
      *
      * @param bool $handle_errors Whether to register error handler.
@@ -623,12 +610,65 @@ abstract class AbstractErrorHandler {
      * Unregister all error handlers.
      *
      * Usage:
-     *   ErrorHandler::unregisterHandlers();
+     *   AbstractErrorHandler::unregisterHandlers();
      *
      * @return void
      */
     public static function unregisterHandlers() : void {
         restore_error_handler();
         restore_exception_handler();
+    }
+
+    /**
+     * Tells whether the error is fatal
+     * 
+     * @param int $error_type
+     * @return bool
+     */
+    protected static function isFatalError( int $error_type ) : bool {
+        static $fatal = [
+            E_ERROR,
+            E_PARSE,
+            E_CORE_ERROR,
+            E_COMPILE_ERROR,
+        ];
+
+        return in_array( $error_type, $fatal, true );
+    }
+
+    /**
+     * Get human-readable error title from error type.
+     *
+     * @param int $error_type
+     * @return string
+     */
+    protected static function getErrorTitle( int $error_type ) : string {
+        static $error_types = null;
+
+        if ( $error_types === null ) {
+            $error_types = [
+                E_ERROR             => 'Fatal Error',
+                E_WARNING           => 'Warning',
+                E_PARSE             => 'Parse Error',
+                E_NOTICE            => 'Notice',
+                E_CORE_ERROR        => 'Core Fatal Error',
+                E_CORE_WARNING      => 'Core Warning',
+                E_COMPILE_ERROR     => 'Compile Error',
+                E_COMPILE_WARNING   => 'Compile Warning',
+                E_USER_ERROR        => 'User Error',
+                E_USER_WARNING      => 'User Warning',
+                E_USER_NOTICE       => 'User Notice',
+                E_RECOVERABLE_ERROR => 'Recoverable Error',
+                E_DEPRECATED        => 'Deprecated',
+                E_USER_DEPRECATED   => 'User Deprecated',
+            ];
+
+            if ( defined( 'E_STRICT' ) ) {
+                /** @disregard PHP 8.4 deprecation */
+                $error_types[E_STRICT] = 'Strict Notice';
+            }
+        }
+
+        return $error_types[ $error_type ] ?? 'Unknown Error';
     }
 }

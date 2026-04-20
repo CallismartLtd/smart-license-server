@@ -196,6 +196,6 @@ class WPCLIRunner implements RunnerInterface {
      * @return bool
      */
     private function is_wpcli(): bool {
-        return defined( 'WP_CLI' ) && \WP_CLI;
+        return defined( 'WP_CLI' ) && constant( 'WP_CLI' );
     }
 }

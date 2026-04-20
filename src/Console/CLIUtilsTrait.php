@@ -74,6 +74,7 @@ trait CLIUtilsTrait {
                 $opts[$k] = $arg;
                 continue;
             }
+            
             if ( ! str_starts_with( $arg, '--' ) ) {
                 continue;
             }

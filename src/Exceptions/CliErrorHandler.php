@@ -29,7 +29,7 @@ class CliErrorHandler extends AbstractErrorHandler {
         // If rendering an Exception, use its render() method.
         if ( $this->error_object instanceof Exception ) {
             // For CLI, include trace based on debug configuration.
-            $include_trace = static::$debug_mode;
+            $include_trace = static::$global_debug_mode;
             return $this->error_object->render( $include_trace );
         }
 

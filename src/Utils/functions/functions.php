@@ -34,15 +34,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @return bool
  */
 function smliser_debug_enabled() : bool {
-    if ( defined( 'DEBUG_MODE' ) && constant( 'DEBUG_MODE' )  ) {
-        return true;
-    } 
-
-    if ( defined( 'WP_DEBUG' ) && constant( 'WP_DEBUG' ) ) {
-        return true;
-    }
-
-    return false;
+    return ( defined( 'APP_DEBUG' ) && APP_DEBUG ) || false;
 }
 
 /**
@@ -503,8 +495,7 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
 
         $destination    = sprintf( '%s/%s', SMLISER_TMP_DIR, uniqid( SMLISER_UPLOAD_TMP_PREFIX ) );
 
-        $response    = ( new HttpClient )
-        ->download( $url, $destination, [], $options );
+        $response    = smliser_http_client()->download( $url, $destination, [], $options );
 
         if ( $response->is_error() ) {
             throw new FileRequestException(

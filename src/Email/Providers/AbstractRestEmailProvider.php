@@ -33,7 +33,6 @@ use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Http\HttpResponse;
 use InvalidArgumentException;
-use SmartLicenseServer\Email\EmailProvidersRegistry;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -75,7 +74,7 @@ abstract class AbstractRestEmailProvider implements EmailProviderInterface {
      * @param HttpClient|null $http_client
      */
     public function __construct( ?HttpClient $http_client = null ) {
-        $this->http_client = $http_client ?? new HttpClient();
+        $this->http_client = $http_client ?? smliser_http_client();
     }
 
     /*

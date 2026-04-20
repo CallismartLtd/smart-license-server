@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console;
 
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -82,7 +83,7 @@ trait CLIFilesystemAwareTrait {
 
         $temp_path = smliser_download_url( $url, timeout: 60, autoclean: $auto_clean  );
 
-        if ( $temp_path instanceof \SmartLicenseServer\Exceptions\FileRequestException ) {
+        if ( $temp_path instanceof FileRequestException ) {
             $status  = $temp_path->get_error_data()['status'] ?? 0;
             $message = $temp_path->get_error_message() ?: 'Unknown download error.';
 
@@ -90,6 +91,7 @@ trait CLIFilesystemAwareTrait {
                 ? sprintf( 'Download failed [HTTP %d]: %s', $status, $message )
                 : sprintf( 'Download failed: %s', $message )
             );
+            
             return null;
         }
 

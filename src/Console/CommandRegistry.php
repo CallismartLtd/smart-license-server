@@ -56,7 +56,9 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * Central console command registry.
  * 
- * @method CommandInterface[] all() 
+ * @method array<string, class-string<CommandInterface>> all() Get all registered coomands.
+ * @method class-string<CommandInterface>|null get( string $coomand ) Get a command from registry.
+ * @method bool has( string $coomand ) Tells whether a command exists in the registry.
  */
 class CommandRegistry extends AbstractRegistry {
 

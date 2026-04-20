@@ -20,7 +20,7 @@
  *
  * ## History file location
  *
- *   {SMLISER_ABSPATH}.smliser_history   (hidden dot-file, project root)
+ *   {SMLISER_ABSPATH}.smliser.shell_history   (hidden dot-file, project root)
  *
  *   The file stores one entry per line, newest last, capped at
  *   ShellHistoryTrait::HISTORY_LIMIT entries. It is created on first use
@@ -240,8 +240,8 @@ trait ShellHistoryTrait {
                 // ── Backspace (0x7F or 0x08) ─────────────────────────
                 if ( $byte === 127 || $byte === 8 ) {
                     if ( $buffer !== '' ) {
-                        $buffer = mb_substr( $buffer, 0, -1 );
-                        echo "\x08 \x08"; // erase last printed character
+                        $buffer = substr( $buffer, 0, -1 );
+                        echo "\x08 \x08"; // erase last printed character.
                     }
                     continue;
                 }
@@ -504,7 +504,7 @@ trait ShellHistoryTrait {
 
         $path = $this->history_file_path();
 
-        if ( $path === null || ! is_readable( $path ) ) {
+        if ( ! is_readable( $path ) ) {
             return;
         }
 
@@ -528,13 +528,8 @@ trait ShellHistoryTrait {
      * @return void
      */
     private function history_save(): void {
-        $path = $this->history_file_path();
-
-        if ( $path === null ) {
-            return;
-        }
-
-        $dir = dirname( $path );
+        $path   = $this->history_file_path();
+        $dir    = dirname( $path );
 
         if ( ! is_dir( $dir ) || ! is_writable( $dir ) ) {
             return;
@@ -542,23 +537,18 @@ trait ShellHistoryTrait {
 
         $content = implode( PHP_EOL, $this->shell_history ) . PHP_EOL;
 
-        @file_put_contents( $path, $content, LOCK_EX );
+        file_put_contents( $path, $content, LOCK_EX );
     }
 
     /**
      * Return the absolute path to the history file.
      *
      * Resolves to {SMLISER_ABSPATH}.smliser_history.
-     * Returns null if SMLISER_ABSPATH is not defined.
      *
      * @return string|null
      */
-    private function history_file_path(): ?string {
-        if ( ! defined( 'SMLISER_ABSPATH' ) ) {
-            return null;
-        }
-
-        return rtrim( SMLISER_ABSPATH, '/\\' ) . DIRECTORY_SEPARATOR . '.smliser.bash_history';
+    private function history_file_path(): string {
+        return rtrim( SMLISER_ABSPATH, '/\\' ) . DIRECTORY_SEPARATOR . '.smliser.shell_history';
     }
 
     /*
