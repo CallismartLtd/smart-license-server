@@ -34,7 +34,7 @@ $app_root   = '/var/www/html/apiv1.callismart.local';
 /**
  * Absolute path to the Smart License Server source code directory. Adjust as needed.
  * 
- * @example '/usr/local/www/smart-license-server/app/'
+ * @example '/usr/local/www/smart-license-server/src/'
  * @var string
  */
 $src_path   = $app_root . '/wp-content/plugins/smart-license-server/';
