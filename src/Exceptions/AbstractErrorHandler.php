@@ -27,7 +27,7 @@ abstract class AbstractErrorHandler {
         'charset'       => 'utf-8',
         'code'          => 'smliser_error',
         'exit'          => true,
-        'debug'         => false
+        'debug'         => null
     ];
 
     /**
@@ -66,29 +66,22 @@ abstract class AbstractErrorHandler {
     protected ?Exception $error_object = null;
 
     /**
-     * Global debug mode configuration.
-     *
-     * @var bool
-     */
-    protected static bool $global_debug_mode = false;
-
-    /**
      * Global log handler callback.
      *
      * @var \Closure|null
      */
-    protected static ?\Closure $log_handler = null;
+    protected ?\Closure $log_handler = null;
 
     /**
-     * Configure error handler globally.
+     * Set the error log handler.
      *
-     * @param bool $debug Whether to enable debug mode globally.
      * @param \Closure|null $log_handler Optional callback for logging errors.
-     * @return void
+     * @return static Fluent
      */
-    public static function configure( bool $debug = false, ?\Closure $log_handler = null ) : void {
-        static::$global_debug_mode  = $debug;
-        static::$log_handler        = $log_handler;
+    public function setLogHandler( \Closure $log_handler ) : static {
+        $this->log_handler      = $log_handler;
+
+        return $this;
     }
 
     /**
@@ -100,7 +93,30 @@ abstract class AbstractErrorHandler {
      */
     public function __construct( $message = '', $title = '', $args = [] ) {
         $this->config = $this->defaults;
+        
         $this->initialize( $message, $title, $args );
+    }
+
+    /**
+     * Set the error object.
+     * 
+     * @param Exception
+     */
+    public function setException( Exception $e ) {
+        $this->error_object = $e;
+    }
+
+    /**
+     * Set configuration property.
+     * 
+     * @param array
+     */
+    public function setConfig( array $args ) : static {
+        $this->config = $this->defaults;
+        
+        $this->initialize( $this->message, $this->title, $args );
+
+        return $this;
     }
 
     /**
@@ -114,8 +130,8 @@ abstract class AbstractErrorHandler {
     private function initialize( $message, $title, $args ) : self {
         // Handle HTTP response code passed as title.
         if ( is_int( $title ) ) {
-            $args  = [ 'response' => $title ];
-            $title = '';
+            $args   = [ 'response' => $title ];
+            $title  = '';
         } elseif ( is_int( $args ) ) {
             $args = [ 'response' => $args ];
         }
@@ -320,7 +336,7 @@ abstract class AbstractErrorHandler {
      * @return bool
      */
     public function isDebug() : bool {
-        return $this->config['debug'] ?? static::$global_debug_mode;
+        return $this->config['debug'] ?? false;
     }
 
     /**
@@ -400,28 +416,6 @@ abstract class AbstractErrorHandler {
     }
 
     /**
-     * Static factory method - must be implemented by subclasses.
-     *
-     * @param string|Exception $message Error message or exception.
-     * @param string|int $title Error title or HTTP code.
-     * @param array|int $args Additional arguments or HTTP code.
-     * @return static
-     */
-    abstract public static function create( $message = '', $title = '', $args = [] ) : static;
-
-    /**
-     * Create and display error.
-     *
-     * @param string|Exception $message Error message or exception.
-     * @param string|int $title Error title or HTTP code.
-     * @param array|int $args Additional arguments or HTTP code.
-     * @return void
-     */
-    public static function abort( $message = '', $title = '', $args = [] ) : void {
-        static::create( $message, $title, $args )->display();
-    }
-
-    /**
      * Centralized error logging - RESPECTS EXCEPTION STRUCTURE.
      *
      * Logs using Exception's to_array() method for consistent structured data.
@@ -429,9 +423,9 @@ abstract class AbstractErrorHandler {
      * @param Exception $exception The exception to log.
      * @return void
      */
-    protected static function logError( Exception $exception ) : void {
-        if ( static::$log_handler ) {
-            ( static::$log_handler )( $exception->to_array() );
+    public function logError( Exception $exception ) : void {
+        if ( $this->log_handler ) {
+            ( $this->log_handler )( $exception->to_array() );
         } else {
             error_log( json_encode( $exception->to_array() ) );
         }
@@ -451,12 +445,12 @@ abstract class AbstractErrorHandler {
      * @param int $errline Error line.
      * @return bool Return true to stop PHP's internal error handler.
      */
-    public static function handleError( int $errno, string $errstr, string $errfile, int $errline ) : bool {
+    public function handleError( int $errno, string $errstr, string $errfile, int $errline ) : bool {
 
-        $title = static::getErrorTitle( $errno );
+        $title = $this->getErrorTitle( $errno );
 
         // Non-fatal errors: log and continue.
-        if ( ! static::isFatalError( $errno ) ) {
+        if ( ! $this->isFatalError( $errno ) ) {
 
             $exception = new Exception(
                 'non_fatal_' . $errno,
@@ -469,7 +463,7 @@ abstract class AbstractErrorHandler {
                 ]
             );
 
-            static::logError( $exception );
+            $this->logError( $exception );
 
             return true;
         }
@@ -487,12 +481,12 @@ abstract class AbstractErrorHandler {
         );
 
         // Log using Exception's structured data.
-        static::logError( $exception );
+        $this->logError( $exception );
 
         // Display using handler.
-        static::create( $exception )
-            ->setDebug( static::$global_debug_mode )
-            ->display();
+        $this->error_object = $exception;
+            
+        $this->display();
 
         return true;
     }
@@ -508,7 +502,7 @@ abstract class AbstractErrorHandler {
      * @param \Throwable $exception The uncaught exception.
      * @return void
      */
-    public static function handleException( \Throwable $exception ) : void {
+    public function handleException( \Throwable $exception ) : void {
         // Only handle our Exception class specially.
         if ( ! $exception instanceof Exception ) {
             // Wrap standard exceptions in our Exception class for consistency.
@@ -525,12 +519,12 @@ abstract class AbstractErrorHandler {
         }
 
         // Log using Exception's structured data.
-        static::logError( $exception );
+        $this->logError( $exception );
 
         // Display using handler.
-        static::create( $exception )
-            ->setDebug( static::$global_debug_mode )
-            ->display();
+        $this->error_object = $exception;
+
+        $this->display();
     }
 
     /**
@@ -540,16 +534,13 @@ abstract class AbstractErrorHandler {
      *
      * This catches fatal errors that occur during script execution.
      *
-     * Usage:
-     *   register_shutdown_function( [ HttpErrorHandler::class, 'handleShutdown' ] );
-     *
      * @return void
      */
-    public static function handleShutdown() : void {
+    public function handleShutdown() : void {
         $error = error_get_last();
 
         // Only handle fatal errors.
-        if ( ! $error || ! static::isFatalError( $error['type'] ) ) {
+        if ( ! $error || ! $this->isFatalError( $error['type'] ) ) {
             return;
         }
 
@@ -559,20 +550,18 @@ abstract class AbstractErrorHandler {
             $error['message'],
             [
                 'status' => 500,
-                'title' => static::getErrorTitle( $error['type'] ),
+                'title' => $this->getErrorTitle( $error['type'] ),
                 'file' => $error['file'] ?? 'unknown',
                 'line' => $error['line'] ?? 0,
             ]
         );
 
         // Log error.
-        static::logError( $exception );
+        $this->logError( $exception );
 
         // Display, exit on critical errors.
-        static::create( $exception )
-            ->setDebug( false )
-            ->setExit( true )
-            ->display();
+        $this->error_object =  $exception;
+        $this->setExit( true )->display();
     }
 
     /**
@@ -581,28 +570,22 @@ abstract class AbstractErrorHandler {
      * Convenience method to set up error, exception, and shutdown handlers.
      * Configurable with global debug settings.
      *
-     * Usage:
-     *   HttpErrorHandler::registerHandlers();
-     *   // Or with custom configuration:
-     *   AbstractErrorHandler::configure( true, $logger_callback );
-     *   HttpErrorHandler::registerHandlers();
-     *
      * @param bool $handle_errors Whether to register error handler.
      * @param bool $handle_exceptions Whether to register exception handler.
      * @param bool $handle_shutdown Whether to register shutdown handler.
      * @return void
      */
-    public static function registerHandlers( bool $handle_errors = true, bool $handle_exceptions = true, bool $handle_shutdown = true ) : void {
+    public function registerHandlers( bool $handle_errors = true, bool $handle_exceptions = true, bool $handle_shutdown = true ) : void {
         if ( $handle_errors ) {
-            set_error_handler( [ static::class, 'handleError' ] );
+            set_error_handler( [ $this, 'handleError' ] );
         }
 
         if ( $handle_exceptions ) {
-            set_exception_handler( [ static::class, 'handleException' ] );
+            set_exception_handler( [ $this, 'handleException' ] );
         }
 
         if ( $handle_shutdown ) {
-            register_shutdown_function( [ static::class, 'handleShutdown' ] );
+            register_shutdown_function( [ $this, 'handleShutdown' ] );
         }
     }
 
@@ -614,7 +597,7 @@ abstract class AbstractErrorHandler {
      *
      * @return void
      */
-    public static function unregisterHandlers() : void {
+    public function unregisterHandlers() : void {
         restore_error_handler();
         restore_exception_handler();
     }
@@ -662,11 +645,6 @@ abstract class AbstractErrorHandler {
                 E_DEPRECATED        => 'Deprecated',
                 E_USER_DEPRECATED   => 'User Deprecated',
             ];
-
-            if ( defined( 'E_STRICT' ) ) {
-                /** @disregard PHP 8.4 deprecation */
-                $error_types[E_STRICT] = 'Strict Notice';
-            }
         }
 
         return $error_types[ $error_type ] ?? 'Unknown Error';

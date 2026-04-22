@@ -28,6 +28,7 @@ use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
+use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -104,6 +105,18 @@ class SetUp extends Environment {
      * @throws EnvironmentBootstrapException On missing required env variables.
      */
     private function setProps(): void {
+        $debug_mode     = (bool) ( $_ENV['SMLISER_DEBUG'] ?? false );
+        $display_errors = (bool) ( $_ENV['SMLISER_DISPLAY_ERRORS'] ?? false );
+        GlobalErrorHandler::instance()
+            ->bootstrap([
+                'debug'             => $debug_mode,
+                'environment'       => 'cli',
+                'display_errors'    => $display_errors,
+                'log_errors'        => $debug_mode,
+                'log_path'          => \SMLISER_ABSPATH . 'error.log',
+            ])
+            ->registerHandlers();
+        
         static::$envProvider = $this;
 
         $db_host    = $_ENV['SMLISER_DB_HOST']     ?? '127.0.0.1';
@@ -151,7 +164,7 @@ class SetUp extends Environment {
             'repo_path'        => $repo_path,
             'uploads_dir'      => $uploads_dir,
             'rest_api_provider' => new CLIRESTProvider(),
-            'secret'            => $_ENV['SMLISER_SECRET'] ?? '',
+            // 'secret'            => $_ENV['SMLISER_SECRET'] ?? '',
             'salt'              => $_ENV['SMLISER_SALT'] ?? '',
             'identity_provider' => new CLIIdentityProvider
         ];

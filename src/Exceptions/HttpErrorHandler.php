@@ -295,7 +295,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $html .= "\t<div class=\"error-container\">\n";
         $html .= "\t\t<h1>" . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . "</h1>\n";
         $html .= "\t\t<div class=\"error-message\">\n";
-        $html .= "\t\t\t<pre>" . $content . "</pre>\n";
+        $html .= "\t\t\t" . $content . "\n";
         $html .= "\t\t</div>\n";
 
         $links = $this->renderLinks();
@@ -313,6 +313,60 @@ class HttpErrorHandler extends AbstractErrorHandler {
     }
 
     /**
+     * Render the error object in HTML
+     * 
+     * @return string
+     */
+    private function renderErrorInHtml() : string {
+        $nl    = "\n";
+        $class = get_called_class();
+        $out   = '';
+
+        // Header line.
+        $out .= sprintf( '%s: %s', $class, $this->getMessage() ) . $nl . $nl;
+
+        // Structured errors.
+        if ( $this->error_object->has_errors() ) {
+            $out .= 'All Errors:' . $nl;
+
+            foreach ( $this->error_object->errors as $code => $messages ) {
+                foreach ( $messages as $message ) {
+                    $out .= sprintf( '  → [%s] %s', $code, $message ) . $nl;
+                }
+            }
+
+            $out .= $nl;
+            $out .= 'Error Codes: ' . implode( ', ', $this->error_object->get_error_codes() ) . $nl;
+            $out .= 'Data: ' . smliser_safe_json_encode( $this->error_object->error_data, JSON_PRETTY_PRINT ) . $nl;
+            
+        }
+
+        // Chained exception.
+        $previous = $this->error_object->getPrevious();
+        if ( $previous ) {
+            $out .= $nl . sprintf(
+                'Caused by: %s: %s',
+                get_class( $previous ),
+                $previous->getMessage()
+            ) . $nl;
+        }
+
+        // Stack trace — HTML-wrapped, opt-in only.
+        if ( $this->isDebug() ) {
+            $out .= $nl . 'Trace:' . $nl;
+            $out .= '<div>' . $this->error_object->getTraceAsString() . '</div>' . $nl;
+
+            if ( $previous ) {
+                $out .= $nl . 'Previous Trace:' . $nl;
+                $out .= '<div>' . $previous->getTraceAsString() . '</div>' . $nl;
+            }
+        }
+
+        $out    = "<pre>" . $out . "</pre>";
+        return $this->wrapInHtml( $out );
+    }
+
+    /**
      * Render complete HTML - DELEGATES TO EXCEPTION CLASS FOR RENDERING.
      *
      * If rendering an Exception, uses its render() method.
@@ -323,42 +377,10 @@ class HttpErrorHandler extends AbstractErrorHandler {
     public function render() : string {
         // If rendering an Exception, use its render() method.
         if ( $this->error_object instanceof Exception ) {
-            // For HTTP, use trace based on debug configuration.
-            $include_trace = static::$global_debug_mode;
-            $rendered = $this->error_object->render( $include_trace );
-            
-            // Wrap Exception's output in HTML template.
-            return $this->wrapInHtml( $rendered );
+            return $this->renderErrorInHtml();
         }
 
-        // Fallback for string messages.
-        $html_attrs = $this->renderAttributes( $this->html_attributes );
-        $body_attrs = $this->renderAttributes( $this->body_attributes );
-
-        $html = "<!DOCTYPE html>\n";
-        $html .= "<html" . $html_attrs . ">\n";
-        $html .= "<head>\n";
-        $html .= $this->renderHead();
-        $html .= "</head>\n";
-        $html .= "<body" . $body_attrs . ">\n";
-        $html .= "\t<div class=\"error-container\">\n";
-        $html .= "\t\t<h1>" . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . "</h1>\n";
-        $html .= "\t\t<div class=\"error-message\">\n";
-        $html .= "\t\t\t" . $this->getMessage() . "\n";
-        $html .= "\t\t</div>\n";
-
-        $links = $this->renderLinks();
-        if ( ! empty( $links ) ) {
-            $html .= "\t\t<div class=\"error-links\">\n";
-            $html .= $links;
-            $html .= "\t\t</div>\n";
-        }
-
-        $html .= "\t</div>\n";
-        $html .= "</body>\n";
-        $html .= "</html>";
-
-        return $html;
+        return $this->wrapInHtml( $this->getMessage() );
     }
 
     /**
@@ -385,17 +407,5 @@ class HttpErrorHandler extends AbstractErrorHandler {
         }
         
         return $this;
-    }
-
-    /**
-     * Static factory method.
-     *
-     * @param string|Exception $message Error message or exception.
-     * @param string|int $title Error title or HTTP code.
-     * @param array|int $args Additional arguments or HTTP code.
-     * @return static
-     */
-    public static function create( $message = '', $title = '', $args = [] ) : static {
-        return new static( $message, $title, $args );
     }
 }

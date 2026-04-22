@@ -52,7 +52,6 @@ class Autoloader {
      * @param string $class The fully-qualified class name.
      */
     public static function autoload( $class ) : void {    
-        error_log( 'autoload called' );   
         // Check each registered namespace.
         foreach ( self::$namespaces as $namespace => $base_dir ) {
             // Does the class use the namespace prefix?

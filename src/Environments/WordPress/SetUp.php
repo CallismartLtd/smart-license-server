@@ -15,6 +15,7 @@ use SmartLicenseServer\Console\Runners\WPCLIRunner;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Adapters\WPDBAdapter;
+use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\RESTAPI\Versions\V1;
@@ -80,6 +81,18 @@ class SetUp extends Environment {
      * Bootstrap the class properties.
      */
     private function setProps() : void {
+        $debug_mode         = defined( 'WP_DEBUG' ) && constant( 'WP_DEBUG' );
+
+        GlobalErrorHandler::instance()
+            ->bootstrap([
+                'debug'             => $debug_mode,
+                'environment'       => 'http',
+                'display_errors'    => defined( 'WP_DEBUG_DISPLAY' ) && constant( 'WP_DEBUG_DISPLAY' ),
+                'log_errors'        => $debug_mode,
+                'log_path'          => \SMLISER_ABSPATH . 'error.log',
+            ])
+            ->registerHandlers();
+
         static::$envProvider    = $this;
         /** @var \wpdb $wpdb */
         $wpdb               = $GLOBALS['wpdb'] ?? null;
@@ -94,11 +107,11 @@ class SetUp extends Environment {
         $rest_api_provider  = new RESTAPI( new V1 );
         $secret             = SECURE_AUTH_KEY;
         $salt               = SECURE_AUTH_SALT;
-        $debug_mode         = \wp_debug_mode();
+
         $identity_provider  = new IdentityService;        
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
         'filesystem_adapter', 'cache_adapter', 'settings_provider', 'database_adapter',
-        'rest_api_provider', 'salt', 'secret', 'identity_provider'
+        'rest_api_provider', 'secret', 'identity_provider', 'debug_mode', 'salt'
         
         );
 

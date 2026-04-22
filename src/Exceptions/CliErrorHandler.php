@@ -12,7 +12,79 @@
 
 namespace SmartLicenseServer\Exceptions;
 
+use SmartLicenseServer\Console\CLIUtilsTrait;
+
 class CliErrorHandler extends AbstractErrorHandler {
+    use CLIUtilsTrait;
+    
+    private function outputError() : string {
+        $class = get_class( $this->error_object );
+
+        // Header.
+        $this->line(
+            $this->colorize( self::ANSI_RED . self::ANSI_BOLD, "✖ {$class}" ),
+        );
+        
+
+        if ( $this->getMessage() ) {
+            $this->error( $this->getMessage() );
+        }
+
+        // Structured errors.
+        if ( $this->error_object->has_errors() ) {
+            $this->info( 'Errors:' );
+
+            foreach ( $this->error_object->errors as $code => $messages ) {
+                $this->line(
+                    $this->colorize( static::ANSI_CYAN, "  [{$code}]" )
+                );
+
+                foreach ( $messages as $message ) {
+                    $this->info( "    → {$message}" );
+                }
+
+                $data = $this->error_object->get_all_error_data( $code );
+                if ( ! empty( $data ) ) {
+                    foreach ( $data as $datum ) {
+                        $encoded = is_string( $datum )
+                            ? $datum
+                            : json_encode( $datum, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+                        $this->line( 
+                            $this->colorize( self::ANSI_DIM, "    data: {$encoded}" )
+                        );
+                    }
+                }
+            }
+
+        }
+
+        // Chained exception.
+        $previous = $this->error_object->getPrevious();
+        if ( $previous ) {
+            $this->line(
+                $this->colorize(
+                    self::ANSI_YELLOW . self::ANSI_BOLD,
+                    'Caused by:'
+                )
+            );
+            
+            $this->line(
+                $this->colorize(
+                    self::ANSI_DIM,
+                    '  ' . get_class( $previous ) . ': ' . $previous->getMessage()
+                )
+            );
+
+        }
+
+        // Stack trace.
+        if ( $this->isDebug() ) {
+            $this->info( 'Stack trace:' );
+            $this->error( $this->error_object->getTraceAsString() );
+        }
+
+        return '';
+    }
 
     /**
      * Render error for CLI environment.
@@ -28,9 +100,7 @@ class CliErrorHandler extends AbstractErrorHandler {
     public function render() : string {
         // If rendering an Exception, use its render() method.
         if ( $this->error_object instanceof Exception ) {
-            // For CLI, include trace based on debug configuration.
-            $include_trace = static::$global_debug_mode;
-            return $this->error_object->render( $include_trace );
+            return $this->outputError();
         }
 
         // Fallback for string messages - simple CLI output.
@@ -61,17 +131,5 @@ class CliErrorHandler extends AbstractErrorHandler {
     public function sendHeaders() : self {
         // No-op. CLI doesn't send HTTP headers.
         return $this;
-    }
-
-    /**
-     * Static factory method.
-     *
-     * @param string|Exception $message Error message or exception.
-     * @param string|int $title Error title or HTTP code.
-     * @param array|int $args Additional arguments or HTTP code.
-     * @return static
-     */
-    public static function create( $message = '', $title = '', $args = [] ) : static {
-        return new static( $message, $title, $args );
     }
 }

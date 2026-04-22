@@ -122,7 +122,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Environment configuration data.
      * 
-     * @var array{db_prefix: '', absolute_path: '', secret: null, salt: null, repo_path: '', uploads_dir: '', filesystem_adapter: null, cache_adapter: null, settings_provider: null, database_adapter: null, rest_api_provider: null, admin_menu_config: null, identity_provider: null, debug_mode: bool}
+     * @var array $env
      */
     protected array $env = [
         'db_prefix'             => '',
@@ -222,7 +222,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Client dashboard registry.
      * 
-     * @var AdminDashboardRegistry $adminDashboardRegistry
+     * @var ClientDashboardRegistry $clientDashboardRegistry
      */
     protected ClientDashboardRegistry $clientDashboardRegistry;
 
@@ -248,7 +248,25 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Environment constructor.
      * 
-     * @param array $config The environment configuration options.
+     * This is the entry point to Smart License Server, all environment providers must call
+     * this method and pass the required keys.
+     * 
+     * @param array{
+     *      db_prefix: string,
+     *      absolute_path: string,
+     *      secret: string,
+     *      salt: string,
+     *      repo_path: string, 
+     *      uploads_dir: string, 
+     *      filesystem_adapter?: FileSystemAdapterInterface, 
+     *      cache_adapter?: CacheAdapterInterface,
+     *      settings_provider?: SettingsStorageInterface,
+     *      database_adapter?: DatabaseAdapterInterface,
+     *      rest_api_provider: RESTProviderInterface,
+     *      admin_menu_config?: AdminDashboardRegistry, 
+     *      identity_provider: IdentityProviderInterface,
+     *      debug_mode: bool
+     * } $config The environment configuration options.
      * @throws EnvironmentBootstrapException If required configuration is missing or invalid.
      */
     final protected function setup( array $config ) {
@@ -276,14 +294,8 @@ abstract class Environment implements EnvironmentProviderInterface {
         $parsed_config  = array_intersect_key( array_merge( $default_config, $env_config ), $default_config );
         $missing_config = [];
 
-        $required_keys = [
-            'db_prefix',
-            'absolute_path',
-            'secret', 'salt',
-            'repo_path',
-            'uploads_dir',
-            'rest_api_provider',
-            'identity_provider'
+        $required_keys = ['db_prefix','absolute_path','secret', 'salt','repo_path',
+            'uploads_dir', 'rest_api_provider', 'identity_provider'
         ];
 
         foreach ( $parsed_config as $key => $value ) {
@@ -736,7 +748,7 @@ abstract class Environment implements EnvironmentProviderInterface {
              * 
              * @var bool
              */
-            define( 'APP_DEBUG', $this->env['debug_mode'] );
+            define( 'APP_DEBUG', (bool) $this->env['debug_mode'] );
         }
 
     }
@@ -752,7 +764,7 @@ abstract class Environment implements EnvironmentProviderInterface {
 
             $config = $this->dbConfig;
 
-            /** @var array<class-string, bool> $adapters */
+            /** @var array<class-string<DatabaseAdapterInterface>, bool> $adapters */
             $adapters   = [
                 MysqliAdapter::class    => class_exists( 'mysqli' ), // Slightly faster than PDO.
                 PdoAdapter::class       => class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),

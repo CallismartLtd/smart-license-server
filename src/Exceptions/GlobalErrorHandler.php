@@ -19,6 +19,8 @@
 
 namespace SmartLicenseServer\Exceptions;
 
+use Throwable;
+
 class GlobalErrorHandler {
 
     /**
@@ -59,9 +61,9 @@ class GlobalErrorHandler {
     /**
      * Handler class to use.
      *
-     * @var class-string<CliErrorHandler|HttpErrorHandler>
+     * @var CliErrorHandler|HttpErrorHandler $handler_class
      */
-    private string $handler_class = HttpErrorHandler::class;
+    private AbstractErrorHandler $handler_class;
 
     /**
      * Private constructor - use instance().
@@ -75,8 +77,9 @@ class GlobalErrorHandler {
      */
     public static function instance() : static {
         if ( null === static::$instance ) {
-            static::$instance = new static();
+            static::$instance = new static;
         }
+        
         return static::$instance;
     }
 
@@ -97,7 +100,7 @@ class GlobalErrorHandler {
      * @return string 'cli' or 'http'.
      */
     private function detectEnvironment() : string {
-        if ( $this->detected_sapi !== null ) {
+        if ( null !== $this->detected_sapi ) {
             return $this->detected_sapi;
         }
 
@@ -115,27 +118,44 @@ class GlobalErrorHandler {
     /**
      * Determine which handler class to use.
      *
-     * @return class-string<CliErrorHandler|HttpErrorHandler>
+     * @return AbstractErrorHandler
      */
-    private function resolveHandlerClass() : string {
-        $environment = $this->environment === 'auto' 
-            ? $this->detectEnvironment() 
-            : $this->environment;
+    private function resolveHandlerClass() : AbstractErrorHandler {
+        if ( ! isset( $this->handler_class ) ) {
+            $environment = $this->environment === 'auto' 
+                ? $this->detectEnvironment() 
+                : $this->environment;
+            
+            $handler_class  = $environment === 'cli' ? CliErrorHandler::class : HttpErrorHandler::class; 
 
-        return $environment === 'cli' ? CliErrorHandler::class : HttpErrorHandler::class;
+            $this->handler_class = new $handler_class;           
+        }
+
+        
+        return $this->handler_class;
     }
 
     /**
-     * Configure error handling.
+     * Configure the error handler execution context.
+     *
+     * This method defines internal handler behavior without touching
+     * PHP runtime configuration. It is responsible for:
+     *
+     * - Selecting execution environment (auto, http, cli)
+     * - Enabling or disabling debug mode for handler output
+     * - Registering optional logging callbacks
+     * - Resolving the appropriate handler implementation class
+     *   (e.g. HTTP or CLI specific handler).
      *
      * @param array{
      *     debug?: bool,
      *     environment?: 'auto'|'http'|'cli',
      *     logger?: \Closure
-     * } $config Configuration array.
+     * } $config Handler context configuration.
+     *
      * @return static
      */
-    public function configure( array $config = [] ) : static {
+    public function bindContext( array $config = [] ) : static {
         if ( array_key_exists( 'debug', $config ) ) {
             $this->debug_mode = (bool) $config['debug'];
         }
@@ -153,8 +173,13 @@ class GlobalErrorHandler {
                 : null;
         }
 
-        $this->handler_class = $this->resolveHandlerClass();
-        AbstractErrorHandler::configure( $this->debug_mode, $this->log_handler );
+        $this->resolveHandlerClass();
+        
+        $this->handler_class->setDebug( $this->debug_mode );
+
+        if ( $this->log_handler ) {
+            $this->handler_class->setLogHandler( $this->log_handler );
+        }
 
         return $this;
     }
@@ -168,20 +193,28 @@ class GlobalErrorHandler {
      * @return AbstractErrorHandler
      */
     public function create( $message = '', $title = '', $args = [] ) : AbstractErrorHandler {
-        return $this->handler_class::create( $message, $title, $args );
+        $handler_class = clone $this->handler_class;
+        if ( $message instanceof Exception ) {
+            $handler_class->setException( $message );
+        } else {
+            $handler_class->setMessage( $message )
+                ->setTitle( $title )
+                ->setConfig( $args );
+        }
+
+        return $handler_class;
     }
 
     /**
-     * Create and display error.
+     * Create and display error and exit.
      *
      * @param string|Exception $message Error message or exception.
      * @param string|int $title Error title or HTTP code.
      * @param array|int $args Additional arguments or HTTP code.
      * @return void
      */
-    public static function abort( $message = '', $title = '', $args = [] ) : void {
-        static::instance()
-            ->create( $message, $title, $args )
+    public function abort( $message = '', $title = '', $args = [] ) : void {
+        $this->create( $message, $title, $args )
             ->setExit( true )
             ->display();
     }
@@ -195,7 +228,7 @@ class GlobalErrorHandler {
      * @return static
      */
     public function registerHandlers( bool $handle_errors = true, bool $handle_exceptions = true, bool $handle_shutdown = true ) : static {
-        $this->handler_class::registerHandlers( $handle_errors, $handle_exceptions, $handle_shutdown );
+        $this->handler_class->registerHandlers( $handle_errors, $handle_exceptions, $handle_shutdown );
         return $this;
     }
 
@@ -205,7 +238,7 @@ class GlobalErrorHandler {
      * @return static
      */
     public function unregisterHandlers() : static {
-        $this->handler_class::unregisterHandlers();
+        $this->handler_class->unregisterHandlers();
         return $this;
     }
 
@@ -237,27 +270,17 @@ class GlobalErrorHandler {
     }
 
     /**
-     * Get handler class name.
-     *
-     * @return class-string<CliErrorHandler|HttpErrorHandler>
-     */
-    public function getHandlerClassName() : string {
-        return $this->handler_class;
-    }
-
-    /**
      * Enable development mode (show all errors).
      *
      * @return static
      */
     public function enableDevelopment() : static {
-        $this->configure( [ 'debug' => true ] );
-
-        error_reporting( E_ALL );
-        ini_set( 'display_errors', '1' );
-        ini_set( 'display_startup_errors', '1' );
-
-        return $this;
+        return $this->bootstrap([
+            'debug'           => true,
+            'error_reporting' => E_ALL,
+            'display_errors'  => true,
+            'log_errors'      => true,
+        ]);
     }
 
     /**
@@ -266,31 +289,12 @@ class GlobalErrorHandler {
      * @return static
      */
     public function enableProduction() : static {
-        $this->configure( [ 'debug' => false ] );
-
-        error_reporting( E_ALL );
-        ini_set( 'display_errors', '0' );
-        ini_set( 'display_startup_errors', '0' );
-        ini_set( 'log_errors', '1' );
-
-        $log_path = ini_get( 'error_log' );
-        if ( ! $log_path || '' === $log_path ) {
-            $log_dir = sys_get_temp_dir();
-            ini_set( 'error_log', $log_dir . '/php_errors.log' );
-        }
-
-        return $this;
-    }
-
-    /**
-     * Set error reporting level.
-     *
-     * @param int $level Error reporting level (E_* constants).
-     * @return static
-     */
-    public function setErrorReporting( int $level ) : static {
-        error_reporting( $level );
-        return $this;
+        return $this->bootstrap([
+            'debug'           => false,
+            'error_reporting' => E_ALL,
+            'display_errors'  => false,
+            'log_errors'      => true,
+        ]);
     }
 
     /**
@@ -303,40 +307,12 @@ class GlobalErrorHandler {
     }
 
     /**
-     * Enable or disable error display.
-     *
-     * @param bool $display Whether to display errors.
-     * @return static
-     */
-    public function setDisplayErrors( bool $display ) : static {
-        ini_set( 'display_errors', $display ? '1' : '0' );
-        return $this;
-    }
-
-    /**
      * Check if error display is enabled.
      *
      * @return bool
      */
     public function isDisplayErrors() : bool {
         return (bool) ini_get( 'display_errors' );
-    }
-
-    /**
-     * Configure error logging.
-     *
-     * @param bool $log Whether to log errors.
-     * @param string|null $path Optional log file path.
-     * @return static
-     */
-    public function setLogErrors( bool $log, ?string $path = null ) : static {
-        ini_set( 'log_errors', $log ? '1' : '0' );
-
-        if ( $path ) {
-            ini_set( 'error_log', $path );
-        }
-
-        return $this;
     }
 
     /**
@@ -349,7 +325,17 @@ class GlobalErrorHandler {
     }
 
     /**
-     * Setup complete error handling stack.
+     * Bootstrap the global error handling system.
+     *
+     * This is the authoritative runtime entry point responsible for:
+     *
+     * - Applying PHP runtime error configuration (error_reporting, ini_set)
+     * - Enabling or disabling error display and logging at runtime level
+     * - Registering global error, exception, and shutdown handlers
+     * - Activating the handler system for the current process
+     *
+     * This method mutates PHP runtime state and should typically be called
+     * once during application bootstrap.
      *
      * @param array{
      *     environment?: 'auto'|'http'|'cli',
@@ -359,31 +345,39 @@ class GlobalErrorHandler {
      *     log_errors?: bool,
      *     log_path?: string,
      *     logger?: \Closure
-     * } $config Setup configuration.
+     * } $config Runtime error system configuration.
+     *
      * @return static
      */
-    public function setup( array $config = [] ) : static {
-        $this->configure([
-            'debug'         => $config['debug'] ?? false,
-            'environment'   => $config['environment'] ?? 'auto',
-            'logger'        => $config['logger'] ?? null,
+    public function bootstrap( array $config = [] ) : static {
+        $config = array_merge([
+            'environment'     => 'auto',
+            'debug'           => false,
+            'error_reporting' => E_ALL,
+            'display_errors'  => false,
+            'log_errors'      => true,
+            'log_path'        => null,
+            'logger'          => null,
+        ], $config);
+
+        // Bind error handler context.
+        $this->bindContext([
+            'debug'       => $config['debug'],
+            'environment' => $config['environment'],
+            'logger'      => $config['logger'],
         ]);
 
-        if ( isset( $config['error_reporting'] ) ) {
-            $this->setErrorReporting( (int) $config['error_reporting'] );
-        } else {
-            $this->setErrorReporting( E_ALL );
-        }
+        // ONLY place runtime mutation happens.
+        error_reporting( $config['error_reporting'] );
 
-        if ( isset( $config['display_errors'] ) ) {
-            $this->setDisplayErrors( (bool) $config['display_errors'] );
-        }
+        ini_set( 'display_errors', $config['display_errors'] ? '1' : '0' );
+        ini_set( 'display_startup_errors', $config['display_errors'] ? '1' : '0' );
 
-        if ( isset( $config['log_errors'] ) && $config['log_errors'] ) {
-            $this->setLogErrors( true, $config['log_path'] ?? null );
-        }
+        ini_set( 'log_errors', $config['log_errors'] ? '1' : '0' );
 
-        $this->registerHandlers();
+        if ( ! empty( $config['log_path'] ) ) {
+            ini_set( 'error_log', $config['log_path'] );
+        }
 
         return $this;
     }
@@ -411,5 +405,29 @@ class GlobalErrorHandler {
             'log_path'          => $this->getErrorLogPath(),
             'handler_class'     => $this->handler_class,
         ];
+    }
+
+    /**
+     * Log error.
+     * 
+     * @param Throwable|string $error
+     */
+    public function log( Throwable|string $error ) {
+        if ( is_string( $error ) ) {
+            $error = new Exception( 'unknown_error', $error );
+        } elseif ( ! $error instanceof Exception ) {
+            $error  = new Exception(
+                'uncaught_exception',
+                $error->getMessage(),
+                [
+                    'status'    => 500,
+                    'title'     => get_class( $error ),
+                    'file'      => $error->getFile(),
+                    'line'      => $error->getLine(),
+                ]
+            );
+        }
+
+        $this->handler_class->logError( $error );
     }
 }

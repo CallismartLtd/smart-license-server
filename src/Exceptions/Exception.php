@@ -64,9 +64,9 @@ class Exception extends PHPException {
     protected array $additional_data = [];
 
     /*
-    |--------------------------------------------
+    |--------------------
     | CONSTRUCTOR
-    |--------------------------------------------
+    |--------------------
     */
 
     /**
@@ -158,9 +158,9 @@ class Exception extends PHPException {
     }
 
     /*
-    |--------------------------------------------
+    |--------------------------
     | ERROR DATA ACCESSORS
-    |--------------------------------------------
+    |--------------------------
     */
 
     /**
@@ -328,25 +328,11 @@ class Exception extends PHPException {
     }
 
     /*
-    |--------------------------------------------
+    |-----------------
     | RENDERING
-    |--------------------------------------------
+    |-----------------
     */
 
-    /**
-     * Render the exception for the current runtime environment.
-     *
-     * CLI  → plain-text with optional ANSI colour.
-     * HTTP → HTML-safe output (no raw stack trace exposed by default).
-     *
-     * @param bool $include_trace Whether to include the stack trace. Default true.
-     * @return string
-     */
-    public function render( bool $include_trace = true ): string {
-        return $this->is_cli()
-            ? $this->render_cli( $include_trace )
-            : $this->render_http( $include_trace );
-    }
 
     /**
      * Return a structured array representation of the exception.
@@ -374,190 +360,6 @@ class Exception extends PHPException {
             'errors'  => $errors,
             'trace'   => $this->getTrace(),
         ];
-    }
-
-    /**
-     * Delegate __toString() to render() for the current environment.
-     *
-     * @return string
-     */
-    public function __toString(): string {
-        return $this->render();
-    }
-
-    /*
-    |--------------------------------------------
-    | PRIVATE RENDERING HELPERS
-    |--------------------------------------------
-    */
-
-    /**
-     * Render for a CLI environment.
-     *
-     * Uses ANSI colour codes when stdout is an interactive terminal.
-     * Falls back to plain text when output is piped or redirected.
-     *
-     * @param bool $include_trace
-     * @return string
-     */
-    private function render_cli( bool $include_trace ): string {
-        $ansi  = $this->supports_ansi();
-        $nl    = PHP_EOL;
-        $class = get_class( $this );
-        $out   = '';
-
-        // Header.
-        $out .= $this->cli_colour( "✖ {$class}", self::ANSI_RED . self::ANSI_BOLD, $ansi ) . $nl;
-
-        if ( $this->getMessage() ) {
-            $out .= $this->cli_colour( '  ' . $this->getMessage(), self::ANSI_RED, $ansi ) . $nl;
-        }
-
-        $out .= $nl;
-
-        // Structured errors.
-        if ( $this->has_errors() ) {
-            $out .= $this->cli_colour( 'Errors:', self::ANSI_YELLOW . self::ANSI_BOLD, $ansi ) . $nl;
-
-            foreach ( $this->errors as $code => $messages ) {
-                $out .= $this->cli_colour( "  [{$code}]", self::ANSI_CYAN, $ansi ) . $nl;
-
-                foreach ( $messages as $message ) {
-                    $out .= "    → {$message}" . $nl;
-                }
-
-                $data = $this->get_all_error_data( $code );
-                if ( ! empty( $data ) ) {
-                    foreach ( $data as $datum ) {
-                        $encoded = is_string( $datum )
-                            ? $datum
-                            : json_encode( $datum, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
-                        $out .= $this->cli_colour( "    data: {$encoded}", self::ANSI_DIM, $ansi ) . $nl;
-                    }
-                }
-            }
-
-            $out .= $nl;
-        }
-
-        // Chained exception.
-        $previous = $this->getPrevious();
-        if ( $previous ) {
-            $out .= $this->cli_colour( 'Caused by:', self::ANSI_YELLOW . self::ANSI_BOLD, $ansi ) . $nl;
-            $out .= $this->cli_colour( '  ' . get_class( $previous ) . ': ' . $previous->getMessage(), self::ANSI_DIM, $ansi ) . $nl;
-            $out .= $nl;
-        }
-
-        // Stack trace.
-        if ( $include_trace ) {
-            $out .= $this->cli_colour( 'Stack trace:', self::ANSI_BOLD, $ansi ) . $nl;
-            $out .= $this->cli_colour( $this->getTraceAsString(), self::ANSI_DIM, $ansi ) . $nl;
-        }
-
-        return $out;
-    }
-
-    /**
-     * Render for an HTTP environment.
-     *
-     * Stack traces are intentionally excluded by default — never expose
-     * raw server paths or source code to a browser response.
-     *
-     * @param bool $include_trace
-     * @return string
-     */
-    private function render_http( bool $include_trace ): string {
-        $nl    = "\n";
-        $class = get_called_class();
-        $out   = '';
-
-        // Header line.
-        $out .= sprintf( '%s: %s', $class, $this->getMessage() ) . $nl . $nl;
-
-        // Structured errors.
-        if ( $this->has_errors() ) {
-            $out .= 'All Errors:' . $nl;
-
-            foreach ( $this->errors as $code => $messages ) {
-                foreach ( $messages as $message ) {
-                    $out .= sprintf( '  → [%s] %s', $code, $message ) . $nl;
-                }
-            }
-
-            $out .= $nl;
-            $out .= 'Error Codes: ' . implode( ', ', $this->get_error_codes() ) . $nl;
-            $out .= 'Data: ' . smliser_safe_json_encode( $this->error_data, JSON_PRETTY_PRINT ) . $nl;
-            
-        }
-
-        // Chained exception.
-        $previous = $this->getPrevious();
-        if ( $previous ) {
-            $out .= $nl . sprintf(
-                'Caused by: %s: %s',
-                get_class( $previous ),
-                $previous->getMessage()
-            ) . $nl;
-        }
-
-        // Stack trace — HTML-wrapped, opt-in only.
-        if ( $include_trace ) {
-            $out .= $nl . 'Trace:' . $nl;
-            $out .= '<div>' . $this->getTraceAsString() . '</div>' . $nl;
-
-            if ( $previous ) {
-                $out .= $nl . 'Previous Trace:' . $nl;
-                $out .= '<div>' . $previous->getTraceAsString() . '</div>' . $nl;
-            }
-        }
-
-        return $out;
-    }
-
-    /**
-     * Wrap a string in an ANSI colour sequence when ANSI is supported.
-     *
-     * @param string $text
-     * @param string $colour One or more ANSI_* constants concatenated.
-     * @param bool   $ansi   Whether ANSI is supported in this context.
-     * @return string
-     */
-    private function cli_colour( string $text, string $colour, bool $ansi ): string {
-        return $ansi ? $colour . $text . self::ANSI_RESET : $text;
-    }
-
-    /**
-     * Detect whether the current runtime is a CLI process.
-     *
-     * @return bool
-     */
-    private function is_cli(): bool {
-        return PHP_SAPI === 'cli' || PHP_SAPI === 'phpdbg';
-    }
-
-    /**
-     * Detect whether the current stdout supports ANSI escape codes.
-     *
-     * Returns false when output is piped or redirected so plain text
-     * is used in log files, CI output, and other non-interactive contexts.
-     *
-     * @return bool
-     */
-    private function supports_ansi(): bool {
-        if ( ! $this->is_cli() ) {
-            return false;
-        }
-
-        // Explicit override via environment variable (e.g. CI systems).
-        if ( isset( $_SERVER['NO_COLOR'] ) || getenv( 'NO_COLOR' ) !== false ) {
-            return false;
-        }
-
-        if ( getenv( 'TERM' ) === 'dumb' ) {
-            return false;
-        }
-
-        return function_exists( 'stream_isatty' ) && stream_isatty( STDOUT );
     }
 
     /*

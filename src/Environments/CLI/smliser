@@ -116,5 +116,4 @@ define( 'SMLISER_APP_NAME', 'Smart License Server' );
 // Register the autoloader.
 require_once SMLISER_SRC_DIR . 'Autoloader.php';
 
-// Boot the CLI environment — database, settings, queue, scheduler.
 SetUp::instance();

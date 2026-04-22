@@ -4,6 +4,7 @@
  */
 
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 use SmartLicenseServer\Utils\Sanitizer;
 
 /**
@@ -545,102 +546,7 @@ function smliser_dump_url( $url ) : void {
  * }
  */
 function smliser_abort_request( $message = '', $title = '', $args = [] ) {
-    $defaults = [
-        'response'  => 500, // Default HTTP status for a fatal error
-        'link_url'  => '',
-        'link_text' => '',
-        'back_link' => false,
-        'charset'   => 'utf-8',
-        'code'      => 'smliser_error',
-        'exit'      => true,
-    ];
-
-    // Handle HTTP response code passed as an integer shorthand.
-    if ( is_int( $title ) ) {
-        $args = [ 'response' => $title ];
-        $title = '';
-    } elseif ( is_int( $args ) ) {
-        $args = [ 'response' => $args ];
-    }
-    
-    // Resolve final configuration array
-    $r = parse_args( $args, $defaults );
-
-    $error_object = null;
-    if ( is_smliser_error( $message ) ) {
-        $error_object = $message;
-
-        // Fetch primary data from the error object's internal structure
-        $error_data = $error_object->get_error_data();
-
-        // Overwrite defaults with structured error data
-        $r['response'] = $error_data['status'] ?? $r['response'];
-        $r['code']     = $error_object->get_error_code() ?: $r['code'];
-        $title         = $title ?: ($error_data['title'] ?? 'Application Error');
-        
-
-        $message = smliser_debug_enabled() ? sprintf( '<pre>%s</pre>', $error_object->__toString() ) : $error_object->get_error_message();
-    }
-    
-    // Fallback if initial message was empty string
-    $message = $message ?: 'An unknown fatal error occurred.';
-    $title   = $title ?: 'Fatal Error';
-
-    if ( function_exists( 'wp_die' ) && $error_object === null ) {
-        // If we only have string inputs, use the native WP handler
-        // Note: $error_object is not passed here as it complicates wp_die's native flow.
-        wp_die( $message, $title, $r );
-    }
-
-    $http_response_code = (int) $r['response'];
-    if ( ! headers_sent() ) {
-        http_response_code( $http_response_code );
-        header( "Content-Type: text/html; charset={$r['charset']}" );
-    }
-
-    // --- 5. Prepare HTML Content ---
-    $link_html = '';
-
-    if ( ! empty( $r['link_url'] ) && ! empty( $r['link_text'] ) ) {
-        $link_html .= '<p><a href="' . esc_url( $r['link_url'] ) . '">' . esc_html( $r['link_text'] ) . '</a></p>';
-    }
-
-    if ( $r['back_link'] ) {
-        $link_html .= '<p><a href="javascript:history.back()">Go Back</a></p>';
-    }
-
-    $safe_message = $message;
-    $safe_title   = $title;
-
-    // --- 6. Output and Exit ---
-    print_r( '
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="' . esc_attr( $r['charset'] ) . '">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>' . $safe_title . '</title>
-        <style>
-            body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 50px; }
-            .error-container { max-width: 80%; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1); overflow-wrap: anywhere }
-            h1 { color: #e74c3c; margin-top: 0; font-size: 24px; }
-            p { font-size: 16px; color: #333; }
-            a { color: #3498db; text-decoration: none; }
-            a:hover { text-decoration: underline; }
-            pre div { max-width: 100%; background-color: #f1f1f1; overflow-x: auto; padding: 10px; scrollbar-width: thin; }
-        </style>
-    </head>
-    <body>
-        <div class="error-container">
-            ' . $safe_message
-            . '<p>' . $link_html . '</p>
-        </div>
-    </body>
-    </html>' );
-
-    if ( $r['exit'] ) {
-        exit;
-    }
+    GlobalErrorHandler::instance()->abort( $message, $title, $args );
 }
 
 /**
