@@ -108,7 +108,7 @@ class SetUp extends Environment {
         $secret             = SECURE_AUTH_KEY;
         $salt               = SECURE_AUTH_SALT;
 
-        $identity_provider  = new IdentityService;        
+        $identity_provider  = new IdentityService();        
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
         'filesystem_adapter', 'cache_adapter', 'settings_provider', 'database_adapter',
         'rest_api_provider', 'secret', 'identity_provider', 'debug_mode', 'salt'

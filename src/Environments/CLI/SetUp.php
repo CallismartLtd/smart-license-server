@@ -159,14 +159,14 @@ class SetUp extends Environment {
         $this->app_url = $app_url;
 
         $env = [
-            'db_prefix'        => $db_prefix,
-            'absolute_path'    => SMLISER_ABSPATH,
-            'repo_path'        => $repo_path,
-            'uploads_dir'      => $uploads_dir,
+            'db_prefix'         => $db_prefix,
+            'absolute_path'     => SMLISER_ABSPATH,
+            'repo_path'         => $repo_path,
+            'uploads_dir'       => $uploads_dir,
             'rest_api_provider' => new CLIRESTProvider(),
-            // 'secret'            => $_ENV['SMLISER_SECRET'] ?? '',
+            'secret'            => $_ENV['SMLISER_SECRET'] ?? '',
             'salt'              => $_ENV['SMLISER_SALT'] ?? '',
-            'identity_provider' => new CLIIdentityProvider
+            'identity_provider' => new CLIIdentityProvider()
         ];
 
         $this->setup( $env );
@@ -185,8 +185,7 @@ class SetUp extends Environment {
      * @return void
      */
     private function setPrincipal() : void {
-        ( new CLIIdentityProvider() )
-        ->authenticate();
+        $this->identityProvider->authenticate();
     }
 
     /**

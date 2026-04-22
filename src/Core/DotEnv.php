@@ -84,7 +84,7 @@ final class DotEnv {
      * @throws \RuntimeException When an unclosed multiline block is detected.
      */
     public function load( string $file = '.env' ): void {
-        $env_file = $this->path . '/' . $file;
+        $env_file = rtrim( $this->path, '/' ) . '/' . $file;
 
         if ( ! file_exists( $env_file ) ) {
             return;
