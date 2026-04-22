@@ -59,8 +59,8 @@ $supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], t
                     <?php echo CacheProviderIcons::render( $adapter_id, $adapter_name ); ?>
                 </span>
                 <div>
-                    <h2 class="smlcd-header__name"><?php echo esc_html( $adapter_name ); ?></h2>
-                    <span class="smlcd-header__id"><?php echo esc_html( $adapter_id ); ?></span>
+                    <h2 class="smlcd-header__name"><?php echo escHtml( $adapter_name ); ?></h2>
+                    <span class="smlcd-header__id"><?php echo escHtml( $adapter_id ); ?></span>
                 </div>
                 <span class="smlcd-badge smlcd-badge--active">
                     <span class="smlcd-pulse"></span>Active
@@ -172,17 +172,17 @@ $supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], t
                     <?php if ( $mem_pct !== null ) : ?>
                         <?php echo $mem_pct; ?><span class="smlcd-card__unit">%</span>
                     <?php elseif ( $memory_used > 0 ) : ?>
-                        <?php echo esc_html( Format::bytes( $memory_used ) ); ?>
+                        <?php echo escHtml( Format::bytes( $memory_used ) ); ?>
                     <?php else : ?>
                         <span class="smlcd-card__na">—</span>
                     <?php endif; ?>
                 </div>
                 <div class="smlcd-card__detail">
                     <?php if ( $has_mem_ceil ) : ?>
-                        <?php echo esc_html( Format::bytes( $memory_used ) ); ?>
-                        of <?php echo esc_html( Format::bytes( $memory_total ) ); ?>
+                        <?php echo escHtml( Format::bytes( $memory_used ) ); ?>
+                        of <?php echo escHtml( Format::bytes( $memory_total ) ); ?>
                     <?php elseif ( $memory_used > 0 ) : ?>
-                        <?php echo esc_html( Format::bytes( $memory_used ) ); ?> · No fixed ceiling
+                        <?php echo escHtml( Format::bytes( $memory_used ) ); ?> · No fixed ceiling
                     <?php else : ?>
                         Not reported
                     <?php endif; ?>
@@ -193,7 +193,7 @@ $supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], t
                 <div class="smlcd-card__label">Uptime</div>
                 <div class="smlcd-card__value">
                     <?php if ( $uptime > 0 ) : ?>
-                        <?php echo esc_html( Format::duration( $uptime, 'short' ) ); ?>
+                        <?php echo escHtml( Format::duration( $uptime, 'short' ) ); ?>
                     <?php else : ?>
                         <span class="smlcd-card__na">—</span>
                     <?php endif; ?>

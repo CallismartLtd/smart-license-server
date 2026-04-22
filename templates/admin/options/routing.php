@@ -19,7 +19,7 @@ $menu_args = OptionsPage::get_menu_args( $request );
 
     <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
         <div class="notice notice-success is-dismissible">
-            <p><?php echo esc_html( $message ); ?></p>
+            <p><?php echo escHtml( $message ); ?></p>
         </div>
     <?php endif; ?>
 

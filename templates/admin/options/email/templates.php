@@ -83,7 +83,7 @@ $group_colors = [
                 <button type="button"
                         class="smliser-filter-btn"
                         data-group="<?php echo esc_attr( $group ); ?>">
-                    <?php echo esc_html( $group ); ?>
+                    <?php echo escHtml( $group ); ?>
                     <span class="smliser-filter-count"><?php echo $count; ?></span>
                 </button>
             <?php endforeach; ?>
@@ -119,13 +119,13 @@ $group_colors = [
                         <td>
                             <span style="display:block;font-weight:600;color:#1a1a2e;font-size:13px;
                                          margin-bottom:4px;">
-                                <?php echo esc_html( $entry['label'] ); ?>
+                                <?php echo escHtml( $entry['label'] ); ?>
                             </span>
                             <span style="display:inline-block;font-size:11px;font-weight:700;
                                          padding:2px 8px;border-radius:9999px;
                                          background-color:<?php echo esc_attr( $colors['bg'] ); ?>;
                                          color:<?php echo esc_attr( $colors['color'] ); ?>;">
-                                <?php echo esc_html( $group ); ?>
+                                <?php echo escHtml( $group ); ?>
                             </span>
                             <?php if ( $entry['has_custom'] ) : ?>
                                 <span style="display:inline-block;font-size:11px;font-weight:700;
@@ -138,7 +138,7 @@ $group_colors = [
 
                         <!-- Description -->
                         <td style="font-size:13px;color:#64748b;line-height:1.5;">
-                            <?php echo esc_html( $entry['description'] ); ?>
+                            <?php echo escHtml( $entry['description'] ); ?>
                         </td>
 
                         <!-- Enabled / Disabled status -->

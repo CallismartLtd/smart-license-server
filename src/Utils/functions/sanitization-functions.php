@@ -17,3 +17,13 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 function unslash( $data ) {
     return Sanitizer::unslash( $data );
 }
+
+/**
+ * Escape output in HTML
+ * 
+ * @param string $value
+ * @return string
+ */
+function escHtml( string $input ) : string {
+    return Sanitizer::esc_html( $input );
+}

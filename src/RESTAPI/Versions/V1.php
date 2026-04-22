@@ -828,11 +828,11 @@ class V1 implements RESTInterface {
 
                 $html  = '<div class="smliser-api-route-card">';
                 $html .= '<div class="smliser-api-route-header">';
-                $html .= '<h3 class="smliser-api-route-name">' . self::esc_html( $route_name ) . ' <span class="method">' . self::esc_html( $method_upper ) . '</span></h3>';
+                $html .= '<h3 class="smliser-api-route-name">' . escHtml( $route_name ) . ' <span class="method">' . escHtml( $method_upper ) . '</span></h3>';
 
                 // Route path + copy button
                 $html .= '<div class="smliser-api-route-path-container">';
-                $html .= '<div class="smliser-api-route-path">' . self::esc_html( $route_path ) . '</div>';
+                $html .= '<div class="smliser-api-route-path">' . escHtml( $route_path ) . '</div>';
                 $html .= '<button class="smliser-api-copy-btn" onclick="navigator.clipboard.writeText(\'' . self::esc_js( $route_path ) . '\'); this.textContent=\'Copied!\'; setTimeout(() => this.textContent=\'Copy\', 2000);">Copy</button>';
                 $html .= '</div>'; // path container.
 
@@ -852,8 +852,8 @@ class V1 implements RESTInterface {
 
                         $html .= '<div class="smliser-api-argument">';
                         $html .= '<div class="smliser-api-argument-header">';
-                        $html .= '<span class="smliser-api-argument-name">' . self::esc_html( $arg_name ) . '</span>';
-                        $html .= '<span class="smliser-api-argument-type">' . self::esc_html( $type ) . '</span>';
+                        $html .= '<span class="smliser-api-argument-name">' . escHtml( $arg_name ) . '</span>';
+                        $html .= '<span class="smliser-api-argument-type">' . escHtml( $type ) . '</span>';
 
                         if ( $required ) {
                             $html .= '<span class="smliser-api-argument-required">Required</span>';
@@ -862,11 +862,11 @@ class V1 implements RESTInterface {
                         }
 
                         if ( null !== $default ) {
-                            $html .= '<span class="smliser-api-argument-default">Default: ' . self::esc_html( $default ) . '</span>';
+                            $html .= '<span class="smliser-api-argument-default">Default: ' . escHtml( $default ) . '</span>';
                         }
 
                         $html .= '</div>'; // arg header.
-                        $html .= '<p class="smliser-api-argument-description">' . self::esc_html( $arg_description ) . '</p>';
+                        $html .= '<p class="smliser-api-argument-description">' . escHtml( $arg_description ) . '</p>';
                         $html .= '</div>'; // arg.
                     }
                 }
@@ -888,16 +888,6 @@ class V1 implements RESTInterface {
      */
     public static function return_true() : true {
         return true;
-    }
-
-    /**
-     * Escape HTML for display.
-     * 
-     * @param string $text Text to escape.
-     * @return string Escaped text.
-     */
-    private static function esc_html( $text ) {
-        return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
     }
 
     /**

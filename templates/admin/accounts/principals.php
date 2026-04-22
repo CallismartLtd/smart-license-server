@@ -18,10 +18,10 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
     <div class="smliser-admin-table-body">
 
         <div>
-            <a href="<?php echo esc_url( smliser_get_current_url()->add_query_param( 'section', 'add-new' ) ); ?>" class="button action smliser-nav-btn"><?php printf( 'Add %s', esc_html( $type ) ); ?></a>
+            <a href="<?php echo esc_url( smliser_get_current_url()->add_query_param( 'section', 'add-new' ) ); ?>" class="button action smliser-nav-btn"><?php printf( 'Add %s', escHtml( $type ) ); ?></a>
 
             <?php if ( $message = $request->get( 'message' ) ) : ?>
-                <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+                <div class="notice notice-info is-dismissible"><p><?php echo escHtml( $message ); ?></p></div>
             <?php endif; ?>
         </div>
 
@@ -32,7 +32,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         <?php echo esc_url(
                             smliser_get_current_url()->add_query_param( 'status', $v )
                         );?>" class="smliser-status-link">
-                        <?php echo esc_html( ucfirst( $v ) ); ?> (<?php echo intval( $st_v ); ?>)
+                        <?php echo escHtml( ucfirst( $v ) ); ?> (<?php echo intval( $st_v ); ?>)
                     </a>
                 <?php endif; ?>
             <?php endforeach; ?>
@@ -55,7 +55,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         <td colspan="4" class="align-center bg-white">
                             <?php printf(
                                 'All %s all will be listed here',
-                                esc_html( smliser_pluralize( $type ) )
+                                escHtml( smliser_pluralize( $type ) )
                             );?>
                         </td>
                     </tr>
@@ -63,7 +63,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                     <?php foreach ( $all as $entity ) : ?>
                         <tr>
                             <td>
-                                <?php echo esc_html( $entity->get_id() ); ?>
+                                <?php echo escHtml( $entity->get_id() ); ?>
                                 <span class="smliser-edit-link">
                                     <a href="<?php
                                         echo esc_url( 
@@ -92,9 +92,9 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                                     width="32" height="32"
                                     loading="lazy" decoding="async">
                             </td>
-                            <td><?php echo esc_html( $entity->get_display_name() ); ?></td>
-                            <td><?php echo esc_html( $entity->get_created_at()->format( smliser_datetime_format() ) ); ?></td>
-                            <td><?php echo esc_html( $entity->get_updated_at()->format( smliser_datetime_format() ) ); ?></td>
+                            <td><?php echo escHtml( $entity->get_display_name() ); ?></td>
+                            <td><?php echo escHtml( $entity->get_created_at()->format( smliser_datetime_format() ) ); ?></td>
+                            <td><?php echo escHtml( $entity->get_updated_at()->format( smliser_datetime_format() ) ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

@@ -43,12 +43,12 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                     </tr> 
                 <?php else: foreach( $all_tasks as $task_data ):?>
                 <tr>
-                    <td><?php echo esc_html( Format::datetime( $task_data['created_at'] ?? 0, smliser_datetime_format() ) );?></td>
-                    <td><?php echo esc_html( $task_data['user_agent'] ?? 'N/A' );?></td>
-                    <td><?php echo esc_html( $task_data['ip_address'] ?? 'N/A' );?></td>
-                    <td><?php echo esc_html( $task_data['comment'] ?? 'N/A' );?></td>
-                    <td><?php echo esc_html( smliser_readable_duration( $task_data['duration'] ?? 0 ) );?></td>
-                    <td><?php echo esc_html( smliser_url_origin( $task_data['website']?? 'N/A' ) );?></td>
+                    <td><?php echo escHtml( Format::datetime( $task_data['created_at'] ?? 0, smliser_datetime_format() ) );?></td>
+                    <td><?php echo escHtml( $task_data['user_agent'] ?? 'N/A' );?></td>
+                    <td><?php echo escHtml( $task_data['ip_address'] ?? 'N/A' );?></td>
+                    <td><?php echo escHtml( $task_data['comment'] ?? 'N/A' );?></td>
+                    <td><?php echo escHtml( smliser_readable_duration( $task_data['duration'] ?? 0 ) );?></td>
+                    <td><?php echo escHtml( smliser_url_origin( $task_data['website']?? 'N/A' ) );?></td>
                     <td><a href="<?php echo esc_url( smliser_license_admin_action_page( 'view', $task_data['license_id'] ?? 0 ) ) ?>">View License</a></td>
                 </tr>
                 <?php endforeach; endif;?>

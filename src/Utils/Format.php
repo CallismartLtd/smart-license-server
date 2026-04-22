@@ -674,13 +674,13 @@ class Format {
             $html .= '<li>';
 
             if ( $options['include_keys'] && ! is_numeric( $key ) ) {
-                $html .= '<strong>' . esc_html( $key ) . ':</strong> ';
+                $html .= '<strong>' . escHtml( $key ) . ':</strong> ';
             }
 
             if ( is_array( $value ) ) {
                 $html .= static::implode_deep_html( $value, $type, $options, $depth + 1 );
             } else {
-                $html .= esc_html( static::deep_value( $value, $key, $depth, [] ) );
+                $html .= escHtml( static::deep_value( $value, $key, $depth, [] ) );
             }
 
             $html .= '</li>';

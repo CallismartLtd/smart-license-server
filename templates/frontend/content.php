@@ -99,7 +99,7 @@ $topbar_actions = $topbar_actions ?? null;
             <?php if ( $principal ) : ?>
                 <div class="smlcd-topbar-divider" aria-hidden="true"></div>
                 <span class="smlcd-principal-name">
-                    <?php echo esc_html( $principal->get_display_name() ); ?>
+                    <?php echo escHtml( $principal->get_display_name() ); ?>
                 </span>
             <?php endif; ?>
 

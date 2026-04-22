@@ -219,7 +219,7 @@ class RepositoryPage {
         $type   = $request->get( 'type' );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
@@ -258,7 +258,7 @@ class RepositoryPage {
         $type   = $request->get( 'type' );
         
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
@@ -267,7 +267,7 @@ class RepositoryPage {
         $app = HostedApplicationService::get_app_by_id( $type, $id );
 
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', esc_html( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
@@ -881,13 +881,13 @@ class RepositoryPage {
             $html .= sprintf( '<div class="stat-card%s">', $highlight );
             $html .= '<div class="stat-card_header">';
             $html .= sprintf( '<span class="icon">%s</span>', $stat['icon'] );
-            $html .= sprintf( '<span class="stat-card_header-title">%s</span>', esc_html( $stat['label'] ) );
+            $html .= sprintf( '<span class="stat-card_header-title">%s</span>', escHtml( $stat['label'] ) );
             $html .= '</div>';
             $html .= '<div class="stat-card_content">';
-            $html .= sprintf( '<span class="stat-card_content-value">%s</span>', esc_html( $stat['value'] ) );
+            $html .= sprintf( '<span class="stat-card_content-value">%s</span>', escHtml( $stat['value'] ) );
             
             if ( ! empty( $stat['subtitle'] ) ) {
-                $html .= sprintf( '<span class="stat-card_content-subtitle">%s</span>', esc_html( $stat['subtitle'] ) );
+                $html .= sprintf( '<span class="stat-card_content-subtitle">%s</span>', escHtml( $stat['subtitle'] ) );
             }
             $html .= '</div>';
             

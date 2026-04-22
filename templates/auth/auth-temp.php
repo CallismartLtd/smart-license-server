@@ -21,29 +21,29 @@ defined( 'SMLISER_ABSPATH' ) || exit;
         
         <h2><?php 
             /* Translators: %s App name. */
-            printf( esc_html__( '%s would like to connect to your plugin repository', 'smliser' ), esc_html( ucwords( $sanitized_params['app_name'] ) ) );
+            printf( esc_html__( '%s would like to connect to your plugin repository', 'smliser' ), escHtml( ucwords( $sanitized_params['app_name'] ) ) );
         ?></h2>
 
         <p><?php 
             /* Translators: %1$s App name, %2$s scope. */
-            printf( esc_html__( 'This will give "%1$s" a "%2$s" access which will enable it to:', 'smliser' ), esc_html( ucwords( $sanitized_params['app_name'] ) ), esc_html( $permission ) ); ?>
+            printf( esc_html__( 'This will give "%1$s" a "%2$s" access which will enable it to:', 'smliser' ), escHtml( ucwords( $sanitized_params['app_name'] ) ), escHtml( $permission ) ); ?>
         </p>
 
         <ul>
             <li><?php
                 /** translators: %s permissions. */
-                printf( esc_html__( '%s plugins in the repository', 'smliser' ), esc_html( $verb ) ); ?>
+                printf( esc_html__( '%s plugins in the repository', 'smliser' ), escHtml( $verb ) ); ?>
             </li>
 
             <li><?php 
             /** Translators: %s permissions. */
-                printf( esc_html__( '%s licenses for premium plugins', 'smliser' ), esc_html( $verb ) ); ?>
+                printf( esc_html__( '%s licenses for premium plugins', 'smliser' ), escHtml( $verb ) ); ?>
             </li>
         </ul>
         <p>Authorizing this action will share credentials with <?php 
         
         /** Translators: %s Callback url */
-            printf( esc_html__( '"%s". Deny this request if you do not trust this app.', 'smliser' ), esc_html( $sanitized_params['callback_url'] ) );?>
+            printf( esc_html__( '"%s". Deny this request if you do not trust this app.', 'smliser' ), escHtml( $sanitized_params['callback_url'] ) );?>
             
         </p>
         <div class="smliser-auth-avater">
@@ -51,7 +51,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
             <p><?php
                 /* Translators: %s display name. */
-                printf( esc_html__( 'Logged in as %s', 'smliser' ), esc_html( wp_get_current_user()->display_name ) );
+                printf( esc_html__( 'Logged in as %s', 'smliser' ), escHtml( wp_get_current_user()->display_name ) );
                 ?>
                 <a href="<?php echo esc_url( wp_logout_url( url( 'smliser-auth/v1/authorize/' )->add_query_params( $_GET ) ) ) ?>">Logout</a>
             </p>

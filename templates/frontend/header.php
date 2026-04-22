@@ -34,7 +34,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo esc_html( $repo_name ); ?> — Dashboard</title>
+    <title><?php echo escHtml( $repo_name ); ?> — Dashboard</title>
 
     <?php AssetsManager::print_styles( ...$styles ); ?>
 

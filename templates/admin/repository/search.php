@@ -18,7 +18,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
     <div class="smliser-table-wrapper">
       
         <?php if ( $message = $request->get( 'message' ) ) : ?>
-            <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+            <div class="notice notice-info is-dismissible"><p><?php echo escHtml( $message ); ?></p></div>
         <?php endif; ?>
 
         <div class="smliser-app-search-page smliser-table-wrapper">
@@ -28,7 +28,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                 <select name="app_types" id="app_types" class="smliser-app-type-select">
                     <option value="<?php echo implode( '|', $app_types ); ?>">All</option>
                     <?php foreach( $app_types as $type ) : ?>
-                        <option value="<?php echo esc_html( $type ); ?>" <?php selected( $type, $request->get( 'app_types' ) ); ?>><?php echo esc_html( ucfirst( $type ) ); ?></option>
+                        <option value="<?php echo escHtml( $type ); ?>" <?php selected( $type, $request->get( 'app_types' ) ); ?>><?php echo escHtml( ucfirst( $type ) ); ?></option>
                     <?php endforeach; ?>
                 </select>
                 <input type="search" name="app_search" value="<?php echo $request->get( 'app_search' ) ?>" id="smliser-app-search-input" placeholder="Search apps">
@@ -54,7 +54,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         <?php if ( $request->get( 'app_search' ) ) :
                             $message    = sprintf(
                                 'No app found matching the search term "%s". <a href="%s">Reset Search</a>',
-                                esc_html( $request->get( 'app_search' ) ),
+                                escHtml( $request->get( 'app_search' ) ),
                                 esc_url( $current_url->add_query_param( 'tab', 'search' )->get_href() )
                             );
                         else:
@@ -78,13 +78,13 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                                     <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">view</a>
                                 </div>
                             </td>
-                            <td><?php echo esc_html( $app->get_name() ); ?></td>
+                            <td><?php echo escHtml( $app->get_name() ); ?></td>
                             <td><?php echo $app->get_author(); ?></td>
-                            <td><code><?php echo esc_html( $app->get_type() ); ?></code></td>
-                            <td><?php echo esc_html( $app->get_version() ); ?></td>
-                            <td><?php echo esc_html( $app->get_slug() ); ?></td>
-                            <td><?php echo esc_html( $app->get_status() ); ?></td>
-                            <td><?php echo esc_html( date( smliser_datetime_format(), strtotime( $app->get_updated_at() ) ) ); ?></td>
+                            <td><code><?php echo escHtml( $app->get_type() ); ?></code></td>
+                            <td><?php echo escHtml( $app->get_version() ); ?></td>
+                            <td><?php echo escHtml( $app->get_slug() ); ?></td>
+                            <td><?php echo escHtml( $app->get_status() ); ?></td>
+                            <td><?php echo escHtml( date( smliser_datetime_format(), strtotime( $app->get_updated_at() ) ) ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

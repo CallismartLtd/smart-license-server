@@ -816,11 +816,11 @@ class BulkMessages {
             if ( $show_slugs ) {
                 $list = implode( $as_html ? ', ' : ', ', $slugs );
                 $formatted = $as_html
-                    ? sprintf( '<strong>%s</strong> (%d): %s', esc_html( ucfirst( $app_type ) ), $count, esc_html( $list ) )
+                    ? sprintf( '<strong>%s</strong> (%d): %s', escHtml( ucfirst( $app_type ) ), $count, escHtml( $list ) )
                     : sprintf( '%s (%d): %s', ucfirst( $app_type ), $count, $list );
             } else {
                 $formatted = $as_html
-                    ? sprintf( '<strong>%s</strong> (%d)', esc_html( ucfirst( $app_type ) ), $count )
+                    ? sprintf( '<strong>%s</strong> (%d)', escHtml( ucfirst( $app_type ) ), $count )
                     : sprintf( '%s (%d)', ucfirst( $app_type ), $count );
             }
 

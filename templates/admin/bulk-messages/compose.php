@@ -35,13 +35,13 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                     <select id="smliser-app-select" name="associated_apps[]" title="<?php esc_html_e( 'Select a hosted application to associate this message with.', 'smliser' ); ?>" multiple>
                         <?php if ( $message ) : ?>
                             <?php foreach ( $message->get_associated_apps() as $type => $slugs ) : ?>
-                                <optgroup label="<?php echo esc_html( ucfirst( $type ) ); ?>">
+                                <optgroup label="<?php echo escHtml( ucfirst( $type ) ); ?>">
                                     <?php if ( is_array( $slugs ) ) : ?>
                                         <?php foreach ( $slugs as $slug ) : ?>
-                                            <option value="<?php printf( '%s:%s', esc_attr( $type ), esc_attr( $slug ) ); ?>" selected><?php echo esc_html( $slug ) ?></option>
+                                            <option value="<?php printf( '%s:%s', esc_attr( $type ), esc_attr( $slug ) ); ?>" selected><?php echo escHtml( $slug ) ?></option>
                                         <?php endforeach; ?>
                                     <?php else: ?>
-                                        <option value="<?php printf( '%s:%s', esc_attr( $type ), esc_attr( $slugs ) ); ?>" selected><?php echo esc_html( $slugs ) ?></option>
+                                        <option value="<?php printf( '%s:%s', esc_attr( $type ), esc_attr( $slugs ) ); ?>" selected><?php echo escHtml( $slugs ) ?></option>
                                     <?php endif; ?>
                                 </optgroup>
 

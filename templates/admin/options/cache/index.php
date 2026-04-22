@@ -46,7 +46,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
                     <div class="smliser-provider-card__body">
                         <span class="smliser-provider-card__name">
-                            <?php echo esc_html( $provider::get_name() ); ?>
+                            <?php echo escHtml( $provider::get_name() ); ?>
                         </span>
 
                         <?php if ( $is_default ) : ?>

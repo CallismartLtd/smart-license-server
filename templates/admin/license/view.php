@@ -89,16 +89,16 @@ $args   = LicensePage::get_menu_args( $request );
             <div class="smliser-admin-view-page-header"> 
                 <div class="smliser-admin-view-page-header-child">
                     <h2>Info</h2>
-                    <p><span class="dashicons dashicons-database-view"></span> License ID: <?php echo esc_html( intval( $license->get_id() ) ) ?></p>
-                    <p><span class="dashicons dashicons-yes-alt"></span> Status: <?php echo esc_html( $license->get_status() ) ?></p>
-                    <p><span class="dashicons dashicons-businessman"></span> Licensee: <?php echo esc_html( $licensee ) ?></p>
+                    <p><span class="dashicons dashicons-database-view"></span> License ID: <?php echo escHtml( intval( $license->get_id() ) ) ?></p>
+                    <p><span class="dashicons dashicons-yes-alt"></span> Status: <?php echo escHtml( $license->get_status() ) ?></p>
+                    <p><span class="dashicons dashicons-businessman"></span> Licensee: <?php echo escHtml( $licensee ) ?></p>
                 </div>
 
                 <div class="smliser-admin-view-page-header-child">
                     <h2>Statistics</h2>
-                    <p><span class="dashicons dashicons-admin-site-alt"></span> Max Allowed Domains: <?php echo esc_html( $license->get_max_allowed_domains() ) ?></p>
+                    <p><span class="dashicons dashicons-admin-site-alt"></span> Max Allowed Domains: <?php echo escHtml( $license->get_max_allowed_domains() ) ?></p>
                     <p><span class="dashicons dashicons-admin-site-alt3"></span> Total Domains Activated: <?php echo intval( $license->get_total_active_domains() )?></p>
-                    <p><span class="dashicons dashicons-plugins-checked"></span> App Prop: <?php echo esc_html( $license->get_app_prop() ) ?></p>
+                    <p><span class="dashicons dashicons-plugins-checked"></span> App Prop: <?php echo escHtml( $license->get_app_prop() ) ?></p>
                 </div>
 
             </div>
@@ -108,7 +108,7 @@ $args   = LicensePage::get_menu_args( $request );
                     <tbody>
                         <tr>
                             <th>License ID</th>
-                            <td><?php echo esc_html( intval( $license->get_id() ) ); ?></td>
+                            <td><?php echo escHtml( intval( $license->get_id() ) ); ?></td>
                         </tr>
     
                         <tr>
@@ -127,7 +127,7 @@ $args   = LicensePage::get_menu_args( $request );
                             <td>
                                 <?php if ( $license->is_issued() ) : ?>
                                     <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', ['app_id' => $licensed_app->get_id(), 'type' => $licensed_app->get_type()] ) ); ?>">
-                                        <?php echo esc_html( $licensed_app->get_name() ); ?> » <?php printf( '%s/%s', esc_html( $licensed_app->get_type() ), esc_html( $licensed_app->get_slug() ) ) ?>
+                                        <?php echo escHtml( $licensed_app->get_name() ); ?> » <?php printf( '%s/%s', escHtml( $licensed_app->get_type() ), escHtml( $licensed_app->get_slug() ) ) ?>
                                     </a>
                                 <?php else : ?>
                                     <span>N/L</span>
@@ -137,7 +137,7 @@ $args   = LicensePage::get_menu_args( $request );
 
                         <tr>
                             <th>Service ID</th>
-                            <td><span class="smliser-click-to-copy" title="Copy" data-copy-value="<?php echo esc_attr( $license->get_service_id() ); ?>"><?php echo esc_html( $license->get_service_id() ); ?></span></td>
+                            <td><span class="smliser-click-to-copy" title="Copy" data-copy-value="<?php echo esc_attr( $license->get_service_id() ); ?>"><?php echo escHtml( $license->get_service_id() ); ?></span></td>
                         </tr>
                         
                         <tr>
@@ -147,8 +147,8 @@ $args   = LicensePage::get_menu_args( $request );
                                     <div class="smliser-license-obfuscation_data">
                                         <span class="smliser-license-input">
                                             <input type="text" 
-                                                id="<?php echo esc_html( $license->get_id() ); ?>" 
-                                                value="<?php echo esc_html( $license->get_license_key() ); ?>" 
+                                                id="<?php echo escHtml( $license->get_id() ); ?>" 
+                                                value="<?php echo escHtml( $license->get_license_key() ); ?>" 
                                                 readonly 
                                                 class="smliser-license-text" 
                                             />
@@ -156,12 +156,12 @@ $args   = LicensePage::get_menu_args( $request );
                                         </span>
 
                                         <span class="smliser-obfuscated-license-text">
-                                            <?php echo esc_html( $license->get_partial_key() ); ?>
+                                            <?php echo escHtml( $license->get_partial_key() ); ?>
                                         </span>
                                     </div>
 
                                     <input type="checkbox" 
-                                        id="toggle-<?php echo esc_html( $license->get_id() ); ?>" 
+                                        id="toggle-<?php echo escHtml( $license->get_id() ); ?>" 
                                         class="smliser-licence-key-visibility-toggle smliser-tooltip" 
                                         title="Toggle visibility" 
                                     />
@@ -171,12 +171,12 @@ $args   = LicensePage::get_menu_args( $request );
 
                         <tr>
                             <th>Start Date</th>
-                            <td><?php echo esc_html( $license->get_start_date()?->format( \smliser_datetime_format() ) ?? 'N/A' ); ?></td>
+                            <td><?php echo escHtml( $license->get_start_date()?->format( \smliser_datetime_format() ) ?? 'N/A' ); ?></td>
                         </tr>
 
                         <tr>
                             <th>End Date</th>
-                            <td><?php echo esc_html( $license->get_end_date()?->format( \smliser_datetime_format() ) ?? 'N/A' ); ?></td>
+                            <td><?php echo escHtml( $license->get_end_date()?->format( \smliser_datetime_format() ) ?? 'N/A' ); ?></td>
                         </tr>
 
                         <tr>
@@ -288,7 +288,7 @@ function print_license_alert( License $license ) : void {
                     return sprintf(
                         '<div class="smliser-alert smliser-alert-%1$s"><span class="smliser-alert-message">%2$s</span></div>',
                         esc_attr( $item['type'] ),
-                        esc_html( $item['message'] )
+                        escHtml( $item['message'] )
                     );
                 },
                 $messages

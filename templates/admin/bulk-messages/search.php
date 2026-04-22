@@ -14,7 +14,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
     <div class="smliser-table-wrapper">
       
         <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
-            <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+            <div class="notice notice-info is-dismissible"><p><?php echo escHtml( $message ); ?></p></div>
         <?php endif; ?>
 
         <div class="smliser-app-search-page smliser-table-wrapper">
@@ -45,16 +45,16 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         <?php foreach ( $messages as $message ) : ?>        
                             <tr>
                                 <td class="smliser-edit-row">
-                                    <?php echo esc_html( $message->get_id() ); ?>
+                                    <?php echo escHtml( $message->get_id() ); ?>
                                     <p class="smliser-edit-link">
                                         <a href="<?php echo esc_url( $current_url->add_query_params( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ) ) ); ?>">Edit</a>
                                     </p>
                                 </td>
                             
-                                <td><?php echo esc_html( $message->get_message_id() ); ?></td>
-                                <td><?php echo esc_html( $message->get_subject() ); ?></td>
-                                <td><?php echo esc_html( smliser_trim_words( $message->get_body(), 5 ) ); ?></td>
-                                <td><?php echo esc_html( $message->print_associated_apps_summary() ); ?></td>
+                                <td><?php echo escHtml( $message->get_message_id() ); ?></td>
+                                <td><?php echo escHtml( $message->get_subject() ); ?></td>
+                                <td><?php echo escHtml( smliser_trim_words( $message->get_body(), 5 ) ); ?></td>
+                                <td><?php echo escHtml( $message->print_associated_apps_summary() ); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

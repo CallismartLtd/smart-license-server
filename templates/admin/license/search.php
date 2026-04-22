@@ -39,7 +39,7 @@ $args   = LicensePage::get_menu_args( $request );
                 <input type="hidden" name="page" value="<?php echo esc_attr( $request->get( 'page' ) ) ?>">
                 <input type="hidden" name="tab" value="<?php echo esc_attr( $request->get( 'tab' ) ) ?>">
                 
-                <input type="search" name="search_term" value="<?php echo esc_html( $request->get( 'search_term' ) ) ?>" id="smliser-license-search-input" placeholder="Search licenses...">
+                <input type="search" name="search_term" value="<?php echo escHtml( $request->get( 'search_term' ) ) ?>" id="smliser-license-search-input" placeholder="Search licenses...">
                 <button type="submit" class="button smliser-btn">Search</button>
             </form>
             
@@ -64,18 +64,18 @@ $args   = LicensePage::get_menu_args( $request );
                         ?>        
                         <tr>
                             <td class="smliser-edit-row">
-                                <?php echo esc_html( $license->get_id() ); ?>
+                                <?php echo escHtml( $license->get_id() ); ?>
                                 <p class="smliser-edit-link">
                                     <a href="<?php echo esc_url( smliser_license_admin_action_page( 'edit', $license->get_id() ) ); ?>">edit</a> | <a href="<?php echo esc_url( smliser_license_admin_action_page( 'view', $license->get_id() ) ); ?>">view</a>
                                 </p>
                             </td>
                         
-                            <td><?php echo esc_html( $license->get_licensee_fullname() ); ?></td>
+                            <td><?php echo escHtml( $license->get_licensee_fullname() ); ?></td>
                             <td>
                                 <div class="smliser-license-obfuscation">
                                     <div class="smliser-license-obfuscation_data">
                                         <span class="smliser-license-input">
-                                            <input type="text" id="<?php echo esc_html( $license->get_id() ); ?>" value="<?php echo esc_html( $license->get_license_key()) ?>" readonly class="smliser-license-text" />
+                                            <input type="text" id="<?php echo escHtml( $license->get_id() ); ?>" value="<?php echo escHtml( $license->get_license_key()) ?>" readonly class="smliser-license-text" />
                                             <span class="dashicons dashicons-admin-page copy-key smliser-tooltip" title="copy license key"></span>
                                         </span>
 
@@ -86,9 +86,9 @@ $args   = LicensePage::get_menu_args( $request );
                                     <input type="checkbox" id="<?php echo intval( microtime( true ) ); ?>" class="smliser-licence-key-visibility-toggle smliser-tooltip" title="toggle visibility">
                                 </div>
                             </td>
-                            <td><?php echo esc_html( $license->get_service_id() ); ?></td>
-                            <td><?php echo esc_html( $license->get_app_prop() ); ?></td>
-                            <td><?php echo esc_html( $license->get_status() ); ?></td>
+                            <td><?php echo escHtml( $license->get_service_id() ); ?></td>
+                            <td><?php echo escHtml( $license->get_app_prop() ); ?></td>
+                            <td><?php echo escHtml( $license->get_status() ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

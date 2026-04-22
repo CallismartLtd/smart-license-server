@@ -22,7 +22,7 @@ class CliErrorHandler extends AbstractErrorHandler {
 
         // Header.
         $this->line(
-            $this->colorize( self::ANSI_RED . self::ANSI_BOLD, "✖ {$class}" ),
+            $this->colorize( self::ANSI_RED . self::ANSI_BOLD, "✖ {$class}" )
         );
         
 
@@ -107,12 +107,12 @@ class CliErrorHandler extends AbstractErrorHandler {
         $output = '';
         $output .= \PHP_EOL;
         $output .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . PHP_EOL;
-        $output .= htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . \PHP_EOL;
+        $output .= $this->getTitle() . \PHP_EOL;
         $output .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . PHP_EOL;
-        $output .= htmlspecialchars( $this->getMessage(), ENT_QUOTES, 'UTF-8' ) . PHP_EOL;
+        $output .= $this->getMessage() . PHP_EOL;
 
         if ( $this->config['back_link'] ) {
-            $output .= "Error Code: " . htmlspecialchars( $this->getCode(), ENT_QUOTES, 'UTF-8' ) . \PHP_EOL;
+            $output .= "Error Code: " . $this->getCode() . \PHP_EOL;
         }
 
         $output .= \PHP_EOL;

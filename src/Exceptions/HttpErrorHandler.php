@@ -139,9 +139,10 @@ class HttpErrorHandler extends AbstractErrorHandler {
      */
     private function renderHead() : string {
         $html = '';
+        $charset    = $this->config['charset'] ?? 'utf-8';
 
         // Meta tags.
-        $html .= "\n\t<meta charset=\"" . htmlspecialchars( $this->config['charset'], ENT_QUOTES ) . '">' . "\n";
+        $html .= "\n\t<meta charset=\"" . escHtml( $charset ) . '">' . "\n";
         $html .= "\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
 
         // Additional meta tags.
@@ -149,13 +150,13 @@ class HttpErrorHandler extends AbstractErrorHandler {
             if ( $item['type'] === 'meta' ) {
                 $html .= "\t<meta";
                 foreach ( $item['data'] as $key => $value ) {
-                    $html .= ' ' . htmlspecialchars( $key, ENT_QUOTES ) . '="' . htmlspecialchars( $value, ENT_QUOTES ) . '"';
+                    $html .= ' ' . escHtml( $key ) . '="' . escHtml( $value ) . '"';
                 }
                 $html .= ">\n";
             }
         }
 
-        $html .= "\t<title>" . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . "</title>\n";
+        $html .= "\t<title>" . escHtml( $this->getTitle() ) . "</title>\n";
 
         // Styles.
         $html .= $this->renderStyles();
@@ -165,7 +166,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
             if ( $item['type'] === 'link' ) {
                 $html .= "\t<link";
                 foreach ( $item['data'] as $key => $value ) {
-                    $html .= ' ' . htmlspecialchars( $key, ENT_QUOTES ) . '="' . htmlspecialchars( $value, ENT_QUOTES ) . '"';
+                    $html .= ' ' . escHtml( $key ) . '="' . escHtml( $value ) . '"';
                 }
                 $html .= ">\n";
             }
@@ -250,7 +251,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
             if ( is_array( $value ) ) {
                 $value = implode( ' ', $value );
             }
-            $html .= ' ' . htmlspecialchars( $key, ENT_QUOTES ) . '="' . htmlspecialchars( $value, ENT_QUOTES ) . '"';
+            $html .= ' ' . escHtml( $key ) . '="' . escHtml( $value ) . '"';
         }
         return $html;
     }
@@ -264,8 +265,8 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $html = '';
 
         if ( ! empty( $this->config['link_url'] ) && ! empty( $this->config['link_text'] ) ) {
-            $html .= '<p><a href="' . htmlspecialchars( $this->config['link_url'], ENT_QUOTES ) . '">';
-            $html .= htmlspecialchars( $this->config['link_text'], ENT_QUOTES, 'UTF-8' );
+            $html .= '<p><a href="' . escHtml( $this->config['link_url'] ) . '">';
+            $html .= escHtml( $this->config['link_text'] );
             $html .= '</a></p>' . "\n";
         }
 
@@ -293,7 +294,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $html .= "</head>\n";
         $html .= "<body" . $body_attrs . ">\n";
         $html .= "\t<div class=\"error-container\">\n";
-        $html .= "\t\t<h1>" . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . "</h1>\n";
+        $html .= "\t\t<h1>" . escHtml( $this->getTitle() ) . "</h1>\n";
         $html .= "\t\t<div class=\"error-message\">\n";
         $html .= "\t\t\t" . $content . "\n";
         $html .= "\t\t</div>\n";

@@ -30,12 +30,12 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                 </div>
                 
                 <div class="smliser-app-title-section">
-                    <h1 class="smliser-app-title"><?php echo esc_html( $template_header['name'] ); ?></h1>
+                    <h1 class="smliser-app-title"><?php echo escHtml( $template_header['name'] ); ?></h1>
                     
                     <div class="smliser-badge-row">
                         <?php foreach ( $template_header['badges'] as $badge ) : ?>
                             <span class="smliser-badge smliser-badge-<?php echo esc_attr( strtolower( str_replace( ' ', '-', $badge ) ) ); ?>">
-                                <?php echo esc_html( $badge ); ?>
+                                <?php echo escHtml( $badge ); ?>
                             </span>
                         <?php endforeach; ?>
                     </div>
@@ -62,7 +62,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                         <?php if ( ! empty( $button['icon'] ) ) : ?>
                             <i class="<?php echo esc_attr( $button['icon'] ); ?>"></i>
                         <?php endif; ?>
-                        <?php echo esc_html( $button['text'] ); ?>
+                        <?php echo escHtml( $button['text'] ); ?>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -90,7 +90,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                 $first_title = array_key_first( $images );
                                 $first_image = current( $images );                            
                             ?>
-                            <h3 class="smliser-gallery-preview_title"><?php echo esc_html( $first_title ); ?></h3>
+                            <h3 class="smliser-gallery-preview_title"><?php echo escHtml( $first_title ); ?></h3>
                             <div class="smliser-gallery-preview_image">
                                 <img class="smliser-request-fullscreen" src="<?php echo esc_url( current( $first_image )?: SMLISER_URL . 'assets/images/no-image.svg' ); ?>" alt="image" title="Double click for fullscreen">
                             </div>
@@ -98,10 +98,10 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                         
                         <div class="smliser-gallery-list-container">
                             <?php foreach ( $images as $title => $data ) : ?>
-                                <h3><?php echo esc_html( $title ); ?></h3>
+                                <h3><?php echo escHtml( $title ); ?></h3>
                                 <?php foreach( $data as $image_url ) : ?>
                                     <ul class="smliser-gallery-list-container_ul">
-                                        <li><img class="repo-image-preview" src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( $title ); ?>" data-repo-image-title="<?php echo esc_html( $title ); ?>" title="Preview"></li>
+                                        <li><img class="repo-image-preview" src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( $title ); ?>" data-repo-image-title="<?php echo escHtml( $title ); ?>" title="Preview"></li>
                                     </ul>
                                 <?php endforeach; ?>                            
                             <?php endforeach; ?>                            
@@ -149,7 +149,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                 <div class="smliser-sidebar-card">
                     <h3>
                         <i class="<?php echo esc_attr( $data['icon'] ?? 'dashicons dashicons-chart-bar' ) ?>"></i>
-                        <?php echo esc_html( $heading ); ?>
+                        <?php echo escHtml( $heading ); ?>
                     </h3>
                     <div class="smliser-sidebar-content">
                         <?php echo ( $data['content'] ?? '' ); ?>

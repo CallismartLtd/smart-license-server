@@ -41,7 +41,7 @@ if ( $render_image_only ) {
         aria-labelledby="smliser-form-title"
     >
 
-        <h2 id="smliser-form-title"><?php echo esc_html( $title ); ?></h2>
+        <h2 id="smliser-form-title"><?php echo escHtml( $title ); ?></h2>
 
         <div class="smliser-two-rows">
             <div class="smliser-two-rows_left" role="group" aria-label="Form fields">
@@ -111,7 +111,7 @@ if ( $render_image_only ) {
                                 class="smliser-avatar-upload_data-filename"
                                 aria-live="polite"
                             >
-                                <?php echo esc_html( $avatar_name ); ?>
+                                <?php echo escHtml( $avatar_name ); ?>
                             </span>
 
                         </div>
@@ -169,7 +169,7 @@ if ( $render_image_only ) {
                                 >
 
                                 <strong class="smliser-org-member_name">
-                                    <?php echo esc_html( $member->get_display_name() ); ?>
+                                    <?php echo escHtml( $member->get_display_name() ); ?>
                                 </strong>
                             </div>
 
@@ -183,14 +183,14 @@ if ( $render_image_only ) {
                                 <tr>
                                     <th scope="row">Role:</th>
                                     <td>
-                                        <?php echo esc_html( $role ? $role->get_label() : 'Unknown' ); ?>
+                                        <?php echo escHtml( $role ? $role->get_label() : 'Unknown' ); ?>
                                     </td>
                                 </tr>
 
                                 <tr>
                                     <th scope="row">Member Since:</th>
                                     <td>
-                                        <?php echo esc_html( $member->get_created_at()->format( smliser_datetime_format() ) ); ?>
+                                        <?php echo escHtml( $member->get_created_at()->format( smliser_datetime_format() ) ); ?>
                                     </td>
                                 </tr>
                             </table>
@@ -246,7 +246,7 @@ if ( $render_image_only ) {
                 id="smliser-roles-title"
                 class="smliser-access-control-role-deading"
             >
-                <?php echo esc_html( $roles_title ); ?>
+                <?php echo escHtml( $roles_title ); ?>
             </h2>
 
             <div

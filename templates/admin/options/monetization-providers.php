@@ -23,8 +23,8 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
             <tbody>
                 <?php foreach( $providers as $id => $provider ) : ?>
                     <tr>
-                        <td><?php echo esc_html( $id ); ?></td>
-                        <td><?php echo esc_html( $provider::get_name() ); ?></td>
+                        <td><?php echo escHtml( $id ); ?></td>
+                        <td><?php echo escHtml( $provider::get_name() ); ?></td>
                         <td><a href="<?php echo esc_url( smliser_options_url()->add_query_params( ['tab' => 'monetization',  'provider' => $provider::get_id() ] ) ); ?>" class="button smliser-nav-btn"> <span class="dashicons dashicons-admin-generic"></span> Manage</a></td>
                     </tr>
                 <?php endforeach; ?>

@@ -41,8 +41,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                             <img src="<?php echo esc_url( smliser_get_placeholder_icon( $app_type ) ); ?>" alt="">
                         </div>
                         <div class="smliser-dashboard-hero_down-item-content">
-                            <span><?php echo esc_html( $value ); ?></span>
-                            <span><?php echo esc_html( sprintf( 'Total %s', ucfirst( $app_type ) ) ); ?></span>
+                            <span><?php echo escHtml( $value ); ?></span>
+                            <span><?php echo escHtml( sprintf( 'Total %s', ucfirst( $app_type ) ) ); ?></span>
                         </div>
 
                     </div>
@@ -66,7 +66,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                     <div class="smliser-domain-header">
                         <h3>
                             <i class="ti <?php echo esc_attr( get_domain_icon( $domain_name ) ); ?>"></i>
-                            <?php echo esc_html( $domain_name ); ?>
+                            <?php echo escHtml( $domain_name ); ?>
                         </h3>
                     </div>
 
@@ -81,8 +81,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                                 <i class="ti <?php echo esc_attr( get_metric_icon( $key ) ); ?>"></i>
                                             </div>
                                             <div class="smliser-summary-card-content">
-                                                <span class="value"><?php echo esc_html( number_format( $value ) ); ?></span>
-                                                <span class="label"><?php echo esc_html( smliser_format_metric_label( $key ) ); ?></span>
+                                                <span class="value"><?php echo escHtml( number_format( $value ) ); ?></span>
+                                                <span class="label"><?php echo escHtml( smliser_format_metric_label( $key ) ); ?></span>
                                                 <?php
                                                 // Check for growth metric
                                                 $growth_key = $key . '_growth';
@@ -92,7 +92,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                                 ?>
                                                     <span class="growth <?php echo $is_positive ? 'positive' : 'negative'; ?>">
                                                         <i class="ti ti-trending-<?php echo $is_positive ? 'up' : 'down'; ?>"></i>
-                                                        <?php echo esc_html( number_format( abs( $growth ), 2 ) . '%' ); ?>
+                                                        <?php echo escHtml( number_format( abs( $growth ), 2 ) . '%' ); ?>
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
@@ -121,14 +121,14 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                             <div class="smliser-rankings-section">
                                 <?php foreach ( $rankings as $ranking_key => $ranking_data ) : ?>
                                     <div class="smliser-ranking-block">
-                                        <h4><?php echo esc_html( smliser_format_metric_label( $ranking_key ) ); ?></h4>
+                                        <h4><?php echo escHtml( smliser_format_metric_label( $ranking_key ) ); ?></h4>
                                         <div class="smliser-ranking-content">
                                             <?php foreach ( $ranking_data as $type => $apps ) : ?>
                                                 <?php if ( ! empty( $apps ) ) : ?>
                                                     <div class="smliser-ranking-type">
                                                         <h5>
                                                             <i class="ti <?php echo esc_attr( smliser_get_type_icon( $type ) ); ?>"></i>
-                                                            <?php echo esc_html( ucfirst( $type ) ); ?>
+                                                            <?php echo escHtml( ucfirst( $type ) ); ?>
                                                         </h5>
                                                         <ol class="smliser-ranking-list">
                                                             <?php foreach ( array_slice( $apps, 0, 5 ) as $index => $app ) : 
@@ -138,17 +138,17 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                                                 
                                                                 ?>
                                                                 <li class="smliser-ranking-item">
-                                                                    <span class="rank">#<?php echo esc_html( $index + 1 ); ?></span>
+                                                                    <span class="rank">#<?php echo escHtml( $index + 1 ); ?></span>
                                                                     <?php if ( $app_obj ) : ?>
                                                                         <span class="name">
                                                                             <a href="<?php echo \esc_url( \smliser_admin_repo_tab( 'view', array( 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ) ) ); ?>" target="_blank" >
-                                                                                <?php echo esc_html( $app_obj->get_name() ); ?>
+                                                                                <?php echo escHtml( $app_obj->get_name() ); ?>
                                                                             </a>
                                                                         </span>
                                                                     <?php else : ?>
                                                                         <span class="name"><?php echo __( 'Unknown', 'smliser' ); ?></span>
                                                                     <?php endif; ?>
-                                                                    <span class="score"><?php echo esc_html( number_format( $app['metric_total'] ?? 0 ) ); ?></span>
+                                                                    <span class="score"><?php echo escHtml( number_format( $app['metric_total'] ?? 0 ) ); ?></span>
                                                                 </li>
                                                             <?php endforeach; ?>
                                                         </ol>
@@ -184,22 +184,22 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                                 <tr>
                                                     <td>
                                                         <span class="timestamp" title="<?php echo esc_attr( $timestamp ); ?>">
-                                                            <?php echo esc_html( human_time_diff( strtotime( $timestamp ), current_time( 'timestamp' ) ) . ' ago' ); ?>
+                                                            <?php echo escHtml( human_time_diff( strtotime( $timestamp ), current_time( 'timestamp' ) ) . ' ago' ); ?>
                                                         </span>
                                                     </td>
                                                     <td>
                                                         <span class="event-badge event-<?php echo esc_attr( $log['event_type'] ?? 'unknown' ); ?>">
                                                             <i class="ti <?php echo esc_attr( smliser_get_event_icon( $log['event_type'] ?? 'unknown' ) ); ?>"></i>
-                                                            <?php echo esc_html( ucfirst( $log['event_type'] ?? 'unknown' ) ); ?>
+                                                            <?php echo escHtml( ucfirst( $log['event_type'] ?? 'unknown' ) ); ?>
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <code><?php echo esc_html( $log['license_id'] ?? 'N/A' ); ?></code>
+                                                        <code><?php echo escHtml( $log['license_id'] ?? 'N/A' ); ?></code>
                                                     </td>
                                                     <td>
                                                         <?php if ( ! empty( $log['website'] ) && $log['website'] !== 'N/A' ) : ?>
                                                             <a href="<?php echo esc_url( $log['website'] ); ?>" target="_blank" rel="noopener">
-                                                                <?php echo esc_html( parse_url( $log['website'], PHP_URL_HOST ) ?? $log['website'] ); ?>
+                                                                <?php echo escHtml( parse_url( $log['website'], PHP_URL_HOST ) ?? $log['website'] ); ?>
                                                                 <i class="ti ti-external-link"></i>
                                                             </a>
                                                         <?php else : ?>
@@ -207,7 +207,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                                         <?php endif; ?>
                                                     </td>
                                                     <td>
-                                                        <span class="ip-address"><?php echo esc_html( $log['ip_address'] ?? 'N/A' ); ?></span>
+                                                        <span class="ip-address"><?php echo escHtml( $log['ip_address'] ?? 'N/A' ); ?></span>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>

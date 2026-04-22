@@ -91,10 +91,10 @@ function smliser_get_status_class( $has_issues ) {
                                     </div>
                                     <div class="smliser-account-metric-content">
                                         <h3 class="smliser-account-metric-label">
-                                            <?php echo esc_html( smliser_format_label( $label ) ); ?>
+                                            <?php echo escHtml( smliser_format_label( $label ) ); ?>
                                         </h3>
                                         <p class="smliser-account-metric-value">
-                                            <?php echo esc_html( smliser_format_metric_value( $value ) ); ?>
+                                            <?php echo escHtml( smliser_format_metric_value( $value ) ); ?>
                                         </p>
                                     </div>
                                 </div>
@@ -124,10 +124,10 @@ function smliser_get_status_class( $has_issues ) {
                                     </div>
                                     <div class="smliser-account-metric-content">
                                         <h3 class="smliser-account-metric-label">
-                                            <?php echo esc_html( smliser_format_label( $label ) ); ?>
+                                            <?php echo escHtml( smliser_format_label( $label ) ); ?>
                                         </h3>
                                         <p class="smliser-account-metric-value">
-                                            <?php echo esc_html( smliser_format_metric_value( $value ) ); ?>
+                                            <?php echo escHtml( smliser_format_metric_value( $value ) ); ?>
                                         </p>
                                     </div>
                                 </div>
@@ -164,10 +164,10 @@ function smliser_get_status_class( $has_issues ) {
                                     </div>
                                     <div class="smliser-account-metric-content">
                                         <h3 class="smliser-account-metric-label">
-                                            <?php echo esc_html( smliser_format_label( $label ) ); ?>
+                                            <?php echo escHtml( smliser_format_label( $label ) ); ?>
                                         </h3>
                                         <p class="smliser-account-metric-value">
-                                            <?php echo esc_html( smliser_format_metric_value( $value ) ); ?>
+                                            <?php echo escHtml( smliser_format_metric_value( $value ) ); ?>
                                         </p>
                                     </div>
                                 </div>

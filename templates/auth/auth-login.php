@@ -21,12 +21,12 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
     <h2><?php 
         /* Translators: %s App name. */
-        printf( esc_html__( '%s would like to connect to your plugin repository', 'smliser' ), esc_html( ucwords( $sanitized_params['app_name'] ) ) );
+        printf( esc_html__( '%s would like to connect to your plugin repository', 'smliser' ), escHtml( ucwords( $sanitized_params['app_name'] ) ) );
     ?></h2>
 
     <p><?php 
         /* Translators: %1$s App name, %2$s scope. */
-        printf( esc_html__( 'You must be logged in to approved "%1s" for the "%2s" permission requested.', 'smliser' ), esc_html( ucwords( $sanitized_params['app_name'] ) ), esc_html( $permission ) ); ?>
+        printf( esc_html__( 'You must be logged in to approved "%1s" for the "%2s" permission requested.', 'smliser' ), escHtml( ucwords( $sanitized_params['app_name'] ) ), escHtml( $permission ) ); ?>
     </p>
 
     <form action="<?php echo esc_url( adminUrl( 'admin-post.php' ) ); ?>" method="post" class="smliser-oauth-login-form">
@@ -35,7 +35,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
     <?php endif;?>
 
     <input type="hidden" name="action" value="smliser_oauth_login"/>
-    <input type="hidden" name="redirect_args" value="<?php echo esc_html( http_build_query( $_GET ) ); ?>"/>
+    <input type="hidden" name="redirect_args" value="<?php echo escHtml( http_build_query( $_GET ) ); ?>"/>
     <p class="smliser-form-row">
             <label for="user-login" class="smliser-oauth-form-label">Username/Email *</label>
             <input type="text" name="user_login" id="user-login" class="smliser-login-input"/>

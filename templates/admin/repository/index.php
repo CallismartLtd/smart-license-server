@@ -83,7 +83,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
     <div class="smliser-table-wrapper">
       
         <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
-            <div class="notice notice-info is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+            <div class="notice notice-info is-dismissible"><p><?php echo escHtml( $message ); ?></p></div>
         <?php endif; ?>
 
         <ul class="subsubsub smliser-status-filter">
@@ -107,7 +107,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                         aria-current="<?php echo $is_active ? 'page' : 'false'; ?>"
                     >
                         <span class="smliser-status-label">
-                            <?php echo esc_html( $label ); ?>
+                            <?php echo escHtml( $label ); ?>
                         </span>
                         <span class="smliser-status-count">
                             (<?php echo intval( $count ); ?>)
@@ -125,8 +125,8 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                 $type_name  = $type ? $type : 'application';
                 $message    = sprintf( 
                     'No app found in the repository, upload your first %1$s <a href="%3$s">here</a>.',
-                    esc_html( $type_name ), 
-                    esc_html( $status ?? '' ),
+                    escHtml( $type_name ), 
+                    escHtml( $status ?? '' ),
                     esc_url( $add_url->get_href() )
                 );
             else:
@@ -142,7 +142,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                             <option value=""><?php echo esc_html__( 'Bulk Actions', 'smliser' ); ?></option>
                             <?php foreach ( AbstractHostedApp::get_statuses() as $status_key => $status_label ) : ?>
                                 <?php if ( $status === $status_key) : continue; endif; ?>
-                                <option value="<?php echo esc_attr( $status_key ); ?>"><?php echo esc_html( $status_label ); ?></option>
+                                <option value="<?php echo esc_attr( $status_key ); ?>"><?php echo escHtml( $status_label ); ?></option>
                             <?php endforeach; ?>
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
@@ -180,13 +180,13 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                                         <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">view</a>
                                     </div>
                                 </td>
-                                <td><?php echo esc_html( $app->get_name() ); ?></td>
+                                <td><?php echo escHtml( $app->get_name() ); ?></td>
                                 <td><?php echo $app->get_author(); ?></td>
-                                <td><code><?php echo esc_html( $app->get_type() ); ?></code></td>
-                                <td><?php echo esc_html( $app->get_version() ); ?></td>
-                                <td><?php echo esc_html( $app->get_slug() ); ?></td>
-                                <td><?php echo esc_html( $app->get_status() ); ?></td>
-                                <td><?php echo esc_html( date( smliser_datetime_format(), strtotime( $app->get_updated_at() ) ) ); ?></td>
+                                <td><code><?php echo escHtml( $app->get_type() ); ?></code></td>
+                                <td><?php echo escHtml( $app->get_version() ); ?></td>
+                                <td><?php echo escHtml( $app->get_slug() ); ?></td>
+                                <td><?php echo escHtml( $app->get_status() ); ?></td>
+                                <td><?php echo escHtml( date( smliser_datetime_format(), strtotime( $app->get_updated_at() ) ) ); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

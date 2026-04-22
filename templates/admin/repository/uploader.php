@@ -30,19 +30,19 @@ if ( ! isset( $app ) ) {
  
 
     <form action="" class="app-uploader-form" id="appUploaderForm">
-        <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', esc_html( $type ) ) ?>">
-        <input type="hidden" name="app_type" value="<?php printf( '%s', esc_html( $type ) ) ?>">
-        <input type="hidden" name="app_id" value="<?php printf( '%s', esc_html( smliser_get_query_param( 'app_id' ) ) ) ?>">
+        <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', escHtml( $type ) ) ?>">
+        <input type="hidden" name="app_type" value="<?php printf( '%s', escHtml( $type ) ) ?>">
+        <input type="hidden" name="app_id" value="<?php printf( '%s', escHtml( smliser_get_query_param( 'app_id' ) ) ) ?>">
         <div class="app-uploader-top-section">
             <div class="app-uploader-left">
-                <h3><?php echo esc_html( $type_title ) ?> Details</h3>
+                <h3><?php echo escHtml( $type_title ) ?> Details</h3>
                 <?php foreach( $essential_fields as $field ) : ?>
                     <?php smliser_render_input_field( $field ); ?>
                 <?php endforeach; ?>
             </div>
             <div class="app-uploader-right">
                 <h3>File Upload</h3>
-                <em>Max Upload Size: <?php echo esc_html( $max_upload_size_mb ) . 'MB'; ?></em>
+                <em>Max Upload Size: <?php echo escHtml( $max_upload_size_mb ) . 'MB'; ?></em>
                 <div class="smliser-form-file-row">
                     <input type="file" name="app_zip_file" id="smliser-file-input"  style="display: none;">
                     <div class="smliser-file-info" wp-max-upload-size= "<?php echo intval( $max_upload_size_mb ) ?>">
@@ -67,10 +67,10 @@ if ( ! isset( $app ) ) {
 
             <?php if ( ! empty( $assets ) ) : ?>
                 <div class="app-uploader-below-section_assets">
-                    <h2><?php printf( '%s Assets', esc_html( $type_title ) ) ?></h2>
+                    <h2><?php printf( '%s Assets', escHtml( $type_title ) ) ?></h2>
                     <?php foreach( $assets as $key => $data ) : ?>
-                        <div class="app-uploader-asset-container <?php echo esc_html( $key ) ?>">
-                            <h3><?php echo esc_html( $data['title'] ?? '' ) ?></h3>
+                        <div class="app-uploader-asset-container <?php echo escHtml( $key ) ?>">
+                            <h3><?php echo escHtml( $data['title'] ?? '' ) ?></h3>
                             <div class="app-uploader-asset-container_images">
                                 <?php foreach( $data['images'] as $url ) : ?>
                                     <?php if ( ! empty( $url ) ) : 
@@ -111,7 +111,7 @@ if ( ! isset( $app ) ) {
                 </div>
             <?php endif; ?>
         </div>        
-        <button type="submit" class="button authoritatively"><?php printf( 'Save %s', esc_html( $type_title ) ); ?></button>
+        <button type="submit" class="button authoritatively"><?php printf( 'Save %s', escHtml( $type_title ) ); ?></button>
     </form>
 </div>
 <?php if ( 'edit' === smliser_get_query_param( 'tab' ) ) : ?>

@@ -370,11 +370,11 @@ class SoftwareRepository extends Repository {
             }
 
             $html .= '<dt>';
-            $html .= self::safe_esc_html( $question );
+            $html .= escHtml( $question );
             $html .= '</dt>';
 
             $html .= '<dd>';
-            $html .= self::safe_esc_html( $answer );
+            $html .= escHtml( $answer );
             $html .= '</dd>';
         }
 

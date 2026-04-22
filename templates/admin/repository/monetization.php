@@ -29,17 +29,17 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                     <table class="widefat striped">
                         <tr>
                             <th>App Name:</th>
-                            <td><?php echo esc_html( $app->get_name() ); ?></td>
+                            <td><?php echo escHtml( $app->get_name() ); ?></td>
                         </tr>
                         
                         <tr>
                             <th>App Type:</th>
-                            <td><?php echo esc_html( $app->get_type() ); ?></td>
+                            <td><?php echo escHtml( $app->get_type() ); ?></td>
                         </tr>
 
                         <tr>
                             <th>Version:</th>
-                            <td><?php echo esc_html( $app->get_version() ); ?></td>
+                            <td><?php echo escHtml( $app->get_version() ); ?></td>
                         </tr>
                         <tr>
                             <th>Description:</th>
@@ -47,7 +47,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                         </tr>
                         <tr>
                             <th>Author:</th>
-                            <td><?php echo esc_html( $app->get_author() ); ?></td>
+                            <td><?php echo escHtml( $app->get_author() ); ?></td>
                         </tr>
                         <tr>
                             <th>Monetization Status:</th>
@@ -92,13 +92,13 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                                     ] );
                                 ?>
                                 <tr>
-                                    <th><?php echo esc_html( $tier->get_name() ); ?></th>
+                                    <th><?php echo escHtml( $tier->get_name() ); ?></th>
                                     <td>
                                         <div class="smliser-pricing-tier-info" data-json='<?php echo esc_attr( $tier_json ); ?>'>
-                                            <p><strong>Provider:</strong> <?php echo esc_html( $tier->get_provider_id() ); ?></p>
-                                            <p><strong>Product ID:</strong> <?php echo esc_html( $tier->get_product_id() ); ?></p>
-                                            <p><strong>Billing Cycle:</strong> <?php echo esc_html( $tier->get_billing_cycle() ); ?></p>
-                                            <p><strong>Features:</strong> <?php echo esc_html( $features_str ); ?></p>
+                                            <p><strong>Provider:</strong> <?php echo escHtml( $tier->get_provider_id() ); ?></p>
+                                            <p><strong>Product ID:</strong> <?php echo escHtml( $tier->get_product_id() ); ?></p>
+                                            <p><strong>Billing Cycle:</strong> <?php echo escHtml( $tier->get_billing_cycle() ); ?></p>
+                                            <p><strong>Features:</strong> <?php echo escHtml( $features_str ); ?></p>
 
                                             <div class="smliser-pricing-tier-actions">
                                                 <button type="button" class="button smliser-tier-view smliser-nav-btn" data-action="viewProductData">
@@ -135,9 +135,9 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                     <?php else: ?>
                         <?php foreach( $providers as $provider ): ?>
                             <div class="smliser-monetization-ui__monetization-provider">
-                                <p>Name: <strong><?php echo esc_html( $provider::get_name() ); ?></strong></p>
-                                <p>Base URL: <?php echo esc_html( $provider::get_url() ); ?></p>
-                                <p>Checkout URL: <?php echo esc_html( $provider::get_checkout_url() ); ?></p>
+                                <p>Name: <strong><?php echo escHtml( $provider::get_name() ); ?></strong></p>
+                                <p>Base URL: <?php echo escHtml( $provider::get_url() ); ?></p>
+                                <p>Checkout URL: <?php echo escHtml( $provider::get_checkout_url() ); ?></p>
 
                             </div>
                         <?php endforeach; ?>
@@ -169,7 +169,7 @@ defined( 'SMLISER_ABSPATH' ) || exit; ?>
                             <select name="provider_id" id="provider_id" field-name="Monetization Provider">
                                 <option value="">--Choose Provider--</option>
                                 <?php foreach( $providers as $provider ) : ?>
-                                    <option value="<?php echo esc_attr( $provider::get_id() ) ?>"><?php echo esc_html( $provider::get_name() ); ?></option>
+                                    <option value="<?php echo esc_attr( $provider::get_id() ) ?>"><?php echo escHtml( $provider::get_name() ); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </label>

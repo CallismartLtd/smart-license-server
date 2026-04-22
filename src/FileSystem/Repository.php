@@ -652,7 +652,7 @@ abstract class Repository {
         if ( ! $this->restore_queued_deletion( $slug ) ) {
             return new Exception(
                 'restore_failed',
-                sprintf( 'Failed to restore "%s" from trash.', self::safe_esc_html( $slug ) ),
+                sprintf( 'Failed to restore "%s" from trash.', escHtml( $slug ) ),
                 [ 'status' => 500 ]
             );
         }
@@ -811,7 +811,7 @@ abstract class Repository {
                     $message = sprintf(
                         self::safe_translate( 'Failed to create %s directory: %s', 'smliser' ),
                         $type,
-                        self::safe_esc_html( $dir )
+                        escHtml( $dir )
                     );
 
                     $exception->add( 'directory_creation_failed', $message );
@@ -880,7 +880,7 @@ abstract class Repository {
 
                 $message = sprintf(
                     self::safe_translate( 'Failed to protect directory: %s', 'smliser' ),
-                    self::safe_esc_html( $dir )
+                    escHtml( $dir )
                 );
 
                 return new Exception( 'htaccess_protection_failed', $message );
@@ -904,18 +904,6 @@ abstract class Repository {
     }
 
     /**
-     * Safely escape a string even outside WordPress.
-     *
-     * @since 0.2.0
-     *
-     * @param string $text Text to escape.
-     * @return string Escaped or raw text.
-     */
-    protected static function safe_esc_html( string $text ): string {
-        return function_exists( 'esc_html' ) ? esc_html( $text ) : htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
-    }
-
-    /**
      * Get the absolute path to a given application asset.
      *
      * @param string $slug      App slug.
@@ -936,7 +924,7 @@ abstract class Repository {
         if ( ! $this->exists( $asset_dir ) ) {
             return new Exception(
                 'asset_not_found',
-                sprintf( 'Asset "%s" not found.', self::safe_esc_html( $filename ) ),
+                sprintf( 'Asset "%s" not found.', escHtml( $filename ) ),
                 [ 'status' => 404 ]
             );
         }

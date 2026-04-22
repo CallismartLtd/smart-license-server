@@ -148,7 +148,7 @@ function smliser_render_input_field( array $args = [] ): void {
 
     // Label text + optional help icon, grouped so they sit inline.
     echo '<span class="smliser-field-label-text">';
-    echo '<span>' . esc_html( $parsed_args['label'] ) . '</span>';
+    echo '<span>' . escHtml( $parsed_args['label'] ) . '</span>';
 
     if ( '' !== $help ) {
         smliser_render_field_help_icon( $help, $id );
@@ -180,7 +180,7 @@ function smliser_render_input_field( array $args = [] ): void {
                     '<option value="%1$s" %2$s>%3$s</option>',
                     esc_attr( $val ),
                     selected( $input['value'], $val, false ),
-                    esc_html( $label )
+                    escHtml( $label )
                 );
             }
             echo '</select>';
@@ -280,7 +280,7 @@ function smliser_render_field_help_icon( string $help_text, string $field_id ): 
         </span>',
         esc_attr( $help_text ),
         esc_attr( $tooltip_id ),
-        esc_html( $help_text )
+        escHtml( $help_text )
     );
 }
 
@@ -342,10 +342,10 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
     <p class="smliser-table-count">
         <?php
         printf(
-            esc_html__( '%1$d of %2$d %3$s', 'smliser' ),
+            escHtml( '%1$d of %2$d %3$s', 'smliser' ),
             intval( $displayed ),
             intval( $total ),
-            esc_html( _n( 'item', 'items', $total, 'smliser' ) )
+            escHtml( _n( 'item', 'items', $total, 'smliser' ) )
         );
         ?>
     </p>
@@ -355,7 +355,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
             <span class="smliser-displaying-num">
                 <?php
                 printf(
-                    esc_html__( 'Page %1$d of %2$d', 'smliser' ),
+                    escHtml( 'Page %1$d of %2$d', 'smliser' ),
                     intval( $page ),
                     intval( $total_pages )
                 );
@@ -674,7 +674,7 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
                         $tag = ! empty( $breadcrumb['url'] ) ? 'a' : 'span';
                         ?>
 
-                        <<?php echo esc_html( $tag ); ?>
+                        <<?php echo escHtml( $tag ); ?>
                             class="<?php echo esc_attr( $breadcrumb['class'] ); ?>"
                             <?php if ( 'a' === $tag ) : ?>
                                 href="<?php echo esc_url( $breadcrumb['url'] ); ?>"
@@ -686,9 +686,9 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
                                 <i class="<?php echo esc_attr( $breadcrumb['icon'] ); ?>"></i>
                             <?php endif; ?>
 
-                            <?php echo esc_html( $breadcrumb['label'] ); ?>
+                            <?php echo escHtml( $breadcrumb['label'] ); ?>
 
-                        </<?php echo esc_html( $tag ); ?>>
+                        </<?php echo escHtml( $tag ); ?>>
 
                         <?php if ( $current_index < $breadcrumb_count ) : ?>
                             <span>/</span>
@@ -747,7 +747,7 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
                                 <i class="<?php echo esc_attr( $action['icon'] ); ?>"></i>
                             <?php endif; ?>
 
-                            <?php echo esc_html( $action['label'] ); ?>
+                            <?php echo escHtml( $action['label'] ); ?>
 
                         </a>
 
