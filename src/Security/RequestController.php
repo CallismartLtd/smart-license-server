@@ -58,8 +58,7 @@ class RequestController {
                 throw new RequestException( 'required_param', 'This provided security entity is not supported.', ['status' => 400] );
             }
 
-            $id     = $request->get( 'id' );
-
+            $id         = $request->get( 'id' );
             $ent_object = $class::get_by_id( $id );
 
             if ( ! $ent_object ) {

@@ -25,19 +25,6 @@ class Exception extends PHPException {
 
     /*
     |--------------------------------------------
-    | ANSI COLOUR CONSTANTS (CLI rendering)
-    |--------------------------------------------
-    */
-
-    private const ANSI_RED     = "\033[0;31m";
-    private const ANSI_YELLOW  = "\033[0;33m";
-    private const ANSI_CYAN    = "\033[0;36m";
-    private const ANSI_BOLD    = "\033[1m";
-    private const ANSI_DIM     = "\033[2m";
-    private const ANSI_RESET   = "\033[0m";
-
-    /*
-    |--------------------------------------------
     | ERROR STORAGE
     |--------------------------------------------
     */

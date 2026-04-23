@@ -488,7 +488,7 @@ class Organization implements OwnerSubjectInterface {
      * Get the organization avatar
      */
     public function get_avatar() : URL {
-        return new URL( smliser_avatar_url( md5( $this->get_slug() ), $this->get_type() ) );
+        return smliser_avatar_url( md5( $this->get_slug() ), $this->get_type() );
     }
 
     /**

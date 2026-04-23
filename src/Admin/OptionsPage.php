@@ -493,6 +493,19 @@ class OptionsPage {
                     ],
                 ],
             ],
+            [
+                'label' => 'Privacy Policy URL',
+                'help'  => 'Full URL to your privacy policy page.',
+                'input' => [
+                    'type'  => 'text',
+                    'name'  => 'privacy_policy_url',
+                    'value' => $settings->get( 'privacy_policy_url', '', true ),
+                    'attr'  => [
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ],
+                ],
+            ],
         ];
     }
 

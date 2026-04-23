@@ -125,9 +125,9 @@ defined( 'SMLISER_ABSPATH' ) || exit;
         />
         <label for="smlag-signup-terms">
             I agree to the
-            <a href="/terms" target="_blank">Terms of Service</a>
+            <a href="<?php echo escUrl( smliser_settings()->get( 'terms_url', '/', true ) ); ?>" target="_blank">Terms of Service</a>
             and
-            <a href="/privacy" target="_blank">Privacy Policy</a>
+            <a href="<?php echo escUrl( smliser_settings()->get( 'privacy_policy_url', '/', true ) ); ?>" target="_blank">Privacy Policy</a>
         </label>
     </div>
 

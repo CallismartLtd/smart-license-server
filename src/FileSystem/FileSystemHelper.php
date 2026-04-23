@@ -14,6 +14,8 @@ use Normalizer;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
 
+use function smliser_filesystem;
+
 defined( 'SMLISER_ABSPATH' ) || exit; // phpcs:ignore
 
 /**
@@ -93,7 +95,7 @@ class FileSystemHelper {
             return null;
         }
 
-        // Try finfo first (most accurate)
+        // Try finfo first (most accurate).
         if ( function_exists( 'finfo_open' ) ) {
             $finfo = @finfo_open( FILEINFO_MIME_TYPE );
             if ( $finfo ) {
@@ -119,12 +121,14 @@ class FileSystemHelper {
      * Guess a MIME type based on file extension.
      *
      * @param string $ext File extension (no dot).
-     * @return string|null
+     * @return string
      */
-    public static function guess_mime_from_extension( string $ext ): ?string {
+    public static function guess_mime_from_extension( string $ext ): string {
         self::init_maps();
 
-        return self::$ext_mime_type_map[ strtolower( basename( $ext ) ) ] ?? 'application/octet-stream';
+        $ext    = strtolower( basename( $ext ) );
+
+        return self::$ext_mime_type_map[ $ext ] ?? 'application/octet-stream';
     }
 
     /**
@@ -483,9 +487,9 @@ class FileSystemHelper {
      * Safely join multiple path segments into a single path using aggressive cleaning.
      *
      * @param string ...$segments Path segments to join.
-     * @return string Normalized path.
+     * @return string Normalized path or empty string.
      */
-    public static function join_path( string ...$segments ) {
+    public static function join_path( string ...$segments ) : string {
         if ( empty( $segments ) ) {
             return '';
         }
@@ -509,7 +513,7 @@ class FileSystemHelper {
         $joined = implode( '/', $cleaned_segments );
         $cleaned = self::sanitize_path( $joined );
 
-        if ( \is_smliser_error( $cleaned ) ) {
+        if ( $cleaned instanceof Exception ) {
             return '';
         }
 
@@ -722,11 +726,15 @@ class FileSystemHelper {
      */
     public static function upload_avatar( UploadedFile $avatar, string $type, string $filename ) : bool {
         $type           = smliser_pluralize( str_replace( '_', '-', $type ) );
-        $avatar_path    = self::join_path( SMLISER_UPLOADS_DIR, sprintf( 'avatars/%s', $type ) );
+        $avatar_path    = self::join_path( SMLISER_UPLOADS_DIR, 'avatars', $type, $filename );
+        $tmp_file       = $avatar->get_tmp_path();
 
-        $avatar->set_new_name( $filename );
-        $avatar->move( $avatar_path );
-        return true;
+        $uploaded       = (bool) smliser_filesystem()->move( $tmp_file, $avatar_path, true );
+
+        if ( $uploaded ) {
+            @smliser_filesystem()->chmod( $avatar_path, SMLISER_FILE_PERMISSION , true );
+        }
+        return $uploaded;
        
     }
 

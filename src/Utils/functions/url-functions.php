@@ -248,19 +248,19 @@ function smliser_uploads_url( string $path  = '' ) : URL {
  * @param $type             The avatar type.
  * @return URL
  */
-function smliser_avatar_url( string $filename_hash, string $type ) : string|URL {
+function smliser_avatar_url( string $filename_hash, string $type ) : URL {
     $type       = smliser_pluralize( str_replace( '_', '-', $type ) );
     $path       = FileSystemHelper::join_path( 'avatars', $type );
 
     if ( is_smliser_error( $path ) ) {
-        return '';
+        return new URL( '' );
     }
 
     $path       = FileSystemHelper::join_path( $path, $filename_hash );
     $abs_path   = FileSystemHelper::join_path( SMLISER_UPLOADS_DIR, $path );
 
     if ( is_smliser_error( $path ) || ! FileSystemHelper::is_valid_file( $abs_path ) ) {
-        return '';
+        return new URL( '' );
     }
 
     $avatar_url = smliser_uploads_url( $path );

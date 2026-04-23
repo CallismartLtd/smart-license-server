@@ -185,12 +185,11 @@ class HttpErrorHandler extends AbstractErrorHandler {
             'body' => [
                 'font-family' => 'Arial, sans-serif',
                 'background' => '#f4f4f4',
-                'padding' => '50px',
                 'margin' => '0',
             ],
             '.error-container' => [
                 'max-width' => '80%',
-                'margin' => 'auto',
+                'margin' => '50px auto',
                 'background' => '#ffffff',
                 'padding' => '30px',
                 'border-radius' => '8px',
@@ -338,7 +337,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
 
             $out .= $nl;
             $out .= 'Error Codes: ' . implode( ', ', $this->error_object->get_error_codes() ) . $nl;
-            $out .= 'Data: ' . smliser_safe_json_encode( $this->error_object->error_data, JSON_PRETTY_PRINT ) . $nl;
+            $out .= 'Data: ' . smliser_safe_json_encode( $this->error_object->error_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . $nl;
             
         }
 

@@ -225,7 +225,7 @@ class AccessControlPage {
             ),
      
         );
-
+        
         $avatar_url     = 
             $user && $user->get_avatar()->is_valid() 
             ? $user->get_avatar()->add_query_param( 'ver', time() )

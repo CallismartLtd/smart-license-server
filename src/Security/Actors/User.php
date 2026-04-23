@@ -521,7 +521,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * @return URL
      */
     public function get_avatar() : URL {
-        return new URL( smliser_avatar_url( md5( $this->get_email() ), 'user' ) );
+        return smliser_avatar_url( md5( $this->get_email() ), 'user' );
     }
     
     public function get_type() : string {
