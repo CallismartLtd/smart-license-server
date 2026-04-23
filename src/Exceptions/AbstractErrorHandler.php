@@ -12,6 +12,8 @@
 
 namespace SmartLicenseServer\Exceptions;
 
+use ErrorException;
+
 abstract class AbstractErrorHandler {
 
     /*
@@ -570,11 +572,20 @@ abstract class AbstractErrorHandler {
      */
     public function handleException( \Throwable $throwable ) : void {
         $this->error_object = $throwable;
-        $this->message = $throwable->getMessage();
-        $this->title = get_class( $throwable );
-        $this->code = (string) $throwable->getCode();
+        $this->message      = $throwable->getMessage();
+        $this->code         = (string) $throwable->getCode();
+
+        if ( $throwable instanceof ErrorException ) {
+            $errno  = $throwable->getSeverity();
+        } else {
+            $errno  = \E_ERROR;
+        }
+
+        $this->title        = $this->getErrorTitle( $errno );
 
         $this->logError( $throwable );
+
+        $this->handled  = true;
         $this->display();
     }
 
