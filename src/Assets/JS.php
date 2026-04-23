@@ -106,8 +106,8 @@ final class JS {
                 'footer' => true
             ],
 
-            'smliser-login' => [
-                'src'    => assetsUrl( sprintf( 'js/login%s.js', $suffix ) ),
+            'smliser-client-auth' => [
+                'src'    => assetsUrl( sprintf( 'js/smliser-client-auth%s.js', $suffix ) ),
                 'deps'   => ['smliser-client-dashboard', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true

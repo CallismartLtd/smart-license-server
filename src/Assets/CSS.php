@@ -96,8 +96,8 @@ final class CSS {
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ],
-            'smliser-login' => [
-                'src'   => assetsUrl( sprintf( 'css/login%s.css', $suffix ) ),
+            'smliser-client-auth' => [
+                'src'   => assetsUrl( sprintf( 'css/smliser-client-auth%s.css', $suffix ) ),
                 'deps'  => ['smliser-client-dashboard', 'smliser-modal'],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'

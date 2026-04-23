@@ -56,8 +56,8 @@ if ( $principal ) {
     $theme     = (string) $settings->get( 'theme', 'dark' );
     $collapsed = (bool) $settings->get( 'sidebar_collapsed', false );
 } else {
-    $styles[]       = 'smliser-login';
-    $scripts[]      = 'smliser-login';
+    $styles[]       = 'smliser-client-auth';
+    $scripts[]      = 'smliser-client-auth';
     $active_slug    = '';
 }
 
