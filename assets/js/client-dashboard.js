@@ -61,7 +61,7 @@ class SmliserClientDashboard {
         const slug = this.getSlug();
 
         if ( slug ) {
-            this.loadSection( slug, false, false );
+            this.loadSection( slug, false );
         }
     }
 
@@ -344,17 +344,12 @@ class SmliserClientDashboard {
     | SECTION LOADER
     |--------------------------------------------------
     */
-    async loadSection( slug, force = false, updateHash = true ) {
+    async loadSection( slug, force = false ) {
 
         if ( ! slug || ! this.REST_BASE ) return;
 
         this.setLoading( true );
         this.setActive( slug );
-
-        // Update URL fragment unless explicitly suppressed
-        if ( updateHash ) {
-            this.setSlugHash( slug );
-        }
 
         if ( this.isMobile() ) {
             this.collapseSidebar();
@@ -409,9 +404,7 @@ class SmliserClientDashboard {
 
             if ( ! item ) return;
 
-            e.preventDefault();
-
-            this.loadSection( item.dataset.slug );
+            this.setSlugHash( item.dataset.slug );
         } );
 
         this.logoutBtn?.addEventListener( 'click', this.logoutHandler.bind(this) );
@@ -428,8 +421,7 @@ class SmliserClientDashboard {
             const slug = this.getSlugFromHash();
 
             if ( slug ) {
-                // Don't update hash again (updateHash = false)
-                this.loadSection( slug, false, false );
+                this.loadSection( slug, false );
             }
         } );
 

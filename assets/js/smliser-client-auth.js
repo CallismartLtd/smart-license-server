@@ -422,13 +422,13 @@ class SmliserAuth {
         }
 
         // Link navigation to other forms (e.g., "Create account" → #signup)
-        this.content.querySelectorAll( 'a[href^="#"]' ).forEach( link => {
-            link.addEventListener( 'click', ( e ) => {
-                e.preventDefault();
-                const href = link.getAttribute( 'href' ).replace( /^#/, '' );
-                this.loadForm( href, false );
-            } );
-        } );
+        // this.content.querySelectorAll( 'a[href^="#"]' ).forEach( link => {
+        //     link.addEventListener( 'click', ( e ) => {
+        //         // e.preventDefault();
+        //         const href = link.getAttribute( 'href' ).replace( /^#/, '' );
+        //         // this.loadForm( href, false );
+        //     } );
+        // } );
 
         // Clear errors on input focus
         this.content.querySelectorAll( 'input, textarea' ).forEach( input => {
