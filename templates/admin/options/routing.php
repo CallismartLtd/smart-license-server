@@ -34,15 +34,11 @@ $menu_args = OptionsPage::get_menu_args( $request );
         <input type="hidden" name="action" value="smliser_save_route_options">
 
         <div class="smliser-options-form_body">
+            <span class="smliser-spinner"></span>
             <?php foreach ( OptionsPage::get_routing_fields() as $field ) : ?>
                 <?php smliser_render_input_field( $field ); ?>
             <?php endforeach; ?>
-
-            <div class="smliser-form-label-row">
-                <span></span>
-                <button type="submit" class="smliser-submit-button" style="width: 100px;">Save</button>
-            </div>
-            <span class="smliser-spinner"></span>
         </div>
+        <button type="submit" class="smliser-submit-button" style="width: 100px;">Save</button>
     </form>
 </div>

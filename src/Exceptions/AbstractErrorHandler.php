@@ -14,21 +14,34 @@ namespace SmartLicenseServer\Exceptions;
 
 abstract class AbstractErrorHandler {
 
+    /*
+    |------------------------------------------
+    | DEFAULT CONFIGURATION
+    |------------------------------------------
+    */
+
     /**
      * Default configuration.
      *
      * @var array
      */
     protected array $defaults = [
-        'response'      => 500,
-        'link_url'      => '',
-        'link_text'     => '',
-        'back_link'     => false,
-        'charset'       => 'utf-8',
-        'code'          => 'smliser_error',
-        'exit'          => true,
-        'debug'         => null
+        'response'          => 500,
+        'link_url'          => '',
+        'link_text'         => '',
+        'back_link'         => false,
+        'charset'           => 'utf-8',
+        'code'              => 'smliser_error',
+        'exit'              => true,
+        'debug'             => null,
+        'display_errors'    => false
     ];
+
+    /*
+    |------------------------------------------
+    | INTERNAL STATE
+    |------------------------------------------
+    */
 
     /**
      * Current configuration.
@@ -59,11 +72,11 @@ abstract class AbstractErrorHandler {
     protected string $code = '';
 
     /**
-     * Error object (if using exception).
+     * Throwable object being handled.
      *
-     * @var Exception|null
+     * @var \Throwable|null
      */
-    protected ?Exception $error_object = null;
+    protected ?\Throwable $error_object = null;
 
     /**
      * Global log handler callback.
@@ -73,16 +86,19 @@ abstract class AbstractErrorHandler {
     protected ?\Closure $log_handler = null;
 
     /**
-     * Set the error log handler.
+     * Flag indicating fatal error has been handled.
      *
-     * @param \Closure|null $log_handler Optional callback for logging errors.
-     * @return static Fluent
+     * Prevents duplicate handling between handleError() and handleShutdown().
+     *
+     * @var bool
      */
-    public function setLogHandler( \Closure $log_handler ) : static {
-        $this->log_handler      = $log_handler;
+    protected bool $handled = false;
 
-        return $this;
-    }
+    /*
+    |------------------------------------------
+    | CONSTRUCTOR & INITIALIZATION
+    |------------------------------------------
+    */
 
     /**
      * Constructor.
@@ -93,30 +109,7 @@ abstract class AbstractErrorHandler {
      */
     public function __construct( $message = '', $title = '', $args = [] ) {
         $this->config = $this->defaults;
-        
         $this->initialize( $message, $title, $args );
-    }
-
-    /**
-     * Set the error object.
-     * 
-     * @param Exception
-     */
-    public function setException( Exception $e ) {
-        $this->error_object = $e;
-    }
-
-    /**
-     * Set configuration property.
-     * 
-     * @param array
-     */
-    public function setConfig( array $args ) : static {
-        $this->config = $this->defaults;
-        
-        $this->initialize( $this->message, $this->title, $args );
-
-        return $this;
     }
 
     /**
@@ -128,7 +121,6 @@ abstract class AbstractErrorHandler {
      * @return self
      */
     private function initialize( $message, $title, $args ) : self {
-        // Handle HTTP response code passed as title.
         if ( is_int( $title ) ) {
             $args   = [ 'response' => $title ];
             $title  = '';
@@ -136,18 +128,14 @@ abstract class AbstractErrorHandler {
             $args = [ 'response' => $args ];
         }
 
-        // Merge configuration.
         if ( is_array( $args ) ) {
             $this->config = array_merge( $this->config, $args );
         }
 
-        // Process exception/error object.
         if ( $this->isErrorObject( $message ) ) {
             $this->error_object = $message;
-            $this->processErrorObject( $message );
         }
 
-        // Set message and title.
         $this->message = $this->sanitizeMessage( $message );
         $this->title   = $title ?: $this->title ?: 'Fatal Error';
         $this->code    = $this->config['code'];
@@ -156,67 +144,33 @@ abstract class AbstractErrorHandler {
     }
 
     /**
-     * Check if value is an error object.
+     * Check if value is a Throwable object.
      *
      * @param mixed $value Value to check.
      * @return bool
      */
     private function isErrorObject( $value ) : bool {
-        return $value instanceof Exception;
+        return $value instanceof \Throwable;
     }
 
     /**
-     * Process error object - RESPECTS EXCEPTION CLASS DESIGN.
+     * Extract message from Throwable or string.
      *
-     * Extracts HTTP status and title from Exception's structured data.
-     * Does not reimplement Exception's rendering logic.
-     *
-     * @param Exception $error Error object.
-     * @return void
-     */
-    private function processErrorObject( Exception $error ) : void {
-        // Get error code from Exception.
-        $this->code = $error->get_error_code() ?: $this->config['code'];
-
-        // Extract HTTP status from error data.
-        $data = $error->get_error_data();
-        
-        if ( is_array( $data ) && isset( $data['status'] ) ) {
-            $this->config['response'] = (int) $data['status'];
-        } elseif ( is_object( $data ) && property_exists( $data, 'status' ) ) {
-            $this->config['response'] = (int) $data->status;
-        }
-
-        // Extract title from error data or use default.
-        $this->title = '';
-        if ( is_array( $data ) && isset( $data['title'] ) ) {
-            $this->title = $data['title'];
-        } elseif ( is_object( $data ) && property_exists( $data, 'title' ) ) {
-            $this->title = $data->title;
-        }
-        $this->title = $this->title ?: 'Application Error';
-
-        // Get first message from Exception.
-        $this->message = $error->get_error_message();
-    }
-
-    /**
-     * Sanitize error message.
-     *
-     * @param mixed $message Message to sanitize.
+     * @param mixed $message Message or Throwable.
      * @return string
      */
     private function sanitizeMessage( $message ) : string {
-        if ( is_object( $message ) && method_exists( $message, 'get_error_message' ) ) {
-            return $message->get_error_message();
+        if ( $message instanceof \Throwable ) {
+            return $message->getMessage();
         }
-
-        if ( ! is_string( $message ) ) {
-            return '';
-        }
-
-        return $message ?: '';
+        return is_string( $message ) ? $message : '';
     }
+
+    /*
+    |------------------------------------------
+    | PUBLIC API - MESSAGE & TITLE
+    |------------------------------------------
+    */
 
     /**
      * Set error message.
@@ -257,6 +211,12 @@ abstract class AbstractErrorHandler {
     public function getTitle() : string {
         return $this->title ?: 'Fatal Error';
     }
+
+    /*
+    |------------------------------------------
+    | PUBLIC API - ERROR & RESPONSE CODES
+    |------------------------------------------
+    */
 
     /**
      * Set error code.
@@ -299,6 +259,12 @@ abstract class AbstractErrorHandler {
         return (int) $this->config['response'];
     }
 
+    /*
+    |------------------------------------------
+    | PUBLIC API - CONFIGURATION
+    |------------------------------------------
+    */
+
     /**
      * Set character encoding.
      *
@@ -340,6 +306,26 @@ abstract class AbstractErrorHandler {
     }
 
     /**
+     * Enable/disable display error for current instance.
+     *
+     * @param bool $display Whether to enable error display.
+     * @return self
+     */
+    public function setDisplayErrors( bool $display ) : self {
+        $this->config['display_errors'] = $display;
+        return $this;
+    }
+
+    /**
+     * Check if error display is enabled.
+     *
+     * @return bool
+     */
+    public function displaysError() : bool {
+        return $this->config['display_errors'] ?? false;
+    }
+
+    /**
      * Enable/disable auto-exit after display.
      *
      * @param bool $exit Whether to exit.
@@ -358,6 +344,45 @@ abstract class AbstractErrorHandler {
     public function shouldExit() : bool {
         return $this->config['exit'];
     }
+
+    /**
+     * Set the Throwable object.
+     *
+     * @param \Throwable $throwable Throwable to handle.
+     * @return void
+     */
+    public function setException( \Throwable $throwable ) : void {
+        $this->error_object = $throwable;
+    }
+
+    /**
+     * Set configuration property.
+     *
+     * @param array $args Configuration arguments.
+     * @return static
+     */
+    public function setConfig( array $args ) : static {
+        $this->config = $this->defaults;
+        $this->initialize( $this->message, $this->title, $args );
+        return $this;
+    }
+
+    /**
+     * Set the error log handler.
+     *
+     * @param \Closure $log_handler Callback for logging errors.
+     * @return static
+     */
+    public function setLogHandler( \Closure $log_handler ) : static {
+        $this->log_handler = $log_handler;
+        return $this;
+    }
+
+    /*
+    |------------------------------------------
+    | PUBLIC API - LINKS
+    |------------------------------------------
+    */
 
     /**
      * Set back link display.
@@ -383,6 +408,12 @@ abstract class AbstractErrorHandler {
         return $this;
     }
 
+    /*
+    |------------------------------------------
+    | ABSTRACT METHODS - ENVIRONMENT SPECIFIC
+    |------------------------------------------
+    */
+
     /**
      * Render error output (environment-specific).
      *
@@ -393,6 +424,16 @@ abstract class AbstractErrorHandler {
     abstract public function render() : string;
 
     /**
+     * Render warning/minor error (lightweight, no full page wrapper).
+     *
+     * Used for non-fatal errors that should be visible but not interrupt flow.
+     * Subclasses implement environment-specific rendering.
+     *
+     * @return string
+     */
+    abstract public function renderWarning() : string;
+
+    /**
      * Send output headers (if applicable to environment).
      *
      * HTTP handlers send HTTP headers. CLI handlers are no-op.
@@ -400,6 +441,12 @@ abstract class AbstractErrorHandler {
      * @return self
      */
     abstract public function sendHeaders() : self;
+
+    /*
+    |------------------------------------------
+    | PUBLIC API - DISPLAY & LOGGING
+    |------------------------------------------
+    */
 
     /**
      * Display error and optionally exit.
@@ -416,25 +463,58 @@ abstract class AbstractErrorHandler {
     }
 
     /**
-     * Centralized error logging - RESPECTS EXCEPTION STRUCTURE.
+     * Display warning without full page wrapper.
      *
-     * Logs using Exception's to_array() method for consistent structured data.
+     * Used for minor errors in debug or display_errors mode.
+     * Does not exit, allows script to continue.
      *
-     * @param Exception $exception The exception to log.
      * @return void
      */
-    public function logError( Exception $exception ) : void {
+    public function displayWarning() : void {
+        echo $this->renderWarning();
+    }
+
+    /**
+     * Log error - human and machine-readable format.
+     *
+     * Outputs structured data: timestamp, class, message, file, line, trace (debug only).
+     * Parses correctly by both humans and log aggregators.
+     *
+     * @param \Throwable $throwable Throwable to log.
+     * @return void
+     */
+    public function logError( \Throwable $throwable ) : void {
+        $log_data = [
+            'timestamp'  => date( 'Y-m-d H:i:s' ),
+            'type'       => get_class( $throwable ),
+            'message'    => $throwable->getMessage(),
+            'file'       => $throwable->getFile(),
+            'line'       => $throwable->getLine(),
+        ];
+
+        if ( $this->isDebug() ) {
+            $log_data['trace'] = $throwable->getTraceAsString();
+        }
+
         if ( $this->log_handler ) {
-            ( $this->log_handler )( $exception->to_array() );
+            ( $this->log_handler )( $log_data );
         } else {
-            error_log( json_encode( $exception->to_array() ) );
+            $json = json_encode( $log_data, \JSON_UNESCAPED_SLASHES | \JSON_PARTIAL_OUTPUT_ON_ERROR );
+            error_log( $json );
         }
     }
+
+    /*
+    |------------------------------------------
+    | ERROR HANDLER CALLBACKS
+    |------------------------------------------
+    */
 
     /**
      * Handle fatal errors as callback for set_error_handler().
      *
-     * CREATES EXCEPTION OBJECT from error - respects Exception class design.
+     * Converts PHP errors to ErrorException for structured handling.
+     * Non-fatal errors are logged and optionally displayed. Fatal errors are displayed.
      *
      * Usage:
      *   set_error_handler( [ HttpErrorHandler::class, 'handleError' ] );
@@ -446,46 +526,32 @@ abstract class AbstractErrorHandler {
      * @return bool Return true to stop PHP's internal error handler.
      */
     public function handleError( int $errno, string $errstr, string $errfile, int $errline ) : bool {
+        $exception = new \ErrorException( $errstr, 0, $errno, $errfile, $errline );
 
-        $title = $this->getErrorTitle( $errno );
-
-        // Non-fatal errors: log and continue.
         if ( ! $this->isFatalError( $errno ) ) {
+            $shouldHandle = $this->isDebug() || ( error_reporting() & $errno );
 
-            $exception = new Exception(
-                'non_fatal_' . $errno,
-                $errstr,
-                [
-                    'status' => 500,
-                    'title'  => $title,
-                    'file'   => $errfile,
-                    'line'   => $errline,
-                ]
-            );
+            if ( $shouldHandle ) {
+                $this->logError( $exception );
 
-            $this->logError( $exception );
+                // Display as warning in debug + display_errors mode
+                if ( $this->isDebug() && $this->displaysError() ) {
+                    $this->error_object = $exception;
+                    $this->title        = $this->getErrorTitle( $errno );
+                    $this->message      = $errstr;
+                    $this->displayWarning();
+                }
+            }
 
             return true;
         }
 
-        // CREATE EXCEPTION FROM ERROR - respects Exception class.
-        $exception = new Exception(
-            'error_' . $errno,
-            $errstr,
-            [
-                'status' => 500,
-                'title' => $title,
-                'file' => $errfile,
-                'line' => $errline,
-            ]
-        );
-
-        // Log using Exception's structured data.
-        $this->logError( $exception );
-
-        // Display using handler.
+        // Fatal error
         $this->error_object = $exception;
-            
+        $this->title = $this->getErrorTitle( $errno );
+        $this->message = $errstr;
+        $this->logError( $exception );
+        $this->handled = true;
         $this->display();
 
         return true;
@@ -494,75 +560,65 @@ abstract class AbstractErrorHandler {
     /**
      * Handle exceptions as callback for set_exception_handler().
      *
-     * RESPECTS EXCEPTION CLASS - wraps standard exceptions in Exception class.
+     * Accepts any Throwable - no wrapping, preserves full trace.
      *
      * Usage:
      *   set_exception_handler( [ HttpErrorHandler::class, 'handleException' ] );
      *
-     * @param \Throwable $exception The uncaught exception.
+     * @param \Throwable $throwable The uncaught exception.
      * @return void
      */
-    public function handleException( \Throwable $exception ) : void {
-        // Only handle our Exception class specially.
-        if ( ! $exception instanceof Exception ) {
-            // Wrap standard exceptions in our Exception class for consistency.
-            $exception = new Exception(
-                'uncaught_exception',
-                $exception->getMessage(),
-                [
-                    'status'    => 500,
-                    'title'     => get_class( $exception ),
-                    'file'      => $exception->getFile(),
-                    'line'      => $exception->getLine(),
-                ]
-            );
-        }
+    public function handleException( \Throwable $throwable ) : void {
+        $this->error_object = $throwable;
+        $this->message = $throwable->getMessage();
+        $this->title = get_class( $throwable );
+        $this->code = (string) $throwable->getCode();
 
-        // Log using Exception's structured data.
-        $this->logError( $exception );
-
-        // Display using handler.
-        $this->error_object = $exception;
-
+        $this->logError( $throwable );
         $this->display();
     }
 
     /**
      * Handle shutdown errors as callback for register_shutdown_function().
      *
-     * CREATES EXCEPTION FROM SHUTDOWN ERROR - respects Exception class design.
-     *
-     * This catches fatal errors that occur during script execution.
+     * Catches fatal errors that occur during script execution.
+     * Only runs if no fatal error was already handled by handleError().
+     * Uses ErrorException for native PHP error representation.
      *
      * @return void
      */
     public function handleShutdown() : void {
+        if ( $this->handled ) {
+            return;
+        }
+
         $error = error_get_last();
 
-        // Only handle fatal errors.
         if ( ! $error || ! $this->isFatalError( $error['type'] ) ) {
             return;
         }
 
-        // Create Exception object from shutdown error - respects Exception class.
-        $exception = new Exception(
-            'fatal_' . $error['type'],
+        $exception = new \ErrorException(
             $error['message'],
-            [
-                'status' => 500,
-                'title' => $this->getErrorTitle( $error['type'] ),
-                'file' => $error['file'] ?? 'unknown',
-                'line' => $error['line'] ?? 0,
-            ]
+            0,
+            $error['type'],
+            $error['file'] ?? 'unknown',
+            $error['line'] ?? 0
         );
 
-        // Log error.
+        $this->error_object = $exception;
+        $this->title = $this->getErrorTitle( $error['type'] );
+        $this->message = $error['message'];
         $this->logError( $exception );
-
-        // Display, exit on critical errors.
-        $this->error_object =  $exception;
+        $this->handled = true;
         $this->setExit( true )->display();
     }
+
+    /*
+    |------------------------------------------
+    | HANDLER REGISTRATION
+    |------------------------------------------
+    */
 
     /**
      * Register all error handlers.
@@ -592,9 +648,6 @@ abstract class AbstractErrorHandler {
     /**
      * Unregister all error handlers.
      *
-     * Usage:
-     *   AbstractErrorHandler::unregisterHandlers();
-     *
      * @return void
      */
     public function unregisterHandlers() : void {
@@ -602,9 +655,15 @@ abstract class AbstractErrorHandler {
         restore_exception_handler();
     }
 
+    /*
+    |------------------------------------------
+    | UTILITY METHODS
+    |------------------------------------------
+    */
+
     /**
-     * Tells whether the error is fatal
-     * 
+     * Check whether the error is fatal.
+     *
      * @param int $error_type
      * @return bool
      */
@@ -614,6 +673,7 @@ abstract class AbstractErrorHandler {
             E_PARSE,
             E_CORE_ERROR,
             E_COMPILE_ERROR,
+            E_USER_ERROR,
         ];
 
         return in_array( $error_type, $fatal, true );

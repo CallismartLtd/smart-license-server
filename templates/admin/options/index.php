@@ -21,15 +21,11 @@ unset( $menu_args['breadcrumbs'][0] );
     <form action="" class="smliser-options-form">
         <input type="hidden" name="action" value="smliser_save_system_options" />
         <div class="smliser-options-form_body">
+            <span class="smliser-spinner"></span>
             <?php foreach( OptionsPage::system_settings_fields() as $field ) : ?>
                 <?php smliser_render_input_field( $field ); ?>
             <?php endforeach; ?>
-
-            <div class="smliser-form-label-row">
-                <span>Save Settings</span>
-                <button type="submit" class="smliser-submit-button">Save</button>
-            </div>
-            <span class="smliser-spinner"></span>
         </div>
+        <button type="submit" class="smliser-submit-button">Save</button>
     </form>
 </div>

@@ -13,33 +13,18 @@ namespace SmartLicenseServer\Exceptions;
 
 class HttpErrorHandler extends AbstractErrorHandler {
 
+    /*
+    |------------------------------------------
+    | HTML HEAD CUSTOMIZATION
+    |------------------------------------------
+    */
+
     /**
      * HTML head content.
      *
      * @var array
      */
     private array $head_content = [];
-
-    /**
-     * CSS styles.
-     *
-     * @var array
-     */
-    private array $styles = [];
-
-    /**
-     * Custom attributes for HTML tag.
-     *
-     * @var array
-     */
-    private array $html_attributes = [];
-
-    /**
-     * Custom attributes for body tag.
-     *
-     * @var array
-     */
-    private array $body_attributes = [];
 
     /**
      * Add meta tag to HTML head.
@@ -75,6 +60,19 @@ class HttpErrorHandler extends AbstractErrorHandler {
         return $this;
     }
 
+    /*
+    |------------------------------------------
+    | CSS STYLING
+    |------------------------------------------
+    */
+
+    /**
+     * CSS styles.
+     *
+     * @var array
+     */
+    private array $styles = [];
+
     /**
      * Add custom style.
      *
@@ -97,6 +95,26 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $this->styles = array_merge( $this->styles, $styles );
         return $this;
     }
+
+    /*
+    |------------------------------------------
+    | HTML ATTRIBUTES
+    |------------------------------------------
+    */
+
+    /**
+     * Custom attributes for HTML tag.
+     *
+     * @var array
+     */
+    private array $html_attributes = [];
+
+    /**
+     * Custom attributes for body tag.
+     *
+     * @var array
+     */
+    private array $body_attributes = [];
 
     /**
      * Set custom HTML attributes.
@@ -132,6 +150,12 @@ class HttpErrorHandler extends AbstractErrorHandler {
         return $this;
     }
 
+    /*
+    |------------------------------------------
+    | PRIVATE RENDERING METHODS
+    |------------------------------------------
+    */
+
     /**
      * Render HTML head section.
      *
@@ -139,34 +163,29 @@ class HttpErrorHandler extends AbstractErrorHandler {
      */
     private function renderHead() : string {
         $html = '';
-        $charset    = $this->config['charset'] ?? 'utf-8';
+        $charset = $this->getCharset();
 
-        // Meta tags.
-        $html .= "\n\t<meta charset=\"" . escHtml( $charset ) . '">' . "\n";
+        $html .= "\n\t<meta charset=\"" . htmlspecialchars( $charset, ENT_QUOTES, 'UTF-8' ) . '">' . "\n";
         $html .= "\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
 
-        // Additional meta tags.
         foreach ( $this->head_content as $item ) {
             if ( $item['type'] === 'meta' ) {
                 $html .= "\t<meta";
                 foreach ( $item['data'] as $key => $value ) {
-                    $html .= ' ' . escHtml( $key ) . '="' . escHtml( $value ) . '"';
+                    $html .= ' ' . htmlspecialchars( $key, ENT_QUOTES, 'UTF-8' ) . '="' . htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) . '"';
                 }
                 $html .= ">\n";
             }
         }
 
-        $html .= "\t<title>" . escHtml( $this->getTitle() ) . "</title>\n";
-
-        // Styles.
+        $html .= "\t<title>" . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . "</title>\n";
         $html .= $this->renderStyles();
 
-        // Additional links.
         foreach ( $this->head_content as $item ) {
             if ( $item['type'] === 'link' ) {
                 $html .= "\t<link";
                 foreach ( $item['data'] as $key => $value ) {
-                    $html .= ' ' . escHtml( $key ) . '="' . escHtml( $value ) . '"';
+                    $html .= ' ' . htmlspecialchars( $key, ENT_QUOTES, 'UTF-8' ) . '="' . htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) . '"';
                 }
                 $html .= ">\n";
             }
@@ -217,12 +236,10 @@ class HttpErrorHandler extends AbstractErrorHandler {
                 'background-color' => '#f1f1f1',
                 'overflow-x' => 'auto',
                 'padding' => '10px',
-                'scrollbar-width' => 'thin',
                 'border-radius' => '4px',
             ],
         ];
 
-        // Merge with custom styles.
         $all_styles = array_merge( $default_styles, $this->styles );
 
         $css = "\t<style>\n";
@@ -250,7 +267,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
             if ( is_array( $value ) ) {
                 $value = implode( ' ', $value );
             }
-            $html .= ' ' . escHtml( $key ) . '="' . escHtml( $value ) . '"';
+            $html .= ' ' . htmlspecialchars( $key, ENT_QUOTES, 'UTF-8' ) . '="' . htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) . '"';
         }
         return $html;
     }
@@ -264,8 +281,8 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $html = '';
 
         if ( ! empty( $this->config['link_url'] ) && ! empty( $this->config['link_text'] ) ) {
-            $html .= '<p><a href="' . escHtml( $this->config['link_url'] ) . '">';
-            $html .= escHtml( $this->config['link_text'] );
+            $html .= '<p><a href="' . htmlspecialchars( $this->config['link_url'], ENT_QUOTES, 'UTF-8' ) . '">';
+            $html .= htmlspecialchars( $this->config['link_text'], ENT_QUOTES, 'UTF-8' );
             $html .= '</a></p>' . "\n";
         }
 
@@ -293,7 +310,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $html .= "</head>\n";
         $html .= "<body" . $body_attrs . ">\n";
         $html .= "\t<div class=\"error-container\">\n";
-        $html .= "\t\t<h1>" . escHtml( $this->getTitle() ) . "</h1>\n";
+        $html .= "\t\t<h1>" . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . "</h1>\n";
         $html .= "\t\t<div class=\"error-message\">\n";
         $html .= "\t\t\t" . $content . "\n";
         $html .= "\t\t</div>\n";
@@ -313,74 +330,80 @@ class HttpErrorHandler extends AbstractErrorHandler {
     }
 
     /**
-     * Render the error object in HTML
-     * 
+     * Render Throwable in HTML format.
+     *
      * @return string
      */
-    private function renderErrorInHtml() : string {
-        $nl    = "\n";
-        $class = get_called_class();
-        $out   = '';
+    private function renderThrowableInHtml() : string {
+        $nl = "\n";
+        $class = get_class( $this->error_object );
+        $file = $this->error_object->getFile();
+        $line = $this->error_object->getLine();
+        $message = $this->getMessage();
 
-        // Header line.
-        $out .= sprintf( '%s: %s', $class, $this->getMessage() ) . $nl . $nl;
+        $out = '';
+        $out .= htmlspecialchars( $class, ENT_QUOTES, 'UTF-8' ) . $nl;
+        $out .= htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' ) . $nl . $nl;
+        $out .= 'File: ' . htmlspecialchars( $file, ENT_QUOTES, 'UTF-8' ) . $nl;
+        $out .= 'Line: ' . $line . $nl;
 
-        // Structured errors.
-        if ( $this->error_object->has_errors() ) {
-            $out .= 'All Errors:' . $nl;
-
-            foreach ( $this->error_object->errors as $code => $messages ) {
-                foreach ( $messages as $message ) {
-                    $out .= sprintf( '  → [%s] %s', $code, $message ) . $nl;
-                }
-            }
-
-            $out .= $nl;
-            $out .= 'Error Codes: ' . implode( ', ', $this->error_object->get_error_codes() ) . $nl;
-            $out .= 'Data: ' . smliser_safe_json_encode( $this->error_object->error_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . $nl;
-            
-        }
-
-        // Chained exception.
-        $previous = $this->error_object->getPrevious();
-        if ( $previous ) {
-            $out .= $nl . sprintf(
-                'Caused by: %s: %s',
-                get_class( $previous ),
-                $previous->getMessage()
-            ) . $nl;
-        }
-
-        // Stack trace — HTML-wrapped, opt-in only.
         if ( $this->isDebug() ) {
-            $out .= $nl . 'Trace:' . $nl;
-            $out .= '<div>' . $this->error_object->getTraceAsString() . '</div>' . $nl;
+            $out .= $nl . 'Stack Trace:' . $nl;
+            $out .= htmlspecialchars( $this->error_object->getTraceAsString(), ENT_QUOTES, 'UTF-8' ) . $nl;
 
+            $previous = $this->error_object->getPrevious();
             if ( $previous ) {
-                $out .= $nl . 'Previous Trace:' . $nl;
-                $out .= '<div>' . $previous->getTraceAsString() . '</div>' . $nl;
+                $out .= $nl . 'Caused by: ' . get_class( $previous ) . $nl;
+                $out .= htmlspecialchars( $previous->getMessage(), ENT_QUOTES, 'UTF-8' ) . $nl;
+                $out .= htmlspecialchars( $previous->getTraceAsString(), ENT_QUOTES, 'UTF-8' ) . $nl;
             }
         }
 
-        $out    = "<pre>" . $out . "</pre>";
+        $out = '<pre>' . $out . '</pre>';
         return $this->wrapInHtml( $out );
     }
 
+    /*
+    |------------------------------------------
+    | ABSTRACT METHODS
+    |------------------------------------------
+    */
+
     /**
-     * Render complete HTML - DELEGATES TO EXCEPTION CLASS FOR RENDERING.
-     *
-     * If rendering an Exception, uses its render() method.
-     * This respects the Exception class's formatting and data structure.
+     * Render error HTML.
      *
      * @return string
      */
     public function render() : string {
-        // If rendering an Exception, use its render() method.
-        if ( $this->error_object instanceof Exception ) {
-            return $this->renderErrorInHtml();
+        if ( $this->error_object instanceof \Throwable ) {
+            return $this->renderThrowableInHtml();
         }
 
-        return $this->wrapInHtml( $this->getMessage() );
+        return $this->wrapInHtml( htmlspecialchars( $this->getMessage(), ENT_QUOTES, 'UTF-8' ) );
+    }
+
+    /**
+     * Render warning/minor error as inline notice.
+     *
+     * Lightweight output without full page wrapper.
+     * Used for non-fatal errors in debug mode.
+     *
+     * @return string
+     */
+    public function renderWarning() : string {
+        $html = '<div style="background:#fff3cd;border:1px solid #ffc107;color:#664d03;padding:12px;margin:10px 0;border-radius:4px;">' . PHP_EOL;
+        $html .= '<strong>' . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . ':</strong> ';
+        $html .= htmlspecialchars( $this->getMessage(), ENT_QUOTES, 'UTF-8' );
+        
+        if ( $this->error_object instanceof \Throwable ) {
+            $html .= '<br><small style="opacity:0.7;">';
+            $html .= htmlspecialchars( $this->error_object->getFile(), ENT_QUOTES, 'UTF-8' );
+            $html .= ':' . $this->error_object->getLine();
+            $html .= '</small>';
+        }
+        
+        $html .= PHP_EOL . '</div>' . PHP_EOL;
+        return $html;
     }
 
     /**

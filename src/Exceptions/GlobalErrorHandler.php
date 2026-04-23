@@ -38,11 +38,18 @@ class GlobalErrorHandler {
     private string $environment = 'auto';
 
     /**
-     * Debug mode enabled.
+     * Debug mode enabled?
      *
      * @var bool
      */
     private bool $debug_mode = false;
+
+    /**
+     * Display error enabled?
+     *
+     * @var bool
+     */
+    private bool $display_errors = false;
 
     /**
      * Log handler callback.
@@ -173,9 +180,14 @@ class GlobalErrorHandler {
                 : null;
         }
 
+        if ( array_key_exists( 'display_errors', $config ) ) {
+            $this->display_errors = $config['display_errors'];
+        }
+
         $this->resolveHandlerClass();
         
         $this->handler_class->setDebug( $this->debug_mode );
+        $this->handler_class->setDisplayErrors( $this->display_errors );
 
         if ( $this->log_handler ) {
             $this->handler_class->setLogHandler( $this->log_handler );
@@ -362,9 +374,10 @@ class GlobalErrorHandler {
 
         // Bind error handler context.
         $this->bindContext([
-            'debug'       => $config['debug'],
-            'environment' => $config['environment'],
-            'logger'      => $config['logger'],
+            'debug'             => $config['debug'],
+            'environment'       => $config['environment'],
+            'logger'            => $config['logger'],
+            'display_errors'    => $config['display_errors'],
         ]);
 
         // ONLY place runtime mutation happens.
