@@ -14,7 +14,6 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Email\Providers;
 
 use SmartLicenseServer\Email\EmailMessage;
-use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 
@@ -32,7 +31,7 @@ class PHPMailProvider implements EmailProviderInterface {
         return 'PHP Mail';
     }
 
-    public function get_settings_schema(): array {
+    public static function get_settings_schema(): array {
         return [
             'from_email' => [
                 'type'        => 'text',

@@ -81,7 +81,7 @@ class AmazonSESProvider extends AbstractRestEmailProvider {
     |------------------------------
     */
 
-    public function get_settings_schema(): array {
+    public static function get_settings_schema(): array {
         return [
             'access_key' => [
                 'type'        => 'text',

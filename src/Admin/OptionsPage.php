@@ -191,11 +191,11 @@ class OptionsPage {
     private static function email_provider_settings( Request $request ): void {
         $provider_key = $request->get( 'provider' );
         $registry   = smliser_emailProvidersRegistry();
-        $provider   = $registry->get_provider( $provider_key );
+        $provider   = $registry->get( $provider_key );
 
-        $provider_name  = $provider?->get_name() ?? '';
-        $provider_id    = $provider?->get_id() ?? '';
-        $schema         = $provider?->get_settings_schema() ?? [];
+        $provider_name  = $provider ? $provider::get_name() : '';
+        $provider_id    = $provider ? $provider::get_id() : '';
+        $schema         = $provider ? $provider::get_settings_schema() : [];
         $is_default     = EmailProvidersRegistry::get_default_provider_id() === $provider_id;
 
         // Pre-populate each field with persisted value.

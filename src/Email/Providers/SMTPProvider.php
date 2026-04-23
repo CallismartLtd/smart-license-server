@@ -120,7 +120,7 @@ class SMTPProvider implements EmailProviderInterface {
     |------------------------------
     */
 
-    public function get_settings_schema(): array {
+    public static function get_settings_schema(): array {
         return [
             'host' => [
                 'type'        => 'text',

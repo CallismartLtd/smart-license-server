@@ -23,7 +23,8 @@ class RequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
 
     /**
-     * Handles request to save default email options
+     * Handles request to save default email options.
+     * 
      * @param Request The request object.
      * @return Response
      */
@@ -90,8 +91,7 @@ class RequestController {
      * Handle a request to save settings for a specific email provider.
      *
      * Reads all fields defined in the provider's settings schema from the
-     * request, validates required fields, skips masked password placeholders
-     * so saved credentials are never overwritten with '********', then
+     * request, validates required fields, skips empty password, then
      * persists the full settings batch via update_provider_settings().
      *
      * Optionally sets the provider as the system default if the
@@ -114,16 +114,16 @@ class RequestController {
                 );
             }
 
-            $provider = $registry->get_provider( $provider_id );
+            $provider = $registry->get( $provider_id );
 
-            if ( $provider === null ) {
+            if ( null === $provider ) {
                 throw new RequestException(
                     'validation_failed',
                     'Invalid email provider.'
                 );
             }
 
-            $schema          = $provider->get_settings_schema();
+            $schema          = $provider::get_settings_schema();
             $saved_settings  = [];
             $missing_fields  = [];
 
@@ -140,7 +140,7 @@ class RequestController {
 
                 // Password field submitted with the masked placeholder —
                 // preserve the previously saved value rather than overwriting.
-                if ( $field['type'] === 'password' && $raw_value === '********' ) {
+                if ( 'password' === $field['type'] && '' === $raw_value ) {
                     $saved_settings[ $key ] = EmailProvidersRegistry::get_option( $provider_id, $key );
                     continue;
                 }
@@ -173,7 +173,7 @@ class RequestController {
             // This catches provider-specific rules (e.g. invalid API key format,
             // unsupported region) before anything is written to storage.
             try {
-                $cloned = clone $provider;
+                $cloned = new $provider;
                 $cloned->set_settings( $saved_settings );
             } catch ( \InvalidArgumentException $e ) {
                 throw new RequestException(
@@ -192,7 +192,7 @@ class RequestController {
             return ( new Response( 200, [], [
                 'success' => true,
                 'data'    => [
-                    'message'    => sprintf( '%s settings saved successfully.', $provider->get_name() ),
+                    'message'    => sprintf( '%s settings saved successfully.', $provider::get_name() ),
                     'is_default' => EmailProvidersRegistry::get_default_provider_id() === $provider_id,
                 ],
             ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );

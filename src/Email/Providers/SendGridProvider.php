@@ -47,7 +47,7 @@ class SendGridProvider extends AbstractRestEmailProvider {
     |------------------------------
     */
 
-    public function get_settings_schema(): array {
+    public static function get_settings_schema(): array {
         return [
             'api_key' => [
                 'type'        => 'password',

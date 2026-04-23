@@ -24,17 +24,18 @@ interface EmailProviderInterface extends ServiceProviderInterface{
      *
      * Example return structure:
      * [
-     *     'api_key' => [
-     *         'type'        => 'text',
-     *         'label'       => 'API Key',
-     *         'required'    => true,
-     *         'description' => 'Your provider API key.'
-     *     ]
+     *      'api_key' => [
+     *          'type'           => 'text',
+     *          'label'          => 'API Key',
+     *          'required'       => true,
+     *          'default'        => 'your api key' 
+     *          'description'    => 'Your provider API key.'
+     *      ]
      * ]
      *
      * @return array<string, array<string, mixed>>
      */
-    public function get_settings_schema() : array;
+    public static function get_settings_schema() : array;
 
     /**
      * Set provider configuration.

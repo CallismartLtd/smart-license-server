@@ -67,10 +67,11 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
                     // Mask password fields so saved values are not exposed in the DOM.
                     if ( $field_schema['type'] === 'password' ) {
-                        $field['input']['value'] = $saved_settings[ $key ] !== '' ? '********' : '';
+                        $field['input']['value'] =  '';
                         $field['input']['attr']  = [
                             'autocomplete' => 'new-password',
                             'data-masked'  => 'true',
+                            'placeholder'  => '••••••••••••••••',
                         ];
                     }
                 ?>

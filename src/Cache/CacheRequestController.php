@@ -33,8 +33,7 @@ class CacheRequestController {
      * Handle a request to save settings for a specific cache adapter.
      *
      * Reads all fields defined in the adapter's settings schema from the
-     * request, validates required fields, skips masked password placeholders
-     * so saved credentials are never overwritten with '********', then
+     * request, validates required fields, skips empty password, then
      * persists the full settings batch via CacheAdapterRegistry.
      *
      * Optionally sets the adapter as the system default if the
@@ -473,7 +472,7 @@ class CacheRequestController {
             // Password field submitted with the masked placeholder —
             // preserve the previously saved value rather than overwriting
             // with the display mask.
-            if ( ( $field['type'] ?? '' ) === 'password' && $raw_value === '********' ) {
+            if ( 'password' === ( $field['type'] ?? '' ) && '' === $raw_value ) {
                 $saved_settings[ $key ] = CacheAdapterRegistry::get_option( $adapter_id, $key );
                 continue;
             }

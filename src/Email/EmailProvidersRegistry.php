@@ -29,7 +29,17 @@ use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
-
+/**
+ * Email service provider registry.
+ * 
+ * Holds the class string of available email provider and manages their
+ * settings.
+ * 
+ * @method class-string<EmailProviderInterface>|null get( string $provider_id ) Get the class string of
+ *  a registered email provider.
+ * 
+ * 
+ */
 class EmailProvidersRegistry  extends AbstractRegistry {
 
     /**
@@ -132,11 +142,11 @@ class EmailProvidersRegistry  extends AbstractRegistry {
             $provider = new $class_string;
             $settings = [];
 
-            foreach ( $provider->get_settings_schema() as $key => $_ ) {
-                $settings[ $key ] = static::get_option( $provider_id, $key );
+            foreach ( $provider->get_settings_schema() as $key => $data ) {
+                $settings[ $key ] = static::get_option( $provider_id, $key, $data['default'] ?? null );
             }
 
-            $provider->set_settings( $settings );            
+            $provider->set_settings( $settings );       
         }
 
         return $provider;
@@ -188,15 +198,14 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      *
      * @param string $provider_id
      * @param string $option_name
+     * @param mixed  $default
      * @return mixed
      */
-    public static function get_option( string $provider_id, string $option_name ): mixed {
+    public static function get_option( string $provider_id, string $option_name, $default = null ): mixed {
         if ( ! isset( static::$settings_store[ $provider_id ] ) ) {
             $all_options    = static::instance()->settings->get( static::SETTINGS_KEY, [], true );
             static::$settings_store[ $provider_id ] = $all_options[ $provider_id ] ?? [];
         }
-        
-        $default    = null;
 
         if ( 'from_email' === $option_name ) {
             $default    = static::instance()->get_default_sender_email();

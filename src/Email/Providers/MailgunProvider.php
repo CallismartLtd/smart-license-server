@@ -56,7 +56,7 @@ class MailgunProvider extends AbstractRestEmailProvider {
     |------------------------------
     */
 
-    public function get_settings_schema(): array {
+    public static function get_settings_schema(): array {
         return [
             'api_key' => [
                 'type'        => 'password',
@@ -318,7 +318,7 @@ class MailgunProvider extends AbstractRestEmailProvider {
      * @throws EmailTransportException
      */
     protected function parse_response( HttpResponse $response ): EmailResponse {
-        $data = $response->json() ?? [];
+        $data = $response->json() ?? [ 'message' => $response->body ];
 
         if ( $response->is_error() ) {
             $error = $data['message'] ?? 'Unknown Mailgun API error.';

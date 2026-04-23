@@ -47,7 +47,7 @@ class PostmarkProvider extends AbstractRestEmailProvider {
     |------------------------------
     */
 
-    public function get_settings_schema(): array {
+    public static function get_settings_schema(): array {
         return [
             'server_token' => [
                 'type'        => 'password',
