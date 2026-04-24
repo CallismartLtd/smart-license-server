@@ -80,6 +80,10 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
         // $argv is not used by the shell — initialise to an empty vector
         // so the inherited SmliserCommand property is always defined.
         $this->argv = [];
+
+        if ( ! defined( 'SMLISER_INTERACTIVE_SHELL' ) ) {
+            define( 'SMLISER_INTERACTIVE_SHELL', true );
+        }
     }
 
     /*

@@ -70,3 +70,14 @@ if ( ! function_exists( '__' ) ) {
         return smliser__( $text, $domain );
     }
 }
+
+if ( ! function_exists( 'is_interactive_shell' ) ) {
+    /**
+     * Tells whether the current request is an intercative shell session
+     * 
+     * @return bool True when in interactive shell, false otherwise.
+     */
+    function is_interactive_shell() : bool {
+        return defined( 'SMLISER_INTERACTIVE_SHELL' ) && SMLISER_INTERACTIVE_SHELL;
+    }
+}

@@ -171,12 +171,6 @@ class SetUp extends Environment {
 
         $this->setup( $env );
 
-        // Initialize the cache adapter if configured.
-        if ( isset( $_ENV['SMLISER_CACHE_ADAPTER'] ) ) {
-            $adapter_id = $_ENV['SMLISER_CACHE_ADAPTER'];
-            CacheAdapterRegistry::instance()->set_default_adapter( $adapter_id );    
-        }
-
     }
 
     /**

@@ -13,6 +13,8 @@
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
+$settings = smliser_settings();
+
 ?>
 <div class="smlag-header">
     <span class="smlag-subtitle">Create your account</span>
@@ -74,13 +76,8 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             <i class="ti ti-lock" aria-hidden="true"></i>
             Password
         </label>
-        <input
-            type="password"
-            id="smlag-signup-password"
-            name="password"
-            class="smlag-input"
-            placeholder="••••••••"
-            required
+        <input type="password"id="smlag-signup-password"
+            name="password" class="smlag-input" placeholder="••••••••••••••••" required
             autocomplete="new-password"
             data-password-meter
         />
@@ -102,39 +99,41 @@ defined( 'SMLISER_ABSPATH' ) || exit;
             <i class="ti ti-lock" aria-hidden="true"></i>
             Confirm Password
         </label>
-        <input
-            type="password"
-            id="smlag-signup-confirm"
-            name="password_confirm"
-            class="smlag-input"
-            placeholder="••••••••"
-            required
+        <input type="password" id="smlag-signup-confirm" name="password_confirm"
+            class="smlag-input" placeholder="••••••••••••••••" required 
             autocomplete="new-password"
         />
     </div>
 
-    <!-- Terms checkbox -->
-    <div class="smlag-checkbox-wrapper">
-        <input
-            type="checkbox"
-            id="smlag-signup-terms"
-            name="agree_terms"
-            class="smlag-checkbox"
-            value="1"
-            required
-        />
-        <label for="smlag-signup-terms">
-            I agree to the
-            <a href="<?php echo escUrl( smliser_settings()->get( 'terms_url', '/', true ) ); ?>" target="_blank">Terms of Service</a>
-            and
-            <a href="<?php echo escUrl( smliser_settings()->get( 'privacy_policy_url', '/', true ) ); ?>" target="_blank">Privacy Policy</a>
+    <!-- Confirm Password field -->
+    <div class="smlag-form-group">
+        <label for="smlag-account-type" class="smlag-label">
+            <i class="ti ti-lock" aria-hidden="true"></i>
+            Account Type
         </label>
+        <select name="account_type" id="smlag-account-type" class="smlag-select">
+            <option value="resource_owner">Resource Owner</option>
+            <option value="app_manager">Application Manager</option>
+            <option value="license_manager">License Manager</option>
+            <option value="analyst">Analyst (Read-only Analytics)</option>
+            <option value="viewer">Viewer (Download Access)</option>
+        </select>
     </div>
 
-    <!-- CSRF Nonce -->
-    <?php if ( function_exists( 'wp_nonce_field' ) ) : ?>
-        <?php wp_nonce_field( 'smliser_auth_signup', '_wpnonce_signup' ); ?>
-    <?php endif; ?>
+    <!-- Terms checkbox -->
+    <div class="smlag-checkbox-wrapper">
+        <input type="checkbox" id="smlag-signup-terms" name="agree_terms"
+            class="smlag-checkbox" value="1" required />
+
+        <label for="smlag-signup-terms">
+            I agree to the
+            <a href="<?php echo escUrl( $settings->get( 'terms_url', '/', true ) ); ?>" 
+                target="_blank">Terms of Service</a>
+            and
+            <a href="<?php echo escUrl( $settings->get( 'privacy_policy_url', '/', true ) ); ?>"
+                target="_blank">Privacy Policy</a>
+        </label>
+    </div>
 
     <!-- Submit button -->
     <button type="submit" class="smlag-button" id="smlag-signup-submit">

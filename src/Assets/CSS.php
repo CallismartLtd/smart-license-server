@@ -86,7 +86,7 @@ final class CSS {
             ],
             'smliser-client-dashboard' => [
                 'src'   => assetsUrl( sprintf( 'css/client-dashboard%s.css', $suffix ) ),
-                'deps'  => ['smliser-modal', 'smliser-tabler-icons', 'smliser-utils'],
+                'deps'  => ['smliser-modal', 'smliser-tabler-icons', 'smliser-utils', 'select2'],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ],

@@ -22,6 +22,10 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Cache adapters manager file.
+ * 
+ * 
+ * @method class-string<CacheAdapterInterface>|null get( $adapter_id ) Get class string of
+ * registered adapter.
  */
 class CacheAdapterRegistry extends AbstractRegistry {
     /**
@@ -151,7 +155,7 @@ class CacheAdapterRegistry extends AbstractRegistry {
             );
         }
 
-        return static::instance()->settings->set( static::DEFAULT_ADAPTER_KEY, $adapter_id, true );
+        return (bool) static::instance()->settings->set( static::DEFAULT_ADAPTER_KEY, $adapter_id, true );
     }
 
     /*

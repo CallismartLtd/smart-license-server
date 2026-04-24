@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
 use SmartLicenseServer\Utils\Format;
@@ -44,17 +45,19 @@ class CacheCommand implements CommandInterface {
     public static function help(): string {
         return implode( PHP_EOL, [
             'Subcommands:',
-            '  stats           Show cache engine metrics.',
-            '  clear           Flush all cached data (confirms first).',
-            '  get <key>       Retrieve and display a specific cache key.',
-            '  delete <key>    Remove a specific key from the cache.',
-            '  help            Show this help message.',
+            '  stats                        Show cache engine metrics.',
+            '  clear                        Flush all cached data (confirms first).',
+            '  get <key>                    Retrieve and display a specific cache key.',
+            '  delete <key>                 Remove a specific key from the cache.',
+            '  use-adapter <adapter_id>     Switch to a specific cache adapter.',
+            '  help                         Show this help message.',
             '',
             'Examples:',
             '  smliser cache stats',
             '  smliser cache clear',
             '  smliser cache get smliser_some_key',
             '  smliser cache delete smliser_some_key',
+            '  smliser cache use-adapter redis',
         ]);
     }
 
@@ -63,13 +66,14 @@ class CacheCommand implements CommandInterface {
         $subcommand = $args[0] ?? null;
 
         match ( $subcommand ) {
-            'stats'  => $this->handle_stats(),
-            'clear'  => $this->handle_clear(),
-            'get'    => $this->handle_get( $args[1] ?? null ),
-            'delete' => $this->handle_delete( $args[1] ?? null ),
-            'help'   => $this->handle_help(),
-            null     => $this->handle_default(),
-            default  => $this->handle_unknown( $subcommand ),
+            'stats'         => $this->handle_stats(),
+            'clear'         => $this->handle_clear(),
+            'get'           => $this->handle_get( $args[1] ?? null ),
+            'delete'        => $this->handle_delete( $args[1] ?? null ),
+            'use-adapter'   => $this->switch_adapter( $args[1] ?? null ),
+            'help'          => $this->handle_help(),
+            null            => $this->handle_default(),
+            default         => $this->handle_unknown( $subcommand ),
         };
     }
 
@@ -175,6 +179,38 @@ class CacheCommand implements CommandInterface {
     }
 
     /**
+     * Change the cache adapter.
+     *
+     * @param string|null $adapter_id
+     */
+    private function switch_adapter( ?string $adapter_id ): void {
+        if ( empty( $adapter_id ) ) {
+            $this->error( 'Usage: smliser cache use-adapter <adapter_id>' );
+            return;
+        }
+
+        if ( ! CacheAdapterRegistry::instance()->has( $adapter_id ) ) {
+            $this->error( sprintf( 'The cache adapter "%s" does not exist.', $adapter_id ) );
+            return;
+        }
+
+        $success    = CacheAdapterRegistry::instance()->set_default_adapter( $adapter_id );
+
+        if ( $success ) {
+            $adapter_class  = CacheAdapterRegistry::instance()->get( $adapter_id );
+            $adapter_name   = $adapter_class ? $adapter_class::get_name() : $adapter_id;
+            $message        = sprintf( 'Now using %s.', $adapter_name );
+
+            if( \is_interactive_shell() ) {
+                $message .= ' Please restart CLI to effect changes.';
+            }
+            $this->success( $message );
+        } else {
+            $this->error( 'Unable to set new adapter.' );
+        }
+    }
+
+    /**
      * Show the active adapter name and quick usage hint.
      */
     private function handle_default(): void {
@@ -200,6 +236,7 @@ class CacheCommand implements CommandInterface {
                 [ 'clear',  '',      'Flush all cached data (confirms first).' ],
                 [ 'get',    '<key>', 'Retrieve and display a specific cache key.' ],
                 [ 'delete', '<key>', 'Remove a specific key from the cache.' ],
+                [ 'use-adapter', '<adapter_id>', 'Switch to a specific cache adapter.' ],
                 [ 'help',   '',      'Show this help message.' ],
             ]
         );

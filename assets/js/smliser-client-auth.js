@@ -306,11 +306,11 @@ class SmliserAuth {
                 window.location.href = redirect.href;
             }, 3000 );
         } else if ( formType === 'signup' ) {
-            // Show success message, redirect to login
-            this.showFormSuccess( response.message || 'Account created successfully!' );
-            setTimeout( () => {
-                this.loadForm( 'login', false );
-            }, 2000 );
+            // Show success message, redirect to login.
+            this.replaceFormWithSuccess( response.message || 'Account created successfully!' );
+            // setTimeout( () => {
+            //     this.loadForm( 'login', false );
+            // }, 2000 );
         } else if ( ['forgot-password', 'reset-password'].includes( formType ) ) {
             const defaultMessage   = 'forgot-password' === formType ?
             'Check your email for password reset link.' : 'Successful.' ;
@@ -421,15 +421,6 @@ class SmliserAuth {
             form.addEventListener( 'submit', ( e ) => this.handleFormSubmit( e ) );
         }
 
-        // Link navigation to other forms (e.g., "Create account" → #signup)
-        // this.content.querySelectorAll( 'a[href^="#"]' ).forEach( link => {
-        //     link.addEventListener( 'click', ( e ) => {
-        //         // e.preventDefault();
-        //         const href = link.getAttribute( 'href' ).replace( /^#/, '' );
-        //         // this.loadForm( href, false );
-        //     } );
-        // } );
-
         // Clear errors on input focus
         this.content.querySelectorAll( 'input, textarea' ).forEach( input => {
             input.addEventListener( 'focus', () => {
@@ -457,6 +448,7 @@ class SmliserAuth {
         passwordInput.addEventListener( 'input', () => {
             this.updatePasswordStrength( passwordInput.value );
         } );
+
     }
 
     updatePasswordStrength( password ) {

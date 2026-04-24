@@ -8,8 +8,6 @@
 
 namespace SmartLicenseServer\Assets;
 
-use SmartLicenseServer\Environments\WordPress\SetUp;
-
 final class JS {
 
     /**

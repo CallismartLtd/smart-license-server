@@ -229,12 +229,12 @@ final class DefaultRoles {
     public static function all() : array {
         $roles = [];
 
-        foreach ( self::$roles as $key => $role ) {
+        foreach ( static::$roles as $key => $role ) {
             $roles[ $key ] = [
                 'label'         => $role['label'],
                 'is_canonical'  => $role['is_canonical'],
                 'slug'          => $role['slug'],
-                'capabilities'  => self::resolve_capabilities( $role['capabilities'] ),
+                'capabilities'  => static::resolve_capabilities( $role['capabilities'] ),
             ];
         }
 
@@ -266,7 +266,7 @@ final class DefaultRoles {
      * Check if a default role exists.
      */
     public static function exists( string $name ) : bool {
-        return isset( self::$roles[ $name ] );
+        return isset( static::$roles[ $name ] );
     }
 
     /**
@@ -275,12 +275,12 @@ final class DefaultRoles {
      * @throws \InvalidArgumentException
      */
     public static function get( string $name ) : array {
-        if ( ! self::exists( $name ) ) {
+        if ( ! static::exists( $name ) ) {
             throw new \InvalidArgumentException(
                 sprintf( 'Unknown default role "%s".', $name )
             );
         }
 
-        return self::all()[ $name ];
+        return static::all()[ $name ];
     }
 }

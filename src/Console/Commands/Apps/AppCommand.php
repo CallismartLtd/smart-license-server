@@ -160,7 +160,7 @@ class AppCommand implements CommandInterface {
             ) );
         }
 
-        $this->done( '', false );
+        $this->done( '', true );
     }
 
     /**
