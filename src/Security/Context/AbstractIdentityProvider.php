@@ -102,6 +102,41 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
     }
 
     /**
+     * Remove federation mapping for a user.
+     * 
+     * @param int $user_id
+     * @return bool
+     */
+    protected function remove( int $user_id ) : bool {
+        return $this->remove_by( 'user_id', (string) $user_id );
+    }
+
+    /**
+     * Remove a record from the federation table using the column and value.
+     * 
+     * @param string $column The column name to match (e.g., 'issuer' or 'external_id').
+     * @param string $value The value to match for deletion.
+     * @return bool True if deletion was successful, false otherwise.
+     */
+    protected function remove_by( string $column, string $value ) : bool {
+
+        $allowed_columns = [ 'issuer', 'external_id', 'user_id' ];
+
+        if ( ! in_array( $column, $allowed_columns, true ) ) {
+            return false; // Invalid column name
+        }
+
+        $db = smliser_db();
+
+        $deleted = $db->delete(
+            SMLISER_IDENTITY_FEDERATION_TABLE,
+            [ $column => $value ]
+        );
+
+        return false !== $deleted;
+    }
+
+    /**
      * Hydrate internal actor from ID.
      *
      * Let children override if needed.

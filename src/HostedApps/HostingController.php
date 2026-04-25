@@ -137,7 +137,7 @@ class HostingController {
             } else if ( $request->hasValue( 'app_owner_id' ) ) {
                 $app->set_owner_id( $request->get( 'app_owner_id' ) );
             } else {
-                $app->set_owner_id( Guard::get_principal()?->get_owner()->get_id() ?? 0 );
+                $app->set_owner_id( Guard::get_principal()?->get_owner()?->get_id() ?? 0 );
             }
 
             $new_owner_id = $app->get_owner_id();

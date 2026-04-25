@@ -17,6 +17,7 @@
 namespace SmartLicenseServer\ClientDashboard\Handlers;
 
 use SmartLicenseServer\Background\Jobs\Accounts\PasswordResetJob;
+use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Dates\DateDuration;
@@ -79,7 +80,7 @@ class AuthController {
             [
                 'success'  => true,
                 'message'  => sprintf( 'Welcome back, %s.', $principal->get_display_name() ),
-                'redirect' => '/dashboard',
+                'redirect' => \smliser_client_dashboard_url()
             ]
         );
     }
@@ -118,13 +119,58 @@ class AuthController {
      * @return Response JSON response
      */
     public static function handle_signup( Request $request ) : Response {
+        if ( ! $request->has( 'agree_terms' ) ) {
+            return static::error_response(
+                400,
+                'terms_not_accepted',
+                'You must agree to the terms and conditions to create an account.'
+            );
+        }
+
+        $principal = \identityProvider()->signup( $request );
+        
+        if ( $principal instanceof RequestException ) {
+            return static::error_response(
+                400,
+                $principal->get_error_code(),
+                $principal->get_error_message()
+            );
+        }
+
+        $static = new static;
+
+        $account_type   = $request->get( 'account_type', 'viewer' );
+
+        if ( 'resource_owner' !== $account_type ) {
+            $account_type = 'viewer';
+        }
+        
+        $static->dispatch_job(
+            SignupEmailJob::class,
+            [
+                'user_id'   => $principal->get_id(),
+                'recipient' => $principal->get_email()
+            ]
+        );
+
+        $static->dispatch_job(
+            SignupEmailJob::class,
+            [
+                'user_id'       => $principal->get_id(),
+                'recipient'     => \smliser_settings()->get( 'admin_email' ),
+                'for_admin'     => true,
+                'ip_address'    => \smliser_get_client_ip(),
+                'account_type'  => $account_type
+            ]
+        );
 
         // Return success
         return static::success_response(
             200,
             [
-                'success' => true,
-                'message' => 'Account created successfully! Check your email to verify your account.',
+                'success'   => true,
+                'message'   => 'Account created successfully! Check your email to verify your account.',
+                'redirect'  => \smliser_client_dashboard_url()
             ]
         );
     }

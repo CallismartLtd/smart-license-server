@@ -56,6 +56,13 @@ class User implements ActorInterface, OwnerSubjectInterface {
     public const STATUS_DISABLED = 'disabled';
 
     /**
+     * User scheduled to be deleted status.
+     * 
+     * @var string
+     */
+    public const STATUS_DELETE_SCHEDULED = 'delete_scheduled';
+
+    /**
      * Internal actor type identifier.
      *
      * @var string

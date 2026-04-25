@@ -304,9 +304,8 @@ class ContextServiceProvider {
      * @param Role $role
      * @param OwnerSubjectInterface|null $org The subject entity associated with resource owner.
      * @throws InvalidArgumentException When one required field is missing.
-     * @throws SecurityException When there is no valid resource owner in context.
      */
-    public static function save_actor_role( ActorInterface $actor, Role $role, ?OwnerSubjectInterface $subject ) : bool {
+    public static function save_actor_role( ActorInterface $actor, Role $role, ?OwnerSubjectInterface $subject = null ) : bool {
         $db             = smliser_db();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;

@@ -55,7 +55,7 @@ trait SecurityAwareTrait {
             return;
         }
 
-        if ( ! $principal->get_owner()->owns_app( $app ) ) {
+        if ( ! $principal->get_owner()?->owns_app( $app ) ) {
             throw new RequestException( 'unuathorized_app_access' );
         }
     }

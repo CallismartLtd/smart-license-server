@@ -77,7 +77,7 @@ $settings = smliser_settings();
             Password
         </label>
         <input type="password"id="smlag-signup-password"
-            name="password" class="smlag-input" placeholder="••••••••••••••••" required
+            name="password_1" class="smlag-input" placeholder="••••••••••••••••" required
             autocomplete="new-password"
             data-password-meter
         />
@@ -99,7 +99,7 @@ $settings = smliser_settings();
             <i class="ti ti-lock" aria-hidden="true"></i>
             Confirm Password
         </label>
-        <input type="password" id="smlag-signup-confirm" name="password_confirm"
+        <input type="password" id="smlag-signup-confirm" name="password_2"
             class="smlag-input" placeholder="••••••••••••••••" required 
             autocomplete="new-password"
         />
@@ -113,10 +113,7 @@ $settings = smliser_settings();
         </label>
         <select name="account_type" id="smlag-account-type" class="smlag-select">
             <option value="resource_owner">Resource Owner</option>
-            <option value="app_manager">Application Manager</option>
-            <option value="license_manager">License Manager</option>
-            <option value="analyst">Analyst (Read-only Analytics)</option>
-            <option value="viewer">Viewer (Download Access)</option>
+            <option value="viewer">Licensee (Download Access)</option>
         </select>
     </div>
 

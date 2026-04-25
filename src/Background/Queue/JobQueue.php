@@ -65,7 +65,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  * @method JobDTO          dispatch( JobDTO $job )                                                  Enqueue a job for background processing.
  * @method JobDTO|null     claim_next_job( ?string $queue = null )                                  Claim and return the next available job.
- * @method JobDTO          record_job_completed( JobDTO $job, mixed $result = null )                Mark a running job as completed.
  * @method JobDTO          record_job_failed( JobDTO $job, string $error_message )                  Mark a running job as failed and handle retry/archive logic.
  * @method JobDTO|null     find_job( int $id )                                                      Retrieve a job by its storage ID.
  * @method JobDTO[]        get_jobs_by_status( string $status, ?string $queue, int $limit, int $offset ) Retrieve jobs filtered by status.
@@ -149,9 +148,9 @@ class JobQueue {
      */
     public function record_job_completed( JobDTO $job, mixed $result = null ): JobDTO {
         $job = $job
-            ->set( JobDTO::KEY_STATUS,       JobDTO::STATUS_COMPLETED )
-            ->set( JobDTO::KEY_RESULT,        $result )
-            ->set( JobDTO::KEY_COMPLETED_AT,  new \DateTimeImmutable() )
+            ->set( JobDTO::KEY_STATUS, JobDTO::STATUS_COMPLETED )
+            ->set( JobDTO::KEY_RESULT, $result )
+            ->set( JobDTO::KEY_COMPLETED_AT, new \DateTimeImmutable() )
             ->set( JobDTO::KEY_ERROR_MESSAGE, null );
 
         return $this->adapter->update_job( $job );

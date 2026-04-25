@@ -296,7 +296,7 @@ class SmliserAuth {
     handleFormSuccess( response, formType ) {
         if ( formType === 'login' ) {
             this.showFormSuccess( response.message );
-            const redirect  = new URL( window.location.href );
+            const redirect  = new URL( response.redirect ?? window.location.href );
 
             redirect.hash = '';
             if ( redirect.searchParams.has( 'key' ) ) {
@@ -307,10 +307,14 @@ class SmliserAuth {
             }, 3000 );
         } else if ( formType === 'signup' ) {
             // Show success message, redirect to login.
-            this.replaceFormWithSuccess( response.message || 'Account created successfully!' );
-            // setTimeout( () => {
-            //     this.loadForm( 'login', false );
-            // }, 2000 );
+            this.replaceFormWithSuccess( 
+                response.message || 'Account created successfully!',
+                {
+                    text: 'Go to Dashboard',
+                    href: response.redirect || this.currentURL.origin + this.currentURL.pathname
+                }
+            );
+    
         } else if ( ['forgot-password', 'reset-password'].includes( formType ) ) {
             const defaultMessage   = 'forgot-password' === formType ?
             'Check your email for password reset link.' : 'Successful.' ;
@@ -365,9 +369,8 @@ class SmliserAuth {
         alert.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
     }
 
-    replaceFormWithSuccess( message ) {
-        this.content.innerHTML = `
-            <div class="smlag-header">
+    replaceFormWithSuccess( message, nextAction = {text : 'Proceed', href : ''} ) {
+        let template  = `<div class="smlag-header">
                 <span class="smlag-brand">${ this.escapeHtml( this.REPO_NAME ) }</span>
             </div>
 
@@ -375,14 +378,21 @@ class SmliserAuth {
                 <div class="smlag-form-alert smlag-form-alert-success" role="status">
                     ${ this.escapeHtml( message ) }
                 </div>
+        `;
 
+        if ( nextAction.href && nextAction.text ) {
+            template += `
                 <div class="smlag-success-actions">
-                    <a href="#login" class="smlag-btn smlag-btn-primary">
-                        Back to login
+                    <a href="${ nextAction.href }" class="smlag-btn smlag-btn-primary">
+                        ${ this.escapeHtml( nextAction.text ) }
                     </a>
                 </div>
-            </div>
-        `;
+            `;
+        }
+
+        template += '</div>';
+
+        this.content.innerHTML = template;
 
         // Rebind links (important for SPA navigation)
         this.bindFormEvents();

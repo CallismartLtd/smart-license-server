@@ -42,6 +42,7 @@ class SetUp extends Environment {
         $this->setProps();
 
         add_action( 'set_current_user', [$this->identityProvider, 'authenticate'] );
+        add_action( 'deleted_user', [IdentityService::class, 'desync_user'] );
         add_action( 'admin_menu', [$this->menu, 'register_menus'] );
         add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
 

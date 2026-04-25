@@ -61,9 +61,9 @@ final class Principal {
 
     /**
      * The resource owner (Individual or Organization) the actor is acting upon.
-     * @var Owner
+     * @var Owner|null
      */
-    private Owner $owner;
+    private ?Owner $owner;
 
     /**
      * Principal constructor.
@@ -71,9 +71,9 @@ final class Principal {
      * Initializes the principal with a locked security context.
      * @param ActorInterface $actor The authenticated identity.
      * @param Role           $role  The resolved role for this request context.
-     * @param Owner          $owner The resource owner context.
+     * @param Owner|null          $owner The resource owner context.
      */
-    public function __construct( ActorInterface $actor, Role $role, Owner $owner ) {
+    public function __construct( ActorInterface $actor, Role $role, ?Owner $owner = null ) {
         $this->actor = $actor;
         $this->role  = $role;
         $this->owner = $owner;
@@ -162,9 +162,9 @@ final class Principal {
 
     /**
      * Get the Resource Owner context for this principal.
-     * @return Owner
+     * @return Owner|null
      */
-    public function get_owner() : Owner {
+    public function get_owner() : ?Owner {
         return $this->owner;
     }
 

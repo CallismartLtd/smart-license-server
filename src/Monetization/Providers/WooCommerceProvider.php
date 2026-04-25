@@ -117,13 +117,6 @@ class WooCommerceProvider implements MonetizationProviderInterface {
         $response = $this->http_client->send( $request );
 
         if ( ! $response->ok() ) {
-            error_log( sprintf(
-                'WooCommerceProvider::get_product() - Request failed for product %d. Error: %s. Endpoint: %s',
-                $product_id,
-                $response->reason_phrase,
-                $endpoint
-            ) );
-
             static::cache_set( $cache_key, null, $cache_expiry );
             return null;
         }
