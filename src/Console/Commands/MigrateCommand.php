@@ -53,19 +53,22 @@ class MigrateCommand implements CommandInterface {
         $this->progress_start( count( $tables ), 'Checking' );
 
         foreach ( $tables as $table ) {
+            $this->progress_update_label( "Checking {$table}" );
             $existing = $db->exec( "SHOW TABLES LIKE '{$table}'" );
 
             if ( empty( $existing ) ) {
+                $this->progress_update_label( "Creating {$table}" );
                 $this->create_table( $table, $schema->get_schema( $table ) );
                 $rows[] = [ $table, '✔ Created' ];
             } else {
+                $this->progress_update_label( "Skipping {$table}" );
                 $rows[] = [ $table, '— Already exists' ];
             }
 
             $this->progress_advance();
         }
 
-        $this->progress_finish();
+        $this->progress_finish( 'Migration complete.' );
         $this->newline();
         $this->table( $headers, $rows );
         $this->newline();

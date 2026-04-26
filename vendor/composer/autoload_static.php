@@ -12,57 +12,57 @@ class ComposerStaticInitb8c601ee926626f92e25e2a81d91533c
     );
 
     public static $prefixLengthsPsr4 = array (
-        'S' => 
+        'S' =>
         array (
             'Symfony\\Polyfill\\Php80\\' => 23,
             'SmartLicenseServer\\' => 19,
         ),
-        'P' => 
+        'P' =>
         array (
             'Psr\\EventDispatcher\\' => 20,
         ),
-        'N' => 
+        'N' =>
         array (
             'Nette\\' => 6,
         ),
-        'L' => 
+        'L' =>
         array (
             'League\\Config\\' => 14,
             'League\\CommonMark\\' => 18,
         ),
-        'D' => 
+        'D' =>
         array (
             'Dflydev\\DotAccessData\\' => 22,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'Symfony\\Polyfill\\Php80\\' => 
+        'Symfony\\Polyfill\\Php80\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php80',
         ),
-        'SmartLicenseServer\\' => 
+        'SmartLicenseServer\\' =>
         array (
             0 => __DIR__ . '/../..' . '/src',
         ),
-        'Psr\\EventDispatcher\\' => 
+        'Psr\\EventDispatcher\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/event-dispatcher/src',
         ),
-        'Nette\\' => 
+        'Nette\\' =>
         array (
             0 => __DIR__ . '/..' . '/nette/schema/src',
             1 => __DIR__ . '/..' . '/nette/utils/src',
         ),
-        'League\\Config\\' => 
+        'League\\Config\\' =>
         array (
             0 => __DIR__ . '/..' . '/league/config/src',
         ),
-        'League\\CommonMark\\' => 
+        'League\\CommonMark\\' =>
         array (
             0 => __DIR__ . '/..' . '/league/commonmark/src',
         ),
-        'Dflydev\\DotAccessData\\' => 
+        'Dflydev\\DotAccessData\\' =>
         array (
             0 => __DIR__ . '/..' . '/dflydev/dot-access-data/src',
         ),
@@ -466,6 +466,7 @@ class ComposerStaticInitb8c601ee926626f92e25e2a81d91533c
         'SmartLicenseServer\\Assets\\JS' => __DIR__ . '/../..' . '/src/Assets/JS.php',
         'SmartLicenseServer\\Autoloader' => __DIR__ . '/../..' . '/src/Autoloader.php',
         'SmartLicenseServer\\Background\\Jobs\\Accounts\\PasswordResetJob' => __DIR__ . '/../..' . '/src/Background/Jobs/Accounts/PasswordResetJob.php',
+        'SmartLicenseServer\\Background\\Jobs\\Accounts\\SignupEmailJob' => __DIR__ . '/../..' . '/src/Background/Jobs/Accounts/SignupEmailJob.php',
         'SmartLicenseServer\\Background\\Jobs\\Analytics\\LogClientAccessJob' => __DIR__ . '/../..' . '/src/Background/Jobs/Analytics/LogClientAccessJob.php',
         'SmartLicenseServer\\Background\\Jobs\\Analytics\\LogDownloadJob' => __DIR__ . '/../..' . '/src/Background/Jobs/Analytics/LogDownloadJob.php',
         'SmartLicenseServer\\Background\\Jobs\\Analytics\\LogLicenseActivityJob' => __DIR__ . '/../..' . '/src/Background/Jobs/Analytics/LogLicenseActivityJob.php',
@@ -574,7 +575,38 @@ class ComposerStaticInitb8c601ee926626f92e25e2a81d91533c
         'SmartLicenseServer\\Database\\Adapters\\WPDBAdapter' => __DIR__ . '/../..' . '/src/Database/Adapters/WPDBAdapter.php',
         'SmartLicenseServer\\Database\\Database' => __DIR__ . '/../..' . '/src/Database/Database.php',
         'SmartLicenseServer\\Database\\PostgresCompatibilityTrait' => __DIR__ . '/../..' . '/src/Database/PostgresCompatibilityTrait.php',
+        'SmartLicenseServer\\Database\\Schema\\AbstractDatabaseSchema' => __DIR__ . '/../..' . '/src/Database/Schema/AbstractDatabaseSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\AnalyticsDailySchema' => __DIR__ . '/../..' . '/src/Database/Schema/AnalyticsDailySchema.php',
+        'SmartLicenseServer\\Database\\Schema\\AnalyticsLogsSchema' => __DIR__ . '/../..' . '/src/Database/Schema/AnalyticsLogsSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\AppDownloadTokenSchema' => __DIR__ . '/../..' . '/src/Database/Schema/AppDownloadTokenSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\BackgroundJobsSchema' => __DIR__ . '/../..' . '/src/Database/Schema/BackgroundJobsSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\BulkMessagesAppsSchema' => __DIR__ . '/../..' . '/src/Database/Schema/BulkMessagesAppsSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\BulkMessagesSchema' => __DIR__ . '/../..' . '/src/Database/Schema/BulkMessagesSchema.php',
         'SmartLicenseServer\\Database\\Schema\\DBTables' => __DIR__ . '/../..' . '/src/Database/Schema/DBTables.php',
+        'SmartLicenseServer\\Database\\Schema\\DatabaseSchemaInterface' => __DIR__ . '/../..' . '/src/Database/Schema/DatabaseSchemaInterface.php',
+        'SmartLicenseServer\\Database\\Schema\\FailedJobsSchema' => __DIR__ . '/../..' . '/src/Database/Schema/FailedJobsSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\IdentityFederationSchema' => __DIR__ . '/../..' . '/src/Database/Schema/IdentityFederationSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\LicenseMetaSchema' => __DIR__ . '/../..' . '/src/Database/Schema/LicenseMetaSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\LicenseSchema' => __DIR__ . '/../..' . '/src/Database/Schema/LicenseSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\MonetizationSchema' => __DIR__ . '/../..' . '/src/Database/Schema/MonetizationSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\OptionsSchema' => __DIR__ . '/../..' . '/src/Database/Schema/OptionsSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\OrganizationMembersSchema' => __DIR__ . '/../..' . '/src/Database/Schema/OrganizationMembersSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\OrganizationsSchema' => __DIR__ . '/../..' . '/src/Database/Schema/OrganizationsSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\OwnersSchema' => __DIR__ . '/../..' . '/src/Database/Schema/OwnersSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\PluginMetaSchema' => __DIR__ . '/../..' . '/src/Database/Schema/PluginMetaSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\PluginSchema' => __DIR__ . '/../..' . '/src/Database/Schema/PluginSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\PricingTierSchema' => __DIR__ . '/../..' . '/src/Database/Schema/PricingTierSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\RoleAssignmentSchema' => __DIR__ . '/../..' . '/src/Database/Schema/RoleAssignmentSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\RoleCapabilitiesSchema' => __DIR__ . '/../..' . '/src/Database/Schema/RoleCapabilitiesSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\RolesSchema' => __DIR__ . '/../..' . '/src/Database/Schema/RolesSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\SchemaRegistry' => __DIR__ . '/../..' . '/src/Database/Schema/SchemaRegistry.php',
+        'SmartLicenseServer\\Database\\Schema\\ServiceAccountsSchema' => __DIR__ . '/../..' . '/src/Database/Schema/ServiceAccountsSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\SoftwareMetaSchema' => __DIR__ . '/../..' . '/src/Database/Schema/SoftwareMetaSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\SoftwareSchema' => __DIR__ . '/../..' . '/src/Database/Schema/SoftwareSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\ThemeMetaSchema' => __DIR__ . '/../..' . '/src/Database/Schema/ThemeMetaSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\ThemeSchema' => __DIR__ . '/../..' . '/src/Database/Schema/ThemeSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\UserOptionsSchema' => __DIR__ . '/../..' . '/src/Database/Schema/UserOptionsSchema.php',
+        'SmartLicenseServer\\Database\\Schema\\UsersSchema' => __DIR__ . '/../..' . '/src/Database/Schema/UsersSchema.php',
         'SmartLicenseServer\\Database\\SqliteCompatibilityTrait' => __DIR__ . '/../..' . '/src/Database/SqliteCompatibilityTrait.php',
         'SmartLicenseServer\\Email\\EmailMessage' => __DIR__ . '/../..' . '/src/Email/EmailMessage.php',
         'SmartLicenseServer\\Email\\EmailProviderIcons' => __DIR__ . '/../..' . '/src/Email/EmailProviderIcons.php',
@@ -592,6 +624,7 @@ class ComposerStaticInitb8c601ee926626f92e25e2a81d91533c
         'SmartLicenseServer\\Email\\Providers\\SMTPProvider' => __DIR__ . '/../..' . '/src/Email/Providers/SMTPProvider.php',
         'SmartLicenseServer\\Email\\Providers\\SendGridProvider' => __DIR__ . '/../..' . '/src/Email/Providers/SendGridProvider.php',
         'SmartLicenseServer\\Email\\RequestController' => __DIR__ . '/../..' . '/src/Email/RequestController.php',
+        'SmartLicenseServer\\Email\\Templates\\Accounts\\AdminNewUserNotificationEmail' => __DIR__ . '/../..' . '/src/Email/Templates/Accounts/AdminNewUserNotificationEmail.php',
         'SmartLicenseServer\\Email\\Templates\\Accounts\\OrganizationInviteEmail' => __DIR__ . '/../..' . '/src/Email/Templates/Accounts/OrganizationInviteEmail.php',
         'SmartLicenseServer\\Email\\Templates\\Accounts\\OrganizationMemberRemovedEmail' => __DIR__ . '/../..' . '/src/Email/Templates/Accounts/OrganizationMemberRemovedEmail.php',
         'SmartLicenseServer\\Email\\Templates\\Accounts\\PasswordChangedEmail' => __DIR__ . '/../..' . '/src/Email/Templates/Accounts/PasswordChangedEmail.php',
@@ -640,11 +673,15 @@ class ComposerStaticInitb8c601ee926626f92e25e2a81d91533c
         'SmartLicenseServer\\Events\\Jobs\\AsyncEventJob' => __DIR__ . '/../..' . '/src/Events/Jobs/AsyncEventJob.php',
         'SmartLicenseServer\\Events\\ListenerInterface' => __DIR__ . '/../..' . '/src/Events/ListenerInterface.php',
         'SmartLicenseServer\\Events\\SubscriberInterface' => __DIR__ . '/../..' . '/src/Events/SubscriberInterface.php',
+        'SmartLicenseServer\\Exceptions\\AbstractErrorHandler' => __DIR__ . '/../..' . '/src/Exceptions/AbstractErrorHandler.php',
+        'SmartLicenseServer\\Exceptions\\CliErrorHandler' => __DIR__ . '/../..' . '/src/Exceptions/CliErrorHandler.php',
         'SmartLicenseServer\\Exceptions\\EmailTransportException' => __DIR__ . '/../..' . '/src/Exceptions/EmailTransportException.php',
         'SmartLicenseServer\\Exceptions\\EnvironmentBootstrapException' => __DIR__ . '/../..' . '/src/Exceptions/EnvironmentBootstrapException.php',
         'SmartLicenseServer\\Exceptions\\Exception' => __DIR__ . '/../..' . '/src/Exceptions/Exception.php',
         'SmartLicenseServer\\Exceptions\\FileRequestException' => __DIR__ . '/../..' . '/src/Exceptions/FileRequestException.php',
         'SmartLicenseServer\\Exceptions\\FileSystemException' => __DIR__ . '/../..' . '/src/Exceptions/FileSystemException.php',
+        'SmartLicenseServer\\Exceptions\\GlobalErrorHandler' => __DIR__ . '/../..' . '/src/Exceptions/GlobalErrorHandler.php',
+        'SmartLicenseServer\\Exceptions\\HttpErrorHandler' => __DIR__ . '/../..' . '/src/Exceptions/HttpErrorHandler.php',
         'SmartLicenseServer\\Exceptions\\RequestException' => __DIR__ . '/../..' . '/src/Exceptions/RequestException.php',
         'SmartLicenseServer\\Exceptions\\SecurityException' => __DIR__ . '/../..' . '/src/Exceptions/SecurityException.php',
         'SmartLicenseServer\\FileSystem\\Adapters\\DirectFileSystem' => __DIR__ . '/../..' . '/src/FileSystem/Adapters/DirectFileSystem.php',

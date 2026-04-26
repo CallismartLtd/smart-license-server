@@ -297,7 +297,7 @@ trait CLIAwareTrait {
      * @param int    $width Bar width in characters. Default 40.
      * @return void
      */
-    public function progress_start( int $total, string $label = '', int $width = 40 ): void {
+    public function progress_start( int $total, string $label = '', int $width = 60 ): void {
         $this->cli_progress = [
             'total'   => max( 1, $total ),
             'current' => 0,
@@ -328,21 +328,80 @@ trait CLIAwareTrait {
     }
 
     /**
-     * Complete the progress bar and move to the next line.
-     *
+     * Update the progress bar's label.
+     * 
+     * @param string $label New label to show before the bar.
      * @return void
      */
-    public function progress_finish(): void {
+    public function progress_update_label( string $label ): void {
+        if ( $this->cli_progress === null ) {
+            return;
+        }
+
+        $this->cli_progress['label'] = $label;
+        $this->draw_progress();
+    }
+
+    /**
+     * Complete the progress bar and move to the next line.
+     *
+     * @param string $final_label Optional label to show on completion.
+     * @return void
+     */
+    public function progress_finish( string $final_label = '' ): void {
         if ( $this->cli_progress === null ) {
             return;
         }
 
         $this->cli_progress['current'] = $this->cli_progress['total'];
+        if ( $final_label !== '' ) {
+            $this->cli_progress['label'] = $final_label;
+        }
+
         $this->draw_progress();
 
         echo PHP_EOL;
 
         $this->cli_progress = null;
+    }
+
+    /**
+     * Draw the current progress bar to STDOUT.
+     *
+     * Uses a carriage return to overwrite the previous bar in place.
+     *
+     * @return void
+     */
+    private function draw_progress(): void {
+        if ( $this->cli_progress === null || $this->cli_verbosity < self::VERBOSITY_NORMAL ) {
+            return;
+        }
+
+        $total      = $this->cli_progress['total'];
+        $current    = $this->cli_progress['current'];
+        $width      = $this->cli_progress['width'];
+        $label      = $this->cli_progress['label'];
+        $label      = str_pad( substr( $label, 0, 40 ), 40 );
+
+        $percent  = (int) floor( ( $current / $total ) * 100 );
+        $filled   = (int) ( ( $current / $total ) * $width );
+        $empty    = $width - $filled;
+
+        $bar = $this->colorize( self::ANSI_GREEN, str_repeat( '█', $filled ) )
+             . $this->colorize( self::ANSI_DIM,   str_repeat( '░', $empty ) );
+
+        $prefix = $label !== '' ? $label . ' ' : '';
+
+        printf(
+            "\r%s[%s] %3d%% (%d/%d)  ",
+            $prefix,
+            $bar,
+            $percent,
+            $current,
+            $total
+        );
+
+        flush();
     }
 
     /*
@@ -589,8 +648,8 @@ trait CLIAwareTrait {
         $show_time = $show_time ?? ( $this->cli_timer_start !== null );
 
         if ( $show_time && $this->cli_timer_start !== null ) {
-            $elapsed = $this->elapsed();
-            $message = rtrim( $message, '.' ) . sprintf( '. Completed in %ss.', $elapsed );
+            $elapsed    = $this->elapsed();
+            $message    = rtrim( $message, '.' ) . sprintf( '. Completed in %ss.', $elapsed );
         }
 
         $this->write_line(
@@ -677,44 +736,6 @@ trait CLIAwareTrait {
         }
 
         return $this->cli_ansi;
-    }
-
-    /**
-     * Draw the current progress bar to STDOUT.
-     *
-     * Uses a carriage return to overwrite the previous bar in place.
-     *
-     * @return void
-     */
-    private function draw_progress(): void {
-        if ( $this->cli_progress === null || $this->cli_verbosity < self::VERBOSITY_NORMAL ) {
-            return;
-        }
-
-        $total   = $this->cli_progress['total'];
-        $current = $this->cli_progress['current'];
-        $width   = $this->cli_progress['width'];
-        $label   = $this->cli_progress['label'];
-
-        $percent  = (int) ( ( $current / $total ) * 100 );
-        $filled   = (int) ( ( $current / $total ) * $width );
-        $empty    = $width - $filled;
-
-        $bar = $this->colorize( self::ANSI_GREEN, str_repeat( '█', $filled ) )
-             . $this->colorize( self::ANSI_DIM,   str_repeat( '░', $empty ) );
-
-        $prefix = $label !== '' ? $label . ' ' : '';
-
-        printf(
-            "\r%s[%s] %3d%% (%d/%d)  ",
-            $prefix,
-            $bar,
-            $percent,
-            $current,
-            $total
-        );
-
-        $this->line( '', self::VERBOSITY_QUIET );
     }
 
     /**

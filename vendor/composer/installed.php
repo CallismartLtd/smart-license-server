@@ -3,7 +3,7 @@
         'name' => 'callismartltd/smart-license-server',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '9659054603c65efe4188be0a24e26fd62ace79ea',
+        'reference' => 'd0398d503136179f23b80d45616aab16c85e5e38',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'callismartltd/smart-license-server' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '9659054603c65efe4188be0a24e26fd62ace79ea',
+            'reference' => 'd0398d503136179f23b80d45616aab16c85e5e38',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -101,8 +101,8 @@
             'dev_requirement' => false,
         ),
         'symfony/polyfill-php80' => array(
-            'pretty_version' => 'v1.36.0',
-            'version' => '1.36.0.0',
+            'pretty_version' => 'v1.37.0',
+            'version' => '1.37.0.0',
             'reference' => 'dfb55726c3a76ea3b6459fcfda1ec2d80a682411',
             'type' => 'library',
             'install_path' => __DIR__ . '/../symfony/polyfill-php80',
