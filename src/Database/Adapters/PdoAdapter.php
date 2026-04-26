@@ -441,4 +441,40 @@ class PdoAdapter implements DatabaseAdapterInterface {
         }
         return 'N/A';
     }
+
+    /**
+     * Execute a raw SQL query without prepared statements.
+     *
+     * ⚠️ UNSAFE: Do not use with untrusted input.
+     *
+     * @param string $query
+     * @return array|int|false
+     */
+    public function exec( string $query ) {
+        if ( ! $this->pdo ) {
+            $this->last_error = 'No active PDO connection.';
+            return false;
+        }
+
+        try {
+            /**
+             * Try executing as a query first (SELECT-like statements)
+             */
+            $stmt = $this->pdo->query( $query );
+
+            if ( $stmt !== false ) {
+                $result = $stmt->fetchAll( \PDO::FETCH_ASSOC );
+                return $result;
+            }
+
+            /**
+             * Fallback to exec() for write queries (INSERT/UPDATE/DELETE/DDL)
+             */
+            return $this->pdo->exec( $query );
+
+        } catch ( \PDOException $e ) {
+            $this->last_error = $e->getMessage();
+            return false;
+        }
+    }
 }

@@ -18,6 +18,7 @@ use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\Http\Exceptions\HttpRequestException;
 use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
@@ -521,7 +522,7 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
 
         return $response->sink_path;
 
-    } catch ( InvalidArgumentException $e ) {
+    } catch ( InvalidArgumentException|HttpRequestException $e ) {
         return new FileRequestException(
             'malformed_request',
             $e->getMessage()

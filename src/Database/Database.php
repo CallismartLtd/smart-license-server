@@ -37,6 +37,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @method string get_engine_type() Get the engine type (mysql, sqlite, etc).
  * @method string|null get_host_info() Get connection host information.
  * @method string|int|null get_protocol_version() Get the database protocol version.
+ * @method array|int|false exec( string $query ) Execute a raw SQL query without prepared statements.
  */
 class Database {
 

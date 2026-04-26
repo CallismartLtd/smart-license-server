@@ -382,7 +382,7 @@ abstract class Environment implements EnvironmentProviderInterface {
             'filesystem_adapter'    => 'filesystemAdapter',
             'cache_adapter'         => 'cacheAdapter',
             'settings_provider'     => 'settingsStorage',
-            'database_adapter'      => 'dbadapter',
+            // 'database_adapter'      => 'dbadapter',
             'rest_api_provider'     => 'restProvider',
             'http_client'           => 'httpClient',
             'admin_menu_config'     => 'adminDashboardRegistry',
@@ -601,6 +601,13 @@ abstract class Environment implements EnvironmentProviderInterface {
          * @var string `smliser_users.`
          */
         define( 'SMLISER_USERS_TABLE', $this->env['db_prefix'] . 'smliser_users' );
+
+        /**
+         * Users options database table name.
+         * 
+         * @var string `smliser_user_options.`
+         */
+        define( 'SMLISER_USER_OPTIONS_TABLE', $this->env['db_prefix'] . 'smliser_user_options' );
 
         /**
          * Service accounts database table name.

@@ -9,114 +9,146 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\SettingsAPI;
 
+use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Utils\Format;
 
 /**
- * User settings API
+ * User settings API.
  */
 class UserSettings {
-    const OPTIONS_KEY                       = 'smliser_user_%d_options';
+
     const PWD_RESET_NAME                    = 'password_reset_key';
     const DASHBOARD_THEME_NAME              = 'theme';
     const DASHBOARD_SIDEBAR_COLLAPSED_NAME  = 'sidebar_collapsed';
     const LOCALE                            = 'locale';
 
-    public function __construct( 
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $settings_cache = [];
+
+    public function __construct(
         private User $user,
-        private Settings $settings
-        
+        private Database $database
     ) {}
 
-    /**
-     * Initialize settings context for a user
-     * 
-     * @param User $user The user instance.
-     * @param Settings $settings The settings API.
-     * @return static Fluent
-     */
-    public static function for( User $user, ?Settings $settings = null ) : static {
-        return new static( $user, $settings ?? \smliser_settings() );
-
+    public static function for( User $user ) : static {
+        return new static( $user, \smliser_db() );
     }
 
     /**
      * Get all settings for the user.
-     * 
-     * @return array
      */
     public function all() : array {
-        $options_key    = $this->make_key();
-        $options        = $this->settings->get( $options_key, [] );
-
-        if ( ! is_array( $options ) ) {
-            $options    = [];
+        if ( ! empty( $this->settings_cache ) ) {
+            return $this->settings_cache;
         }
 
-        return $options;
+        $table  = SMLISER_USER_OPTIONS_TABLE;
+        $sql    = "SELECT option_key, option_value FROM {$table} WHERE user_id = ?";
+
+        $results = $this->database->get_results(
+            $sql,
+            [ $this->user->get_id() ]
+        );
+
+        if ( ! \is_array( $results ) || $results === [] ) {
+            return $this->settings_cache = [];
+        }
+
+        $cache = [];
+
+        foreach ( $results as $row ) {
+            $key = $row['option_key'];
+            $cache[$key] = Format::decode( $row['option_value'] );
+        }
+
+        return $this->settings_cache = $cache;
     }
 
     /**
-     * Get the value of a particular option key.
-     * 
-     * @param string $name The option name.
-     * @param mixed $default The default value to return.
-     * @return mixed
+     * Get a single option.
      */
     public function get( string $name, mixed $default = null ) : mixed {
-        return $this->all()[$name] ?? $default;
+        $cache = $this->all();
+        return $cache[$name] ?? $default;
     }
 
     /**
-     * Set an option for the user
-     * 
-     * @param string $name The option name
-     * @param mixed $value The option value
-     * @return bool
+     * Set (insert or update) a user option.
      */
     public function set( string $name, mixed $value ) : bool {
-        $all        = $this->all();
-        $all[$name] = $value;
+        $table   = SMLISER_USER_OPTIONS_TABLE;
+        $user_id = $this->user->get_id();
+        $encoded = Format::encode( $value );
 
-        return (bool) $this->settings->set( $this->make_key(), $all );
-    }
+        $inserted = $this->database->insert( $table, [
+            'user_id'      => $user_id,
+            'option_key'   => $name,
+            'option_value' => $encoded,
+        ]);
 
-    /**
-     * Delete a single user option
-     * 
-     * @param string $name The option name
-     * @return bool
-     */
-    public function delete( string $name ) : bool {
-        $all = $this->all();
-
-        if ( ! array_key_exists( $name, $all ) ) {
-            return true; // nothing to delete
+        if ( $inserted !== false ) {
+            $this->settings_cache[$name] = $value;
+            return true;
         }
 
-        unset( $all[$name] );
+        $error = $this->database->get_last_error();
 
-        return (bool) $this->settings->set( $this->make_key(), $all );
+        if ( $error !== null ) {
+            $updated = $this->database->update(
+                $table,
+                [ 'option_value' => $encoded ],
+                [
+                    'user_id'    => $user_id,
+                    'option_key' => $name,
+                ]
+            );
+
+            if ( $updated !== false ) {
+                $this->settings_cache[$name] = $value;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
-     * Delete all user options
-     * 
-     * @return bool
+     * Delete a single option.
+     */
+    public function delete( string $name ) : bool {
+        $table      = SMLISER_USER_OPTIONS_TABLE;
+        $user_id    = $this->user->get_id();
+
+        $deleted = $this->database->delete( $table, [
+            'user_id'    => $user_id,
+            'option_key' => $name,
+        ]);
+
+        if ( $deleted > 0 ) {
+            unset( $this->settings_cache[$name] );
+        }
+
+        return (bool) $deleted;
+    }
+
+    /**
+     * Delete all options for the user.
      */
     public function delete_all() : bool {
-        return (bool) $this->settings->delete( $this->make_key() );
-    }
+        $table   = SMLISER_USER_OPTIONS_TABLE;
+        $user_id = $this->user->get_id();
 
-    /*
-    |-----------------------
-    | HELPERS
-    |-----------------------
-    */
+        $deleted = (int) $this->database->delete( $table, [
+            'user_id' => $user_id
+        ]);
 
-    /**
-     * Make user option key
-     */
-    public function make_key() : string {
-        return sprintf( static::OPTIONS_KEY, $this->user->get_id() );
+        if ( $deleted > 0 ) {
+            $this->settings_cache = [];
+        }
+
+        return (bool) $deleted;
     }
 }

@@ -2,6 +2,7 @@
 namespace SmartLicenseServer\Database\Adapters;
 
 use PDO;
+use SmartLicenseServer\Database\PostgresCompatibilityTrait;
 
 /**
  * Postgres Adapter extending the generic PDO Adapter.

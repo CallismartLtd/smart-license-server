@@ -364,4 +364,58 @@ class SqliteAdapter implements DatabaseAdapterInterface {
     public function get_protocol_version() {
         return 'N/A (File-based)';
     }
+
+    /**
+     * Execute a raw SQL query without prepared statements.
+     *
+     * ⚠️ UNSAFE: Do not use with untrusted input.
+     *
+     * @param string $query
+     * @return array|int|false
+     */
+    public function exec( string $query ) {
+        if ( ! $this->sqlite ) {
+            $this->last_error = 'No active SQLite3 connection.';
+            return false;
+        }
+
+        try {
+            $query = $this->translate_mysql_to_sqlite( $query );
+
+            /**
+             * SQLite returns:
+             * - result set object for SELECT-like queries
+             * - TRUE/FALSE for exec()
+             */
+
+            $result = @$this->sqlite->query( $query );
+
+            if ( $result === false ) {
+                $this->last_error = $this->sqlite->lastErrorMsg();
+                return false;
+            }
+
+            /**
+             * CASE 1: SELECT / PRAGMA / schema reads
+             */
+            if ( $result instanceof \SQLite3Result ) {
+                $rows = [];
+
+                while ( $row = $result->fetchArray( SQLITE3_ASSOC ) ) {
+                    $rows[] = $row;
+                }
+
+                return $rows;
+            }
+
+            /**
+             * CASE 2: INSERT / UPDATE / DELETE / DDL
+             */
+            return $this->sqlite->changes();
+
+        } catch ( \Exception $e ) {
+            $this->last_error = $e->getMessage();
+            return false;
+        }
+    }
 }

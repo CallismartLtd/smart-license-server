@@ -713,6 +713,8 @@ trait CLIAwareTrait {
             $current,
             $total
         );
+
+        $this->line( '', self::VERBOSITY_QUIET );
     }
 
     /**

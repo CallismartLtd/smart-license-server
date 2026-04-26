@@ -52,7 +52,7 @@ class MigrateCommand implements CommandInterface {
         $this->progress_start( count( $tables ), 'Checking' );
 
         foreach ( $tables as $table ) {
-            $existing = $db->get_var( 'SHOW TABLES LIKE ?', [ $table ] );
+            $existing = $db->query( 'SHOW TABLES LIKE ?', [ $table ] );
 
             if ( $table !== $existing ) {
                 $this->create_table( $table, DBTables::get( $table ) );

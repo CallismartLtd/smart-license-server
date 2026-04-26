@@ -153,6 +153,7 @@ class SetUp extends Environment {
             'username' => $db_user,
             'password' => $db_pass,
             'charset'  => $db_charset,
+            // 'path'      => ABSPATH . 'sqlite.db'
         ]);
 
         // Store app_url for the URL methods.

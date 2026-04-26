@@ -486,12 +486,13 @@ abstract class AbstractErrorHandler {
      * @return void
      */
     public function logError( \Throwable $throwable ) : void {
+        $errline    = $throwable->getLine();
         $log_data = [
             'timestamp'  => date( 'Y-m-d H:i:s' ),
             'type'       => get_class( $throwable ),
             'message'    => $throwable->getMessage(),
-            'file'       => $throwable->getFile(),
-            'line'       => $throwable->getLine(),
+            'file'       => $throwable->getFile() . ' (' . $errline . ')',
+            'line'       => $errline,
         ];
 
         if ( $this->isDebug() ) {

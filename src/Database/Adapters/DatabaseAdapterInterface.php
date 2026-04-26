@@ -62,9 +62,27 @@ interface DatabaseAdapterInterface {
      * @param string $query  The SQL query with placeholders.
      * @param array  $params Optional. The bound values for placeholders.
      *
-     * @return mixed The native statement/result object, or false on failure.
+     * @return mixed The return value may not be reliable across all adapters.
      */
     public function query( $query, array $params = [] );
+
+    /**
+     * Execute a raw SQL query without prepared statements.
+     *
+     * ⚠️ UNSAFE: Bypasses parameter binding. Do not use with untrusted input.
+     *
+     * Intended for:
+     * - schema inspection (SHOW / DESCRIBE)
+     * - migrations / admin tooling
+     * - engine-specific queries
+     *
+     * @param string $query
+     * @return array|int|false
+     *   - array for SELECT-like queries
+     *   - int for affected rows (INSERT/UPDATE/DELETE)
+     *   - false on failure
+     */
+    public function exec(string $query);
 
     /**
      * Retrieve a single row as an associative array.

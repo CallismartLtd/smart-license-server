@@ -449,7 +449,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
         return $this->last_error;
     }
 
-/**
+    /**
      * Get the database server version.
      *
      * @return string|null The server version (e.g., "8.0.32", "15.1").
@@ -482,5 +482,47 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      */
     public function get_protocol_version() {
         return $this->mysqli ? $this->mysqli->protocol_version : null;
+    }
+
+    /**
+     * Execute a raw SQL query without prepared statements.
+     *
+     * ⚠️ UNSAFE: Do not use with untrusted input.
+     *
+     * @param string $query
+     * @return array|int|false
+     */
+    public function exec( string $query ) {
+        if ( ! $this->mysqli ) {
+            $this->last_error = 'No active MySQLi connection.';
+            return false;
+        }
+
+        $result = $this->mysqli->query( $query );
+
+        if ( $result === false ) {
+            $this->last_error = $this->mysqli->error;
+            return false;
+        }
+
+        /**
+         * CASE 1: SELECT / SHOW / DESCRIBE (result set)
+         */
+        if ( $result instanceof \mysqli_result ) {
+            $rows = [];
+
+            while ( $row = $result->fetch_assoc() ) {
+                $rows[] = $row;
+            }
+
+            $result->free();
+
+            return $rows;
+        }
+
+        /**
+         * CASE 2: INSERT / UPDATE / DELETE / DDL
+         */
+        return $this->mysqli->affected_rows;
     }
 }

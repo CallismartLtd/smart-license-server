@@ -326,4 +326,31 @@ class WPDBAdapter implements DatabaseAdapterInterface {
     public function get_protocol_version() {
         return $this->get_var( "SELECT @@protocol_version" );
     }
+
+    /**
+     * Execute a raw SQL query WITHOUT parameter binding.
+     *
+     * ⚠️ WARNING:
+     * This method is UNSAFE for user-supplied input and bypasses
+     * all escaping/parameterization. Use only for trusted, internal queries.
+     *
+     * Return type is consistent with query() across adapters:
+     * - mixed result on success (wpdb return value)
+     * - false on failure
+     *
+     * @param string $query Raw SQL query string.
+     * @return mixed|false
+     */
+    public function exec( string $query ) {
+        $result = $this->wpdb->query( $query );
+
+        if ( $result === false ) {
+            $this->last_error = $this->wpdb->last_error;
+            return false;
+        }
+
+        $this->insert_id = $this->wpdb->insert_id;
+
+        return $result;
+    }
 }
