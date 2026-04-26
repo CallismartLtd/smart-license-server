@@ -3,7 +3,7 @@
         'name' => 'callismartltd/smart-license-server',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'd0398d503136179f23b80d45616aab16c85e5e38',
+        'reference' => 'e80fd1ce6e88ace4267a865912114d9d04e2a56c',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'callismartltd/smart-license-server' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'd0398d503136179f23b80d45616aab16c85e5e38',
+            'reference' => 'e80fd1ce6e88ace4267a865912114d9d04e2a56c',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
