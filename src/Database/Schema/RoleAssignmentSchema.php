@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class RoleAssignmentSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_ROLE_ASSIGNMENT_TABLE';
+        return SMLISER_ROLE_ASSIGNMENT_TABLE;
     }
 
     public static function get_columns() : array {

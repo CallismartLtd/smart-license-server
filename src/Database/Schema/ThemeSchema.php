@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class ThemeSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_THEMES_TABLE';
+        return SMLISER_THEMES_TABLE;
     }
 
     public static function get_columns() : array {

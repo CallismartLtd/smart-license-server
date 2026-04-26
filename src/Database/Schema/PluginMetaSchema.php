@@ -20,7 +20,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class PluginMetaSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_PLUGINS_META_TABLE';
+        return SMLISER_PLUGINS_META_TABLE;
     }
 
     public static function get_columns() : array {

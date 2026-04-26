@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class ThemeMetaSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_THEMES_META_TABLE';
+        return SMLISER_THEMES_META_TABLE;
     }
 
     public static function get_columns() : array {

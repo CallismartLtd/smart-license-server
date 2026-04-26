@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class PricingTierSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_PRICING_TIER_TABLE';
+        return SMLISER_PRICING_TIER_TABLE;
     }
 
     public static function get_columns() : array {

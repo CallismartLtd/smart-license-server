@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class BulkMessagesSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_BULK_MESSAGES_TABLE';
+        return SMLISER_BULK_MESSAGES_TABLE;
     }
 
     public static function get_columns() : array {

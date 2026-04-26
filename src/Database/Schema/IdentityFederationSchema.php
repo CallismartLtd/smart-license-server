@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class IdentityFederationSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_IDENTITY_FEDERATION_TABLE';
+        return SMLISER_IDENTITY_FEDERATION_TABLE;
     }
 
     public static function get_columns() : array {

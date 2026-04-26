@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class OrganizationMembersSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_ORGANIZATION_MEMBERS_TABLE';
+        return SMLISER_ORGANIZATION_MEMBERS_TABLE;
     }
 
     public static function get_columns() : array {

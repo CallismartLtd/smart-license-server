@@ -64,7 +64,7 @@ class SchemaRegistry extends AbstractRegistry {
         $providers = $this->all( false, false );
 
         foreach ( $providers as $class_string ) {
-            $table_name = constant( $class_string::get_table_name() );
+            $table_name = $class_string::get_table_name();
             $schemas[ $table_name ] = $class_string::get_columns();
         }
 

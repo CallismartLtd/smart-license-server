@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class SoftwareSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_SOFTWARE_TABLE';
+        return SMLISER_SOFTWARE_TABLE;
     }
 
     public static function get_columns() : array {

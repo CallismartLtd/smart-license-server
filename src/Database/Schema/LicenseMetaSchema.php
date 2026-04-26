@@ -15,7 +15,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class LicenseMetaSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_LICENSE_META_TABLE';
+        return SMLISER_LICENSE_META_TABLE;
     }
 
     public static function get_columns() : array {

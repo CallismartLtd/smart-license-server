@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class MonetizationSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_MONETIZATION_TABLE';
+        return SMLISER_MONETIZATION_TABLE;
     }
 
     public static function get_columns() : array {

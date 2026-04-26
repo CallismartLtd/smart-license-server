@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class FailedJobsSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_FAILED_JOBS_TABLE';
+        return SMLISER_FAILED_JOBS_TABLE;
     }
 
     public static function get_columns() : array {

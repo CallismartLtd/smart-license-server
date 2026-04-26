@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class ServiceAccountsSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_SERVICE_ACCOUNTS_TABLE';
+        return SMLISER_SERVICE_ACCOUNTS_TABLE;
     }
 
     public static function get_columns() : array {

@@ -12,7 +12,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class AppDownloadTokenSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE';
+        return SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
     }
 
     public static function get_columns() : array {

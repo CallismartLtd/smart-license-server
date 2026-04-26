@@ -20,7 +20,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class AnalyticsLogsSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_ANALYTICS_LOGS_TABLE';
+        return SMLISER_ANALYTICS_LOGS_TABLE;
     }
 
     public static function get_columns() : array {

@@ -20,7 +20,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 class UsersSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
-        return 'SMLISER_USERS_TABLE';
+        return SMLISER_USERS_TABLE;
     }
 
     public static function get_columns() : array {

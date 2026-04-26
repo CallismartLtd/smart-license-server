@@ -13,7 +13,7 @@ namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
-use SmartLicenseServer\Database\Schema\DBTables;
+use SmartLicenseServer\Database\Schema\SchemaRegistry;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -44,18 +44,19 @@ class MigrateCommand implements CommandInterface {
         $this->info( 'Running database migrations...' );
         $this->newline();
 
-        $db      = smliser_db();
-        $tables  = DBTables::table_names();
-        $headers = [ 'Table', 'Status' ];
-        $rows    = [];
+        $db         = smliser_db();
+        $schema     = SchemaRegistry::instance();
+        $tables     = $schema->table_names();
+        $headers    = [ 'Table', 'Status' ];
+        $rows       = [];
 
         $this->progress_start( count( $tables ), 'Checking' );
 
         foreach ( $tables as $table ) {
-            $existing = $db->query( 'SHOW TABLES LIKE ?', [ $table ] );
+            $existing = $db->exec( "SHOW TABLES LIKE '{$table}'" );
 
-            if ( $table !== $existing ) {
-                $this->create_table( $table, DBTables::get( $table ) );
+            if ( empty( $existing ) ) {
+                $this->create_table( $table, $schema->get_schema( $table ) );
                 $rows[] = [ $table, '✔ Created' ];
             } else {
                 $rows[] = [ $table, '— Already exists' ];
