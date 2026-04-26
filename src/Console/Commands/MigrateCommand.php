@@ -79,7 +79,7 @@ class MigrateCommand implements CommandInterface {
      * Create a single database table from a column definition array.
      *
      * @param string   $table_name Table name constant.
-     * @param string[] $columns    Column definition strings from DBTables.
+     * @param string[] $columns    Column definition strings.
      * @return void
      */
     private function create_table( string $table_name, array $columns ): void {

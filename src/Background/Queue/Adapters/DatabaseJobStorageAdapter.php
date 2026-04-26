@@ -11,7 +11,6 @@
  *
  * All jobs live in SMLISER_BACKGROUND_JOBS_TABLE.
  * Failed jobs are archived to SMLISER_FAILED_JOBS_TABLE.
- * Both tables are defined in DBTables and created by the installer.
  *
  * ## Atomic job claiming
  *

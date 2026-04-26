@@ -9,7 +9,7 @@
  */
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Database\Schema\DBTables;
+use SmartLicenseServer\Database\Schema\SchemaRegistry;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
@@ -70,14 +70,15 @@ class Installer {
      */
     private static function maybe_create_tables(){
         $db     = \smliser_db();
-        $tables = DBTables::table_names();
+        $schema = SchemaRegistry::instance();
+        $tables = $schema->table_names();
 
         foreach( $tables as $table ) {
-            $sql        = "SHOW TABLES LIKE ?";
-            $db_table   = $db->get_var( $sql, [$table] );
+            $sql        = "SHOW TABLES LIKE '{$table}'";
+            $db_table   = $db->exec( $sql );
 
-            if ( $table !== $db_table ) {
-                self::create_table( $table, DBTables::get( $table ) );
+            if ( empty( $db_table ) ) {
+                self::create_table( $table, $schema->get_schema( $table ) );
             }
         }
     }
