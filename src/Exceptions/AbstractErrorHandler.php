@@ -529,35 +529,30 @@ abstract class AbstractErrorHandler {
      * @return bool Return true to stop PHP's internal error handler.
      */
     public function handleError( int $errno, string $errstr, string $errfile, int $errline ) : bool {
+        if ( ! $this->isDebug() || ! ( error_reporting() & $errno ) ) {
+            return true; // Ignore non-debug or non-reported errors
+        }
+        
         $exception = new \ErrorException( $errstr, 0, $errno, $errfile, $errline );
 
-        if ( ! $this->isFatalError( $errno ) ) {
-            $shouldHandle = $this->isDebug() || ( error_reporting() & $errno );
-
-            if ( $shouldHandle ) {
-                $this->logError( $exception );
-
-                // Display as warning in debug + display_errors mode
-                if ( $this->isDebug() && $this->displaysError() ) {
-                    $this->error_object = $exception;
-                    $this->title        = $this->getErrorTitle( $errno );
-                    $this->message      = $errstr;
-                    $this->displayWarning();
-                }
-            }
-
+        if ( $this->isFatalError( $errno ) ) {
+            // Handle our canonical fatal errors with full display and logging.
+            $this->handleException( $exception );
             return true;
         }
 
-        // Fatal error
-        $this->error_object = $exception;
-        $this->title = $this->getErrorTitle( $errno );
-        $this->message = $errstr;
         $this->logError( $exception );
-        $this->handled = true;
-        $this->display();
+
+        // Display as warning in debug + display_errors mode
+        if ( $this->isDebug() && $this->displaysError() ) {
+            $this->error_object = $exception;
+            $this->title        = $this->getErrorTitle( $errno );
+            $this->message      = $errstr;
+            $this->displayWarning();
+        }
 
         return true;
+        
     }
 
     /**

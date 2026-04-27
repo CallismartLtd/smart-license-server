@@ -477,4 +477,51 @@ class PdoAdapter implements DatabaseAdapterInterface {
             return false;
         }
     }
+
+    /**
+     * Check if a table exists.
+     */
+    public function table_exists( string $table ): bool {
+        if ( ! $this->pdo ) return false;
+
+        $query = "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?";
+        return null !== $this->get_var( $query, [$table] );
+    }
+
+    /**
+     * Check if a column exists.
+     */
+    public function column_exists( string $table, string $column ): bool {
+        if ( ! $this->pdo ) return false;
+
+        $query = "SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?";
+        return null !== $this->get_var( $query, [$table, $column] );
+    }
+
+    /**
+     * Get column type.
+     */
+    public function get_column_type( string $table, string $column ): ?string {
+        if ( ! $this->pdo ) return null;
+
+        $query = "SELECT column_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?";
+        return $this->get_var( $query, [$table, $column] );
+    }
+
+    /**
+     * Get all columns in a table.
+     */
+    public function get_columns( string $table ): array {
+        if ( ! $this->pdo ) return [];
+
+        $query = "SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? ORDER BY ordinal_position";
+        return $this->get_col( $query, [$table] ) ?? [];
+    }
+
+    /**
+     * Check connection state.
+     */
+    public function is_connected(): bool {
+        return $this->pdo instanceof \PDO;
+    }
 }

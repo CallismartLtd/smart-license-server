@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Database;
 
 use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
+use SmartLicenseServer\Database\Migrations\SQLBuilder;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -26,18 +27,28 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @method int|false insert(string $table, array $data)
  * @method int|false update(string $table, array $data, array $where)
  * @method int|false delete(string $table, array $where)
+ *
  * @method void begin_transaction()
  * @method void commit()
  * @method void rollback()
+ *
  * @method string|null get_last_error() Get last database error.
  * @method string get_last_query() Get last executed query string.
  * @method int|null get_insert_id() Get the last insertion ID.
+ *
  * @method mixed query(string $query, array $params = []) Execute a raw SQL query.
+ * @method array|int|false exec(string $query) Execute a raw SQL query without prepared statements.
+ *
  * @method string get_server_version() Get the database server version.
  * @method string get_engine_type() Get the engine type (mysql, sqlite, etc).
  * @method string|null get_host_info() Get connection host information.
  * @method string|int|null get_protocol_version() Get the database protocol version.
- * @method array|int|false exec( string $query ) Execute a raw SQL query without prepared statements.
+ *
+ * @method bool table_exists(string $table)
+ * @method bool column_exists(string $table, string $column)
+ * @method string|null get_column_type(string $table, string $column)
+ * @method array get_columns(string $table)
+ * @method bool is_connected()
  */
 class Database {
 
@@ -53,7 +64,12 @@ class Database {
      *
      * @var DatabaseAdapterInterface
      */
-    protected $adapter;
+    protected DatabaseAdapterInterface $adapter;
+
+    /**
+     * Query builder instance for generating database-agnostic SQL statements.
+     */
+    protected SQLBuilder $sql_builder;
 
     /**
      * Class constructor.
@@ -61,7 +77,8 @@ class Database {
      * @param DatabaseAdapterInterface $adapter Database adapter instance.
      */
     public function __construct( DatabaseAdapterInterface $adapter ) {
-        $this->adapter = $adapter;
+        $this->adapter      = $adapter;
+        $this->sql_builder  = new SQLBuilder( $this->adapter->get_engine_type() );
     }
 
     /**

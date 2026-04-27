@@ -395,9 +395,6 @@ class SqliteAdapter implements DatabaseAdapterInterface {
                 return false;
             }
 
-            /**
-             * CASE 1: SELECT / PRAGMA / schema reads
-             */
             if ( $result instanceof \SQLite3Result ) {
                 $rows = [];
 
@@ -408,14 +405,76 @@ class SqliteAdapter implements DatabaseAdapterInterface {
                 return $rows;
             }
 
-            /**
-             * CASE 2: INSERT / UPDATE / DELETE / DDL
-             */
             return $this->sqlite->changes();
 
         } catch ( \Exception $e ) {
             $this->last_error = $e->getMessage();
             return false;
         }
+    }
+
+    /**
+     * Check if a table exists.
+     */
+    public function table_exists( string $table ): bool {
+        if ( ! $this->sqlite ) return false;
+
+        $query = "SELECT name FROM sqlite_master WHERE type='table' AND name = ?";
+        return null !== $this->get_var( $query, [$table] );
+    }
+
+    /**
+     * Check if a column exists in a table.
+     */
+    public function column_exists( string $table, string $column ): bool {
+        if ( ! $this->sqlite ) return false;
+
+        $query = "PRAGMA table_info($table)";
+        $columns = $this->get_results( $query );
+
+        foreach ( $columns as $col ) {
+            if ( ( $col['name'] ?? null ) === $column ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get column type.
+     */
+    public function get_column_type( string $table, string $column ): ?string {
+        if ( ! $this->sqlite ) return null;
+
+        $query = "PRAGMA table_info($table)";
+        $columns = $this->get_results( $query );
+
+        foreach ( $columns as $col ) {
+            if ( ( $col['name'] ?? null ) === $column ) {
+                return $col['type'] ?? null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get all columns in a table.
+     */
+    public function get_columns( string $table ): array {
+        if ( ! $this->sqlite ) return [];
+
+        $query = "PRAGMA table_info($table)";
+        $columns = $this->get_results( $query );
+
+        return array_map( fn( $col ) => $col['name'], $columns );
+    }
+
+    /**
+     * Check connection state.
+     */
+    public function is_connected(): bool {
+        return $this->sqlite instanceof \SQLite3;
     }
 }

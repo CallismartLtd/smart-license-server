@@ -4,7 +4,10 @@
  */
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\Utils\Format;
+
 use const SMLISER_APP_NAME;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -180,11 +183,13 @@ defined( 'SMLISER_ABSPATH' ) || exit;
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach ( $recent_logs as $timestamp => $log ) : ?>
+                                            <?php foreach ( $recent_logs as $log ) : 
+                                                $date = TimestampValue::fromTimestamp( (int) $log['created_at'] )->toDateTime();
+                                            ?>
                                                 <tr>
                                                     <td>
-                                                        <span class="timestamp" title="<?php echo esc_attr( $timestamp ); ?>">
-                                                            <?php echo escHtml( human_time_diff( strtotime( $timestamp ), current_time( 'timestamp' ) ) . ' ago' ); ?>
+                                                        <span class="timestamp" title="<?php echo esc_attr( $date->format( \smliser_datetime_format() ) ); ?>">
+                                                            <?php echo escHtml( $date->format( \smliser_datetime_format() ) ); ?>
                                                         </span>
                                                     </td>
                                                     <td>

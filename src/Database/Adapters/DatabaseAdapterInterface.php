@@ -196,4 +196,51 @@ interface DatabaseAdapterInterface {
      * @return string|int|null The protocol version, or null if not applicable/available.
      */
     public function get_protocol_version();
+
+    /**
+     * ----------------------------------------
+     * SCHEMA INTROSPECTION
+     * ----------------------------------------
+     */
+
+    /**
+     * Check if a table exists.
+     *
+     * @param string $table Table name.
+     * @return bool True if the table exists.
+     */
+    public function table_exists(string $table): bool;
+
+    /**
+     * Check if a column exists in a table.
+     *
+     * @param string $table  Table name.
+     * @param string $column Column name.
+     * @return bool True if the column exists.
+     */
+    public function column_exists(string $table, string $column): bool;
+
+    /**
+     * Get the type of a column.
+     *
+     * @param string $table  Table name.
+     * @param string $column Column name.
+     * @return string|null Column type or null if not found.
+     */
+    public function get_column_type(string $table, string $column): ?string;
+
+    /**
+     * Get all columns in a table.
+     *
+     * @param string $table Table name.
+     * @return array List of column names.
+     */
+    public function get_columns(string $table): array;
+
+    /**
+     * Check whether the database connection is alive.
+     *
+     * @return bool
+     */
+    public function is_connected(): bool;
 }

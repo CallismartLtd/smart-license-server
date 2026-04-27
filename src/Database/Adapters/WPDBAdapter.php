@@ -353,4 +353,77 @@ class WPDBAdapter implements DatabaseAdapterInterface {
 
         return $result;
     }
+
+    /**
+     * Check if a table exists.
+     */
+    public function table_exists( string $table ): bool {
+        $table = esc_sql( $table );
+
+        $result = $this->wpdb->get_var(
+            $this->wpdb->prepare(
+                "SHOW TABLES LIKE %s",
+                $table
+            )
+        );
+
+        return ! empty( $result );
+    }
+
+    /**
+     * Check if a column exists in a table.
+     */
+    public function column_exists( string $table, string $column ): bool {
+        $table  = esc_sql( $table );
+        $column = esc_sql( $column );
+
+        $result = $this->wpdb->get_var(
+            $this->wpdb->prepare(
+                "SHOW COLUMNS FROM `$table` LIKE %s",
+                $column
+            )
+        );
+
+        return !empty($result);
+    }
+
+    /**
+     * Get column type.
+     */
+    public function get_column_type( string $table, string $column ): ?string {
+        $table  = esc_sql( $table );
+        $column = esc_sql( $column );
+
+        $row = $this->wpdb->get_row(
+            $this->wpdb->prepare(
+                "SHOW COLUMNS FROM `$table` WHERE Field = %s",
+                $column
+            ),
+            ARRAY_A
+        );
+
+        return $row['Type'] ?? null;
+    }
+
+    /**
+     * Get all columns in a table.
+     */
+    public function get_columns( string $table ): array {
+        $table = esc_sql( $table );
+
+        $rows = $this->wpdb->get_results( "SHOW COLUMNS FROM `$table`", ARRAY_A );
+
+        if (!$rows) {
+            return [];
+        }
+
+        return array_column($rows, 'Field');
+    }
+
+    /**
+     * Check connection state.
+     */
+    public function is_connected(): bool {
+        return $this->wpdb instanceof \wpdb && empty( $this->wpdb->error );
+    }
 }

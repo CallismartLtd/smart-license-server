@@ -54,9 +54,9 @@ class MigrateCommand implements CommandInterface {
 
         foreach ( $tables as $table ) {
             $this->progress_update_label( "Checking {$table}" );
-            $existing = $db->exec( "SHOW TABLES LIKE '{$table}'" );
+            $existing = $db->table_exists( $table );
 
-            if ( empty( $existing ) ) {
+            if ( ! $existing ) {
                 $this->progress_update_label( "Creating {$table}" );
                 $this->create_table( $table, $schema->get_schema( $table ) );
                 $rows[] = [ $table, '✔ Created' ];

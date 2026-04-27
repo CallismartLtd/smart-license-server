@@ -525,4 +525,89 @@ class MysqliAdapter implements DatabaseAdapterInterface {
          */
         return $this->mysqli->affected_rows;
     }
+
+    /**
+     * Check whether the database connection is alive.
+     *
+     * @return bool
+     */
+    public function is_connected(): bool {
+        return $this->mysqli instanceof mysqli;
+    }
+
+    /**
+     * Check if a table exists.
+     *
+     * @param string $table
+     * @return bool
+     */
+    public function table_exists( string $table ): bool {
+        $query = "
+            SELECT 1 
+            FROM information_schema.tables 
+            WHERE table_schema = DATABASE() 
+            AND table_name = ?
+            LIMIT 1
+        ";
+
+        return null !== $this->get_var( $query, [ $table ] );
+    }
+
+    /**
+     * Check if a column exists in a table.
+     *
+     * @param string $table
+     * @param string $column
+     * @return bool
+     */
+    public function column_exists( string $table, string $column ): bool {
+        $query = "
+            SELECT 1 
+            FROM information_schema.columns 
+            WHERE table_schema = DATABASE() 
+            AND table_name = ? 
+            AND column_name = ?
+            LIMIT 1
+        ";
+
+        return null !== $this->get_var( $query, [ $table, $column ] );
+    }
+
+    /**
+     * Get the type of a column.
+     *
+     * @param string $table
+     * @param string $column
+     * @return string|null
+     */
+    public function get_column_type( string $table, string $column ): ?string {
+        $query = "
+            SELECT column_type 
+            FROM information_schema.columns 
+            WHERE table_schema = DATABASE() 
+            AND table_name = ? 
+            AND column_name = ?
+            LIMIT 1
+        ";
+
+        return $this->get_var( $query, [ $table, $column ] );
+    }
+
+    /**
+     * Get all columns in a table.
+     *
+     * @param string $table
+     * @return array
+     */
+    public function get_columns( string $table ): array {
+        $query = "
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_schema = DATABASE() 
+            AND table_name = ?
+            ORDER BY ordinal_position
+        ";
+
+        return $this->get_col( $query, [ $table ] );
+    }
 }

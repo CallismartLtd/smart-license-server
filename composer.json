@@ -12,7 +12,8 @@
         "league/commonmark": "^2.7"
     },
     "require-dev": {
-        "php-stubs/wp-cli-stubs": "^2.12"
+        "php-stubs/wp-cli-stubs": "^2.12",
+        "friendsofphp/php-cs-fixer": "^3.95"
     },
     "autoload": {
         "psr-4": {

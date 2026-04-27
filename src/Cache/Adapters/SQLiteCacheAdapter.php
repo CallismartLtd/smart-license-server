@@ -636,9 +636,6 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         } catch ( \Throwable $e ) {
             throw new CacheTestException( $e->getMessage() );
         } finally {
-            if ( isset( $sandbox->db ) ) {
-                $sandbox->db->close();
-            }
 
             $files  = glob( $sandbox->db_file() . '*' );
 
