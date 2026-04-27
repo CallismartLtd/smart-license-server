@@ -1,7 +1,7 @@
 {
     "name": "callismartltd/smart-license-server",
     "description": "",
-    "license": "gpl 3.0",
+    "license": "GPL-3.0-or-later",
     "authors": [
         {
             "name": "CallismartLtd",
@@ -9,11 +9,11 @@
         }
     ],
     "require": {
+        "php": "^8.4",
         "league/commonmark": "^2.7"
     },
     "require-dev": {
-        "php-stubs/wp-cli-stubs": "^2.12",
-        "friendsofphp/php-cs-fixer": "^3.95"
+        "php-stubs/wp-cli-stubs": "^2.12"
     },
     "autoload": {
         "psr-4": {
