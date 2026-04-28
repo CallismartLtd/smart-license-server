@@ -7,7 +7,7 @@
  * @since 0.2.0
  */
 
-namespace SmartLicenseServer\Database\Migrations;
+namespace SmartLicenseServer\Database\Migrations\Helpers;
 
 use SmartLicenseServer\Database\Database;
 

@@ -10,8 +10,7 @@
 namespace SmartLicenseServer\Database\Migrations\Helpers;
 
 use SmartLicenseServer\Database\Database;
-use SmartLicenseServer\Database\Migrations\SQLBuilder;
-
+use SmartLicenseServer\Database\Query\SQLBuilder;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**

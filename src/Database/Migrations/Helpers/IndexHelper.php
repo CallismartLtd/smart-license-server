@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Database\Migrations\Helpers;
 
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Migrations\SQLBuilder;
+use SmartLicenseServer\Database\Query\SQLBuilder as QuerySQLBuilder;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -56,7 +57,7 @@ class IndexHelper {
      * @param SQLBuilder        $sql_builder The SQL builder
      * @param string            $table       The table name
      */
-    public function __construct( Database $executor, SQLBuilder $sql_builder, string $table ) {
+    public function __construct( Database $executor, QuerySQLBuilder $sql_builder, string $table ) {
         $this->executor = $executor;
         $this->sql_builder = $sql_builder;
         $this->table = $table;
