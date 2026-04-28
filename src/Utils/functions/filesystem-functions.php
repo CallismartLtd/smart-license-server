@@ -84,7 +84,7 @@ function smliser_dirsize( string $directory, bool $human_readable = false ) : in
 
     /** @var SplFileInfo $file */
     foreach ( $files as $file ) {
-        $size += $file->getSize();
+        $size += (int) $file->getSize();
     }
 
     return $human_readable ? Format::bytes( $size ) : $size;
