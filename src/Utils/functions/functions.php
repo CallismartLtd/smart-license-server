@@ -15,8 +15,6 @@ use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
-use SmartLicenseServer\FileSystem\FileSystem;
-use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Http\Exceptions\HttpRequestException;
 use SmartLicenseServer\Http\HttpClient;
@@ -302,16 +300,6 @@ function smliser_verify_item_token( string $client_token, AbstractHostedApp $app
 }
 
 /**
- * Sanitize and normalize a file path to prevent directory traversal attacks.
- *
- * @param string $path The input path.
- * @return string|SmartLicenseServer\Exception The sanitized and normalized path, or Exception on failure.
- */
-function smliser_sanitize_path( $path ) {
-    return FileSystemHelper::sanitize_path( $path );
-}
-
-/**
  * Load app authentication page header
  */
 function smliser_load_auth_header() {
@@ -539,15 +527,6 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
  */
 function smliser_envProvider() : Environment {
     return Environment::envProvider();
-}
-
-/**
- * Get the filesystem abstraction class
- * 
- * @return FileSystem
- */
-function smliser_filesystem() : FileSystem {
-    return smliser_envProvider()->filesystem();
 }
 
 /**
