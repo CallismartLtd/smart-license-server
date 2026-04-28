@@ -1,13 +1,13 @@
 <?php
 /**
- * Engine Renderer - Abstract Base Class
+ * Absdtract Query Renderer - Abstract Base Class
  * 
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Database\Migrations
+ * @package SmartLicenseServer\Database\Query\Renderers
  * @since 0.2.0
  */
 
-namespace SmartLicenseServer\Database\Migrations;
+namespace SmartLicenseServer\Database\Query\Renderers;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -28,7 +28,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  * @since 0.2.0
  */
-abstract class EngineRenderer {
+abstract class AbstractQueryRenderer {
 
     /**
      * Engine name for error reporting.

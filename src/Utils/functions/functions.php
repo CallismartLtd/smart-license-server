@@ -542,15 +542,6 @@ function smliser_envProvider() : Environment {
 }
 
 /**
- * Get the database API instance.
- *
- * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
- */
-function smliser_db() : \SmartLicenseServer\Database\Database {
-    return smliser_envProvider()->database();
-}
-
-/**
  * Get the filesystem abstraction class
  * 
  * @return FileSystem

@@ -1185,9 +1185,11 @@ class SmliserJsonEditor {
         this._updateData( newData, true );
     }
 
-    // =========================================================================
-    // PUBLIC API
-    // =========================================================================
+    /*
+    |------------
+    |PUBLIC API
+    |------------
+    */
 
     async getData()          { return Promise.resolve( this._cloneDeep( this.currentData ) ); }
     async setData( data )    { this._updateData( data, true ); return Promise.resolve( true ); }
@@ -1757,9 +1759,11 @@ class SmliserJsonEditor {
         return Promise.resolve();
     }
 
-    // =========================================================================
-    // UTILITIES
-    // =========================================================================
+    /*
+    |-----------
+    |UTILITIES
+    |-----------
+    */
 
     _getValueAtPath( path, obj = this.currentData ) {
         if ( ! path ) return obj;

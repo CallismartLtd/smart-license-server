@@ -36,21 +36,24 @@ class WPReadmeParser {
         $text = str_replace( ["\r\n", "\r"], "\n", $text );
 
         // 1) Convert WP-style headings
-        // === Heading === -> # Heading
+        /*
+        |-------------------
+        | TRANSFORM WP HEADING === Heading ===
+        | INTO MARKDOWN HEADING # Heading
+        |-------------------
+        */
         $text = preg_replace_callback(
             '/^===\s*(.+?)\s*===$/m',
             fn( $matches ) => '# ' . trim( $matches[1] ),
             $text
         );
 
-        // == Heading == -> ## Heading
         $text = preg_replace_callback(
             '/^==\s*(.+?)\s*==$/m',
             fn( $matches ) => '## ' . trim( $matches[1] ),
             $text
         );
 
-        // = Heading = -> ### Heading
         $text = preg_replace_callback(
             '/^=\s*(.+?)\s*=$/m',
             fn( $matches ) => '### ' . trim( $matches[1] ),

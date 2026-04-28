@@ -9,7 +9,7 @@
 namespace SmartLicenseServer\Database;
 
 use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
-use SmartLicenseServer\Database\Migrations\SQLBuilder;
+use SmartLicenseServer\Database\Query\SQLBuilder;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -67,18 +67,12 @@ class Database {
     protected DatabaseAdapterInterface $adapter;
 
     /**
-     * Query builder instance for generating database-agnostic SQL statements.
-     */
-    protected SQLBuilder $sql_builder;
-
-    /**
      * Class constructor.
      *
      * @param DatabaseAdapterInterface $adapter Database adapter instance.
      */
     public function __construct( DatabaseAdapterInterface $adapter ) {
         $this->adapter      = $adapter;
-        $this->sql_builder  = new SQLBuilder( $this->adapter->get_engine_type() );
     }
 
     /**

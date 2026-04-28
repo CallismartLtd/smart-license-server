@@ -8,9 +8,11 @@
  */
 class AppUploader {
 
-    // =========================================================================
-    // Static Constants
-    // =========================================================================
+    /*
+    |------------------
+    |Static Constants
+    |------------------
+    */
 
     static ACTIONS = Object.freeze({
         OPEN_MODAL          : 'openModal',
@@ -43,9 +45,11 @@ class AppUploader {
         CLICKABLE_ACTIONS       : '.delete-image, .remove-modal, .clear-uploaded, #upload-image, #upload-from-device, #upload-from-wp, #upload-from-url, .smliser-uploader-add-image, .edit-image',
     });
 
-    // =========================================================================
-    // Constructor & Initialization
-    // =========================================================================
+    /*
+    |------------------------------
+    |Constructor & Initialization
+    |------------------------------
+    */
 
     constructor() {
         this._bindElements();
@@ -99,9 +103,11 @@ class AppUploader {
         }
     }
 
-    // =========================================================================
-    // ZIP File Uploader
-    // =========================================================================
+    /*
+    |-------------------
+    |ZIP File Uploader
+    |-------------------
+    */
 
     /**
      * Initialize the main ZIP file uploader.
@@ -231,9 +237,11 @@ class AppUploader {
         });
     }
 
-    // =========================================================================
-    // Form Submission
-    // =========================================================================
+    /*
+    |-----------------
+    |Form Submission
+    |-----------------
+    */
 
     /**
      * Handle main form AJAX submission.
@@ -283,9 +291,11 @@ class AppUploader {
         }
     }
 
-    // =========================================================================
-    // Asset Uploader — Event Wiring
-    // =========================================================================
+    /*
+    |---------------------------------
+    |Asset Uploader — Event Wiring
+    |---------------------------------
+    */
 
     /**
      * Wire up all asset-uploader related events.
@@ -347,9 +357,11 @@ class AppUploader {
         actionMap[ action ]?.();
     }
 
-    // =========================================================================
-    // Modal Lifecycle
-    // =========================================================================
+    /*
+    |-----------------
+    |Modal Lifecycle
+    |-----------------
+    */
 
     /**
      * Open the asset upload modal and configure it for the given asset type.
@@ -407,9 +419,11 @@ class AppUploader {
         }
     }
 
-    // =========================================================================
-    // Asset Upload Sources
-    // =========================================================================
+    /*
+    |----------------------
+    |Asset Upload Sources
+    |----------------------
+    */
 
     /**
      * Trigger the hidden file input (supports multiple files).
@@ -485,9 +499,11 @@ class AppUploader {
         }
     }
 
-    // =========================================================================
-    // Multi-File Processing
-    // =========================================================================
+    /*
+    |-----------------------
+    |Multi-File Processing
+    |-----------------------
+    */
 
     /**
      * Process one or more uploaded image files from the file input.
@@ -603,9 +619,11 @@ class AppUploader {
         }
     }
 
-    // =========================================================================
-    // Image Preview
-    // =========================================================================
+    /*
+    |---------------
+    |Image Preview
+    |---------------
+    */
 
     /**
      * Render a single-image preview in the modal.
@@ -725,9 +743,11 @@ class AppUploader {
         this.uploadToRepoButton.removeAttribute( 'disabled' );
     }
 
-    // =========================================================================
-    // Repository Upload & Asset Management
-    // =========================================================================
+    /*
+    |--------------------------------------
+    |Repository Upload & Asset Management
+    |--------------------------------------
+    */
 
     /**
      * Upload all staged files to the server in a single batch request.
@@ -951,9 +971,11 @@ class AppUploader {
         addButton?.classList.remove( 'smliser-hide' );
     }
 
-    // =========================================================================
-    // Utilities
-    // =========================================================================
+    /*
+    |-----------
+    |Utilities
+    |-----------
+    */
 
     /**
      * Parse a fetch Response, handling both JSON and plain-text error bodies.
@@ -1060,9 +1082,11 @@ class AppUploader {
         return observer;
     }
 
-    // =========================================================================
-    // JSON Editor
-    // =========================================================================
+    /*
+    |-------------
+    |JSON Editor
+    |-------------
+    */
 
     /**
      * Mount the SmliserJSONEditor over the raw textarea.
@@ -1096,8 +1120,10 @@ class AppUploader {
     }
 }
 
-// =========================================================================
-// Bootstrap
-// =========================================================================
+/*
+|-----------
+|Bootstrap
+|-----------
+*/
 
 document.addEventListener( 'DOMContentLoaded', () => new AppUploader() );

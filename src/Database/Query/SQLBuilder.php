@@ -3,11 +3,16 @@
  * SQL Query Builder - Intent Layer (Engine-Agnostic)
  * 
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Database\Migrations
+ * @package SmartLicenseServer\Database\Query
  * @since 0.2.0
  */
 
-namespace SmartLicenseServer\Database\Migrations;
+namespace SmartLicenseServer\Database\Query;
+
+use SmartLicenseServer\Database\Query\Renderers\AbstractQueryRenderer;
+use SmartLicenseServer\Database\Query\Renderers\MySQLRenderer;
+use SmartLicenseServer\Database\Query\Renderers\PostgreSQLRenderer;
+use SmartLicenseServer\Database\Query\Renderers\SQLiteRenderer;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -42,7 +47,7 @@ class SQLBuilder {
      * Query intent components.
      *
      * Stored in normalized, engine-agnostic format.
-     * Rendering happens via EngineRenderer.
+     * Rendering happens via AbstractQueryRenderer.
      *
      * @var array
      */
@@ -71,9 +76,11 @@ class SQLBuilder {
         $this->engine = strtolower( $engine );
     }
 
-    // =========================================================================
-    // QUERY TYPE BUILDERS (Intent Layer)
-    // =========================================================================
+    /*
+    |------------------------------------
+    |QUERY TYPE BUILDERS (Intent Layer)
+    |------------------------------------
+    */
 
     /**
      * Start a SELECT query.
@@ -177,9 +184,11 @@ class SQLBuilder {
         return $this;
     }
 
-    // =========================================================================
-    // SELECT OPERATIONS (Intent Layer)
-    // =========================================================================
+    /*
+    |----------------------------------
+    |SELECT OPERATIONS (Intent Layer)
+    |----------------------------------
+    */
 
     /**
      * Add FROM clause.
@@ -376,9 +385,11 @@ class SQLBuilder {
         return $this;
     }
 
-    // =========================================================================
-    // INSERT OPERATIONS (Intent Layer)
-    // =========================================================================
+    /*
+    |----------------------------------
+    |INSERT OPERATIONS (Intent Layer)
+    |----------------------------------
+    */
 
     /**
      * Set values for single-row INSERT.
@@ -415,9 +426,11 @@ class SQLBuilder {
         return $this;
     }
 
-    // =========================================================================
-    // UPDATE OPERATIONS (Intent Layer)
-    // =========================================================================
+    /*
+    |----------------------------------
+    |UPDATE OPERATIONS (Intent Layer)
+    |----------------------------------
+    */
 
     /**
      * Set columns for UPDATE.
@@ -432,9 +445,11 @@ class SQLBuilder {
         return $this;
     }
 
-    // =========================================================================
-    // CREATE TABLE OPERATIONS (Intent Layer)
-    // =========================================================================
+    /*
+    |----------------------------------------
+    |CREATE TABLE OPERATIONS (Intent Layer)
+    |----------------------------------------
+    */
 
     /**
      * Add column to CREATE TABLE.
@@ -546,9 +561,11 @@ class SQLBuilder {
         return $this;
     }
 
-    // =========================================================================
-    // ALTER TABLE OPERATIONS (Intent Layer)
-    // =========================================================================
+    /*
+    |---------------------------------------
+    |ALTER TABLE OPERATIONS (Intent Layer)
+    |---------------------------------------
+    */
 
     /**
      * Add column to ALTER TABLE.
@@ -706,9 +723,11 @@ class SQLBuilder {
         return $this;
     }
 
-    // =========================================================================
-    // DROP TABLE OPERATIONS (Intent Layer)
-    // =========================================================================
+    /*
+    |--------------------------------------
+    |DROP TABLE OPERATIONS (Intent Layer)
+    |--------------------------------------
+    */
 
     /**
      * Set IF EXISTS flag for DROP TABLE.
@@ -720,9 +739,11 @@ class SQLBuilder {
         return $this;
     }
 
-    // =========================================================================
-    // RENDERING (Delegation to Engine Renderer)
-    // =========================================================================
+    /*
+    |-------------------------------------------
+    |RENDERING (Delegation to Engine Renderer)
+    |-------------------------------------------
+    */
 
     /**
      * Build the SQL query.
@@ -761,11 +782,11 @@ class SQLBuilder {
     /**
      * Get the appropriate engine renderer.
      *
-     * @return EngineRenderer
+     * @return AbstractQueryRenderer
      *
      * @throws \Exception If engine not supported
      */
-    private function get_renderer() : EngineRenderer {
+    private function get_renderer() : AbstractQueryRenderer {
         return match ( $this->engine ) {
             'mysql'  => new MySQLRenderer(),
             'pgsql'  => new PostgreSQLRenderer(),

@@ -55,9 +55,11 @@ abstract class EmailTemplate {
      */
     private array $styles = [];
 
-    // =========================================================================
-    // Abstract interface — subclasses MUST implement all of the following
-    // =========================================================================
+    /*
+    |-----------------------------------------------------------------------
+    |Abstract interface — subclasses MUST implement all of the following
+    |-----------------------------------------------------------------------
+    */
 
     /**
      * The unique string key identifying this template type.
@@ -232,9 +234,11 @@ abstract class EmailTemplate {
      */
     abstract public function get_blocks(): array;
 
-    // =========================================================================
-    // Style tokens — global design values editable via the editor sidebar
-    // =========================================================================
+    /*
+    |-----------------------------------------------------------------------
+    |Style tokens — global design values editable via the editor sidebar
+    |-----------------------------------------------------------------------
+    */
 
     /**
      * Return the default style tokens for this template.
@@ -301,9 +305,11 @@ abstract class EmailTemplate {
         return array_merge( $this->get_styles(), $overrides );
     }
 
-    // =========================================================================
-    // Token variables — placeholder replacement
-    // =========================================================================
+    /*
+    |---------------------------------------------
+    |Token variables — placeholder replacement
+    |---------------------------------------------
+    */
 
     /**
      * Return the token-to-value map for placeholder replacement.
@@ -361,9 +367,11 @@ abstract class EmailTemplate {
         );
     }
 
-    // =========================================================================
-    // Rendering pipeline
-    // =========================================================================
+    /*
+    |--------------------
+    |Rendering pipeline
+    |--------------------
+    */
 
     /**
      * Render the final HTML for this email ready for sending.
@@ -454,9 +462,11 @@ abstract class EmailTemplate {
         return $html;
     }
 
-    // =========================================================================
-    // Block renderers — one method per supported block type
-    // =========================================================================
+    /*
+    |---------------------------------------------------------
+    |Block renderers — one method per supported block type
+    |---------------------------------------------------------
+    */
 
     /**
      * Render a greeting block.
@@ -700,9 +710,11 @@ abstract class EmailTemplate {
         HTML;
     }
 
-    // =========================================================================
-    // Skeleton regions — independently overridable by subclasses
-    // =========================================================================
+    /*
+    |--------------------------------------------------------------
+    |Skeleton regions — independently overridable by subclasses
+    |--------------------------------------------------------------
+    */
 
     /**
      * Wrap body content in the full HTML email skeleton.
@@ -916,9 +928,11 @@ abstract class EmailTemplate {
         return $this->subject();
     }
 
-    // =========================================================================
-    // Custom template storage and state management
-    // =========================================================================
+    /*
+    |----------------------------------------------
+    |Custom template storage and state management
+    |----------------------------------------------
+    */
 
     /**
      * Look up any custom template HTML stored for this template type.
@@ -1048,9 +1062,11 @@ abstract class EmailTemplate {
         );
     }
 
-    // =========================================================================
-    // EmailMessage bridge
-    // =========================================================================
+    /*
+    |---------------------
+    |EmailMessage bridge
+    |---------------------
+    */
 
     /**
      * Convert this template to an EmailMessage DTO ready for sending.

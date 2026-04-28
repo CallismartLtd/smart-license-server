@@ -3,11 +3,11 @@
  * SQLite Engine Renderer
  * 
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Database\Migrations
+ * @package SmartLicenseServer\Database\Query\Renderers
  * @since 0.2.0
  */
 
-namespace SmartLicenseServer\Database\Migrations;
+namespace SmartLicenseServer\Database\Query\Renderers;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -19,7 +19,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  * @since 0.2.0
  */
-class SQLiteRenderer extends EngineRenderer {
+class SQLiteRenderer extends AbstractQueryRenderer {
 
     protected string $engine = 'sqlite';
 
