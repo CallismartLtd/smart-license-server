@@ -3,14 +3,10 @@
  * Users Table Schema
  *
  * Defines the structure for user account storage.
- *
- * @package SmartLicenseServer\Database\Schema
- * @since 0.2.0
  */
-
 namespace SmartLicenseServer\Database\Schema;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined('SMLISER_ABSPATH') || exit;
 
 /**
  * Schema definition for users table.
@@ -19,30 +15,105 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 class UsersSchema extends AbstractDatabaseSchema {
 
-    public static function get_table_name() : string {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_table_name(): string {
         return SMLISER_USERS_TABLE;
     }
 
-    public static function get_columns() : array {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_columns(): array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'display_name VARCHAR(255) NOT NULL',
-            'email VARCHAR(255) NOT NULL',
-            'password_hash VARCHAR(300) NOT NULL',
-            'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
-            'created_at DATETIME DEFAULT NULL',
-            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'UNIQUE KEY smliser_users_email_unique (email)',
-            'INDEX smliser_users_created_at (created_at)',
-            'INDEX smliser_users_updated_at (updated_at)',
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+            ],
+            [
+                'name' => 'display_name',
+                'type' => 'varchar',
+                'length' => 255,
+            ],
+            [
+                'name' => 'email',
+                'type' => 'varchar',
+                'length' => 255,
+            ],
+            [
+                'name' => 'password_hash',
+                'type' => 'varchar',
+                'length' => 300,
+            ],
+            [
+                'name' => 'status',
+                'type' => 'enum',
+                'values' => ['active', 'suspended', 'disabled'],
+                'default' => 'active',
+            ],
+            [
+                'name' => 'created_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'updated_at',
+                'type' => 'datetime',
+            ],
         ];
     }
 
-    public static function get_label() : string {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_constraints(): array {
+        return [
+            [
+                'type' => 'unique',
+                'name' => 'smliser_users_email_unique',
+                'columns' => ['email'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_users_created_at',
+                'columns' => ['created_at'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_users_updated_at',
+                'columns' => ['updated_at'],
+            ],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_options(): array {
+        return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_id(): string {
+        return 'users';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_label(): string {
         return 'Users';
     }
 
-    public static function get_description() : string {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_description(): string {
         return 'Stores human user accounts with credentials.';
     }
 }

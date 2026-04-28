@@ -19,29 +19,109 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 class AnalyticsLogsSchema extends AbstractDatabaseSchema {
 
+    /**
+     * {@inheritDoc}
+     */
     public static function get_table_name() : string {
         return SMLISER_ANALYTICS_LOGS_TABLE;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'app_type VARCHAR(20) NOT NULL',
-            'app_slug VARCHAR(100) NOT NULL',
-            'event_type VARCHAR(50) NOT NULL',
-            'fingerprint CHAR(64) DEFAULT NULL',
-            'created_at DATETIME DEFAULT CURRENT_TIMESTAMP',
-            'INDEX app_identity_idx (app_type, app_slug)',
-            'INDEX event_type_idx (event_type)',
-            'INDEX lookup_idx (app_slug, event_type, created_at)',
-            'INDEX cleanup_idx (created_at)',
+            [
+                'name'           => 'id',
+                'type'           => 'bigint',
+                'length'         => 20,
+                'unsigned'       => true,
+                'nullable'       => false,
+                'auto_increment' => true,
+            ],
+            [
+                'name'     => 'app_type',
+                'type'     => 'varchar',
+                'length'   => 20,
+                'nullable' => false,
+            ],
+            [
+                'name'     => 'app_slug',
+                'type'     => 'varchar',
+                'length'   => 100,
+                'nullable' => false,
+            ],
+            [
+                'name'     => 'event_type',
+                'type'     => 'varchar',
+                'length'   => 50,
+                'nullable' => false,
+            ],
+            [
+                'name'     => 'fingerprint',
+                'type'     => 'char',
+                'length'   => 64,
+                'nullable' => true,
+                'default'  => null,
+            ],
+            [
+                'name'     => 'created_at',
+                'type'     => 'datetime',
+                'nullable' => true,
+                'default'  => 'CURRENT_TIMESTAMP',
+            ],
         ];
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public static function get_constraints() : array {
+        return [
+            [
+                'type'    => 'primary',
+                'columns' => [ 'id' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'app_identity_idx',
+                'columns' => [ 'app_type', 'app_slug' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'event_type_idx',
+                'columns' => [ 'event_type' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'lookup_idx',
+                'columns' => [ 'app_slug', 'event_type', 'created_at' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'cleanup_idx',
+                'columns' => [ 'created_at' ],
+            ],
+        ];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public static function get_options() : array {
+        return [];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public static function get_label() : string {
         return 'Analytics Logs';
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public static function get_description() : string {
         return 'Stores raw analytics events - source of truth for event data.';
     }

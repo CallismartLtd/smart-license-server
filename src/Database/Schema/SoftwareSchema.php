@@ -4,33 +4,127 @@
  */
 namespace SmartLicenseServer\Database\Schema;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined('SMLISER_ABSPATH') || exit;
 
 /**
  * Stores software records.
  */
 class SoftwareSchema extends AbstractDatabaseSchema {
 
-    public static function get_table_name() : string {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_table_name(): string {
         return SMLISER_SOFTWARE_TABLE;
     }
 
-    public static function get_columns() : array {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_columns(): array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'owner_id BIGINT(20) DEFAULT NULL',
-            'name VARCHAR(255) NOT NULL',
-            'slug VARCHAR(300) UNIQUE NOT NULL',
-            'status VARCHAR(55) DEFAULT \'active\'',
-            'author VARCHAR(255) DEFAULT NULL',
-            'download_link VARCHAR(400) DEFAULT NULL',
-            'created_at DATETIME DEFAULT NULL',
-            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'INDEX software_slug_index (slug)',
-            'INDEX software_author_index (author)',
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+            ],
+            [
+                'name' => 'owner_id',
+                'type' => 'bigint',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'name',
+                'type' => 'varchar',
+                'length' => 255,
+            ],
+            [
+                'name' => 'slug',
+                'type' => 'varchar',
+                'length' => 300,
+            ],
+            [
+                'name' => 'status',
+                'type' => 'varchar',
+                'length' => 55,
+                'default' => 'active',
+            ],
+            [
+                'name' => 'author',
+                'type' => 'varchar',
+                'length' => 255,
+                'nullable' => true,
+            ],
+            [
+                'name' => 'download_link',
+                'type' => 'varchar',
+                'length' => 400,
+                'nullable' => true,
+            ],
+            [
+                'name' => 'created_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'updated_at',
+                'type' => 'datetime',
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Software'; }
-    public static function get_description() : string { return 'Stores software records.'; }
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_constraints(): array {
+        return [
+            [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+            [
+                'type' => 'unique',
+                'columns' => ['slug'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'software_slug_index',
+                'columns' => ['slug'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'software_author_index',
+                'columns' => ['author'],
+            ],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_options(): array {
+        return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_id(): string {
+        return 'software';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_label(): string {
+        return 'Software';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_description(): string {
+        return 'Stores software records.';
+    }
 }

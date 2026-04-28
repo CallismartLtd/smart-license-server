@@ -17,19 +17,91 @@ class BulkMessagesSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT AUTO_INCREMENT PRIMARY KEY',
-            'message_id VARCHAR(64) UNIQUE',
-            'subject VARCHAR(255) NOT NULL',
-            'body LONGTEXT DEFAULT NULL',
-            'created_at DATETIME DEFAULT NULL',
-            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'is_read TINYINT(1) DEFAULT 0',
-            'INDEX smliser_bulk_msg_created_at (created_at)',
-            'INDEX smliser_bulk_msg_updated_at (updated_at)',
-            'INDEX smliser_msg_id_lookup (message_id)',
+            [
+                'name'            => 'id',
+                'type'            => 'bigint',
+                'auto_increment'  => true,
+                'nullable'        => false,
+            ],
+            [
+                'name'      => 'message_id',
+                'type'      => 'varchar',
+                'length'    => 64,
+                'nullable'  => true,
+                'default'   => null,
+            ],
+            [
+                'name'      => 'subject',
+                'type'      => 'varchar',
+                'length'    => 255,
+                'nullable'  => false,
+            ],
+            [
+                'name'      => 'body',
+                'type'      => 'longtext',
+                'nullable'  => true,
+                'default'   => null,
+            ],
+            [
+                'name'      => 'created_at',
+                'type'      => 'datetime',
+                'nullable'  => true,
+                'default'   => null,
+            ],
+            [
+                'name'      => 'updated_at',
+                'type'      => 'datetime',
+                'nullable'  => false,
+                'default'   => 'CURRENT_TIMESTAMP',
+                'on_update' => 'CURRENT_TIMESTAMP',
+            ],
+            [
+                'name'      => 'is_read',
+                'type'      => 'tinyint',
+                'length'    => 1,
+                'nullable'  => true,
+                'default'   => 0,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Bulk Messages'; }
-    public static function get_description() : string { return 'Stores bulk messages.'; }
+    public static function get_constraints() : array {
+        return [
+            [
+                'type'    => 'primary',
+                'columns' => [ 'id' ],
+            ],
+            [
+                'type'    => 'unique',
+                'columns' => [ 'message_id' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'smliser_bulk_msg_created_at',
+                'columns' => [ 'created_at' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'smliser_bulk_msg_updated_at',
+                'columns' => [ 'updated_at' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'smliser_msg_id_lookup',
+                'columns' => [ 'message_id' ],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
+    }
+
+    public static function get_label() : string {
+        return 'Bulk Messages';
+    }
+
+    public static function get_description() : string {
+        return 'Stores bulk messages.';
+    }
 }

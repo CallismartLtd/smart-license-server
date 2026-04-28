@@ -4,28 +4,92 @@
  */
 namespace SmartLicenseServer\Database\Schema;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined('SMLISER_ABSPATH') || exit;
 
 /**
  * Stores user options.
  */
 class UserOptionsSchema extends AbstractDatabaseSchema {
 
-    public static function get_table_name() : string {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_table_name(): string {
         return SMLISER_USER_OPTIONS_TABLE;
     }
 
-    public static function get_columns() : array {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_columns(): array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'user_id BIGINT(20) UNSIGNED NOT NULL',
-            'option_key VARCHAR(255) NOT NULL',
-            'option_value LONGTEXT DEFAULT NULL',
-            'UNIQUE KEY smliser_user_options_unique (user_id, option_key)',
-            'INDEX option_key_index (option_key)',
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+            ],
+            [
+                'name' => 'user_id',
+                'type' => 'bigint',
+                'unsigned' => true,
+            ],
+            [
+                'name' => 'option_key',
+                'type' => 'varchar',
+                'length' => 255,
+            ],
+            [
+                'name' => 'option_value',
+                'type' => 'longtext',
+                'nullable' => true,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'User Options'; }
-    public static function get_description() : string { return 'Stores user preferences.'; }
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_constraints(): array {
+        return [
+            [
+                'type' => 'unique',
+                'name' => 'smliser_user_options_unique',
+                'columns' => ['user_id', 'option_key'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'option_key_index',
+                'columns' => ['option_key'],
+            ],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_options(): array {
+        return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_id(): string {
+        return 'user_options';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_label(): string {
+        return 'User Options';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_description(): string {
+        return 'Stores user preferences.';
+    }
 }

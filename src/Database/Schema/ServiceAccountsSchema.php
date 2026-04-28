@@ -4,37 +4,135 @@
  */
 namespace SmartLicenseServer\Database\Schema;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined('SMLISER_ABSPATH') || exit;
 
 /**
  * Stores service accounts.
  */
 class ServiceAccountsSchema extends AbstractDatabaseSchema {
 
-    public static function get_table_name() : string {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_table_name(): string {
         return SMLISER_SERVICE_ACCOUNTS_TABLE;
     }
 
-    public static function get_columns() : array {
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_columns(): array {
         return [
-            'id INT AUTO_INCREMENT PRIMARY KEY',
-            'identifier VARCHAR(255) NOT NULL',
-            'owner_id INT NOT NULL',
-            'display_name VARCHAR(255) NOT NULL',
-            'description TEXT DEFAULT NULL',
-            'api_key_hash VARCHAR(512) NOT NULL',
-            'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
-            'created_at DATETIME DEFAULT NULL',
-            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'last_used_at DATETIME NULL',
-            'INDEX smliser_service_acct_owner_id (owner_id)',
-            'INDEX smliser_service_acct_api_key_hash (api_key_hash)',
-            'INDEX smliser_service_acct_status (status)',
-            'INDEX smliser_service_acct_created_at (created_at)',
-            'INDEX smliser_service_acct_updated_at (updated_at)',
+            [
+                'name' => 'id',
+                'type' => 'int',
+                'auto_increment' => true,
+            ],
+            [
+                'name' => 'identifier',
+                'type' => 'varchar',
+                'length' => 255,
+            ],
+            [
+                'name' => 'owner_id',
+                'type' => 'int',
+            ],
+            [
+                'name' => 'display_name',
+                'type' => 'varchar',
+                'length' => 255,
+            ],
+            [
+                'name' => 'description',
+                'type' => 'text',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'api_key_hash',
+                'type' => 'varchar',
+                'length' => 512,
+            ],
+            [
+                'name' => 'status',
+                'type' => 'enum',
+                'default' => 'active',
+                'values' => ['active', 'suspended', 'disabled'],
+            ],
+            [
+                'name' => 'created_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'updated_at',
+                'type' => 'datetime',
+            ],
+            [
+                'name' => 'last_used_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Service Accounts'; }
-    public static function get_description() : string { return 'Stores service accounts.'; }
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_constraints(): array {
+        return [
+            [
+                'type' => 'index',
+                'name' => 'smliser_service_acct_owner_id',
+                'columns' => ['owner_id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_service_acct_api_key_hash',
+                'columns' => ['api_key_hash'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_service_acct_status',
+                'columns' => ['status'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_service_acct_created_at',
+                'columns' => ['created_at'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_service_acct_updated_at',
+                'columns' => ['updated_at'],
+            ],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_options(): array {
+        return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_id(): string {
+        return 'service_accounts';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_label(): string {
+        return 'Service Accounts';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function get_description(): string {
+        return 'Stores service accounts.';
+    }
 }

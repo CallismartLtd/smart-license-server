@@ -1,14 +1,9 @@
 <?php
-/**
- * Role Assignment Schema
- */
+
 namespace SmartLicenseServer\Database\Schema;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-/**
- * Maps roles to principals.
- */
 class RoleAssignmentSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
@@ -17,17 +12,74 @@ class RoleAssignmentSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'role_id BIGINT(20) NOT NULL',
-            'principal_type ENUM(\'individual\', \'service_account\', \'platform\') NOT NULL',
-            'principal_id BIGINT(20) UNSIGNED NOT NULL',
-            'owner_subject_type ENUM(\'platform\', \'individual\', \'organization\') NOT NULL',
-            'owner_subject_id BIGINT UNSIGNED NOT NULL',
-            'created_by BIGINT UNSIGNED DEFAULT NULL',
-            'created_at DATETIME DEFAULT NULL'
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'role_id',
+                'type' => 'bigint',
+                'nullable' => false,
+            ],
+            [
+                'name' => 'principal_type',
+                'type' => 'enum',
+                'values' => ['individual', 'service_account', 'platform'],
+                'nullable' => false,
+            ],
+            [
+                'name' => 'principal_id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'owner_subject_type',
+                'type' => 'enum',
+                'values' => ['platform', 'individual', 'organization'],
+                'nullable' => false,
+            ],
+            [
+                'name' => 'owner_subject_id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'created_by',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'nullable' => true,
+            ],
+            [
+                'name' => 'created_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Role Assignments'; }
-    public static function get_description() : string { return 'Maps roles to principals.'; }
+    public static function get_constraints() : array {
+        return [
+            [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
+    }
+
+    public static function get_label() : string {
+        return 'Role Assignments';
+    }
+
+    public static function get_description() : string {
+        return 'Maps roles to principals.';
+    }
 }

@@ -1,22 +1,9 @@
 <?php
-/**
- * License Table Schema
- *
- * Defines the database structure for storing license records.
- *
- * @package SmartLicenseServer\Database\Schema
- * @since 0.2.0
- */
 
 namespace SmartLicenseServer\Database\Schema;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-/**
- * Schema definition for the licenses table.
- *
- * Stores license keys, ownership details, and validity periods.
- */
 class LicenseSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
@@ -25,20 +12,96 @@ class LicenseSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'licensee_fullname VARCHAR(512) DEFAULT NULL',
-            'license_key VARCHAR(300) NOT NULL UNIQUE',
-            'service_id VARCHAR(300) NOT NULL',
-            'app_prop VARCHAR(600) DEFAULT NULL',
-            'max_allowed_domains MEDIUMINT(9) DEFAULT NULL',
-            'status VARCHAR(30) DEFAULT NULL',
-            'start_date DATETIME DEFAULT NULL',
-            'end_date DATETIME DEFAULT NULL',
-            'created_at DATETIME DEFAULT NULL',
-            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'INDEX service_id_index (service_id)',
-            'INDEX status_index (status)',
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'licensee_fullname',
+                'type' => 'varchar',
+                'length' => 512,
+                'nullable' => true,
+            ],
+            [
+                'name' => 'license_key',
+                'type' => 'varchar',
+                'length' => 300,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'service_id',
+                'type' => 'varchar',
+                'length' => 300,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'app_prop',
+                'type' => 'varchar',
+                'length' => 600,
+                'nullable' => true,
+            ],
+            [
+                'name' => 'max_allowed_domains',
+                'type' => 'mediumint',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'status',
+                'type' => 'varchar',
+                'length' => 30,
+                'nullable' => true,
+            ],
+            [
+                'name' => 'start_date',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'end_date',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'created_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'updated_at',
+                'type' => 'datetime',
+                'nullable' => false,
+            ],
         ];
+    }
+
+    public static function get_constraints() : array {
+        return [
+            [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+            [
+                'type' => 'unique',
+                'columns' => ['license_key'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'service_id_index',
+                'columns' => ['service_id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'status_index',
+                'columns' => ['status'],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
     }
 
     public static function get_label() : string {

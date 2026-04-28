@@ -1,14 +1,9 @@
 <?php
-/**
- * Owners Schema
- */
+
 namespace SmartLicenseServer\Database\Schema;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-/**
- * Stores owners.
- */
 class OwnersSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
@@ -17,19 +12,84 @@ class OwnersSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'subject_id BIGINT(20) NOT NULL',
-            'type ENUM(\'individual\', \'organization\', \'platform\') NOT NULL DEFAULT \'platform\'',
-            'name VARCHAR(255) NOT NULL',
-            'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
-            'created_at DATETIME DEFAULT NULL',
-            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'INDEX smliser_owners_subject_id (subject_id)',
-            'INDEX smliser_owners_created_at (created_at)',
-            'INDEX smliser_owners_updated_at (updated_at)',
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'subject_id',
+                'type' => 'bigint',
+                'nullable' => false,
+            ],
+            [
+                'name' => 'type',
+                'type' => 'enum',
+                'values' => ['individual', 'organization', 'platform'],
+                'default' => 'platform',
+                'nullable' => false,
+            ],
+            [
+                'name' => 'name',
+                'type' => 'varchar',
+                'length' => 255,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'status',
+                'type' => 'enum',
+                'values' => ['active', 'suspended', 'disabled'],
+                'default' => 'active',
+                'nullable' => false,
+            ],
+            [
+                'name' => 'created_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'updated_at',
+                'type' => 'datetime',
+                'nullable' => false,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Owners'; }
-    public static function get_description() : string { return 'Stores resource owners.'; }
+    public static function get_constraints() : array {
+        return [
+            [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_owners_subject_id',
+                'columns' => ['subject_id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_owners_created_at',
+                'columns' => ['created_at'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_owners_updated_at',
+                'columns' => ['updated_at'],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
+    }
+
+    public static function get_label() : string {
+        return 'Owners';
+    }
+
+    public static function get_description() : string {
+        return 'Stores resource owners.';
+    }
 }

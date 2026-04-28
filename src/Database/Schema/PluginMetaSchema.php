@@ -1,22 +1,9 @@
 <?php
-/**
- * Plugin Meta Table Schema
- *
- * Defines the structure for storing plugin metadata.
- *
- * @package SmartLicenseServer\Database\Schema
- * @since 0.2.0
- */
 
 namespace SmartLicenseServer\Database\Schema;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-/**
- * Schema definition for the plugin meta table.
- *
- * Stores arbitrary key-value metadata associated with plugins.
- */
 class PluginMetaSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
@@ -25,13 +12,54 @@ class PluginMetaSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'plugin_id BIGINT(20) UNSIGNED NOT NULL',
-            'meta_key VARCHAR(255) NOT NULL',
-            'meta_value LONGTEXT DEFAULT NULL',
-            'INDEX plugin_id_index (plugin_id)',
-            'INDEX meta_key_index (meta_key)',
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'plugin_id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'meta_key',
+                'type' => 'varchar',
+                'length' => 255,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'meta_value',
+                'type' => 'longtext',
+                'nullable' => true,
+            ],
         ];
+    }
+
+    public static function get_constraints() : array {
+        return [
+            [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'plugin_id_index',
+                'columns' => ['plugin_id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'meta_key_index',
+                'columns' => ['meta_key'],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
     }
 
     public static function get_label() : string {

@@ -24,13 +24,11 @@ abstract class AbstractDatabaseSchema implements DatabaseSchemaInterface {
      * {@inheritDoc}.
      *
      * Default implementation derives ID from class name.
+     * The database table name without the prefix is used as the ID.
      * Override for custom behavior.
      */
     public static function get_id() : string {
-        $class_name = static::class;
-        $short_name = substr( strrchr( $class_name, '\\' ), 1 );
-        // Convert CamelCase to snake_case
-        return strtolower( preg_replace( '/(?<!^)[A-Z]/', '_$0', $short_name ) );
+        return substr( static::get_table_name(), strlen( smliser_db_prefix() ) );
     }
 
     /**

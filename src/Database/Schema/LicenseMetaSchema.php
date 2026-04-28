@@ -20,15 +20,62 @@ class LicenseMetaSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'license_id BIGINT(20) UNSIGNED NOT NULL',
-            'meta_key VARCHAR(255) NOT NULL',
-            'meta_value LONGTEXT DEFAULT NULL',
-            'INDEX license_id_index (license_id)',
-            'INDEX meta_key_index (meta_key)',
+            [
+                'name'            => 'id',
+                'type'            => 'bigint',
+                'unsigned'        => true,
+                'auto_increment'  => true,
+                'nullable'        => false,
+            ],
+            [
+                'name'      => 'license_id',
+                'type'      => 'bigint',
+                'unsigned'  => true,
+                'nullable'  => false,
+            ],
+            [
+                'name'      => 'meta_key',
+                'type'      => 'varchar',
+                'length'    => 255,
+                'nullable'  => false,
+            ],
+            [
+                'name'      => 'meta_value',
+                'type'      => 'longtext',
+                'nullable'  => true,
+                'default'   => null,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'License Meta'; }
-    public static function get_description() : string { return 'Stores arbitrary key-value metadata for licenses.'; }
+    public static function get_constraints() : array {
+        return [
+            [
+                'type'    => 'primary',
+                'columns' => [ 'id' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'license_id_index',
+                'columns' => [ 'license_id' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'meta_key_index',
+                'columns' => [ 'meta_key' ],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
+    }
+
+    public static function get_label() : string {
+        return 'License Meta';
+    }
+
+    public static function get_description() : string {
+        return 'Stores arbitrary key-value metadata for licenses.';
+    }
 }

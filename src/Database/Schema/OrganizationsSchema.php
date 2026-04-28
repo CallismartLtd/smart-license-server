@@ -1,14 +1,9 @@
 <?php
-/**
- * Organizations Schema
- */
+
 namespace SmartLicenseServer\Database\Schema;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-/**
- * Stores organizations.
- */
 class OrganizationsSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
@@ -17,17 +12,73 @@ class OrganizationsSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'display_name VARCHAR(255) NOT NULL',
-            'slug VARCHAR(255) NOT NULL',
-            'status ENUM(\'active\',\'suspended\',\'disabled\') NOT NULL DEFAULT \'active\'',
-            'created_at DATETIME DEFAULT NULL',
-            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'INDEX organization_name (display_name)',
-            'INDEX organization_slug (slug)',
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'display_name',
+                'type' => 'varchar',
+                'length' => 255,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'slug',
+                'type' => 'varchar',
+                'length' => 255,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'status',
+                'type' => 'enum',
+                'values' => ['active', 'suspended', 'disabled'],
+                'default' => 'active',
+                'nullable' => false,
+            ],
+            [
+                'name' => 'created_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'updated_at',
+                'type' => 'datetime',
+                'nullable' => false,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Organizations'; }
-    public static function get_description() : string { return 'Stores organizations.'; }
+    public static function get_constraints() : array {
+        return [
+            [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'organization_name',
+                'columns' => ['display_name'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'organization_slug',
+                'columns' => ['slug'],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
+    }
+
+    public static function get_label() : string {
+        return 'Organizations';
+    }
+
+    public static function get_description() : string {
+        return 'Stores organizations.';
+    }
 }

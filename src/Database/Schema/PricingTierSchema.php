@@ -1,14 +1,9 @@
 <?php
-/**
- * Pricing Tier Schema
- */
+
 namespace SmartLicenseServer\Database\Schema;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-/**
- * Stores pricing tiers.
- */
 class PricingTierSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
@@ -17,20 +12,87 @@ class PricingTierSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT AUTO_INCREMENT PRIMARY KEY',
-            'monetization_id BIGINT NOT NULL',
-            'name VARCHAR(255) NOT NULL',
-            'product_id VARCHAR(191) NOT NULL',
-            'provider_id VARCHAR(50) NOT NULL',
-            'billing_cycle VARCHAR(50) DEFAULT NULL',
-            'max_sites INT DEFAULT 1',
-            'features TEXT DEFAULT NULL',
-            'created_at DATETIME DEFAULT NULL',
-            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'INDEX monetization_id_index (monetization_id)',
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'auto_increment' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'monetization_id',
+                'type' => 'bigint',
+                'nullable' => false,
+            ],
+            [
+                'name' => 'name',
+                'type' => 'varchar',
+                'length' => 255,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'product_id',
+                'type' => 'varchar',
+                'length' => 191,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'provider_id',
+                'type' => 'varchar',
+                'length' => 50,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'billing_cycle',
+                'type' => 'varchar',
+                'length' => 50,
+                'nullable' => true,
+            ],
+            [
+                'name' => 'max_sites',
+                'type' => 'int',
+                'default' => 1,
+            ],
+            [
+                'name' => 'features',
+                'type' => 'text',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'created_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'updated_at',
+                'type' => 'datetime',
+                'nullable' => false,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Pricing Tiers'; }
-    public static function get_description() : string { return 'Stores pricing tier definitions.'; }
+    public static function get_constraints() : array {
+        return [
+            [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'monetization_id_index',
+                'columns' => ['monetization_id'],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
+    }
+
+    public static function get_label() : string {
+        return 'Pricing Tiers';
+    }
+
+    public static function get_description() : string {
+        return 'Stores pricing tier definitions.';
+    }
 }

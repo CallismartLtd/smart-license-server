@@ -1,14 +1,9 @@
 <?php
-/**
- * Organization Members Schema
- */
+
 namespace SmartLicenseServer\Database\Schema;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-/**
- * Maps members to organizations.
- */
 class OrganizationMembersSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
@@ -17,16 +12,66 @@ class OrganizationMembersSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'organization_id BIGINT(20) UNSIGNED NOT NULL',
-            'member_id BIGINT(20) UNSIGNED NOT NULL',
-            'created_at DATETIME DEFAULT NULL',
-            'updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            'INDEX organization_member_id (member_id)',
-            'INDEX organization_id (organization_id)',
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'organization_id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'member_id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'created_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
+            [
+                'name' => 'updated_at',
+                'type' => 'datetime',
+                'nullable' => false,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Organization Members'; }
-    public static function get_description() : string { return 'Maps members to organizations.'; }
+    public static function get_constraints() : array {
+        return [
+            [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'organization_member_id',
+                'columns' => ['member_id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'organization_id',
+                'columns' => ['organization_id'],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
+    }
+
+    public static function get_label() : string {
+        return 'Organization Members';
+    }
+
+    public static function get_description() : string {
+        return 'Maps members to organizations.';
+    }
 }

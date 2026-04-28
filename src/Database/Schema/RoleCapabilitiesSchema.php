@@ -1,14 +1,9 @@
 <?php
-/**
- * Role Capabilities Schema
- */
+
 namespace SmartLicenseServer\Database\Schema;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-/**
- * Stores role capabilities.
- */
 class RoleCapabilitiesSchema extends AbstractDatabaseSchema {
 
     public static function get_table_name() : string {
@@ -17,12 +12,45 @@ class RoleCapabilitiesSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY',
-            'role_id BIGINT UNSIGNED NOT NULL',
-            'capabilities LONGTEXT DEFAULT NULL'
+            [
+                'name' => 'id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'auto_increment' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'role_id',
+                'type' => 'bigint',
+                'unsigned' => true,
+                'nullable' => false,
+            ],
+            [
+                'name' => 'capabilities',
+                'type' => 'longtext',
+                'nullable' => true,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Role Capabilities'; }
-    public static function get_description() : string { return 'Stores role capabilities.'; }
+    public static function get_constraints() : array {
+        return [
+            [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
+    }
+
+    public static function get_label() : string {
+        return 'Role Capabilities';
+    }
+
+    public static function get_description() : string {
+        return 'Stores role capabilities.';
+    }
 }

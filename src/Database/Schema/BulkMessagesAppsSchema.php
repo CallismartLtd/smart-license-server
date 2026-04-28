@@ -17,15 +17,63 @@ class BulkMessagesAppsSchema extends AbstractDatabaseSchema {
 
     public static function get_columns() : array {
         return [
-            'id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY',
-            'message_id VARCHAR(64) DEFAULT NULL',
-            'app_type VARCHAR(64) NOT NULL',
-            'app_slug VARCHAR(191) NOT NULL',
-            'UNIQUE KEY smliser_unique_message_app (message_id, app_type, app_slug)',
-            'INDEX smliser_msg_app_lookup (app_type, app_slug)'
+            [
+                'name'            => 'id',
+                'type'            => 'bigint',
+                'unsigned'        => true,
+                'nullable'        => false,
+                'auto_increment'  => true,
+            ],
+            [
+                'name'      => 'message_id',
+                'type'      => 'varchar',
+                'length'    => 64,
+                'nullable'  => true,
+                'default'   => null,
+            ],
+            [
+                'name'      => 'app_type',
+                'type'      => 'varchar',
+                'length'    => 64,
+                'nullable'  => false,
+            ],
+            [
+                'name'      => 'app_slug',
+                'type'      => 'varchar',
+                'length'    => 191,
+                'nullable'  => false,
+            ],
         ];
     }
 
-    public static function get_label() : string { return 'Bulk Messages Apps'; }
-    public static function get_description() : string { return 'Maps messages to applications.'; }
+    public static function get_constraints() : array {
+        return [
+            [
+                'type'    => 'primary',
+                'columns' => [ 'id' ],
+            ],
+            [
+                'type'    => 'unique',
+                'name'    => 'smliser_unique_message_app',
+                'columns' => [ 'message_id', 'app_type', 'app_slug' ],
+            ],
+            [
+                'type'    => 'index',
+                'name'    => 'smliser_msg_app_lookup',
+                'columns' => [ 'app_type', 'app_slug' ],
+            ],
+        ];
+    }
+
+    public static function get_options() : array {
+        return [];
+    }
+
+    public static function get_label() : string {
+        return 'Bulk Messages Apps';
+    }
+
+    public static function get_description() : string {
+        return 'Maps messages to applications.';
+    }
 }
