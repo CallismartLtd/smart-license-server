@@ -1,7 +1,12 @@
 <?php
 /**
  * Database Schema Interface
- * 
+ *
+ * Defines portable, engine-agnostic schema metadata for tables.
+ *
+ * Schema classes describe structure intent only.
+ * SQL generation is delegated to schema/query renderers.
+ *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Database\Schema
  * @since 0.2.0
@@ -12,54 +17,152 @@ namespace SmartLicenseServer\Database\Schema;
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Interface that all database table schema classes must implement.
+ * Contract for all database schema definitions.
  *
- * Each schema class represents a single database table with its column
- * definitions and indexes suitable for use with dbDelta().
+ * Implementations should return normalized metadata arrays that are:
+ * - self-documenting
+ * - renderer-friendly
+ * - cross-engine portable
+ * - migration safe
  *
  * @since 0.2.0
  */
 interface DatabaseSchemaInterface {
-    /**
-     * Get the fully-qualified table name constant.
-     *
-     * This should be a table name constant defined elsewhere in the application,
-     * e.g., SMLISER_LICENSE_TABLE.
-     *
-     * @return string The table name constant name (not the value).
-     */
-    public static function get_table_name() : string;
 
     /**
-     * Get the column and index definitions for this table.
+     * Unique schema registry identifier.
      *
-     * Returns an ordered array of SQL column and index definitions
-     * suitable for use with WordPress dbDelta() or equivalent.
+     * Example:
+     * - users
+     * - licenses
+     * - service_accounts
      *
-     * @return string[] Array of SQL column/index definitions.
-     */
-    public static function get_columns() : array;
-
-    /**
-     * Get a unique identifier for this schema.
-     *
-     * Used for registering and looking up schemas in the registry.
-     *
-     * @return string Unique schema identifier.
+     * @return string
      */
     public static function get_id() : string;
 
     /**
-     * Get a human-readable name for this schema.
+     * Human readable schema name.
+     *
+     * Example:
+     * - Users Table
+     * - Licenses Table
      *
      * @return string
      */
     public static function get_label() : string;
 
     /**
-     * Get a description of what this table stores.
+     * Human readable schema purpose.
      *
      * @return string
      */
     public static function get_description() : string;
+
+    /**
+     * Fully resolved table name.
+     *
+     * Example:
+     * - wp_smliser_users
+     * - smliser_users
+     *
+     * @return string
+     */
+    public static function get_table_name() : string;
+
+    /**
+     * Portable ordered column definitions.
+     *
+     * Keys:
+     * - name            string   Required column name
+     * - type            string   Required logical type
+     * - length          int|null Optional scalar length
+     * - precision       int|null Optional numeric precision
+     * - scale           int|null Optional decimal scale
+     * - unsigned        bool     Optional
+     * - nullable        bool     Optional
+     * - auto_increment  bool     Optional
+     * - default         mixed    Optional
+     * - comment         string   Optional
+     *
+     * Example:
+     * [
+     *   [
+     *     'name' => 'id',
+     *     'type' => 'bigint',
+     *     'unsigned' => true,
+     *     'auto_increment' => true,
+     *     'nullable' => false,
+     *   ]
+     * ]
+     *
+     * @return array<int, array{
+     *     name: string,
+     *     type: string,
+     *     length?: int|null,
+     *     precision?: int|null,
+     *     scale?: int|null,
+     *     unsigned?: bool,
+     *     nullable?: bool,
+     *     auto_increment?: bool,
+     *     default?: mixed,
+     *     comment?: string
+     * }>
+     */
+    public static function get_columns() : array;
+
+    /**
+     * Table constraints and indexes.
+     *
+     * Supported types:
+     * - primary
+     * - unique
+     * - index
+     * - foreign
+     * - fulltext
+     *
+     * Common keys:
+     * - type       string        Required
+     * - name       string        Optional constraint/index name
+     * - columns    string[]      Required for most types
+     *
+     * Foreign key keys:
+     * - references_table   string
+     * - references_columns string[]
+     * - on_delete          string
+     * - on_update          string
+     *
+     * @return array<int, array{
+     *     type: string,
+     *     name?: string,
+     *     columns?: array<int, string>,
+     *     references_table?: string,
+     *     references_columns?: array<int, string>,
+     *     on_delete?: string,
+     *     on_update?: string
+     * }>
+     */
+    public static function get_constraints() : array;
+
+    /**
+     * Engine/runtime options.
+     *
+     * Typical keys:
+     * - engine
+     * - charset
+     * - collation
+     * - row_format
+     * - temporary
+     *
+     * Renderers may ignore unsupported options.
+     *
+     * @return array{
+     *     engine?: string,
+     *     charset?: string,
+     *     collation?: string,
+     *     row_format?: string,
+     *     temporary?: bool
+     * }
+     */
+    public static function get_options() : array;
 }

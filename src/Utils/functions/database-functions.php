@@ -30,3 +30,12 @@ function smliserQueryBuilder() : SQLBuilder{
 function smliserCompositeQueryBuilder() : CompositeSQLBuilder {
     return new CompositeSQLBuilder( smliser_db()->get_engine_type() );
 }
+
+/**
+ * Get the database table prefix.
+ * 
+ * @return string The database table prefix.
+ */
+function smliser_db_prefix() : string {
+    return smliser_envProvider()->db_prefix();
+}

@@ -466,56 +466,56 @@ abstract class Environment implements EnvironmentProviderInterface {
          *
          * @var string `smliser_licenses.`
          */
-        define( 'SMLISER_LICENSE_TABLE', $this->env['db_prefix'] . 'smliser_licenses' );
+        define( 'SMLISER_LICENSE_TABLE', $this->db_prefix() . 'licenses' );
 
         /**
          * License metadata database table name.
          *
          * @var string `smliser_license_meta.`
          */
-        define( 'SMLISER_LICENSE_META_TABLE', $this->env['db_prefix'] . 'smliser_license_meta' );
+        define( 'SMLISER_LICENSE_META_TABLE', $this->db_prefix() . 'license_meta' );
 
         /**
          * Plugins database table name.
          *
          * @var string `smliser_plugins.`
          */
-        define( 'SMLISER_PLUGINS_TABLE', $this->env['db_prefix'] . 'smliser_plugins' );
+        define( 'SMLISER_PLUGINS_TABLE', $this->db_prefix() . 'plugins' );
 
         /**
          * Plugin metadata database table name.
          *
          * @var string `smliser_plugin_meta.`
          */
-        define( 'SMLISER_PLUGINS_META_TABLE', $this->env['db_prefix'] . 'smliser_plugin_meta' );
+        define( 'SMLISER_PLUGINS_META_TABLE', $this->db_prefix() . 'plugin_meta' );
 
         /**
          * Themes database table name.
          *
          * @var string `smliser_themes.`
          */
-        define( 'SMLISER_THEMES_TABLE', $this->env['db_prefix'] . 'smliser_themes' );
+        define( 'SMLISER_THEMES_TABLE', $this->db_prefix() . 'themes' );
 
         /**
          * Theme metadata database table name.
          *
          * @var string `smliser_theme_meta.`
          */
-        define( 'SMLISER_THEMES_META_TABLE', $this->env['db_prefix'] . 'smliser_theme_meta' );
+        define( 'SMLISER_THEMES_META_TABLE', $this->db_prefix() . 'theme_meta' );
 
         /**
          * Software database table name.
          *
          * @var string `smliser_software.`
          */
-        define( 'SMLISER_SOFTWARE_TABLE', $this->env['db_prefix'] . 'smliser_software' );
+        define( 'SMLISER_SOFTWARE_TABLE', $this->db_prefix() . 'software' );
 
         /**
          * Software metadata database table name.
          *
          * @var string `smliser_software_meta.`
          */
-        define( 'SMLISER_SOFTWARE_META_TABLE', $this->env['db_prefix'] . 'smliser_software_meta' );
+        define( 'SMLISER_SOFTWARE_META_TABLE', $this->db_prefix() . 'software_meta' );
 
         /**
          * API credentials database table name.
@@ -523,154 +523,154 @@ abstract class Environment implements EnvironmentProviderInterface {
          * @deprecated 0.2.0
          * @var string `smliser_api_creds.`
          */
-        define( 'SMLISER_API_CRED_TABLE', $this->env['db_prefix'] . 'smliser_api_creds' );
+        define( 'SMLISER_API_CRED_TABLE', $this->db_prefix() . 'api_creds' );
 
         /**
          * Item download token database table name.
          *
          * @var string `smliser_item_download_token.`
          */
-        define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $this->env['db_prefix'] . 'smliser_item_download_token' );
+        define( 'SMLISER_DOWNLOAD_TOKEN_TABLE', $this->db_prefix() . 'item_download_token' );
 
         /**
          * Application download token database table name.
          *
          * @var string `smliser_app_download_tokens.`
          */
-        define( 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE', $this->env['db_prefix'] . 'smliser_app_download_tokens' );
+        define( 'SMLISER_APP_DOWNLOAD_TOKEN_TABLE', $this->db_prefix() . 'app_download_tokens' );
 
         /**
          * Monetization records database table name.
          *
          * @var string `smliser_monetization.`
          */
-        define( 'SMLISER_MONETIZATION_TABLE', $this->env['db_prefix'] . 'smliser_monetization' );
+        define( 'SMLISER_MONETIZATION_TABLE', $this->db_prefix() . 'monetization' );
 
         /**
          * Pricing tiers database table name.
          *
          * @var string `smliser_pricing_tiers.`
          */
-        define( 'SMLISER_PRICING_TIER_TABLE', $this->env['db_prefix'] . 'smliser_pricing_tiers' );
+        define( 'SMLISER_PRICING_TIER_TABLE', $this->db_prefix() . 'pricing_tiers' );
 
         /**
          * Bulk messages database table name.
          *
          * @var string `smliser_bulk_messages.`
          */
-        define( 'SMLISER_BULK_MESSAGES_TABLE', $this->env['db_prefix'] . 'smliser_bulk_messages' );
+        define( 'SMLISER_BULK_MESSAGES_TABLE', $this->db_prefix() . 'bulk_messages' );
 
         /**
          * Bulk message to application mapping database table name.
          *
          * @var string `smliser_bulk_messages_apps.`
          */
-        define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $this->env['db_prefix'] . 'smliser_bulk_messages_apps' );
+        define( 'SMLISER_BULK_MESSAGES_APPS_TABLE', $this->db_prefix() . 'bulk_messages_apps' );
 
         /**
          * Plugin options database table name.
          *
          * @var string `smliser_options.`
          */
-        define( 'SMLISER_OPTIONS_TABLE', $this->env['db_prefix'] . 'smliser_options' );
+        define( 'SMLISER_OPTIONS_TABLE', $this->db_prefix() . 'options' );
 
         /**
          * Analytics event logs database table name.
          *
          * @var string `smliser_analytics_log.`
          */
-        define( 'SMLISER_ANALYTICS_LOGS_TABLE', $this->env['db_prefix'] . 'smliser_analytics_log' );
+        define( 'SMLISER_ANALYTICS_LOGS_TABLE', $this->db_prefix() . 'analytics_log' );
 
         /**
          * Daily analytics aggregation database table name.
          *
          * @var string `smliser_analytics_daily.`
          */
-        define( 'SMLISER_ANALYTICS_DAILY_TABLE', $this->env['db_prefix'] . 'smliser_analytics_daily' );
+        define( 'SMLISER_ANALYTICS_DAILY_TABLE', $this->db_prefix() . 'analytics_daily' );
 
         /**
          * Resource owners database table name.
          *
          * @var string `smliser_resource_owners.`
          */
-        define( 'SMLISER_OWNERS_TABLE', $this->env['db_prefix'] . 'smliser_resource_owners' );
+        define( 'SMLISER_OWNERS_TABLE', $this->db_prefix() . 'resource_owners' );
 
         /**
          * Internal users database table name.
          *
          * @var string `smliser_users.`
          */
-        define( 'SMLISER_USERS_TABLE', $this->env['db_prefix'] . 'smliser_users' );
+        define( 'SMLISER_USERS_TABLE', $this->db_prefix() . 'users' );
 
         /**
          * Users options database table name.
          * 
          * @var string `smliser_user_options.`
          */
-        define( 'SMLISER_USER_OPTIONS_TABLE', $this->env['db_prefix'] . 'smliser_user_options' );
+        define( 'SMLISER_USER_OPTIONS_TABLE', $this->db_prefix() . 'user_options' );
 
         /**
          * Service accounts database table name.
          *
          * @var string `smliser_service_accounts.`
          */
-        define( 'SMLISER_SERVICE_ACCOUNTS_TABLE', $this->env['db_prefix'] . 'smliser_service_accounts' );
+        define( 'SMLISER_SERVICE_ACCOUNTS_TABLE', $this->db_prefix() . 'service_accounts' );
 
         /**
          * Roles database table name.
          *
          * @var string `smliser_roles.`
          */
-        define( 'SMLISER_ROLES_TABLE', $this->env['db_prefix'] . 'smliser_roles' );
+        define( 'SMLISER_ROLES_TABLE', $this->db_prefix() . 'roles' );
 
         /**
          * Roles database table name.
          *
          * @var string `smliser_role_caps.`
          */
-        define( 'SMLISER_ROLE_CAPABILITIES_TABLE', $this->env['db_prefix'] . 'smliser_role_caps' );
+        define( 'SMLISER_ROLE_CAPABILITIES_TABLE', $this->db_prefix() . 'role_caps' );
 
         /**
          * Roles to principals database table name.
          *
          * @var string `smliser_principal_roles.`
          */
-        define( 'SMLISER_ROLE_ASSIGNMENT_TABLE', $this->env['db_prefix'] . 'smliser_principal_roles' );
+        define( 'SMLISER_ROLE_ASSIGNMENT_TABLE', $this->db_prefix() . 'principal_roles' );
 
         /**
          * Organizations database table name.
          *
          * @var string `smliser_organizations.`
          */
-        define( 'SMLISER_ORGANIZATIONS_TABLE', $this->env['db_prefix'] . 'smliser_organizations' );
+        define( 'SMLISER_ORGANIZATIONS_TABLE', $this->db_prefix() . 'organizations' );
 
         /**
          * Organization members database table name.
          *
          * @var string `smliser_organization_members.`
          */
-        define( 'SMLISER_ORGANIZATION_MEMBERS_TABLE', $this->env['db_prefix'] . 'smliser_organization_members' );
+        define( 'SMLISER_ORGANIZATION_MEMBERS_TABLE', $this->db_prefix() . 'organization_members' );
         
         /**
          * Identity provider map database table name.
          *
          * @var string `smliser_identity_provider_lookup.`
          */
-        define( 'SMLISER_IDENTITY_FEDERATION_TABLE', $this->env['db_prefix'] . 'smliser_identity_provider_lookup' );
+        define( 'SMLISER_IDENTITY_FEDERATION_TABLE', $this->db_prefix() . 'identity_provider_lookup' );
 
         /**
          * Background jobs queue table name.
          *
          * @var string `smliser_background_jobs`
          */
-        define( 'SMLISER_BACKGROUND_JOBS_TABLE', $this->env['db_prefix'] . 'smliser_background_jobs' );
+        define( 'SMLISER_BACKGROUND_JOBS_TABLE', $this->db_prefix() . 'background_jobs' );
 
         /**
          * Failed jobs archive table name.
          *
          * @var string `smliser_failed_jobs`
          */
-        define( 'SMLISER_FAILED_JOBS_TABLE', $this->env['db_prefix'] . 'smliser_failed_jobs' );
+        define( 'SMLISER_FAILED_JOBS_TABLE', $this->db_prefix() . 'failed_jobs' );
 
         /**
          * Absolute path to the Smart License Server repository root directory.
@@ -860,6 +860,21 @@ abstract class Environment implements EnvironmentProviderInterface {
                 memory_limit_mb: $this->safe_worker_memory_limit_mb(),
             );
         }
+    }
+
+    /*
+    |-------------------------
+    | ACCESSORS
+    |-------------------------
+    */
+
+    /**
+     * Get the database table prefix.
+     * 
+     * @return string
+     */
+    public function db_prefix() : string {
+        return $this->env['db_prefix'];
     }
 
     /**

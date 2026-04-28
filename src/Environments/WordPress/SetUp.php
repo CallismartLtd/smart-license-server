@@ -100,7 +100,7 @@ class SetUp extends Environment {
         $repo_path          = WP_CONTENT_DIR;
         $absolute_path      = ABSPATH;
         $uploads_dir        = wp_upload_dir()['basedir'];
-        $db_prefix          = $wpdb?->prefix;
+        $db_prefix          = $wpdb->prefix . 'smliser_';
         $filesystem_adapter = new WPFileSystemAdapter;
         $cache_adapter      = wp_using_ext_object_cache() ? new WPCacheAdapter : null;
         $settings_provider  = new WPSettingsProvider;
