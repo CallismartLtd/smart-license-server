@@ -1,130 +1,81 @@
 <?php
 /**
- * Software Table Schema
+ * Software Schema definition file.
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
 
-defined('SMLISER_ABSPATH') || exit;
+namespace SmartLicenseServer\Database\Schema\Definitions;
 
-/**
- * Stores software records.
- */
-class SoftwareSchema extends AbstractDatabaseSchema {
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_table_name(): string {
-        return SMLISER_SOFTWARE_TABLE;
-    }
+defined( 'SMLISER_ABSPATH' ) || exit;
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_columns(): array {
-        return [
-            [
-                'name' => 'id',
-                'type' => 'bigint',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            [
-                'name' => 'owner_id',
-                'type' => 'bigint',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'name',
-                'type' => 'varchar',
-                'length' => 255,
-            ],
-            [
-                'name' => 'slug',
-                'type' => 'varchar',
-                'length' => 300,
-            ],
-            [
-                'name' => 'status',
-                'type' => 'varchar',
-                'length' => 55,
-                'default' => 'active',
-            ],
-            [
-                'name' => 'author',
-                'type' => 'varchar',
-                'length' => 255,
-                'nullable' => true,
-            ],
-            [
-                'name' => 'download_link',
-                'type' => 'varchar',
-                'length' => 400,
-                'nullable' => true,
-            ],
-            [
-                'name' => 'created_at',
-                'type' => 'datetime',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'updated_at',
-                'type' => 'datetime',
-            ],
-        ];
-    }
+class SoftwareSchema implements DatabaseSchemaInterface {
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_constraints(): array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['id'],
-            ],
-            [
-                'type' => 'unique',
-                'columns' => ['slug'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'software_slug_index',
-                'columns' => ['slug'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'software_author_index',
-                'columns' => ['author'],
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_options(): array {
-        return [];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_id(): string {
-        return 'software';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_label(): string {
+    public static function get_label() : string {
         return 'Software';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_description(): string {
+    public static function get_description() : string {
         return 'Stores software records.';
+    }
+
+    public static function get_table_name() : string {
+        return SMLISER_SOFTWARE_TABLE;
+    }
+
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'owner_id' )
+                ->type( 'bigint' ),
+
+            Column::make( 'name' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'slug' )
+                ->type( 'varchar' )
+                ->size( 300 )
+                ->required(),
+
+            Column::make( 'status' )
+                ->type( 'varchar' )
+                ->size( 55 )
+                ->default( 'active' )
+                ->required(),
+
+            Column::make( 'author' )
+                ->type( 'varchar' )
+                ->size( 255 ),
+
+            Column::make( 'download_link' )
+                ->type( 'varchar' )
+                ->size( 400 ),
+
+            Column::make( 'created_at' )
+                ->type( 'datetime' ),
+
+            Column::make( 'updated_at' )
+                ->type( 'datetime' )
+                ->required(),
+        ];
+    }
+
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'unique' )->on( 'slug' ),
+            Constraint::make( 'index' )->name( 'software_slug_index' )->on( 'slug' ),
+            Constraint::make( 'index' )->name( 'software_author_index' )->on( 'author' ),
+        ];
     }
 }

@@ -1,111 +1,100 @@
 <?php
 /**
  * Analytics Daily Table Schema
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database\Schema\Definitions
+ * @since 0.2.0
  */
+declare( strict_types=1 );
 
-namespace SmartLicenseServer\Database\Schema;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Stores aggregated analytics.
+ * 
+ * @since 0.2.0
  */
-class AnalyticsDailySchema extends AbstractDatabaseSchema {
+class AnalyticsDailySchema implements DatabaseSchemaInterface {
 
     /**
-     * {@inheritDoc}
-     */
-    public static function get_table_name() : string {
-        return SMLISER_ANALYTICS_DAILY_TABLE;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public static function get_columns() : array {
-        return [
-            [
-                'name'     => 'app_type',
-                'type'     => 'varchar',
-                'length'   => 20,
-                'nullable' => false,
-            ],
-            [
-                'name'     => 'app_slug',
-                'type'     => 'varchar',
-                'length'   => 100,
-                'nullable' => false,
-            ],
-            [
-                'name'     => 'stats_date',
-                'type'     => 'date',
-                'nullable' => false,
-            ],
-            [
-                'name'     => 'event_type',
-                'type'     => 'varchar',
-                'length'   => 50,
-                'nullable' => false,
-            ],
-            [
-                'name'      => 'total_count',
-                'type'      => 'int',
-                'length'    => 10,
-                'unsigned'  => true,
-                'nullable'  => false,
-                'default'   => 0,
-            ],
-            [
-                'name'      => 'unique_count',
-                'type'      => 'int',
-                'length'    => 10,
-                'unsigned'  => true,
-                'nullable'  => false,
-                'default'   => 0,
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public static function get_constraints() : array {
-        return [
-            [
-                'type'    => 'primary',
-                'columns' => [
-                    'app_type',
-                    'app_slug',
-                    'stats_date',
-                    'event_type',
-                ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'date_lookup',
-                'columns' => [ 'stats_date' ],
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public static function get_options() : array {
-        return [];
-    }
-
-    /**
-     * {@inheritDoc}
+     * @inheritDoc
      */
     public static function get_label() : string {
         return 'Analytics Daily';
     }
 
     /**
-     * {@inheritDoc}
+     * @inheritDoc
      */
     public static function get_description() : string {
         return 'Stores daily analytics aggregates.';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_table_name() : string {
+        return SMLISER_ANALYTICS_DAILY_TABLE;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_columns() : array {
+        return [
+            Column::make( 'app_type' )
+                ->type( 'varchar' )
+                ->size( 20 )
+                ->required(),
+
+            Column::make( 'app_slug' )
+                ->type( 'varchar' )
+                ->size( 100 )
+                ->required(),
+
+            Column::make( 'stats_date' )
+                ->type( 'date' )
+                ->required(),
+
+            Column::make( 'event_type' )
+                ->type( 'varchar' )
+                ->size( 50 )
+                ->required(),
+
+            Column::make( 'total_count' )
+                ->type( 'int' )
+                ->size( 10 )
+                ->unsigned()
+                ->required()
+                ->default( 0 ),
+
+            Column::make( 'unique_count' )
+                ->type( 'int' )
+                ->size( 10 )
+                ->unsigned()
+                ->required()
+                ->default( 0 ),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )
+                ->on( 'app_type', 'app_slug', 'stats_date', 'event_type' ),
+
+            Constraint::make( 'index' )
+                ->name( 'date_lookup' )
+                ->on( 'stats_date' ),
+        ];
     }
 }

@@ -1,107 +1,100 @@
 <?php
 /**
- * Bulk Messages Schema
+ * Bulk Messages Schema definition file.
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database\Schema\Definitions
+ * @since 0.2.0
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
+
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Stores bulk messages.
+ * 
+ * @since 0.2.0
  */
-class BulkMessagesSchema extends AbstractDatabaseSchema {
+class BulkMessagesSchema implements DatabaseSchemaInterface {
 
-    public static function get_table_name() : string {
-        return SMLISER_BULK_MESSAGES_TABLE;
-    }
-
-    public static function get_columns() : array {
-        return [
-            [
-                'name'            => 'id',
-                'type'            => 'bigint',
-                'auto_increment'  => true,
-                'nullable'        => false,
-            ],
-            [
-                'name'      => 'message_id',
-                'type'      => 'varchar',
-                'length'    => 64,
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'subject',
-                'type'      => 'varchar',
-                'length'    => 255,
-                'nullable'  => false,
-            ],
-            [
-                'name'      => 'body',
-                'type'      => 'longtext',
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'created_at',
-                'type'      => 'datetime',
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'updated_at',
-                'type'      => 'datetime',
-                'nullable'  => false,
-                'default'   => 'CURRENT_TIMESTAMP',
-                'on_update' => 'CURRENT_TIMESTAMP',
-            ],
-            [
-                'name'      => 'is_read',
-                'type'      => 'tinyint',
-                'length'    => 1,
-                'nullable'  => true,
-                'default'   => 0,
-            ],
-        ];
-    }
-
-    public static function get_constraints() : array {
-        return [
-            [
-                'type'    => 'primary',
-                'columns' => [ 'id' ],
-            ],
-            [
-                'type'    => 'unique',
-                'columns' => [ 'message_id' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'smliser_bulk_msg_created_at',
-                'columns' => [ 'created_at' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'smliser_bulk_msg_updated_at',
-                'columns' => [ 'updated_at' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'smliser_msg_id_lookup',
-                'columns' => [ 'message_id' ],
-            ],
-        ];
-    }
-
-    public static function get_options() : array {
-        return [];
-    }
-
+    /**
+     * @inheritDoc
+     */
     public static function get_label() : string {
         return 'Bulk Messages';
     }
 
+    /**
+     * @inheritDoc
+     */
     public static function get_description() : string {
         return 'Stores bulk messages.';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_table_name() : string {
+        return SMLISER_BULK_MESSAGES_TABLE;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'message_id' )
+                ->type( 'varchar' )
+                ->size( 64 )
+                ->default( null ),
+
+            Column::make( 'subject' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'body' )
+                ->type( 'longtext' )
+                ->default( null ),
+
+            Column::make( 'created_at' )
+                ->type( 'datetime' )
+                ->default( null ),
+
+            Column::make( 'updated_at' )
+                ->type( 'datetime' )
+                ->required()
+                ->default( 'CURRENT_TIMESTAMP' )
+                ->comment( 'on_update CURRENT_TIMESTAMP' ),
+
+            Column::make( 'is_read' )
+                ->type( 'tinyint' )
+                ->size( 1 )
+                ->default( 0 ),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'unique' )->on( 'message_id' ),
+            Constraint::make( 'index' )->name( 'smliser_bulk_msg_created_at' )->on( 'created_at' ),
+            Constraint::make( 'index' )->name( 'smliser_bulk_msg_updated_at' )->on( 'updated_at' ),
+            Constraint::make( 'index' )->name( 'smliser_msg_id_lookup' )->on( 'message_id' ),
+        ];
     }
 }

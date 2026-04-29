@@ -1,99 +1,62 @@
 <?php
 /**
- * Software Meta Table Schema
+ * Software Meta Schema definition file.
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
 
-defined('SMLISER_ABSPATH') || exit;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
+
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Stores metadata for software.
+ * Software Meta Schema
  */
-class SoftwareMetaSchema extends AbstractDatabaseSchema {
+class SoftwareMetaSchema implements DatabaseSchemaInterface {
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_table_name(): string {
-        return SMLISER_SOFTWARE_META_TABLE;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_columns(): array {
-        return [
-            [
-                'name' => 'id',
-                'type' => 'bigint',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            [
-                'name' => 'software_id',
-                'type' => 'bigint',
-                'unsigned' => true,
-            ],
-            [
-                'name' => 'meta_key',
-                'type' => 'varchar',
-                'length' => 255,
-            ],
-            [
-                'name' => 'meta_value',
-                'type' => 'longtext',
-                'nullable' => true,
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_constraints(): array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'app_id_index',
-                'columns' => ['software_id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'meta_key_index',
-                'columns' => ['meta_key'],
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_options(): array {
-        return [];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_id(): string {
-        return 'software_meta';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_label(): string {
+    public static function get_label() : string {
         return 'Software Meta';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_description(): string {
+    public static function get_description() : string {
         return 'Stores software metadata.';
+    }
+
+    public static function get_table_name() : string {
+        return SMLISER_SOFTWARE_META_TABLE;
+    }
+
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'software_id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->required(),
+
+            Column::make( 'meta_key' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'meta_value' )
+                ->type( 'longtext' ),
+        ];
+    }
+
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'index' )->name( 'app_id_index' )->on( 'software_id' ),
+            Constraint::make( 'index' )->name( 'meta_key_index' )->on( 'meta_key' ),
+        ];
     }
 }

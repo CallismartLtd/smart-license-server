@@ -1,77 +1,87 @@
 <?php
+/**
+ * Organization Members Schema definition file.
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database\Schema\Definitions
+ * @since 0.2.0
+ */
+declare( strict_types=1 );
 
-namespace SmartLicenseServer\Database\Schema;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class OrganizationMembersSchema extends AbstractDatabaseSchema {
+/**
+ * Maps members to organizations.
+ * 
+ * @since 0.2.0
+ */
+class OrganizationMembersSchema implements DatabaseSchemaInterface {
 
-    public static function get_table_name() : string {
-        return SMLISER_ORGANIZATION_MEMBERS_TABLE;
-    }
-
-    public static function get_columns() : array {
-        return [
-            [
-                'name' => 'id',
-                'type' => 'bigint',
-                'unsigned' => true,
-                'auto_increment' => true,
-                'nullable' => false,
-            ],
-            [
-                'name' => 'organization_id',
-                'type' => 'bigint',
-                'unsigned' => true,
-                'nullable' => false,
-            ],
-            [
-                'name' => 'member_id',
-                'type' => 'bigint',
-                'unsigned' => true,
-                'nullable' => false,
-            ],
-            [
-                'name' => 'created_at',
-                'type' => 'datetime',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'updated_at',
-                'type' => 'datetime',
-                'nullable' => false,
-            ],
-        ];
-    }
-
-    public static function get_constraints() : array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'organization_member_id',
-                'columns' => ['member_id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'organization_id',
-                'columns' => ['organization_id'],
-            ],
-        ];
-    }
-
-    public static function get_options() : array {
-        return [];
-    }
-
+    /**
+     * @inheritDoc
+     */
     public static function get_label() : string {
         return 'Organization Members';
     }
 
+    /**
+     * @inheritDoc
+     */
     public static function get_description() : string {
         return 'Maps members to organizations.';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_table_name() : string {
+        return SMLISER_ORGANIZATION_MEMBERS_TABLE;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'organization_id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->required(),
+
+            Column::make( 'member_id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->required(),
+
+            Column::make( 'created_at' )
+                ->type( 'datetime' ),
+
+            Column::make( 'updated_at' )
+                ->type( 'datetime' )
+                ->required(),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'index' )->name( 'organization_member_id' )->on( 'member_id' ),
+            Constraint::make( 'index' )->name( 'organization_id' )->on( 'organization_id' ),
+        ];
     }
 }

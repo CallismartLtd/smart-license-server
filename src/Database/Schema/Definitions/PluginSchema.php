@@ -1,111 +1,21 @@
 <?php
+/**
+ * Plugin Table Schema definition file.
+ */
+declare( strict_types=1 );
 
-namespace SmartLicenseServer\Database\Schema;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class PluginSchema extends AbstractDatabaseSchema {
-
-    public static function get_table_name() : string {
-        return SMLISER_PLUGINS_TABLE;
-    }
-
-    public static function get_columns() : array {
-        return [
-            [
-                'name' => 'id',
-                'type' => 'int',
-                'unsigned' => true,
-                'auto_increment' => true,
-                'nullable' => false,
-            ],
-            [
-                'name' => 'owner_id',
-                'type' => 'bigint',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'name',
-                'type' => 'varchar',
-                'length' => 255,
-                'nullable' => false,
-            ],
-            [
-                'name' => 'slug',
-                'type' => 'varchar',
-                'length' => 300,
-                'nullable' => true,
-            ],
-            [
-                'name' => 'status',
-                'type' => 'varchar',
-                'length' => 300,
-                'default' => 'active',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'author',
-                'type' => 'varchar',
-                'length' => 255,
-                'nullable' => true,
-            ],
-            [
-                'name' => 'author_profile',
-                'type' => 'varchar',
-                'length' => 255,
-                'nullable' => true,
-            ],
-            [
-                'name' => 'download_link',
-                'type' => 'varchar',
-                'length' => 400,
-                'nullable' => true,
-            ],
-            [
-                'name' => 'created_at',
-                'type' => 'datetime',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'updated_at',
-                'type' => 'datetime',
-                'nullable' => false,
-            ],
-        ];
-    }
-
-    public static function get_constraints() : array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'plugin_download_link_index',
-                'columns' => ['download_link'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'plugin_slug_index',
-                'columns' => ['slug'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'plugin_author_index',
-                'columns' => ['author'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'plugin_status_index',
-                'columns' => ['status'],
-            ],
-        ];
-    }
-
-    public static function get_options() : array {
-        return [];
-    }
+/**
+ * Stores core plugin information.
+ */
+class PluginSchema implements DatabaseSchemaInterface {
 
     public static function get_label() : string {
         return 'Plugins';
@@ -113,5 +23,65 @@ class PluginSchema extends AbstractDatabaseSchema {
 
     public static function get_description() : string {
         return 'Stores plugin information.';
+    }
+
+    public static function get_table_name() : string {
+        return SMLISER_PLUGINS_TABLE;
+    }
+
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'int' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'owner_id' )
+                ->type( 'bigint' ),
+
+            Column::make( 'name' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'slug' )
+                ->type( 'varchar' )
+                ->size( 300 ),
+
+            Column::make( 'status' )
+                ->type( 'varchar' )
+                ->size( 300 )
+                ->default( 'active' ),
+
+            Column::make( 'author' )
+                ->type( 'varchar' )
+                ->size( 255 ),
+
+            Column::make( 'author_profile' )
+                ->type( 'varchar' )
+                ->size( 255 ),
+
+            Column::make( 'download_link' )
+                ->type( 'varchar' )
+                ->size( 400 ),
+
+            Column::make( 'created_at' )
+                ->type( 'datetime' ),
+
+            Column::make( 'updated_at' )
+                ->type( 'datetime' )
+                ->required(),
+        ];
+    }
+
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'index' )->name( 'plugin_download_link_index' )->on( 'download_link' ),
+            Constraint::make( 'index' )->name( 'plugin_slug_index' )->on( 'slug' ),
+            Constraint::make( 'index' )->name( 'plugin_author_index' )->on( 'author' ),
+            Constraint::make( 'index' )->name( 'plugin_status_index' )->on( 'status' ),
+        ];
     }
 }

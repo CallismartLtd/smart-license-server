@@ -1,99 +1,98 @@
 <?php
 /**
- * Failed Jobs Schema
+ * Failed Jobs Schema definition file.
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database\Schema\Definitions
+ * @since 0.2.0
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
+
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Stores failed jobs.
+ * Stores failed background jobs for inspection and retries.
+ * 
+ * @since 0.2.0
  */
-class FailedJobsSchema extends AbstractDatabaseSchema {
+class FailedJobsSchema implements DatabaseSchemaInterface {
 
-    public static function get_table_name() : string {
-        return SMLISER_FAILED_JOBS_TABLE;
-    }
-
-    public static function get_columns() : array {
-        return [
-            [
-                'name'            => 'id',
-                'type'            => 'bigint',
-                'unsigned'        => true,
-                'auto_increment'  => true,
-                'nullable'        => false,
-            ],
-            [
-                'name'      => 'job_id',
-                'type'      => 'bigint',
-                'unsigned'  => true,
-                'nullable'  => false,
-            ],
-            [
-                'name'      => 'job_class',
-                'type'      => 'varchar',
-                'length'    => 255,
-                'nullable'  => false,
-            ],
-            [
-                'name'      => 'queue',
-                'type'      => 'varchar',
-                'length'    => 50,
-                'nullable'  => false,
-            ],
-            [
-                'name'      => 'payload',
-                'type'      => 'json',
-                'nullable'  => false,
-            ],
-            [
-                'name'      => 'error_message',
-                'type'      => 'text',
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'failed_at',
-                'type'      => 'datetime',
-                'nullable'  => false,
-            ],
-        ];
-    }
-
-    public static function get_constraints() : array {
-        return [
-            [
-                'type'    => 'primary',
-                'columns' => [ 'id' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'idx_job_id',
-                'columns' => [ 'job_id' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'idx_failed_at',
-                'columns' => [ 'failed_at' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'idx_job_class',
-                'columns' => [ 'job_class' ],
-            ],
-        ];
-    }
-
-    public static function get_options() : array {
-        return [];
-    }
-
+    /**
+     * @inheritDoc
+     */
     public static function get_label() : string {
         return 'Failed Jobs';
     }
 
+    /**
+     * @inheritDoc
+     */
     public static function get_description() : string {
         return 'Stores failed jobs.';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_table_name() : string {
+        return SMLISER_FAILED_JOBS_TABLE;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'job_id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->required(),
+
+            Column::make( 'job_class' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'queue' )
+                ->type( 'varchar' )
+                ->size( 50 )
+                ->required(),
+
+            Column::make( 'payload' )
+                ->type( 'json' )
+                ->required(),
+
+            Column::make( 'error_message' )
+                ->type( 'text' )
+                ->default( null ),
+
+            Column::make( 'failed_at' )
+                ->type( 'datetime' )
+                ->required(),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'index' )->name( 'idx_job_id' )->on( 'job_id' ),
+            Constraint::make( 'index' )->name( 'idx_failed_at' )->on( 'failed_at' ),
+            Constraint::make( 'index' )->name( 'idx_job_class' )->on( 'job_class' ),
+        ];
     }
 }

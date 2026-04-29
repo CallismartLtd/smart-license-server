@@ -1,89 +1,18 @@
 <?php
+/**
+ * Owners Schema definition file.
+ */
+declare( strict_types=1 );
 
-namespace SmartLicenseServer\Database\Schema;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class OwnersSchema extends AbstractDatabaseSchema {
-
-    public static function get_table_name() : string {
-        return SMLISER_OWNERS_TABLE;
-    }
-
-    public static function get_columns() : array {
-        return [
-            [
-                'name' => 'id',
-                'type' => 'bigint',
-                'unsigned' => true,
-                'auto_increment' => true,
-                'nullable' => false,
-            ],
-            [
-                'name' => 'subject_id',
-                'type' => 'bigint',
-                'nullable' => false,
-            ],
-            [
-                'name' => 'type',
-                'type' => 'enum',
-                'values' => ['individual', 'organization', 'platform'],
-                'default' => 'platform',
-                'nullable' => false,
-            ],
-            [
-                'name' => 'name',
-                'type' => 'varchar',
-                'length' => 255,
-                'nullable' => false,
-            ],
-            [
-                'name' => 'status',
-                'type' => 'enum',
-                'values' => ['active', 'suspended', 'disabled'],
-                'default' => 'active',
-                'nullable' => false,
-            ],
-            [
-                'name' => 'created_at',
-                'type' => 'datetime',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'updated_at',
-                'type' => 'datetime',
-                'nullable' => false,
-            ],
-        ];
-    }
-
-    public static function get_constraints() : array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_owners_subject_id',
-                'columns' => ['subject_id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_owners_created_at',
-                'columns' => ['created_at'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_owners_updated_at',
-                'columns' => ['updated_at'],
-            ],
-        ];
-    }
-
-    public static function get_options() : array {
-        return [];
-    }
+class OwnersSchema implements DatabaseSchemaInterface {
 
     public static function get_label() : string {
         return 'Owners';
@@ -91,5 +20,56 @@ class OwnersSchema extends AbstractDatabaseSchema {
 
     public static function get_description() : string {
         return 'Stores resource owners.';
+    }
+
+    public static function get_table_name() : string {
+        return SMLISER_OWNERS_TABLE;
+    }
+
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'subject_id' )
+                ->type( 'bigint' )
+                ->required(),
+
+            Column::make( 'type' )
+                ->type( 'varchar' )
+                ->size( 20 )
+                ->default( 'platform' )
+                ->required(),
+
+            Column::make( 'name' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'status' )
+                ->type( 'varchar' )
+                ->size( 20 )
+                ->default( 'active' )
+                ->required(),
+
+            Column::make( 'created_at' )
+                ->type( 'datetime' ),
+
+            Column::make( 'updated_at' )
+                ->type( 'datetime' )
+                ->required(),
+        ];
+    }
+
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'index' )->name( 'smliser_owners_subject_id' )->on( 'subject_id' ),
+            Constraint::make( 'index' )->name( 'smliser_owners_created_at' )->on( 'created_at' ),
+            Constraint::make( 'index' )->name( 'smliser_owners_updated_at' )->on( 'updated_at' ),
+        ];
     }
 }

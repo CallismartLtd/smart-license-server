@@ -1,142 +1,95 @@
 <?php
 /**
- * Service Accounts Schema
+ * Service Accounts Schema definition file.
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database\Schema\Definitions
+ * @since 0.2.0
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
 
-defined('SMLISER_ABSPATH') || exit;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
+
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Stores service accounts.
+ * 
+ * @since 0.2.0
  */
-class ServiceAccountsSchema extends AbstractDatabaseSchema {
+class ServiceAccountsSchema implements DatabaseSchemaInterface {
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_table_name(): string {
-        return SMLISER_SERVICE_ACCOUNTS_TABLE;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_columns(): array {
-        return [
-            [
-                'name' => 'id',
-                'type' => 'int',
-                'auto_increment' => true,
-            ],
-            [
-                'name' => 'identifier',
-                'type' => 'varchar',
-                'length' => 255,
-            ],
-            [
-                'name' => 'owner_id',
-                'type' => 'int',
-            ],
-            [
-                'name' => 'display_name',
-                'type' => 'varchar',
-                'length' => 255,
-            ],
-            [
-                'name' => 'description',
-                'type' => 'text',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'api_key_hash',
-                'type' => 'varchar',
-                'length' => 512,
-            ],
-            [
-                'name' => 'status',
-                'type' => 'enum',
-                'default' => 'active',
-                'values' => ['active', 'suspended', 'disabled'],
-            ],
-            [
-                'name' => 'created_at',
-                'type' => 'datetime',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'updated_at',
-                'type' => 'datetime',
-            ],
-            [
-                'name' => 'last_used_at',
-                'type' => 'datetime',
-                'nullable' => true,
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_constraints(): array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_service_acct_owner_id',
-                'columns' => ['owner_id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_service_acct_api_key_hash',
-                'columns' => ['api_key_hash'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_service_acct_status',
-                'columns' => ['status'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_service_acct_created_at',
-                'columns' => ['created_at'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_service_acct_updated_at',
-                'columns' => ['updated_at'],
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_options(): array {
-        return [];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_id(): string {
-        return 'service_accounts';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_label(): string {
+    public static function get_label() : string {
         return 'Service Accounts';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_description(): string {
+    public static function get_description() : string {
         return 'Stores service accounts.';
+    }
+
+    public static function get_table_name() : string {
+        return SMLISER_SERVICE_ACCOUNTS_TABLE;
+    }
+
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'int' )
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'identifier' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'owner_id' )
+                ->type( 'int' )
+                ->required(),
+
+            Column::make( 'display_name' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'description' )
+                ->type( 'text' ),
+
+            Column::make( 'api_key_hash' )
+                ->type( 'varchar' )
+                ->size( 512 )
+                ->required(),
+
+            Column::make( 'status' )
+                ->type( 'varchar' )
+                ->size( 30 )
+                ->default( 'active' )
+                ->required(),
+
+            Column::make( 'created_at' )
+                ->type( 'datetime' ),
+
+            Column::make( 'updated_at' )
+                ->type( 'datetime' )
+                ->required(),
+
+            Column::make( 'last_used_at' )
+                ->type( 'datetime' ),
+        ];
+    }
+
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'index' )->name( 'smliser_service_acct_owner_id' )->on( 'owner_id' ),
+            Constraint::make( 'index' )->name( 'smliser_service_acct_api_key_hash' )->on( 'api_key_hash' ),
+            Constraint::make( 'index' )->name( 'smliser_service_acct_status' )->on( 'status' ),
+            Constraint::make( 'index' )->name( 'smliser_service_acct_created_at' )->on( 'created_at' ),
+            Constraint::make( 'index' )->name( 'smliser_service_acct_updated_at' )->on( 'updated_at' ),
+        ];
     }
 }

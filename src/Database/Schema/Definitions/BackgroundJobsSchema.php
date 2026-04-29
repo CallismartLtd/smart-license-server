@@ -1,150 +1,148 @@
 <?php
 /**
- * Background Jobs Schema
+ * Background Jobs Schema definition file.
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database\Schema\Definitions
+ * @since 0.2.0
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
+
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Stores queued jobs.
+ * Stores queued jobs for background processing.
+ * 
+ * @since 0.2.0
  */
-class BackgroundJobsSchema extends AbstractDatabaseSchema {
+class BackgroundJobsSchema implements DatabaseSchemaInterface {
 
-    public static function get_table_name() : string {
-        return SMLISER_BACKGROUND_JOBS_TABLE;
-    }
-
-    public static function get_columns() : array {
-        return [
-            [
-                'name'            => 'id',
-                'type'            => 'bigint',
-                'unsigned'        => true,
-                'nullable'        => false,
-                'auto_increment'  => true,
-            ],
-            [
-                'name'      => 'job_class',
-                'type'      => 'varchar',
-                'length'    => 255,
-                'nullable'  => false,
-            ],
-            [
-                'name'      => 'queue',
-                'type'      => 'varchar',
-                'length'    => 50,
-                'nullable'  => false,
-                'default'   => 'default',
-            ],
-            [
-                'name'      => 'priority',
-                'type'      => 'tinyint',
-                'unsigned'  => true,
-                'nullable'  => false,
-                'default'   => 5,
-            ],
-            [
-                'name'      => 'status',
-                'type'      => 'varchar',
-                'length'    => 20,
-                'nullable'  => false,
-                'default'   => 'pending',
-            ],
-            [
-                'name'      => 'payload',
-                'type'      => 'json',
-                'nullable'  => false,
-            ],
-            [
-                'name'      => 'attempts',
-                'type'      => 'tinyint',
-                'unsigned'  => true,
-                'nullable'  => false,
-                'default'   => 0,
-            ],
-            [
-                'name'      => 'max_attempts',
-                'type'      => 'tinyint',
-                'unsigned'  => true,
-                'nullable'  => false,
-                'default'   => 3,
-            ],
-            [
-                'name'      => 'available_at',
-                'type'      => 'datetime',
-                'nullable'  => false,
-            ],
-            [
-                'name'      => 'started_at',
-                'type'      => 'datetime',
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'completed_at',
-                'type'      => 'datetime',
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'created_at',
-                'type'      => 'datetime',
-                'nullable'  => false,
-            ],
-            [
-                'name'      => 'result',
-                'type'      => 'json',
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'error_message',
-                'type'      => 'text',
-                'nullable'  => true,
-                'default'   => null,
-            ],
-        ];
-    }
-
-    public static function get_constraints() : array {
-        return [
-            [
-                'type'    => 'primary',
-                'columns' => [ 'id' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'idx_queue_status_available',
-                'columns' => [ 'queue', 'status', 'available_at' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'idx_status',
-                'columns' => [ 'status' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'idx_started_at',
-                'columns' => [ 'started_at' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'idx_completed_at',
-                'columns' => [ 'completed_at' ],
-            ],
-        ];
-    }
-
-    public static function get_options() : array {
-        return [];
-    }
-
+    /**
+     * @inheritDoc
+     */
     public static function get_label() : string {
         return 'Background Jobs';
     }
 
+    /**
+     * @inheritDoc
+     */
     public static function get_description() : string {
         return 'Stores background jobs.';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_table_name() : string {
+        return SMLISER_BACKGROUND_JOBS_TABLE;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'job_class' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'queue' )
+                ->type( 'varchar' )
+                ->size( 50 )
+                ->default( 'default' )
+                ->required(),
+
+            Column::make( 'priority' )
+                ->type( 'tinyint' )
+                ->unsigned()
+                ->default( 5 )
+                ->required(),
+
+            Column::make( 'status' )
+                ->type( 'varchar' )
+                ->size( 20 )
+                ->default( 'pending' )
+                ->required(),
+
+            Column::make( 'payload' )
+                ->type( 'json' )
+                ->required(),
+
+            Column::make( 'attempts' )
+                ->type( 'tinyint' )
+                ->unsigned()
+                ->default( 0 )
+                ->required(),
+
+            Column::make( 'max_attempts' )
+                ->type( 'tinyint' )
+                ->unsigned()
+                ->default( 3 )
+                ->required(),
+
+            Column::make( 'available_at' )
+                ->type( 'datetime' )
+                ->required(),
+
+            Column::make( 'started_at' )
+                ->type( 'datetime' )
+                ->default( null ),
+
+            Column::make( 'completed_at' )
+                ->type( 'datetime' )
+                ->default( null ),
+
+            Column::make( 'created_at' )
+                ->type( 'datetime' )
+                ->required(),
+
+            Column::make( 'result' )
+                ->type( 'json' )
+                ->default( null ),
+
+            Column::make( 'error_message' )
+                ->type( 'text' )
+                ->default( null ),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )
+                ->on( 'id' ),
+
+            Constraint::make( 'index' )
+                ->name( 'idx_queue_status_available' )
+                ->on( 'queue', 'status', 'available_at' ),
+
+            Constraint::make( 'index' )
+                ->name( 'idx_status' )
+                ->on( 'status' ),
+
+            Constraint::make( 'index' )
+                ->name( 'idx_started_at' )
+                ->on( 'started_at' ),
+
+            Constraint::make( 'index' )
+                ->name( 'idx_completed_at' )
+                ->on( 'completed_at' ),
+        ];
     }
 }

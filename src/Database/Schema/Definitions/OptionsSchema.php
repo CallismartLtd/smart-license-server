@@ -1,61 +1,79 @@
 <?php
+/**
+ * Options Schema definition file.
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database\Schema\Definitions
+ * @since 0.2.0
+ */
+declare( strict_types=1 );
 
-namespace SmartLicenseServer\Database\Schema;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
-class OptionsSchema extends AbstractDatabaseSchema {
+/**
+ * Stores global configuration options.
+ * 
+ * @since 0.2.0
+ */
+class OptionsSchema implements DatabaseSchemaInterface {
 
-    public static function get_table_name() : string {
-        return SMLISER_OPTIONS_TABLE;
-    }
-
-    public static function get_columns() : array {
-        return [
-            [
-                'name' => 'option_id',
-                'type' => 'bigint',
-                'unsigned' => true,
-                'auto_increment' => true,
-                'nullable' => false,
-            ],
-            [
-                'name' => 'option_name',
-                'type' => 'varchar',
-                'length' => 255,
-                'nullable' => false,
-            ],
-            [
-                'name' => 'option_value',
-                'type' => 'longtext',
-                'nullable' => true,
-            ],
-        ];
-    }
-
-    public static function get_constraints() : array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['option_id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_option_key',
-                'columns' => ['option_name'],
-            ],
-        ];
-    }
-
-    public static function get_options() : array {
-        return [];
-    }
-
+    /**
+     * @inheritDoc
+     */
     public static function get_label() : string {
         return 'Options';
     }
 
+    /**
+     * @inheritDoc
+     */
     public static function get_description() : string {
         return 'Stores global configuration.';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_table_name() : string {
+        return SMLISER_OPTIONS_TABLE;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_columns() : array {
+        return [
+            Column::make( 'option_id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'option_name' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'option_value' )
+                ->type( 'longtext' ),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'option_id' ),
+            Constraint::make( 'index' )
+                ->name( 'smliser_option_key' )
+                ->on( 'option_name' ),
+        ];
     }
 }

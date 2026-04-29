@@ -1,137 +1,84 @@
 <?php
 /**
- * Theme Table Schema
+ * Theme Schema definition file.
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
 
-defined('SMLISER_ABSPATH') || exit;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
+
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Stores theme records.
+ * Theme Schema
  */
-class ThemeSchema extends AbstractDatabaseSchema {
+class ThemeSchema implements DatabaseSchemaInterface {
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_table_name(): string {
-        return SMLISER_THEMES_TABLE;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_columns(): array {
-        return [
-            [
-                'name' => 'id',
-                'type' => 'int',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            [
-                'name' => 'owner_id',
-                'type' => 'bigint',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'name',
-                'type' => 'varchar',
-                'length' => 255,
-            ],
-            [
-                'name' => 'slug',
-                'type' => 'varchar',
-                'length' => 300,
-                'nullable' => true,
-            ],
-            [
-                'name' => 'author',
-                'type' => 'varchar',
-                'length' => 255,
-                'nullable' => true,
-            ],
-            [
-                'name' => 'status',
-                'type' => 'varchar',
-                'length' => 55,
-                'default' => 'active',
-            ],
-            [
-                'name' => 'download_link',
-                'type' => 'varchar',
-                'length' => 400,
-                'nullable' => true,
-            ],
-            [
-                'name' => 'created_at',
-                'type' => 'datetime',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'updated_at',
-                'type' => 'datetime',
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_constraints(): array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['id'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'theme_slug_index',
-                'columns' => ['slug'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'theme_author_index',
-                'columns' => ['author'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'theme_download_link_index',
-                'columns' => ['download_link'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'theme_status_index',
-                'columns' => ['status'],
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_options(): array {
-        return [];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_id(): string {
-        return 'themes';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_label(): string {
+    public static function get_label() : string {
         return 'Themes';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_description(): string {
+    public static function get_description() : string {
         return 'Stores theme information.';
+    }
+
+    public static function get_table_name() : string {
+        return SMLISER_THEMES_TABLE;
+    }
+
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'int' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'owner_id' )
+                ->type( 'bigint' ),
+
+            Column::make( 'name' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'slug' )
+                ->type( 'varchar' )
+                ->size( 300 ),
+
+            Column::make( 'author' )
+                ->type( 'varchar' )
+                ->size( 255 ),
+
+            Column::make( 'status' )
+                ->type( 'varchar' )
+                ->size( 55 )
+                ->default( 'active' )
+                ->required(),
+
+            Column::make( 'download_link' )
+                ->type( 'varchar' )
+                ->size( 400 ),
+
+            Column::make( 'created_at' )
+                ->type( 'datetime' ),
+
+            Column::make( 'updated_at' )
+                ->type( 'datetime' )
+                ->required(),
+        ];
+    }
+
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'index' )->name( 'theme_slug_index' )->on( 'slug' ),
+            Constraint::make( 'index' )->name( 'theme_author_index' )->on( 'author' ),
+            Constraint::make( 'index' )->name( 'theme_download_link_index' )->on( 'download_link' ),
+            Constraint::make( 'index' )->name( 'theme_status_index' )->on( 'status' ),
+        ];
     }
 }

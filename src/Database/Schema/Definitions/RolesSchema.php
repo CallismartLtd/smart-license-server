@@ -1,109 +1,75 @@
 <?php
 /**
- * Roles Schema
+ * Roles Table Schema definition file.
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
 
-defined('SMLISER_ABSPATH') || exit;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
+
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Stores roles.
+ * Stores roles definitions.
  */
-class RolesSchema extends AbstractDatabaseSchema {
+class RolesSchema implements DatabaseSchemaInterface {
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_table_name(): string {
-        return SMLISER_ROLES_TABLE;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_columns(): array {
-        return [
-            [
-                'name' => 'id',
-                'type' => 'bigint',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            [
-                'name' => 'slug',
-                'type' => 'varchar',
-                'length' => 64,
-            ],
-            [
-                'name' => 'label',
-                'type' => 'varchar',
-                'length' => 190,
-            ],
-            [
-                'name' => 'is_canonical',
-                'type' => 'tinyint',
-                'length' => 1,
-                'default' => 0,
-            ],
-            [
-                'name' => 'created_at',
-                'type' => 'datetime',
-                'nullable' => true,
-            ],
-            [
-                'name' => 'updated_at',
-                'type' => 'datetime',
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_constraints(): array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['id'],
-            ],
-            [
-                'type' => 'unique',
-                'name' => 'smliser_owner_role_unique',
-                'columns' => ['slug'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'smliser_roles_name',
-                'columns' => ['slug'],
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_options(): array {
-        return [];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_id(): string {
-        return 'roles';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_label(): string {
+    public static function get_label() : string {
         return 'Roles';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_description(): string {
+    public static function get_description() : string {
         return 'Stores roles.';
+    }
+
+    public static function get_table_name() : string {
+        return SMLISER_ROLES_TABLE;
+    }
+
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'slug' )
+                ->type( 'varchar' )
+                ->size( 64 )
+                ->required(),
+
+            Column::make( 'label' )
+                ->type( 'varchar' )
+                ->size( 190 )
+                ->required(),
+
+            Column::make( 'is_canonical' )
+                ->type( 'tinyint' )
+                ->size( 1 )
+                ->default( 0 ),
+
+            Column::make( 'created_at' )
+                ->type( 'datetime' ),
+
+            Column::make( 'updated_at' )
+                ->type( 'datetime' )
+                ->required(),
+        ];
+    }
+
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::make( 'unique' )
+                ->name( 'smliser_owner_role_unique' )
+                ->on( 'slug' ),
+            Constraint::make( 'index' )
+                ->name( 'smliser_roles_name' )
+                ->on( 'slug' ),
+        ];
     }
 }

@@ -1,86 +1,96 @@
 <?php
 /**
- * App Download Token Schema
+ * App Download Token Schema definition file.
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database\Schema\Definitions
+ * @since 0.2.0
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
+
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
  * Stores download tokens.
+ * 
+ * @since 0.2.0
  */
-class AppDownloadTokenSchema extends AbstractDatabaseSchema {
+class AppDownloadTokenSchema implements DatabaseSchemaInterface {
 
-    public static function get_table_name() : string {
-        return SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
-    }
-
-    public static function get_columns() : array {
-        return [
-            [
-                'name'            => 'id',
-                'type'            => 'bigint',
-                'unsigned'        => true,
-                'nullable'        => false,
-                'auto_increment'  => true,
-            ],
-            [
-                'name'      => 'app_prop',
-                'type'      => 'varchar',
-                'length'    => 255,
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'license_key',
-                'type'      => 'varchar',
-                'length'    => 255,
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'token',
-                'type'      => 'varchar',
-                'length'    => 255,
-                'nullable'  => true,
-                'default'   => null,
-            ],
-            [
-                'name'      => 'expiry',
-                'type'      => 'int',
-                'nullable'  => false,
-            ],
-        ];
-    }
-
-    public static function get_constraints() : array {
-        return [
-            [
-                'type'    => 'primary',
-                'columns' => [ 'id' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'expiry_index',
-                'columns' => [ 'expiry' ],
-            ],
-            [
-                'type'    => 'index',
-                'name'    => 'dtoken_index',
-                'columns' => [ 'token' ],
-            ],
-        ];
-    }
-
-    public static function get_options() : array {
-        return [];
-    }
-
+    /**
+     * @inheritDoc
+     */
     public static function get_label() : string {
         return 'App Download Tokens';
     }
 
+    /**
+     * @inheritDoc
+     */
     public static function get_description() : string {
         return 'Stores download tokens.';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_table_name() : string {
+        return SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'app_prop' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->default( null ),
+
+            Column::make( 'license_key' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->default( null ),
+
+            Column::make( 'token' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->default( null ),
+
+            Column::make( 'expiry' )
+                ->type( 'int' )
+                ->required(),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )
+                ->on( 'id' ),
+
+            Constraint::make( 'index' )
+                ->name( 'expiry_index' )
+                ->on( 'expiry' ),
+
+            Constraint::make( 'index' )
+                ->name( 'dtoken_index' )
+                ->on( 'token' ),
+        ];
     }
 }

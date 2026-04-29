@@ -1,99 +1,89 @@
 <?php
 /**
- * User Options Schema
+ * User Options Schema definition file.
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database\Schema\Definitions
+ * @since 0.2.0
  */
-namespace SmartLicenseServer\Database\Schema;
+declare( strict_types=1 );
 
-defined('SMLISER_ABSPATH') || exit;
+namespace SmartLicenseServer\Database\Schema\Definitions;
+
+use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Schema\Constraint;
+
+defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * Stores user options.
+ * Stores user-specific preferences and configuration.
+ * 
+ * @since 0.2.0
  */
-class UserOptionsSchema extends AbstractDatabaseSchema {
+class UserOptionsSchema implements DatabaseSchemaInterface {
 
     /**
-     * {@inheritdoc}
+     * @inheritDoc
      */
-    public static function get_table_name(): string {
-        return SMLISER_USER_OPTIONS_TABLE;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_columns(): array {
-        return [
-            [
-                'name' => 'id',
-                'type' => 'bigint',
-                'unsigned' => true,
-                'auto_increment' => true,
-            ],
-            [
-                'name' => 'user_id',
-                'type' => 'bigint',
-                'unsigned' => true,
-            ],
-            [
-                'name' => 'option_key',
-                'type' => 'varchar',
-                'length' => 255,
-            ],
-            [
-                'name' => 'option_value',
-                'type' => 'longtext',
-                'nullable' => true,
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_constraints(): array {
-        return [
-            [
-                'type' => 'primary',
-                'columns' => ['id'],
-            ],
-            [
-                'type' => 'unique',
-                'name' => 'smliser_user_options_unique',
-                'columns' => ['user_id', 'option_key'],
-            ],
-            [
-                'type' => 'index',
-                'name' => 'option_key_index',
-                'columns' => ['option_key'],
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_options(): array {
-        return [];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_id(): string {
-        return 'user_options';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_label(): string {
+    public static function get_label() : string {
         return 'User Options';
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritDoc
      */
-    public static function get_description(): string {
+    public static function get_description() : string {
         return 'Stores user preferences.';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_table_name() : string {
+        return SMLISER_USER_OPTIONS_TABLE;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_columns() : array {
+        return [
+            Column::make( 'id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->auto_increment()
+                ->required(),
+
+            Column::make( 'user_id' )
+                ->type( 'bigint' )
+                ->unsigned()
+                ->required(),
+
+            Column::make( 'option_key' )
+                ->type( 'varchar' )
+                ->size( 255 )
+                ->required(),
+
+            Column::make( 'option_value' )
+                ->type( 'longtext' ),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function get_constraints() : array {
+        return [
+            Constraint::make( 'primary' )->on( 'id' ),
+
+            Constraint::make( 'unique' )
+                ->name( 'smliser_user_options_unique' )
+                ->on( 'user_id', 'option_key' ),
+
+            Constraint::make( 'index' )
+                ->name( 'option_key_index' )
+                ->on( 'option_key' ),
+        ];
     }
 }

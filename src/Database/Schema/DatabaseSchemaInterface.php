@@ -19,7 +19,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * Contract for all database schema definitions.
  *
- * Implementations should return normalized metadata arrays that are:
+ * Implementations should return normalized metadata objects that are:
  * - self-documenting
  * - renderer-friendly
  * - cross-engine portable
@@ -60,96 +60,14 @@ interface DatabaseSchemaInterface {
     /**
      * Portable ordered column definitions.
      *
-     * Keys:
-     * - name            string   Required column name
-     * - type            string   Required logical type
-     * - length          int|null Optional scalar length
-     * - precision       int|null Optional numeric precision
-     * - scale           int|null Optional decimal scale
-     * - unsigned        bool     Optional
-     * - nullable        bool     Optional
-     * - auto_increment  bool     Optional
-     * - default         mixed    Optional
-     * - comment         string   Optional
-     *
-     * Example:
-     * [
-     *   [
-     *     'name' => 'id',
-     *     'type' => 'bigint',
-     *     'unsigned' => true,
-     *     'auto_increment' => true,
-     *     'nullable' => false,
-     *   ]
-     * ]
-     *
-     * @return array<int, array{
-     *     name: string,
-     *     type: string,
-     *     length?: int|null,
-     *     precision?: int|null,
-     *     scale?: int|null,
-     *     unsigned?: bool,
-     *     nullable?: bool,
-     *     auto_increment?: bool,
-     *     default?: mixed,
-     *     comment?: string
-     * }>
+     * @return Column[]
      */
     public static function get_columns() : array;
 
     /**
      * Table constraints and indexes.
      *
-     * Supported types:
-     * - primary
-     * - unique
-     * - index
-     * - foreign
-     * - fulltext
-     *
-     * Common keys:
-     * - type       string        Required
-     * - name       string        Optional constraint/index name
-     * - columns    string[]      Required for most types
-     *
-     * Foreign key keys:
-     * - references_table   string
-     * - references_columns string[]
-     * - on_delete          string
-     * - on_update          string
-     *
-     * @return array<int, array{
-     *     type: string,
-     *     name?: string,
-     *     columns?: array<int, string>,
-     *     references_table?: string,
-     *     references_columns?: array<int, string>,
-     *     on_delete?: string,
-     *     on_update?: string
-     * }>
+     * @return Constraint[]
      */
     public static function get_constraints() : array;
-
-    /**
-     * Engine/runtime options.
-     *
-     * Typical keys:
-     * - engine
-     * - charset
-     * - collation
-     * - row_format
-     * - temporary
-     *
-     * Renderers may ignore unsupported options.
-     *
-     * @return array{
-     *     engine?: string,
-     *     charset?: string,
-     *     collation?: string,
-     *     row_format?: string,
-     *     temporary?: bool
-     * }
-     */
-    public static function get_options() : array;
 }
