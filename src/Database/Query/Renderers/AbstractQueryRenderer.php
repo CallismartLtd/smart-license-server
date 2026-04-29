@@ -265,7 +265,13 @@ abstract class AbstractQueryRenderer {
         }
 
         $definitions = [];
+        $index_statements = [];
 
+        /*
+        |----------------
+        | Columns
+        |----------------
+        */
         foreach ( $intent['columns'] as $col ) {
             $col_def = $this->quote_identifier( $col['name'] ) . ' ' . $this->normalize_type( $col['type'] );
 
@@ -276,21 +282,63 @@ abstract class AbstractQueryRenderer {
             $definitions[] = $col_def;
         }
 
+        /*
+        |------------------------------------
+        | Non-index constraints (PK, FK, UNIQUE)
+        |------------------------------------
+        */
         if ( ! empty( $intent['constraints'] ) ) {
+
             foreach ( $intent['constraints'] as $constraint ) {
+
+                // INDEX is NOT part of table definition anymore
+                if ( $constraint['type'] === 'INDEX' ) {
+                    $index_statements[] = $this->render_index_statement( $table, $constraint );
+                    continue;
+                }
+
                 $definitions[] = $this->render_constraint( $constraint );
             }
         }
 
-        $sql = 'CREATE TABLE ' . $table . ' (' . implode( ', ', $definitions ) . ')';
+        /*
+        |------------------------------------
+        | CREATE TABLE statement
+        |------------------------------------
+        */
+        $sql_parts = [];
 
-        $suffix = $this->render_create_table_suffix( $intent );
+        $sql_parts[] =
+            'CREATE TABLE ' . $table .
+            ' (' . implode( ', ', $definitions ) . ')';
 
-        if ( $suffix !== '' ) {
-            $sql .= ' ' . $suffix;
+        /*
+        |------------------------------------
+        | Index statements (post-table)
+        |------------------------------------
+        */
+        if ( ! empty( $index_statements ) ) {
+            $sql_parts = array_merge( $sql_parts, $index_statements );
         }
 
-        return $sql;
+        return implode( '; ', $sql_parts );
+    }
+
+    /**
+     * Render CREATE INDEX statement (engine-agnostic fallback).
+     *
+     * Engines may override for dialect differences.
+     */
+    protected function render_index_statement( string $table, array $constraint ) : string {
+        $columns = implode(
+            ', ',
+            array_map( [ $this, 'quote_identifier' ], $constraint['columns'] )
+        );
+
+        return 'CREATE INDEX ' .
+            $this->quote_identifier( $constraint['name'] ) .
+            ' ON ' . $table .
+            ' (' . $columns . ')';
     }
 
     /**

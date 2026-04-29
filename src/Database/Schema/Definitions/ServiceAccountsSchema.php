@@ -1,25 +1,21 @@
 <?php
 /**
- * Users Table Schema
- *
- * Defines the structure for user account storage.
+ * Service Accounts Schema
  */
 namespace SmartLicenseServer\Database\Schema;
 
 defined('SMLISER_ABSPATH') || exit;
 
 /**
- * Schema definition for users table.
- *
- * Stores authentication credentials and user account details.
+ * Stores service accounts.
  */
-class UsersSchema extends AbstractDatabaseSchema {
+class ServiceAccountsSchema extends AbstractDatabaseSchema {
 
     /**
      * {@inheritdoc}
      */
     public static function get_table_name(): string {
-        return SMLISER_USERS_TABLE;
+        return SMLISER_SERVICE_ACCOUNTS_TABLE;
     }
 
     /**
@@ -29,9 +25,17 @@ class UsersSchema extends AbstractDatabaseSchema {
         return [
             [
                 'name' => 'id',
-                'type' => 'bigint',
-                'unsigned' => true,
+                'type' => 'int',
                 'auto_increment' => true,
+            ],
+            [
+                'name' => 'identifier',
+                'type' => 'varchar',
+                'length' => 255,
+            ],
+            [
+                'name' => 'owner_id',
+                'type' => 'int',
             ],
             [
                 'name' => 'display_name',
@@ -39,20 +43,20 @@ class UsersSchema extends AbstractDatabaseSchema {
                 'length' => 255,
             ],
             [
-                'name' => 'email',
-                'type' => 'varchar',
-                'length' => 255,
+                'name' => 'description',
+                'type' => 'text',
+                'nullable' => true,
             ],
             [
-                'name' => 'password_hash',
+                'name' => 'api_key_hash',
                 'type' => 'varchar',
-                'length' => 300,
+                'length' => 512,
             ],
             [
                 'name' => 'status',
                 'type' => 'enum',
-                'values' => ['active', 'suspended', 'disabled'],
                 'default' => 'active',
+                'values' => ['active', 'suspended', 'disabled'],
             ],
             [
                 'name' => 'created_at',
@@ -63,6 +67,11 @@ class UsersSchema extends AbstractDatabaseSchema {
                 'name' => 'updated_at',
                 'type' => 'datetime',
             ],
+            [
+                'name' => 'last_used_at',
+                'type' => 'datetime',
+                'nullable' => true,
+            ],
         ];
     }
 
@@ -72,18 +81,32 @@ class UsersSchema extends AbstractDatabaseSchema {
     public static function get_constraints(): array {
         return [
             [
-                'type' => 'unique',
-                'name' => 'smliser_users_email_unique',
-                'columns' => ['email'],
+                'type' => 'primary',
+                'columns' => ['id'],
             ],
             [
                 'type' => 'index',
-                'name' => 'smliser_users_created_at',
+                'name' => 'smliser_service_acct_owner_id',
+                'columns' => ['owner_id'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_service_acct_api_key_hash',
+                'columns' => ['api_key_hash'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_service_acct_status',
+                'columns' => ['status'],
+            ],
+            [
+                'type' => 'index',
+                'name' => 'smliser_service_acct_created_at',
                 'columns' => ['created_at'],
             ],
             [
                 'type' => 'index',
-                'name' => 'smliser_users_updated_at',
+                'name' => 'smliser_service_acct_updated_at',
                 'columns' => ['updated_at'],
             ],
         ];
@@ -100,20 +123,20 @@ class UsersSchema extends AbstractDatabaseSchema {
      * {@inheritdoc}
      */
     public static function get_id(): string {
-        return 'users';
+        return 'service_accounts';
     }
 
     /**
      * {@inheritdoc}
      */
     public static function get_label(): string {
-        return 'Users';
+        return 'Service Accounts';
     }
 
     /**
      * {@inheritdoc}
      */
     public static function get_description(): string {
-        return 'Stores human user accounts with credentials.';
+        return 'Stores service accounts.';
     }
 }

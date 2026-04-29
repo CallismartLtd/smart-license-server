@@ -28,19 +28,6 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @since 0.2.0
  */
 interface DatabaseSchemaInterface {
-
-    /**
-     * Unique schema registry identifier.
-     *
-     * Example:
-     * - users
-     * - licenses
-     * - service_accounts
-     *
-     * @return string
-     */
-    public static function get_id() : string;
-
     /**
      * Human readable schema name.
      *

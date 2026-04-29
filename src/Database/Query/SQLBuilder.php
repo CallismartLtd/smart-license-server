@@ -522,9 +522,31 @@ class SQLBuilder {
         }
 
         $this->intent['columns'][] = [
-            'name' => $name,
-            'type' => $type,
-            'definition' => $definition,
+            'name'          => $name,
+            'type'          => $type,
+            'definition'    => $definition,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Add INDEX constraint.
+     *
+     * @param string $name
+     * @param array $columns
+     *
+     * @return self
+     */
+    public function index( string $name, array $columns ) : self {
+        if ( empty( $columns ) ) {
+            throw new \Exception( 'Index requires at least one column.' );
+        }
+
+        $this->intent['constraints'][] = [
+            'type'    => 'INDEX',
+            'name'    => $name,
+            'columns' => $columns,
         ];
 
         return $this;

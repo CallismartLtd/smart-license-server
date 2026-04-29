@@ -19,11 +19,11 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  *
  * Pluggable schema registry for all database table definitions.
  *
- * @method class-string<DatabaseSchemaInterface>|null get(string $schema_id)
- * @method bool has(string $schema_id)
+ * @method class-string<DatabaseSchemaInterface>|null get(string $table_name)
+ * @method bool has(string $table_name)
  * @method self add(class-string<DatabaseSchemaInterface> $class_string)
- * @method bool remove(string $schema_id)
- * @method array<int, class-string<DatabaseSchemaInterface>> all(bool $assoc = true, bool $objects = false)
+ * @method bool remove(string $table_name)
+ * @method array<int, class-string<DatabaseSchemaInterface>|DatabaseSchemaInterface> all(bool $assoc = true, bool $objects = false)
  *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Database\Schema
@@ -182,11 +182,27 @@ class SchemaRegistry extends AbstractRegistry {
     /**
      * Get schema class by ID.
      *
-     * @param string $schema_id
+     * @param string $table_name
      * @return class-string<DatabaseSchemaInterface>|null
      */
-    public function get_schema_class( string $schema_id ) : ?string {
-        return $this->get( $schema_id );
+    public function get_schema_class( string $table_name ) : ?string {
+        return $this->get( $table_name );
+    }
+
+    /**
+     * Get the instance of a table schema class.
+     * 
+     * @param string $table_name
+     * @return DatabaseSchemaInterface|null
+     */
+    public function get_schema_instance( string $table_name ) : ?DatabaseSchemaInterface {
+        $class_string = $this->get( $table_name );
+
+        if ( $class_string === null ) {
+            return null;
+        }
+
+        return new $class_string();
     }
 
     /**
@@ -239,6 +255,7 @@ class SchemaRegistry extends AbstractRegistry {
      */
     protected function load_core() : void {
 
+        /** @var class-string<DatabaseSchemaInterface>[] $core */
         $core = [
             LicenseSchema::class,
             LicenseMetaSchema::class,
@@ -271,7 +288,7 @@ class SchemaRegistry extends AbstractRegistry {
         ];
 
         foreach ( $core as $schema_class ) {
-            $this->core[ $schema_class::get_id() ] = $schema_class;
+            $this->core[ $schema_class::get_table_name() ] = $schema_class;
         }
 
         $this->core_loaded = true;

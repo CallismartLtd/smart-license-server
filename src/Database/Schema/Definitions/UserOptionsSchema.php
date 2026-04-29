@@ -53,6 +53,10 @@ class UserOptionsSchema extends AbstractDatabaseSchema {
     public static function get_constraints(): array {
         return [
             [
+                'type' => 'primary',
+                'columns' => ['id'],
+            ],
+            [
                 'type' => 'unique',
                 'name' => 'smliser_user_options_unique',
                 'columns' => ['user_id', 'option_key'],
