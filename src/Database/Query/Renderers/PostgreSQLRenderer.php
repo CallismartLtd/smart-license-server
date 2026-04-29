@@ -168,39 +168,69 @@ class PostgreSQLRenderer extends AbstractQueryRenderer {
     }
 
     /**
-     * Modify column (PostgreSQL multi-step safe form)
+     * Modify column (PostgreSQL multi-step safe form).
+     *
+     * Uses explicit nullable/default fields instead of fragile string parsing.
+     *
+     * @param string $table
+     * @param array  $operation
      *
      * @return string|array
      */
     private function render_modify_column( string $table, array $operation ) : string|array {
         $column = $this->quote_identifier( $operation['name'] );
         $type   = $this->normalize_type( $operation['type'] );
-        $def    = $operation['definition'] ?? '';
-
+        
         $sql = [];
-
+    
+        // Always alter the TYPE
         $sql[] = 'ALTER TABLE ' . $table .
             ' ALTER COLUMN ' . $column .
             ' TYPE ' . $type;
-
-        if ( stripos( $def, 'NOT NULL' ) !== false ) {
-            $sql[] = 'ALTER TABLE ' . $table .
-                ' ALTER COLUMN ' . $column . ' SET NOT NULL';
-
-        } elseif ( preg_match( '/\bNULL\b/i', $def ) ) {
-            $sql[] = 'ALTER TABLE ' . $table .
-                ' ALTER COLUMN ' . $column . ' DROP NOT NULL';
+    
+        // Handle NOT NULL / NULL constraint (explicit intent, not string parsing)
+        if ( isset( $operation['nullable'] ) && $operation['nullable'] !== null ) {
+            if ( $operation['nullable'] === false ) {
+                // nullable = false means NOT NULL
+                $sql[] = 'ALTER TABLE ' . $table .
+                    ' ALTER COLUMN ' . $column . ' SET NOT NULL';
+            } elseif ( $operation['nullable'] === true ) {
+                // nullable = true means allow NULL
+                $sql[] = 'ALTER TABLE ' . $table .
+                    ' ALTER COLUMN ' . $column . ' DROP NOT NULL';
+            }
+        } elseif ( ! empty( $operation['definition'] ) ) {
+            // Fallback to string parsing for backward compatibility
+            $def = $operation['definition'];
+            
+            if ( stripos( $def, 'NOT NULL' ) !== false ) {
+                $sql[] = 'ALTER TABLE ' . $table .
+                    ' ALTER COLUMN ' . $column . ' SET NOT NULL';
+            } elseif ( preg_match( '/\bNULL\b/i', $def ) ) {
+                $sql[] = 'ALTER TABLE ' . $table .
+                    ' ALTER COLUMN ' . $column . ' DROP NOT NULL';
+            }
         }
-
-        if ( preg_match( '/DEFAULT\s+(.+)/i', $def, $m ) ) {
+    
+        // Handle DEFAULT constraint (explicit intent, not string parsing)
+        if ( isset( $operation['default'] ) && $operation['default'] !== null ) {
             $sql[] = 'ALTER TABLE ' . $table .
                 ' ALTER COLUMN ' . $column .
-                ' SET DEFAULT ' . $m[1];
+                ' SET DEFAULT ' . $operation['default'];
+        } elseif ( ! empty( $operation['definition'] ) ) {
+            // Fallback to string parsing for backward compatibility
+            $def = $operation['definition'];
+            
+            if ( preg_match( '/DEFAULT\s+(.+)/i', $def, $m ) ) {
+                $sql[] = 'ALTER TABLE ' . $table .
+                    ' ALTER COLUMN ' . $column .
+                    ' SET DEFAULT ' . $m[1];
+            }
         }
-
+    
         return $sql;
     }
-
+    
     /**
      * Create index (PostgreSQL)
      */

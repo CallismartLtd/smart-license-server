@@ -66,52 +66,71 @@ abstract class AbstractQueryRenderer {
         if ( ! isset( $intent['from'] ) ) {
             throw new \Exception( 'SELECT requires FROM clause' );
         }
-
+    
         $columns = $intent['select'] ?? ['*'];
-
+    
+        // Handle SELECT columns with wildcard support
         if ( in_array( '*', $columns, true ) ) {
             $select = '*';
         } else {
-            $select = implode( ', ', array_map( [ $this, 'quote_identifier' ], $columns ) );
+            $select_parts = [];
+            
+            foreach ( $columns as $col ) {
+                // Detect table.* wildcard pattern
+                if ( preg_match( '/^([a-zA-Z_][a-zA-Z0-9_]*)\.\*$/', $col, $matches ) ) {
+                    // Validate table alias, don't quote wildcard
+                    $this->validate_identifier( $matches[1] );
+                    $select_parts[] = $this->quote_identifier( $matches[1] ) . '.*';
+                } elseif ( $col === '*' ) {
+                    // Bare wildcard
+                    $select_parts[] = '*';
+                } else {
+                    // Regular column identifier
+                    $select_parts[] = $this->quote_identifier( $col );
+                }
+            }
+            
+            $select = implode( ', ', $select_parts );
         }
-
+    
         $sql = 'SELECT ' . $select;
-
+    
         $from = $intent['from'];
         $sql .= ' FROM ' . $this->quote_identifier( $from['table'] );
-
+    
         if ( ! empty( $from['alias'] ) ) {
+            $this->validate_identifier( $from['alias'] );
             $sql .= ' AS ' . $this->quote_identifier( $from['alias'] );
         }
-
+    
         if ( ! empty( $intent['joins'] ) ) {
             $sql .= $this->render_joins( $intent['joins'] );
         }
-
+    
         if ( ! empty( $intent['where'] ) ) {
             $sql .= $this->render_where( $intent['where'] );
         }
-
+    
         if ( ! empty( $intent['group_by'] ) ) {
             $sql .= $this->render_group_by( $intent['group_by'] );
         }
-
+    
         if ( ! empty( $intent['having'] ) ) {
             $sql .= $this->render_having( $intent['having'] );
         }
-
+    
         if ( ! empty( $intent['order_by'] ) ) {
             $sql .= $this->render_order_by( $intent['order_by'] );
         }
-
+    
         if ( isset( $intent['limit'] ) ) {
             $sql .= $this->render_limit( $intent['limit'] );
         }
-
+    
         if ( isset( $intent['offset'] ) ) {
             $sql .= $this->render_offset( $intent['offset'] );
         }
-
+    
         return $sql;
     }
 
@@ -190,23 +209,23 @@ abstract class AbstractQueryRenderer {
      */
     public function render_update( string $table, array $intent ) : string {
         $table = $this->quote_identifier( $table );
-
+    
         if ( empty( $intent['set'] ) ) {
             throw new \Exception( 'UPDATE requires set()' );
         }
-
+    
         $sets = [];
-
+    
         foreach ( array_keys( $intent['set'] ) as $column ) {
             $sets[] = $this->quote_identifier( $column ) . ' = ?';
         }
-
+    
         $sql = 'UPDATE ' . $table . ' SET ' . implode( ', ', $sets );
-
+    
         if ( ! empty( $intent['where'] ) ) {
             $sql .= $this->render_where( $intent['where'] );
         }
-
+    
         return $sql;
     }
 
@@ -351,21 +370,22 @@ abstract class AbstractQueryRenderer {
         if ( empty( $joins_intent ) ) {
             return '';
         }
-
+    
         $joins = [];
-
+    
         foreach ( $joins_intent as $join ) {
             $join_sql = $join['type'] . ' JOIN ' . $this->quote_identifier( $join['table'] );
-
-            if ( $join['alias'] ) {
+    
+            if ( ! empty( $join['alias'] ) ) {
+                $this->validate_identifier( $join['alias'] );
                 $join_sql .= ' AS ' . $this->quote_identifier( $join['alias'] );
             }
-
+    
             $join_sql .= ' ON ' . $join['condition'];
-
+    
             $joins[] = $join_sql;
         }
-
+    
         return ' ' . implode( ' ', $joins );
     }
 
@@ -477,6 +497,89 @@ abstract class AbstractQueryRenderer {
     protected function validate_bindings_not_empty( array $bindings, string $context ) : void {
         if ( empty( $bindings ) ) {
             throw new \Exception( "{$context} requires data bindings" );
+        }
+    }
+
+    /**
+     * Reconstruct bindings for UPDATE in correct SQL order.
+     * 
+     * Call this AFTER rendering SQL to ensure binding order matches placeholder order.
+     * 
+     * @param array $intent Query intent with 'set' and optional 'where'
+     * 
+     * @return array Bindings in correct order for prepared statement
+     */
+    public function reconstruct_update_bindings( array $intent ) : array {
+        $bindings = [];
+    
+        // SET values come first in the SQL
+        if ( ! empty( $intent['set'] ) ) {
+            $bindings = array_merge( $bindings, array_values( $intent['set'] ) );
+        }
+    
+        // WHERE conditions come second
+        if ( ! empty( $intent['where'] ) ) {
+            foreach ( $intent['where'] as $item ) {
+                $bindings = array_merge( $bindings, $item['bindings'] ?? [] );
+            }
+        }
+    
+        return $bindings;
+    }
+    
+    /**
+     * Reconstruct bindings for DELETE in correct SQL order.
+     * 
+     * Call this AFTER rendering SQL to ensure binding order matches placeholder order.
+     * 
+     * @param array $intent Query intent with optional 'where'
+     * 
+     * @return array Bindings in correct order for prepared statement
+     */
+    public function reconstruct_delete_bindings( array $intent ) : array {
+        $bindings = [];
+    
+        // DELETE only has WHERE conditions
+        if ( ! empty( $intent['where'] ) ) {
+            foreach ( $intent['where'] as $item ) {
+                $bindings = array_merge( $bindings, $item['bindings'] ?? [] );
+            }
+        }
+    
+        return $bindings;
+    }
+
+    /**
+     * Validate that a string is a valid SQL identifier.
+     *
+     * Valid identifiers: alphanumeric + underscores, must start with letter or underscore.
+     *
+     * @param string $identifier The identifier to validate
+     *
+     * @return void
+     *
+     * @throws \Exception If identifier is invalid
+     */
+    protected function validate_identifier( string $identifier ) : void {
+        if ( ! preg_match( '/^[a-zA-Z_][a-zA-Z0-9_]*$/', $identifier ) ) {
+            throw new \Exception(
+                "Invalid identifier: '{$identifier}'. Must start with letter or underscore, contain only alphanumerics and underscores."
+            );
+        }
+    }
+    
+    /**
+     * Validate multiple identifiers.
+     *
+     * @param array $identifiers Array of identifier strings
+     *
+     * @return void
+     *
+     * @throws \Exception If any identifier is invalid
+     */
+    protected function validate_identifiers( array $identifiers ) : void {
+        foreach ( $identifiers as $identifier ) {
+            $this->validate_identifier( $identifier );
         }
     }
 

@@ -197,8 +197,18 @@ class SQLBuilder {
      * @param string $alias Optional alias (raw, unquoted)
      *
      * @return self
+     *
+     * @throws \Exception If alias is invalid
      */
     public function from( string $table, string $alias = '' ) : self {
+        if ( ! empty( $alias ) ) {
+            if ( ! preg_match( '/^[a-zA-Z_][a-zA-Z0-9_]*$/', $alias ) ) {
+                throw new \Exception(
+                    "Invalid table alias: '{$alias}'. Must start with letter or underscore, contain only alphanumerics and underscores."
+                );
+            }
+        }
+    
         $this->table = $table;
         $this->intent['from'] = [
             'table' => $table,
@@ -216,19 +226,29 @@ class SQLBuilder {
      * @param string $alias     Optional alias (raw, unquoted)
      *
      * @return self
+     *
+     * @throws \Exception If alias is invalid
      */
     public function join( string $join_type, string $table, string $condition, string $alias = '' ) : self {
+        if ( ! empty( $alias ) ) {
+            if ( ! preg_match( '/^[a-zA-Z_][a-zA-Z0-9_]*$/', $alias ) ) {
+                throw new \Exception(
+                    "Invalid join alias: '{$alias}'. Must start with letter or underscore, contain only alphanumerics and underscores."
+                );
+            }
+        }
+    
         if ( ! isset( $this->intent['joins'] ) ) {
             $this->intent['joins'] = [];
         }
-
+    
         $this->intent['joins'][] = [
             'type' => strtoupper( $join_type ),
             'table' => $table,
             'alias' => $alias,
             'condition' => $condition,
         ];
-
+    
         return $this;
     }
 
@@ -374,13 +394,13 @@ class SQLBuilder {
      * Pagination helper (LIMIT + OFFSET).
      *
      * @param int $page     Page number (1-based)
-     * @param int $per_page Items per page
+     * @param int $limit    Items per page
      *
      * @return self
      */
-    public function paginate( int $page, int $per_page ) : self {
-        $offset = ( $page - 1 ) * $per_page;
-        $this->limit( $per_page );
+    public function paginate( int $page, int $limit ) : self {
+        $offset = ( $page - 1 ) * $limit;
+        $this->limit( $limit );
         $this->offset( $offset );
         return $this;
     }
@@ -407,22 +427,58 @@ class SQLBuilder {
     /**
      * Set multiple rows for bulk INSERT.
      *
-     * @param array $rows Array of row arrays
+     * Validates that all rows have identical column sets.
+     *
+     * @param array $rows Array of row arrays (each row: column => value)
      *
      * @return self
+     *
+     * @throws \Exception If rows is empty or columns don't match
      */
     public function multi_values( array $rows ) : self {
         if ( empty( $rows ) ) {
             throw new \Exception( 'multi_values requires at least one row' );
         }
-
-        $this->intent['multi_values'] = $rows;
-
-        // Flatten bindings
-        foreach ( $rows as $row ) {
-            $this->bindings = array_merge( $this->bindings, array_values( $row ) );
+    
+        // Get expected column structure from first row
+        $first_row = reset( $rows );
+        $expected_columns = array_keys( $first_row );
+        sort( $expected_columns );  // Normalize order for comparison
+    
+        // Validate all rows match
+        foreach ( $rows as $row_index => $row ) {
+            $row_columns = array_keys( $row );
+            sort( $row_columns );
+    
+            if ( $row_columns !== $expected_columns ) {
+                $missing = array_diff( $expected_columns, $row_columns );
+                $extra = array_diff( $row_columns, $expected_columns );
+    
+                $error = "Row {$row_index} has mismatched columns.";
+    
+                if ( ! empty( $missing ) ) {
+                    $error .= " Missing: " . implode( ', ', $missing ) . ".";
+                }
+                if ( ! empty( $extra ) ) {
+                    $error .= " Extra: " . implode( ', ', $extra ) . ".";
+                }
+    
+                throw new \Exception( $error );
+            }
         }
-
+    
+        $this->intent['multi_values'] = $rows;
+    
+        // Flatten bindings in correct order
+        foreach ( $rows as $row ) {
+            // Ensure values are in same order as first_row for consistency
+            $ordered_values = [];
+            foreach ( $expected_columns as $col ) {
+                $ordered_values[] = $row[ $col ];
+            }
+            $this->bindings = array_merge( $this->bindings, $ordered_values );
+        }
+    
         return $this;
     }
 
@@ -590,6 +646,8 @@ class SQLBuilder {
             'position' => $position,
         ];
 
+        $this->validate_operation_count();
+
         return $this;
     }
 
@@ -632,30 +690,47 @@ class SQLBuilder {
             'new_name' => $new_name,
         ];
 
+        $this->validate_operation_count();
+        
         return $this;
     }
 
     /**
      * Modify column in ALTER TABLE.
      *
-     * @param string $name       Column name (raw, unquoted)
-     * @param string $type       New type
-     * @param string $definition Additional definition
+     * @param string      $name       Column name (raw, unquoted)
+     * @param string      $type       New type
+     * @param string      $definition Additional definition (for backward compatibility)
+     * @param bool|null   $nullable   Explicitly set nullable/NOT NULL (null = don't set)
+     * @param string|null $default    Default value (null = don't set)
      *
      * @return self
      */
-    public function modify_column( string $name, string $type, string $definition = '' ) : self {
+    public function modify_column( 
+        string $name, 
+        string $type, 
+        string $definition = '', 
+        ?bool $nullable = null,
+        ?string $default = null
+    ) : self {
         if ( ! isset( $this->intent['operations'] ) ) {
             $this->intent['operations'] = [];
         }
-
-        $this->intent['operations'][] = [
-            'op' => 'MODIFY COLUMN',
-            'name' => $name,
-            'type' => $type,
-            'definition' => $definition,
+    
+        // Build operation intent with explicit constraints
+        $operation = [
+            'op'            => 'MODIFY COLUMN',
+            'name'          => $name,
+            'type'          => $type,
+            'definition'    => $definition,
+            'nullable'      => $nullable,
+            'default'       => $default,
         ];
+    
+        $this->intent['operations'][] = $operation;
 
+        $this->validate_operation_count();
+    
         return $this;
     }
 
@@ -676,6 +751,7 @@ class SQLBuilder {
             'new_name' => $new_name,
         ];
 
+        $this->validate_operation_count();
         return $this;
     }
 
@@ -700,6 +776,8 @@ class SQLBuilder {
             'type' => strtoupper( $type ),
         ];
 
+        $this->validate_operation_count();
+
         return $this;
     }
 
@@ -720,6 +798,8 @@ class SQLBuilder {
             'name' => $name,
         ];
 
+        $this->validate_operation_count();
+        
         return $this;
     }
 
@@ -749,6 +829,7 @@ class SQLBuilder {
      * Build the SQL query.
      *
      * Validates intent and delegates to engine-specific renderer.
+     * Also reconstructs bindings in correct order for DML statements.
      *
      * @return string The rendered SQL statement
      *
@@ -758,16 +839,16 @@ class SQLBuilder {
         if ( ! $this->type ) {
             throw new \Exception( 'Query type not set' );
         }
-
+    
         if ( $this->type === 'SELECT' && ! isset( $this->intent['from'] ) ) {
             throw new \Exception( 'SELECT query requires FROM clause' );
         }
-
+    
         // Get the appropriate renderer
         $renderer = $this->get_renderer();
-
+    
         // Render based on query type
-        return match ( $this->type ) {
+        $sql = match ( $this->type ) {
             'SELECT'       => $renderer->render_select( $this->intent ),
             'INSERT'       => $renderer->render_insert( $this->table, $this->intent ),
             'UPDATE'       => $renderer->render_update( $this->table, $this->intent ),
@@ -777,6 +858,38 @@ class SQLBuilder {
             'DROP TABLE'   => $renderer->render_drop_table( $this->table, $this->intent ),
             default        => throw new \Exception( "Unknown query type: {$this->type}" )
         };
+    
+        // Reconstruct bindings for DML statements in correct order
+        if ( $this->type === 'UPDATE' ) {
+            $this->bindings = $renderer->reconstruct_update_bindings( $this->intent );
+        } elseif ( $this->type === 'DELETE' ) {
+            $this->bindings = $renderer->reconstruct_delete_bindings( $this->intent );
+        } elseif ( $this->type === 'INSERT' ) {
+            $this->bindings = $this->reconstruct_insert_bindings();
+        }
+    
+        return $sql;
+    }
+
+    /**
+     * Reconstruct INSERT bindings in correct order.
+     * 
+     * @return array
+     */
+    private function reconstruct_insert_bindings() : array {
+        if ( ! empty( $this->intent['values'] ) ) {
+            return array_values( $this->intent['values'] );
+        }
+    
+        if ( ! empty( $this->intent['multi_values'] ) ) {
+            $bindings = [];
+            foreach ( $this->intent['multi_values'] as $row ) {
+                $bindings = array_merge( $bindings, array_values( $row ) );
+            }
+            return $bindings;
+        }
+    
+        return [];
     }
 
     /**
@@ -867,5 +980,34 @@ class SQLBuilder {
     private function reset_intent() : void {
         $this->intent = [];
         $this->bindings = [];
+    }
+
+    /**
+     * Validate operation count for the current engine.
+     *
+     * SQLite only allows one operation per ALTER TABLE statement.
+     *
+     * @throws \Exception If validation fails
+     *
+     * @return void
+     */
+    private function validate_operation_count() : void {
+        if ( $this->type !== 'ALTER TABLE' ) {
+            return;  // Only applies to ALTER TABLE
+        }
+    
+        $operations = $this->intent['operations'] ?? [];
+    
+        if ( $this->engine === 'sqlite' && count( $operations ) > 1 ) {
+            throw new \Exception(
+                'SQLite ALTER TABLE supports only one operation per statement. '
+                . 'You have ' . count( $operations ) . ' operations. '
+                . 'Separate them into multiple alter_table() calls. '
+                . 'Operations: ' . implode( ', ', array_map(
+                    fn( $op ) => $op['op'] ?? 'unknown',
+                    $operations
+                ) )
+            );
+        }
     }
 }
