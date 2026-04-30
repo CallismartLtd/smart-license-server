@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,72 +51,72 @@ class BackgroundJobsSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->unsigned()
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'job_class' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->required(),
 
             Column::make( 'queue' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 50 )
                 ->default( 'default' )
                 ->required(),
 
             Column::make( 'priority' )
-                ->type( 'tinyint' )
+                ->type( ColumnType::INTEGER )
                 ->unsigned()
                 ->default( 5 )
                 ->required(),
 
             Column::make( 'status' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 20 )
                 ->default( 'pending' )
                 ->required(),
 
             Column::make( 'payload' )
-                ->type( 'json' )
+                ->type( ColumnType::JSON )
                 ->required(),
 
             Column::make( 'attempts' )
-                ->type( 'tinyint' )
+                ->type( ColumnType::INTEGER )
                 ->unsigned()
                 ->default( 0 )
                 ->required(),
 
             Column::make( 'max_attempts' )
-                ->type( 'tinyint' )
+                ->type( ColumnType::INTEGER )
                 ->unsigned()
                 ->default( 3 )
                 ->required(),
 
             Column::make( 'available_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->required(),
 
             Column::make( 'started_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->default( null ),
 
             Column::make( 'completed_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->default( null ),
 
             Column::make( 'created_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->required(),
 
             Column::make( 'result' )
-                ->type( 'json' )
+                ->type( ColumnType::JSON )
                 ->default( null ),
 
             Column::make( 'error_message' )
-                ->type( 'text' )
+                ->type( ColumnType::TEXT )
                 ->default( null ),
         ];
     }

@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -52,34 +53,34 @@ class AnalyticsLogsSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->size( 20 )
                 ->unsigned()
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'app_type' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 20 )
                 ->required(),
 
             Column::make( 'app_slug' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 100 )
                 ->required(),
 
             Column::make( 'event_type' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 50 )
                 ->required(),
 
             Column::make( 'fingerprint' )
-                ->type( 'char' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 64 )
                 ->default( null ),
 
             Column::make( 'created_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->default( 'CURRENT_TIMESTAMP' ),
         ];
     }

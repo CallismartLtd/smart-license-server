@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,23 +51,23 @@ class BulkMessagesAppsSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->unsigned()
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'message_id' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 64 )
                 ->default( null ),
 
             Column::make( 'app_type' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 64 )
                 ->required(),
 
             Column::make( 'app_slug' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 191 )
                 ->required(),
         ];

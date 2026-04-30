@@ -11,7 +11,10 @@ namespace SmartLicenseServer\Database\Migrations;
 
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper;
+use SmartLicenseServer\Database\Migrations\Helpers\ConstraintHelper;
 use SmartLicenseServer\Database\Migrations\Helpers\IndexHelper;
+use SmartLicenseServer\Database\Migrations\Helpers\TableHelper;
+use SmartLicenseServer\Database\Query\SQLBuilder;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -184,17 +187,6 @@ abstract class AbstractMigration implements MigrationInterface {
      */
     protected function table( string $table ) : TableHelper {
         return new TableHelper( $this->database, $this->sql_builder, $table );
-    }
-
-    /**
-     * Get a data helper for fluent operations.
-     *
-     * @param string $table The table name
-     *
-     * @return DataHelper
-     */
-    protected function data( string $table ) : DataHelper {
-        return new DataHelper( $this->database, $table );
     }
 
     /**

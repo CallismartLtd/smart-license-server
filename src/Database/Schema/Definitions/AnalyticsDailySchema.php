@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,33 +51,33 @@ class AnalyticsDailySchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'app_type' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 20 )
                 ->required(),
 
             Column::make( 'app_slug' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 100 )
                 ->required(),
 
             Column::make( 'stats_date' )
-                ->type( 'date' )
+                ->type( ColumnType::DATE )
                 ->required(),
 
             Column::make( 'event_type' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 50 )
                 ->required(),
 
             Column::make( 'total_count' )
-                ->type( 'int' )
+                ->type( ColumnType::INTEGER )
                 ->size( 10 )
                 ->unsigned()
                 ->required()
                 ->default( 0 ),
 
             Column::make( 'unique_count' )
-                ->type( 'int' )
+                ->type( ColumnType::INTEGER )
                 ->size( 10 )
                 ->unsigned()
                 ->required()

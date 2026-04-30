@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,28 +51,28 @@ class IdentityFederationSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->unsigned()
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'user_id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->unsigned()
                 ->required(),
 
             Column::make( 'issuer' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 300 )
                 ->required(),
 
             Column::make( 'external_id' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 512 )
                 ->required(),
 
             Column::make( 'created_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->default( 'CURRENT_TIMESTAMP' ),
         ];
     }

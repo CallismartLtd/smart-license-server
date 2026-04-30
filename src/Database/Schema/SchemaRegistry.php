@@ -10,6 +10,17 @@
 namespace SmartLicenseServer\Database\Schema;
 
 use SmartLicenseServer\Contracts\AbstractRegistry;
+use SmartLicenseServer\Database\Schema\Definitions\{
+    LicenseSchema, LicenseMetaSchema, PluginSchema, PluginMetaSchema,
+    ThemeSchema, ThemeMetaSchema, SoftwareSchema, SoftwareMetaSchema,
+    AnalyticsLogsSchema, AnalyticsDailySchema, AppDownloadTokenSchema,
+    MonetizationSchema, PricingTierSchema, BulkMessagesSchema,
+    BulkMessagesAppsSchema, OptionsSchema, OwnersSchema, UsersSchema,
+    UserOptionsSchema, ServiceAccountsSchema, RolesSchema,
+    RoleCapabilitiesSchema, RoleAssignmentSchema, OrganizationsSchema,
+    OrganizationMembersSchema, IdentityFederationSchema,
+    BackgroundJobsSchema, FailedJobsSchema
+};
 use InvalidArgumentException;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
@@ -17,17 +28,10 @@ defined( 'SMLISER_ABSPATH' ) || exit;
 /**
  * Database Schema Registry
  *
- * Pluggable schema registry for all database table definitions.
+ * Manages the registration and instantiation of database table schemas.
  *
- * @method class-string<DatabaseSchemaInterface>|null get(string $table_name)
- * @method bool has(string $table_name)
- * @method self add(class-string<DatabaseSchemaInterface> $class_string)
- * @method bool remove(string $table_name)
- * @method array<int, class-string<DatabaseSchemaInterface>|DatabaseSchemaInterface> all(bool $assoc = true, bool $objects = false)
- *
- * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Database\Schema
- * @since 0.2.0
+ * @method class-string<DatabaseSchemaInterface>|null get( string $table_name )
+ * @method array<string, class-string<DatabaseSchemaInterface>|DatabaseSchemaInterface> all( bool $include_core = true )
  */
 class SchemaRegistry extends AbstractRegistry {
 
@@ -52,200 +56,46 @@ class SchemaRegistry extends AbstractRegistry {
     }
 
     /**
-     * Retrieve all database schemas as structured definitions.
+     * Get all registered tables as Table instances.
      *
-     * Each array key is the schema ID, and the value is a fully
-     * resolved schema descriptor containing portable metadata.
-     *
-     * @return array<string, array{
-     *     id: string,
-     *     label: string,
-     *     description: string,
-     *     table_name: string,
-     *     columns: array<int, array{
-     *         name: string,
-     *         type: string,
-     *         length?: int|null,
-     *         precision?: int|null,
-     *         scale?: int|null,
-     *         unsigned?: bool,
-     *         nullable?: bool,
-     *         auto_increment?: bool,
-     *         default?: mixed,
-     *         comment?: string
-     *     }>,
-     *     constraints: array<int, array{
-     *         type: string,
-     *         name?: string,
-     *         columns?: array<int, string>,
-     *         references_table?: string,
-     *         references_columns?: array<int, string>,
-     *         on_delete?: string,
-     *         on_update?: string
-     *     }>,
-     *     options: array{
-     *         engine?: string,
-     *         charset?: string,
-     *         collation?: string,
-     *         row_format?: string,
-     *         temporary?: bool
-     *     }
-     * }>
+     * @return Table[]
      */
-    public function get_all_schemas() : array {
-        $schemas   = [];
+    public function get_all_tables() : array {
+        $tables    = [];
         $providers = $this->all( false, false );
 
         foreach ( $providers as $class_string ) {
-
-            $id = $class_string::get_id();
-
-            $schemas[ $id ] = [
-                'id'          => $id,
-                'label'       => $class_string::get_label(),
-                'description' => $class_string::get_description(),
-                'table_name'  => $class_string::get_table_name(),
-
-                'columns'     => $class_string::get_columns(),
-                'constraints' => $class_string::get_constraints(),
-                'options'     => $class_string::get_options(),
-            ];
+            $tables[] = $this->get_table( $class_string::get_table_name() );
         }
 
-        return $schemas;
+        return array_filter( $tables );
     }
 
     /**
-     * Get all registered schemas as structured definitions.
-     *
-     * @return array<string, array{
-     *     id: string,
-     *     label: string,
-     *     description: string,
-     *     table_name: string,
-     *     columns: array<int, array{
-     *         name: string,
-     *         type: string,
-     *         length?: int|null,
-     *         precision?: int|null,
-     *         scale?: int|null,
-     *         unsigned?: bool,
-     *         nullable?: bool,
-     *         auto_increment?: bool,
-     *         default?: mixed,
-     *         comment?: string
-     *     }>,
-     *     constraints: array<int, array{
-     *         type: string,
-     *         name?: string,
-     *         columns?: array<int, string>,
-     *         references_table?: string,
-     *         references_columns?: array<int, string>,
-     *         on_delete?: string,
-     *         on_update?: string
-     *     }>,
-     *     options: array{
-     *         engine?: string,
-     *         charset?: string,
-     *         collation?: string,
-     *         row_format?: string,
-     *         temporary?: bool
-     *     },
-     *     class: class-string<DatabaseSchemaInterface>
-     * }>
-     */
-    public function get_all_with_metadata() : array {
-        $schemas   = [];
-        $providers = $this->all( false, false );
-
-        foreach ( $providers as $class_string ) {
-
-            $id = $class_string::get_id();
-
-            $schemas[ $id ] = [
-                'id'          => $id,
-                'label'       => $class_string::get_label(),
-                'description' => $class_string::get_description(),
-                'table_name'  => $class_string::get_table_name(),
-
-                'columns'     => $class_string::get_columns(),
-                'constraints' => $class_string::get_constraints(),
-                'options'     => $class_string::get_options(),
-
-                'class'       => $class_string,
-            ];
-        }
-
-        return $schemas;
-    }
-
-    /**
-     * Get schema class by ID.
-     *
-     * @param string $table_name
-     * @return class-string<DatabaseSchemaInterface>|null
-     */
-    public function get_schema_class( string $table_name ) : ?string {
-        return $this->get( $table_name );
-    }
-
-    /**
-     * Get the instance of a table schema class.
+     * Get a Table instance by its table name.
      * 
      * @param string $table_name
-     * @return DatabaseSchemaInterface|null
+     * @return Table|null
      */
-    public function get_schema_instance( string $table_name ) : ?DatabaseSchemaInterface {
+    public function get_table( string $table_name ) : ?Table {
         $class_string = $this->get( $table_name );
 
-        if ( $class_string === null ) {
+        if ( ! $class_string ) {
             return null;
         }
 
-        return new $class_string();
+        return Table::make( $table_name )
+            ->add_columns( $class_string::get_columns() )
+            ->add_constraints( $class_string::get_constraints() );
     }
 
     /**
-     * Get structured schema for a table.
-     *
-     * @param string $table_name
-     * @return array{
-     *     columns: array,
-     *     constraints: array,
-     *     options: array
-     * }|null
-     */
-    public function get_schema( string $table_name ) : ?array {
-        $providers = $this->all( false, false );
-
-        foreach ( $providers as $class_string ) {
-
-            if ( $class_string::get_table_name() === $table_name ) {
-                return [
-                    'columns'     => $class_string::get_columns(),
-                    'constraints' => $class_string::get_constraints(),
-                    'options'     => $class_string::get_options(),
-                ];
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Return all table names.
+     * Return all registered table names.
      *
      * @return array<int, string>
      */
     public function table_names() : array {
-        $names     = [];
-        $providers = $this->all( false, false );
-
-        foreach ( $providers as $class_string ) {
-            $names[] = $class_string::get_table_name();
-        }
-
-        return $names;
+        return array_keys( $this->all() );
     }
 
     /**
@@ -254,8 +104,6 @@ class SchemaRegistry extends AbstractRegistry {
      * @return void
      */
     protected function load_core() : void {
-
-        /** @var class-string<DatabaseSchemaInterface>[] $core */
         $core = [
             LicenseSchema::class,
             LicenseMetaSchema::class,
@@ -288,6 +136,7 @@ class SchemaRegistry extends AbstractRegistry {
         ];
 
         foreach ( $core as $schema_class ) {
+            // Index by table name for easy retrieval via get()
             $this->core[ $schema_class::get_table_name() ] = $schema_class;
         }
 
@@ -301,14 +150,14 @@ class SchemaRegistry extends AbstractRegistry {
      * @throws InvalidArgumentException
      */
     protected function assert_implements_interface( string $class_string ) : void {
-
         if ( ! class_exists( $class_string ) ) {
             throw new InvalidArgumentException(
-                sprintf( '%s: class "%s" does not exist.', static::class, $class_string )
+                sprintf( 'SchemaRegistry: Class "%s" does not exist.', $class_string )
             );
         }
 
-        if ( ! in_array( DatabaseSchemaInterface::class, class_implements( $class_string ) ?: [], true ) ) {
+        $interfaces = class_implements( $class_string ) ?: [];
+        if ( ! in_array( DatabaseSchemaInterface::class, $interfaces, true ) ) {
             throw new InvalidArgumentException(
                 sprintf(
                     'SchemaRegistry: "%s" must implement %s.',

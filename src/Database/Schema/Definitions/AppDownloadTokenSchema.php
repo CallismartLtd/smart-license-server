@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,28 +51,28 @@ class AppDownloadTokenSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->unsigned()
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'app_prop' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->default( null ),
 
             Column::make( 'license_key' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->default( null ),
 
             Column::make( 'token' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->default( null ),
 
             Column::make( 'expiry' )
-                ->type( 'int' )
+                ->type( ColumnType::INTEGER )
                 ->required(),
         ];
     }

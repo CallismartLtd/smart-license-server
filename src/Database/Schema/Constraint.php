@@ -61,7 +61,7 @@ class Constraint {
      * @param string $type Constraint type.
      */
     public function __construct( string $type ) {
-        $this->type = $type;
+        $this->type = strtolower( $type );
     }
 
     /**
@@ -72,6 +72,47 @@ class Constraint {
      */
     public static function make( string $type ) : static {
         return new static( $type );
+    }
+    /**
+     * Static factory for a UNIQUE constraint.
+     * 
+     * @param string|null $name Optional index name.
+     * @return static
+     */
+    public static function unique( ?string $name = null ) : static {
+        $instance = new static( 'unique' );
+        if ( $name ) {
+            $instance->name( $name );
+        }
+        return $instance;
+    }
+
+    /**
+     * Static factory for a FOREIGN KEY constraint.
+     * 
+     * @param string|null $name Optional constraint name.
+     * @return static
+     */
+    public static function foreign_key( ?string $name = null ) : static {
+        $instance = new static( 'foreign' );
+        if ( $name ) {
+            $instance->name( $name );
+        }
+        return $instance;
+    }
+
+    /**
+     * Static factory for a PRIMARY KEY constraint.
+     * 
+     * @param string|null $name Optional name (though usually ignored by MySQL).
+     * @return static
+     */
+    public static function primary( ?string $name = null ) : static {
+        $instance = new static( 'primary' );
+        if ( $name ) {
+            $instance->name( $name );
+        }
+        return $instance;
     }
 
     /**

@@ -9,6 +9,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -29,32 +30,32 @@ class OrganizationsSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->unsigned()
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'display_name' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->required(),
 
             Column::make( 'slug' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->required(),
 
             Column::make( 'status' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 20 )
                 ->default( 'active' )
                 ->required(),
 
             Column::make( 'created_at' )
-                ->type( 'datetime' ),
+                ->type( ColumnType::DATETIME ),
 
             Column::make( 'updated_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->required(),
         ];
     }

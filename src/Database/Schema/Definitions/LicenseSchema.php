@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,47 +51,48 @@ class LicenseSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->unsigned()
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'licensee_fullname' )
-                ->type( 'varchar' )
+                ->type( ColumnType::STRING )
                 ->size( 512 ),
 
             Column::make( 'license_key' )
-                ->type( 'varchar' )
+                ->type( ColumnType::STRING )
                 ->size( 300 )
                 ->required(),
 
             Column::make( 'service_id' )
-                ->type( 'varchar' )
+                ->type( ColumnType::STRING )
                 ->size( 300 )
                 ->required(),
 
             Column::make( 'app_prop' )
-                ->type( 'varchar' )
+                ->type( ColumnType::STRING )
                 ->size( 600 ),
 
             Column::make( 'max_allowed_domains' )
-                ->type( 'mediumint' ),
+                ->type( ColumnType::BIG_INT )
+                ->size( 20 ),
 
             Column::make( 'status' )
-                ->type( 'varchar' )
+                ->type( ColumnType::STRING )
                 ->size( 30 ),
 
             Column::make( 'start_date' )
-                ->type( 'datetime' ),
+                ->type( ColumnType::DATETIME ),
 
             Column::make( 'end_date' )
-                ->type( 'datetime' ),
+                ->type( ColumnType::DATETIME ),
 
             Column::make( 'created_at' )
-                ->type( 'datetime' ),
+                ->type( ColumnType::DATETIME ),
 
             Column::make( 'updated_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->required(),
         ];
     }

@@ -23,7 +23,7 @@ class Table {
     /** 
      * @var string $name Resolved table name. 
      */
-    public string $name;
+    protected string $name;
 
     /** 
      * @var Column[] $columns Array of column instances. 
@@ -66,6 +66,20 @@ class Table {
     }
 
     /**
+     * Add multiple columns to the table.
+     * 
+     * @param Column[] $columns
+     * @return static
+     */
+    public function add_columns( array $columns ) : static {
+        foreach ( $columns as $column ) {
+            $this->add_column( $column );
+        }
+
+        return $this;
+    }
+
+    /**
      * Add a constraint instance to the table.
      * 
      * @param Constraint $constraint
@@ -74,6 +88,29 @@ class Table {
     public function add_constraint( Constraint $constraint ) : static {
         $this->constraints[] = $constraint;
         return $this;
+    }
+
+    /**
+     * Add multiple constraints to the table.
+     * 
+     * @param Constraint[] $constraints
+     * @return static
+     */
+    public function add_constraints( array $constraints ) : static {
+        foreach ( $constraints as $constraint ) {
+            $this->add_constraint( $constraint );
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get table name.
+     * 
+     * @return string
+     */
+    public function get_name() : string {
+        return $this->name;
     }
 
     /**
@@ -92,5 +129,37 @@ class Table {
      */
     public function get_constraints() : array {
         return $this->constraints;
+    }
+
+    /**
+     * Retrieve all constraints associated with a specific column.
+     * 
+     * @param string $column_name The name of the column to check.
+     * @return Constraint[]
+     * @since 0.2.0
+     */
+    public function get_constraints_for_column( string $column_name ) : array {
+        return array_filter( 
+            $this->constraints, 
+            fn( Constraint $constraint ) => in_array( $column_name, $constraint->columns, true ) 
+        );
+    }
+
+    /**
+     * Check if a column has a specific type of constraint.
+     * 
+     * @param string $column_name
+     * @param string $type primary, unique, index, etc.
+     * @return bool
+     * @since 0.2.0
+     */
+    public function column_has_constraint( string $column_name, string $type ) : bool {
+        foreach ( $this->get_constraints_for_column( $column_name ) as $constraint ) {
+            if ( $constraint->type === strtolower( $type ) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -38,47 +39,47 @@ class ServiceAccountsSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'int' )
+                ->type( ColumnType::INTEGER )
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'identifier' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->required(),
 
             Column::make( 'owner_id' )
-                ->type( 'int' )
+                ->type( ColumnType::INTEGER )
                 ->required(),
 
             Column::make( 'display_name' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->required(),
 
             Column::make( 'description' )
-                ->type( 'text' ),
+                ->type( ColumnType::TEXT ),
 
             Column::make( 'api_key_hash' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 512 )
                 ->required(),
 
             Column::make( 'status' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 30 )
                 ->default( 'active' )
                 ->required(),
 
             Column::make( 'created_at' )
-                ->type( 'datetime' ),
+                ->type( ColumnType::DATETIME ),
 
             Column::make( 'updated_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->required(),
 
             Column::make( 'last_used_at' )
-                ->type( 'datetime' ),
+                ->type( ColumnType::DATETIME ),
         ];
     }
 

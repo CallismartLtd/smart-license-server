@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,36 +51,36 @@ class FailedJobsSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->unsigned()
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'job_id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->unsigned()
                 ->required(),
 
             Column::make( 'job_class' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->required(),
 
             Column::make( 'queue' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 50 )
                 ->required(),
 
             Column::make( 'payload' )
-                ->type( 'json' )
+                ->type( ColumnType::JSON )
                 ->required(),
 
             Column::make( 'error_message' )
-                ->type( 'text' )
+                ->type( ColumnType::TEXT )
                 ->default( null ),
 
             Column::make( 'failed_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->required(),
         ];
     }

@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,29 +51,29 @@ class MonetizationSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'app_type' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 50 )
                 ->required(),
 
             Column::make( 'app_id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->required(),
 
             Column::make( 'enabled' )
-                ->type( 'tinyint' )
+                ->type( ColumnType::INTEGER )
                 ->size( 1 )
                 ->default( 0 ),
 
             Column::make( 'created_at' )
-                ->type( 'datetime' ),
+                ->type( ColumnType::DATETIME ),
 
             Column::make( 'updated_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->required(),
         ];
     }

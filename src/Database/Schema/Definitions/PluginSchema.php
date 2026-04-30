@@ -9,6 +9,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -32,45 +33,45 @@ class PluginSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'int' )
+                ->type( ColumnType::INTEGER )
                 ->unsigned()
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'owner_id' )
-                ->type( 'bigint' ),
+                ->type( ColumnType::BIG_INT ),
 
             Column::make( 'name' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->required(),
 
             Column::make( 'slug' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 300 ),
 
             Column::make( 'status' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 300 )
                 ->default( 'active' ),
 
             Column::make( 'author' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 ),
 
             Column::make( 'author_profile' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 ),
 
             Column::make( 'download_link' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 400 ),
 
             Column::make( 'created_at' )
-                ->type( 'datetime' ),
+                ->type( ColumnType::DATETIME ),
 
             Column::make( 'updated_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->required(),
         ];
     }

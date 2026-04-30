@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Database\Schema\Definitions;
 use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
 defined( 'SMLISER_ABSPATH' ) || exit;
 
@@ -50,36 +51,36 @@ class BulkMessagesSchema implements DatabaseSchemaInterface {
     public static function get_columns() : array {
         return [
             Column::make( 'id' )
-                ->type( 'bigint' )
+                ->type( ColumnType::BIG_INT )
                 ->auto_increment()
                 ->required(),
 
             Column::make( 'message_id' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 64 )
                 ->default( null ),
 
             Column::make( 'subject' )
-                ->type( 'varchar' )
+                ->type( ColumnType::VARCHAR )
                 ->size( 255 )
                 ->required(),
 
             Column::make( 'body' )
-                ->type( 'longtext' )
+                ->type( ColumnType::LONG_TEXT )
                 ->default( null ),
 
             Column::make( 'created_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->default( null ),
 
             Column::make( 'updated_at' )
-                ->type( 'datetime' )
+                ->type( ColumnType::DATETIME )
                 ->required()
                 ->default( 'CURRENT_TIMESTAMP' )
                 ->comment( 'on_update CURRENT_TIMESTAMP' ),
 
             Column::make( 'is_read' )
-                ->type( 'tinyint' )
+                ->type( ColumnType::INTEGER )
                 ->size( 1 )
                 ->default( 0 ),
         ];

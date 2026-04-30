@@ -1,6 +1,6 @@
 <?php
 /**
- * MySQL Engine Renderer
+ * MySQL Query Renderer
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Database\Query\Renderers
@@ -9,324 +9,225 @@
 
 namespace SmartLicenseServer\Database\Query\Renderers;
 
+use SmartLicenseServer\Database\Query\QueryIntents\CreateTableIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\AlterTableIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\CreateIndexIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
+use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Column;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
- * MySQL-specific SQL renderer.
- *
- * Generates MySQL-compliant SQL from normalized intent.
- *
- * @since 0.2.0
+ * MySQL implementation of the Query Renderer.
  */
 class MySQLRenderer extends AbstractQueryRenderer {
 
     protected string $engine = 'mysql';
 
     /**
-     * MySQL version for compatibility checks.
-     *
-     * Format: '5.7.30', '8.0.21', etc.
-     * If null, assume modern (8.0+) and use latest syntax.
-     *
-     * @var string|null
+     * Quote a MySQL identifier.
      */
-    private ?string $mysql_version = null;
-
-    /**
-     * {@inheritDoc}
-     */
-    protected function quote_identifier( string $identifier ) : string {
-        return '`' . $identifier . '`';
+    protected function quote_single_identifier( string $identifier ) : string {
+        return "`" . str_replace( "`", "``", $identifier ) . "`";
     }
 
     /**
-     * {@inheritDoc}
+     * Render a MySQL SELECT statement.
+     * 
+     * @param SelectionIntent $intent
+     * @return string
      */
-    protected function normalize_type( string $type ) : string {
-        return $type;
+    public function render_select( SelectionIntent $intent ) : string {
+        $sql = sprintf(
+            "SELECT %s FROM %s",
+            $this->render_columns( $intent->get_columns() ),
+            $this->quote_identifier( $intent->get_table_name() )
+        );
+
+        // 1. Joins
+        $sql .= $this->render_joins( $intent->get_joins() );
+
+        // 2. Where
+        $conditions = $intent->get_conditions();
+        if ( ! empty( $conditions ) ) {
+            $sql .= " WHERE " . $this->render_where_clauses( $conditions );
+        }
+
+        // 3. Group By
+        $sql .= $this->render_grouping( $intent->get_groups() );
+
+        // 4. Order By
+        $sql .= $this->render_ordering( $intent->get_orders() );
+
+        // 5. Limit & Offset
+        $sql .= $this->render_limit_offset( $intent->get_limit(), $intent->get_offset() );
+
+        return $sql . ";";
     }
 
     /**
-     * Render constraint for CREATE TABLE.
-     *
-     * @param array $constraint Constraint intent
-     *
-     * @return string Constraint SQL
+     * Render CREATE TABLE.
      */
-    protected function render_constraint( array $constraint ) : string {
-        $type = $constraint['type'];
+    public function render_create_table( CreateTableIntent $intent ) : string {
+        $table_name = $this->quote_identifier( $intent->get_table_name() );
+        $definitions = [];
 
-        switch ( $type ) {
-            case 'PRIMARY KEY':
-                $cols = implode( ', ', array_map( [ $this, 'quote_identifier' ], $constraint['columns'] ) );
-                return "PRIMARY KEY ({$cols})";
-
-            case 'UNIQUE':
-                $cols = implode( ', ', array_map( [ $this, 'quote_identifier' ], $constraint['columns'] ) );
-                return "CONSTRAINT " . $this->quote_identifier( $constraint['name'] ) . " UNIQUE ({$cols})";
-
-            case 'FOREIGN KEY':
-                $col = $this->quote_identifier( $constraint['column'] );
-                $ref_table = $this->quote_identifier( $constraint['ref_table'] );
-                $ref_col = $this->quote_identifier( $constraint['ref_column'] );
-
-                $fk = "FOREIGN KEY ({$col}) REFERENCES {$ref_table} ({$ref_col})";
-
-                if ( ! empty( $constraint['on_delete'] ) ) {
-                    $fk .= ' ON DELETE ' . $constraint['on_delete'];
-                }
-
-                if ( ! empty( $constraint['on_update'] ) ) {
-                    $fk .= ' ON UPDATE ' . $constraint['on_update'];
-                }
-
-                return $fk;
-
-            default:
-                throw new \Exception( "Unknown constraint type: {$type}" );
+        foreach ( $intent->get_columns() as $column ) {
+            $definitions[] = $this->render_column_definition( $column );
         }
+
+        foreach ( $intent->get_constraints() as $constraint ) {
+            $definitions[] = $this->render_constraint( $constraint );
+        }
+
+        return sprintf( 
+            "CREATE TABLE %s (\n\t%s\n)",
+            $table_name,
+            implode( ",\n\t", $definitions ) 
+        );
     }
 
     /**
-     * {@inheritDoc}
+     * Render a standalone CREATE INDEX.
      */
-    public function render_alter_table( string $table, array $intent ) : string {
-        $table = $this->quote_identifier( $table );
+    public function render_create_index( CreateIndexIntent $intent ) : string {
+        $table = $this->quote_identifier( $intent->get_table_name() );
+        $index = $intent->get_index();
 
-        if ( empty( $intent['operations'] ) ) {
-            throw new \Exception( 'ALTER TABLE requires operations' );
-        }
-
-        $statements = [];
-
-        foreach ( $intent['operations'] as $operation ) {
-            $rendered = $this->render_alter_operation( $table, $operation );
-
-            if ( is_array( $rendered ) ) {
-                $statements = array_merge( $statements, $rendered );
-            } else {
-                $statements[] = $rendered;
-            }
-        }
-
-        return implode( '; ', $statements );
+        return sprintf(
+            "CREATE %s ON %s (%s);",
+            $this->render_index_definition( $index ),
+            $table,
+            implode( ', ', $this->quote_identifiers( $index->columns ) )
+        );
     }
 
     /**
-     * Set MySQL version for compatibility checks.
-     *
-     * @param string $version Version string (e.g., '5.7.30')
-     *
-     * @return void
+     * {@inheritdoc}
      */
-    public function set_mysql_version( string $version ) : void {
-        $this->mysql_version = $version;
+    public function render_alter_table( AlterTableIntent $intent ) : string {
+        $table      = $this->quote_identifier( $intent->get_table_name() );
+        $operations = [];
+
+        foreach ( $intent->get_operations() as $op ) {
+            $operations[] = $this->render_alter_operation( $op );
+        }
+
+        return sprintf( "ALTER TABLE %s %s;", $table, implode( ', ', $operations ) );
     }
 
     /**
-    * Get MySQL major.minor version.
-    *
-    * @return array [major, minor] e.g., [8, 0]
-    */
-    private function get_version_parts() : array {
-        if ( ! $this->mysql_version ) {
-            return [8, 0];  // Assume modern if not set
-        }
-    
-        if ( preg_match( '/^(\d+)\.(\d+)/', $this->mysql_version, $m ) ) {
-            return [(int) $m[1], (int) $m[2]];
-        }
-    
-        return [8, 0];  // Default to modern
-    }
-    
-    /**
-     * Check if MySQL version supports RENAME COLUMN (8.0.14+).
-     *
-     * @return bool
+     * Helper to render index portion for standalone or ADD INDEX queries.
      */
-    private function supports_rename_column() : bool {
-        [$major, $minor] = $this->get_version_parts();
-    
-        // MySQL 8.0.14+
-        if ( $major > 8 ) {
-            return true;
-        }
-    
-        if ( $major === 8 && $minor >= 0 ) {
-            // 8.0.x - assume 8.0.14+
-            // (Would need patch version to be precise, but rarely matters)
-            return true;
-        }
-    
-        // MySQL 5.7 and earlier don't support RENAME COLUMN
-        return false;
+    protected function render_index_definition( Constraint $index ) : string {
+        $prefix = ( strtolower( $index->type ) === 'unique' ) ? 'UNIQUE INDEX' : 'INDEX';
+        $name   = $index->name ? $this->quote_identifier( $index->name ) : '';
+        $cols   = implode( ', ', $this->quote_identifiers( $index->columns ) );
+
+        return trim( "{$prefix} {$name} ({$cols})" );
     }
 
     /**
-     * {@inheritDoc}
+     * Render a constraint or index for a CREATE TABLE definition.
      */
-    protected function render_alter_operation( string $table, array $operation ) : string|array {
-
-        $type = $operation['op'] ?? '';
+    protected function render_constraint( Constraint $constraint ) : string {
+        $type    = strtolower( $constraint->type );
+        $columns = implode( ', ', $this->quote_identifiers( $constraint->columns ) );
+        
+        $name = $constraint->name ? ' ' . $this->quote_identifier( $constraint->name ) : '';
 
         return match ( $type ) {
-
-            'ADD COLUMN' => $this->render_add_column_operation( $operation ),
-
-            'DROP COLUMN' => 'DROP COLUMN ' .
-                $this->quote_identifier( $operation['name'] ),
-
-            'RENAME COLUMN' => $this->render_rename_column_operation( $operation ),
-
-            'MODIFY COLUMN' => $this->render_modify_column_operation( $operation ),
-
-            'RENAME TABLE' => 'RENAME TO ' .
-                $this->quote_identifier( $operation['new_name'] ),
-
-            'ADD INDEX' => $this->render_add_index_operation( $operation ),
-
-            'DROP INDEX' => 'DROP INDEX ' .
-                $this->quote_identifier( $operation['name'] ),
-
-            default => throw new \Exception(
-                "Unknown ALTER operation: {$type}"
-            )
+            'primary' => "PRIMARY KEY ({$columns})",
+            'unique'  => "UNIQUE INDEX{$name} ({$columns})",
+            'index'   => "INDEX{$name} ({$columns})",
+            'foreign' => $this->render_foreign_key( $constraint ),
+            default   => throw new \Exception( "MySQL: Unsupported constraint type [{$type}]" )
         };
     }
 
-    private function render_add_column_operation( array $operation ) : string {
+    /**
+     * Map Alter Operations to MySQL Syntax.
+     */
+    protected function render_alter_operation( array $op ) : string {
+        $action  = strtoupper( $op['action'] );
+        $subject = strtoupper( $op['subject'] );
+        $payload = $op['payload'];
 
-        $sql =
-            $this->quote_identifier( $operation['name'] ) . ' ' .
-            $this->normalize_type( $operation['type'] );
+        return match ( "{$action}_{$subject}" ) {
+            // Columns.
+            'ADD_COLUMN'      => "ADD " . $this->render_column_definition( $payload ),
+            'MODIFY_COLUMN'   => "MODIFY COLUMN " . $this->render_column_definition( $payload ),
+            'DROP_COLUMN'     => "DROP COLUMN " . $this->quote_identifier( $payload ),
+            'RENAME_COLUMN'   => sprintf(
+                "RENAME COLUMN %s TO %s",
+                $this->quote_identifier( $payload['from'] ),
+                $this->quote_identifier( $payload['to'] )
+            ),
+            // Constraints.
+            'ADD_CONSTRAINT'  => "ADD " . $this->render_constraint( $payload ),
+            'DROP_CONSTRAINT' => $this->render_mysql_drop_constraint( $payload ),
 
-        if ( ! empty( $operation['definition'] ) ) {
-            $sql .= ' ' . $operation['definition'];
-        }
+            // Indexes
+            'DROP_INDEX'      => "DROP INDEX " . $this->quote_identifier( $payload ),
 
-        if ( ! empty( $operation['position'] ) ) {
-            $sql .= ' ' . $this->validate_position_clause( $operation['position'] );
-        }
-
-        return 'ADD COLUMN ' . $sql;
-    }
-
-    private function render_modify_column_operation( array $operation ) : string {
-
-        $sql =
-            $this->quote_identifier( $operation['name'] ) . ' ' .
-            $this->normalize_type( $operation['type'] );
-
-        if ( ! empty( $operation['definition'] ) ) {
-            $sql .= ' ' . $operation['definition'];
-        }
-
-        return 'MODIFY COLUMN ' . $sql;
+            default => throw new \Exception( "MySQL: Unsupported operation {$action}_{$subject}" )
+        };
     }
 
     /**
-     * Render RENAME COLUMN operation for MySQL.
-     *
-     * Uses RENAME COLUMN for MySQL 8.0.14+ (preferred syntax).
-     * Falls back to CHANGE COLUMN for earlier versions (compatible with all).
-     *
-     * @param array $operation
-     *
-     * @return string
+     * Handle MySQL specific drop logic.
      */
-    private function render_rename_column_operation( array $operation ) : string {
-        $old_name = $this->quote_identifier( $operation['old_name'] );
-        $new_name = $this->quote_identifier( $operation['new_name'] );
-    
-        // MySQL 8.0.14+ supports RENAME COLUMN (preferred)
-        if ( $this->supports_rename_column() ) {
-            return sprintf(
-                'RENAME COLUMN %s TO %s',
-                $old_name,
-                $new_name
-            );
-        }
-    
-        // Fallback to CHANGE COLUMN for older versions
-        // CHANGE requires: CHANGE OLD_NAME NEW_NAME TYPE [definition]
-        // We use VARCHAR(255) as a safe default type (rarely changed by rename alone)
-        return sprintf(
-            'CHANGE COLUMN %s %s VARCHAR(255)',
-            $old_name,
-            $new_name
-        );
-    }
-    
-    private function render_add_index_operation( array $operation ) : string {
-
-        $allowed = [ '', 'UNIQUE', 'FULLTEXT', 'SPATIAL' ];
-
-        $type = strtoupper( trim( $operation['type'] ?? '' ) );
-
-        if ( ! in_array( $type, $allowed, true ) ) {
-            throw new \Exception(
-                "Unsupported MySQL index type: {$type}"
-            );
+    private function render_mysql_drop_constraint( string $name ) : string {
+        // MySQL quirk: Primary keys are dropped by type, not by name.
+        if ( strtolower( $name ) === 'primary' ) {
+            return "DROP PRIMARY KEY";
         }
 
-        $columns = implode(
-            ', ',
-            array_map( [ $this, 'quote_identifier' ], $operation['columns'] )
-        );
-
-        $prefix = $type ? $type . ' ' : '';
-
-        return sprintf(
-            'ADD %sINDEX %s (%s)',
-            $prefix,
-            $this->quote_identifier( $operation['name'] ),
-            $columns
-        );
-    }
-
-    private function validate_position_clause( string $position ) : string {
-
-        $position = trim( $position );
-
-        if ( strtoupper( $position ) === 'FIRST' ) {
-            return 'FIRST';
-        }
-
-        if ( preg_match( '/^AFTER\s+[a-zA-Z0-9_]+$/i', $position ) ) {
-            return $position;
-        }
-
-        throw new \Exception(
-            "Invalid MySQL column position clause: {$position}"
-        );
+        return "DROP CONSTRAINT " . $this->quote_identifier( $name );
     }
 
     /**
-     * Render MySQL-specific CREATE TABLE suffix (ENGINE, CHARSET, COLLATION).
-     *
-     * @param array $intent Query intent
-     *
-     * @return string SQL suffix (e.g., "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci")
+     * Render Column Definition.
      */
-    protected function render_create_table_suffix( array $intent ) : string {
-        $parts = [];
-    
-        // ENGINE (default: InnoDB in modern MySQL)
-        if ( ! empty( $intent['engine'] ) ) {
-            $parts[] = 'ENGINE=' . $intent['engine'];
-        }
-    
-        // DEFAULT CHARSET
-        if ( ! empty( $intent['charset'] ) ) {
-            $parts[] = 'DEFAULT CHARSET=' . $intent['charset'];
-        }
-    
-        // COLLATE
-        if ( ! empty( $intent['collation'] ) ) {
-            $parts[] = 'COLLATE=' . $intent['collation'];
-        }
-    
+    protected function render_column_definition( Column $column ) : string {
+        $parts = [
+            $this->quote_identifier( $column->name ),
+            $this->normalize_type( $column->type, [
+                'length'    => $column->length,
+                'scale'     => $column->scale,
+                'precision' => $column->precision
+            ])
+        ];
+
+        if ( ! $column->nullable ) $parts[] = 'NOT NULL';
+        if ( $column->default !== null ) $parts[] = "DEFAULT " . $this->format_value( $column->default );
+        if ( $column->auto_increment ) $parts[] = 'AUTO_INCREMENT';
+
         return implode( ' ', $parts );
+    }
+
+    /**
+     * Specifically render a Foreign Key constraint.
+     */
+    protected function render_foreign_key( Constraint $constraint ) : string {
+        $name    = $constraint->name ? $this->quote_identifier( $constraint->name ) : null;
+        $columns = implode( ', ', $this->quote_identifiers( $constraint->columns ) );
+        
+        $ref_table = $this->quote_identifier( $constraint->references_table ?? '' );
+        $ref_cols  = implode( ', ', $this->quote_identifiers( $constraint->references_columns ) );
+
+        $sql = $name ? "CONSTRAINT {$name} " : "";
+        $sql .= "FOREIGN KEY ({$columns}) REFERENCES {$ref_table} ({$ref_cols})";
+
+        if ( $constraint->on_delete ) {
+            $sql .= " ON DELETE " . strtoupper( $constraint->on_delete );
+        }
+
+        if ( $constraint->on_update ) {
+            $sql .= " ON UPDATE " . strtoupper( $constraint->on_update );
+        }
+
+        return $sql;
     }
 }

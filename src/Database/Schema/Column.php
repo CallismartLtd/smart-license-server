@@ -26,9 +26,9 @@ class Column {
     public string $name;
 
     /** 
-     * @var string $type Logical data type.
+     * @var int $type Column type.
      */
-    public string $type;
+    public int $type;
 
     /** 
      * @var int|null $length Maximum length for strings/integers. 
@@ -92,10 +92,10 @@ class Column {
     /**
      * Set the logical type.
      * 
-     * @param string $type
+     * @param int $type
      * @return static
      */
-    public function type( string $type ) : static {
+    public function type( int $type ) : static {
         $this->type = $type;
         return $this;
     }

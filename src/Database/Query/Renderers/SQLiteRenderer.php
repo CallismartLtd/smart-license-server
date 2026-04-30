@@ -9,6 +9,13 @@
 
 namespace SmartLicenseServer\Database\Query\Renderers;
 
+use SmartLicenseServer\Database\Query\QueryIntents\CreateTableIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\AlterTableIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\CreateIndexIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
+use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Schema\Column;
+
 defined( 'SMLISER_ABSPATH' ) || exit;
 
 /**
@@ -21,165 +28,192 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  */
 class SQLiteRenderer extends AbstractQueryRenderer {
 
+    /**
+     * The database engine identifier.
+     * 
+     * @var string
+     */
     protected string $engine = 'sqlite';
 
     /**
-     * {@inheritDoc}
+     * Quote a SQLite identifier using double quotes.
+     * 
+     * @param string $identifier
+     * @return string
      */
-    protected function quote_identifier( string $identifier ) : string {
-        return '"' . $identifier . '"';
+    protected function quote_single_identifier( string $identifier ) : string {
+        return '"' . str_replace( '"', '""', $identifier ) . '"';
     }
 
     /**
-     * {@inheritDoc}
+     * Render a SQLite SELECT statement.
+     * 
+     * @param SelectionIntent $intent
+     * @return string
      */
-    protected function normalize_type( string $type ) : string {
-        return match ( strtoupper( preg_replace( '/\(.+\)/', '', $type ) ) ) {
-            'BIGINT', 'INT', 'INTEGER'      => 'INTEGER',
-            'VARCHAR', 'TEXT', 'LONGTEXT'   => 'TEXT',
-            'BOOLEAN'                       => 'INTEGER',
-            'DATETIME', 'TIMESTAMP', 'DATE' => 'TEXT',
-            'JSON', 'JSONB'                 => 'TEXT',
-            'FLOAT', 'DOUBLE', 'DECIMAL'    => 'REAL',
-            'BLOB', 'LONGBLOB'              => 'BLOB',
-            default                         => 'TEXT'
-        };
+    public function render_select( SelectionIntent $intent ) : string {
+        $sql = sprintf(
+            "SELECT %s FROM %s",
+            $this->render_columns( $intent->get_columns() ),
+            $this->quote_identifier( $intent->get_table_name() )
+        );
+
+        $sql .= $this->render_joins( $intent->get_joins() );
+
+        $conditions = $intent->get_conditions();
+        if ( ! empty( $conditions ) ) {
+            $sql .= " WHERE " . $this->render_where_clauses( $conditions );
+        }
+
+        $sql .= $this->render_grouping( $intent->get_groups() );
+        $sql .= $this->render_ordering( $intent->get_orders() );
+        $sql .= $this->render_limit_offset( $intent->get_limit(), $intent->get_offset() );
+
+        return $sql . ";";
     }
 
     /**
-     * Render constraint for SQLite.
-     *
-     * @param array $constraint Constraint intent
-     *
-     * @return string Constraint SQL
+     * Render CREATE TABLE for SQLite.
+     * 
+     * @param CreateTableIntent $intent
+     * @return string
      */
-    protected function render_constraint( array $constraint ) : string {
+    public function render_create_table( CreateTableIntent $intent ) : string {
+        $table_name  = $this->quote_identifier( $intent->get_table_name() );
+        $definitions = [];
 
-        $type = $constraint['type'] ?? '';
-
-        switch ( $type ) {
-
-            case 'PRIMARY KEY':
-                $cols = implode(
-                    ', ',
-                    array_map( [ $this, 'quote_identifier' ], $constraint['columns'] ?? [] )
-                );
-                return "PRIMARY KEY ({$cols})";
-
-            case 'UNIQUE':
-                $cols = implode(
-                    ', ',
-                    array_map( [ $this, 'quote_identifier' ], $constraint['columns'] ?? [] )
-                );
-                return "UNIQUE ({$cols})";
-
-            case 'FOREIGN KEY':
-                $col = $this->quote_identifier( $constraint['column'] ?? '' );
-                $ref_table = $this->quote_identifier( $constraint['ref_table'] ?? '' );
-                $ref_col = $this->quote_identifier( $constraint['ref_column'] ?? '' );
-
-                $fk = "FOREIGN KEY ({$col}) REFERENCES {$ref_table} ({$ref_col})";
-
-                if ( ! empty( $constraint['on_delete'] ) ) {
-                    $fk .= ' ON DELETE ' . $constraint['on_delete'];
-                }
-
-                if ( ! empty( $constraint['on_update'] ) ) {
-                    $fk .= ' ON UPDATE ' . $constraint['on_update'];
-                }
-
-                return $fk;
-
-            default:
-                throw new \Exception( "Unknown constraint type: {$type}" );
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function render_alter_table( string $table, array $intent ) : string {
-
-        $table = $this->quote_identifier( $table );
-
-        $operations = $intent['operations'] ?? [];
-
-        if ( ! is_array( $operations ) || empty( $operations ) ) {
-            throw new \Exception( 'ALTER TABLE requires operations' );
+        foreach ( $intent->get_columns() as $column ) {
+            $definitions[] = $this->render_column_definition( $column );
         }
 
-        if ( count( $operations ) !== 1 ) {
-            throw new \Exception(
-                'SQLite ALTER TABLE supports one operation per statement.'
-            );
+        foreach ( $intent->get_constraints() as $constraint ) {
+            // SQLite doesn't support named constraints in the same way; 
+            // usually handled within column definitions or as table constraints.
+            $definitions[] = $this->render_constraint( $constraint );
         }
 
-        // Normalize first element safely (no assumptions about index type)
-        $operation = array_values( $operations )[0];
-
-        return 'ALTER TABLE ' . $table . ' ' . $this->render_alter_operation(
-            $table,
-            $operation
+        return sprintf( 
+            "CREATE TABLE %s (\n\t%s\n);",
+            $table_name,
+            implode( ",\n\t", array_filter( $definitions ) ) 
         );
     }
 
     /**
-     * {@inheritDoc}
+     * Render a standalone CREATE INDEX.
+     * 
+     * @param CreateIndexIntent $intent
+     * @return string
      */
-    protected function render_alter_operation( string $table, array $operation ) : string|array {
+    public function render_create_index( CreateIndexIntent $intent ) : string {
+        $table = $this->quote_identifier( $intent->get_table_name() );
+        $index = $intent->get_index();
+        $type  = ( strtolower( $index->type ) === 'unique' ) ? 'UNIQUE INDEX' : 'INDEX';
+        $name  = $index->name ? $this->quote_identifier( $index->name ) : '';
+        $cols  = implode( ', ', $this->quote_identifiers( $index->columns ) );
 
-        $op_type = $operation['op'] ?? '';
+        return trim( "CREATE {$type} {$name} ON {$table} ({$cols});" );
+    }
 
-        return match ( $op_type ) {
+    /**
+     * Render ALTER TABLE for SQLite.
+     * 
+     * @param AlterTableIntent $intent
+     * @throws \RuntimeException Because SQLite has extremely limited ALTER support.
+     * @return string
+     */
+    public function render_alter_table( AlterTableIntent $intent ) : string {
+        $table      = $this->quote_identifier( $intent->get_table_name() );
+        $operations = $intent->get_operations();
 
-            'ADD COLUMN' => $this->render_add_column_operation( $operation ),
+        // SQLite only supports one ALTER action at a time.
+        if ( count( $operations ) > 1 ) {
+            throw new \RuntimeException( "SQLite: Multiple ALTER operations are not supported in a single statement." );
+        }
 
-            'RENAME TABLE' => 'RENAME TO ' .
-                $this->quote_identifier( $operation['new_name'] ?? '' ),
+        return sprintf( "ALTER TABLE %s %s;", $table, $this->render_alter_operation( $operations[0] ) );
+    }
 
-            'DROP COLUMN' => throw new \Exception(
-                'SQLite does not support DROP COLUMN safely in this migration layer. Use table recreation strategy.'
-            ),
+    /**
+     * Render a constraint for SQLite.
+     * 
+     * @param Constraint $constraint
+     * @return string
+     */
+    protected function render_constraint( Constraint $constraint ) : string {
+        $type    = strtolower( $constraint->type );
+        $columns = implode( ', ', $this->quote_identifiers( $constraint->columns ) );
 
-            'RENAME COLUMN' => throw new \Exception(
-                'SQLite RENAME COLUMN requires SQLite 3.25+. Use table recreation strategy or version-aware migration.'
-            ),
-
-            'MODIFY COLUMN' => throw new \Exception(
-                'SQLite does not support MODIFY COLUMN. Use table recreation strategy.'
-            ),
-
-            'ADD INDEX' => throw new \Exception(
-                'SQLite indexes must be created using standalone CREATE INDEX statements.'
-            ),
-
-            'DROP INDEX' => throw new \Exception(
-                'SQLite indexes must be dropped using standalone DROP INDEX statements.'
-            ),
-
-            default => throw new \Exception(
-                "Unknown ALTER operation: {$op_type}"
-            )
+        return match ( $type ) {
+            'primary' => "PRIMARY KEY ({$columns})",
+            'unique'  => "UNIQUE ({$columns})",
+            'foreign' => $this->render_foreign_key( $constraint ),
+            'index'   => '', // Handled via standalone CREATE INDEX in SQLite
+            default   => throw new \RuntimeException( "SQLite: Unsupported constraint type [{$type}]" )
         };
     }
 
     /**
-     * Render ADD COLUMN operation.
-     *
-     * @param array $operation
-     *
+     * Map Alter Operations to SQLite Syntax.
+     * 
+     * @param array $op
      * @return string
      */
-    private function render_add_column_operation( array $operation ) : string {
+    protected function render_alter_operation( array $op ) : string {
+        $action  = strtoupper( $op['action'] );
+        $subject = strtoupper( $op['subject'] );
+        $payload = $op['payload'];
 
-        $sql =
-            $this->quote_identifier( $operation['name'] ?? '' ) . ' ' .
-            $this->normalize_type( $operation['type'] ?? '' );
+        return match ( "{$action}_{$subject}" ) {
+            'ADD_COLUMN'    => "ADD COLUMN " . $this->render_column_definition( $payload ),
+            'RENAME_COLUMN' => sprintf(
+                "RENAME COLUMN %s TO %s",
+                $this->quote_identifier( $payload['from'] ),
+                $this->quote_identifier( $payload['to'] )
+            ),
+            'RENAME_TABLE'  => "RENAME TO " . $this->quote_identifier( $payload ),
+            default         => throw new \RuntimeException( "SQLite: Operation {$action}_{$subject} is not supported directly. Requires table reconstruction." )
+        };
+    }
 
-        if ( ! empty( $operation['definition'] ) ) {
-            $sql .= ' ' . $operation['definition'];
+    /**
+     * Render Column Definition for SQLite.
+     * 
+     * @param Column $column
+     * @return string
+     */
+    protected function render_column_definition( Column $column ) : string {
+        $type = $this->normalize_type( $column->type );
+
+        $parts = [ $this->quote_identifier( $column->name ), $type ];
+
+        // SQLite primary key auto-increment is specific
+        if ( $column->auto_increment ) {
+            return $this->quote_identifier( $column->name ) . " INTEGER PRIMARY KEY AUTOINCREMENT";
         }
 
-        return 'ADD COLUMN ' . $sql;
+        if ( ! $column->nullable ) $parts[] = 'NOT NULL';
+        if ( $column->default !== null ) $parts[] = "DEFAULT " . $this->format_value( $column->default );
+
+        return implode( ' ', $parts );
+    }
+
+    /**
+     * Render a Foreign Key constraint.
+     * 
+     * @param Constraint $constraint
+     * @return string
+     */
+    protected function render_foreign_key( Constraint $constraint ) : string {
+        $columns   = implode( ', ', $this->quote_identifiers( $constraint->columns ) );
+        $ref_table = $this->quote_identifier( $constraint->references_table ?? '' );
+        $ref_cols  = implode( ', ', $this->quote_identifiers( $constraint->references_columns ) );
+
+        $sql = "FOREIGN KEY ({$columns}) REFERENCES {$ref_table} ({$ref_cols})";
+
+        if ( $constraint->on_delete ) $sql .= " ON DELETE " . strtoupper( $constraint->on_delete );
+        if ( $constraint->on_update ) $sql .= " ON UPDATE " . strtoupper( $constraint->on_update );
+
+        return $sql;
     }
 }
