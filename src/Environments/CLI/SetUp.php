@@ -19,7 +19,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\CLI;
 
-use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\CLIRunner;
@@ -126,6 +125,7 @@ class SetUp extends Environment {
         $db_pass    = $_ENV['SMLISER_DB_PASSWORD'] ?? '';
         $db_charset = $_ENV['SMLISER_DB_CHARSET']  ?? 'utf8mb4';
         $db_prefix  = $_ENV['SMLISER_DB_PREFIX']   ?? '';
+        $db_adapter = $_ENV['SMLISER_DB_ADAPTER'] ?? 'mysql';
 
         $app_url     = rtrim( $_ENV['SMLISER_APP_URL']    ?? '', '/' );
         $repo_path   = rtrim( $_ENV['SMLISER_REPO_PATH']  ?? dirname( SMLISER_PATH ), '/' );
@@ -146,15 +146,18 @@ class SetUp extends Environment {
         }
 
         $this->dbConfig = new DBConfigDTO([
-            'driver'   => 'mysql',
+            'driver'   => $db_adapter,
             'host'     => $db_host,
             'port'     => $db_port,
             'database' => $db_name,
             'username' => $db_user,
             'password' => $db_pass,
             'charset'  => $db_charset,
-            // 'path'      => ABSPATH . 'sqlite.db'
         ]);
+
+        if ( 'sqlite' === $db_adapter ) {
+            $this->dbConfig->set( 'path', $_ENV['SMLISER_DB_PATH'] ?? '' );
+        }
 
         // Store app_url for the URL methods.
         $this->app_url = $app_url;

@@ -448,29 +448,20 @@ class PdoAdapter implements DatabaseAdapterInterface {
      * ⚠️ UNSAFE: Do not use with untrusted input.
      *
      * @param string $query
-     * @return array|int|false
+     * @return bool
      */
-    public function exec( string $query ) {
+    public function exec( string $query ) : bool {
         if ( ! $this->pdo ) {
             $this->last_error = 'No active PDO connection.';
             return false;
         }
 
         try {
-            /**
-             * Try executing as a query first (SELECT-like statements)
-             */
-            $stmt = $this->pdo->query( $query );
+            
+            $result = (bool) $this->pdo->exec( $query );
+            $this->insert_id    = $this->pdo->lastInsertId();
 
-            if ( $stmt !== false ) {
-                $result = $stmt->fetchAll( \PDO::FETCH_ASSOC );
-                return $result;
-            }
-
-            /**
-             * Fallback to exec() for write queries (INSERT/UPDATE/DELETE/DDL)
-             */
-            return $this->pdo->exec( $query );
+            return $result;
 
         } catch ( \PDOException $e ) {
             $this->last_error = $e->getMessage();

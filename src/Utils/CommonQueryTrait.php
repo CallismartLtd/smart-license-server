@@ -51,7 +51,7 @@ trait CommonQueryTrait {
             return null;
         }
 
-        $sql    = "SELECT * FROM {$table} WHERE `{$column}` = ? LIMIT 1";
+        $sql    = "SELECT * FROM `{$table}` WHERE `{$column}` = ? LIMIT 1";
         $result = $db->get_row( $sql, [ $value ] );
 
         return $result ? static::from_array( (array) $result ) : null;

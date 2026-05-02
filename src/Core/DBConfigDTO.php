@@ -72,7 +72,7 @@ final class DBConfigDTO extends DTO {
     protected function cast( string $key, mixed $value ): mixed {
         if ( 'driver' === $key ) {
 
-            $allowed = [ 'mysql', 'sqlite', 'pdo', 'wpdb', 'laravel' ];
+            $allowed = [ 'mysql', 'pgsql', 'sqlite' ];
 
             if ( ! in_array( $value, $allowed, true ) ) {
                 throw new \InvalidArgumentException(

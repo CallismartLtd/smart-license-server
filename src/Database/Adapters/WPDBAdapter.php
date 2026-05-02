@@ -339,19 +339,19 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      * - false on failure
      *
      * @param string $query Raw SQL query string.
-     * @return mixed|false
+     * @return bool
      */
-    public function exec( string $query ) {
+    public function exec( string $query ) : bool {
         $result = $this->wpdb->query( $query );
 
-        if ( $result === false ) {
+        if ( false === $result ) {
             $this->last_error = $this->wpdb->last_error;
             return false;
         }
 
         $this->insert_id = $this->wpdb->insert_id;
 
-        return $result;
+        return (bool) $result;
     }
 
     /**

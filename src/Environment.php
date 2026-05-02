@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer;
 
+use mysqli;
 use PDO;
 use SmartLicenseServer\Background\Queue\Adapters\DatabaseJobStorageAdapter;
 use SmartLicenseServer\Background\Queue\JobQueue;
@@ -40,12 +41,14 @@ use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
+use SmartLicenseServer\Database\Adapters\PostgresAdapter;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
 use SmartLicenseServer\Events\EventServiceProvider;
 use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\Templates\TemplateDiscovery;
 use SmartLicenseServer\Templates\TemplateLocator;
+use SQLite3;
 
 /**
  * Abstract environment bootstrap class for Smart License Server.
@@ -773,9 +776,10 @@ abstract class Environment implements EnvironmentProviderInterface {
 
             /** @var array<class-string<DatabaseAdapterInterface>, bool> $adapters */
             $adapters   = [
-                MysqliAdapter::class    => class_exists( 'mysqli' ), // Slightly faster than PDO.
+                MysqliAdapter::class    => 'mysql' === $config->driver && class_exists( mysqli::class ),
+                SqliteAdapter::class    => 'sqlite' === $config->driver && class_exists( SQLite3::class ),
+                PostgresAdapter::class  => 'pgsql' === $config->driver && class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
                 PdoAdapter::class       => class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
-                SqliteAdapter::class    => 'sqlite' === $config->driver && isset( $config->path ) && class_exists( 'SQLite3' ),
             ];
 
             foreach( $adapters as $adapter_class => $is_supported ) {

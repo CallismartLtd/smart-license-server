@@ -371,9 +371,9 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * ⚠️ UNSAFE: Do not use with untrusted input.
      *
      * @param string $query
-     * @return array|int|false
+     * @return bool
      */
-    public function exec( string $query ) {
+    public function exec( string $query ) : bool {
         if ( ! $this->sqlite ) {
             $this->last_error = 'No active SQLite3 connection.';
             return false;
@@ -388,24 +388,16 @@ class SqliteAdapter implements DatabaseAdapterInterface {
              * - TRUE/FALSE for exec()
              */
 
-            $result = @$this->sqlite->query( $query );
+            $result = @$this->sqlite->exec( $query );
 
-            if ( $result === false ) {
+            if ( false === $result ) {
                 $this->last_error = $this->sqlite->lastErrorMsg();
                 return false;
             }
 
-            if ( $result instanceof \SQLite3Result ) {
-                $rows = [];
+            $this->insert_id    = $this->sqlite->lastInsertRowID();
 
-                while ( $row = $result->fetchArray( SQLITE3_ASSOC ) ) {
-                    $rows[] = $row;
-                }
-
-                return $rows;
-            }
-
-            return $this->sqlite->changes();
+            return true;
 
         } catch ( \Exception $e ) {
             $this->last_error = $e->getMessage();

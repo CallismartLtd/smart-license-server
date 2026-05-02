@@ -37,7 +37,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * @method int|null get_insert_id() Get the last insertion ID.
  *
  * @method mixed query(string $query, array $params = []) Execute a raw SQL query.
- * @method array|int|false exec(string $query) Execute a raw SQL query without prepared statements.
+ * @method bool exec(string $query) Execute a raw SQL query without prepared statements.
  *
  * @method string get_server_version() Get the database server version.
  * @method string get_engine_type() Get the engine type (mysql, sqlite, etc).

@@ -490,9 +490,9 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * ⚠️ UNSAFE: Do not use with untrusted input.
      *
      * @param string $query
-     * @return array|int|false
+     * @return bool
      */
-    public function exec( string $query ) {
+    public function exec( string $query ) : bool {
         if ( ! $this->mysqli ) {
             $this->last_error = 'No active MySQLi connection.';
             return false;
@@ -500,7 +500,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
 
         $result = $this->mysqli->query( $query );
 
-        if ( $result === false ) {
+        if ( false === $result ) {
             $this->last_error = $this->mysqli->error;
             return false;
         }
@@ -509,21 +509,14 @@ class MysqliAdapter implements DatabaseAdapterInterface {
          * CASE 1: SELECT / SHOW / DESCRIBE (result set)
          */
         if ( $result instanceof \mysqli_result ) {
-            $rows = [];
-
-            while ( $row = $result->fetch_assoc() ) {
-                $rows[] = $row;
-            }
-
-            $result->free();
-
-            return $rows;
+            $this->insert_id    = (int) $this->mysqli->insert_id;
+            return true;
         }
 
         /**
          * CASE 2: INSERT / UPDATE / DELETE / DDL
          */
-        return $this->mysqli->affected_rows;
+        return (bool) $result;
     }
 
     /**

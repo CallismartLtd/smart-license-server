@@ -538,6 +538,7 @@ abstract class AbstractErrorHandler {
         if ( $this->isFatalError( $errno ) ) {
             // Handle our canonical fatal errors with full display and logging.
             $this->handleException( $exception );
+            $this->handled  = true;
             return true;
         }
 
@@ -567,6 +568,10 @@ abstract class AbstractErrorHandler {
      * @return void
      */
     public function handleException( \Throwable $throwable ) : void {
+        if ( $this->handled ) {
+            return;
+        }
+        
         $this->error_object = $throwable;
         $this->message      = $throwable->getMessage();
         $this->code         = (string) $throwable->getCode();

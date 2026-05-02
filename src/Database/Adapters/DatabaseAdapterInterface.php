@@ -77,12 +77,9 @@ interface DatabaseAdapterInterface {
      * - engine-specific queries
      *
      * @param string $query
-     * @return array|int|false
-     *   - array for SELECT-like queries
-     *   - int for affected rows (INSERT/UPDATE/DELETE)
-     *   - false on failure
+     * @return bool
      */
-    public function exec(string $query);
+    public function exec(string $query) : bool;
 
     /**
      * Retrieve a single row as an associative array.

@@ -79,14 +79,26 @@ class SQLiteRenderer extends AbstractQueryRenderer {
      * @return string
      */
     public function render_create_table( CreateTableIntent $intent ) : string {
-        $table_name  = $this->quote_identifier( $intent->get_table_name() );
-        $definitions = [];
+        $table_name             = $this->quote_identifier( $intent->get_table_name() );
+        $definitions            = [];
+        $auto_increment_column  = null;
 
         foreach ( $intent->get_columns() as $column ) {
+            if ($column->auto_increment) {
+                $auto_increment_column  = $column->name;
+            }
             $definitions[] = $this->render_column_definition( $column );
         }
 
         foreach ( $intent->get_constraints() as $constraint ) {
+            $skip_primary   = strtolower( $constraint->type ) === 'primary'
+                && null !== $auto_increment_column 
+                && count( $constraint->columns ) === 1 
+                && $constraint->columns[0] === $auto_increment_column;
+            
+            if ( $skip_primary ) {
+                continue;
+            }
             // SQLite doesn't support named constraints in the same way; 
             // usually handled within column definitions or as table constraints.
             $definitions[] = $this->render_constraint( $constraint );
