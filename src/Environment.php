@@ -778,7 +778,7 @@ abstract class Environment implements EnvironmentProviderInterface {
             $adapters   = [
                 MysqliAdapter::class    => 'mysql' === $config->driver && class_exists( mysqli::class ),
                 SqliteAdapter::class    => 'sqlite' === $config->driver && class_exists( SQLite3::class ),
-                PostgresAdapter::class  => 'pgsql' === $config->driver && class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
+                PostgresAdapter::class  => 'pgsql' === $config->driver && \extension_loaded( 'pgsql' ),
                 PdoAdapter::class       => class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
             ];
 
@@ -790,7 +790,11 @@ abstract class Environment implements EnvironmentProviderInterface {
             }
 
             if ( ! isset( $this->dbadapter ) ) {
-                throw new EnvironmentBootstrapException( 'no_db_adapter_found' ); 
+                throw new EnvironmentBootstrapException(
+                    'no_db_adapter_found',
+                    sprintf( 'No supported database adapter for "%s" driver.', $config->driver )
+                    
+                ); 
             }          
         }
         

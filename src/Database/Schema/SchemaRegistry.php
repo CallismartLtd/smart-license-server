@@ -31,7 +31,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * Manages the registration and instantiation of database table schemas.
  *
  * @method class-string<DatabaseSchemaInterface>|null get( string $table_name )
- * @method array<string, class-string<DatabaseSchemaInterface>|DatabaseSchemaInterface> all( bool $include_core = true )
+ * @method array<string, class-string<DatabaseSchemaInterface>|DatabaseSchemaInterface> all( bool $assoc = true, bool $objects = false)
  */
 class SchemaRegistry extends AbstractRegistry {
 

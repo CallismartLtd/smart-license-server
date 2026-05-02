@@ -125,7 +125,7 @@ class SetUp extends Environment {
         $db_pass    = $_ENV['SMLISER_DB_PASSWORD'] ?? '';
         $db_charset = $_ENV['SMLISER_DB_CHARSET']  ?? 'utf8mb4';
         $db_prefix  = $_ENV['SMLISER_DB_PREFIX']   ?? '';
-        $db_adapter = $_ENV['SMLISER_DB_ADAPTER'] ?? 'mysql';
+        $db_adapter = $_ENV['SMLISER_DB_DRIVER'] ?? 'mysql';
 
         $app_url     = rtrim( $_ENV['SMLISER_APP_URL']    ?? '', '/' );
         $repo_path   = rtrim( $_ENV['SMLISER_REPO_PATH']  ?? dirname( SMLISER_PATH ), '/' );

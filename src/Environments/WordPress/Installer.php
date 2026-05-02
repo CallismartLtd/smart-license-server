@@ -10,6 +10,7 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Database\Schema\SchemaRegistry;
+use SmartLicenseServer\Database\Schema\Table;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
@@ -74,34 +75,31 @@ class Installer {
         $tables = $schema->table_names();
 
         foreach( $tables as $table ) {
-            $sql        = "SHOW TABLES LIKE '{$table}'";
-            $db_table   = $db->exec( $sql );
 
-            if ( empty( $db_table ) ) {
-                self::create_table( $table, $schema->get_schema( $table ) );
+            if ( $db->table_exists( $table ) ) {
+                continue;
             }
+
+            static::create_table( $schema->get_table( $table ) );
         }
     }
 
     /**
      * Creates a database table.
      * 
-     * @param string $table_name    The table name
-     * @param array $columns        The table columns.
+     * @param Table $table    The table name
      */
-    private static function create_table( string $table_name, array $columns ) {
-        $db                 = \smliser_db();     
-        $charset_collate    = self::charset_collate();
+    private static function create_table( Table $table ) {
+        $db                 = smliser_db();
+        $charset_collate    = $db->get_charset_collate();
 
-        $sql = "CREATE TABLE $table_name (";
-        foreach ( $columns as $column ) {
-            $sql .= "$column, ";
-        }
-
-        $sql  = rtrim( $sql, ', ' );
-        $sql .= ") $charset_collate;";
-
-        $db->query( $sql );
+        $query  = \smliserQueryBuilder()
+            ->create_table( $table->get_name() )
+            ->add_columns( $table->get_columns() )
+            ->add_constraints( $table->get_constraints() );
+        $sql    = $query->build() . '' . $charset_collate;
+        
+        return $db->exec( $sql );
         
     }
 
