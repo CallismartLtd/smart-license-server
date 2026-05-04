@@ -22,7 +22,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * 
  * @since 0.2.0
  */
-class PersistenceIntent {
+class PersistenceIntent implements QueryItentInterface {
     use QueryCriteriaTrait;
     /**
      * @var string $table_name The target table name.
@@ -165,5 +165,9 @@ class PersistenceIntent {
         $static->builder = $builder;
 
         return $static;
+    }
+
+    public function new_instance() : static {
+        return $this->make( $this->table_name, $this->builder );
     }
 }

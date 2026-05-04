@@ -34,12 +34,13 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
         $db    = smliser_db();
         $table = SMLISER_IDENTITY_FEDERATION_TABLE;
 
-        $sql = sprintf(
-            'SELECT user_id FROM %s WHERE issuer = ? AND external_id = ? LIMIT 1',
-            $table
-        );
+        $sql    = \smliserQueryBuilder()
+            ->select( 'user_id' )
+            ->from( $table )
+            ->where( 'issuer', '=', $issuer )
+            ->where( 'external_id', '=', $external_id );
 
-        $row = $db->get_row( $sql, [ $issuer, $external_id ] );
+        $row = $db->get_row( $sql->build(), $sql->get_bindings() );
 
         if ( ! $row ) {
             return null;
@@ -59,12 +60,13 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
         $db    = smliser_db();
         $table = SMLISER_IDENTITY_FEDERATION_TABLE;
 
-        $sql = sprintf(
-            'SELECT external_id FROM %s WHERE issuer = ? AND user_id = ? LIMIT 1',
-            $table
-        );
+        $sql    = \smliserQueryBuilder()
+            ->select( 'external_id' )
+            ->from( $table )
+            ->where( 'issuer', '=', $issuer )
+            ->where( 'user_id', '=', $user_id );
 
-        $row = $db->get_row( $sql, [ $issuer, $user_id ] );
+        $row = $db->get_row( $sql->build(), $sql->get_bindings() );
 
         if ( ! $row ) {
             return null;

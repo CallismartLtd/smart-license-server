@@ -81,20 +81,41 @@ class PostgreSQLRenderer extends AbstractQueryRenderer {
     public function render_create_table( CreateTableIntent $intent ) : string {
         $table_name  = $this->quote_identifier( $intent->get_table_name() );
         $definitions = [];
+        $index_sql   = [];
 
+        // Columns
         foreach ( $intent->get_columns() as $column ) {
             $definitions[] = $this->render_column_definition( $column );
         }
 
+        // Constraints
         foreach ( $intent->get_constraints() as $constraint ) {
+
+            // 🚨 Extract INDEX constraints into separate statements
+            if ( strtolower( $constraint->type ) === 'index' ) {
+                $index_sql[] = $this->render_inline_index_as_create_index(
+                    $intent->get_table_name(),
+                    $constraint
+                );
+                continue;
+            }
+
             $definitions[] = $this->render_constraint( $constraint );
         }
 
-        return sprintf( 
+        // CREATE TABLE
+        $table_sql = sprintf(
             "CREATE TABLE %s (\n\t%s\n);",
             $table_name,
-            implode( ",\n\t", $definitions ) 
+            implode( ",\n\t", $definitions )
         );
+
+        // Append indexes (separate statements)
+        if ( ! empty( $index_sql ) ) {
+            $table_sql .= "\n\n" . implode( "\n", $index_sql );
+        }
+
+        return $table_sql;
     }
 
     /**
@@ -111,6 +132,25 @@ class PostgreSQLRenderer extends AbstractQueryRenderer {
         $cols  = implode( ', ', $this->quote_identifiers( $index->columns ) );
 
         return trim( "CREATE {$type} {$name} ON {$table} ({$cols});" );
+    }
+
+    protected function render_inline_index_as_create_index( string $table, Constraint $constraint ) : string {
+        $table = $this->quote_identifier( $table );
+
+        $columns = implode( ', ', $this->quote_identifiers( $constraint->columns ) );
+
+        $name = $constraint->name
+            ? $this->quote_identifier( $constraint->name )
+            : $this->quote_identifier(
+                $table . '_' . implode( '_', $constraint->columns ) . '_idx'
+            );
+
+        return sprintf(
+            "CREATE INDEX %s ON %s (%s);",
+            $name,
+            $table,
+            $columns
+        );
     }
 
     /**
@@ -145,7 +185,6 @@ class PostgreSQLRenderer extends AbstractQueryRenderer {
             'primary' => "{$name} PRIMARY KEY ({$columns})",
             'unique'  => "{$name} UNIQUE ({$columns})",
             'foreign' => $this->render_foreign_key( $constraint ),
-            'index'   => "INDEX ({$columns})", // Note: Usually indices are standalone in PG DDL
             default   => throw new \RuntimeException( "PostgreSQL: Unsupported constraint type [{$type}]" )
         };
     }

@@ -85,7 +85,13 @@ class MigrateCommand implements CommandInterface {
             if ( ! $table_exists ) {
                 $this->progress_update_label( "Creating {$table_name}" );
                 $created    = $this->create_table( $table, $db );
-                $message    = $created ? '✔ Created' : '✖ ' . $db->get_last_error() ?? 'Unknown error occured';
+
+                if ( $created ) {
+                    $message    = '✔ Created';
+                } else {
+                    $message    = '✖ ' . $db->get_last_error() ?? 'Unknown error occured';
+                }
+                
                 
                 $rows[] = [ $table_name, $message ];
             } else {
@@ -120,6 +126,9 @@ class MigrateCommand implements CommandInterface {
         $sql    = $query->build() . '' . $charset_collate;
         
         usleep( 10000 );
-        return $db->exec( $sql );
+        $result = $db->exec( $sql );
+
+        return $result;
+        
     }
 }

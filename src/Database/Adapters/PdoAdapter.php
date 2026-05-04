@@ -169,9 +169,6 @@ class PdoAdapter implements DatabaseAdapterInterface {
             }
 
             $stmt->execute();
-
-            // Store insert ID for INSERT queries
-            $this->insert_id = $this->pdo->lastInsertId() ?: null;
             
             return $stmt;
 
@@ -303,6 +300,9 @@ class PdoAdapter implements DatabaseAdapterInterface {
         if ( false === $stmt ) {
             return false;
         }
+
+        // Store insert ID for INSERT queries
+        $this->insert_id = $this->pdo->lastInsertId() ?: null;
 
         return $this->get_insert_id();
     }
@@ -459,8 +459,6 @@ class PdoAdapter implements DatabaseAdapterInterface {
         try {
             
             $result = (bool) $this->pdo->exec( $query );
-            $this->insert_id    = $this->pdo->lastInsertId();
-
             return $result;
 
         } catch ( \PDOException $e ) {

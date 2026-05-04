@@ -22,7 +22,7 @@ defined( 'SMLISER_ABSPATH' ) || exit;
  * 
  * @since 0.2.0
  */
-class SelectionIntent {
+class SelectionIntent implements QueryItentInterface{
     use QueryCriteriaTrait;
 
     /**
@@ -295,5 +295,9 @@ class SelectionIntent {
      */
     public static function make( SQLBuilder $builder ) : static {
         return new static( $builder );
+    }
+
+    public function new_instance() : static {
+        return new static( $this->builder );
     }
 }

@@ -113,7 +113,7 @@ class Database {
      */
     public function get_charset_collate() {
         // SQLite doesn't use Charset/Collation in the same way as MySQL
-        if ( $this->get_engine_type() === 'sqlite' ) {
+        if ( \in_array( $this->get_engine_type(), ['pgsql', 'sqlite'] ) ) {
             return '';
         }
 

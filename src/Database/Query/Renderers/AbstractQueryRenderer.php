@@ -218,10 +218,25 @@ abstract class AbstractQueryRenderer {
         foreach ( $conditions as $index => $condition ) {
             $connector = ( $index === 0 ) ? '' : " {$condition['boolean']} ";
             $clause = match ( $condition['type'] ) {
-                'Basic' => sprintf( "%s %s ?", $this->quote_identifier( $condition['column'] ), $condition['operator'] ),
-                'Null'  => sprintf( "%s IS %sNULL", $this->quote_identifier( $condition['column'] ), $condition['not'] ? 'NOT ' : '' ),
+                'Basic'     => sprintf( "%s %s ?", $this->quote_identifier( $condition['column'] ), $condition['operator'] ),
+                
+                'Null'      => sprintf( "%s IS %sNULL", $this->quote_identifier( $condition['column'] ), $condition['not'] ? 'NOT ' : '' ),
+                                
+                'In'        => $this->render_in_condition( $condition ),
+
+                'Group'     => $this->render_group_condition( $condition ),
+
+                'Between'   => sprintf(
+                    "%s %sBETWEEN ? AND ?",
+                    $this->quote_identifier( $condition['column'] ),
+                    $condition['not'] ? 'NOT ' : ''
+                ),
+
+                'Raw' => $condition['expression'],
+
                 default => throw new \InvalidArgumentException( "Unsupported condition type: {$condition['type']}" )
             };
+
             $parts[] = $connector . $clause;
         }
         return implode( '', $parts );
@@ -262,6 +277,31 @@ abstract class AbstractQueryRenderer {
      */
     protected function render_grouping( array $groups ) : string {
         return empty( $groups ) ? '' : ' GROUP BY ' . implode( ', ', $this->quote_identifiers( $groups ) );
+    }
+
+    /**
+     * Render grouped WHERE conditions.
+     * 
+     * @param array $condition
+     * @return string
+     */
+    protected function render_group_condition( array $condition ) : string {
+        $inner = $this->render_where_clauses( $condition['conditions'] );
+        return '(' . $inner . ')';
+    }
+
+    protected function render_in_condition( array $condition ) : string {
+        $placeholders = implode(
+            ', ',
+            array_fill( 0, count( $condition['values'] ), '?' )
+        );
+
+        return sprintf(
+            "%s %sIN (%s)",
+            $this->quote_identifier( $condition['column'] ),
+            $condition['not'] ? 'NOT ' : '',
+            $placeholders
+        );
     }
 
     /**

@@ -14,7 +14,7 @@ class PostgresAdapter extends PdoAdapter {
      * Override connect to build the Postgres-specific DSN.
      */
     public function connect() {
-        if ($this->pdo) return true;
+        if ( $this->pdo ) return true;
 
         $dsn = sprintf(
             "pgsql:host=%s;port=%d;dbname=%s",
@@ -24,12 +24,12 @@ class PostgresAdapter extends PdoAdapter {
         );
 
         try {
-            $this->pdo = new PDO($dsn, $this->config->username, $this->config->password, [
+            $this->pdo = new PDO( $dsn, $this->config->username, $this->config->password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
             ]);
             return true;
-        } catch (\PDOException $e) {
+        } catch ( \PDOException $e ) {
             $this->last_error = $e->getMessage();
             return false;
         }
@@ -39,7 +39,7 @@ class PostgresAdapter extends PdoAdapter {
      * Override query to intercept and translate SQL.
      */
     public function query( $query, array $params = [] ) {
-        $query = $this->translate_mysql_to_postgres( $query );
+        $query  = $this->translate_mysql_to_postgres( $query );
         return parent::query( $query, $params );
     }
 
@@ -119,5 +119,31 @@ class PostgresAdapter extends PdoAdapter {
      */
     public function is_connected(): bool {
         return $this->pdo instanceof \PDO;
+    }
+
+    /**
+     * Execute a raw SQL query without prepared statements.
+     *
+     * ⚠️ UNSAFE: Do not use with untrusted input.
+     *
+     * @param string $query
+     * @return bool
+     */
+    public function exec( string $query ) : bool {
+        if ( ! $this->pdo ) {
+            $this->last_error = 'No active PDO connection.';
+            return false;
+        }
+
+        try {
+            
+            $result = (bool) $this->pdo->exec( $query );
+            return $result;
+
+        } catch ( \PDOException $e ) {
+            $this->last_error   = $e->getMessage();
+            return false;
+         
+        }
     }
 }
