@@ -7,6 +7,7 @@
  * @var array $template_header Array containing: icon, name, badges, short_description, buttons
  * @var array $template_sidebar Array containing: Author, Performance Metrics, App Info, Installation, Changelog
  * @var array $template_content Array containing: Icons, Banners, Screenshots
+ * @var \SmartlicenseServer\Core\Request $request
  */
 
 use SmartLicenseServer\Admin\RepositoryPage;
@@ -92,7 +93,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                             ?>
                             <h3 class="smliser-gallery-preview_title"><?php echo escHtml( $first_title ); ?></h3>
                             <div class="smliser-gallery-preview_image">
-                                <img class="smliser-request-fullscreen" src="<?php echo esc_url( current( $first_image )?: SMLISER_URL . 'assets/images/no-image.svg' ); ?>" alt="image" title="Double click for fullscreen">
+                                <img class="smliser-request-fullscreen" src="<?php echo esc_url( current( $first_image )?: assetsUrl( 'images/no-image.svg' ) ); ?>" alt="image" title="Double click for fullscreen">
                             </div>
                         </div>
                         

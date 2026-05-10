@@ -660,8 +660,6 @@ function smliser_get_placeholder_icon( string $type = '' ) : string {
 
     static $cache = array();
 
-    $base_url = rtrim( SMLISER_URL, '/' );
-
     $type = strtolower( trim( $type ) );
 
     if ( isset( $cache[ $type ] ) ) {
@@ -669,23 +667,19 @@ function smliser_get_placeholder_icon( string $type = '' ) : string {
     }
 
     $relative_path = match ( $type ) {
-        'plugin', 'plugins'         => 'assets/images/plugins-placeholder.svg',
-        'license', 'licenses'       => 'assets/images/license-placeholder.svg',
-        'theme', 'themes'           => 'assets/images/themes-placeholder.svg',
-        'app', 'apps' , 'all'       => 'assets/images/apps-placeholder.svg',
-        'software', 'softwares'     => 'assets/images/software-placeholder.svg',
-        'download', 'downloads'     => 'assets/images/downloads-icon.svg',
-        'avatar', 'default-avatar'  => 'assets/images/default-avatar.svg',
-        'api-key', 'apikey', 'api'  => 'assets/images/api-key.svg',
-        'org', 'organization'       => 'assets/images/organization.svg',
-        default                     => 'assets/images/software-placeholder.svg',
+        'plugin', 'plugins'         => 'images/plugins-placeholder.svg',
+        'license', 'licenses'       => 'images/license-placeholder.svg',
+        'theme', 'themes'           => 'images/themes-placeholder.svg',
+        'app', 'apps' , 'all'       => 'images/apps-placeholder.svg',
+        'software', 'softwares'     => 'images/software-placeholder.svg',
+        'download', 'downloads'     => 'images/downloads-icon.svg',
+        'avatar', 'default-avatar'  => 'images/default-avatar.svg',
+        'api-key', 'apikey', 'api'  => 'images/api-key.svg',
+        'org', 'organization'       => 'images/organization.svg',
+        default                     => 'images/software-placeholder.svg',
     };
 
-    return $cache[ $type ] = sprintf(
-        '%s/%s',
-        $base_url,
-        $relative_path
-    );
+    return $cache[ $type ] = assetsUrl( $relative_path )->url();
 }
 
 /**

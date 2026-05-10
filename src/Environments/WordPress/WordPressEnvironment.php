@@ -24,7 +24,7 @@ use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
 /**
  * WordPress Environment setup class
  */
-class SetUp extends Environment {
+class WordPressEnvironment extends Environment {
     /**
      * The singleton instance of the environment.
      * 
@@ -134,16 +134,12 @@ class SetUp extends Environment {
     }
 
     /**
-     * Get instance
-     * 
-     * @return static
+     * {@inheritdoc}
      */
-    public static function instance() : static {
-        if ( is_null( static::$instance ) ) {
+    public static function boot() : void {
+        if ( null === static::$instance ) {
             static::$instance = new static();
         }
-
-        return static::$instance;
     }
 
     public static function url( string $path = '', array $qv = [] ) : URL {

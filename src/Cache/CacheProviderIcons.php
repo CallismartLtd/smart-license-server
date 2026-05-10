@@ -56,7 +56,7 @@ class CacheProviderIcons {
 
         // Built-ins take precedence.
         if ( isset( $built_in[ $provider_id ] ) ) {
-            return $built_in[ $provider_id ];
+            return \assetsUrl( $built_in[ $provider_id ] )->url();
         }
 
         return static::$custom[ $provider_id ] ?? '';
@@ -101,11 +101,11 @@ class CacheProviderIcons {
 
         if ( $map === null ) {
             $map = [
-                'apcu'          => SMLISER_URL . 'assets/images/cache-adapters/apcu-cache.svg',
-                'redis'         => SMLISER_URL . 'assets/images/cache-adapters/redis-cache.svg',
-                'memcached'     => SMLISER_URL . 'assets/images/cache-adapters/memcached.svg',
-                'sqlitecache'   => SMLISER_URL . 'assets/images/cache-adapters/sqlite-cache.svg',
-                'runtime'      => SMLISER_URL . 'assets/images/cache-adapters/runtime-cache.svg',
+                'apcu'          => 'images/cache-adapters/apcu-cache.svg',
+                'redis'         => 'images/cache-adapters/redis-cache.svg',
+                'memcached'     => 'images/cache-adapters/memcached.svg',
+                'sqlitecache'   => 'images/cache-adapters/sqlite-cache.svg',
+                'runtime'       => 'images/cache-adapters/runtime-cache.svg',
             ];
         }
 

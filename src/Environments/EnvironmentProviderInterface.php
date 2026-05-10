@@ -82,11 +82,11 @@ interface EnvironmentProviderInterface {
     public function route_register() : void;
 
     /**
-     * Get the instance of the environment provider class.
+     * Bootstrap the environment.
      * 
-     * @return static
+     * @return void
      */
-    public static function instance() : static;
+    public static function boot() : void;
 
     /**
      * Get the database API instance.

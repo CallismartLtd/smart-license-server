@@ -1,0 +1,1 @@
+{"version":2,"defects":{"SelectionIntentTest::test_basic_where_query":8,"SelectionIntentTest::test_where_null":8,"SelectionIntentTest::test_where_in":8},"times":{"SelectionIntentTest::test_basic_where_query":0.004,"SelectionIntentTest::test_where_null":0,"SelectionIntentTest::test_where_in":0.001}}

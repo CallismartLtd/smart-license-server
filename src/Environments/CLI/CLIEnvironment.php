@@ -2,14 +2,6 @@
 /**
  * CLI environment bootstrap class file.
  *
- * Provides the Smart License Server environment adapter for command-line
- * execution. Follows the same pattern as the WordPress SetUp class —
- * extends Environment, sets static::$envProvider, builds the $env array
- * from environment variables, and calls $this->setup().
- *
- * No hook system, no admin UI, no REST registration. The CLI caller
- * (smliser) drives execution directly after construction.
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Environments\CLI
  * @since   0.2.0
@@ -32,13 +24,11 @@ use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 defined( 'SMLISER_ROOT' ) || exit;
 
 /**
- * CLI environment adapter.
- *
- * Bootstraps Smart License Server for command-line usage.
- * Reads all configuration from environment variables so the
- * adapter has zero WordPress dependency.
+ * CLI environment bootstrap.
+ * 
+ * Bootstraps Smart License Server to run from the commandline.
  */
-class SetUp extends Environment {
+class CLIEnvironment extends Environment {
 
     /*
     |----------------------
@@ -54,9 +44,9 @@ class SetUp extends Environment {
     private static ?self $instance = null;
 
     /*
-    |----------------------
+    |--------------
     | CONSTRUCTOR
-    |----------------------
+    |--------------
     */
 
     /**
@@ -70,16 +60,12 @@ class SetUp extends Environment {
     }
 
     /**
-     * Get or create the singleton instance.
-     *
-     * @return static
+     * {@inheritdoc}
      */
-    public static function instance(): static {
+    public static function boot(): void {
         if ( static::$instance === null ) {
             static::$instance = new static();
         }
-
-        return static::$instance;
     }
 
     /*
@@ -99,7 +85,7 @@ class SetUp extends Environment {
     }
 
     /**
-     * Read environment variables, build the $env array, and call setup().
+     * Sets the required properties for this environment.
      *
      * @throws EnvironmentBootstrapException On missing required env variables.
      */

@@ -56,7 +56,7 @@ class EmailProviderIcons {
 
         // Built-ins take precedence.
         if ( isset( $built_in[ $provider_id ] ) ) {
-            return $built_in[ $provider_id ];
+            return \assetsUrl( $built_in[ $provider_id ] )->url();
         }
 
         return static::$custom[ $provider_id ] ?? 'dashicons dashicons-email-alt';
@@ -101,14 +101,14 @@ class EmailProviderIcons {
 
         if ( $map === null ) {
             $map = [
-                'php_mail'   => SMLISER_URL . 'assets/images/email-providers/php-mail.svg',
-                'smtp'       => SMLISER_URL . 'assets/images/email-providers/smtp-mail.svg',
-                'amazon_ses' => SMLISER_URL . 'assets/images/email-providers/aws.svg',
-                'brevo'      => SMLISER_URL . 'assets/images/email-providers/brevo.svg',
-                'sendgrid'   => SMLISER_URL . 'assets/images/email-providers/sendgrid.svg',
-                'mailgun'    => SMLISER_URL . 'assets/images/email-providers/mailgun.svg',
-                'postmark'   => SMLISER_URL . 'assets/images/email-providers/postmark.svg',
-                'resend'     => SMLISER_URL . 'assets/images/email-providers/resend.svg',
+                'php_mail'   => 'images/email-providers/php-mail.svg',
+                'smtp'       => 'images/email-providers/smtp-mail.svg',
+                'amazon_ses' => 'images/email-providers/aws.svg',
+                'brevo'      => 'images/email-providers/brevo.svg',
+                'sendgrid'   => 'images/email-providers/sendgrid.svg',
+                'mailgun'    => 'images/email-providers/mailgun.svg',
+                'postmark'   => 'images/email-providers/postmark.svg',
+                'resend'     => 'images/email-providers/resend.svg',
             ];
         }
 

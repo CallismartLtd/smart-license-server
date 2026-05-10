@@ -21,97 +21,15 @@ if ( 'cli' !== PHP_SAPI ) {
     exit( 'This script can only be run from the command line.' );
 }
 
-use SmartLicenseServer\Environments\CLI\SetUp;
+use SmartLicenseServer\Environments\CLI\CLIEnvironment;
 
-/**
- * The absolute path to the Smart License Server root directory. Adjust as needed.
- * 
- * @example '/usr/local/www/smart-license-server'
- * @var string
- */
-$app_root   = '/var/www/html/apiv1.callismart.local';
+$config = [
+    'app_root'      => '/var/www/html/apiv1.callismart.local',
+    'base_dir'      => '/var/www/html/apiv1.callismart.local/wp-content/plugins/smart-license-server/',
+    'src_dir'       => '/var/www/html/apiv1.callismart.local/wp-content/plugins/smart-license-server/src/',
+    'index_file'    => __FILE__
+];
 
-/**
- * Absolute path to the Smart License Server source code directory. Adjust as needed.
- * 
- * @example '/usr/local/www/smart-license-server/src/'
- * @var string
- */
-$src_path   = $app_root . '/wp-content/plugins/smart-license-server/';
+require_once $config['src_dir'] . 'Environments/bootstrap.php';
 
-// Core constants.
-/**
- * Absolute path to the Smart License Server application root.
- *
- * Represents the base directory of the hosting environment when running.
- *
- * @var string
- */
-define( 'SMLISER_ROOT',  $app_root . '/' );
-
-/**
- * Absolute path to the Smart License Server installation directory.
- *
- * Points to the plugin/app root where core files and resources reside.
- *
- * @var string
- */
-define( 'SMLISER_PATH', $src_path );
-
-/**
- * Absolute path to the CLI bootstrap file.
- *
- * Used for runtime reference and execution context identification.
- *
- * @var string
- */
-define( 'SMLISER_FILE', __FILE__ );
-
-/**
- * Absolute path to the Smart License Server source directory.
- *
- * Used for autoloading and resolving internal class files.
- *
- * @var string
- */
-define( 'SMLISER_SRC_DIR', SMLISER_PATH . 'src/' );
-
-/**
- * Current application version.
- *
- * Used for version tracking, compatibility checks, and CLI output.
- *
- * @var string
- */
-define( 'SMLISER_VER', '0.2.0' );
-
-/**
- * Current database schema version.
- *
- * Used to determine whether database migrations or updates are required.
- *
- * @var string
- */
-define( 'SMLISER_DB_VER', '0.2.0' );
-
-/**
- * Base URL for the application.
- *
- * Not applicable in CLI context, therefore defined as an empty string.
- *
- * @var string
- */
-define( 'SMLISER_URL', '' );
-
-/**
- * Human-readable application name.
- *
- * Used in CLI output, logs, and system identification.
- *
- * @var string
- */
-define( 'SMLISER_APP_NAME', 'Smart License Server' );
-
-// Register the autoloader.
-require_once SMLISER_SRC_DIR . 'Autoloader.php';
-SetUp::instance();
+CLIEnvironment::boot();

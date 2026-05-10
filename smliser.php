@@ -10,88 +10,19 @@
  * Requires PHP:        8.4
  */
 
-use SmartLicenseServer\Environments\WordPress\SetUp;
+use SmartLicenseServer\Environments\WordPress\WordPressEnvironment;
 
 defined( 'ABSPATH' ) || exit;
+if ( defined( 'SMLISER_ROOT' ) ) return;
 
-if ( defined( 'SMLISER_ROOT' ) ) {
-    return;
-} 
+$config = [
+    'app_root'      => ABSPATH,
+    'base_dir'      => __DIR__,
+    'base_dir_url'  => plugin_dir_url( __FILE__ ) ,
+    'src_dir'       => __DIR__ . '/src/',
+    'index_file'    => __FILE__
+];
 
-/**
- * Absolute path to the WordPress installation root.
- *
- * Mirrors WordPress ABSPATH to provide a consistent base reference
- * for resolving global paths within Smart License Server.
- *
- * @var string
- */
-define( 'SMLISER_ROOT', \ABSPATH );
+require_once $config['src_dir'] . 'Environments/bootstrap.php';
 
-/**
- * Absolute path to the Smart License Server plugin directory.
- *
- * Used as the primary base path for all plugin-level file operations.
- *
- * @var string
- */
-define( 'SMLISER_PATH', __DIR__ . '/' );
-
-/**
- * Absolute path to the Smart License Server source directory.
- *
- * Serves as the root for class autoloading and internal code structure.
- *
- * @var string
- */
-define( 'SMLISER_SRC_DIR', __DIR__ . '/src/' );
-
-/**
- * Absolute path to the main plugin file.
- *
- * Used by WordPress for plugin identification and by the system
- * for resolving plugin-specific metadata or hooks.
- *
- * @var string
- */
-define( 'SMLISER_FILE', __FILE__ );
-
-/**
- * Current application version.
- *
- * Used for cache busting, compatibility checks, and general version tracking.
- *
- * @var string
- */
-define( 'SMLISER_VER', '0.2.0' );
-
-/**
- * Current database schema version.
- *
- * Used to manage and track database migrations and upgrades.
- *
- * @var string
- */
-define( 'SMLISER_DB_VER', '0.2.0' );
-
-/**
- * Base URL to the Smart License Server plugin directory.
- *
- * Used for loading public assets such as scripts, styles, and downloadable files.
- *
- * @var string
- */
-define( 'SMLISER_URL', plugin_dir_url( __FILE__ ) );
-
-/**
- * Human-readable application name.
- *
- * Used in UI labels, logs, CLI output, and general system identification.
- *
- * @var string
- */
-define( 'SMLISER_APP_NAME', 'Smart License Server' );
-
-require_once SMLISER_SRC_DIR . 'Autoloader.php';
-
-SetUp::instance();
+WordPressEnvironment::boot();
