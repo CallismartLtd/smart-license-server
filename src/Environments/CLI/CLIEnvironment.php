@@ -31,19 +31,6 @@ defined( 'SMLISER_ROOT' ) || exit;
 class CLIEnvironment extends Environment {
 
     /*
-    |----------------------
-    | SINGLETON
-    |----------------------
-    */
-
-    /**
-     * Singleton instance.
-     *
-     * @var static|null
-     */
-    private static ?self $instance = null;
-
-    /*
     |--------------
     | CONSTRUCTOR
     |--------------
@@ -63,9 +50,7 @@ class CLIEnvironment extends Environment {
      * {@inheritdoc}
      */
     public static function boot(): void {
-        if ( static::$instance === null ) {
-            static::$instance = new static();
-        }
+        new static();
     }
 
     /*
@@ -186,9 +171,9 @@ class CLIEnvironment extends Environment {
     }
 
     /*
-    |--------------------------------------------
+    |----------------------------------------------
     | EnvironmentProviderInterface implementation
-    |--------------------------------------------
+    |----------------------------------------------
     */
 
     /**

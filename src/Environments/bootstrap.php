@@ -39,12 +39,13 @@ define( 'SMLISER_DB_VER', '0.2.0' );
 */
 
 $defaults   = [
-    'app_root'      => __DIR__,
-    'base_dir'      => __DIR__,
+    'app_root'      => dirname( __DIR__, 2 ),
+    'base_dir'      => dirname( __DIR__, 2 ),
     'base_dir_url'  => '',
-    'src_dir'       => __DIR__ . '/src/',
+    'src_dir'       => dirname( __DIR__, 1 ),
     'index_file'    => __FILE__
 ];
+
 $config = (array) ( isset( $config ) ? $config : [] );
 
 $consts = array_merge( $defaults, $config );

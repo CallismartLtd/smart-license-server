@@ -298,7 +298,7 @@ abstract class Environment implements EnvironmentProviderInterface {
         $missing_config = [];
 
         $required_keys = ['db_prefix','absolute_path','secret', 'salt','repo_path',
-            'uploads_dir', 'rest_api_provider', 'identity_provider'
+            'uploads_dir', 'identity_provider'
         ];
 
         foreach ( $parsed_config as $key => $value ) {

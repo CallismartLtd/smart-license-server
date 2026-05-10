@@ -46,6 +46,7 @@ use SmartLicenseServer\Console\Commands\InstallRolesCommand;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
 use SmartLicenseServer\Console\Commands\SettingsCommand;
+use SmartLicenseServer\Console\Commands\TestCommand;
 use SmartLicenseServer\Console\Commands\WhoAmI;
 use SmartLicenseServer\Console\Commands\WorkCommand;
 use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
@@ -92,7 +93,8 @@ class CommandRegistry extends AbstractRegistry {
         PluginCommand::class,
         ThemeCommand::class,
         SoftwareCommand::class,
-        SettingsCommand::class
+        SettingsCommand::class,
+        TestCommand::class
     ];
 
     /*
