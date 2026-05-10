@@ -14,7 +14,7 @@
 
 namespace SmartLicenseServer\Database\Schema;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Contract for all database schema definitions.

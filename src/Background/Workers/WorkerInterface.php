@@ -11,7 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Workers;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Contract that every queue worker must fulfil.

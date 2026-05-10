@@ -43,12 +43,11 @@ $src_path   = $app_root . '/wp-content/plugins/smart-license-server/';
 /**
  * Absolute path to the Smart License Server application root.
  *
- * Represents the base directory of the hosting environment when running
- * outside WordPress (CLI mode).
+ * Represents the base directory of the hosting environment when running.
  *
  * @var string
  */
-define( 'SMLISER_ABSPATH',  $app_root . '/' );
+define( 'SMLISER_ROOT',  $app_root . '/' );
 
 /**
  * Absolute path to the Smart License Server installation directory.

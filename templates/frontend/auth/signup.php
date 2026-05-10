@@ -11,7 +11,7 @@
  * - Form submission via AJAX to {rest_base}auth/signup
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $settings = smliser_settings();
 

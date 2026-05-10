@@ -28,7 +28,7 @@ use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 /**
  * Email service provider registry.
  * 

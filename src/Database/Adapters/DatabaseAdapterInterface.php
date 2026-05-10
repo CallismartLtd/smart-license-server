@@ -11,7 +11,7 @@
 
 namespace SmartLicenseServer\Database\Adapters;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Database Adapter Interface

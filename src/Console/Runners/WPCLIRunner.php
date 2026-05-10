@@ -16,7 +16,7 @@ use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * WP-CLI runner.
@@ -157,7 +157,7 @@ class WPCLIRunner implements RunnerInterface {
             : 'production';
 
         $env_file = self::ENV_FILE_MAP[ $env_type ] ?? '.env';
-        $dotenv   = new DotEnv( SMLISER_ABSPATH );
+        $dotenv   = new DotEnv( SMLISER_ROOT );
         $dotenv->load( $env_file );
      
     }

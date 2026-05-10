@@ -8,7 +8,7 @@
  */
 
 
-defined( 'SMLISER_ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ROOT' ) || exit; ?>
 
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>

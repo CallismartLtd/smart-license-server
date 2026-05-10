@@ -9,7 +9,7 @@
 
 namespace SmartLicenseServer\Database\Migrations;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Interface that all database migrations must implement.

@@ -19,7 +19,7 @@ use SmartLicenseServer\Database\Query\Renderers\MySQLRenderer;
 use SmartLicenseServer\Database\Query\Renderers\PostgreSQLRenderer;
 use SmartLicenseServer\Database\Query\Renderers\SQLiteRenderer;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * SQLBuilder - Intent Layer Only

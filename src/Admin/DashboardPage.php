@@ -12,7 +12,7 @@ use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The admin dashboard page handler.

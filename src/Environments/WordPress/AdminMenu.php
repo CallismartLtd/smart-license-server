@@ -13,7 +13,7 @@ use SmartLicenseServer\Core\Request;
 
 use function add_submenu_page, add_menu_page, parse_args, is_bool, sprintf;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The admin menu class handles all admin menu registry and routing.

@@ -21,7 +21,7 @@ use SmartLicenseServer\ClientDashboard\TemplateHandlers\TwoFactorAuth;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class AuthTemplateRegistry extends AbstractDashboardRegistry {
     /*

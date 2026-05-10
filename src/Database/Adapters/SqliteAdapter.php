@@ -14,7 +14,7 @@ use Exception;
 use SmartLicenseServer\Core\DBConfigDTO;
 use SmartLicenseServer\Database\SqliteCompatibilityTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Adapter for native SQLite3 database access.

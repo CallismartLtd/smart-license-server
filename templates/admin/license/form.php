@@ -5,7 +5,7 @@
 
 use SmartLicenseServer\Admin\LicensePage;
 
-defined( 'SMLISER_ABSPATH' ) ||  exit; 
+defined( 'SMLISER_ROOT' ) ||  exit; 
 
 /** @var array $args */
 $args   = LicensePage::get_menu_args( $request );

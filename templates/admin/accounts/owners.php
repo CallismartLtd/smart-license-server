@@ -11,7 +11,7 @@
 use SmartLicenseServer\Admin\AccessControlPage;
 use SmartLicenseServer\Security\Owner;
 
-defined( 'SMLISER_ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smliser-admin-repository-template">
     <?php AccessControlPage::print_header( $request ); ?>
     

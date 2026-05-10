@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Database\Query\QueryIntents;
 
 use SmartLicenseServer\Database\Query\SQLBuilder;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Represents an intent to delete data from the database.

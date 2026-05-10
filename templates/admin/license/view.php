@@ -13,7 +13,7 @@ namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\License;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $download_url   = \adminUrl()
     ->add_query_params([

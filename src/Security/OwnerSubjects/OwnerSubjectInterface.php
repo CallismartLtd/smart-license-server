@@ -12,7 +12,7 @@ use SmartLicenseServer\Core\URL;
 
 use function defined;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * An owner subject is an entity that can own resources in the system.

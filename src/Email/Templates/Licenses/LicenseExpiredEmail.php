@@ -16,7 +16,7 @@ namespace SmartLicenseServer\Email\Templates\Licenses;
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\Monetization\License;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class LicenseExpiredEmail extends EmailTemplate {
 

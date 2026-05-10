@@ -18,7 +18,7 @@ use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Provides a blueprint for engine-specific SQL renderers.

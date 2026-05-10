@@ -14,7 +14,7 @@
  * @version 0.2.0
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 ?>
 
         </div> <!-- .smliser-auth-content -->

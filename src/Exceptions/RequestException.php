@@ -14,7 +14,7 @@ namespace SmartLicenseServer\Exceptions;
 
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Class RequestException

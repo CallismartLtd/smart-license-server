@@ -9,7 +9,7 @@
 
 use SmartLicenseServer\Admin\RepositoryPage;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $max_upload_size_bytes  = wp_max_upload_size();
 $max_upload_size_mb     = $max_upload_size_bytes / 1024 / 1024;

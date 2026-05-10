@@ -55,7 +55,7 @@ use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Central event bus — singleton dispatcher.

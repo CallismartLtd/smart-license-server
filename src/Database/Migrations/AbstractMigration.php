@@ -16,7 +16,7 @@ use SmartLicenseServer\Database\Migrations\Helpers\IndexHelper;
 use SmartLicenseServer\Database\Migrations\Helpers\TableHelper;
 use SmartLicenseServer\Database\Query\SQLBuilder;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Base class for all database migrations.

@@ -24,7 +24,7 @@ use const SMLISER_SERVICE_ACCOUNTS_TABLE;
 use function is_string, boolval, smliser_db, defined, uniqid, md5,
 smliser_safe_json_encode, smliser_avatar_url;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Represents a service account that can act as a Principal.

@@ -10,7 +10,7 @@
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Templates\TemplateLocator;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Get the template locator instance.

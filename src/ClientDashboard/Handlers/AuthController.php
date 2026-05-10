@@ -31,7 +31,7 @@ use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class AuthController {
     use QueueAwareTrait, TokenDeliveryTrait, CacheAwareTrait;

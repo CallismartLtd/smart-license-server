@@ -15,6 +15,6 @@ namespace SmartLicenseServer\Http\Exceptions;
 
 use RuntimeException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class HttpRequestException extends RuntimeException {}

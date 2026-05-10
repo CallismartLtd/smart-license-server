@@ -20,7 +20,7 @@ use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Resolves one or more email addresses from a resource owner ID.

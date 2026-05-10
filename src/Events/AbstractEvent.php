@@ -36,7 +36,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Events;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Base class for all application events.

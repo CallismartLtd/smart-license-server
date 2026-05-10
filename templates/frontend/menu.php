@@ -17,7 +17,7 @@
  *     The authenticated principal for this request.
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $menu        = $menu        ?? [];
 $active_slug = $active_slug ?? '';

@@ -7,7 +7,7 @@
 
 use SmartLicenseServer\Utils\Sanitizer;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Recursively unslash the give data

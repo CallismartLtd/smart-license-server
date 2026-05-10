@@ -14,13 +14,7 @@ use SmartLicenseServer\Environments\WordPress\SetUp;
 
 defined( 'ABSPATH' ) || exit;
 
-if ( defined( 'SMLISER_ABSPATH' ) ) {
-    return;
-} 
-
-defined( 'ABSPATH' ) || exit;
-
-if ( defined( 'SMLISER_ABSPATH' ) ) {
+if ( defined( 'SMLISER_ROOT' ) ) {
     return;
 } 
 
@@ -32,7 +26,7 @@ if ( defined( 'SMLISER_ABSPATH' ) ) {
  *
  * @var string
  */
-define( 'SMLISER_ABSPATH', \ABSPATH );
+define( 'SMLISER_ROOT', \ABSPATH );
 
 /**
  * Absolute path to the Smart License Server plugin directory.

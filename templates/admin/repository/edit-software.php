@@ -6,7 +6,7 @@
  * @var SmartLicenseServer\HostedApps\Software $app
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $title  = sprintf( 'Edit Software: %s', $app->get_name() );
 

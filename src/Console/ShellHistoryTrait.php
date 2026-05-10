@@ -20,7 +20,7 @@
  *
  * ## History file location
  *
- *   {SMLISER_ABSPATH}.smliser.shell_history   (hidden dot-file, project root)
+ *   {SMLISER_ROOT}.smliser.shell_history   (hidden dot-file, project root)
  *
  *   The file stores one entry per line, newest last, capped at
  *   ShellHistoryTrait::HISTORY_LIMIT entries. It is created on first use
@@ -45,7 +45,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Cross-platform, history-aware line reading for the interactive shell.
@@ -543,12 +543,12 @@ trait ShellHistoryTrait {
     /**
      * Return the absolute path to the history file.
      *
-     * Resolves to {SMLISER_ABSPATH}.smliser_history.
+     * Resolves to {SMLISER_ROOT}.smliser_history.
      *
      * @return string|null
      */
     private function history_file_path(): string {
-        return rtrim( SMLISER_ABSPATH, '/\\' ) . DIRECTORY_SEPARATOR . '.smliser.shell_history';
+        return rtrim( SMLISER_ROOT, '/\\' ) . DIRECTORY_SEPARATOR . '.smliser.shell_history';
     }
 
     /*

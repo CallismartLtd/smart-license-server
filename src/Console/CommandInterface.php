@@ -15,7 +15,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Console command contract.

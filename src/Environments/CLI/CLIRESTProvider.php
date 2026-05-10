@@ -19,7 +19,7 @@ namespace SmartLicenseServer\Environments\CLI;
 use SmartLicenseServer\RESTAPI\RESTInterface;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * No-op REST provider for the CLI environment.

@@ -18,7 +18,7 @@ use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\Plugin;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class AppOwnershipChangedEmail extends EmailTemplate {
 

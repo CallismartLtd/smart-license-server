@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Database\Adapters;
 
 use wpdb;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Adapter for WordPress database access.

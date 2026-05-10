@@ -12,7 +12,7 @@
 use SmartLicenseServer\Admin\LicensePage;
 use SmartLicenseServer\Utils\Format;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 ?>
 
 <div class="smliser-admin-page">

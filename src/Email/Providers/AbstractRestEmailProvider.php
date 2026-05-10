@@ -34,7 +34,7 @@ use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Http\HttpResponse;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 abstract class AbstractRestEmailProvider implements EmailProviderInterface {
 

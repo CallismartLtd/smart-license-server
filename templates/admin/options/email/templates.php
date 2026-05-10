@@ -11,7 +11,7 @@
 
 use SmartLicenseServer\Admin\OptionsPage;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $menu_args   = OptionsPage::get_menu_args( $request );
 $current_url = smliser_get_current_url()->remove_query_param( 'message', 'provider' );

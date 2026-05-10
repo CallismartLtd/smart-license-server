@@ -40,7 +40,7 @@ use SmartLicenseServer\Console\CLIWelcomeTrait;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Commands\SmliserCommand;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Interactive REPL shell for the SmartLicenseServer CLI.

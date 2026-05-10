@@ -90,7 +90,7 @@ class SetUp extends Environment {
                 'environment'       => 'http',
                 'display_errors'    => defined( 'WP_DEBUG_DISPLAY' ) && constant( 'WP_DEBUG_DISPLAY' ),
                 'log_errors'        => $debug_mode,
-                'log_path'          => \SMLISER_ABSPATH . 'error.log',
+                'log_path'          => \SMLISER_ROOT . 'error.log',
             ])
             ->registerHandlers();
 

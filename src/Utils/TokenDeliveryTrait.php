@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Utils;
 
 use function defined;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 trait TokenDeliveryTrait {
     /**

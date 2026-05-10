@@ -15,7 +15,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The bulk messaging controller class

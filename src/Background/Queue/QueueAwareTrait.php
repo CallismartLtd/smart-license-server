@@ -11,7 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Queue;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Queue-aware trait.

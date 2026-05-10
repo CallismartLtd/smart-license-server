@@ -16,7 +16,7 @@ use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Column;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * PostgreSQL-specific SQL renderer.

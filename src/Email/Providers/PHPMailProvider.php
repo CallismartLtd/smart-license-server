@@ -17,7 +17,7 @@ use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class PHPMailProvider implements EmailProviderInterface {
 

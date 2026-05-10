@@ -13,7 +13,7 @@ namespace SmartLicenseServer\Security\Permission;
 
 use InvalidArgumentException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 final class Capability {
 

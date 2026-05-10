@@ -23,7 +23,7 @@ use SmartLicenseServer\Database\Schema\Definitions\{
 };
 use InvalidArgumentException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Database Schema Registry

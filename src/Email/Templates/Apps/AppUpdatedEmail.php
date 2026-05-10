@@ -17,7 +17,7 @@ use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\Theme;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class AppUpdatedEmail extends EmailTemplate {
 

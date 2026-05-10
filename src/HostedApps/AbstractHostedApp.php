@@ -18,7 +18,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use function smliser_db;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Abstract Hosted Application Base Class

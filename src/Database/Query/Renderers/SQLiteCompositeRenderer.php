@@ -1,7 +1,7 @@
 <?php
 namespace SmartLicenseServer\Database\Query\Renderers;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * SQLite Composite Renderer.

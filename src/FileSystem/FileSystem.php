@@ -14,7 +14,7 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * FileSystem singleton.

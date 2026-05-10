@@ -11,7 +11,7 @@
 
 namespace SmartLicenseServer\Utils;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 use Exception;
 use League\CommonMark\CommonMarkConverter;

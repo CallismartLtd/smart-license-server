@@ -14,7 +14,7 @@ namespace SmartLicenseServer\Console\Runners;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Commands\SmliserCommand;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Plain PHP CLI runner.

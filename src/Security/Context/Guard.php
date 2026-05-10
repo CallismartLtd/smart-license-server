@@ -6,7 +6,7 @@
 
 namespace SmartLicenseServer\Security\Context;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Orchestrates the transition from an authenticated Actor to a contextual Principal.

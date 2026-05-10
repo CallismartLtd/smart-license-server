@@ -19,7 +19,7 @@ use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\Software;
 use SmartLicenseServer\Monetization\License;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class NewAppVersionNotificationEmail extends EmailTemplate {
 

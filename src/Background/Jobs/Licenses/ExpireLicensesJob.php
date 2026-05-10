@@ -27,7 +27,7 @@ use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Email\Templates\Licenses\LicenseExpiredEmail;
 use SmartLicenseServer\Monetization\License;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Bulk-expire licenses past their end_date and notify licensees.

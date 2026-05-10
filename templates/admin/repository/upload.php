@@ -6,7 +6,7 @@
  * @package SmartLicenseServer
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ROOT' ) || exit; ?>
 
 <div class="application-uploader-page">
     <?php smliser_print_admin_content_header(

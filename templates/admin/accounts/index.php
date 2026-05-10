@@ -12,7 +12,7 @@
 
 use SmartLicenseServer\Admin\AccessControlPage;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Helper: Render icon based on metric type

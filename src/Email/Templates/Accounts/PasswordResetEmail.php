@@ -16,7 +16,7 @@ namespace SmartLicenseServer\Email\Templates\Accounts;
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\Security\Actors\User;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class PasswordResetEmail extends EmailTemplate {
 

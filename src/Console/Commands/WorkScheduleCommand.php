@@ -14,7 +14,7 @@ namespace SmartLicenseServer\Console\Commands;
 use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Processes background jobs and runs due scheduled tasks in a single pass.

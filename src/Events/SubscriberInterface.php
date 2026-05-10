@@ -37,7 +37,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Events;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Contract for self-describing multi-event subscribers.

@@ -21,7 +21,7 @@ use const SMLISER_ROLES_TABLE, SMLISER_ROLE_CAPABILITIES_TABLE;
 use function is_json, json_decode, defined, smliser_db, smliser_safe_json_encode,
 get_object_vars;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Classical representation of a role.

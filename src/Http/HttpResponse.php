@@ -13,7 +13,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Http;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class HttpResponse {
     use HttpStatusAwareTrait;

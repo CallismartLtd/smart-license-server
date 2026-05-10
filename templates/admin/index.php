@@ -10,7 +10,7 @@ use SmartLicenseServer\Utils\Format;
 
 use const SMLISER_APP_NAME;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 ?>
 <div class="smliser-admin-dashboard-template overview">

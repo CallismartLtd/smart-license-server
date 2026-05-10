@@ -15,7 +15,7 @@ namespace SmartLicenseServer\Email\Templates\Monetization;
 
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class SubscriptionCancelledEmail extends EmailTemplate {
 

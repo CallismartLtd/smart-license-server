@@ -14,7 +14,7 @@ namespace SmartLicenseServer\Exceptions;
 
 use SmartLicenseServer\Http\HttpStatusAwareTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Class FileRequestException

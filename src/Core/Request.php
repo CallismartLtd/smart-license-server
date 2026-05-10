@@ -9,7 +9,7 @@ namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The classical representation a request object that is understood by all core models.

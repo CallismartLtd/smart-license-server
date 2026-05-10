@@ -21,7 +21,7 @@ use SmartLicenseServer\Http\HttpRequest;
 use SmartLicenseServer\Http\HttpResponse;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class SendGridProvider extends AbstractRestEmailProvider {
 

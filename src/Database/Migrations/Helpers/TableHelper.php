@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Database\Migrations\Helpers;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Query\SQLBuilder;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Table-level migration orchestrator.

@@ -21,7 +21,7 @@ use ZipArchive;
 use function sprintf, defined, in_array, is_smliser_error, smliser_md_parser, explode, implode,
 dirname, basename, json_decode, json_last_error, smliser_safe_json_encode;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Software repository class provides provides filesystem APIs to interact with hosted software in the repository.

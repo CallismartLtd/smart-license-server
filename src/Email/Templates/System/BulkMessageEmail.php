@@ -15,7 +15,7 @@ namespace SmartLicenseServer\Email\Templates\System;
 
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class BulkMessageEmail extends EmailTemplate {
 

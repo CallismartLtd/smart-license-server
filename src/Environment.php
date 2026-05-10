@@ -743,14 +743,14 @@ abstract class Environment implements EnvironmentProviderInterface {
          * 
          * @var int
          */
-        define( 'SMLISER_FILE_PERMISSION', ( fileperms( SMLISER_ABSPATH . 'index.php' ) & 0777 | 0644 ) );
+        define( 'SMLISER_FILE_PERMISSION', ( fileperms( SMLISER_ROOT . 'index.php' ) & 0777 | 0644 ) );
 
         /**
          * Default directory permission.
          * 
          * @var int
          */
-        define( 'SMLISER_DIR_PERMISSION', ( fileperms( SMLISER_ABSPATH ) & 0777 | 0755 ) );
+        define( 'SMLISER_DIR_PERMISSION', ( fileperms( SMLISER_ROOT ) & 0777 | 0755 ) );
 
         if ( ! defined( 'APP_DEBUG' ) ) {
             /**

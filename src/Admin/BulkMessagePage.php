@@ -13,7 +13,7 @@ use SmartLicenseServer\Messaging\BulkMessages;
 
 use function compact, smliser_render_template;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The admin bulk message page class

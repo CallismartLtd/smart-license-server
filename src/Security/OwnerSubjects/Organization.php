@@ -23,7 +23,7 @@ use SmartLicenseServer\Security\Owner;
 use const SMLISER_ORGANIZATIONS_TABLE;
 use function defined, is_string, smliser_db, gmdate, boolval, smliser_avatar_url, md5;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Canonical representation of an organization.

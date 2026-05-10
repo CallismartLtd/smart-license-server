@@ -15,7 +15,7 @@ namespace SmartLicenseServer\Cache;
 
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class CacheProviderIcons {
     use SanitizeAwareTrait;

@@ -10,7 +10,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Database\Query\QueryIntents;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Provides fluent methods for building query conditions and managing bindings.

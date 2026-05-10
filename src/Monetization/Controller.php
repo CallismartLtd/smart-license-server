@@ -20,7 +20,7 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Handles all requests related to software monetization

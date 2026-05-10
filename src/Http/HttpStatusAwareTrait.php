@@ -9,7 +9,7 @@
 
 namespace SmartLicenseServer\Http;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Trait HttpStatusTrait

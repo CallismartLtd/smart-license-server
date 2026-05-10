@@ -17,7 +17,7 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class Installer {
 

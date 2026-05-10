@@ -11,7 +11,7 @@ use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Stores roles definitions.

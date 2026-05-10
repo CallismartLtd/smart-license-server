@@ -11,7 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Runners;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Defines the contract every environment-specific command runner must implement.

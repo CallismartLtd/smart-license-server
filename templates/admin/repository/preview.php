@@ -11,7 +11,7 @@
 
 use SmartLicenseServer\Admin\RepositoryPage;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 ?>
 
 <div class="smliser-admin-repository-template repo-page">

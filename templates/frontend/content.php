@@ -27,7 +27,7 @@
  *                                   Use this to add notification bells, links, etc.
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $principal      = $principal      ?? null;
 $rest_base      = $rest_base      ?? '';

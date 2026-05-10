@@ -8,7 +8,7 @@
 
 use SmartLicenseServer\Admin\OptionsPage;
 
-defined( 'SMLISER_ABSPATH' ) || exit; ?>
+defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( OptionsPage::get_menu_args( $request ) ); ?>
     <div class="smliser-table-wrapper">

@@ -20,7 +20,7 @@
  * @var string $principal    Null (not authenticated)
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $repo_name = $repo_name ?? 'Dashboard';
 

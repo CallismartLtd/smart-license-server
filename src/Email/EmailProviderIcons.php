@@ -15,7 +15,7 @@ namespace SmartLicenseServer\Email;
 
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class EmailProviderIcons {
     use SanitizeAwareTrait;

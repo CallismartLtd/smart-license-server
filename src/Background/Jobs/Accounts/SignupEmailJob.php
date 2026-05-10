@@ -16,7 +16,7 @@ use SmartLicenseServer\Email\Templates\Accounts\AdminNewUserNotificationEmail;
 use SmartLicenseServer\Email\Templates\Accounts\WelcomeEmail;
 use SmartLicenseServer\Security\Actors\User;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Asynchronously sends welcome emails to new users.

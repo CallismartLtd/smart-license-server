@@ -54,7 +54,7 @@ use SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob;
 use SmartLicenseServer\Background\Jobs\Licenses\PruneLicenseMetaJob;
 use SmartLicenseServer\Background\Jobs\Monetization\CleanExpiredTokensJob;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Scheduler — manages and runs recurring scheduled tasks.

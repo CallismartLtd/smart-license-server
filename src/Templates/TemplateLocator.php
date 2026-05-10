@@ -20,7 +20,7 @@ namespace SmartLicenseServer\Templates;
 
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class TemplateLocator {
 

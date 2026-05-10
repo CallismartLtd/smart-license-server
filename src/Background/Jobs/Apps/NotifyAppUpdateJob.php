@@ -30,7 +30,7 @@ use SmartLicenseServer\Email\Templates\Apps\NewAppVersionNotificationEmail;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Monetization\License;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Notifies active licensees when a new app version is available.

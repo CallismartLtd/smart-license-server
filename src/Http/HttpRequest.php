@@ -15,7 +15,7 @@ namespace SmartLicenseServer\Http;
 
 use InvalidArgumentException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class HttpRequest {
 

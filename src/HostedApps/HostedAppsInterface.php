@@ -13,7 +13,7 @@ namespace SmartLicenseServer\HostedApps;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Hosted Applications interface.

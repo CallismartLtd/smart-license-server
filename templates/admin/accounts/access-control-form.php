@@ -16,7 +16,7 @@
 
 use SmartLicenseServer\Admin\AccessControlPage;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $current_tab        = $request->get( 'tab', '' );
 $current_section    = $request->get( 'section', '' );

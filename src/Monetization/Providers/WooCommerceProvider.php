@@ -16,7 +16,7 @@ use SmartLicenseServer\Http\HttpClient;
 use SmartLicenseServer\Http\HttpRequest;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * WooCommerce Monetization Provider Class

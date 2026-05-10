@@ -40,7 +40,7 @@ use SmartLicenseServer\Exceptions\EmailTransportException;
 use InvalidArgumentException;
 use RuntimeException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class Mailer {
     /**

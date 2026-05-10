@@ -10,7 +10,7 @@
  * Form data submitted via AJAX to {rest_base}auth/login
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 ?>
 <div class="smlag-header">

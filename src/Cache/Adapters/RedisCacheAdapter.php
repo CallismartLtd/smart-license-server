@@ -14,7 +14,7 @@ use RedisException;
 use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Redis cache adapter.

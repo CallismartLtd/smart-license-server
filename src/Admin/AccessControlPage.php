@@ -19,7 +19,7 @@ use SmartLicenseServer\Security\Actors\User;
 
 use function defined, array_unshift, sprintf, smliser_json_encode_attr, smliser_render_template, compact;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The admin bulk message page class

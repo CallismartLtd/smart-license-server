@@ -9,7 +9,7 @@ namespace SmartLicenseServer\Contracts;
 
 use InvalidArgumentException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Provides abstract implementation of service provider registry. 

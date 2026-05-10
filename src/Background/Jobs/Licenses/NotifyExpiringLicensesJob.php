@@ -35,7 +35,7 @@ use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Email\Templates\Licenses\LicenseExpiryReminderEmail;
 use SmartLicenseServer\Monetization\License;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Send expiry reminder emails to licensees approaching their end_date.

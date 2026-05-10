@@ -51,7 +51,7 @@ use SmartLicenseServer\Console\Commands\WorkCommand;
 use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Central console command registry.

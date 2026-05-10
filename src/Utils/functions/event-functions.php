@@ -21,7 +21,7 @@
  * @since   0.2.0
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 use SmartLicenseServer\Events\AbstractEvent;
 use SmartLicenseServer\Events\EventDispatcher;

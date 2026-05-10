@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\Utils;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Common reusable database query helpers for entity classes.

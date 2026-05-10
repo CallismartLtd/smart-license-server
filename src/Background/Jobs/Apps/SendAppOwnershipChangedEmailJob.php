@@ -32,7 +32,7 @@ use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Sends AppOwnershipChangedEmail to both the previous and new owner.

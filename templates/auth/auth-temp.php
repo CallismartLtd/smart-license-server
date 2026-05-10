@@ -14,7 +14,7 @@
  * @version 0.2.0
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 ?>
 
     <?php do_action( 'smliser_auth_page_header' );?>

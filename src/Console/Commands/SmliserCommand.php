@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Console\Commands;
 use SmartLicenseServer\Console\CommandInterface;
 use SmartLicenseServer\Console\CommandRegistry;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The core smliser command handles the base commands and flags in `smliser`

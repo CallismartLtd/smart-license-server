@@ -8,7 +8,7 @@
  */
 namespace SmartLicenseServer\Console\Commands\Apps;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Software command

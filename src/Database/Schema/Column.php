@@ -10,7 +10,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Database\Schema;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Represents a single column in a database table schema.

@@ -20,7 +20,7 @@ use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Security\Context\Guard;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Dedicated REST API endpoint for perform CRUD operations on hosted apps. 

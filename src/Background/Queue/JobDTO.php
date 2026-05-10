@@ -62,7 +62,7 @@ use SmartLicenseServer\Core\DTO;
 use DateTimeImmutable;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 final class JobDTO extends DTO {
 

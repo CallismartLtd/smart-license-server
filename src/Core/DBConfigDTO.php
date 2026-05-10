@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Core;
 
 use LogicException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Database configuration data transfer object.

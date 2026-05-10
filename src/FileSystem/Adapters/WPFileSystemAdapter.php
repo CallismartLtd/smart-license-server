@@ -10,7 +10,7 @@
 
 namespace SmartLicenseServer\FileSystem\Adapters;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 use WP_Filesystem_Base;
 
@@ -48,7 +48,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
 
         \ob_start();
         if ( ! $wp_filesystem ) {
-            require_once SMLISER_ABSPATH . 'wp-admin/includes/file.php';
+            require_once SMLISER_ROOT . 'wp-admin/includes/file.php';
             WP_Filesystem();
         }
         \ob_end_clean();

@@ -16,7 +16,7 @@ use SmartLicenseServer\Exceptions\Exception;
 
 use function smliser_filesystem;
 
-defined( 'SMLISER_ABSPATH' ) || exit; // phpcs:ignore
+defined( 'SMLISER_ROOT' ) || exit; // phpcs:ignore
 
 /**
  * Provides static helpers for file inspection and validation.

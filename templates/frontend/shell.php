@@ -21,7 +21,7 @@ use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /*
 |--------------------------------------------------

@@ -20,7 +20,7 @@ use SmartLicenseServer\Http\HttpResponse;
 use SmartLicenseServer\Http\Exceptions\HttpRequestException;
 use SmartLicenseServer\Http\Exceptions\HttpTimeoutException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class FopenAdapter implements HttpAdapterInterface {
 

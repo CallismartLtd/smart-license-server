@@ -18,7 +18,7 @@ use function get_class;
 use function method_exists;
 use function sprintf;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Canonical representation of the currently logged-in actor within a specific context.

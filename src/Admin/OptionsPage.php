@@ -20,7 +20,7 @@ use SmartLicenseServer\Monetization\MonetizationRegistry;
 
 use function sprintf, smliser_settings, smliser_render_template, compact;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class OptionsPage {
 

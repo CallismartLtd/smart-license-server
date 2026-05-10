@@ -9,7 +9,7 @@
 
 use SmartLicenseServer\Admin\OptionsPage;
 
-defined( 'SMLISER_ABSPATH' ) || exit; 
+defined( 'SMLISER_ROOT' ) || exit; 
 
 $args   = OptionsPage::get_menu_args( $request );
 

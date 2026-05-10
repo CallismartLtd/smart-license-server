@@ -13,7 +13,7 @@ use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Migrations\SQLBuilder;
 use SmartLicenseServer\Database\Query\SQLBuilder as QuerySQLBuilder;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Provides fluent interface for index operations.

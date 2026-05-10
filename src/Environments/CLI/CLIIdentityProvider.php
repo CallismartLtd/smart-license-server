@@ -40,7 +40,7 @@ use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Context\Principal;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Authenticates the CLI process via a service account API key.

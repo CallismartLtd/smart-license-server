@@ -29,7 +29,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * CLI environment adapter.
@@ -94,7 +94,7 @@ class SetUp extends Environment {
      * @return void
      */
     private function loadDotEnv() : void {
-        ( new DotEnv( SMLISER_ABSPATH ) )
+        ( new DotEnv( SMLISER_ROOT ) )
         ->load();
     }
 
@@ -112,7 +112,7 @@ class SetUp extends Environment {
                 'environment'       => 'cli',
                 'display_errors'    => $display_errors,
                 'log_errors'        => $debug_mode,
-                'log_path'          => \SMLISER_ABSPATH . 'error.log',
+                'log_path'          => \SMLISER_ROOT . 'error.log',
             ])
             ->registerHandlers();
         
@@ -164,7 +164,7 @@ class SetUp extends Environment {
 
         $env = [
             'db_prefix'         => $db_prefix,
-            'absolute_path'     => SMLISER_ABSPATH,
+            'absolute_path'     => SMLISER_ROOT,
             'repo_path'         => $repo_path,
             'uploads_dir'       => $uploads_dir,
             'rest_api_provider' => new CLIRESTProvider(),

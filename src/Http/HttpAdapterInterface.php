@@ -17,7 +17,7 @@ namespace SmartLicenseServer\Http;
 use SmartLicenseServer\Http\Exceptions\HttpRequestException;
 use SmartLicenseServer\Http\Exceptions\HttpTimeoutException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 interface HttpAdapterInterface {
 

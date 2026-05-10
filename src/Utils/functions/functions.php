@@ -25,7 +25,7 @@ use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\Utils\MDParser;
 use SmartLicenseServer\Utils\Sanitizer;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Check whether debug mode is enabled.

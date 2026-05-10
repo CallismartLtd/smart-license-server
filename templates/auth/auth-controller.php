@@ -7,7 +7,7 @@
 
 use SmartLicenseServer\Utils\Sanitizer;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 // Define the default values for the required parameters.
 $default_params = array(

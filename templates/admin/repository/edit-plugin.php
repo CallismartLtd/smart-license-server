@@ -6,7 +6,7 @@
  * @var \SmartLicenseServer\HostedApps\Plugin $app
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 $title          = sprintf( 'Edit Plugin: %s', $app->get_name() );
 $other_fields   = array(

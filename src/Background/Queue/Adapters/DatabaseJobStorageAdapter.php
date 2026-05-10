@@ -36,7 +36,7 @@ use SmartLicenseServer\Database\Database;
 use DateTimeImmutable;
 use RuntimeException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Job storage adapter backed by the application Database abstraction.

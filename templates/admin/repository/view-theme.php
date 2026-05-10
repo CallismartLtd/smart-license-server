@@ -9,7 +9,7 @@
  * @var SmartLicenseServer\FileSystem\ThemeRepository $repo_class
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
  
 
 // Authors listing will differ in the future.

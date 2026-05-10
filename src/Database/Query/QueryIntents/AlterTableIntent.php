@@ -14,7 +14,7 @@ use SmartLicenseServer\Database\Query\SQLBuilder;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Represents an intent to alter an existing database table.

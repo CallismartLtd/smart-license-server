@@ -34,7 +34,7 @@ use SmartLicenseServer\Http\Adapters\FopenAdapter;
 use SmartLicenseServer\Http\Adapters\SocketAdapter;
 use SmartLicenseServer\Http\Exceptions\HttpRequestException;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class HttpClient {
 

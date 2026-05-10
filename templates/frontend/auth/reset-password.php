@@ -10,7 +10,7 @@
  * @var string $token The password reset token
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 ?>
 <div class="smlag-header">

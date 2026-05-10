@@ -14,6 +14,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Http\Exceptions;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class HttpTimeoutException extends HttpRequestException {}

@@ -25,7 +25,7 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Email\Templates\Apps\AppPublishedEmail;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Sends AppPublishedEmail to the app owner when a new app is published.

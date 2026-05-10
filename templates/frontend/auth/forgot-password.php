@@ -11,7 +11,7 @@
  * Form submission via AJAX to {rest_base}auth/forgot-password
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 ?>
 <div class="smlag-header">

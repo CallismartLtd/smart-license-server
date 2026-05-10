@@ -23,7 +23,7 @@ use SmartLicenseServer\Exceptions\EmailTransportException;
 use InvalidArgumentException;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class SMTPProvider implements EmailProviderInterface {
 

@@ -13,7 +13,7 @@ use SmartLicenseServer\Http\HttpStatusAwareTrait;
 
 use function smliser_safe_json_encode, defined, is_array, array_push, preg_replace, sprintf;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The core HTTP response class used to deliver responses to client.

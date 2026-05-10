@@ -10,7 +10,7 @@ namespace SmartLicenseServer\Messaging;
 
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The bulk messages class provides the API to broadcast messages for the entire site

@@ -10,7 +10,7 @@
 
 namespace SmartLicenseServer\Exceptions;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Email transport exception class.

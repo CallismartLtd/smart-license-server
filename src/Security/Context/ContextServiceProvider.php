@@ -32,7 +32,7 @@ SMLISER_OWNERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_USERS_TABLE, SMLISER_
 use function defined, class_exists, parse_args_recursive, smliser_db, strtolower, gmdate, method_exists,
 sprintf, class_implements, in_array;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * The security context service provider holds the context of authenticated actor/principal

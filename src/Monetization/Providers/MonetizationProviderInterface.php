@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Monetization\Providers;
 
 use SmartLicenseServer\Contracts\ServiceProviderInterface;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Monetization Provider Interface

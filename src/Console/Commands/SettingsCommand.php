@@ -15,7 +15,7 @@ use SmartLicenseServer\Console\CLIUtilsTrait;
 use SmartLicenseServer\Console\CommandInterface;
 use SmartLicenseServer\Utils\Format;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Manage and inspect the system settings.

@@ -18,7 +18,7 @@ namespace SmartLicenseServer\Core;
 
 use JsonSerializable;
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
 class URL implements JsonSerializable{
 

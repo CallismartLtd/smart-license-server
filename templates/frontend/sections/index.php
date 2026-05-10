@@ -3,7 +3,7 @@
  * Client Dashboard Overview Template.
  */
 
-defined( 'SMLISER_ABSPATH' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 ?>
 
 <h1>Hi Callistus</h1>
