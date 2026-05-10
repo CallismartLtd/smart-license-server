@@ -60,6 +60,16 @@ class PersistenceIntent implements QueryItentInterface {
     }
 
     /**
+     * Alias for values
+     * 
+     * @param array $data
+     * @return static Fluent
+     */
+    public function set( array $data ) : static {
+        return $this->values( $data );
+    }
+
+    /**
      * Set data for a single row operation.
      * 
      * @param array $data Column => Value pairs.

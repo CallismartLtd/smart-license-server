@@ -12,7 +12,8 @@ $config = [
 	'app_root'      => '/var/www/html/apiv1.callismart.local/',
 	'base_dir'      => '/var/www/html/apiv1.callismart.local/wp-content/plugins/smart-license-server/',
 	'src_dir'       => '/var/www/html/apiv1.callismart.local/wp-content/plugins/smart-license-server/src/',
-	'index_file'    => __FILE__
+	'index_file'    => __FILE__,
+    'base_dir_url'  => 'https://localhost'
 ];
 
 require_once $config['src_dir'] . 'Environments/bootstrap.php';
