@@ -23,10 +23,9 @@ if ( 'cli' !== PHP_SAPI ) {
  * Interactive WordPress plugin bootstrap generator for SmartLicenseServer.
  *
  * Prompts for WordPress installation path and generates the main plugin file.
- *
- * @since 0.2.0
  */
 class WordPressBootstrapGenerator {
+	private const string VERSION = '0.2.0';
 
 	/**
 	 * Checks if the terminal supports colors.
@@ -255,12 +254,9 @@ class WordPressBootstrapGenerator {
 	/**
 	 * Generates the WordPress plugin bootstrap file content.
 	 *
-	 * @param array $config Configuration array with paths.
 	 * @return string The PHP file content.
 	 */
-	private function generate_plugin_content( array $config ): string {
-		$base_dir = $config['base_dir'];
-		$src_dir = $config['src_dir'];
+	private function generate_plugin_content(): string {
 
 		$php_template = <<<'PHP'
         <?php
@@ -270,7 +266,7 @@ class WordPressBootstrapGenerator {
         * Description:         Private plugin, themes and software repository with licensing and monetization feature.
         * Author:              Callistus Nwachukwu
         * Author URI:          https://callismart.com.ng/callistus
-        * Version:             0.2.0
+        * Version:             %s
         * Requires at least:   6.8
         * Requires PHP:        8.4
         */
@@ -293,7 +289,7 @@ class WordPressBootstrapGenerator {
         WordPressEnvironment::boot();
         PHP;
 
-		return $php_template;
+		return sprintf( $php_template, self::VERSION );
 	}
 
 	/**
@@ -303,7 +299,7 @@ class WordPressBootstrapGenerator {
 	 */
 	private function display_banner(): void {
 		$this->print_section( 'Smart License Server WordPress Plugin Generator' );
-		echo "   Version 0.2.0" . PHP_EOL;
+		echo "   Version " . self::VERSION . PHP_EOL;
 		$this->print_line();
 	}
 
@@ -439,7 +435,7 @@ class WordPressBootstrapGenerator {
 		}
 
 		// Generate content.
-		$content = $this->generate_plugin_content( $config );
+		$content = $this->generate_plugin_content();
 
 		// Write plugin file.
 		$output_file = $this->write_plugin_file( $config, $content );
