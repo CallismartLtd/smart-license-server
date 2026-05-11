@@ -1,6 +1,6 @@
 # Smart License Server
 
-Copyright (C) 2026 Callistus Nwachukwu / CalliSmart LTD
+Copyright (C) 2026 Callistus Nwachukwu / Callismart Tech
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
