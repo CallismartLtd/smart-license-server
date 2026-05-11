@@ -1,12 +1,9 @@
 <?php
 /**
- * Smart License Server CLI Bootstrap Generator
- *
- * Interactive CLI script to generate the smliser CLI entry point.
- * Prompts for application paths and creates the bootstrap file.
+ * CLI bootstrap generator file.
  *
  * Usage:
- *   php make-smliser-cli.php
+ *   php CLIBootstrapGenerator.php
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Setup
@@ -22,11 +19,10 @@ if ( 'cli' !== PHP_SAPI ) {
 /**
  * Interactive CLI bootstrap generator for SmartLicenseServer.
  *
- * Prompts for paths, generates the bootstrap file, and sets permissions.
- *
- * @since 0.2.0
+ * Generates `smliser` php file which bootstraps Smart License Server from the command line.
  */
 class CLIBootstrapGenerator {
+	private const string VERSION	= '0.2.0';
 
 	/**
 	 * Checks if the terminal supports colors.
@@ -249,8 +245,8 @@ class CLIBootstrapGenerator {
 	 * @return string The PHP file content.
 	 */
 	private function generate_bootstrap_content( array $config ): string {
-		$base_dir = $config['base_dir'];
-		$src_dir = $config['src_dir'];
+		$base_dir	= $config['base_dir'];
+		$src_dir	= $config['src_dir'];
 
 		$php_template = <<<'PHP'
 		<?php
@@ -267,10 +263,10 @@ class CLIBootstrapGenerator {
 		 *
 		 * @author  Callistus Nwachukwu
 		 * @package SmartLicenseServer\Environments\CLI
-		 * @since   0.2.0
+		 * @since   %s
 		 */
 
-		// Guard — must be run from CLI only.
+		// Guard - must be run from CLI only.
 		if ( 'cli' !== PHP_SAPI ) {
 			function_exists( 'http_response_code' ) && http_response_code( 403 );
 			exit( 'This script can only be run from the command line.' );
@@ -292,6 +288,7 @@ class CLIBootstrapGenerator {
 
 		return sprintf(
 			$php_template,
+			self::VERSION,
 			$base_dir,
 			$src_dir
 		);
@@ -304,7 +301,7 @@ class CLIBootstrapGenerator {
 	 */
 	private function display_banner(): void {
 		$this->print_section( 'Smart License Server CLI Bootstrap Generator' );
-		echo "   Version 0.2.0" . PHP_EOL;
+		echo "   Version " . self::VERSION . PHP_EOL;
 		$this->print_line();
 	}
 
