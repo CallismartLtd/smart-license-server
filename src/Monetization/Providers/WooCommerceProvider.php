@@ -12,8 +12,8 @@
 namespace SmartLicenseServer\Monetization\Providers;
 
 use SmartLicenseServer\Cache\CacheAwareTrait;
-use SmartLicenseServer\Http\HttpClient;
-use SmartLicenseServer\Http\HttpRequest;
+use Callismart\Http\HttpClient;
+use Callismart\Http\HttpRequest;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 defined( 'SMLISER_ROOT' ) || exit;

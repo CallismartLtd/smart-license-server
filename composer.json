@@ -10,7 +10,8 @@
     ],
     "require": {
         "php": "^8.4",
-        "league/commonmark": "^2.7"
+        "league/commonmark": "^2.7",
+        "callismart/http": "^1.0"
     },
     "require-dev": {
         "php-stubs/wp-cli-stubs": "^2.12",

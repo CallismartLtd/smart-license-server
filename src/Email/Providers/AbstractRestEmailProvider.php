@@ -30,8 +30,8 @@ namespace SmartLicenseServer\Email\Providers;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
-use SmartLicenseServer\Http\HttpClient;
-use SmartLicenseServer\Http\HttpResponse;
+use Callismart\Http\HttpClient;
+use Callismart\Http\HttpResponse;
 use InvalidArgumentException;
 
 defined( 'SMLISER_ROOT' ) || exit;

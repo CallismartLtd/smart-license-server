@@ -4,8 +4,63 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b8fa1e2b1afc96062db55a603b3ec308",
+    "content-hash": "c5a0e51d770975ca133646b78923e30f",
     "packages": [
+        {
+            "name": "callismart/http",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/CallismartLtd/Http.git",
+                "reference": "b6b1491ece49c832e1f35f6f550651984458f788"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/CallismartLtd/Http/zipball/b6b1491ece49c832e1f35f6f550651984458f788",
+                "reference": "b6b1491ece49c832e1f35f6f550651984458f788",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1"
+            },
+            "suggest": {
+                "ext-curl": "Allows the use of CurlAdapter for better performance and parallel requests.",
+                "ext-openssl": "Required for secure (HTTPS) connections when using SocketAdapter or FopenAdapter."
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/functions.php"
+                ],
+                "psr-4": {
+                    "Callismart\\Http\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Callistus Nwachukwu",
+                    "email": "admin@callismart.com.ng"
+                }
+            ],
+            "description": "A lightweight, multi-adapter HTTP client for PHP 8.1+ with AWS SigV4 support and fallbacks for restricted environments.",
+            "keywords": [
+                "Socket",
+                "aws",
+                "client",
+                "curl",
+                "http",
+                "sigv4"
+            ],
+            "support": {
+                "issues": "https://github.com/CallismartLtd/Http/issues",
+                "source": "https://github.com/CallismartLtd/Http/tree/v1.0.0"
+            },
+            "time": "2026-05-12T14:23:00+00:00"
+        },
         {
             "name": "dflydev/dot-access-data",
             "version": "v3.0.3",

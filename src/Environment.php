@@ -32,7 +32,7 @@ use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
-use SmartLicenseServer\Http\HttpClient;
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\SettingsAPI\Providers\Options;

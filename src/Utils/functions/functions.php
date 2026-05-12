@@ -16,8 +16,8 @@ use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\Http\Exceptions\HttpRequestException;
-use SmartLicenseServer\Http\HttpClient;
+use Callismart\Http\Exceptions\HttpRequestException;
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
@@ -603,7 +603,7 @@ function smliser_scheduler(): \SmartLicenseServer\Background\Schedule\Scheduler 
 /**
  * Get the http client instance.
  * 
- * @return \SmartLicenseServer\Http\HttpClient
+ * @return \Callismart\Http\HttpClient
  */
 function smliser_http_client() : HttpClient {
     return smliser_envProvider()->httpClient();

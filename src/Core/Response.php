@@ -9,7 +9,7 @@
 namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Http\HttpStatusAwareTrait;
+use Callismart\Http\HttpStatusAwareTrait;
 
 use function smliser_safe_json_encode, defined, is_array, array_push, preg_replace, sprintf;
 

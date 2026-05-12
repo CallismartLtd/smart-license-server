@@ -12,7 +12,7 @@
 
 namespace SmartLicenseServer\Exceptions;
 
-use SmartLicenseServer\Http\HttpStatusAwareTrait;
+use Callismart\Http\HttpStatusAwareTrait;
 
 defined( 'SMLISER_ROOT' ) || exit;
 

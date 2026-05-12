@@ -19,7 +19,7 @@ use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\FileSystem\FileSystem;
-use SmartLicenseServer\Http\HttpClient;
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Security\Context\IdentityProviderInterface;

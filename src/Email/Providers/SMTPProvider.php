@@ -343,9 +343,9 @@ class SMTPProvider implements EmailProviderInterface {
         $errno  = 0;
         $errstr = '';
 
-        $socket = fsockopen( $socket_host, $port, $errno, $errstr, $timeout );
+        $socket = @fsockopen( $socket_host, $port, $errno, $errstr, $timeout );
 
-        if ( $socket === false ) {
+        if ( false === $socket ) {
             throw new EmailTransportException(
                 "SMTPProvider: could not connect to {$host}:{$port} — {$errstr} ({$errno})."
             );
