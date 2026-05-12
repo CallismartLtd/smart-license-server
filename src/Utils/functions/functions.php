@@ -469,7 +469,7 @@ function parse_args_recursive( $args, $defaults ) {
  * @param bool          $autoclean  Whether to automatically delete the downloaded file(Default: true).
  * @return string|FileRequestException
  */
-function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean = true ) : string|FileRequestException {
+function smliser_download_url( string|URL $url, int $timeout = 30, bool $autoclean = true ) : string|FileRequestException {
     try {
         $url  = is_string( $url ) ? new URL( $url ) : $url;
         // Validate URL.
@@ -479,7 +479,7 @@ function smliser_download_url( string|URL $url, $timeout = 30, bool $autoclean =
 
         $url        = $url->url();
         $options    = [
-            'timeout'   => max( 1, (int) $timeout )
+            'timeout'   => max( 1, $timeout )
         ];
 
         $destination    = sprintf( '%s/%s', SMLISER_TMP_DIR, uniqid( SMLISER_UPLOAD_TMP_PREFIX ) );

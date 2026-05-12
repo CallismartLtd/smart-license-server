@@ -25,7 +25,7 @@ class RequestController {
     /**
      * Handles request to save default email options.
      * 
-     * @param Request The request object.
+     * @param Request $request The request object.
      * @return Response
      */
     public static function save_default_email_options( Request $request ) : Response {
