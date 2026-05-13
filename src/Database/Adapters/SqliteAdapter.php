@@ -13,6 +13,7 @@ use SQLite3;
 use Exception;
 use SmartLicenseServer\Database\DBConfigDTO;
 use SmartLicenseServer\Database\SqliteCompatibilityTrait;
+use SQLite3Result;
 
 /**
  * Adapter for native SQLite3 database access.
@@ -96,7 +97,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    protected function close() {
+    protected function close() : void {
         if ( $this->sqlite ) {
             $this->sqlite->close();
         }
@@ -109,7 +110,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function begin_transaction() {
+    public function begin_transaction() : void {
         $this->sqlite->exec( 'BEGIN TRANSACTION' );
     }
 
@@ -118,7 +119,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function commit() {
+    public function commit() : void {
         $this->sqlite->exec( 'COMMIT' );
     }
 
@@ -127,7 +128,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function rollback() {
+    public function rollback() : void {
         $this->sqlite->exec( 'ROLLBACK' );
     }
 
@@ -137,9 +138,9 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param string $query  The SQL query with ? placeholders.
      * @param array  $params Optional. The bound values for placeholders.
      *
-     * @return \SQLite3Result|false The result object or true on success, false on failure.
+     * @return SQLite3Result|false The result object or true on success, false on failure.
      */
-    protected function query( $query, array $params = [] ) {
+    protected function query( $query, array $params = [] ) : SQLite3Result|false {
         if ( ! $this->ensure_connection() ) {
             return false;
         }
@@ -178,7 +179,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param mixed $value The value to check.
      * @return int SQLITE3 constant (INTEGER, FLOAT, TEXT, NULL, or BLOB).
      */
-    protected function get_sqlite_type( $value ) {
+    protected function get_sqlite_type( $value ) : int {
         if ( is_int( $value ) ) return SQLITE3_INTEGER;
         if ( is_float( $value ) ) return SQLITE3_FLOAT;
         if ( is_null( $value ) ) return SQLITE3_NULL;
@@ -194,7 +195,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param array  $params Optional. Bound values.
      * @return array|null Associative array of the row, or null if not found.
      */
-    public function get_row( $query, array $params = [] ) {
+    public function get_row( $query, array $params = [] ) : ?array {
         $result = $this->query( $query, $params );
         if ( ! $result ) return null;
         
@@ -209,7 +210,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param array  $params Optional. Bound values.
      * @return array List of associative arrays.
      */
-    public function get_results( $query, array $params = [] ) {
+    public function get_results( $query, array $params = [] ) : array {
         $result = $this->query( $query, $params );
         if ( ! $result ) return [];
 
@@ -227,7 +228,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param array  $params Optional. Bound values.
      * @return mixed|null The first column of the first row, or null if none.
      */
-    public function get_var( $query, array $params = [] ) {
+    public function get_var( $query, array $params = [] ) : mixed {
         $result = $this->query( $query, $params );
         if ( ! $result ) return null;
 
@@ -242,7 +243,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param array  $params Optional. Bound values.
      * @return array List of column values.
      */
-    public function get_col( $query, array $params = [] ) {
+    public function get_col( $query, array $params = [] ) : array {
         $result = $this->query( $query, $params );
         if ( ! $result ) return [];
 
@@ -260,7 +261,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param array  $data  Associative array of column => value.
      * @return int|false The inserted record ID on success, false on failure.
      */
-    public function insert( $table, array $data ) {
+    public function insert( $table, array $data ) : int|false {
         $columns = array_keys( $data );
         $placeholders = array_fill( 0, count( $data ), '?' );
 
@@ -283,7 +284,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param array  $where Associative array for WHERE conditions.
      * @return int|false Number of affected rows, or false on failure.
      */
-    public function update( $table, array $data, array $where ) {
+    public function update( $table, array $data, array $where ) : int|false {
         $set_clauses = array_map( fn($col) => "$col = ?", array_keys( $data ) );
         $where_clauses = array_map( fn($col) => "$col = ?", array_keys( $where ) );
 
@@ -307,7 +308,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param array  $where Associative array for WHERE conditions.
      * @return int|false Number of affected rows, or false on failure.
      */
-    public function delete( $table, array $where ) {
+    public function delete( $table, array $where ) : int|false {
         $where_clauses = array_map( fn($col) => "$col = ?", array_keys( $where ) );
 
         $query = sprintf(
@@ -325,7 +326,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      *
      * @return int|null The last inserted row ID.
      */
-    public function get_insert_id() {
+    public function get_insert_id() : ?int {
         return $this->insert_id;
     }
 
@@ -334,7 +335,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      *
      * @return string|null The error message, or null if none.
      */
-    public function get_last_error() {
+    public function get_last_error() : ?string {
         return $this->last_error;
     }
 
@@ -343,7 +344,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      *
      * @return string Version string (e.g., "3.34.0").
      */
-    public function get_server_version() {
+    public function get_server_version() : string {
         $version = SQLite3::version();
         return $version['versionString'] ?? '0.0.0';
     }
@@ -353,20 +354,23 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      *
      * @return string 'sqlite'.
      */
-    public function get_engine_type() {
+    public function get_engine_type() : string {
         return 'sqlite';
     }
 
     /**
-     * Get connection host information.
+     * {@inheritdoc}
      *
      * @return string The path to the database file or ':memory:'.
      */
-    public function get_host_info() {
+    public function get_host_info()  : string {
         return 'SQLite3 Native: ' . ($this->config['database'] ?? ':memory:');
     }
 
-    public function get_protocol_version() {
+    /**
+     * {@inheritdoc}
+     */
+    public function get_protocol_version() : string {
         return 'N/A (File-based)';
     }
 

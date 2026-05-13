@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Database\Adapters;
 
 use PDO;
 use PDOException;
+use PDOStatement;
 use SmartLicenseServer\Database\DBConfigDTO;
 
 /**
@@ -38,14 +39,14 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @var int|null
      */
-    protected $insert_id = null;
+    protected ?int $insert_id = null;
 
     /**
      * Last executed error message.
      *
      * @var string|null
      */
-    protected $last_error = null;
+    protected ?string $last_error = null;
 
     /**
      * Constructor.
@@ -69,8 +70,8 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return bool True on success, false on failure.
      */
-    protected function connect() {
-        if ( $this->pdo ) {
+    protected function connect() : bool {
+        if ( $this->is_connected() ) {
             return true;
         }
 
@@ -104,11 +105,31 @@ class PdoAdapter implements DatabaseAdapterInterface {
     }
 
     /**
+     * Ensure database connection
+     * 
+     * @return bool
+     */
+    protected function ensure_connection() : bool {
+        if ( $this->is_connected() ) {
+            return true;
+        }
+
+        $this->connect();
+
+        if ( ! $this->is_connected() ) {
+            $this->last_error = 'No active PDO connection.';
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Close the active database connection.
      *
      * @return void
      */
-    protected function close() {
+    protected function close() : void {
         $this->pdo = null;
     }
 
@@ -117,10 +138,12 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function begin_transaction() {
-        if ( $this->pdo && ! $this->pdo->inTransaction() ) {
-            $this->pdo->beginTransaction();
+    public function begin_transaction() : void {
+        if ( ! $this->ensure_connection() || $this->pdo->inTransaction() ) {
+            return;
         }
+
+        $this->pdo->beginTransaction();
     }
 
     /**
@@ -128,7 +151,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function commit() {
+    public function commit() : void {
         if ( $this->pdo && $this->pdo->inTransaction() ) {
             $this->pdo->commit();
         }
@@ -139,7 +162,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function rollback() {
+    public function rollback() : void {
         if ( $this->pdo && $this->pdo->inTransaction() ) {
             $this->pdo->rollBack();
         }
@@ -153,11 +176,10 @@ class PdoAdapter implements DatabaseAdapterInterface {
      * @param string $query  The SQL query with ? placeholders.
      * @param array  $params Optional. The bound values for placeholders.
      *
-     * @return \PDOStatement|false The native statement object, or false on failure.
+     * @return PDOStatement|false The native statement object, or false on failure.
      */
-    protected function query( $query, array $params = [] ) {
-        if ( ! $this->pdo ) {
-            $this->last_error = 'No active PDO connection.';
+    protected function query( $query, array $params = [] ) : PDOStatement|false {
+        if ( ! $this->ensure_connection() ) {
             return false;
         }
 
@@ -188,7 +210,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      * @param mixed $param The parameter value.
      * @return int PDO::PARAM_* constant.
      */
-    protected function get_param_type( $param ) {
+    protected function get_param_type( $param ) : int {
         if ( is_null( $param ) ) {
             return PDO::PARAM_NULL;
         } elseif ( is_bool( $param ) ) {
@@ -208,7 +230,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return array|null Associative array of the row, or null if not found.
      */
-    public function get_row( $query, array $params = [] ) {
+    public function get_row( $query, array $params = [] ) : ?array {
         $stmt = $this->query( $query, $params );
         
         if ( false === $stmt ) {
@@ -227,7 +249,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return array List of associative arrays representing result rows.
      */
-    public function get_results( $query, array $params = [] ) {
+    public function get_results( $query, array $params = [] ) : array {
         $stmt = $this->query( $query, $params );
 
         if ( false === $stmt ) {
@@ -245,7 +267,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return mixed|null The first column of the first row, or null if none.
      */
-    public function get_var( $query, array $params = [] ) {
+    public function get_var( $query, array $params = [] ) : mixed {
         $stmt = $this->query( $query, $params );
         
         if ( false === $stmt ) {
@@ -264,7 +286,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return array List of column values, or empty array if none found.
      */
-    public function get_col( $query, array $params = [] ) {
+    public function get_col( $query, array $params = [] ) : array {
         $stmt = $this->query( $query, $params );
         
         if ( false === $stmt ) {
@@ -282,7 +304,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return int|false The inserted record ID on success, false on failure.
      */
-    public function insert( $table, array $data ) {
+    public function insert( $table, array $data ) : int|false {
         if ( empty( $data ) ) {
             $this->last_error = 'Insert data cannot be empty.';
             return false;
@@ -320,7 +342,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return int|false Number of affected rows, or false on failure.
      */
-    public function update( $table, array $data, array $where ) {
+    public function update( $table, array $data, array $where ) : int|false {
         if ( empty( $data ) || empty( $where ) ) {
             $this->last_error = 'Update data and WHERE condition cannot be empty.';
             return false;
@@ -363,7 +385,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return int|false Number of affected rows, or false on failure.
      */
-    public function delete( $table, array $where ) {
+    public function delete( $table, array $where ) : int|false {
         if ( empty( $where ) ) {
             $this->last_error = 'Delete WHERE condition cannot be empty.';
             return false;
@@ -395,7 +417,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return int|null The last inserted ID, or null if not available.
      */
-    public function get_insert_id() {
+    public function get_insert_id() : ?int {
         return $this->insert_id;
     }
 
@@ -404,7 +426,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return string|null The last error message, or null if none.
      */
-    public function get_last_error() {
+    public function get_last_error() : ?string {
         return $this->last_error;
     }
 
@@ -413,8 +435,10 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return string The server version (e.g., "8.0.32", "15.1").
      */
-    public function get_server_version() {
-        return $this->pdo ? $this->pdo->getAttribute(PDO::ATTR_SERVER_VERSION) : '0.0.0';
+    public function get_server_version() : string {
+        $this->ensure_connection();
+
+        return $this->pdo ? (string) $this->pdo->getAttribute( PDO::ATTR_SERVER_VERSION ) : '0.0.0';
     }
 
     /**
@@ -422,8 +446,9 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return string Lowercase name of the engine (e.g., "mysql", "pgsql", "sqlite").
      */
-    public function get_engine_type() {
-        return $this->pdo ? $this->pdo->getAttribute( PDO::ATTR_DRIVER_NAME ) : 'unknown';
+    public function get_engine_type() : string {
+        $this->ensure_connection();
+        return $this->pdo ? (string) $this->pdo->getAttribute( PDO::ATTR_DRIVER_NAME ) : 'unknown';
     }
 
     /**
@@ -431,15 +456,18 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return string Information like host IP or connection method (TCP/IP, Socket).
      */
-    public function get_host_info() {
-        return $this->pdo ? $this->pdo->getAttribute( PDO::ATTR_CONNECTION_STATUS ) : 'disconnected';
+    public function get_host_info() : string {
+        $this->ensure_connection();
+
+        return $this->pdo ? (string) $this->pdo->getAttribute( PDO::ATTR_CONNECTION_STATUS ) : 'disconnected';
     }
     
-    public function get_protocol_version() {
-        if ( ! $this->pdo ) return null;
+    public function get_protocol_version() : string {
+        if ( ! $this->ensure_connection() ) {
+            return '0.0.0';
+        }
         
-        // For MySQL/MariaDB via PDO
-        $info = $this->pdo->getAttribute( \PDO::ATTR_SERVER_INFO );
+        $info = $this->pdo->getAttribute( PDO::ATTR_SERVER_INFO );
         if ( preg_match('/Proto: (\d+)/', $info, $matches ) ) {
             return $matches[1];
         }
@@ -450,8 +478,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      * {@inheritdoc}
      */
     public function exec( string $query ) : bool {
-        if ( ! $this->pdo ) {
-            $this->last_error = 'No active PDO connection.';
+        if ( ! $this->ensure_connection() ) {
             return false;
         }
 

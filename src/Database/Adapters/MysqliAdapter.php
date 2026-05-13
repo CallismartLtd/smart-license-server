@@ -23,7 +23,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @var mysqli|null
      */
-    protected $mysqli;
+    protected ?mysqli $mysqli = null;
 
     /**
      * Configuration settings for the connection.
@@ -37,14 +37,14 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @var int|null
      */
-    protected $insert_id = null;
+    protected ?int $insert_id = null;
 
     /**
      * Last executed error message.
      *
      * @var string|null
      */
-    protected $last_error = null;
+    protected ?string $last_error = null;
 
     /**
      * Constructor.
@@ -68,8 +68,8 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return bool True on success, false on failure.
      */
-    protected function connect() {
-        if ( $this->mysqli ) {
+    protected function connect() : bool {
+        if ( $this->is_connected() ) {
             return true;
         }
         
@@ -92,15 +92,35 @@ class MysqliAdapter implements DatabaseAdapterInterface {
     }
 
     /**
+     * Ensure database connection
+     * 
+     * @return bool
+     */
+    protected function ensure_connection() : bool {
+        if ( $this->is_connected() ) {
+            return true;
+        }
+
+        $this->connect();
+
+        if ( ! $this->is_connected() ) {
+            $this->last_error = 'No active MySQLi connection.';
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Close the active database connection.
      *
      * @return void
      */
-    protected function close() {
+    protected function close() : void {
         if ( $this->mysqli ) {
             $this->mysqli->close();
         }
-        
+
         $this->mysqli = null;
     }
 
@@ -109,8 +129,8 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function begin_transaction() {
-        if ( $this->mysqli ) {
+    public function begin_transaction() : void {
+        if ( $this->ensure_connection() ) {
             $this->mysqli->begin_transaction();
         }
     }
@@ -120,7 +140,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function commit() {
+    public function commit() : void {
         if ( $this->mysqli ) {
             $this->mysqli->commit();
         }
@@ -131,7 +151,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function rollback() {
+    public function rollback() : void {
         if ( $this->mysqli ) {
             $this->mysqli->rollback();
         }
@@ -144,9 +164,8 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @param array  $params Values to bind in the query.
      * @return mysqli_stmt|false Prepared statement on success, false on failure.
      */
-    protected function query( $query, array $params = [] ) {
-        if ( ! $this->mysqli ) {
-            $this->last_error = 'No active MySQLi connection.';
+    protected function query( $query, array $params = [] ) : mysqli_stmt|false {
+        if ( ! $this->ensure_connection() ) {
             return false;
         }
 
@@ -187,7 +206,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @param array $params Array of parameters.
      * @return string String of types (i = integer, d = double, s = string, b = blob).
      */
-    protected function get_bind_types( array $params ) {
+    protected function get_bind_types( array $params ) : string {
         $types = '';
         
         foreach ( $params as $param ) {
@@ -212,7 +231,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @param array  $params Values to bind in the query.
      * @return array|null Associative array of the row, or null if not found.
      */
-    public function get_row( $query, $params = [] ) {
+    public function get_row( $query, $params = [] ) : ?array{
         $stmt = $this->query( $query, $params );
         
         if ( false === $stmt ) {
@@ -240,7 +259,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return array Array of results (each row as an associative array).
      */
-    public function get_results( $query, $params = [] ) {
+    public function get_results( $query, $params = [] ) : array {
         $stmt = $this->query( $query, $params );
         
         if ( false === $stmt ) {
@@ -268,9 +287,9 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @param string $query  SQL query with ? placeholders.
      * @param array  $params Values to bind.
-     * @return mixed|null The first column of the first row or null if not found.
+     * @return mixed The first column of the first row or null if not found.
      */
-    public function get_var( $query, $params = [] ) {
+    public function get_var( $query, $params = [] ) : mixed {
         $stmt = $this->query( $query, $params );
         
         if ( false === $stmt ) {
@@ -297,7 +316,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @param array  $params Values to bind.
      * @return array Array of column values.
      */
-    public function get_col( $query, $params = [] ) {
+    public function get_col( $query, $params = [] ) : array {
         $stmt = $this->query( $query, $params );
         
         if ( false === $stmt ) {
@@ -327,7 +346,12 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @param array  $data  An associative array of column_name => value.
      * @return int|false The inserted record ID on success, false on failure.
      */
-    public function insert( $table, $data ) {
+    public function insert( $table, $data ) : int|false {
+
+        if ( ! $this->ensure_connection() ) {
+            return false;
+        }
+
         if ( empty( $data ) ) {
             $this->last_error = 'Insert data cannot be empty.';
             return false;
@@ -362,7 +386,11 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @param array  $where An associative array of column_name => value for WHERE clause.
      * @return int|false Number of affected rows on success, false on failure.
      */
-    public function update( $table, $data, $where ) {
+    public function update( $table, $data, $where ) : int|false {
+        if ( ! $this->ensure_connection() ) {
+            return false;
+        }
+
         if ( empty( $data ) || empty( $where ) ) {
             $this->last_error = 'Update data and WHERE condition cannot be empty.';
             return false;
@@ -407,7 +435,11 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @param array  $where An associative array of column_name => value for WHERE clause.
      * @return int|false Number of affected rows on success, false on failure.
      */
-    public function delete( $table, $where ) {
+    public function delete( $table, $where ) : int|false {
+        if ( ! $this->ensure_connection() ) {
+            return false;
+        }
+
         if ( empty( $where ) ) {
             $this->last_error = 'Delete WHERE condition cannot be empty.';
             return false;
@@ -442,7 +474,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return int|null The last inserted ID, or null if not available.
      */
-    public function get_insert_id() {
+    public function get_insert_id() : ?int {
         return $this->insert_id;
     }
 
@@ -451,7 +483,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return string|null The last error message, or null if none.
      */
-    public function get_last_error() {
+    public function get_last_error() : ?string {
         return $this->last_error;
     }
 
@@ -460,7 +492,8 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return string|null The server version (e.g., "8.0.32", "15.1").
      */
-    public function get_server_version() {
+    public function get_server_version() : ?string {
+        $this->ensure_connection();
         return $this->mysqli ? $this->mysqli->server_info : null;
     }
 
@@ -469,7 +502,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return string Lowercase name of the engine.
      */
-    public function get_engine_type() {
+    public function get_engine_type() : string {
         return 'mysql';
     }
 
@@ -478,7 +511,9 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return string|null Information like host IP or connection method.
      */
-    public function get_host_info() {
+    public function get_host_info() : ?string {
+        $this->ensure_connection();
+
         return $this->mysqli ? $this->mysqli->host_info : null;
     }
 
@@ -486,16 +521,16 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * Get the protocol version.
      * * @return int|null
      */
-    public function get_protocol_version() {
-        return $this->mysqli ? $this->mysqli->protocol_version : null;
+    public function get_protocol_version() : string {
+        $this->ensure_connection();
+        return $this->mysqli ? (string) $this->mysqli->protocol_version : '0.0.0';
     }
 
     /**
      * {@inheritDoc}
      */
     public function exec( string $query ) : bool {
-        if ( ! $this->mysqli ) {
-            $this->last_error = 'No active MySQLi connection.';
+        if ( ! $this->ensure_connection() ) {
             return false;
         }
 
@@ -524,6 +559,10 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * {@inheritDoc}
      */
     public function execute( string $query, array $params = [] ) : int {
+        if ( ! $this->ensure_connection()  ) {
+            return 0;
+        }
+
         $stmt   = $this->query( $query, $params );
 
         return (int) ( $stmt ? $stmt->affected_rows : 0 );
