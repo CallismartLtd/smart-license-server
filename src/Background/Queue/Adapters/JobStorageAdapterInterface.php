@@ -12,8 +12,6 @@ namespace SmartLicenseServer\Background\Queue\Adapters;
 
 use SmartLicenseServer\Background\Queue\JobDTO;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Contract for all job queue storage backends.
  *

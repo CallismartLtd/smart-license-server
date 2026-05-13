@@ -16,8 +16,6 @@ namespace SmartLicenseServer\Email\Templates\Accounts;
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\Security\Owner;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class OrganizationInviteEmail extends EmailTemplate {
 
     /**

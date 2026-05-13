@@ -9,8 +9,6 @@
 
 namespace SmartLicenseServer\FileSystem\Adapters;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class DirectFileSystem implements FileSystemAdapterInterface {
 
     /**

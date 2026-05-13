@@ -21,8 +21,6 @@ use Callismart\Http\HttpRequest;
 use Callismart\Http\HttpResponse;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class MailgunProvider extends AbstractRestEmailProvider {
 
     /**

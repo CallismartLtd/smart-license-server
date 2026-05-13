@@ -23,8 +23,6 @@ use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class ClientDashboardRouter {
 
     /**

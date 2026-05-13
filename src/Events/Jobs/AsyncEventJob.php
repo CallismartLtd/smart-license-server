@@ -31,8 +31,6 @@ use SmartLicenseServer\Events\AbstractEvent;
 use SmartLicenseServer\Events\EventDispatcher;
 use RuntimeException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Background job handler that re-dispatches a serialised event.
  */

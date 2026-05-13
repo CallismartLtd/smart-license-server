@@ -7,8 +7,6 @@
  */
 namespace SmartLicenseServer\Exceptions;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Environment bootstrap exception class thrown when a required environment
  * configuration is missing.

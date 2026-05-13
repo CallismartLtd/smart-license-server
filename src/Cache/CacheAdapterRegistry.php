@@ -18,8 +18,6 @@ use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Cache adapters manager file.
  * 

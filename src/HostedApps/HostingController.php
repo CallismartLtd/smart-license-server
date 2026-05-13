@@ -22,8 +22,6 @@ use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Software Hosting Controller handles HTTP request and response for hosted applications.
  */

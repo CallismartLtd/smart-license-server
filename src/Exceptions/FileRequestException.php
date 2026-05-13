@@ -14,8 +14,6 @@ namespace SmartLicenseServer\Exceptions;
 
 use Callismart\Http\HttpStatusAwareTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Class FileRequestException
  */

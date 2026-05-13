@@ -19,8 +19,6 @@ use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Core\Dates\TimestampValue;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Prunes license activity log entries older than the configured
  * retention window from the settings-backed activity store.

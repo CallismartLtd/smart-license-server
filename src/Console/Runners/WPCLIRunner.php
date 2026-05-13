@@ -16,8 +16,6 @@ use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * WP-CLI runner.
  *

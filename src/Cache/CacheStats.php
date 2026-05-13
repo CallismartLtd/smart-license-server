@@ -26,8 +26,6 @@ namespace SmartLicenseServer\Cache;
 use SmartLicenseServer\Core\DTO;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 final class CacheStats extends DTO {
 
     /*

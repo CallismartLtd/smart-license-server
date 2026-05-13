@@ -22,8 +22,6 @@ namespace SmartLicenseServer\Background\Jobs\Monetization;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Deletes all expired download tokens from the database.
  */

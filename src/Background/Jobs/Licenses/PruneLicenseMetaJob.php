@@ -22,8 +22,6 @@ namespace SmartLicenseServer\Background\Jobs\Licenses;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Removes orphaned rows from the license meta table.
  */

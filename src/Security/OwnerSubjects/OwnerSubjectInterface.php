@@ -12,8 +12,6 @@ use SmartLicenseServer\Core\URL;
 
 use function defined;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * An owner subject is an entity that can own resources in the system.
  * The contracts all the classes that can be owners' subjects must implement.

@@ -12,8 +12,6 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 trait FileSystemAwareTrait {
 
     /**

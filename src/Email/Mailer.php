@@ -40,8 +40,6 @@ use SmartLicenseServer\Exceptions\EmailTransportException;
 use InvalidArgumentException;
 use RuntimeException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class Mailer {
     /**
      * The active email provider.

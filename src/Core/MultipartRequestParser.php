@@ -20,8 +20,6 @@ namespace SmartLicenseServer\Core;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Streaming multipart parser with state machine.
  */

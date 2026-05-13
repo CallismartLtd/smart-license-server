@@ -22,8 +22,6 @@ use Callismart\Http\HttpRequest;
 use Callismart\Http\HttpResponse;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class BrevoProvider extends AbstractRestEmailProvider {
 
     protected const API_ENDPOINT = 'https://api.brevo.com/v3/smtp/email';

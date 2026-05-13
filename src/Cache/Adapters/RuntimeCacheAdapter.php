@@ -11,8 +11,6 @@ namespace SmartLicenseServer\Cache\Adapters;
 use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * In-memory cache adapter.
  *

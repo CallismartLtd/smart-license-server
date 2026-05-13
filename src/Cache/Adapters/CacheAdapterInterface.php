@@ -15,8 +15,6 @@ namespace SmartLicenseServer\Cache\Adapters;
 use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Contracts\ServiceProviderInterface;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 interface CacheAdapterInterface extends ServiceProviderInterface {
 
     /**

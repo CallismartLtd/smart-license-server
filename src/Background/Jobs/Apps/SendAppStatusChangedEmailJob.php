@@ -27,8 +27,6 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Email\Templates\Apps\AppStatusChangedEmail;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Sends AppStatusChangedEmail to the app owner when status changes.
  */

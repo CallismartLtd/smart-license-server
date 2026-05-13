@@ -15,8 +15,6 @@ use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Table;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Represents an intent to create a database table.
  * 

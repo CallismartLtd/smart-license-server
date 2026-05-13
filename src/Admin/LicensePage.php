@@ -16,8 +16,6 @@ use SmartLicenseServer\RESTAPI\Versions\V1;
 
 use function compact, smliser_render_template;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * The admin license page class
  */

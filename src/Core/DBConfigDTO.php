@@ -12,8 +12,6 @@ namespace SmartLicenseServer\Core;
 
 use LogicException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Database configuration data transfer object.
  *

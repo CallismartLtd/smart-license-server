@@ -16,8 +16,6 @@ use SmartLicenseServer\Security\Permission\Role;
 
 use function defined;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Classical representation of a single member of an organization.
  */

@@ -9,8 +9,6 @@
 
 namespace SmartLicenseServer\Database\Migrations\Helpers;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Normalizes SQL data types across different database engines.
  *

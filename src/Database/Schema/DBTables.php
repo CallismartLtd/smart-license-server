@@ -11,8 +11,6 @@
 
 namespace SmartLicenseServer\Database\Schema;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Legacy static helper for backward compatibility.
  *

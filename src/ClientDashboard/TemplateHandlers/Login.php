@@ -16,8 +16,6 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class Login implements DashboardHandlerInterface {
 
     public static function slug() : string {

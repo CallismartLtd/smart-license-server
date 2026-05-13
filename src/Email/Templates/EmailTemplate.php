@@ -37,8 +37,6 @@ namespace SmartLicenseServer\Email\Templates;
 
 use SmartLicenseServer\Email\EmailMessage;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 abstract class EmailTemplate {
 
     /**

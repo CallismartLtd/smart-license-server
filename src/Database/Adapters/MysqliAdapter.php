@@ -13,8 +13,6 @@ use mysqli;
 use mysqli_stmt;
 use SmartLicenseServer\Core\DBConfigDTO;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Adapter for MySQLi database access.
  */

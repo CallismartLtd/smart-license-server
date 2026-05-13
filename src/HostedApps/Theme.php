@@ -13,8 +13,6 @@ use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\ThemeRepository;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Represents a typical theme hosted in the repository.
  */

@@ -11,8 +11,6 @@ namespace SmartLicenseServer\Database\Query\QueryIntents;
 
 use SmartLicenseServer\Database\Schema\Constraint;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Represents the intent to create a standalone index on an existing table.
  * 

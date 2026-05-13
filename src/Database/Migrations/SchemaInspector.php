@@ -11,8 +11,6 @@ namespace SmartLicenseServer\Database\Migrations;
 
 use SmartLicenseServer\Database\Database;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Provides fluent interface for querying table structure.
  *

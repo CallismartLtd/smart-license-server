@@ -15,8 +15,6 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\Theme;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Handles REST API Requests for hosted themes.
  */

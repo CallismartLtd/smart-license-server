@@ -11,8 +11,6 @@
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Utils\Format;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Calculate the difference between two dates and return a human-readable string.
  *

@@ -25,8 +25,6 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Email\Templates\Apps\AppUpdatedEmail;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Sends AppUpdatedEmail to the app owner when an app file is updated.
  */

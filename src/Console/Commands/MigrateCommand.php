@@ -17,8 +17,6 @@ use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Schema\SchemaRegistry;
 use SmartLicenseServer\Database\Schema\Table;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Creates any missing database tables.
  */

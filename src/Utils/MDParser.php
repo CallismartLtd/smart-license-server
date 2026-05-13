@@ -11,8 +11,6 @@
 
 namespace SmartLicenseServer\Utils;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 use Exception;
 use League\CommonMark\CommonMarkConverter;
 use League\CommonMark\Environment\Environment;

@@ -29,8 +29,6 @@ use WP_REST_Server;
 
 use function is_smliser_error, defined, add_action, add_filter, method_exists;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class RESTAPI implements RESTProviderInterface {
     use SanitizeAwareTrait;
 

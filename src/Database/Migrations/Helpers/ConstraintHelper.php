@@ -12,8 +12,6 @@ namespace SmartLicenseServer\Database\Migrations\Helpers;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Query\SQLBuilder;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Provides fluent interface for constraint operations.
  *

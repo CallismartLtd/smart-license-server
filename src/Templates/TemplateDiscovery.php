@@ -19,8 +19,6 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class TemplateDiscovery {
 
     /**

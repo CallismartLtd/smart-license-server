@@ -14,8 +14,6 @@ namespace SmartLicenseServer\Background\Jobs\Analytics;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Asynchronously appends a license activity entry to the
  * settings-backed activity log.

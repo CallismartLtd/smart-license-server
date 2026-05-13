@@ -14,8 +14,6 @@ namespace SmartLicenseServer\Database\Schema;
 
 use SmartLicenseServer\Database\Query\SQLBuilder;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class SchemaTranslator {
 
     /**

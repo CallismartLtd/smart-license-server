@@ -15,8 +15,6 @@ use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 use SQLite3;
 use SQLite3Stmt;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * SQLite-backed cache adapter.
  *

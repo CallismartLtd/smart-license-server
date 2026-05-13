@@ -16,8 +16,6 @@ namespace SmartLicenseServer\Email\Templates\Licenses;
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\Monetization\License;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class LicenseActivatedEmail extends EmailTemplate {
 
     /**

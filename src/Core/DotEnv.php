@@ -22,8 +22,6 @@
 
 namespace SmartLicenseServer\Core;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 final class DotEnv {
 
     /*

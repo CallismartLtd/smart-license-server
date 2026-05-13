@@ -9,8 +9,6 @@
 
 namespace SmartLicenseServer\Database\Migrations;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Executes registered migrations.
  *

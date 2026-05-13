@@ -8,8 +8,6 @@
  */
 namespace SmartLicenseServer\Console\Commands\Apps;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Plugin command
  */

@@ -12,8 +12,6 @@ use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Represents a typical plugin hosted in this repository.
  */

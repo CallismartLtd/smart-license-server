@@ -42,8 +42,6 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostingController;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Manage hosted applications from the CLI.
  */

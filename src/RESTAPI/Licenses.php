@@ -18,8 +18,6 @@ use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Handles all the REST API for the license endpoints.
  */

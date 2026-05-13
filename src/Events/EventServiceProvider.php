@@ -41,8 +41,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Events;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Bootstraps all event listeners and subscribers.
  */

@@ -17,8 +17,6 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class PasswordReset implements DashboardHandlerInterface {
 
     /**

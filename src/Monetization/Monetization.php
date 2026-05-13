@@ -15,8 +15,6 @@ use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Monetization defines how an app in the repository is sold.
  *

@@ -20,8 +20,6 @@ use SmartLicenseServer\Utils\MDParser;
 use function defined, is_smliser_error, in_array, sprintf, basename, is_string, dirname, preg_match,
 trim, str_replace, smliser_md_parser;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class ThemeRepository extends Repository {
     use WPRepoUtils, RepoFilesAwareTrait;
 

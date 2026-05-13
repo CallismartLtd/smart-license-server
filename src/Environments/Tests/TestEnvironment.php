@@ -18,8 +18,6 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * PHPUnit testing environment bootstrap.
  *

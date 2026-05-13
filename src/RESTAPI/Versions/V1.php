@@ -14,8 +14,6 @@ use SmartLicenseServer\RESTAPI\RESTInterface;
 
 use function defined;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * API version 1
  * 

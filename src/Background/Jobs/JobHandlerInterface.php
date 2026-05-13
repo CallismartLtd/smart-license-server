@@ -10,8 +10,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Contract that every background job handler must fulfil.
  *

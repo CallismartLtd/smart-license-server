@@ -25,8 +25,6 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Permanently deletes trashed apps past the retention threshold.
  */

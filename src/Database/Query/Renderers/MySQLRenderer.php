@@ -16,8 +16,6 @@ use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Column;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * MySQL implementation of the Query Renderer.
  */

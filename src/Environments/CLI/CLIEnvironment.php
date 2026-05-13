@@ -21,8 +21,6 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * CLI environment bootstrap.
  * 

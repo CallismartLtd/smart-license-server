@@ -6,8 +6,6 @@ namespace SmartLicenseServer\Console;
 
 use SmartLicenseServer\Security\Context\Guard;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Provides utility methods for CLI operations
  */

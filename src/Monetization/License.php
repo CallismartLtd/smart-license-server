@@ -21,7 +21,6 @@ use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
 /**
  * The license class represents a licensing model for hosted applications in the repository.
  * 

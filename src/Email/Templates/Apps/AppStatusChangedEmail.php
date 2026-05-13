@@ -18,8 +18,6 @@ use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\Plugin;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class AppStatusChangedEmail extends EmailTemplate {
 
     /**

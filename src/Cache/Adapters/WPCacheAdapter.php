@@ -10,8 +10,6 @@ namespace SmartLicenseServer\Cache\Adapters;
 
 use SmartLicenseServer\Cache\CacheStats;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * WordPress cache adapter.
  *

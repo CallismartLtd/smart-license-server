@@ -16,8 +16,6 @@ namespace SmartLicenseServer\Exceptions;
 
 use Exception as PHPException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Structured, throwable error container with WP_Error compatibility.
  */

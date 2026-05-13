@@ -40,8 +40,6 @@ use DateTimeImmutable;
 use InvalidArgumentException;
 use ReflectionFunction;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Fluent scheduled task definition.
  *

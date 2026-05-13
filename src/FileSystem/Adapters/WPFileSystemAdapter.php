@@ -10,8 +10,6 @@
 
 namespace SmartLicenseServer\FileSystem\Adapters;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 use WP_Filesystem_Base;
 
 /**

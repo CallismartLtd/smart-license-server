@@ -17,8 +17,6 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\FileSystem\FileSystem;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Represents a single client-uploaded file.
  *

@@ -14,8 +14,6 @@ use PDO;
 use PDOException;
 use SmartLicenseServer\Core\DBConfigDTO;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Adapter for PDO database access.
  */

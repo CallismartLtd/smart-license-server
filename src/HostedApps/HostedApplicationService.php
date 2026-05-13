@@ -12,8 +12,6 @@ use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * The core API class for perform CRUD operations on hosted applications.
  * 

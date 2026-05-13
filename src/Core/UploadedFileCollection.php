@@ -17,8 +17,6 @@ use Countable;
 use IteratorAggregate;
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Collection of UploadedFile objects.
  *

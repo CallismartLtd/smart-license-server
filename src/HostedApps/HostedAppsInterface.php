@@ -13,8 +13,6 @@ namespace SmartLicenseServer\HostedApps;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Hosted Applications interface.
  * This interface defines the contract all the application types hosted in this repository must follow.

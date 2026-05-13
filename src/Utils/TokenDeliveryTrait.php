@@ -10,8 +10,6 @@ namespace SmartLicenseServer\Utils;
 
 use function defined;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 trait TokenDeliveryTrait {
     /**
      * Derive a secure key using HKDF with salts.

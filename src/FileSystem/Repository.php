@@ -17,8 +17,6 @@ use ZipArchive;
 
 use function is_smliser_error, defined;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * The repository class handles filesystem operations within the repository.
  *

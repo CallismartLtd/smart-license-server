@@ -20,8 +20,6 @@ use const SMLISER_OWNERS_TABLE;
 use function defined, smliser_db, array_key_exists, is_string, is_null, is_callable,
 sprintf;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Classical representation of a resource owner.
  *

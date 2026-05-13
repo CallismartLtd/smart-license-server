@@ -45,8 +45,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Cross-platform, history-aware line reading for the interactive shell.
  */

@@ -18,8 +18,6 @@ use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Resource download handler for Smart License Server.
  */

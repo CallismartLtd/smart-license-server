@@ -15,8 +15,6 @@ use SmartLicenseServer\Messaging\BulkMessages as MessageModel;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use function defined;
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * The REST API bulk messages class.
  */

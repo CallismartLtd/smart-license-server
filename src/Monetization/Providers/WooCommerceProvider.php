@@ -16,8 +16,6 @@ use Callismart\Http\HttpClient;
 use Callismart\Http\HttpRequest;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * WooCommerce Monetization Provider Class
  */

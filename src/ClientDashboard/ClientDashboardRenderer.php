@@ -24,8 +24,6 @@ use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Templates\TemplateLocator;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class ClientDashboardRenderer {
 
     /*

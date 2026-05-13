@@ -15,8 +15,6 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Email\Templates\Accounts\PasswordResetEmail;
 use SmartLicenseServer\Security\Actors\User;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Asynchronously sends password reset emails.
  */

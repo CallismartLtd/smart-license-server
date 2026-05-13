@@ -10,8 +10,6 @@ namespace SmartLicenseServer\Security\Actors;
 
 use function defined;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 interface ActorInterface {
     /*
     |--------------

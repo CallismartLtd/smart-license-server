@@ -13,8 +13,6 @@ namespace SmartLicenseServer\Monetization;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * A pricing tier represents a specific license option for an item in the repository.
  * 

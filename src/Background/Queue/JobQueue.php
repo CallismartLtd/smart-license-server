@@ -50,8 +50,6 @@ namespace SmartLicenseServer\Background\Queue;
 
 use SmartLicenseServer\Background\Queue\Adapters\JobStorageAdapterInterface;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Job queue manager.
  *

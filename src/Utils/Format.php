@@ -7,8 +7,6 @@
 
 namespace SmartLicenseServer\Utils;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class Format {
 
     /**

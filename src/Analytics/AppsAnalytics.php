@@ -14,9 +14,7 @@ use SmartLicenseServer\Background\Jobs\Analytics\LogDownloadJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 
-\defined( 'SMLISER_ROOT' ) || exit;
-
-/**
+\/**
  * Apps analytics class is used to track analytical data for the given app instance.
  * 
  * Supports multiple hosted application types.

@@ -9,8 +9,6 @@ namespace SmartLicenseServer\Cache;
 
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Cache manager singleton.
  *

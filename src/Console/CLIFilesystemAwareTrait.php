@@ -14,8 +14,6 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * CLI filesystem aware trait
  */

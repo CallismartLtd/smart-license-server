@@ -15,8 +15,6 @@ use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\CommandInterface;
 use Illuminate\Console\Command as ArtisanCommand;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Laravel Artisan runner.
  *

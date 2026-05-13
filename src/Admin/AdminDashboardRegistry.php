@@ -9,8 +9,6 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 final class AdminDashboardRegistry extends AbstractDashboardRegistry {
 
     protected function boot() : void {

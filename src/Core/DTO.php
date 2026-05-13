@@ -7,8 +7,6 @@ namespace SmartLicenseServer\Core;
 use ArrayIterator;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Core Data Transfer Object (Dynamic DTO).
  *

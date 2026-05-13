@@ -39,8 +39,6 @@ use SmartLicenseServer\Email\Templates\System\BulkMessageEmail;
 use SmartLicenseServer\Email\Templates\System\SystemAlertEmail;
 use SmartLicenseServer\Email\Templates\System\TestEmail;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class EmailTemplateRegistry {
 
     /**

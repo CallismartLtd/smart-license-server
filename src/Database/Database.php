@@ -9,9 +9,6 @@
 namespace SmartLicenseServer\Database;
 
 use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
-use SmartLicenseServer\Database\Query\SQLBuilder;
-
-defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Provides a unified database access layer across different environments.

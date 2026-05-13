@@ -13,8 +13,6 @@ namespace SmartLicenseServer\Cache\Adapters;
 use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Adapter for APCu-based caching.
  */

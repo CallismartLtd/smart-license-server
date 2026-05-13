@@ -12,8 +12,6 @@ use SmartLicenseServer\ClientDashboard\TemplateHandlers\Overview;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Dashboard menu and content callback registry.
  * 

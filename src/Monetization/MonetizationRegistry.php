@@ -17,8 +17,6 @@ use SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface;
 use SmartLicenseServer\Monetization\Providers\WooCommerceProvider;
 use SmartLicenseServer\SettingsAPI\Settings;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Registry of available monetization providers.
  * 

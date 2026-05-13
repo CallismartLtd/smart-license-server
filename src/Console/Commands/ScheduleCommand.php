@@ -14,8 +14,6 @@ namespace SmartLicenseServer\Console\Commands;
 use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Evaluates all registered scheduled tasks and runs any that are due.
  */

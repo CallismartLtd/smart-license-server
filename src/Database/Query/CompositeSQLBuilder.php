@@ -16,8 +16,6 @@ use SmartLicenseServer\Database\Query\Renderers\MySQLCompositeRenderer;
 use SmartLicenseServer\Database\Query\Renderers\PostgreSQLCompositeRenderer;
 use SmartLicenseServer\Database\Query\Renderers\SQLiteCompositeRenderer;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * CompositeSQLBuilder
  *

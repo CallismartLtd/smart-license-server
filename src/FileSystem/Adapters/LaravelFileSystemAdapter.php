@@ -14,8 +14,6 @@ namespace SmartLicenseServer\FileSystem\Adapters;
 use Illuminate\Contracts\Filesystem\Filesystem as LaravelFilesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Adapter for Laravel filesystem operations.
  *

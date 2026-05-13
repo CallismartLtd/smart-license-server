@@ -31,7 +31,6 @@ use function defined, is_smliser_error, sprintf, smliser_safe_json_encode, passw
 password_verify, in_array, is_string, method_exists, str_replace, ucwords, compact, md5,
 strpos, class_implements;
 
-defined( 'SMLISER_ROOT' ) || exit;
 /**
  * This controller is used to CRUD requests for security entities.
  */

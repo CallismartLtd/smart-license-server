@@ -19,8 +19,6 @@ use const SMLISER_USERS_TABLE;
 use function is_string, smliser_db, gmdate, boolval, defined, md5, smliser_avatar_url, 
 get_object_vars;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Canonical representation of a human actor in the system.
  *

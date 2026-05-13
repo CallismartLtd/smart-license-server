@@ -18,8 +18,6 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use function smliser_db;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Abstract Hosted Application Base Class
  * Provides shared implementation for HostedAppsInterface.

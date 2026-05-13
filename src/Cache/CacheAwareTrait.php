@@ -8,8 +8,6 @@
 
 namespace SmartLicenseServer\Cache;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 trait CacheAwareTrait {
 
     /**

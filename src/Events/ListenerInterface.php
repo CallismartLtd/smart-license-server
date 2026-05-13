@@ -34,8 +34,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Events;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Contract for class-based event listeners.
  */

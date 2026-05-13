@@ -13,8 +13,6 @@ namespace SmartLicenseServer\Database\Query\QueryIntents;
 use SmartLicenseServer\Database\Query\SQLBuilder;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Represents an intent to persist or modify data (INSERT/UPDATE).
  * 

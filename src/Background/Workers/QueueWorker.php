@@ -14,8 +14,6 @@ namespace SmartLicenseServer\Background\Workers;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Queue worker.
  *

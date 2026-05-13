@@ -21,8 +21,6 @@ namespace SmartLicenseServer\Background\Jobs\Analytics;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Deletes raw analytics log entries from SMLISER_ANALYTICS_LOGS_TABLE
  * that are older than the configured retention period.

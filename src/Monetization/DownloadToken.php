@@ -16,8 +16,6 @@ use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Represents the token given to the client in exchange for download access
  * to hosted applications in the repository.

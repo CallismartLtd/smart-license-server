@@ -15,8 +15,6 @@ use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Asynchronously inserts an analytics log entry and increments
  * the app's lifetime counter meta value.

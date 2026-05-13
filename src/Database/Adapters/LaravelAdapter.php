@@ -14,8 +14,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Exception;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Adapter for Laravel database access.
  *

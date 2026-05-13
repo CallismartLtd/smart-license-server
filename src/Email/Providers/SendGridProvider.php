@@ -21,8 +21,6 @@ use Callismart\Http\HttpRequest;
 use Callismart\Http\HttpResponse;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class SendGridProvider extends AbstractRestEmailProvider {
 
     protected const API_ENDPOINT = 'https://api.sendgrid.com/v3/mail/send';

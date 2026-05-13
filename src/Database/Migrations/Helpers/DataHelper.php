@@ -11,8 +11,6 @@ namespace SmartLicenseServer\Database\Migrations\Helpers;
 
 use SmartLicenseServer\Database\Database;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Provides fluent interface for safe data transformations.
  *

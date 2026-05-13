@@ -11,8 +11,6 @@
 
 namespace SmartLicenseServer\FileSystem\Adapters;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 interface FileSystemAdapterInterface {
 
     /**

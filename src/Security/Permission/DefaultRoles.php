@@ -13,8 +13,6 @@
 
 namespace SmartLicenseServer\Security\Permission;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 final class DefaultRoles {
 
     /**

@@ -15,8 +15,6 @@ namespace SmartLicenseServer\Email\Templates\Monetization;
 
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 class PaymentFailedEmail extends EmailTemplate {
 
     /**

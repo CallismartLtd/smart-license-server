@@ -6,8 +6,6 @@
 
 namespace SmartLicenseServer\Security\Context;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Orchestrates the transition from an authenticated Actor to a contextual Principal.
  * The Guard is responsible for resolving the relationship between the Actor 

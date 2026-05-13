@@ -13,8 +13,6 @@ namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CommandInterface;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Execute PHPUnit test suites.
  *

@@ -1,8 +1,6 @@
 <?php
 namespace SmartLicenseServer\Database\Query\Renderers;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 /**
  * Composite Renderer Contract.
  */

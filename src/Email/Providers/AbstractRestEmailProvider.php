@@ -34,8 +34,6 @@ use Callismart\Http\HttpClient;
 use Callismart\Http\HttpResponse;
 use InvalidArgumentException;
 
-defined( 'SMLISER_ROOT' ) || exit;
-
 abstract class AbstractRestEmailProvider implements EmailProviderInterface {
 
     /**
