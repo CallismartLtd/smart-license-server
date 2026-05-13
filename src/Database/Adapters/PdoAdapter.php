@@ -58,20 +58,26 @@ class PdoAdapter implements DatabaseAdapterInterface {
     }
 
     /**
+     * Destructor.
+     */
+    public function __destruct() {
+        $this->close();
+    }
+
+    /**
      * Establish a database connection.
      *
      * @return bool True on success, false on failure.
      */
-    public function connect() {
+    protected function connect() {
         if ( $this->pdo ) {
             return true;
         }
 
         try {
-            $driver = $this->config->driver;
             $dsn = sprintf(
                 '%s:host=%s;dbname=%s;charset=%s',
-                $driver,
+                $this->config->driver,
                 $this->config->host,
                 $this->config->database,
                 $this->config->charset
@@ -102,7 +108,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function close() {
+    protected function close() {
         $this->pdo = null;
     }
 
@@ -147,9 +153,9 @@ class PdoAdapter implements DatabaseAdapterInterface {
      * @param string $query  The SQL query with ? placeholders.
      * @param array  $params Optional. The bound values for placeholders.
      *
-     * @return mixed The native statement object, or false on failure.
+     * @return \PDOStatement|false The native statement object, or false on failure.
      */
-    public function query( $query, array $params = [] ) {
+    protected function query( $query, array $params = [] ) {
         if ( ! $this->pdo ) {
             $this->last_error = 'No active PDO connection.';
             return false;
@@ -417,7 +423,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      * @return string Lowercase name of the engine (e.g., "mysql", "pgsql", "sqlite").
      */
     public function get_engine_type() {
-        return $this->pdo ? $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) : 'unknown';
+        return $this->pdo ? $this->pdo->getAttribute( PDO::ATTR_DRIVER_NAME ) : 'unknown';
     }
 
     /**
@@ -426,27 +432,22 @@ class PdoAdapter implements DatabaseAdapterInterface {
      * @return string Information like host IP or connection method (TCP/IP, Socket).
      */
     public function get_host_info() {
-        return $this->pdo ? $this->pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS) : 'disconnected';
+        return $this->pdo ? $this->pdo->getAttribute( PDO::ATTR_CONNECTION_STATUS ) : 'disconnected';
     }
     
     public function get_protocol_version() {
-        if (!$this->pdo) return null;
+        if ( ! $this->pdo ) return null;
         
         // For MySQL/MariaDB via PDO
-        $info = $this->pdo->getAttribute(\PDO::ATTR_SERVER_INFO);
-        if (preg_match('/Proto: (\d+)/', $info, $matches)) {
+        $info = $this->pdo->getAttribute( \PDO::ATTR_SERVER_INFO );
+        if ( preg_match('/Proto: (\d+)/', $info, $matches ) ) {
             return $matches[1];
         }
         return 'N/A';
     }
 
     /**
-     * Execute a raw SQL query without prepared statements.
-     *
-     * ⚠️ UNSAFE: Do not use with untrusted input.
-     *
-     * @param string $query
-     * @return bool
+     * {@inheritdoc}
      */
     public function exec( string $query ) : bool {
         if ( ! $this->pdo ) {
@@ -463,6 +464,27 @@ class PdoAdapter implements DatabaseAdapterInterface {
             $this->last_error = $e->getMessage();
             return false;
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function execute( string $query, array $params = [] ) : int {
+        $stmt   = $this->query( $query, $params );
+
+        if ( ! $stmt ) {
+            return 0;
+        }
+
+        return $stmt->rowCount();
+
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get_all_tables(): array {
+        return $this->get_col("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'");
     }
 
     /**

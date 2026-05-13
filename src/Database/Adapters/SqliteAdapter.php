@@ -59,11 +59,18 @@ class SqliteAdapter implements DatabaseAdapterInterface {
     }
 
     /**
+     * Destructor.
+     */
+    public function __destruct() {
+        $this->close();
+    }
+
+    /**
      * Establish a database connection using the SQLite3 class.
      *
      * @return bool True on success, false on failure.
      */
-    public function connect() {
+    protected function connect() {
         if ( $this->sqlite ) {
             return true;
         }
@@ -89,10 +96,11 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function close() {
+    protected function close() {
         if ( $this->sqlite ) {
             $this->sqlite->close();
         }
+
         $this->sqlite = null;
     }
 
@@ -129,11 +137,10 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param string $query  The SQL query with ? placeholders.
      * @param array  $params Optional. The bound values for placeholders.
      *
-     * @return \SQLite3Result|bool The result object or true on success, false on failure.
+     * @return \SQLite3Result|false The result object or true on success, false on failure.
      */
-    public function query( $query, array $params = [] ) {
-        if ( ! $this->sqlite ) {
-            $this->last_error = 'No active SQLite3 connection.';
+    protected function query( $query, array $params = [] ) {
+        if ( ! $this->ensure_connection() ) {
             return false;
         }
 
@@ -364,16 +371,10 @@ class SqliteAdapter implements DatabaseAdapterInterface {
     }
 
     /**
-     * Execute a raw SQL query without prepared statements.
-     *
-     * ⚠️ UNSAFE: Do not use with untrusted input.
-     *
-     * @param string $query
-     * @return bool
+     * {@inheritdoc}
      */
     public function exec( string $query ) : bool {
-        if ( ! $this->sqlite ) {
-            $this->last_error = 'No active SQLite3 connection.';
+        if ( ! $this->ensure_connection() ) {
             return false;
         }
 
@@ -404,10 +405,40 @@ class SqliteAdapter implements DatabaseAdapterInterface {
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function execute( string $query, array $params = [] ) : int {
+        if ( ! $this->ensure_connection() ) {
+            return 0;
+        }
+
+        $result = $this->query( $query, $params );
+        
+        if ( ! $result ) {
+            return 0;
+        }
+
+        $affected_rows = $this->sqlite->changes();
+        $result->finalize();
+
+        return $affected_rows;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get_all_tables() : array {
+        $query  = "SELECT name FROM sqlite_master  WHERE type = 'table'
+            AND name NOT LIKE 'sqlite_%'";
+
+        return $this->get_results( $query );
+    }
+
+    /**
      * Check if a table exists.
      */
     public function table_exists( string $table ): bool {
-        if ( ! $this->sqlite ) return false;
+        if ( ! $this->ensure_connection() ) return false;
 
         $query = "SELECT name FROM sqlite_master WHERE type='table' AND name = ?";
         return null !== $this->get_var( $query, [$table] );
@@ -417,7 +448,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * Check if a column exists in a table.
      */
     public function column_exists( string $table, string $column ): bool {
-        if ( ! $this->sqlite ) return false;
+        if ( ! $this->ensure_connection() ) return false;
 
         $query = "PRAGMA table_info($table)";
         $columns = $this->get_results( $query );
@@ -435,7 +466,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * Get column type.
      */
     public function get_column_type( string $table, string $column ): ?string {
-        if ( ! $this->sqlite ) return null;
+        if ( ! $this->ensure_connection() ) return null;
 
         $query = "PRAGMA table_info($table)";
         $columns = $this->get_results( $query );
@@ -453,7 +484,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * Get all columns in a table.
      */
     public function get_columns( string $table ): array {
-        if ( ! $this->sqlite ) return [];
+        if ( ! $this->ensure_connection() ) return [];
 
         $query = "PRAGMA table_info($table)";
         $columns = $this->get_results( $query );
@@ -466,5 +497,20 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      */
     public function is_connected(): bool {
         return $this->sqlite instanceof \SQLite3;
+    }
+
+    protected function ensure_connection() : bool {
+        if ( $this->is_connected() ) {
+            return true;
+        }
+
+        $this->connect();
+
+        if ( ! $this->sqlite ) {
+            $this->last_error = 'No active SQLite3 connection.';
+            return false;
+        }
+
+        return true;
     }
 }

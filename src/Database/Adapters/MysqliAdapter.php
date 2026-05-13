@@ -57,16 +57,23 @@ class MysqliAdapter implements DatabaseAdapterInterface {
     }
 
     /**
+     * Destructor.
+     */
+    public function __destruct() {
+        $this->close();
+    }
+
+    /**
      * Establish a database connection.
      *
      * @return bool True on success, false on failure.
      */
-    public function connect() {
+    protected function connect() {
         if ( $this->mysqli ) {
             return true;
         }
         
-        // Suppress connection error output
+        // Suppress connection error output.
         $mysqli = @new mysqli(
             $this->config->host,
             $this->config->username,
@@ -89,10 +96,11 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      *
      * @return void
      */
-    public function close() {
+    protected function close() {
         if ( $this->mysqli ) {
             $this->mysqli->close();
         }
+        
         $this->mysqli = null;
     }
 
@@ -136,7 +144,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @param array  $params Values to bind in the query.
      * @return mysqli_stmt|false Prepared statement on success, false on failure.
      */
-    public function query( $query, array $params = [] ) {
+    protected function query( $query, array $params = [] ) {
         if ( ! $this->mysqli ) {
             $this->last_error = 'No active MySQLi connection.';
             return false;
@@ -483,12 +491,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
     }
 
     /**
-     * Execute a raw SQL query without prepared statements.
-     *
-     * ⚠️ UNSAFE: Do not use with untrusted input.
-     *
-     * @param string $query
-     * @return bool
+     * {@inheritDoc}
      */
     public function exec( string $query ) : bool {
         if ( ! $this->mysqli ) {
@@ -518,12 +521,39 @@ class MysqliAdapter implements DatabaseAdapterInterface {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function execute( string $query, array $params = [] ) : int {
+        $stmt   = $this->query( $query, $params );
+
+        return (int) ( $stmt ? $stmt->affected_rows : 0 );
+    }
+
+    /**
      * Check whether the database connection is alive.
      *
      * @return bool
      */
     public function is_connected(): bool {
         return $this->mysqli instanceof mysqli;
+    }
+
+    /*
+    |------------------
+    | INTROSPECTION
+    |------------------
+    */
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get_all_tables() : array {
+        $sql    = "SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = DATABASE() 
+        AND table_type = 'BASE TABLE'";
+
+        return $this->get_results( $sql );
     }
 
     /**

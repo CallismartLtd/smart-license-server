@@ -52,12 +52,17 @@ class CleanExpiredTokensJob implements JobHandlerInterface {
      * @param array $payload Unused.
      * @return array{deleted: int}
      */
-    public function handle( array $payload = [] ): mixed {
-        $db    = smliser_db();
-        $table = SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
-
-        $db->query( "DELETE FROM {$table} WHERE `expiry` < ?", [ time() ] );
-
-        return [ 'deleted' => $db->rows_affected() ];
+    public function handle( array $payload = [] ): array {
+        $db     = smliser_db();
+        $sql    = \smliserQueryBuilder()
+            ->delete( SMLISER_APP_DOWNLOAD_TOKEN_TABLE )
+            ->where( 'expiry', '<', \time() );
+        $affected   = (int) $db->transactional(
+            function() use( $db, $sql ) {
+                return $db->execute( $sql->build(), $sql->get_bindings() );
+            }
+        );
+        
+        return [ 'deleted' => $affected ];
     }
 }

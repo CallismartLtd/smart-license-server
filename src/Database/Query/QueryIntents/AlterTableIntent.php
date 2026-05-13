@@ -11,6 +11,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Database\Query\QueryIntents;
 
 use SmartLicenseServer\Database\Query\SQLBuilder;
+use SmartLicenseServer\Database\Query\SQLBuilderStrategyTrait;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
 
@@ -22,17 +23,11 @@ use SmartLicenseServer\Database\Schema\Constraint;
  * @since 0.2.0
  */
 class AlterTableIntent {
+    use SQLBuilderStrategyTrait;
     /**
      * @var string $table_name The name of the table to be altered.
      */
     private string $table_name;
-
-    /**
-     * The SQL builder instance.
-     * 
-     * @var SQLBuilder $builder
-     */
-    private SQLBuilder $builder;
 
     /**
      * The list of alteration operations.
@@ -206,15 +201,6 @@ class AlterTableIntent {
      */
     public function get_operations() : array {
         return $this->operations;
-    }
-
-    /**
-     * Build query.
-     * 
-     * @return string
-     */
-    public function build() : string {
-        return $this->builder->build();
     }
 
     /**

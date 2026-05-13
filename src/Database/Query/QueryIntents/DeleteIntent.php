@@ -11,6 +11,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Database\Query\QueryIntents;
 
 use SmartLicenseServer\Database\Query\SQLBuilder;
+use SmartLicenseServer\Database\Query\SQLBuilderStrategyTrait;
 
 /**
  * Represents an intent to delete data from the database.
@@ -21,19 +22,12 @@ use SmartLicenseServer\Database\Query\SQLBuilder;
  * @since 0.2.0
  */
 class DeleteIntent {
-    use QueryCriteriaTrait;
+    use QueryCriteriaTrait, SQLBuilderStrategyTrait;
 
     /**
      * @var string $table_name The target table name.
      */
     private string $table_name;
-
-    /**
-     * The SQL builder instance.
-     * 
-     * @var SQLBuilder $builder
-     */
-    private SQLBuilder $builder;
 
     /**
      * Constructor.
@@ -51,17 +45,6 @@ class DeleteIntent {
      */
     public function get_table_name() : string {
         return $this->table_name;
-    }
-
-    /**
-     * Build query.
-     * 
-     * Delegates the final SQL generation to the builder's renderer.
-     * 
-     * @return string
-     */
-    public function build() : string {
-        return $this->builder->build();
     }
 
     /**

@@ -11,6 +11,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Database\Query\QueryIntents;
 
 use SmartLicenseServer\Database\Query\SQLBuilder;
+use SmartLicenseServer\Database\Query\SQLBuilderStrategyTrait;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Table;
@@ -23,17 +24,11 @@ use SmartLicenseServer\Database\Schema\Table;
  * @since 0.2.0
  */
 class CreateTableIntent {
+    use SQLBuilderStrategyTrait;
     /**
      * @var Table $table The table structure to be created.
      */
     private Table $table;
-
-    /**
-     * The SQL builder instance.
-     * 
-     * @var SQLBuilder $builder
-     */
-    private SQLBuilder $builder;
 
     /**
      * Constructor.
@@ -124,15 +119,6 @@ class CreateTableIntent {
      */
     public function query() : SQLBuilder {
         return $this->builder;
-    }
-
-    /**
-     * Build query.
-     * 
-     * @return string
-     */
-    public function build() : string {
-        return $this->builder->build();
     }
 
     /**

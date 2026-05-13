@@ -53,25 +53,17 @@ class WPDBAdapter implements DatabaseAdapterInterface {
     }
 
     /**
-     * Establish a database connection.
-     *
-     * For WordPress, the connection is already established via $wpdb.
-     *
-     * @return bool Always true.
+     * Destructor.
      */
-    public function connect() {
-        return true;
+    public function __destruct() {
+        $this->close();
     }
 
     /**
      * Close the active database connection.
-     *
-     * WordPress does not support explicit closing; this method is a no-op.
-     *
-     * @return void
      */
-    public function close() {
-        // No-op for WordPress
+    protected function close() : void {
+        $this->wpdb->close();
     }
 
     /**
@@ -99,27 +91,6 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      */
     public function rollback() {
         $this->wpdb->query( 'ROLLBACK' );
-    }
-
-    /**
-     * Execute a raw SQL query with optional parameters.
-     *
-     * @param string $query  SQL query with placeholders.
-     * @param array  $params Optional. The bound values for placeholders.
-     *
-     * @return mixed The result from $wpdb (depends on query type), false on failure.
-     */
-    public function query( $query, array $params = [] ) {
-        $prepared           = $this->prepare( $query, $params );
-        $result             = $this->wpdb->query( $prepared );
-
-        if ( $result === false ) {
-            $this->last_error = $this->wpdb->last_error;
-        } else {
-            $this->insert_id = $this->wpdb->insert_id;
-        }
-
-        return $result;
     }
 
     /**
@@ -326,18 +297,7 @@ class WPDBAdapter implements DatabaseAdapterInterface {
     }
 
     /**
-     * Execute a raw SQL query WITHOUT parameter binding.
-     *
-     * ⚠️ WARNING:
-     * This method is UNSAFE for user-supplied input and bypasses
-     * all escaping/parameterization. Use only for trusted, internal queries.
-     *
-     * Return type is consistent with query() across adapters:
-     * - mixed result on success (wpdb return value)
-     * - false on failure
-     *
-     * @param string $query Raw SQL query string.
-     * @return bool
+     * {@inheritdoc}
      */
     public function exec( string $query ) : bool {
         $result = $this->wpdb->query( $query );
@@ -350,6 +310,34 @@ class WPDBAdapter implements DatabaseAdapterInterface {
         $this->insert_id = $this->wpdb->insert_id;
 
         return (bool) $result;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function execute( string $query, array $params = [] ) : int {
+        $prepared   = $this->prepare( $query, $params );
+        $this->wpdb->query( $prepared );
+
+        return $this->wpdb->rows_affected;
+    }
+
+    /*
+    |------------------
+    | INTROSPECTION
+    |------------------
+    */
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get_all_tables() : array {
+        $sql    = "SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = DATABASE() 
+        AND table_type = 'BASE TABLE'";
+
+        return $this->get_results( $sql );
     }
 
     /**

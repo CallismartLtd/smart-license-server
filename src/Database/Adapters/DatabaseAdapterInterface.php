@@ -20,20 +20,6 @@ namespace SmartLicenseServer\Database\Adapters;
 interface DatabaseAdapterInterface {
 
     /**
-     * Establish a database connection.
-     *
-     * @return bool True on success, false on failure.
-     */
-    public function connect();
-
-    /**
-     * Close the active database connection.
-     *
-     * @return void
-     */
-    public function close();
-
-    /**
      * Begin a database transaction.
      *
      * @return void
@@ -55,14 +41,17 @@ interface DatabaseAdapterInterface {
     public function rollback();
 
     /**
-     * Execute a raw SQL query with optional parameters.
+     * Execute a parameterized query and return the number of affected rows.
+     *
+     * Use this for UPDATE, DELETE, or REPLACE queries where you need
+     * to know how many records were modified.
      *
      * @param string $query  The SQL query with placeholders.
-     * @param array  $params Optional. The bound values for placeholders.
+     * @param array  $params The bound values for placeholders.
      *
-     * @return mixed The return value may not be reliable across all adapters.
+     * @return int The number of affected rows.
      */
-    public function query( $query, array $params = [] );
+    public function execute( string $query, array $params = [] ): int;
 
     /**
      * Execute a raw SQL query without prepared statements.
@@ -197,6 +186,13 @@ interface DatabaseAdapterInterface {
      * SCHEMA INTROSPECTION
      * ----------------------------------------
      */
+
+    /**
+     * Retrieve a list of all tables in the current database.
+     * 
+     * @return array List of table names.
+     */
+    public function get_all_tables(): array;
 
     /**
      * Check if a table exists.

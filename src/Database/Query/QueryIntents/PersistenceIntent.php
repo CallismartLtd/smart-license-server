@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Database\Query\QueryIntents;
 
 use SmartLicenseServer\Database\Query\SQLBuilder;
 use InvalidArgumentException;
+use SmartLicenseServer\Database\Query\SQLBuilderStrategyTrait;
 
 /**
  * Represents an intent to persist or modify data (INSERT/UPDATE).
@@ -21,18 +22,11 @@ use InvalidArgumentException;
  * @since 0.2.0
  */
 class PersistenceIntent implements QueryItentInterface {
-    use QueryCriteriaTrait;
+    use QueryCriteriaTrait, SQLBuilderStrategyTrait;
     /**
      * @var string $table_name The target table name.
      */
     private string $table_name;
-
-    /**
-     * The SQL builder instance.
-     * 
-     * @var SQLBuilder $builder
-     */
-    private SQLBuilder $builder;
 
     /**
      * The data payload for the operation.
@@ -123,15 +117,6 @@ class PersistenceIntent implements QueryItentInterface {
      */
     public function is_multi() : bool {
         return $this->is_multi;
-    }
-
-    /**
-     * Build query.
-     * 
-     * @return string
-     */
-    public function build() : string {
-        return $this->builder->build();
     }
 
     /**

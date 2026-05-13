@@ -13,7 +13,7 @@ class PostgresAdapter extends PdoAdapter {
     /**
      * Override connect to build the Postgres-specific DSN.
      */
-    public function connect() {
+    protected function connect() {
         if ( $this->pdo ) return true;
 
         $dsn = sprintf(
@@ -25,8 +25,8 @@ class PostgresAdapter extends PdoAdapter {
 
         try {
             $this->pdo = new PDO( $dsn, $this->config->username, $this->config->password, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                PDO::ATTR_ERRMODE               => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE    => PDO::FETCH_ASSOC
             ]);
             return true;
         } catch ( \PDOException $e ) {

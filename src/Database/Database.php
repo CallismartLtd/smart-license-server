@@ -17,35 +17,35 @@ use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
  *
  * Acts as a proxy to the environment-specific database adapter.
  *
- * @method array|null get_row(string $query, array $params = [])
- * @method array get_results(string $query, array $params = [])
- * @method mixed|null get_var(string $query, array $params = [])
- * @method array get_col(string $query, array $params = [])
- * @method int|false insert(string $table, array $data)
- * @method int|false update(string $table, array $data, array $where)
- * @method int|false delete(string $table, array $where)
+ * @method array|null get_row( string $query, array $params = [] ) Retrieve a single row as an associative array.
+ * @method array get_results( string $query, array $params = [] ) Retrieve multiple rows as an array of associative arrays.
+ * @method mixed|null get_var( string $query, array $params = [] ) Retrieve a single scalar value.
+ * @method array get_col( string $query, array $params = [] ) Retrieve a single column of values.
+ * @method int|false insert( string $table, array $data ) Insert a record into the database.
+ * @method int|false update( string $table, array $data, array $where ) Update existing records.
+ * @method int|false delete( string $table, array $where ) Delete records from the database.
  *
- * @method void begin_transaction()
- * @method void commit()
- * @method void rollback()
+ * @method void begin_transaction() Begin a database transaction.
+ * @method void commit() Commit the current transaction.
+ * @method void rollback() Roll back the current transaction.
  *
  * @method string|null get_last_error() Get last database error.
  * @method string get_last_query() Get last executed query string.
  * @method int|null get_insert_id() Get the last insertion ID.
  *
- * @method mixed query(string $query, array $params = []) Execute a raw SQL query.
  * @method bool exec(string $query) Execute a raw SQL query without prepared statements.
+ * @method bool execute( string $query, array $params = [] ) Execute a parameterized query and return the number of affected rows.
  *
  * @method string get_server_version() Get the database server version.
  * @method string get_engine_type() Get the engine type (mysql, sqlite, etc).
  * @method string|null get_host_info() Get connection host information.
  * @method string|int|null get_protocol_version() Get the database protocol version.
  *
- * @method bool table_exists(string $table)
- * @method bool column_exists(string $table, string $column)
- * @method string|null get_column_type(string $table, string $column)
- * @method array get_columns(string $table)
- * @method bool is_connected()
+ * @method bool table_exists( string $table ) Check if a table exists.
+ * @method bool column_exists( string $table, string $column ) Check if a column exists in a table.
+ * @method string|null get_column_type( string $table, string $column ) Get the type of a column.
+ * @method array get_columns( string $table ) Get all columns in a table.
+ * @method bool is_connected() Check whether the database connection is alive.
  */
 class Database {
 
@@ -92,6 +92,29 @@ class Database {
     }
 
     /**
+     * Execute a set of queries within a transaction block.
+     *
+     * @param callable $callback A function containing the database logic.
+     * @return mixed Returns the result of the callback on success, or throws Exception on fail.
+     * @throws \Throwable
+     */
+    public function transactional( callable $callback ) : mixed {
+        $result = null;
+        try {
+            $this->begin_transaction();
+            $result = $callback();
+
+            $this->commit();
+            
+        } catch( \Throwable $th ) {
+            $this->rollback();
+            throw $th;
+        }
+
+        return $result;
+    }
+
+    /**
      * Calculate query offset from page and limit.
      * * @param int $page The current pagination number.
      * @param int $limit The result limit for the current request.
@@ -109,7 +132,6 @@ class Database {
      * @return string SQL fragment for charset and collation.
      */
     public function get_charset_collate() {
-        // SQLite doesn't use Charset/Collation in the same way as MySQL
         if ( \in_array( $this->get_engine_type(), ['pgsql', 'sqlite'] ) ) {
             return '';
         }

@@ -11,6 +11,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Database\Query\QueryIntents;
 
 use SmartLicenseServer\Database\Query\SQLBuilder;
+use SmartLicenseServer\Database\Query\SQLBuilderStrategyTrait;
 
 /**
  * Represents an intent to select data from the database.
@@ -21,7 +22,7 @@ use SmartLicenseServer\Database\Query\SQLBuilder;
  * @since 0.2.0
  */
 class SelectionIntent implements QueryItentInterface{
-    use QueryCriteriaTrait;
+    use QueryCriteriaTrait, SQLBuilderStrategyTrait;
 
     /**
      * @var array $columns Columns to be selected.
@@ -57,11 +58,6 @@ class SelectionIntent implements QueryItentInterface{
      * @var int|null $offset Number of rows to skip.
      */
     protected ?int $offset = null;
-
-    /**
-     * @var SQLBuilder $builder The builder instance for the final hand-off.
-     */
-    private SQLBuilder $builder;
 
     /**
      * Private constructor to enforce static factory usage.
@@ -202,15 +198,6 @@ class SelectionIntent implements QueryItentInterface{
     public function offset( int $offset ) : static {
         $this->offset = $offset;
         return $this;
-    }
-
-    /**
-     * Trigger the build process via the injected builder.
-     * 
-     * @return string
-     */
-    public function build() : string {
-        return $this->builder->build();
     }
 
     /**

@@ -302,7 +302,7 @@ class Monetization {
         // Atomic delete to prevent race conditions where tiers are deleted but monetization isn't, or vice versa.
         $monetization_table = SMLISER_MONETIZATION_TABLE;
         $pricing_tier_table = SMLISER_PRICING_TIER_TABLE;
-        $sql = "DELETE m, t FROM {$monetization_table} 
+        $sql                = "DELETE m, t FROM {$monetization_table} 
             m LEFT JOIN {$pricing_tier_table} t ON m.id = t.monetization_id 
         WHERE m.id = ?";
         $deleted = $db->query( $db->prepare( $sql, [ $this->id ] ) );

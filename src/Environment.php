@@ -385,7 +385,7 @@ abstract class Environment implements EnvironmentProviderInterface {
             'filesystem_adapter'    => 'filesystemAdapter',
             'cache_adapter'         => 'cacheAdapter',
             'settings_provider'     => 'settingsStorage',
-            // 'database_adapter'      => 'dbadapter',
+            'database_adapter'      => 'dbadapter',
             'rest_api_provider'     => 'restProvider',
             'http_client'           => 'httpClient',
             'admin_menu_config'     => 'adminDashboardRegistry',
