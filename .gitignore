@@ -6,6 +6,7 @@ smart-license-server.php
 smliser_var.js
 .env
 *.log
+.phpunit.result.cache
 
 # Tooling and IDEs
 jsconfig.json
