@@ -1,7 +1,20 @@
+# Dependencies
+vendor/
+
+# Local/Sensitive Files
 smart-license-server.php
+smliser_var.js
+.env
+*.log
+
+# Tooling and IDEs
 jsconfig.json
 .editorconfig
 .phpcs.xml
 .phpstan.neon
-smliser_var.js
-vendor/*
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
