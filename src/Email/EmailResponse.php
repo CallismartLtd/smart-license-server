@@ -11,7 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email;
 
-use SmartLicenseServer\Core\DTO;
+use Callismart\DTO\DTO;
 use InvalidArgumentException;
 
 /**

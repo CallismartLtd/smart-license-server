@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Database\Adapters;
 
 use mysqli;
 use mysqli_stmt;
-use SmartLicenseServer\Core\DBConfigDTO;
+use SmartLicenseServer\Database\DBConfigDTO;
 
 /**
  * Adapter for MySQLi database access.

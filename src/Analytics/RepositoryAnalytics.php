@@ -16,7 +16,7 @@ use DateTimeZone;
 use SmartLicenseServer\Background\Jobs\Analytics\LogLicenseActivityJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 
-\class RepositoryAnalytics {
+class RepositoryAnalytics {
 
     /**
      * Mapping of app types to their meta tables

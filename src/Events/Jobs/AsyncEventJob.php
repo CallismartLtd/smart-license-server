@@ -12,7 +12,7 @@
  *
  * You do not instantiate this class directly. Use:
  *
- *   smliser_dispatch_async( new LicenseCreated( $id, $slug ) );
+ *   smliser_dispatch_event_async( new LicenseCreated( $id, $slug ) );
  *
  * which delegates to EventDispatcher::dispatch_async().
  *

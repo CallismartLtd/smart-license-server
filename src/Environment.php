@@ -18,7 +18,7 @@ use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
-use SmartLicenseServer\Core\DBConfigDTO;
+use SmartLicenseServer\Database\DBConfigDTO;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
@@ -277,7 +277,7 @@ abstract class Environment implements EnvironmentProviderInterface {
         $this->declareGlobalConstants();        
         $this->setProps();
         
-        smliser_dispatch( new EnvironmentBooted );
+        smliser_dispatch_event( new EnvironmentBooted );
     }
 
     /*
@@ -413,7 +413,7 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         EventServiceProvider::instance()->boot();
-        smliser_dispatch( new \SmartLicenseServer\Events\Bootstrap\EnvironmentBooting() );
+        smliser_dispatch_event( new \SmartLicenseServer\Events\Bootstrap\EnvironmentBooting() );
 
         // Auto provisions.
 
@@ -441,7 +441,7 @@ abstract class Environment implements EnvironmentProviderInterface {
             $this->setGlobalQueueAdapter();
         }
 
-        smliser_dispatch( new EnvironmentReady );
+        smliser_dispatch_event( new EnvironmentReady );
     }
 
     /**

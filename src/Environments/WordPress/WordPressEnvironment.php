@@ -12,7 +12,7 @@ use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\WPCLIRunner;
-use SmartLicenseServer\Core\DBConfigDTO;
+use SmartLicenseServer\Database\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Database\Adapters\WPDBAdapter;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;

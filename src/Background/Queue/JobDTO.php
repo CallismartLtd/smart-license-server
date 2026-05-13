@@ -58,7 +58,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Queue;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
-use SmartLicenseServer\Core\DTO;
+use Callismart\DTO\DTO;
 use DateTimeImmutable;
 use InvalidArgumentException;
 

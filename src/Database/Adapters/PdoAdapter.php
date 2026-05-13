@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Database\Adapters;
 
 use PDO;
 use PDOException;
-use SmartLicenseServer\Core\DBConfigDTO;
+use SmartLicenseServer\Database\DBConfigDTO;
 
 /**
  * Adapter for PDO database access.

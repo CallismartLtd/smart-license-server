@@ -23,10 +23,10 @@
  *   $events->subscribe( LicenseEventSubscriber::class );
  *
  *   // Dispatch an event
- *   smliser_dispatch( new LicenseCreated( $license_id, $product_slug ) );
+ *   smliser_dispatch_event( new LicenseCreated( $license_id, $product_slug ) );
  *
  *   // Dispatch asynchronously (pushed to the background job queue)
- *   smliser_dispatch_async( new LicenseCreated( $license_id, $product_slug ) );
+ *   smliser_dispatch_event_async( new LicenseCreated( $license_id, $product_slug ) );
  *
  *   // Remove a listener
  *   $events->forget( LicenseCreated::class, SendWelcomeEmail::class );

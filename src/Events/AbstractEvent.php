@@ -20,7 +20,7 @@
  *
  * ## Dispatching
  *
- *   smliser_dispatch( new LicenseCreated( $id, $slug, $owner ) );
+ *   smliser_dispatch_event( new LicenseCreated( $id, $slug, $owner ) );
  *
  * ## Stopping propagation
  *

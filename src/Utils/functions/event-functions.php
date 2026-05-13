@@ -11,10 +11,10 @@
  *   smliser_events()->listen( LicenseCreated::class, SendLicenseEmail::class );
  *
  *   // Dispatch synchronously
- *   smliser_dispatch( new LicenseCreated( $id, $slug ) );
+ *   smliser_dispatch_event( new LicenseCreated( $id, $slug ) );
  *
  *   // Dispatch asynchronously (to the background job queue)
- *   smliser_dispatch_async( new LicenseCreated( $id, $slug ) );
+ *   smliser_dispatch_event_async( new LicenseCreated( $id, $slug ) );
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Events
@@ -38,7 +38,7 @@ if ( ! function_exists( 'smliser_events' ) ) {
     }
 }
 
-if ( ! function_exists( 'smliser_dispatch' ) ) {
+if ( ! function_exists( 'smliser_dispatch_event' ) ) {
     /**
      * Dispatch an event synchronously.
      *
@@ -49,12 +49,12 @@ if ( ! function_exists( 'smliser_dispatch' ) ) {
      * @param  AbstractEvent $event
      * @return AbstractEvent
      */
-    function smliser_dispatch( AbstractEvent $event ): AbstractEvent {
+    function smliser_dispatch_event( AbstractEvent $event ): AbstractEvent {
         return EventDispatcher::instance()->dispatch( $event );
     }
 }
 
-if ( ! function_exists( 'smliser_dispatch_async' ) ) {
+if ( ! function_exists( 'smliser_dispatch_event_async' ) ) {
     /**
      * Dispatch an event asynchronously via the background job queue.
      *
@@ -69,7 +69,7 @@ if ( ! function_exists( 'smliser_dispatch_async' ) ) {
      * @param  AbstractEvent $event
      * @return void
      */
-    function smliser_dispatch_async( AbstractEvent $event ): void {
+    function smliser_dispatch_event_async( AbstractEvent $event ): void {
         EventDispatcher::instance()->dispatch_async( $event );
     }
 }

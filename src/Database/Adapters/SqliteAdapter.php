@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Database\Adapters;
 
 use SQLite3;
 use Exception;
-use SmartLicenseServer\Core\DBConfigDTO;
+use SmartLicenseServer\Database\DBConfigDTO;
 use SmartLicenseServer\Database\SqliteCompatibilityTrait;
 
 /**

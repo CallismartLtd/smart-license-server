@@ -8,9 +8,10 @@
 
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Core;
+namespace SmartLicenseServer\Database;
 
 use LogicException;
+use Callismart\DTO\DTO;
 
 /**
  * Database configuration data transfer object.

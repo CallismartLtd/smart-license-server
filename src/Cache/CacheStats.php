@@ -23,7 +23,7 @@
 
 namespace SmartLicenseServer\Cache;
 
-use SmartLicenseServer\Core\DTO;
+use Callismart\DTO\DTO;
 use InvalidArgumentException;
 
 final class CacheStats extends DTO {

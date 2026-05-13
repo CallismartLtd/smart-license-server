@@ -4,8 +4,51 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c5a0e51d770975ca133646b78923e30f",
+    "content-hash": "bafe6c968f47e133f65cb451290c79e6",
     "packages": [
+        {
+            "name": "callismart/dto",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/CallismartLtd/CallismartDTO.git",
+                "reference": "fc1ea14a9713ce6e9f577862bac671809ecf629f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/CallismartLtd/CallismartDTO/zipball/fc1ea14a9713ce6e9f577862bac671809ecf629f",
+                "reference": "fc1ea14a9713ce6e9f577862bac671809ecf629f",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^10.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Callismart\\DTO\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Callistus Nwachukwu",
+                    "email": "admin@callismart.com"
+                }
+            ],
+            "description": "A flexible, extendable foundation for Data Transfer Objects (DTOs) in PHP.",
+            "support": {
+                "issues": "https://github.com/CallismartLtd/CallismartDTO/issues",
+                "source": "https://github.com/CallismartLtd/CallismartDTO/tree/v1.0.0"
+            },
+            "time": "2026-05-13T10:08:12+00:00"
+        },
         {
             "name": "callismart/http",
             "version": "v1.0.0",
