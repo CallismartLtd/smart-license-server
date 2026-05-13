@@ -2,6 +2,7 @@
 namespace SmartLicenseServer\Database\Adapters;
 
 use PDO;
+use PDOStatement;
 use SmartLicenseServer\Database\PostgresCompatibilityTrait;
 
 /**
@@ -13,7 +14,7 @@ class PostgresAdapter extends PdoAdapter {
     /**
      * Override connect to build the Postgres-specific DSN.
      */
-    protected function connect() {
+    protected function connect() : bool {
         if ( $this->pdo ) return true;
 
         $dsn = sprintf(
@@ -38,12 +39,12 @@ class PostgresAdapter extends PdoAdapter {
     /**
      * Override query to intercept and translate SQL.
      */
-    public function query( $query, array $params = [] ) {
+    public function query( $query, array $params = [] ) : PDOStatement|false  {
         $query  = $this->translate_mysql_to_postgres( $query );
         return parent::query( $query, $params );
     }
 
-    public function get_engine_type() {
+    public function get_engine_type() : string {
         return 'pgsql';
     }
 
