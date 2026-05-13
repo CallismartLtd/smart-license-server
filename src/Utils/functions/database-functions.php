@@ -7,7 +7,7 @@ use SmartLicenseServer\Database\Query\CompositeSQLBuilder;
 use SmartLicenseServer\Database\Query\SQLBuilder;
 
 /**
- * Get the database API instance.
+ * Get the DBAL instance.
  *
  * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
  */

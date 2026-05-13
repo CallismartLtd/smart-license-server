@@ -276,9 +276,10 @@ class SQLBuilder {
      * @return self
      */
     public function reset() : self {
-        $this->type = null;
-        $this->table = '';
-        $this->intent = [];
+        $this->type             = null;
+        $this->table            = '';
+        $this->intent           = [];
+        $this->active_intent    = null;
         return $this;
     }
 

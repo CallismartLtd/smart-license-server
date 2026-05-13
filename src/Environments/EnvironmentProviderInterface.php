@@ -89,7 +89,7 @@ interface EnvironmentProviderInterface {
     public static function boot() : void;
 
     /**
-     * Get the database API instance.
+     * Get the DBAL instance.
      */
     public function database() : Database;
 

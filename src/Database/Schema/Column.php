@@ -24,6 +24,7 @@ class Column {
     public string $name;
 
     /** 
+     * @see \SmartLicenseServer\Database\Schema\Helpers\ColumnType
      * @var int $type Column type.
      */
     public int $type;
@@ -88,10 +89,11 @@ class Column {
     }
 
     /**
-     * Set the logical type.
+     * Set the column type.
      * 
      * @param int $type
      * @return static
+     * @see \SmartLicenseServer\Database\Schema\Helpers\ColumnType
      */
     public function type( int $type ) : static {
         $this->type = $type;

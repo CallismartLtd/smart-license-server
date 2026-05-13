@@ -27,7 +27,7 @@ use SmartLicenseServer\Database\Query\SQLBuilder;
 abstract class AbstractMigration implements MigrationInterface {
 
     /**
-     * The database API instance.
+     * The DBAL instance.
      *
      * @var Database
      */
@@ -50,10 +50,10 @@ abstract class AbstractMigration implements MigrationInterface {
     /**
      * Constructor.
      *
-     * @param Database|null $database The database API instance or null to use the global instance.
+     * @param Database|null $database The DBAL instance or null to use the global instance.
      */
-    public function __construct( ?Database $database = null ) {
-        $this->database     = $database ?? smliser_db();
+    public function __construct( Database $database ) {
+        $this->database     = $database;
         $this->sql_builder  = new SQLBuilder( $this->database->get_engine_type() );
     }
 
@@ -83,7 +83,7 @@ abstract class AbstractMigration implements MigrationInterface {
      * @throws \Exception If version cannot be extracted
      */
     public static function extract_version_from_class( string $class_name ) : string {
-        // Extract class name without namespace
+        // Extract class name without namespace.
         $class_short = basename( str_replace( '\\', '/', $class_name ) );
 
         // Match Migration + 4 digits
@@ -203,7 +203,7 @@ abstract class AbstractMigration implements MigrationInterface {
     }
 
     /**
-     * Get the database API instance.
+     * Get the DBAL instance.
      *
      * @return Database
      */
