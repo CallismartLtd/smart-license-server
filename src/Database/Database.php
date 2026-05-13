@@ -97,9 +97,9 @@ class Database {
      * @param int $limit The result limit for the current request.
      * @return int Calculated offset.
      */
-    public static function calculate_query_offset( $page, $limit ) {
-        $page = max( 1, (int) $page );
-        $limit = (int) $limit;
+    public static function calculate_query_offset( int $page, int $limit ) {
+        $page   = max( 1, $page );
+        $limit  = $limit;
         return max( 0, ( $page - 1 ) * $limit );
     }
     
