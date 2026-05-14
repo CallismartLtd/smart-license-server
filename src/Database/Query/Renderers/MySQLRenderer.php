@@ -17,7 +17,16 @@ use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Column;
 
 /**
- * MySQL implementation of the Query Renderer.
+ * MySQL Query Renderer.
+ *
+ * This renderer generates SQL specifically for MySQL 8.0.16 and higher.
+ * 
+ * Supported Features & Requirements:
+ * - MySQL Version: 8.0.16+ (Required for 'DROP CONSTRAINT' and 'CHECK' enforcement).
+ * - Atomic DDL: Supported (ALTER TABLE operations are transactional in MySQL 8.0+).
+ * - Identifiers: Uses backticks (`) for quoting.
+ * - Constraints: Uses standardized 'ADD/DROP CONSTRAINT' syntax for Foreign Keys, 
+ *   Unique Keys, and Check Constraints.
  */
 class MySQLRenderer extends AbstractQueryRenderer {
 
@@ -164,7 +173,7 @@ class MySQLRenderer extends AbstractQueryRenderer {
             ),
             // Constraints.
             'ADD_CONSTRAINT'  => "ADD " . $this->render_constraint( $payload ),
-            'DROP_CONSTRAINT' => $this->render_mysql_drop_constraint( $payload ),
+            'DROP_CONSTRAINT' => $this->render_drop_constraint( $payload ),
 
             // Indexes
             'DROP_INDEX'      => "DROP INDEX " . $this->quote_identifier( $payload ),
@@ -176,9 +185,8 @@ class MySQLRenderer extends AbstractQueryRenderer {
     /**
      * Handle MySQL specific drop logic.
      */
-    private function render_mysql_drop_constraint( string $name ) : string {
-        // MySQL quirk: Primary keys are dropped by type, not by name.
-        if ( strtolower( $name ) === 'primary' ) {
+    private function render_drop_constraint( string $name ) : string {
+        if ( 'PRIMARY' === strtoupper( $name ) ) {
             return "DROP PRIMARY KEY";
         }
 

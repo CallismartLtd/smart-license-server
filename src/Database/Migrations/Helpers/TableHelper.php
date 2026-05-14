@@ -75,16 +75,7 @@ class TableHelper {
 	 */
 	public function rename( string $new_name ) : self {
 
-		$sql = match ( $this->engine ) {
-			'mysql', 'pgsql', 'sqlite'
-				=> "ALTER TABLE {$this->quote($this->table)} RENAME TO {$this->quote($new_name)}",
-
-			default
-				=> throw new \Exception( "Unsupported engine: {$this->engine}" )
-		};
-
-		$this->database->exec( $sql );
-		$this->table = $new_name;
+		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
 
 		return $this;
 	}
@@ -106,12 +97,7 @@ class TableHelper {
 		string $position = ''
 	) : self {
 
-		$sql = $this->builder
-			->alter_table( $this->table )
-			->add_column( $name, $type, $definition, $position )
-			->build();
-
-		$this->database->exec( $sql );
+		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
 
 		return $this;
 	}
@@ -125,12 +111,7 @@ class TableHelper {
 	 */
 	public function dropColumn( string $name ) : self {
 
-		$sql = $this->builder
-			->alter_table( $this->table )
-			->drop_column( $name )
-			->build();
-
-		$this->database->exec( $sql );
+		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
 
 		return $this;
 	}
@@ -145,12 +126,7 @@ class TableHelper {
 	 */
 	public function renameColumn( string $old, string $new ) : self {
 
-		$sql = $this->builder
-			->alter_table( $this->table )
-			->rename_column( $old, $new )
-			->build();
-
-		$this->database->exec( $sql );
+		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
 
 		return $this;
 	}
@@ -170,12 +146,8 @@ class TableHelper {
 		string $definition = ''
 	) : self {
 
-		$sql = $this->builder
-			->alter_table( $this->table )
-			->modify_column( $name, $type, $definition )
-			->build();
+		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
 
-		$this->database->exec( $sql );
 
 		return $this;
 	}
@@ -191,9 +163,7 @@ class TableHelper {
 	 */
 	public function addIndex( string $name, $columns, string $type = '' ) : self {
 
-		$sql = $this->builder->add_index( $name, $columns, $type );
-
-		$this->database->exec( $sql );
+		// @TODO: implement.
 
 		return $this;
 	}
@@ -207,9 +177,7 @@ class TableHelper {
 	 */
 	public function dropIndex( string $name ) : self {
 
-		$sql = $this->builder->drop_index( $name );
-
-		$this->database->exec( $sql );
+		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ConstraintHelper
 
 		return $this;
 	}

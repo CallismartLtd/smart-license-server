@@ -20,33 +20,28 @@ use SmartLicenseServer\Database\Schema\Constraint;
  * Responsibilities:
  * - Validates column state
  * - Delegates SQL generation to SQLBuilder
- * - Executes via Database abstraction
+ * - Executes via Database abstraction layer
  *
  * @since 0.2.0
  */
 class ColumnHelper {
-
-	private Database $database;
-	private SQLBuilder $builder;
-	private string $table;
-
+	/**
+	 * @param Database $dbal The database abstraction layer.
+	 * @param SQLBuilder $queryBuilder The database engine-agnostic sql builder.
+	 * @param string $table The table whose column is in context.
+	 */
 	public function __construct(
-		Database $database,
-		SQLBuilder $builder,
-		string $table
-	) {
-		$this->database = $database;
-		$this->builder  = $builder;
-		$this->table    = $table;
-	}
+		private Database $dbal,
+		private SQLBuilder $queryBuilder,
+		private string $table
+	) {}
 
 	/**
 	 * Add column.
 	 * 
 	 * @param string|Column $column The new column name.
 	 * @param array{
-     *     name: string,
-     *     type: string,
+     *     type: int, // @see \SmartLicenseServer\Database\Schema\Helpers\ColumnType
      *     length?: int|null,
      *     precision?: int|null,
      *     scale?: int|null,
@@ -83,13 +78,13 @@ class ColumnHelper {
 		$column		= $this->build_column_definitions( $column, $definitions );
 		$constraint	= $this->build_constraint( $constraints );
 
-		$sql = $this->builder
+		$sql = $this->queryBuilder
 			->alter_table( $this->table )
 			->add_column( $column, $constraint )
 			->build();
 
-		$this->database->exec( $sql );
-		$this->builder->reset();
+		$this->dbal->exec( $sql );
+		$this->queryBuilder->reset();
 
 		return $this;
 	}
@@ -103,14 +98,14 @@ class ColumnHelper {
 			throw new \Exception( "Column '{$column}' does not exist in '{$this->table}'" );
 		}
 
-		$sql = $this->builder
+		$sql = $this->queryBuilder
 			->alter_table( $this->table )
 			->drop_column( $column )
 			->build();
 
-		$this->database->exec( $sql );
-		$this->builder->reset();
-
+		$this->dbal->exec( $sql );
+		$this->queryBuilder->reset();
+		
 		return $this;
 	}
 
@@ -128,13 +123,13 @@ class ColumnHelper {
 		}
 
 		try {
-			$sql = $this->builder
+			$sql = $this->queryBuilder
 				->alter_table( $this->table )
 				->rename_column( $old, $new )
 				->build();
 
-			$this->database->exec( $sql );
-			$this->builder->reset();
+			$this->dbal->exec( $sql );
+			$this->queryBuilder->reset();
 
 		} catch ( \Exception $e ) {
 			// Let engine-specific fallback be handled at a higher migration layer
@@ -186,13 +181,13 @@ class ColumnHelper {
 		$column		= $this->build_column_definitions( $column, $definitions );
 		$constraint	= $this->build_constraint( $constraints );
 
-		$sql = $this->builder
+		$sql = $this->queryBuilder
 			->alter_table( $this->table )
 			->modify_column( $column, $constraint )
 			->build();
 
-		$this->database->exec( $sql );
-		$this->builder->reset();
+		$this->dbal->exec( $sql );
+		$this->queryBuilder->reset();
 
 		return $this;
 	}
@@ -201,7 +196,7 @@ class ColumnHelper {
 	 * Change column type.
 	 * 
 	 * @param string $column The column name.
-	 * @param int $type The column type @see \SmartLicenseServer\Database\Schema\Helpers\ColumnType
+	 * @param int $type The column type @see \SmartLicenseServer\Database\Schema\Helpers\ColumnType constants
 	 */
 	public function changeType( string $column, int $type ) : static {
 
@@ -215,13 +210,13 @@ class ColumnHelper {
 
 		$column	= Column::make( $column )->type( $type );
 
-		$sql = $this->builder
+		$sql = $this->queryBuilder
 			->alter_table( $this->table )
 			->modify_column( $column )
 			->build();
 
-		$this->database->exec( $sql );
-		$this->builder->reset();
+		$this->dbal->exec( $sql );
+		$this->queryBuilder->reset();
 
 		return $this;
 	}
@@ -230,21 +225,21 @@ class ColumnHelper {
 	 * Check existence.
 	 */
 	public function exists( string $column ) : bool {
-		return $this->database->column_exists( $this->table, $column );
+		return $this->dbal->column_exists( $this->table, $column );
 	}
 
 	/**
 	 * Get type.
 	 */
 	public function getType( string $column ) : ?string {
-		return $this->database->get_column_type( $this->table, $column );
+		return $this->dbal->get_column_type( $this->table, $column );
 	}
 
 	/**
 	 * List columns.
 	 */
 	public function list() : array {
-		return $this->database->get_columns( $this->table );
+		return $this->dbal->get_columns( $this->table );
 	}
 
 	/*
@@ -269,20 +264,17 @@ class ColumnHelper {
      * } $definitions
 	 */
 	protected function build_column_definitions( Column $column, array $definitions ) : Column {
-		$expected_def	= ['name', 'type', 'length', 'precision', 'scale', 
-			'unsigned',  'nullable', 'auto_increment', 'default', 'comment'
-		];
+		if ( empty( $definitions['type'] ) ) {
+			throw new \Exception( 'Column type is required.' );
+		}
 
-		foreach ( $expected_def as $def ) {
-			if ( ! array_key_exists( $def, $definitions ) ) {
-				continue;
+		$reflection = new \ReflectionClass( $column );
+
+		foreach ( $definitions as $key => $value ) {
+			if ( $reflection->hasProperty( $key ) ) {
+				$property = $reflection->getProperty( $key );
+				$property->setValue( $column, $value );
 			}
-
-			if ( ! property_exists( $column, $def ) ) {
-				continue;
-			}
-
-			$column->{$def}	= $definitions[ $def ];
 		}
 
 		return $column;
@@ -300,26 +292,18 @@ class ColumnHelper {
      * } $definitions
 	 */
 	protected function build_constraint( array $definitions ) : ?Constraint {
-		$expected_constr	= ['name', 'columns', 'references_table',
-			'references_columns', 'on_delete', 'on_update'
-		];
-
 		if ( empty( $definitions ) || empty( $definitions['type'] ) ) {
 			return null;
 		}
 
-		$constraint	= Constraint::make( $definitions['type'] );
+		$constraint = Constraint::make( $definitions['type'] );
+		$reflection = new \ReflectionClass( $constraint );
 
-		foreach ( $expected_constr as $def ) {
-			if ( ! array_key_exists( $def, $definitions ) ) {
-				continue;
+		foreach ( $definitions as $key => $value ) {
+			if ( $reflection->hasProperty( $key ) ) {
+				$property = $reflection->getProperty( $key );
+				$property->setValue( $constraint, $value );
 			}
-
-			if ( ! property_exists( $constraint, $def ) ) {
-				continue;
-			}
-
-			$constraint->{$def}	= $definitions[ $def ];
 		}
 
 		return $constraint;

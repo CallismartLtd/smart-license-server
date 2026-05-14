@@ -182,6 +182,7 @@ class SQLiteRenderer extends AbstractQueryRenderer {
                 $this->quote_identifier( $payload['to'] )
             ),
             'RENAME_TABLE'  => "RENAME TO " . $this->quote_identifier( $payload ),
+            'DROP_COLUMN'   => "DROP COLUMN " . $this->quote_identifier( $payload ),
             default         => throw new \RuntimeException( "SQLite: Operation {$action}_{$subject} is not supported directly. Requires table reconstruction." )
         };
     }

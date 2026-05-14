@@ -41,6 +41,7 @@ use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
  * @method string|null get_host_info() Get connection host information.
  * @method string|int|null get_protocol_version() Get the database protocol version.
  *
+ * @method array get_all_tables() Retrieve a list of all tables in the current database.
  * @method bool table_exists( string $table ) Check if a table exists.
  * @method bool column_exists( string $table, string $column ) Check if a column exists in a table.
  * @method string|null get_column_type( string $table, string $column ) Get the type of a column.

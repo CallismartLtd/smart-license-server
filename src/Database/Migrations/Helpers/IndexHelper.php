@@ -10,8 +10,7 @@
 namespace SmartLicenseServer\Database\Migrations\Helpers;
 
 use SmartLicenseServer\Database\Database;
-use SmartLicenseServer\Database\Migrations\SQLBuilder;
-use SmartLicenseServer\Database\Query\SQLBuilder as QuerySQLBuilder;
+use SmartLicenseServer\Database\Query\SQLBuilder;
 
 /**
  * Provides fluent interface for index operations.
@@ -28,18 +27,18 @@ use SmartLicenseServer\Database\Query\SQLBuilder as QuerySQLBuilder;
 class IndexHelper {
 
     /**
-     * Statement executor.
+     * Database abstraction layer.
      *
      * @var Database
      */
-    private $executor;
+    private $dbal;
 
     /**
      * SQL builder.
      *
      * @var SQLBuilder
      */
-    private $sql_builder;
+    private SQLBuilder $sql_builder;
 
     /**
      * Table name.
@@ -51,12 +50,12 @@ class IndexHelper {
     /**
      * Constructor.
      *
-     * @param Database $executor    The statement executor
+     * @param Database $dbal    The statement executor
      * @param SQLBuilder        $sql_builder The SQL builder
      * @param string            $table       The table name
      */
-    public function __construct( Database $executor, QuerySQLBuilder $sql_builder, string $table ) {
-        $this->executor = $executor;
+    public function __construct( Database $dbal, SQLBuilder $sql_builder, string $table ) {
+        $this->dbal = $dbal;
         $this->sql_builder = $sql_builder;
         $this->table = $table;
     }
@@ -99,7 +98,7 @@ class IndexHelper {
         }
 
         $sql = $this->sql_builder->add_index( $index_name, $columns );
-        $this->executor->exec( $sql );
+        $this->dbal->exec( $sql );
 
         return $this;
     }
@@ -125,7 +124,7 @@ class IndexHelper {
 
         $columns = (array) $columns;
         $sql = $this->sql_builder->add_index( $index_name, $columns, 'UNIQUE' );
-        $this->executor->exec( $sql );
+        $this->dbal->exec( $sql );
 
         return $this;
     }
@@ -144,7 +143,7 @@ class IndexHelper {
      * $migration->index('posts')->addFulltext('content_fulltext', 'content');
      */
     public function addFulltext( string $index_name, $columns ) : self {
-        if ( 'mysql' !== $this->executor->get_engine() ) {
+        if ( 'mysql' !== $this->dbal->get_engine() ) {
             throw new \Exception( 'FULLTEXT indexes are only supported in MySQL' );
         }
 
@@ -155,7 +154,7 @@ class IndexHelper {
 
         $columns = (array) $columns;
         $sql = $this->sql_builder->add_index( $index_name, $columns, 'FULLTEXT' );
-        $this->executor->exec( $sql );
+        $this->dbal->exec( $sql );
 
         return $this;
     }
@@ -179,7 +178,7 @@ class IndexHelper {
         }
 
         $sql = $this->sql_builder->drop_index( $index_name );
-        $this->executor->exec( $sql );
+        $this->dbal->exec( $sql );
 
         return $this;
     }
@@ -200,7 +199,7 @@ class IndexHelper {
      * $migration->index('users')->rename('idx_old', 'idx_new');
      */
     public function rename( string $old_name, string $new_name ) : self {
-        $engine = $this->executor->get_engine();
+        $engine = $this->dbal->get_engine();
 
         // Check database support
         if ( 'mysql' !== $engine ) {
@@ -219,7 +218,7 @@ class IndexHelper {
 
         // MySQL: ALTER TABLE table RENAME INDEX old TO new
         $sql = "ALTER TABLE {$this->table} RENAME INDEX {$old_name} TO {$new_name}";
-        $this->executor->exec( $sql );
+        $this->dbal->exec( $sql );
 
         return $this;
     }
@@ -237,23 +236,23 @@ class IndexHelper {
      * }
      */
     public function exists( string $index_name ) : bool {
-        $engine = $this->executor->get_engine();
+        $engine = $this->dbal->get_engine();
 
         try {
             switch ( $engine ) {
                 case 'mysql':
                     $query = "SELECT 1 FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?";
-                    $result = $this->executor->get_var( $query, [ $this->table, $index_name ] );
+                    $result = $this->dbal->get_var( $query, [ $this->table, $index_name ] );
                     return null !== $result;
 
                 case 'pgsql':
                     $query = "SELECT 1 FROM pg_indexes WHERE tablename = ? AND indexname = ?";
-                    $result = $this->executor->get_var( $query, [ $this->table, $index_name ] );
+                    $result = $this->dbal->get_var( $query, [ $this->table, $index_name ] );
                     return null !== $result;
 
                 case 'sqlite':
                     $query = "SELECT 1 FROM sqlite_master WHERE type='index' AND name = ? AND tbl_name = ?";
-                    $result = $this->executor->get_var( $query, [ $index_name, $this->table ] );
+                    $result = $this->dbal->get_var( $query, [ $index_name, $this->table ] );
                     return null !== $result;
 
                 default:
@@ -274,21 +273,21 @@ class IndexHelper {
      * // Returns: ['PRIMARY', 'email_index', 'created_at_index']
      */
     public function list() : array {
-        $engine = $this->executor->get_engine();
+        $engine = $this->dbal->get_engine();
 
         try {
             switch ( $engine ) {
                 case 'mysql':
                     $query = "SELECT index_name FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? GROUP BY index_name";
-                    return $this->executor->get_col( $query, [ $this->table ] );
+                    return $this->dbal->get_col( $query, [ $this->table ] );
 
                 case 'pgsql':
                     $query = "SELECT indexname FROM pg_indexes WHERE tablename = ?";
-                    return $this->executor->get_col( $query, [ $this->table ] );
+                    return $this->dbal->get_col( $query, [ $this->table ] );
 
                 case 'sqlite':
                     $query = "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name = ?";
-                    return $this->executor->get_col( $query, [ $this->table ] );
+                    return $this->dbal->get_col( $query, [ $this->table ] );
 
                 default:
                     return [];

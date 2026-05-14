@@ -89,7 +89,7 @@ class PostgreSQLRenderer extends AbstractQueryRenderer {
         // Constraints
         foreach ( $intent->get_constraints() as $constraint ) {
 
-            // 🚨 Extract INDEX constraints into separate statements
+            // Extract INDEX constraints into separate statements
             if ( strtolower( $constraint->type ) === 'index' ) {
                 $index_sql[] = $this->render_inline_index_as_create_index(
                     $intent->get_table_name(),
