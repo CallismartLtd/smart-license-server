@@ -15,6 +15,7 @@ use SmartLicenseServer\Database\Query\QueryIntents\CreateTableIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\DeleteIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\PersistenceIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\TruncateTableIntent;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
 
@@ -59,6 +60,14 @@ abstract class AbstractQueryRenderer {
      * @return string
      */
     abstract public function render_alter_table( AlterTableIntent $intent ) : string;
+
+    /**
+     * Render an TRUNCATE TABLE SQL statement.
+     * 
+     * @param TruncateTableIntent $intent
+     * @return string
+     */
+    abstract public function render_truncate_table( TruncateTableIntent $intent ) : string;
 
     /**
      * Render a standalone CREATE INDEX SQL statement.

@@ -434,8 +434,19 @@ class SqliteAdapter implements DatabaseAdapterInterface {
     public function get_all_tables() : array {
         $query  = "SELECT name FROM sqlite_master  WHERE type = 'table'
             AND name NOT LIKE 'sqlite_%'";
+        $results    = $this->sqlite->query( $query );
 
-        return $this->get_results( $query );
+        if ( false === $results ) {
+            return [];
+        }
+
+        $table_names    = [];
+
+        while( $result = $results->fetchArray( \SQLITE3_ASSOC ) ) {
+            $table_names[] = $result['name'];
+        }
+
+        return $table_names;
     }
 
     /**

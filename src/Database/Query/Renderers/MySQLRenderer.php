@@ -13,6 +13,7 @@ use SmartLicenseServer\Database\Query\QueryIntents\CreateTableIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\AlterTableIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\CreateIndexIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\TruncateTableIntent;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Column;
 
@@ -125,6 +126,27 @@ class MySQLRenderer extends AbstractQueryRenderer {
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function render_truncate_table( TruncateTableIntent $intent ) : string {
+        $sql = '';
+    
+        if ( $intent->should_cascade() ) {
+            $sql .= "SET FOREIGN_KEY_CHECKS = 0; ";
+        }
+
+        foreach ( $intent->get_tables() as $table ) {
+            $sql .= "TRUNCATE TABLE `{$table}`; ";
+        }
+
+        if ( $intent->should_cascade() ) {
+            $sql .= "SET FOREIGN_KEY_CHECKS = 1; ";
+        }
+
+        return trim( $sql );
+    }
+
+    /**
      * Helper to render index portion for standalone or ADD INDEX queries.
      */
     protected function render_index_definition( Constraint $index ) : string {
@@ -162,6 +184,8 @@ class MySQLRenderer extends AbstractQueryRenderer {
         $payload = $op['payload'];
 
         return match ( "{$action}_{$subject}" ) {
+            // Tables
+            'RENAME_TABLE'  => "RENAME TO " . $this->quote_identifier( $payload['to'] ),
             // Columns.
             'ADD_COLUMN'      => "ADD " . $this->render_column_definition( $payload ),
             'MODIFY_COLUMN'   => "MODIFY COLUMN " . $this->render_column_definition( $payload ),

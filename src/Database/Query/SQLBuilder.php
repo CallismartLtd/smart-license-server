@@ -14,6 +14,7 @@ use SmartLicenseServer\Database\Query\QueryIntents\AlterTableIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\DeleteIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\PersistenceIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\TruncateTableIntent;
 use SmartLicenseServer\Database\Query\Renderers\AbstractQueryRenderer;
 use SmartLicenseServer\Database\Query\Renderers\MySQLRenderer;
 use SmartLicenseServer\Database\Query\Renderers\PostgreSQLRenderer;
@@ -42,6 +43,13 @@ class SQLBuilder {
      * @var string
      */
     private string $table = '';
+
+    /**
+     * Raw table names (UNQUOTED).
+     *
+     * @var array
+     */
+    private array $tables = [];
 
     /**
      * Query intent components.
@@ -174,6 +182,21 @@ class SQLBuilder {
     }
 
     /**
+     * Start a TRUNCATE TABLE query.
+     * 
+     * @param string ...$table The table names(raw, unquoted).
+     * @return TruncateTableIntent
+     */
+    public function truncate_table( string ...$table ) : TruncateTableIntent {
+        $this->reset_intent();
+        $this->type             = 'TRUNCATE TABLE';
+        $this->tables           = $table;
+        $this->active_intent    = TruncateTableIntent::make( $this->tables, $this );
+
+        return $this->active_intent;
+    }
+
+    /**
      * Start a DROP TABLE query.
      *
      * @param string $table Table name (raw, unquoted)
@@ -197,14 +220,14 @@ class SQLBuilder {
     }
 
     /**
-     * Set storage engine (MySQL only - intent storage).
+     * Set the target database engine.
      *
      * @param string $engine Engine name
      *
      * @return self
      */
     public function engine( string $engine ) : self {
-        $this->intent['engine'] = $engine;
+        $this->engine = $engine;
         return $this;
     }
 
@@ -233,14 +256,15 @@ class SQLBuilder {
     
         // Render based on query type
         $sql = match ( $this->type ) {
-            'SELECT'       => $renderer->render_select( $this->active_intent ),
-            'INSERT'       => $renderer->render_insert( $this->active_intent ),
-            'UPDATE'       => $renderer->render_update( $this->active_intent ),
-            'DELETE'       => $renderer->render_delete( $this->active_intent ),
-            'CREATE TABLE' => $renderer->render_create_table( $this->active_intent ),
-            'ALTER TABLE'  => $renderer->render_alter_table( $this->active_intent ),
-            'DROP TABLE'   => $renderer->render_drop_table( $this->table, $this->intent ),
-            default        => throw new \Exception( "Unknown query type: {$this->type}" )
+            'SELECT'            => $renderer->render_select( $this->active_intent ),
+            'INSERT'            => $renderer->render_insert( $this->active_intent ),
+            'UPDATE'            => $renderer->render_update( $this->active_intent ),
+            'DELETE'            => $renderer->render_delete( $this->active_intent ),
+            'CREATE TABLE'      => $renderer->render_create_table( $this->active_intent ),
+            'ALTER TABLE'       => $renderer->render_alter_table( $this->active_intent ),
+            'TRUNCATE TABLE'    => $renderer->render_truncate_table( $this->active_intent ),
+            'DROP TABLE'        => $renderer->render_drop_table( $this->table, $this->intent ),
+            default             => throw new \Exception( "Unknown query type: {$this->type}" )
         };
     
         return $sql;

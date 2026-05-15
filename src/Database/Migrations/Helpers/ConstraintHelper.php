@@ -176,7 +176,10 @@ class ConstraintHelper {
 	 * Drop a foreign key constraint.
 	 *
 	 * @param string $name FK name
-	 *
+	 * 
+	 * NOTE: Droping foreign key in SQLite is not reliable due to
+	 * table rebuild quirks. A walk around is
+	 * to specify the `fk_{localtable}_{reference_column}`
 	 * @return static
 	 */
 	public function drop_foreign_key( string $name ) : static {
@@ -280,8 +283,8 @@ class ConstraintHelper {
 			$this->dbal->begin_transaction();
 
 			// Get current table definition
-			$columns = $this->sqlite_get_columns_with_definitions();
-			$constraints = $this->sqlite_get_existing_constraints();
+			$columns		= $this->sqlite_get_columns_with_definitions();
+			$constraints	= $this->sqlite_get_existing_constraints();
 
 			// Remove the specified foreign key constraint
 			$constraints = array_filter(

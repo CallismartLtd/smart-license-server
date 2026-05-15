@@ -13,6 +13,7 @@ use SmartLicenseServer\Database\Query\QueryIntents\CreateTableIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\AlterTableIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\CreateIndexIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\TruncateTableIntent;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Column;
 
@@ -101,12 +102,32 @@ class SQLiteRenderer extends AbstractQueryRenderer {
             // usually handled within column definitions or as table constraints.
             $definitions[] = $this->render_constraint( $constraint );
         }
+    
+        foreach ( $intent->get_constraints() as $constraint ) {
 
-        return sprintf( 
+            // Extract INDEX constraints into separate statements
+            if ( strtolower( $constraint->type )!== 'index' ) {
+                continue;
+            }
+
+            $index_sql[] = $this->render_inline_index_as_create_index(
+                $intent->get_table_name(),
+                $constraint
+            );
+        }
+
+        $table_sql = sprintf( 
             "CREATE TABLE %s (\n\t%s\n);",
             $table_name,
             implode( ",\n\t", array_filter( $definitions ) ) 
         );
+
+        // Append indexes (separate statements)
+        if ( ! empty( $index_sql ) ) {
+            $table_sql .= "\n\n" . implode( "\n", $index_sql );
+        }
+
+        return $table_sql;
     }
 
     /**
@@ -145,6 +166,31 @@ class SQLiteRenderer extends AbstractQueryRenderer {
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function render_truncate_table( TruncateTableIntent $intent ) : string {
+        $sql = '';
+
+        if ( $intent->should_cascade() ) {
+            $sql .= "PRAGMA foreign_keys = OFF; ";
+        }
+
+        foreach ( $intent->get_tables() as $table ) {
+            $sql .= "DELETE FROM \"{$table}\"; ";
+
+            if ($intent->should_restart_identity()) {
+                $sql .= "DELETE FROM \"sqlite_sequence\" WHERE \"name\" = '{$table}'; ";
+            }
+        }
+
+        if ( $intent->should_cascade() ) {
+            $sql .= "PRAGMA foreign_keys = ON; ";
+        }
+
+        return trim( $sql );
+    }
+
+    /**
      * Render a constraint for SQLite.
      * 
      * @param Constraint $constraint
@@ -163,6 +209,25 @@ class SQLiteRenderer extends AbstractQueryRenderer {
         };
     }
 
+    protected function render_inline_index_as_create_index( string $table, Constraint $constraint ) : string {
+        $table = $this->quote_identifier( $table );
+
+        $columns = implode( ', ', $this->quote_identifiers( $constraint->columns ) );
+
+        $name = $constraint->name
+            ? $this->quote_identifier( $constraint->name )
+            : $this->quote_identifier(
+                $table . '_' . implode( '_', $constraint->columns ) . '_idx'
+            );
+
+        return sprintf(
+            "CREATE INDEX %s ON %s (%s);",
+            $name,
+            $table,
+            $columns
+        );
+    }
+
     /**
      * Map Alter Operations to SQLite Syntax.
      * 
@@ -175,13 +240,13 @@ class SQLiteRenderer extends AbstractQueryRenderer {
         $payload = $op['payload'];
 
         return match ( "{$action}_{$subject}" ) {
+            'RENAME_TABLE'  => "RENAME TO " . $this->quote_identifier( $payload['to'] ),
             'ADD_COLUMN'    => "ADD COLUMN " . $this->render_column_definition( $payload ),
             'RENAME_COLUMN' => sprintf(
                 "RENAME COLUMN %s TO %s",
                 $this->quote_identifier( $payload['from'] ),
                 $this->quote_identifier( $payload['to'] )
             ),
-            'RENAME_TABLE'  => "RENAME TO " . $this->quote_identifier( $payload ),
             'DROP_COLUMN'   => "DROP COLUMN " . $this->quote_identifier( $payload ),
             default         => throw new \RuntimeException( "SQLite: Operation {$action}_{$subject} is not supported directly. Requires table reconstruction." )
         };
@@ -216,11 +281,13 @@ class SQLiteRenderer extends AbstractQueryRenderer {
      * @return string
      */
     protected function render_foreign_key( Constraint $constraint ) : string {
-        $columns   = implode( ', ', $this->quote_identifiers( $constraint->columns ) );
-        $ref_table = $this->quote_identifier( $constraint->references_table ?? '' );
-        $ref_cols  = implode( ', ', $this->quote_identifiers( $constraint->references_columns ) );
+        $columns    = implode( ', ', $this->quote_identifiers( $constraint->columns ) );
+        $ref_table  = $this->quote_identifier( $constraint->references_table ?? '' );
+        $ref_cols   = implode( ', ', $this->quote_identifiers( $constraint->references_columns ) );
+        $name    = $constraint->name ? $this->quote_identifier( $constraint->name ) : null;
 
-        $sql = "FOREIGN KEY ({$columns}) REFERENCES {$ref_table} ({$ref_cols})";
+        $sql    = $name ? "CONSTRAINT {$name} " : "";
+        $sql    = "FOREIGN KEY ({$columns}) REFERENCES {$ref_table} ({$ref_cols})";
 
         if ( $constraint->on_delete ) $sql .= " ON DELETE " . strtoupper( $constraint->on_delete );
         if ( $constraint->on_update ) $sql .= " ON UPDATE " . strtoupper( $constraint->on_update );

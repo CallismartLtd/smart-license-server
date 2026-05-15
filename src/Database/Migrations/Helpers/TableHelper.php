@@ -25,20 +25,6 @@ use SmartLicenseServer\Database\Query\SQLBuilder;
 class TableHelper {
 
 	/**
-	 * Database instance.
-	 *
-	 * @var Database
-	 */
-	private Database $database;
-
-	/**
-	 * SQL builder instance.
-	 *
-	 * @var SQLBuilder
-	 */
-	private SQLBuilder $builder;
-
-	/**
 	 * Database engine type.
 	 *
 	 * @var string
@@ -46,222 +32,108 @@ class TableHelper {
 	private string $engine;
 
 	/**
-	 * Table name.
-	 *
-	 * @var string
-	 */
-	private string $table;
-
-	/**
 	 * Constructor.
 	 *
-	 * @param Database    $database
-	 * @param SQLBuilder  $builder
+	 * @param Database    $dbal
+	 * @param SQLBuilder  $queryBuilder
 	 * @param string      $table
 	 */
-	public function __construct( Database $database, SQLBuilder $builder, string $table ) {
-		$this->database = $database;
-		$this->builder  = $builder;
-		$this->engine   = $database->get_engine_type();
-		$this->table    = $table;
+	public function __construct( 
+		private Database $dbal, 
+		private SQLBuilder $queryBuilder, 
+		private string $table 
+	) {
+		$this->engine   = $dbal->get_engine_type();
 	}
 
 	/**
-	 * Rename table.
+	 * Rename this table.
 	 *
 	 * @param string $new_name
 	 *
-	 * @return self
+	 * @return static
 	 */
-	public function rename( string $new_name ) : self {
-
-		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
+	public function rename( string $new_name ) : static {
+		$sql	= $this->queryBuilder
+			->alter_table( $this->table )
+			->rename( $new_name );
+		$this->dbal->exec( $sql->build() );
 
 		return $this;
 	}
 
 	/**
-	 * Add column.
+	 * Begin column operation.
 	 *
-	 * @param string $name
-	 * @param string $type
-	 * @param string $definition
-	 * @param string $position
-	 *
-	 * @return self
+	 * @return ColumnHelper
 	 */
-	public function addColumn(
-		string $name,
-		string $type,
-		string $definition = '',
-		string $position = ''
-	) : self {
-
-		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
-
-		return $this;
+	public function column() : ColumnHelper {
+		return new ColumnHelper(
+			$this->dbal,
+			$this->queryBuilder,
+			$this->table
+		);
 	}
 
 	/**
-	 * Drop column.
-	 *
-	 * @param string $name
-	 *
-	 * @return self
+	 * Begin constraint operation on table.
+	 * 
+	 * @return ConstraintHelper
 	 */
-	public function dropColumn( string $name ) : self {
-
-		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
-
-		return $this;
-	}
-
-	/**
-	 * Rename column.
-	 *
-	 * @param string $old
-	 * @param string $new
-	 *
-	 * @return self
-	 */
-	public function renameColumn( string $old, string $new ) : self {
-
-		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
-
-		return $this;
-	}
-
-	/**
-	 * Modify column.
-	 *
-	 * @param string $name
-	 * @param string $type
-	 * @param string $definition
-	 *
-	 * @return self
-	 */
-	public function modifyColumn(
-		string $name,
-		string $type,
-		string $definition = ''
-	) : self {
-
-		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper
-
-
-		return $this;
-	}
-
-	/**
-	 * Add index.
-	 *
-	 * @param string       $name
-	 * @param string|array $columns
-	 * @param string       $type
-	 *
-	 * @return self
-	 */
-	public function addIndex( string $name, $columns, string $type = '' ) : self {
-
-		// @TODO: implement.
-
-		return $this;
-	}
-
-	/**
-	 * Drop index.
-	 *
-	 * @param string $name
-	 *
-	 * @return self
-	 */
-	public function dropIndex( string $name ) : self {
-
-		// @TODO: Maybe use SmartLicenseServer\Database\Migrations\Helpers\ConstraintHelper
-
-		return $this;
+	public function constraint() {
+		return new ConstraintHelper(
+			$this->dbal,
+			$this->queryBuilder,
+			$this->table
+		);
 	}
 
 	/**
 	 * Truncate table.
 	 *
-	 * @return self
+	 * @return static
 	 */
-	public function truncate() : self {
+	public function truncate( bool $restart = true, bool $cascade = false ) : static {
+		$sql = $this->queryBuilder
+			->truncate_table( $this->table )
+			->restart_identity( $restart )
+			->cascade( $cascade );
 
-		$sql = match ( $this->engine ) {
-			'mysql', 'pgsql'
-				=> "TRUNCATE TABLE {$this->quote($this->table)}",
-
-			'sqlite'
-				=> "DELETE FROM {$this->quote($this->table)}",
-
-			default
-				=> throw new \Exception( "Unsupported engine: {$this->engine}" )
-		};
-
-		$this->database->exec( $sql );
-
+		$this->dbal->exec( $sql->build() );
 		return $this;
 	}
 
 	/**
-	 * Set MySQL engine.
-	 *
-	 * @param string $engine
-	 *
-	 * @return self
+	 * Drop this table.
+	 * 
+	 * @param bool $exists_check
+	 * @return static Fluent
 	 */
-	public function setEngine( string $engine ) : self {
+	public function drop( bool $exists_check = true ) : static {
 
-		if ( $this->engine !== 'mysql' ) {
-			throw new \Exception( 'Setting engine is only supported in MySQL' );
+		$sql	= $this->queryBuilder
+			->drop_table( $this->table );
+		if ( $exists_check ) {
+			$sql->if_exists();
 		}
 
-		$sql = "ALTER TABLE {$this->quote($this->table)} ENGINE = {$engine}";
-		$this->database->exec( $sql );
+		$this->dbal->exec( $sql->build() );
 
 		return $this;
+
 	}
 
 	/**
-	 * Set charset/collation (MySQL only).
-	 *
-	 * @param string $charset
-	 * @param string $collation
-	 *
-	 * @return self
+	 * Drop index.
 	 */
-	public function setCharset( string $charset, string $collation = '' ) : self {
-
-		if ( $this->engine !== 'mysql' ) {
-			throw new \Exception( 'Setting charset is only supported in MySQL' );
-		}
-
-		$sql = "ALTER TABLE {$this->quote($this->table)} CONVERT TO CHARACTER SET {$charset}";
-
-		if ( $collation ) {
-			$sql .= " COLLATE {$collation}";
-		}
-
-		$this->database->exec( $sql );
+	public function drop_index( string $name ) :static {
+		$sql	= $this->queryBuilder
+			->alter_table( $this->table )
+			->drop_index( $name );
+		
+		$this->dbal->exec( $sql->build() );
 
 		return $this;
-	}
 
-	/**
-	 * Quote identifier.
-	 *
-	 * @param string $identifier
-	 *
-	 * @return string
-	 */
-	private function quote( string $identifier ) : string {
-		return match ( $this->engine ) {
-			'mysql'  => "`{$identifier}`",
-			'pgsql'  => "\"{$identifier}\"",
-			'sqlite' => "\"{$identifier}\"",
-			default  => $identifier
-		};
 	}
 }

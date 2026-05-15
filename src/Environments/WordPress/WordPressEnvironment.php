@@ -104,7 +104,7 @@ class WordPressEnvironment extends Environment {
         $filesystem_adapter = new WPFileSystemAdapter;
         $cache_adapter      = wp_using_ext_object_cache() ? new WPCacheAdapter : null;
         $settings_provider  = new WPSettingsProvider;
-        // $database_adapter   = new WPDBAdapter( $wpdb );
+        $database_adapter   = new WPDBAdapter( $wpdb );
         $rest_api_provider  = new RESTAPI( new V1 );
         $secret             = SECURE_AUTH_KEY;
         $salt               = SECURE_AUTH_SALT;
@@ -112,12 +112,12 @@ class WordPressEnvironment extends Environment {
 
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
         'filesystem_adapter', 'cache_adapter', 'settings_provider',
-        'rest_api_provider', 'secret', 'identity_provider', 'debug_mode', 'salt'
+        'rest_api_provider', 'secret', 'identity_provider', 'database_adapter', 'debug_mode', 'salt'
         
         );
 
         $this->dbConfig = new DBConfigDTO([
-            'driver'    => 'sqlite',
+            'driver'    => 'mysql',
             'host'      => DB_HOST,
             'port'      => 3306,
             'database'  => DB_NAME,

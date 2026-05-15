@@ -13,6 +13,7 @@ use SmartLicenseServer\Database\Query\QueryIntents\CreateTableIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\AlterTableIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\CreateIndexIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
+use SmartLicenseServer\Database\Query\QueryIntents\TruncateTableIntent;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Column;
 
@@ -169,6 +170,20 @@ class PostgreSQLRenderer extends AbstractQueryRenderer {
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function render_truncate_table( TruncateTableIntent $intent ) : string {
+        $quoted_tables = array_map( fn( $t ) => "\"{$t}\"", $intent->get_tables() );
+        $tables_list = implode( ', ', $quoted_tables );
+
+        $sql = "TRUNCATE TABLE {$tables_list}";
+        $sql .= $intent->should_restart_identity() ? " RESTART IDENTITY" : " CONTINUE IDENTITY";
+        $sql .= $intent->should_cascade() ? " CASCADE" : " RESTRICT";
+
+        return $sql . ";";
+    }
+
+    /**
      * Render a constraint or index for a CREATE TABLE definition.
      * 
      * @param Constraint $constraint
@@ -199,18 +214,19 @@ class PostgreSQLRenderer extends AbstractQueryRenderer {
         $payload = $op['payload'];
 
         return match ( "{$action}_{$subject}" ) {
-            'ADD_COLUMN'      => "ADD COLUMN " . $this->render_column_definition( $payload ),
-            'MODIFY_COLUMN'   => $this->render_pgsql_modify_column( $payload ),
-            'DROP_COLUMN'     => "DROP COLUMN " . $this->quote_identifier( $payload ),
-            'RENAME_COLUMN'   => sprintf(
+            'RENAME_TABLE'  => "RENAME TO " . $this->quote_identifier( $payload['to'] ),
+            'ADD_COLUMN'    => "ADD COLUMN " . $this->render_column_definition( $payload ),
+            'MODIFY_COLUMN' => $this->render_pgsql_modify_column( $payload ),
+            'DROP_COLUMN'   => "DROP COLUMN " . $this->quote_identifier( $payload ),
+            'RENAME_COLUMN' => sprintf(
                 "RENAME COLUMN %s TO %s",
                 $this->quote_identifier( $payload['from'] ),
                 $this->quote_identifier( $payload['to'] )
             ),
-            'ADD_CONSTRAINT'  => "ADD " . $this->render_constraint( $payload ),
-            'DROP_CONSTRAINT' => "DROP CONSTRAINT " . $this->quote_identifier( $payload ),
-            'DROP_INDEX'      => "DROP INDEX " . $this->quote_identifier( $payload ),
-            default           => throw new \RuntimeException( "PostgreSQL: Unsupported operation {$action}_{$subject}" )
+            'ADD_CONSTRAINT'    => "ADD " . $this->render_constraint( $payload ),
+            'DROP_CONSTRAINT'   => "DROP CONSTRAINT " . $this->quote_identifier( $payload ),
+            'DROP_INDEX'        => "DROP INDEX " . $this->quote_identifier( $payload ),
+            default             => throw new \RuntimeException( "PostgreSQL: Unsupported operation {$action}_{$subject}" )
         };
     }
 
@@ -276,12 +292,13 @@ class PostgreSQLRenderer extends AbstractQueryRenderer {
      * @return string
      */
     protected function render_foreign_key( Constraint $constraint ) : string {
-        $name    = $constraint->name ? 'CONSTRAINT ' . $this->quote_identifier( $constraint->name ) . ' ' : '';
         $columns = implode( ', ', $this->quote_identifiers( $constraint->columns ) );
         $ref_table = $this->quote_identifier( $constraint->references_table ?? '' );
         $ref_cols  = implode( ', ', $this->quote_identifiers( $constraint->references_columns ) );
+        $name    = $constraint->name ? $this->quote_identifier( $constraint->name ) : null;
 
-        $sql = "{$name}FOREIGN KEY ({$columns}) REFERENCES {$ref_table} ({$ref_cols})";
+        $sql    = $name ? "CONSTRAINT {$name} " : '';
+        $sql    .= "FOREIGN KEY ({$columns}) REFERENCES {$ref_table} ({$ref_cols})";
 
         if ( $constraint->on_delete ) $sql .= " ON DELETE " . strtoupper( $constraint->on_delete );
         if ( $constraint->on_update ) $sql .= " ON UPDATE " . strtoupper( $constraint->on_update );

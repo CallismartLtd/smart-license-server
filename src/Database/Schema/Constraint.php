@@ -71,6 +71,7 @@ class Constraint {
     public static function make( string $type ) : static {
         return new static( $type );
     }
+
     /**
      * Static factory for a UNIQUE constraint.
      * 
@@ -78,11 +79,11 @@ class Constraint {
      * @return static
      */
     public static function unique( ?string $name = null ) : static {
-        $instance = new static( 'unique' );
+        $static = new static( 'unique' );
         if ( $name ) {
-            $instance->name( $name );
+            $static->name( $name );
         }
-        return $instance;
+        return $static;
     }
 
     /**
@@ -92,11 +93,11 @@ class Constraint {
      * @return static
      */
     public static function foreign_key( ?string $name = null ) : static {
-        $instance = new static( 'foreign' );
+        $static = new static( 'foreign' );
         if ( $name ) {
-            $instance->name( $name );
+            $static->name( $name );
         }
-        return $instance;
+        return $static;
     }
 
     /**
@@ -106,11 +107,27 @@ class Constraint {
      * @return static
      */
     public static function primary( ?string $name = null ) : static {
-        $instance = new static( 'primary' );
+        $static = new static( 'primary' );
         if ( $name ) {
-            $instance->name( $name );
+            $static->name( $name );
         }
-        return $instance;
+        return $static;
+    }
+
+    /**
+     * Static factory for index constraint.
+     * 
+     * @param string $name
+     * @return static Fluent.
+     */
+    public static function index( ?string $name = null ) : static {
+        $static   = new static( 'index' );
+
+        if ( $name ) {
+            $static->name( $name );
+        }
+
+        return $static;
     }
 
     /**

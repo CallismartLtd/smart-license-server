@@ -46,6 +46,24 @@ class AlterTableIntent {
     }
 
     /**
+     * Rename this table.
+     * 
+     * @param string $new_name The new name of the table.
+     * @return static Fluent
+     */
+    public function rename( string $new_name ) : static {
+        $this->operations[] = [
+            'action'  => 'RENAME',
+            'subject' => 'TABLE',
+            'payload' => [
+                'to'   => $new_name,
+            ],
+        ];
+
+        return $this;
+    }
+
+    /**
      * Add a column and an optional constraint as separate operations.
      * 
      * By splitting these, the Renderer receives clean, individual DTOs
