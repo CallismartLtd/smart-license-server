@@ -296,7 +296,7 @@ class WordPressEnvironment extends Environment {
      * @since 0.2.0
      */
     public function disable_redirect_on_downloads( $redirect_url, $requested_url ) {
-        $download_slug = $this->url( smliser_get_download_url_prefix() );
+        $download_slug = (string) $this->url( smliser_get_download_url_prefix() );
         if ( strpos( $requested_url, $download_slug ) !== false ) {
             return false;
         }
