@@ -154,7 +154,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
 
         if ( ! empty( $params ) ) {
             foreach ( $params as $i => $value ) {
-                $stmt->bindValue( $i + 1, $value, $this->get_sqlite_type( $value ) );
+                $stmt->bindValue( $i + 1, $value, $this->get_type( $value ) );
             }
         }
 
@@ -179,7 +179,7 @@ class SqliteAdapter implements DatabaseAdapterInterface {
      * @param mixed $value The value to check.
      * @return int SQLITE3 constant (INTEGER, FLOAT, TEXT, NULL, or BLOB).
      */
-    protected function get_sqlite_type( $value ) : int {
+    protected function get_type( $value ) : int {
         if ( is_int( $value ) ) return SQLITE3_INTEGER;
         if ( is_float( $value ) ) return SQLITE3_FLOAT;
         if ( is_null( $value ) ) return SQLITE3_NULL;
@@ -340,38 +340,17 @@ class SqliteAdapter implements DatabaseAdapterInterface {
     }
 
     /**
-     * Get the SQLite library version.
-     *
-     * @return string Version string (e.g., "3.34.0").
+     * {@inheritdoc}
      */
-    public function get_server_version() : string {
-        $version = SQLite3::version();
-        return $version['versionString'] ?? '0.0.0';
-    }
-
-    /**
-     * Get the database engine name.
-     *
-     * @return string 'sqlite'.
-     */
-    public function get_engine_type() : string {
+    public function get_driver() : string {
         return 'sqlite';
     }
 
     /**
      * {@inheritdoc}
-     *
-     * @return string The path to the database file or ':memory:'.
      */
-    public function get_host_info()  : string {
-        return 'SQLite3 Native: ' . ($this->config['database'] ?? ':memory:');
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function get_protocol_version() : string {
-        return 'N/A (File-based)';
+    public function get_config() : DBConfigDTO {
+        return $this->config;
     }
 
     /**
@@ -429,89 +408,10 @@ class SqliteAdapter implements DatabaseAdapterInterface {
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function get_all_tables() : array {
-        $query  = "SELECT name FROM sqlite_master  WHERE type = 'table'
-            AND name NOT LIKE 'sqlite_%'";
-        $results    = $this->sqlite->query( $query );
-
-        if ( false === $results ) {
-            return [];
-        }
-
-        $table_names    = [];
-
-        while( $result = $results->fetchArray( \SQLITE3_ASSOC ) ) {
-            $table_names[] = $result['name'];
-        }
-
-        return $table_names;
-    }
-
-    /**
-     * Check if a table exists.
-     */
-    public function table_exists( string $table ): bool {
-        if ( ! $this->ensure_connection() ) return false;
-
-        $query = "SELECT name FROM sqlite_master WHERE type='table' AND name = ?";
-        return null !== $this->get_var( $query, [$table] );
-    }
-
-    /**
-     * Check if a column exists in a table.
-     */
-    public function column_exists( string $table, string $column ): bool {
-        if ( ! $this->ensure_connection() ) return false;
-
-        $query = "PRAGMA table_info($table)";
-        $columns = $this->get_results( $query );
-
-        foreach ( $columns as $col ) {
-            if ( ( $col['name'] ?? null ) === $column ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Get column type.
-     */
-    public function get_column_type( string $table, string $column ): ?string {
-        if ( ! $this->ensure_connection() ) return null;
-
-        $query = "PRAGMA table_info($table)";
-        $columns = $this->get_results( $query );
-
-        foreach ( $columns as $col ) {
-            if ( ( $col['name'] ?? null ) === $column ) {
-                return $col['type'] ?? null;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Get all columns in a table.
-     */
-    public function get_columns( string $table ): array {
-        if ( ! $this->ensure_connection() ) return [];
-
-        $query = "PRAGMA table_info($table)";
-        $columns = $this->get_results( $query );
-
-        return array_map( fn( $col ) => $col['name'], $columns );
-    }
-
-    /**
      * Check connection state.
      */
     public function is_connected(): bool {
-        return $this->sqlite instanceof \SQLite3;
+        return isset( $this->sqlite ) && $this->sqlite instanceof \SQLite3;
     }
 
     protected function ensure_connection() : bool {

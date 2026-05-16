@@ -9,7 +9,7 @@ class MySQLCompositeRenderer implements CompositeRenderer {
     /**
      * Render UNION query.
      *
-     * @param SQLBuilder[] $queries
+     * @param \SmartLicenseServer\Database\Query\SQLBuilder[] $queries
      * @param string       $type
      * @param array        $intent
      *

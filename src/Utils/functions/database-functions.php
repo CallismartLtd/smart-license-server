@@ -21,14 +21,14 @@ function smliser_db() : \SmartLicenseServer\Database\Database {
  * @return SQLBuilder Instance of the SQLBuilder class.
  */
 function smliserQueryBuilder() : SQLBuilder{
-    return new SQLBuilder( smliser_db()->get_engine_type() );
+    return new SQLBuilder( smliser_db()->get_driver() );
 }
 
 /**
  * Get the composite query builder instance.
  */
 function smliserCompositeQueryBuilder() : CompositeSQLBuilder {
-    return new CompositeSQLBuilder( smliser_db()->get_engine_type() );
+    return new CompositeSQLBuilder( smliser_db()->get_driver() );
 }
 
 /**

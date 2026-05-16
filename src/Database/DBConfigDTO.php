@@ -16,19 +16,37 @@ use Callismart\DTO\DTO;
 /**
  * Database configuration data transfer object.
  *
- * Provides a unified configuration container for all supported
- * database adapters including MySQL, PDO, WordPress wpdb,
- * Laravel database manager, and SQLite.
- *
  * Sensitive credentials are automatically protected from
  * exposure through debugging or serialization.
+ * 
+ * @property string  $driver    The database adapter engine target (e.g., 'mysql', 'sqlite', 'pgsql').
+ * @property ?string $host      The database server network hostname or IP address.
+ * @property ?string $port      The database server network communication port.
+ * @property ?string $database  The name of the target database or schema.
+ * @property ?string $username  The connection authentication identity string.
+ * @property ?string $password  The connection authentication credential secret.
+ * @property ?string $charset   The text character encoding layout specification.
+ * @property ?string $collation The text string sorting and comparison criteria rule.
+ * @property ?string $prefix    The database engine table namespace identifier prefix.
+ * @property ?string $socket    The local system IPC Unix socket connection endpoint path.
+ * @property ?string $path      The file-system target path for isolated file-based databases.
+ * @property ?string $dsn       A raw engine connection string override used to bypass default parameterization.
+ * @property ?array  $flags     Engine-specific runtime connection attributes or configuration options.
+    * @property ?array  $ssl        SSL deployment options and authority certificates mapping.
+ * @property ?string $sslmode    SSL transmission enforcement tier (PostgreSQL/MySQL).
+ * @property ?bool   $strict     Enforcement behavior rule modifier for SQL execution modes.
+ * @property ?bool   $persistent Connection reuse strategy persistence indicator flag.
+ * @property ?int    $timeout    Temporal boundary restriction constraint for connection limits.
+ * @property ?array  $read       High-availability routing configuration metrics for read replicas.
+ * @property ?array  $write      High-availability routing configuration metrics for write primaries.
+ * @property ?bool   $sticky     Immediate transactional lookup mapping flag for replica routing.
  */
 final class DBConfigDTO extends DTO {
 
     /**
      * Allowed configuration keys.
      *
-     * Supports both network databases and file-based SQLite databases.
+     * Supports network databases, cluster architectures, and file-based storage.
      *
      * @return string[]
      */
@@ -44,9 +62,17 @@ final class DBConfigDTO extends DTO {
             'collation',
             'prefix',
             'socket',
-            'path',        // SQLite database file
-            'dsn',         // Optional DSN override
-            'flags',       // PDO options
+            'path',
+            'dsn',
+            'flags',
+            'ssl',
+            'sslmode',
+            'strict',
+            'persistent',
+            'timeout',     
+            'read',
+            'write',       
+            'sticky',
         ];
     }
 

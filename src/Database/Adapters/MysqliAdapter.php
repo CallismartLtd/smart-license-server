@@ -488,42 +488,17 @@ class MysqliAdapter implements DatabaseAdapterInterface {
     }
 
     /**
-     * Get the database server version.
-     *
-     * @return string|null The server version (e.g., "8.0.32", "15.1").
+     * {@inheritdoc}
      */
-    public function get_server_version() : ?string {
-        $this->ensure_connection();
-        return $this->mysqli ? $this->mysqli->server_info : null;
-    }
-
-    /**
-     * Get the database engine/driver name.
-     *
-     * @return string Lowercase name of the engine.
-     */
-    public function get_engine_type() : string {
+    public function get_driver() : string {
         return 'mysql';
     }
 
     /**
-     * Get information about the connection host.
-     *
-     * @return string|null Information like host IP or connection method.
+     * {@inheritdoc}
      */
-    public function get_host_info() : ?string {
-        $this->ensure_connection();
-
-        return $this->mysqli ? $this->mysqli->host_info : null;
-    }
-
-    /**
-     * Get the protocol version.
-     * * @return int|null
-     */
-    public function get_protocol_version() : string {
-        $this->ensure_connection();
-        return $this->mysqli ? (string) $this->mysqli->protocol_version : '0.0.0';
+    public function get_config() : DBConfigDTO {
+        return $this->config;
     }
 
     /**
@@ -574,100 +549,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
      * @return bool
      */
     public function is_connected(): bool {
-        return $this->mysqli instanceof mysqli;
+        return isset( $this->mysqli ) && $this->mysqli instanceof mysqli;
     }
 
-    /*
-    |------------------
-    | INTROSPECTION
-    |------------------
-    */
-
-    /**
-     * {@inheritdoc}
-     */
-    public function get_all_tables() : array {
-        $sql    = "SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = DATABASE() 
-        AND table_type = 'BASE TABLE'";
-
-        return $this->get_results( $sql );
-    }
-
-    /**
-     * Check if a table exists.
-     *
-     * @param string $table
-     * @return bool
-     */
-    public function table_exists( string $table ): bool {
-        $query = "
-            SELECT 1 
-            FROM information_schema.tables 
-            WHERE table_schema = DATABASE() 
-            AND table_name = ?
-            LIMIT 1
-        ";
-
-        return null !== $this->get_var( $query, [ $table ] );
-    }
-
-    /**
-     * Check if a column exists in a table.
-     *
-     * @param string $table
-     * @param string $column
-     * @return bool
-     */
-    public function column_exists( string $table, string $column ): bool {
-        $query = "
-            SELECT 1 
-            FROM information_schema.columns 
-            WHERE table_schema = DATABASE() 
-            AND table_name = ? 
-            AND column_name = ?
-            LIMIT 1
-        ";
-
-        return null !== $this->get_var( $query, [ $table, $column ] );
-    }
-
-    /**
-     * Get the type of a column.
-     *
-     * @param string $table
-     * @param string $column
-     * @return string|null
-     */
-    public function get_column_type( string $table, string $column ): ?string {
-        $query = "
-            SELECT column_type 
-            FROM information_schema.columns 
-            WHERE table_schema = DATABASE() 
-            AND table_name = ? 
-            AND column_name = ?
-            LIMIT 1
-        ";
-
-        return $this->get_var( $query, [ $table, $column ] );
-    }
-
-    /**
-     * Get all columns in a table.
-     *
-     * @param string $table
-     * @return array
-     */
-    public function get_columns( string $table ): array {
-        $query = "
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_schema = DATABASE() 
-            AND table_name = ?
-            ORDER BY ordinal_position
-        ";
-
-        return $this->get_col( $query, [ $table ] );
-    }
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * The Database Manager class file.
+ * The Database Abstraction file.
  *
  * @package SmartLicenseServer\Database\Adapters
  * @since 0.2.0
@@ -11,11 +11,13 @@ namespace SmartLicenseServer\Database;
 use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
 
 /**
- * Provides a unified database access layer across different environments.
+ * Database abstraction API.
  *
  * Database singleton class for Smart License Server.
  *
  * Acts as a proxy to the environment-specific database adapter.
+ * 
+ * @todo Use the inspection API for system report.
  *
  * @method array|null get_row( string $query, array $params = [] ) Retrieve a single row as an associative array.
  * @method array get_results( string $query, array $params = [] ) Retrieve multiple rows as an array of associative arrays.
@@ -37,15 +39,11 @@ use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
  * @method bool execute( string $query, array $params = [] ) Execute a parameterized query and return the number of affected rows.
  *
  * @method string get_server_version() Get the database server version.
- * @method string get_engine_type() Get the engine type (mysql, sqlite, etc).
+ * @method string get_driver() Get the engine type (mysql, sqlite, etc).
  * @method string|null get_host_info() Get connection host information.
  * @method string|int|null get_protocol_version() Get the database protocol version.
+ * @method \SmartLicenseServer\Database\DBConfigDTO get_config() Get the database protocol version.
  *
- * @method array get_all_tables() Retrieve a list of all tables in the current database.
- * @method bool table_exists( string $table ) Check if a table exists.
- * @method bool column_exists( string $table, string $column ) Check if a column exists in a table.
- * @method string|null get_column_type( string $table, string $column ) Get the type of a column.
- * @method array get_columns( string $table ) Get all columns in a table.
  * @method bool is_connected() Check whether the database connection is alive.
  */
 class Database {
@@ -133,7 +131,10 @@ class Database {
      * @return string SQL fragment for charset and collation.
      */
     public function get_charset_collate() {
-        if ( \in_array( $this->get_engine_type(), ['pgsql', 'sqlite'] ) ) {
+        // @todo: Will use the schema inspection API as some relayed method calls
+        // to the adapter interface has been removed
+        
+        if ( 'mysql' !== $this->get_driver() ) {
             return '';
         }
 
@@ -162,8 +163,10 @@ class Database {
      * }
      */
     public function get_system_report() {
+        // @todo: Will use the schema inspection API as some relayed method calls
+        // to the adapter interface has been removed
         return [
-            'engine'           => $this->get_engine_type(),
+            'engine'           => $this->get_driver(),
             'server_version'   => $this->get_server_version(),
             'protocol_version' => $this->get_protocol_version(),
             'host_info'        => $this->get_host_info(),

@@ -7,7 +7,7 @@
  * @since 0.2.0
  */
 
-namespace SmartLicenseServer\Database\Migrations;
+namespace SmartLicenseServer\Database\Inspection;
 
 use SmartLicenseServer\Database\Database;
 
@@ -111,68 +111,6 @@ class SchemaInspector {
     }
 
     /**
-     * Get the storage engine of the table (MySQL only).
-     *
-     * @return string|null The engine name (e.g., 'InnoDB'), or null if not available
-     */
-    public function engine() : ?string {
-        if ( 'mysql' !== $this->database->get_engine() ) {
-            return null;
-        }
-
-        try {
-            $query = "SELECT engine FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?";
-            return $this->database->get_var( $query, [ $this->table ] );
-        } catch ( \Exception $e ) {
-            return null;
-        }
-    }
-
-    /**
-     * Get the charset of the table (MySQL only).
-     *
-     * @return string|null The charset (e.g., 'utf8mb4'), or null if not available
-     *
-     * @example
-     * $charset = $migration->inspect('licenses')->charset();
-     * // Returns: 'utf8mb4'
-     */
-    public function charset() : ?string {
-        if ( 'mysql' !== $this->database->get_engine() ) {
-            return null;
-        }
-
-        try {
-            $query = "SELECT character_set_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?";
-            return $this->database->get_var( $query, [ $this->table ] );
-        } catch ( \Exception $e ) {
-            return null;
-        }
-    }
-
-    /**
-     * Get the collation of the table (MySQL only).
-     *
-     * @return string|null The collation (e.g., 'utf8mb4_unicode_ci'), or null if not available
-     *
-     * @example
-     * $collation = $migration->inspect('licenses')->collation();
-     * // Returns: 'utf8mb4_unicode_ci'
-     */
-    public function collation() : ?string {
-        if ( 'mysql' !== $this->database->get_engine() ) {
-            return null;
-        }
-
-        try {
-            $query = "SELECT table_collation FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?";
-            return $this->database->get_var( $query, [ $this->table ] );
-        } catch ( \Exception $e ) {
-            return null;
-        }
-    }
-
-    /**
      * Check if an index exists on the table.
      *
      * @param string $index_name The index name
@@ -185,7 +123,7 @@ class SchemaInspector {
      * }
      */
     public function hasIndex( string $index_name ) : bool {
-        $engine = $this->database->get_engine();
+        $engine = $this->database->get_driver();
 
         try {
             switch ( $engine ) {
@@ -225,30 +163,8 @@ class SchemaInspector {
             $query = "SELECT COUNT(*) FROM {$this->table}";
             $result = $this->database->get_var( $query );
             return (int) $result;
-        } catch ( \Exception $e ) {
+        } catch ( \Exception ) {
             return 0;
-        }
-    }
-
-    /**
-     * Get the table size in bytes (MySQL only).
-     *
-     * @return int|null The size in bytes, or null if not available
-     *
-     * @example
-     * $size = $migration->inspect('licenses')->tableSize();
-     */
-    public function tableSize() : ?int {
-        if ( 'mysql' !== $this->database->get_engine() ) {
-            return null;
-        }
-
-        try {
-            $query = "SELECT (data_length + index_length) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?";
-            $result = $this->database->get_var( $query, [ $this->table ] );
-            return null === $result ? null : (int) $result;
-        } catch ( \Exception $e ) {
-            return null;
         }
     }
 }

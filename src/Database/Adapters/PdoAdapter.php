@@ -25,7 +25,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
      *
      * @var PDO|null
      */
-    protected $pdo;
+    public ?PDO $pdo;
 
     /**
      * Configuration settings for the PDO connection.
@@ -77,11 +77,11 @@ class PdoAdapter implements DatabaseAdapterInterface {
 
         try {
             $dsn = sprintf(
-                '%s:host=%s;dbname=%s;charset=%s',
+                '%s:host=%s;dbname=%s;',
                 $this->config->driver,
                 $this->config->host,
                 $this->config->database,
-                $this->config->charset
+                // $this->config->charset
             );
 
             $flags  = (array) $this->config->flags ?? [
@@ -431,47 +431,18 @@ class PdoAdapter implements DatabaseAdapterInterface {
     }
 
     /**
-     * Get the database server version.
-     *
-     * @return string The server version (e.g., "8.0.32", "15.1").
+     * {@inheritdoc}
      */
-    public function get_server_version() : string {
+    public function get_driver() : string {
         $this->ensure_connection();
-
-        return $this->pdo ? (string) $this->pdo->getAttribute( PDO::ATTR_SERVER_VERSION ) : '0.0.0';
+        return $this->is_connected() ? (string) $this->pdo->getAttribute( PDO::ATTR_DRIVER_NAME ) : 'unknown';
     }
 
     /**
-     * Get the database engine/driver name.
-     *
-     * @return string Lowercase name of the engine (e.g., "mysql", "pgsql", "sqlite").
+     * {@inheritdoc}
      */
-    public function get_engine_type() : string {
-        $this->ensure_connection();
-        return $this->pdo ? (string) $this->pdo->getAttribute( PDO::ATTR_DRIVER_NAME ) : 'unknown';
-    }
-
-    /**
-     * Get information about the connection host.
-     *
-     * @return string Information like host IP or connection method (TCP/IP, Socket).
-     */
-    public function get_host_info() : string {
-        $this->ensure_connection();
-
-        return $this->pdo ? (string) $this->pdo->getAttribute( PDO::ATTR_CONNECTION_STATUS ) : 'disconnected';
-    }
-    
-    public function get_protocol_version() : string {
-        if ( ! $this->ensure_connection() ) {
-            return '0.0.0';
-        }
-        
-        $info = $this->pdo->getAttribute( PDO::ATTR_SERVER_INFO );
-        if ( preg_match('/Proto: (\d+)/', $info, $matches ) ) {
-            return $matches[1];
-        }
-        return 'N/A';
+    public function get_config() : DBConfigDTO {
+        return $this->config;
     }
 
     /**
@@ -508,56 +479,9 @@ class PdoAdapter implements DatabaseAdapterInterface {
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function get_all_tables(): array {
-        return $this->get_col("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'");
-    }
-
-    /**
-     * Check if a table exists.
-     */
-    public function table_exists( string $table ): bool {
-        if ( ! $this->pdo ) return false;
-
-        $query = "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?";
-        return null !== $this->get_var( $query, [$table] );
-    }
-
-    /**
-     * Check if a column exists.
-     */
-    public function column_exists( string $table, string $column ): bool {
-        if ( ! $this->pdo ) return false;
-
-        $query = "SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?";
-        return null !== $this->get_var( $query, [$table, $column] );
-    }
-
-    /**
-     * Get column type.
-     */
-    public function get_column_type( string $table, string $column ): ?string {
-        if ( ! $this->pdo ) return null;
-
-        $query = "SELECT column_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?";
-        return $this->get_var( $query, [$table, $column] );
-    }
-
-    /**
-     * Get all columns in a table.
-     */
-    public function get_columns( string $table ): array {
-        if ( ! $this->pdo ) return [];
-
-        $query = "SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? ORDER BY ordinal_position";
-        return $this->get_col( $query, [$table] ) ?? [];
-    }
-
-    /**
      * Check connection state.
      */
     public function is_connected(): bool {
-        return $this->pdo instanceof \PDO;
+        return isset( $this->pdo ) && $this->pdo instanceof \PDO;
     }
 }

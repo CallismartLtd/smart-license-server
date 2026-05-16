@@ -1,21 +1,20 @@
 <?php
 /**
- * Interface file for database adapter contracts.
- *
- * Defines a standard database interaction API that all
- * environment-specific adapters (WordPress, Laravel, native PHP, etc.)
- * must implement for the Smart License Server plugin.
- *
- * @package SmartLicenseServer\Interfaces
+ * Database Adapter interface file.
+ * 
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Database
  */
 
 namespace SmartLicenseServer\Database\Adapters;
 
+use SmartLicenseServer\Database\DBConfigDTO;
+
 /**
- * Database Adapter Interface
- *
- * This interface provides a unified contract for database access across
- * different PHP environments.
+ * Database adapter contracts.
+ * 
+ * Provides a unified API to execute database queries regardless of the
+ * database engine.
  */
 interface DatabaseAdapterInterface {
 
@@ -154,84 +153,23 @@ interface DatabaseAdapterInterface {
     public function get_last_error();
 
     /**
-     * Get the database server version.
-     *
-     * @return string The server version (e.g., "8.0.32", "15.1").
-     */
-    public function get_server_version();
-
-    /**
-     * Get the database engine/driver name.
-     *
-     * @return string Lowercase name of the engine (e.g., "mysql", "pgsql", "sqlite").
-     */
-    public function get_engine_type();
-
-    /**
-     * Get information about the connection host.
-     *
-     * @return string Information like host IP or connection method (TCP/IP, Socket).
-     */
-    public function get_host_info();
-
-    /**
-     * Retrieve the database protocol version.
-     *
-     * @return string|int|null The protocol version, or null if not applicable/available.
-     */
-    public function get_protocol_version();
-
-    /**
-     * ----------------------------------------
-     * SCHEMA INTROSPECTION
-     * ----------------------------------------
-     */
-
-    /**
-     * Retrieve a list of all tables in the current database.
-     * 
-     * @return array List of table names.
-     */
-    public function get_all_tables(): array;
-
-    /**
-     * Check if a table exists.
-     *
-     * @param string $table Table name.
-     * @return bool True if the table exists.
-     */
-    public function table_exists(string $table): bool;
-
-    /**
-     * Check if a column exists in a table.
-     *
-     * @param string $table  Table name.
-     * @param string $column Column name.
-     * @return bool True if the column exists.
-     */
-    public function column_exists(string $table, string $column): bool;
-
-    /**
-     * Get the type of a column.
-     *
-     * @param string $table  Table name.
-     * @param string $column Column name.
-     * @return string|null Column type or null if not found.
-     */
-    public function get_column_type(string $table, string $column): ?string;
-
-    /**
-     * Get all columns in a table.
-     *
-     * @param string $table Table name.
-     * @return array List of column names.
-     */
-    public function get_columns(string $table): array;
-
-    /**
      * Check whether the database connection is alive.
      *
      * @return bool
      */
     public function is_connected(): bool;
+
+    /**
+     * Get the database driver string.
+     * 
+     * @return string
+     */
+    public function get_driver() : string;
+
+    /**
+     * Get database configuration object.
+     * 
+     * @return DBConfigDTO
+     */
+    public function get_config() : DBConfigDTO;
 }

@@ -90,7 +90,7 @@ final class IdentityService extends AbstractIdentityProvider {
             return false;
         }
 
-        return $this->add( $user->get_id(), $this->issuer(), $wp_user_id );
+        return $this->add( $user->get_id(), $this->issuer(), (string) $wp_user_id );
     }
 
     /**
@@ -219,8 +219,8 @@ final class IdentityService extends AbstractIdentityProvider {
 
         $wp_user = wp_get_current_user();
         $issuer = $this->issuer();
-        $wp_user_id = (string) $wp_user->ID;
-        $actor = $this->find_actor( $issuer, $wp_user_id );
+        $wp_user_id = $wp_user->ID;
+        $actor = $this->find_actor( $issuer, (string) $wp_user_id );
 
         if ( $actor ) {
             return;
@@ -452,7 +452,7 @@ final class IdentityService extends AbstractIdentityProvider {
             }
         }
 
-        if ( ! $this->find_actor( $this->issuer(), $wp_user->ID ) ) {
+        if ( ! $this->find_actor( $this->issuer(), (string) $wp_user->ID ) ) {
             $this->sync_user( $wp_user->ID, $user );
         }
 

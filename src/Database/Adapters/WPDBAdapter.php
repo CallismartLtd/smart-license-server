@@ -10,6 +10,7 @@
 
 namespace SmartLicenseServer\Database\Adapters;
 
+use SmartLicenseServer\Database\DBConfigDTO;
 use wpdb;
 
 /**
@@ -277,9 +278,30 @@ class WPDBAdapter implements DatabaseAdapterInterface {
      *
      * @return string
      */
-    public function get_engine_type() {
+    public function get_driver() : string {
         // WordPress is historically MySQL-based.
         return 'mysql';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get_config() : DBConfigDTO {
+        static $config;
+
+        if ( ! isset( $config ) ) {
+            $config = new DBConfigDTO([
+                'driver'    => 'mysql',
+                'host'      => $this->wpdb->dbhost,
+                'port'      => 3306,
+                'database'  => $this->wpdb->dbname,
+                'username'  => $this->wpdb->dbuser,
+                'password'  => $this->wpdb->dbpassword,
+                'charset'   => $this->wpdb->charset,
+            ]);
+        }
+
+        return $config;
     }
 
     /**
