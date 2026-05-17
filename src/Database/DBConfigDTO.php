@@ -22,7 +22,7 @@ use Callismart\DTO\DTO;
  * @property string  $driver    The database adapter engine target (e.g., 'mysql', 'sqlite', 'pgsql').
  * @property ?string $host      The database server network hostname or IP address.
  * @property ?string $port      The database server network communication port.
- * @property ?string $database  The name of the target database or schema.
+ * @property ?string $dbname    The name of the target database or schema.
  * @property ?string $username  The connection authentication identity string.
  * @property ?string $password  The connection authentication credential secret.
  * @property ?string $charset   The text character encoding layout specification.
@@ -55,7 +55,7 @@ final class DBConfigDTO extends DTO {
             'driver',      // mysql | sqlite | pgsql | etc
             'host',
             'port',
-            'database',
+            'dbname',
             'username',
             'password',
             'charset',

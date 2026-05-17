@@ -156,7 +156,7 @@ class ConstraintHelper {
 	 * @return static
 	 */
 	public function drop( string $name ) : static {
-		$engine = $this->dbal->get_engine_type();
+		$engine = $this->dbal->get_driver();
 
 		if ( 'sqlite' === $engine ) {
 			$this->sqlite_drop_constraint( $name );
@@ -183,7 +183,7 @@ class ConstraintHelper {
 	 * @return static
 	 */
 	public function drop_foreign_key( string $name ) : static {
-		$engine = $this->dbal->get_engine_type();
+		$engine = $this->dbal->get_driver();
 
 		switch( $engine ) {
 			case 'pgsql':
@@ -208,7 +208,7 @@ class ConstraintHelper {
 	 * @return static Fluent.
 	 */
 	public function add_constraint( Constraint $constraint ) : static {
-		$engine = $this->dbal->get_engine_type();
+		$engine = $this->dbal->get_driver();
 
 		if ( 'sqlite' === $engine ) {
 			$this->sqlite_add_constraint( $constraint );

@@ -78,11 +78,17 @@ class SqliteAdapter implements DatabaseAdapterInterface {
 
         try {
             $path       = $this->config->path;
+            $dbname     = $this->config->dbname;
+            $filename   = "$path/$dbname.db";
 
             $flags      = $this->config->flags ?? ( SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE );
             $encryption = $this->config->encryption_key ?? '';
 
-            $this->sqlite = new SQLite3( $path, (int) $flags, $encryption );
+            $this->sqlite = new SQLite3( $filename, (int) $flags, $encryption );
+            $this->sqlite->busyTimeout( 5000 );
+            
+            $this->sqlite->exec( "PRAGMA temp_store   = MEMORY;" );
+            $this->sqlite->exec( "PRAGMA mmap_size    = 268435456;" );
             $this->sqlite->exec( 'PRAGMA journal_mode=WAL;' );
             $this->sqlite->exec( 'PRAGMA synchronous=NORMAL;' );
             return true;

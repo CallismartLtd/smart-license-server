@@ -78,7 +78,9 @@ class MysqliAdapter implements DatabaseAdapterInterface {
             $this->config->host,
             $this->config->username,
             $this->config->password,
-            $this->config->database
+            $this->config->dbname,
+            $this->config->port,
+            $this->config->socket
         );
 
         if ( $mysqli->connect_error ) {

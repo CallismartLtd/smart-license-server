@@ -22,7 +22,7 @@ final class DeleteIntentTest extends TestCase {
             ->where_null( 'last_checked' )
             ->or_where( 'id', '<', 100 );
 
-        $engine = smliser_db()->get_engine_type();
+        $engine = smliser_db()->get_driver();
 
         if ( $engine === 'mysql' ) {
 

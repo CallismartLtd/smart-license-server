@@ -89,19 +89,13 @@ class UsersSchema implements DatabaseSchemaInterface {
      */
     public static function get_constraints() : array {
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::primary()->on( 'id' ),
 
-            Constraint::make( 'unique' )
-                ->name( 'smliser_users_email_unique' )
-                ->on( 'email' ),
+            Constraint::unique( 'smliser_users_email_unique' )->on( 'email' ),
 
-            Constraint::make( 'index' )
-                ->name( 'smliser_users_created_at' )
-                ->on( 'created_at' ),
+            Constraint::index( 'smliser_users_created_at' )->on( 'created_at' ),
 
-            Constraint::make( 'index' )
-                ->name( 'smliser_users_updated_at' )
-                ->on( 'updated_at' ),
+            Constraint::index( 'smliser_users_updated_at' )->on( 'updated_at' ),
         ];
     }
 }

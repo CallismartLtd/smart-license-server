@@ -43,7 +43,7 @@ class TableHelper {
 		private SQLBuilder $queryBuilder, 
 		private string $table 
 	) {
-		$this->engine   = $dbal->get_engine_type();
+		$this->engine   = $dbal->get_driver();
 	}
 
 	/**

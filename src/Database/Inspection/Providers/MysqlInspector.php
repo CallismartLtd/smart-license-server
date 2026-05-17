@@ -66,7 +66,7 @@ class MysqlInspector extends AbstractInspector {
 	protected function sql_all_tables(): string {
 		return sprintf(
 			"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '%s' AND TABLE_TYPE = 'BASE TABLE'",
-			addslashes( $this->database )
+			addslashes( $this->db_name() )
 		);
 	}
 
@@ -76,7 +76,7 @@ class MysqlInspector extends AbstractInspector {
 	protected function sql_table_exists( string $table ): string {
 		return sprintf(
 			"SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' LIMIT 1",
-			addslashes( $this->database ),
+			addslashes( $this->db_name() ),
 			addslashes( $table )
 		);
 	}
@@ -87,7 +87,7 @@ class MysqlInspector extends AbstractInspector {
 	protected function sql_column_exists( string $table, string $column ): string {
 		return sprintf(
 			"SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' AND COLUMN_NAME = '%s' LIMIT 1",
-			addslashes( $this->database ),
+			addslashes( $this->db_name() ),
 			addslashes( $table ),
 			addslashes( $column )
 		);
@@ -107,11 +107,25 @@ class MysqlInspector extends AbstractInspector {
 			FROM INFORMATION_SCHEMA.COLUMNS
 			WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s'
 			ORDER BY ORDINAL_POSITION",
-			addslashes( $this->database ),
+			addslashes( $this->db_name() ),
 			addslashes( $table )
 		);
 	}
 
+	/**
+	 * Override of InspectionInterface::is_column_nullable()
+	 */
+	public function is_column_nullable( string $table, string $column ): ?bool {
+		$rows = $this->execute_query( $this->sql_column_details( $table ) );
+
+		foreach ( $rows as $row ) {
+			if ( $row['column_name'] === $column ) {
+				return $row['is_nullable'] === 'YES';
+			}
+		}
+
+		return null;
+	}
 	/**
 	 * Get column details with auto_increment detection.
 	 * 
@@ -135,6 +149,18 @@ class MysqlInspector extends AbstractInspector {
 	}
 
 	/**
+	 * {@inheritdoc}
+	 */
+	public function has_index( string $table, string $index_name ) : bool {
+		$sql	= "SELECT INDEX_NAME FROM information_schema.statistics
+		WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ? LIMIT 1;";
+		
+		$result	= $this->dbal->get_var( $sql, [$table, $index_name ] );
+		
+		return $result ? true : false;
+	}
+
+	/**
 	 * Get indexes.
 	 */
 	protected function sql_indexes( string $table ): string {
@@ -147,7 +173,7 @@ class MysqlInspector extends AbstractInspector {
 			FROM INFORMATION_SCHEMA.STATISTICS
 			WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' AND INDEX_NAME != 'PRIMARY'
 			ORDER BY INDEX_NAME, SEQ_IN_INDEX",
-			addslashes( $this->database ),
+			addslashes( $this->db_name() ),
 			addslashes( $table )
 		);
 	}
@@ -163,7 +189,7 @@ class MysqlInspector extends AbstractInspector {
 			FROM INFORMATION_SCHEMA.STATISTICS
 			WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' AND INDEX_NAME = 'PRIMARY'
 			ORDER BY SEQ_IN_INDEX",
-			addslashes( $this->database ),
+			addslashes( $this->db_name() ),
 			addslashes( $table )
 		);
 	}
@@ -181,7 +207,7 @@ class MysqlInspector extends AbstractInspector {
 			FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
 			WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' AND REFERENCED_TABLE_NAME IS NOT NULL
 			ORDER BY CONSTRAINT_NAME, ORDINAL_POSITION",
-			addslashes( $this->database ),
+			addslashes( $this->db_name() ),
 			addslashes( $table )
 		);
 	}
@@ -200,7 +226,7 @@ class MysqlInspector extends AbstractInspector {
 			FROM INFORMATION_SCHEMA.STATISTICS
 			WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' AND NON_UNIQUE = 0 AND INDEX_NAME != 'PRIMARY'
 			ORDER BY INDEX_NAME, SEQ_IN_INDEX",
-			addslashes( $this->database ),
+			addslashes( $this->db_name() ),
 			addslashes( $table )
 		);
 	}
@@ -218,7 +244,7 @@ class MysqlInspector extends AbstractInspector {
 				CHECK_CLAUSE as definition
 			FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS
 			WHERE CONSTRAINT_SCHEMA = '%s' AND TABLE_NAME = '%s'",
-			addslashes( $this->database ),
+			addslashes( $this->db_name() ),
 			addslashes( $table )
 		);
 	}
@@ -235,7 +261,7 @@ class MysqlInspector extends AbstractInspector {
 				TABLE_ROWS as row_count
 			FROM INFORMATION_SCHEMA.TABLES
 			WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s'",
-			addslashes( $this->database ),
+			addslashes( $this->db_name() ),
 			addslashes( $table )
 		);
 	}
@@ -274,9 +300,9 @@ class MysqlInspector extends AbstractInspector {
 	 * Get protocol version.
 	 */
 	public function get_protocol_version() {
-		$rows = $this->adapter->get_var( 'SHOW VARIABLES LIKE "protocol_version"' );
-		if ( ! empty( $rows ) ) {
-			return (int) $rows[0]['Value'];
+		$version = $this->dbal->get_row( 'SHOW VARIABLES LIKE "protocol_version"' );
+		if ( ! empty( $version ) ) {
+			return (int) $version['Value'];
 		}
 		return null;
 	}
@@ -285,9 +311,13 @@ class MysqlInspector extends AbstractInspector {
 	 * Get server version.
 	 */
 	public function get_server_version(): string {
-		$rows = $this->adapter->get_results( 'SELECT VERSION() as version' );
-		if ( ! empty( $rows ) ) {
-			return (string) $rows[0]['version'];
+		$version = $this->dbal->get_var( 'SELECT VERSION() as version' );
+		if ( ! empty( $version ) ) {
+			if ( preg_match( '/^\d+\.\d+\.\d+/', $version, $matches ) ) {
+				return $matches[0];
+			}
+			
+			return (string) $version;
 		}
 		return 'unknown';
 	}

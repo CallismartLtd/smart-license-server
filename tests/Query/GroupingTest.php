@@ -27,7 +27,7 @@ final class GroupingTest extends TestCase {
 
             });
 
-        $engine = smliser_db()->get_engine_type();
+        $engine = smliser_db()->get_driver();
 
         if ( $engine === 'mysql' ) {
 
@@ -72,7 +72,7 @@ final class GroupingTest extends TestCase {
 
             });
 
-        $engine = smliser_db()->get_engine_type();
+        $engine = smliser_db()->get_driver();
 
         if ( $engine === 'mysql' ) {
 

@@ -60,8 +60,8 @@ class PluginMetaSchema implements DatabaseSchemaInterface {
     public static function get_constraints() : array {
         return [
             Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'index' )->name( 'plugin_id_index' )->on( 'plugin_id' ),
-            Constraint::make( 'index' )->name( 'meta_key_index' )->on( 'meta_key' ),
+            Constraint::index( 'smliser_plugin_id_index' )->on( 'plugin_id' ),
+            Constraint::index( 'smliser_plugin_meta_key_index' )->on( 'meta_key' ),
         ];
     }
 }

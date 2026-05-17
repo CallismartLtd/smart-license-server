@@ -9,6 +9,7 @@
  */
 namespace SmartLicenseServer\Environments\WordPress;
 
+use SmartLicenseServer\Database\Inspection\SchemaInspector;
 use SmartLicenseServer\Database\Schema\SchemaRegistry;
 use SmartLicenseServer\Database\Schema\Table;
 use SmartLicenseServer\Exceptions\Exception;
@@ -66,10 +67,11 @@ class Installer {
         $db     = \smliser_db();
         $schema = SchemaRegistry::instance();
         $tables = $schema->table_names();
+        $inspector  = new SchemaInspector( $db );
 
         foreach( $tables as $table ) {
 
-            if ( $db->table_exists( $table ) ) {
+            if ( $inspector->table_exists( $table ) ) {
                 continue;
             }
 
@@ -92,7 +94,7 @@ class Installer {
             ->add_constraints( $table->get_constraints() );
         $sql    = $query->build() . '' . $charset_collate;
         
-        return $db->exec( $sql );
+        $db->exec( $sql );
         
     }
 

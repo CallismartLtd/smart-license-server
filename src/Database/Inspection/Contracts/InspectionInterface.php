@@ -69,10 +69,11 @@ interface InspectionInterface {
 	/**
 	 * Check if an index exists on the table.
 	 *
+	 * @param string $table The table name
 	 * @param string $index_name The index name
 	 * @return bool True if index exists
 	 */
-	public function has_index( string $index_name ): bool;
+	public function has_index( string $table, string $index_name ): bool;
 
 	/**
 	 * Get all indexes for a table.

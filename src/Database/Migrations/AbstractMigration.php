@@ -10,6 +10,7 @@
 namespace SmartLicenseServer\Database\Migrations;
 
 use SmartLicenseServer\Database\Database;
+use SmartLicenseServer\Database\Inspection\SchemaInspector;
 use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper;
 use SmartLicenseServer\Database\Migrations\Helpers\ConstraintHelper;
 use SmartLicenseServer\Database\Migrations\Helpers\IndexHelper;
@@ -54,7 +55,7 @@ abstract class AbstractMigration implements MigrationInterface {
      */
     public function __construct( Database $database ) {
         $this->database     = $database;
-        $this->sql_builder  = new SQLBuilder( $this->database->get_engine_type() );
+        $this->sql_builder  = new SQLBuilder( $this->database->get_driver() );
     }
 
     /**
@@ -168,12 +169,10 @@ abstract class AbstractMigration implements MigrationInterface {
     /**
      * Get a schema inspector for fluent operations.
      *
-     * @param string $table The table name
-     *
      * @return SchemaInspector
      */
-    protected function inspect( string $table ) : SchemaInspector {
-        return new SchemaInspector( $this->database, $table );
+    protected function inspect() : SchemaInspector {
+        return new SchemaInspector( $this->database );
     }
 
     /**

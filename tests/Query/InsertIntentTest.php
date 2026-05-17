@@ -24,7 +24,7 @@ final class InsertIntentTest extends TestCase {
                 'created_at'  => '2026-05-10 12:00:00'
             ]);
 
-        $engine = smliser_db()->get_engine_type();
+        $engine = smliser_db()->get_driver();
 
         if ( $engine === 'mysql' ) {
 

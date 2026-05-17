@@ -294,7 +294,7 @@ class WPDBAdapter implements DatabaseAdapterInterface {
                 'driver'    => 'mysql',
                 'host'      => $this->wpdb->dbhost,
                 'port'      => 3306,
-                'database'  => $this->wpdb->dbname,
+                'dbname'    => $this->wpdb->dbname,
                 'username'  => $this->wpdb->dbuser,
                 'password'  => $this->wpdb->dbpassword,
                 'charset'   => $this->wpdb->charset,

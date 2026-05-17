@@ -8,8 +8,8 @@
 
 namespace SmartLicenseServer\Database\Inspection\Providers;
 
-use SmartLicenseServer\Database\Inspection\Contracts\InspectionInterface;
 use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
+use SmartLicenseServer\Database\Inspection\Contracts\InspectionInterface;
 use SmartLicenseServer\Database\DBConfigDTO;
 
 /**
@@ -18,31 +18,14 @@ use SmartLicenseServer\Database\DBConfigDTO;
  * Concrete subclasses must implement engine-specific SQL query methods.
  */
 abstract class AbstractInspector implements InspectionInterface {
-
-	/**
-	 * Database adapter instance.
-	 *
-	 * @var DatabaseAdapterInterface
-	 */
-	protected DatabaseAdapterInterface $adapter;
-
-	/**
-	 * Current database name.
-	 *
-	 * @var string
-	 */
-	protected string $database;
-
 	/**
 	 * Constructor.
 	 *
-	 * @param DatabaseAdapterInterface $adapter Database adapter instance.
-	 * @param string $database                  Database name.
+	 * @param DatabaseAdapterInterface $dbal Database adapter instance.
 	 */
-	public function __construct( DatabaseAdapterInterface $adapter, string $database ) {
-		$this->adapter   = $adapter;
-		$this->database  = $database;
-	}
+	public function __construct( 
+		protected DatabaseAdapterInterface $dbal,
+	) {}
 
 	/**
 	 * Execute a raw SQL query and return results via the adapter.
@@ -50,8 +33,8 @@ abstract class AbstractInspector implements InspectionInterface {
 	 * @param string $query SQL query string.
 	 * @return array Array of result rows.
 	 */
-	protected function execute_query( string $query ): array {
-		return $this->adapter->get_results( $query );
+	protected function execute_query( string $query, array $params = [] ): array {
+		return $this->dbal->get_results( $query, $params );
 	}
 
     /**
@@ -60,8 +43,17 @@ abstract class AbstractInspector implements InspectionInterface {
      * @return DBConfigDTO
      */
     public function get_config() : DBConfigDTO {
-        return $this->adapter->get_config();
+        return $this->dbal->get_config();
     }
+
+	/**
+	 * Get the database name.
+	 * 
+	 * @return string
+	 */
+	public function db_name() : string {
+		return (string) $this->get_config()->dbname;
+	}
 
 	/**
 	 * Normalize column type string to a canonical form.
@@ -234,17 +226,6 @@ abstract class AbstractInspector implements InspectionInterface {
 	}
 
 	/**
-	 * Implementation of InspectionInterface::has_index()
-	 */
-	public function has_index( string $index_name ): bool {
-		// Note: This is a simple implementation. Subclasses may override
-		// for database-specific behavior if needed.
-		// Since we don't know which table, we'd need to search all tables.
-		// For now, return false. Callers should use get_indexes() instead.
-		return false;
-	}
-
-	/**
 	 * Implementation of InspectionInterface::get_indexes()
 	 */
 	public function get_indexes( string $table ): array {
@@ -404,18 +385,29 @@ abstract class AbstractInspector implements InspectionInterface {
 	 * Get connection host info.
 	 */
 	public function get_host_info(): string {
-        if ( ! empty( $this->get_config()->socket ) ) {
-            return 'Localhost via UNIX socket';
-        }
+		if ( ! empty( $this->get_config()->socket ) ) {
+			return 'Localhost via UNIX socket';
+		}
 
-        $host = $this->get_config()->host ?? '127.0.0.1';
-        $port = $this->get_config()->port ?? '3306';
+		$rawHost = $this->get_config()->host ?? '127.0.0.1';
+		$port    = $this->get_config()->port ?? '3306';
 
-        if ( strtolower( $host ) === 'localhost' ) {
-            return 'Localhost via UNIX socket';
-        }
+		// Clean up the host string if it accidentally contains a "host:port" structure
+		if ( str_contains( $rawHost, ':' ) && ! str_starts_with( $rawHost, '[' ) ) {
+			$parsedHost = parse_url( 'http://' . $rawHost, PHP_URL_HOST );
+			$parsedPort = parse_url( 'http://' . $rawHost, PHP_URL_PORT );
+			
+			$host = $parsedHost ?: $rawHost;
+			$port = $parsedPort ?: $port;
+		} else {
+			$host = $rawHost;
+		}
 
-        return sprintf( '%s:%s via TCP/IP', $host, $port );
+		if ( strtolower( $host ) === 'localhost' ) {
+			return 'Localhost via UNIX socket';
+		}
+
+		return sprintf( '%s:%s via TCP/IP', $host, $port );
 	}
 
 	/**

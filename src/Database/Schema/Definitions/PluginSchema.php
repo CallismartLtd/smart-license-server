@@ -76,11 +76,11 @@ class PluginSchema implements DatabaseSchemaInterface {
 
     public static function get_constraints() : array {
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'index' )->name( 'plugin_download_link_index' )->on( 'download_link' ),
-            Constraint::make( 'index' )->name( 'plugin_slug_index' )->on( 'slug' ),
-            Constraint::make( 'index' )->name( 'plugin_author_index' )->on( 'author' ),
-            Constraint::make( 'index' )->name( 'plugin_status_index' )->on( 'status' ),
+            Constraint::primary( 'smliser_plugins_primary' )->on( 'id' ),
+            Constraint::index( 'smliser_plugin_download_link_index' )->on( 'download_link' ),
+            Constraint::index( 'smliser_plugin_slug_index' )->on( 'slug' ),
+            Constraint::index( 'smliser_plugin_author_index' )->on( 'author' ),
+            Constraint::index( 'smliser_plugin_status_index' )->on( 'status' ),
         ];
     }
 }

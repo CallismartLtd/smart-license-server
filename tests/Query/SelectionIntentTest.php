@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 final class SelectionIntentTest extends TestCase {
 
     private function engine(): string {
-        return smliser_db()->get_engine_type();
+        return smliser_db()->get_driver();
     }
 
     private function quote(string $identifier): string {

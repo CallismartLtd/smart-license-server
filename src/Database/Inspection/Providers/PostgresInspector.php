@@ -58,6 +58,19 @@ class PostgresInspector extends AbstractInspector {
 	}
 
 	/**
+	 * {@inheritdoc}
+	 */
+	public function has_index( string $table, string $index_name ) : bool {
+		$sql	= "SELECT i.relname AS index_name FROM pg_class t JOIN pg_index ix 
+			ON t.oid = ix.indrelid JOIN pg_class i ON i.oid = ix.indexrelid 
+			WHERE t.relname = ? AND i.relname = ? LIMIT 1;";
+		
+		$result	= $this->dbal->get_var( $sql, [$table, $index_name ] );
+		
+		return $result ? true : false;
+	}
+
+	/**
 	 * Get all tables in the database.
 	 */
 	protected function sql_all_tables(): string {
@@ -246,7 +259,7 @@ class PostgresInspector extends AbstractInspector {
 	 * Get server version.
 	 */
 	public function get_server_version(): string {
-		$rows = $this->adapter->get_results( "SHOW server_version" );
+		$rows = $this->dbal->get_results( "SHOW server_version" );
 		if ( ! empty( $rows ) ) {
 			return (string) $rows[0]['server_version'];
 		}

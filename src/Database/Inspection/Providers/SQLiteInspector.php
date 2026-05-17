@@ -195,11 +195,11 @@ class SQLiteInspector extends AbstractInspector {
 	 * Override get_indexes to use PRAGMA.
 	 */
 	public function get_indexes( string $table ): array {
-		$index_list = $this->execute_query( sprintf( 'PRAGMA index_list(%s)', $table ) );
+		$index_list = $this->execute_query( $this->sql_indexes( $table ) );
 		$indexes    = array();
 
 		foreach ( $index_list as $idx ) {
-			// Skip primary key index (unique=2 is the PK marker in SQLite)
+			// Skip primary key index (unique=2 is the PK marker in SQLite).
 			if ( $idx['unique'] == 2 ) {
 				continue;
 			}
@@ -219,6 +219,18 @@ class SQLiteInspector extends AbstractInspector {
 		}
 
 		return $indexes;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function has_index( string $table, string $index_name ) : bool {
+		$sql	= "SELECT name FROM sqlite_master WHERE type = 'index' 
+			AND tbl_name = ? AND name = ? LIMIT 1";
+		
+		$result	= $this->dbal->get_var( $sql, [$table, $index_name] );
+		
+		return $result ? true : false;
 	}
 
 	/**
@@ -291,7 +303,7 @@ class SQLiteInspector extends AbstractInspector {
 	 * SQLite uses PRAGMA index_list for constraint retrieval.
 	 */
 	protected function sql_unique_constraints( string $table ): string {
-		return sprintf( 'PRAGMA index_list(%s)', $table );
+		return $this->sql_indexes( $table );
 	}
 
 	/**
@@ -301,7 +313,7 @@ class SQLiteInspector extends AbstractInspector {
 	 * We retrieve them from the index list.
 	 */
 	public function get_unique_constraints( string $table ): array {
-		$index_list   = $this->execute_query( sprintf( 'PRAGMA index_list(%s)', $table ) );
+		$index_list   = $this->execute_query( $this->sql_indexes( $table ) );
 		$constraints  = array();
 
 		foreach ( $index_list as $idx ) {
@@ -391,10 +403,14 @@ class SQLiteInspector extends AbstractInspector {
 	 * Get server version.
 	 */
 	public function get_server_version(): string {
-		$rows = $this->adapter->get_var( 'SELECT sqlite_version() as version' );
+		$version = $this->dbal->get_var( 'SELECT sqlite_version() as version' );
 
-		if ( ! empty( $rows ) ) {
-			return (string) $rows[0]['version'];
+		if ( ! empty( $version ) ) {
+			if ( preg_match( '/^\d+\.\d+\.\d+/', $version, $matches ) ) {
+				return $matches[0];
+			}
+
+			return (string) $version;
 		}
 
 		return 'unknown';

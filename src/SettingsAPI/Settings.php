@@ -71,9 +71,16 @@ class Settings {
             return call_user_func_array( [ $this->adapter, $method ], $args );
         }
 
-        throw new \BadMethodCallException(
-            sprintf( 'Method %s::%s does not exist.', get_class( $this->adapter ), $method )
+        $backtrace  = \debug_backtrace( \DEBUG_BACKTRACE_IGNORE_ARGS, 3 );
+        $file       = $backtrace[0]['file'] ?? null;
+        $line       = $backtrace[0]['line'] ?? null;
+        $message    = sprintf(
+            'Method %s::%s does not exist.', 
+            get_class( $this ),
+            $method
         );
+
+        throw new \ErrorException( $message, 0, 1, $file, $line );
     }
 
     /**

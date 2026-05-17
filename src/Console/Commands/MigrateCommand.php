@@ -46,7 +46,7 @@ class MigrateCommand implements CommandInterface {
 
         if ( $info ) {
             $this->info( $this->description() );
-            $this->line( 'Database Adapter: '. smliser_db()->get_engine_type() );
+            $this->line( 'Database Adapter: '. smliser_db()->get_driver() );
             return;
         }
 

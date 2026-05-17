@@ -120,11 +120,11 @@ class WordPressEnvironment extends Environment {
             'driver'    => 'mysql',
             'host'      => DB_HOST,
             'port'      => 3306,
-            'database'  => DB_NAME,
+            'dbname'    => DB_NAME,
             'username'  => DB_USER,
             'password'  => DB_PASSWORD,
             'charset'   => DB_CHARSET,
-            'path'      => ABSPATH . 'sqlite.db'
+            'path'      => ABSPATH
         ]);
         
         $this->setup( $env );

@@ -80,7 +80,7 @@ class PdoAdapter implements DatabaseAdapterInterface {
                 '%s:host=%s;dbname=%s;',
                 $this->config->driver,
                 $this->config->host,
-                $this->config->database,
+                $this->config->dbname,
                 // $this->config->charset
             );
 

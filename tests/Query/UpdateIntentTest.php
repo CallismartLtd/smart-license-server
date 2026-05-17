@@ -23,7 +23,7 @@ final class UpdateIntentTest extends TestCase {
             ])
             ->where( 'license_key', '=', 'SMW-123-ABC' );
 
-        $engine = smliser_db()->get_engine_type();
+        $engine = smliser_db()->get_driver();
 
         if ( $engine === 'mysql' ) {
 
@@ -67,7 +67,7 @@ final class UpdateIntentTest extends TestCase {
 
             });
 
-        $engine = smliser_db()->get_engine_type();
+        $engine = smliser_db()->get_driver();
 
         if ( $engine === 'mysql' ) {
 
