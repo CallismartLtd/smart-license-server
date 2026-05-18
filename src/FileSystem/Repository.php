@@ -269,7 +269,7 @@ abstract class Repository {
      * @param UploadedFile  $file   The uploaded file.
      * @param string $new_name      The preferred filename (without path).
      * @param bool   $update        Whether this is an update to an existing app.
-     * @return string|\SmartLicenseServer\Exception Relative path to stored ZIP on success, Exception on failure.
+     * @return string|Exception     Relative path to stored ZIP on success, Exception on failure.
      */
     protected function safe_zip_upload( UploadedFile $file, string $new_name, bool $update = false ) {
         if ( ! $file->is_upload_successful() ) {
@@ -305,8 +305,8 @@ abstract class Repository {
             $base_folder = $this->path( $slug );
             $dest_path   = FileSystemHelper::join_path( $base_folder, $file_name );
 
-            if ( is_smliser_error( $dest_path ) ) {
-                throw $dest_path;
+            if ( '' === $dest_path ) {
+                throw new FileSystemException( 'Destination directory contains invalid characters' );
             }
         } catch ( FileSystemException $e ) {
             return new Exception( $e->get_error_code(), $e->get_error_message(), [ 'status' => 500 ] );
@@ -822,12 +822,17 @@ abstract class Repository {
         }
 
         // Protect the repository root.
-        $protection = self::protect_dir( $directories['repository'], $fs );
-        // Protect the uploads directory.
-        $protection = self::protect_dir( $directories['uploads'], $fs );
+        $protect_repo = self::protect_dir( $directories['repository'], $fs );
+        
+        if (  $protect_repo instanceof Exception ) {
+            $exception->merge_from( $protect_repo );
+        }
 
-        if (  $protection instanceof Exception ) {
-            $exception->merge_from( $protection );
+        // Protect the uploads directory.
+        $protect_uploads = self::protect_dir( $directories['uploads'], $fs );
+
+        if (  $protect_uploads instanceof Exception ) {
+            $exception->merge_from( $protect_uploads );
         }
 
         return $exception->has_errors() ? $exception : true;
@@ -841,7 +846,7 @@ abstract class Repository {
      * @param string $dir Absolute path to the directory.
      * @param FileSystem $fs  FileSystem instance.
      *
-     * @return bool|\SmartLicenseServer\Exception True on success, Exception instance on failure.
+     * @return bool|Exception True on success, Exception instance on failure.
      */
     public static function protect_dir( string $dir, $fs ) {
 
@@ -938,37 +943,18 @@ abstract class Repository {
      *
      * @return true|Exception True on success, Exception on failure.
      */
-    public function delete_asset( $slug, $filename ) {
-        
-        $original_filename  = $filename;
-        $filename           = FileSystemHelper::remove_extension( $filename );
+    public function delete_asset( $slug, $filename ) : true|Exception {
+        try {
+            $file   = $this->get_asset_path( $slug, $filename );
 
-        foreach ( static::ALLOWED_IMAGE_EXTENSIONS as $ext ) {
-            $file   = $filename . '.' . $ext;
-            $path   = $this->get_asset_path( $slug, $file );
-
-            if ( ! is_smliser_error( $path ) ) {
-                break;
+            if ( $file instanceof Exception ) {
+                throw $file;
             }
 
+            return $this->delete( $file );
+           
+        } catch ( Exception $e ) {
+            return $e;
         }
-
-        if ( is_smliser_error( $path ) ) {
-            if ( 'asset_not_found' === $path->get_error_code() ) {
-                return new Exception(
-                    'file_not_found',
-                    sprintf( '%s was not found.', $original_filename ),
-                    ['status' => 404]
-                );
-            }
-
-            return $path;
-        }
-
-        if ( ! $this->delete( $path ) ) {
-            return new Exception( 'unable_to_delete', sprintf( 'Unable to delete the file %s', $filename ), [ 'status', 500 ] );
-        }
-
-        return true;
     }
 }
