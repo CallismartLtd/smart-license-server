@@ -73,16 +73,17 @@ class UserOptionsSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
 
-            Constraint::make( 'unique' )
-                ->name( 'smliser_user_options_unique' )
-                ->on( 'user_id', 'option_key' ),
+            Constraint::unique( "{$prefx}unique_opkey_userid" )->on( 'user_id', 'option_key' ),
 
-            Constraint::make( 'index' )
-                ->name( 'option_key_index' )
-                ->on( 'option_key' ),
+            Constraint::index( "{$prefx}option_key_index" )->on( 'option_key' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_useroptions_';
     }
 }

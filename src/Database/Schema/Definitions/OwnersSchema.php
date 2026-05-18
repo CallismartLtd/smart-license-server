@@ -64,11 +64,16 @@ class OwnersSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'index' )->name( 'smliser_owners_subject_id' )->on( 'subject_id' ),
-            Constraint::make( 'index' )->name( 'smliser_owners_created_at' )->on( 'created_at' ),
-            Constraint::make( 'index' )->name( 'smliser_owners_updated_at' )->on( 'updated_at' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::index( "{$prefx}subject_id" )->on( 'subject_id' ),
+            Constraint::index( "{$prefx}created_at" )->on( 'created_at' ),
+            Constraint::index( "{$prefx}updated_at" )->on( 'updated_at' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_ownersshema_';
     }
 }

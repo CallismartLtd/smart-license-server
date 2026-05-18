@@ -123,25 +123,22 @@ class BackgroundJobsSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )
-                ->on( 'id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
 
-            Constraint::make( 'index' )
-                ->name( 'idx_queue_status_available' )
-                ->on( 'queue', 'status', 'available_at' ),
+            Constraint::index( "{$prefx}idx_queue_status_available" )
+            ->on( 'queue', 'status', 'available_at' ),
 
-            Constraint::make( 'index' )
-                ->name( 'idx_status' )
-                ->on( 'status' ),
+            Constraint::index( "{$prefx}idx_status" )->on( 'status' ),
 
-            Constraint::make( 'index' )
-                ->name( 'idx_started_at' )
-                ->on( 'started_at' ),
+            Constraint::index( "{$prefx}idx_started_at" )->on( 'started_at' ),
 
-            Constraint::make( 'index' )
-                ->name( 'idx_completed_at' )
-                ->on( 'completed_at' ),
+            Constraint::index( "{$prefx}idx_completed_at" )->on( 'completed_at' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_bgjobs_schema_';
     }
 }

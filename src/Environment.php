@@ -773,8 +773,8 @@ abstract class Environment implements EnvironmentProviderInterface {
             }
 
             $config = $this->dbConfig;
-            $config->driver = 'pgsql';
-            $config->port = null;
+            // $config->driver = 'pgsql';
+            // $config->port = null;
 
             /** @var array<class-string<DatabaseAdapterInterface>, bool> $adapters */
             $adapters   = [

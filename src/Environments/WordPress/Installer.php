@@ -41,29 +41,44 @@ class Installer {
     /**
      * Handle installation.
      * 
-     * @return \SmartLicenseServer\Exceptions\Exception|null|true
+     * @return \SmartLicenseServer\Exceptions\Exception|true
      */
     public static function install() {
-        $result = self::init_repo_dir();
+        wp_installing( true );
+        $installation_error     = new Exception();
+        $init_repo  = self::init_repo_dir();
 
-        if ( is_smliser_error( $result ) ) {
-            \smliser_settings()->set( 'smliser_directory_error', $result->get_error_message() );
-        } else {
-            \smliser_settings()->delete( 'smliser_directory_error' );
+        if ( $init_repo instanceof Exception ) {
+            $installation_error->merge_from( $init_repo );
         }
 
-        self::maybe_create_tables();
-        self::install_default_roles();
+        $create_tables   = self::maybe_create_tables();
+
+        if ( $create_tables instanceof Exception ) {
+            $installation_error->merge_from( $create_tables );
+        }
+
+        $install_default_roles  = self::install_default_roles();
+
+        if ( $install_default_roles instanceof Exception ) {
+            $installation_error->merge_from( $install_default_roles );
+        }
+
         self::maybe_auto_provision_wp_admin();
         
-        return true;
+        wp_installing( false );
+        return $installation_error->has_errors() ? $installation_error : true;
        
     }
 
     /**
      * Create Database table
+     * 
+     * @return Exception|true
      */
-    private static function maybe_create_tables(){
+    private static function maybe_create_tables() : Exception|true {
+        $errors = new Exception();
+
         $db     = \smliser_db();
         $schema = SchemaRegistry::instance();
         $tables = $schema->table_names();
@@ -72,11 +87,23 @@ class Installer {
         foreach( $tables as $table ) {
 
             if ( $inspector->table_exists( $table ) ) {
+                $errors->add( 'table_exists', sprintf( '%s table exists, skipping', $table ) );
                 continue;
             }
 
-            static::create_table( $schema->get_table( $table ) );
+            $created_table  = static::create_table( $schema->get_table( $table ) );
+
+            if ( ! $created_table ) {
+                $errors->add( 
+                    'unable_to_create_table', 
+                    sprintf( 'Unable to create tabe "%s", error: %s',
+                        $table, $db->get_last_error()
+                    )
+                );
+            }
         }
+
+        return $errors->has_errors() ? $errors : true;
     }
 
     /**
@@ -84,7 +111,7 @@ class Installer {
      * 
      * @param Table $table    The table name
      */
-    private static function create_table( Table $table ) {
+    private static function create_table( Table $table ) : bool {
         $db                 = smliser_db();
         $charset_collate    = $db->get_charset_collate();
 
@@ -94,8 +121,7 @@ class Installer {
             ->add_constraints( $table->get_constraints() );
         $sql    = $query->build() . '' . $charset_collate;
         
-        $db->exec( $sql );
-        
+        return (bool) $db->exec( $sql );
     }
 
     /**

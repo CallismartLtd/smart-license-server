@@ -89,7 +89,7 @@ final class IdentityService extends AbstractIdentityProvider {
         if ( ! $user ) {
             return false;
         }
-
+        
         return $this->add( $user->get_id(), $this->issuer(), (string) $wp_user_id );
     }
 
@@ -140,7 +140,7 @@ final class IdentityService extends AbstractIdentityProvider {
      * Create a WP_User.
      * 
      * @param array{
-     *      email: string
+     *      email: string,
      *      password: string,
      *      username?: string,
      *      display_name?: string,
@@ -209,13 +209,9 @@ final class IdentityService extends AbstractIdentityProvider {
      * @return void
      */
     public function auto_provision() : void {
-        if ( ! \is_user_logged_in() || ! \is_super_admin() ) {
-            return;
-        }
+        if ( ! \is_user_logged_in() || ! \is_super_admin() ) return;
 
-        if ( Guard::has_principal() ) {
-            return;
-        }
+        if ( Guard::has_principal() ) return;
 
         $wp_user = wp_get_current_user();
         $issuer = $this->issuer();
@@ -303,6 +299,8 @@ final class IdentityService extends AbstractIdentityProvider {
         if ( Guard::has_principal() ) {
             return Guard::get_principal();
         }
+
+        if ( \wp_installing() ) return null;
 
         $wp_user = wp_get_current_user();
         $issuer = $this->issuer();

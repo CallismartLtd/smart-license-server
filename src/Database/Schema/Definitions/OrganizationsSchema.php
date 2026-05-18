@@ -59,10 +59,15 @@ class OrganizationsSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'index' )->name( 'organization_name' )->on( 'display_name' ),
-            Constraint::make( 'index' )->name( 'organization_slug' )->on( 'slug' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::index( "{$prefx}name" )->on( 'display_name' ),
+            Constraint::index( "{$prefx}slug" )->on( 'slug' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_orgshema_';
     }
 }

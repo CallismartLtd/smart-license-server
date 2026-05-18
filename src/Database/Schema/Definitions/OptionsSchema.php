@@ -68,11 +68,14 @@ class OptionsSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'option_id' ),
-            Constraint::make( 'index' )
-                ->name( 'smliser_option_key' )
-                ->on( 'option_name' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'option_id' ),
+            Constraint::index( "{$prefx}option_key" )->on( 'option_name' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_licensemeta_';
     }
 }

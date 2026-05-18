@@ -455,8 +455,8 @@ class PdoAdapter implements DatabaseAdapterInterface {
 
         try {
             
-            $result = (bool) $this->pdo->exec( $query );
-            return $result;
+            $result = $this->pdo->exec( $query );
+            return false !== $result;
 
         } catch ( \PDOException $e ) {
             $this->last_error = $e->getMessage();

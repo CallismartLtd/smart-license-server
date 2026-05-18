@@ -14,6 +14,7 @@ use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
+use SmartLicenseServer\Database\Schema\Helpers\DefaultColumnValue;
 
 /**
  * Schema definition for analytics logs table.
@@ -79,7 +80,7 @@ class AnalyticsLogsSchema implements DatabaseSchemaInterface {
 
             Column::make( 'created_at' )
                 ->type( ColumnType::DATETIME )
-                ->default( 'CURRENT_TIMESTAMP' ),
+                ->default( DefaultColumnValue::expression( 'CURRENT_TIMESTAMP' ) ),
         ];
     }
 
@@ -87,25 +88,26 @@ class AnalyticsLogsSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )
+            Constraint::primary( "{$prefx}primary" )
                 ->on( 'id' ),
 
-            Constraint::make( 'index' )
-                ->name( 'app_identity_idx' )
+            Constraint::index( "{$prefx}app_identity_idx" )
                 ->on( 'app_type', 'app_slug' ),
 
-            Constraint::make( 'index' )
-                ->name( 'event_type_idx' )
+            Constraint::index( "{$prefx}event_type_idx" )
                 ->on( 'event_type' ),
 
-            Constraint::make( 'index' )
-                ->name( 'lookup_idx' )
+            Constraint::index( "{$prefx}lookup_idx" )
                 ->on( 'app_slug', 'event_type', 'created_at' ),
 
-            Constraint::make( 'index' )
-                ->name( 'cleanup_idx' )
+            Constraint::index( "{$prefx}created_at_idx" )
                 ->on( 'created_at' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_analytics_logs_';
     }
 }

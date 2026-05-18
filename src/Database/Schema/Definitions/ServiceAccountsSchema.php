@@ -82,13 +82,18 @@ class ServiceAccountsSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'index' )->name( 'smliser_service_acct_owner_id' )->on( 'owner_id' ),
-            Constraint::make( 'index' )->name( 'smliser_service_acct_api_key_hash' )->on( 'api_key_hash' ),
-            Constraint::make( 'index' )->name( 'smliser_service_acct_status' )->on( 'status' ),
-            Constraint::make( 'index' )->name( 'smliser_service_acct_created_at' )->on( 'created_at' ),
-            Constraint::make( 'index' )->name( 'smliser_service_acct_updated_at' )->on( 'updated_at' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::index( "{$prefx}owner_id" )->on( 'owner_id' ),
+            Constraint::index( "{$prefx}api_key_hash" )->on( 'api_key_hash' ),
+            Constraint::index( "{$prefx}status" )->on( 'status' ),
+            Constraint::index( "{$prefx}created_at" )->on( 'created_at' ),
+            Constraint::index( "{$prefx}updated_at" )->on( 'updated_at' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_service_acc_';
     }
 }

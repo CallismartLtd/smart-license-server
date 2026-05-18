@@ -52,10 +52,15 @@ class SoftwareMetaSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'index' )->name( 'app_id_index' )->on( 'software_id' ),
-            Constraint::make( 'index' )->name( 'meta_key_index' )->on( 'meta_key' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::index( "{$prefx}app_id_index" )->on( 'software_id' ),
+            Constraint::index( "{$prefx}meta_key_index" )->on( 'meta_key' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_softwareshema_';
     }
 }

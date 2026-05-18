@@ -88,14 +88,19 @@ class UsersSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::primary()->on( 'id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
 
-            Constraint::unique( 'smliser_users_email_unique' )->on( 'email' ),
+            Constraint::unique( "{$prefx}email_unique" )->on( 'email' ),
 
-            Constraint::index( 'smliser_users_created_at' )->on( 'created_at' ),
+            Constraint::index( "{$prefx}created_at" )->on( 'created_at' ),
 
-            Constraint::index( 'smliser_users_updated_at' )->on( 'updated_at' ),
+            Constraint::index( "{$prefx}updated_at" )->on( 'updated_at' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_users_';
     }
 }

@@ -58,10 +58,15 @@ class PluginMetaSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::index( 'smliser_plugin_id_index' )->on( 'plugin_id' ),
-            Constraint::index( 'smliser_plugin_meta_key_index' )->on( 'meta_key' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::index( "{$prefx}id_index" )->on( 'plugin_id' ),
+            Constraint::index( "{$prefx}key_index" )->on( 'meta_key' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_pluginmeta_';
     }
 }

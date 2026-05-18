@@ -75,17 +75,19 @@ class BulkMessagesAppsSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )
-                ->on( 'id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
 
-            Constraint::make( 'unique' )
-                ->name( 'smliser_unique_message_app' )
+            Constraint::unique( "{$prefx}unique_app" )
                 ->on( 'message_id', 'app_type', 'app_slug' ),
 
-            Constraint::make( 'index' )
-                ->name( 'smliser_msg_app_lookup' )
+            Constraint::index( "{$prefx}app_lookup" )
                 ->on( 'app_type', 'app_slug' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_bulkmsg_apps_schema_';
     }
 }

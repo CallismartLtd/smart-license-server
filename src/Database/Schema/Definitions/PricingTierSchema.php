@@ -75,9 +75,14 @@ class PricingTierSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'index' )->name( 'monetization_id_index' )->on( 'monetization_id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::index( "{$prefx}monetization_id_index" )->on( 'monetization_id' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_pricingtiers_';
     }
 }

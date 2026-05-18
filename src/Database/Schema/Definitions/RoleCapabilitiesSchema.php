@@ -47,8 +47,13 @@ class RoleCapabilitiesSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_capsschema_';
     }
 }

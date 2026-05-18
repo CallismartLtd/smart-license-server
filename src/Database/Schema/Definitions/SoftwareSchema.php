@@ -70,11 +70,16 @@ class SoftwareSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'unique' )->on( 'slug' ),
-            Constraint::make( 'index' )->name( 'software_slug_index' )->on( 'slug' ),
-            Constraint::make( 'index' )->name( 'software_author_index' )->on( 'author' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::unique( "{$prefx}unique" )->on( 'slug' ),
+            Constraint::index( "{$prefx}slug_index" )->on( 'slug' ),
+            Constraint::index( "{$prefx}author_index" )->on( 'author' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_softwaremeta_';
     }
 }

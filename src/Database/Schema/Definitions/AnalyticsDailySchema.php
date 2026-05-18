@@ -87,13 +87,16 @@ class AnalyticsDailySchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )
+            Constraint::primary( "{$prefx}primary" )
                 ->on( 'app_type', 'app_slug', 'stats_date', 'event_type' ),
 
-            Constraint::make( 'index' )
-                ->name( 'date_lookup' )
-                ->on( 'stats_date' ),
+            Constraint::index( "{$prefx}stats_date_index" )->on( "stats_date" ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_analytics_';
     }
 }

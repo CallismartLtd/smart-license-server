@@ -87,11 +87,16 @@ class FailedJobsSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'index' )->name( 'idx_job_id' )->on( 'job_id' ),
-            Constraint::make( 'index' )->name( 'idx_failed_at' )->on( 'failed_at' ),
-            Constraint::make( 'index' )->name( 'idx_job_class' )->on( 'job_class' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::index( "{$prefx}job_id" )->on( 'job_id' ),
+            Constraint::index( "{$prefx}failed_at" )->on( 'failed_at' ),
+            Constraint::index( "{$prefx}job_class" )->on( 'job_class' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_faild_job_schema_';
     }
 }

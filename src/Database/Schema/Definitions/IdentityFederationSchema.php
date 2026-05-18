@@ -14,6 +14,7 @@ use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
+use SmartLicenseServer\Database\Schema\Helpers\DefaultColumnValue;
 
 /**
  * Stores federated identities (OAuth/SAML mappings).
@@ -71,7 +72,7 @@ class IdentityFederationSchema implements DatabaseSchemaInterface {
 
             Column::make( 'created_at' )
                 ->type( ColumnType::DATETIME )
-                ->default( 'CURRENT_TIMESTAMP' ),
+                ->default( DefaultColumnValue::expression( 'CURRENT_TIMESTAMP' ) ),
         ];
     }
 
@@ -79,11 +80,16 @@ class IdentityFederationSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'index' )->name( 'smliser_idfed_user_id' )->on( 'user_id' ),
-            Constraint::make( 'index' )->name( 'smliser_idfed_issuer' )->on( 'issuer' ),
-            Constraint::make( 'index' )->name( 'smliser_idfed_external_id' )->on( 'external_id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::index( "{$prefx}user_id" )->on( 'user_id' ),
+            Constraint::index( "{$prefx}issuer" )->on( 'issuer' ),
+            Constraint::index( "{$prefx}external_id" )->on( 'external_id' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_idfederation_';
     }
 }

@@ -14,6 +14,7 @@ use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Database\Schema\Column;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
+use SmartLicenseServer\Database\Schema\Helpers\DefaultColumnValue;
 
 /**
  * Stores bulk messages.
@@ -74,7 +75,7 @@ class BulkMessagesSchema implements DatabaseSchemaInterface {
             Column::make( 'updated_at' )
                 ->type( ColumnType::DATETIME )
                 ->required()
-                ->default( 'CURRENT_TIMESTAMP' )
+                ->default( DefaultColumnValue::expression( 'CURRENT_TIMESTAMP' ) )
                 ->comment( 'on_update CURRENT_TIMESTAMP' ),
 
             Column::make( 'is_read' )
@@ -88,12 +89,17 @@ class BulkMessagesSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'unique' )->on( 'message_id' ),
-            Constraint::make( 'index' )->name( 'smliser_bulk_msg_created_at' )->on( 'created_at' ),
-            Constraint::make( 'index' )->name( 'smliser_bulk_msg_updated_at' )->on( 'updated_at' ),
-            Constraint::make( 'index' )->name( 'smliser_msg_id_lookup' )->on( 'message_id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::unique( "{$prefx}unique" )->on( 'message_id' ),
+            Constraint::index( "{$prefx}smliser_bulk_msg_created_at" )->on( 'created_at' ),
+            Constraint::index( "{$prefx}smliser_bulk_msg_updated_at" )->on( 'updated_at' ),
+            Constraint::index( "{$prefx}smliser_msg_id_lookup" )->on( 'message_id' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_bulkmsgs_schema_';
     }
 }

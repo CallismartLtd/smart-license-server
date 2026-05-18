@@ -61,14 +61,15 @@ class RolesSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'unique' )
-                ->name( 'smliser_owner_role_unique' )
-                ->on( 'slug' ),
-            Constraint::make( 'index' )
-                ->name( 'smliser_roles_name' )
-                ->on( 'slug' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::unique( "{$prefx}owner_role_unique" )->on( 'slug' ),
+            Constraint::index( "{$prefx}name" )->on( 'slug' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_rolesschema_';
     }
 }

@@ -1,9 +1,6 @@
 <?php
 /**
- * Canonical database column type registry class file.
- *
- * Defines engine-neutral column type intents that can be translated
- * into native SQL column types per database driver.
+ * Database Column Type class file.
  *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Database\Schema
@@ -15,6 +12,12 @@ namespace SmartLicenseServer\Database\Schema\Helpers;
 
 use InvalidArgumentException;
 
+/**
+ * Canonical database table column type registry class file.
+ *
+ * Defines engine-neutral column type intents that can be translated
+ * into native SQL column types per database driver.
+ */
 final class ColumnType {
 
 	public const BOOLEAN		= 1;

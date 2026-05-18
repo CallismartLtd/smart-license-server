@@ -99,11 +99,16 @@ class LicenseSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'unique' )->on( 'license_key' ),
-            Constraint::make( 'index' )->name( 'service_id_index' )->on( 'service_id' ),
-            Constraint::make( 'index' )->name( 'status_index' )->on( 'status' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::unique( "{$prefx}unique" )->on( 'license_key' ),
+            Constraint::index( "{$prefx}service_id_index" )->on( 'service_id' ),
+            Constraint::index( "{$prefx}status_index" )->on( 'status' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_licenses_';
     }
 }

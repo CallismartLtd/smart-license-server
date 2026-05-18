@@ -79,17 +79,17 @@ class AppDownloadTokenSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )
-                ->on( 'id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
 
-            Constraint::make( 'index' )
-                ->name( 'expiry_index' )
-                ->on( 'expiry' ),
+            Constraint::index( "{$prefx}expiry_index" )->on( 'expiry' ),
 
-            Constraint::make( 'index' )
-                ->name( 'dtoken_index' )
-                ->on( 'token' ),
+            Constraint::index( "{$prefx}dtoken_index" )->on( 'token' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_app_tokenschema_';
     }
 }

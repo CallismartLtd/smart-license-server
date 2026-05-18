@@ -80,11 +80,14 @@ class MonetizationSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_constraints() : array {
+        $prefx  = static::constraintPrefix();
         return [
-            Constraint::make( 'primary' )->on( 'id' ),
-            Constraint::make( 'unique' )
-                ->name( 'unique_app_monetization' )
-                ->on( 'app_type', 'app_id' ),
+            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::unique( "{$prefx}unique_app" )->on( 'app_type', 'app_id' ),
         ];
+    }
+
+    protected static function constraintPrefix() {
+        return 'smliser_monetization_';
     }
 }
