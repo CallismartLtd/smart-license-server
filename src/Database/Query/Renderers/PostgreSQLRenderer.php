@@ -305,4 +305,11 @@ class PostgreSQLRenderer extends AbstractQueryRenderer {
 
         return $sql;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function supports_native_booleans() : bool {
+        return true;
+    }
 }

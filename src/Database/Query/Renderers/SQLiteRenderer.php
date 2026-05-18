@@ -294,4 +294,11 @@ class SQLiteRenderer extends AbstractQueryRenderer {
 
         return $sql;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function supports_native_booleans() : bool {
+        return false;
+    }
 }

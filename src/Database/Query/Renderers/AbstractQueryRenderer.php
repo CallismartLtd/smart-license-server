@@ -18,6 +18,7 @@ use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\TruncateTableIntent;
 use SmartLicenseServer\Database\Schema\Constraint;
 use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
+use SmartLicenseServer\Database\Schema\Helpers\DefaultColumnValue;
 
 /**
  * Provides a blueprint for engine-specific SQL renderers.
@@ -38,6 +39,13 @@ abstract class AbstractQueryRenderer {
      * @return string
      */
     abstract protected function quote_single_identifier( string $identifier ) : string;
+
+    /**
+     * Tells whether engine supports native boolean value
+     * 
+     * @return bool
+     */
+    abstract protected function supports_native_booleans() : bool;
 
     /*
     |--------------------------------------------------------------------------
@@ -376,11 +384,20 @@ abstract class AbstractQueryRenderer {
      * @return string
      */
     protected function format_value( mixed $value ) : string {
+
+        if ( $value instanceof  DefaultColumnValue ) {
+            if ( $value->is_expression() ) {
+                return (string) $value;
+            }
+
+            $value  = $value->value();
+        }
+        
         return match( true ) {
-            is_bool( $value )    => $value ? '1' : '0',
-            is_null( $value )    => 'NULL',
-            is_numeric( $value )  => (string) $value,
-            default              => "'" . str_replace( "'", "''", (string) $value ) . "'"
+            is_bool( $value )       => $this->supports_native_booleans() ? ( $value ? 'TRUE' : 'FALSE' ) : ( $value ? '1' : '0' ),
+            is_null( $value )       => 'NULL',
+            is_numeric( $value )    => (string) $value,
+            default                 => "'" . str_replace( "'", "''", (string) $value ) . "'"
         };
     }
 }
