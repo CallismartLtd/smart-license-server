@@ -295,7 +295,7 @@ class RequestException extends Exception {
                 'status' => $default_data['status'],
                 'title'  => $default_data['title'],
             ],
-            $custom_data
+            (array) $custom_data
         );
 
         parent::__construct( $resolved_slug, $message, $data );
