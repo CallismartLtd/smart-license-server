@@ -115,13 +115,13 @@ class CLIEnvironment extends Environment {
         }
 
         $this->dbConfig = new DBConfigDTO([
-            'driver'   => $db_adapter,
-            'host'     => $db_host,
-            'port'     => $db_port,
-            'database' => $db_name,
-            'username' => $db_user,
-            'password' => $db_pass,
-            'charset'  => $db_charset,
+            'driver'    => $db_adapter,
+            'host'      => $db_host,
+            'port'      => $db_port,
+            'dbname'    => $db_name,
+            'username'  => $db_user,
+            'password'  => $db_pass,
+            'charset'   => $db_charset,
         ]);
 
         if ( 'sqlite' === $db_adapter ) {
@@ -139,7 +139,8 @@ class CLIEnvironment extends Environment {
             'rest_api_provider' => new CLIRESTProvider(),
             'secret'            => $_ENV['SMLISER_SECRET'] ?? '',
             'salt'              => $_ENV['SMLISER_SALT'] ?? '',
-            'identity_provider' => new CLIIdentityProvider()
+            'identity_provider' => new CLIIdentityProvider(),
+            'debug_mode'        => $debug_mode
         ];
 
         $this->setup( $env );
