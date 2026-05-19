@@ -89,7 +89,7 @@ class MysqliAdapter implements DatabaseAdapterInterface {
         }
 
         $this->mysqli = $mysqli;
-        $this->mysqli->set_charset( $this->config['charset'] ?? 'utf8mb4' );
+        $this->mysqli->set_charset( $this->config->charset ?? 'utf8mb4' );
         return true;
     }
 
