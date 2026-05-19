@@ -10,7 +10,7 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Database\Inspection\SchemaInspector;
-use SmartLicenseServer\Database\Schema\SchemaRegistry;
+use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Database\Schema\Table;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
@@ -41,30 +41,30 @@ class Installer {
     /**
      * Handle installation.
      * 
-     * @return \SmartLicenseServer\Exceptions\Exception|true
+     * @return Exception|true
      */
-    public static function install() {
+    public static function install() : Exception|true {
         wp_installing( true );
         $installation_error     = new Exception();
-        $init_repo  = self::init_repo_dir();
+        $init_repo  = static::init_repo_dir();
 
         if ( $init_repo instanceof Exception ) {
             $installation_error->merge_from( $init_repo );
         }
 
-        $create_tables   = self::maybe_create_tables();
+        $create_tables   = static::maybe_create_tables();
 
         if ( $create_tables instanceof Exception ) {
             $installation_error->merge_from( $create_tables );
         }
 
-        $install_default_roles  = self::install_default_roles();
+        $roles_install  = static::install_default_roles();
 
-        if ( $install_default_roles instanceof Exception ) {
-            $installation_error->merge_from( $install_default_roles );
+        if ( $roles_install instanceof Exception ) {
+            $installation_error->merge_from( $roles_install );
         }
 
-        self::maybe_auto_provision_wp_admin();
+        static::maybe_auto_provision_wp_admin();
         
         wp_installing( false );
         return $installation_error->has_errors() ? $installation_error : true;
@@ -129,15 +129,16 @@ class Installer {
      *
      * @return bool|Exception True on success, Exception on failure.
      */
-    private static function init_repo_dir() {    
+    private static function init_repo_dir() : Exception|true {    
         return Repository::make_default_directories();
     }
 
     /**
      * Save or update missing default role in the database.
      */
-    public static function install_default_roles() {
+    public static function install_default_roles() : Exception|true {
         $default_roles  = DefaultRoles::all();
+        $base_error     = new Exception();
 
         foreach ( $default_roles as $slug => $roledata ) {
             $role   = new Role;
@@ -150,9 +151,15 @@ class Installer {
             try {
                 $role->save();
             } catch ( Exception $e ) {
-                return $e;
+                $base_error->merge_from( $e );
+            } catch ( \Throwable $e ) {
+                $base_error->merge_from(
+                    new Exception( 'role_save_error', $e->getMessage() )
+                );
             }
         }
+
+        return $base_error->has_errors() ? $base_error : true;
     }
 
     /**
@@ -173,12 +180,12 @@ class Installer {
             return;
         }
 
-        $versions = array_keys( self::$db_versions );
+        $versions = array_keys( static::$db_versions );
         usort( $versions, 'version_compare' );
 
         foreach ( $versions as $version ) {
             if ( version_compare( $base_version, $version, '<=' ) ) {
-                foreach ( self::$db_versions[ $version ] as $callback ) {
+                foreach ( static::$db_versions[ $version ] as $callback ) {
                     if ( is_callable( $callback ) ) {
                         call_user_func( $callback );
                     }

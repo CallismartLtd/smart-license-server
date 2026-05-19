@@ -365,7 +365,5 @@ interface RouterInterface {
      * @param Request $request
      * @return void
      */
-    public static function render_client_dashboard( Request $request ) : void;
-
-    
+    public static function render_client_dashboard( Request $request ) : void;   
 }

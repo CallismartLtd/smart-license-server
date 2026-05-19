@@ -14,7 +14,7 @@ namespace SmartLicenseServer\Console\Commands;
 use SmartLicenseServer\Console\CLIUtilsTrait;
 use SmartLicenseServer\Console\CommandInterface;
 use SmartLicenseServer\Database\Database;
-use SmartLicenseServer\Database\Schema\SchemaRegistry;
+use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Database\Schema\Table;
 
 /**

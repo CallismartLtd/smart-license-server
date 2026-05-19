@@ -284,7 +284,7 @@ class WordPressBootstrapGenerator {
             'index_file'    => __FILE__
         ];
 
-        require_once $config['src_dir'] . 'Environments/bootstrap.php';
+        require_once $config['src_dir'] . 'bootstrap.php';
 
         WordPressEnvironment::boot();
         PHP;
