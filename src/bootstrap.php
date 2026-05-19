@@ -17,8 +17,6 @@ define( 'SMLISER_APP_NAME', 'Smart License Server' );
 /**
  * Current application version.
  *
- * Used for version tracking, compatibility checks, and CLI output.
- *
  * @var string
  */
 define( 'SMLISER_VER', '0.2.0' );
