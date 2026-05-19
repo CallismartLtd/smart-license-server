@@ -13,7 +13,13 @@ namespace SmartLicenseServer\Exceptions;
  */
 class EnvironmentBootstrapException extends Exception {
     /**
-     * Errro map
+     * Error map indexed by error code.
+     *
+     * @var array<string, array{
+     *      status: int,
+     *      title: string,
+     *      message: string
+     * }>
      */
     private array $error_map    = [
         'no_db_adapter_found'   => array(
@@ -54,9 +60,15 @@ class EnvironmentBootstrapException extends Exception {
 
         'unknown_error'   => array(
             'status'    => 500,
-            'title'     => 'Unknown Errro',
+            'title'     => 'Unknown Error',
             'message'   => 'An unknown error has occured in the environment configuration.'
         ),
+
+        'database_connect_error'    => array(
+            'status'    => 500,
+            'title'     => 'Database Connection Error',
+            'message'   => 'Unable to connect to the database. Please check your connection and try again.'
+        )
         
     ];
 
