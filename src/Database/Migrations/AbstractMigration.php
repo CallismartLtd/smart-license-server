@@ -10,7 +10,7 @@
 namespace SmartLicenseServer\Database\Migrations;
 
 use SmartLicenseServer\Database\Database;
-use SmartLicenseServer\Database\Inspection\SchemaInspector;
+use SmartLicenseServer\Database\Inspection\Inspector;
 use SmartLicenseServer\Database\Migrations\Helpers\ColumnHelper;
 use SmartLicenseServer\Database\Migrations\Helpers\ConstraintHelper;
 use SmartLicenseServer\Database\Migrations\Helpers\IndexHelper;
@@ -169,10 +169,10 @@ abstract class AbstractMigration implements MigrationInterface {
     /**
      * Get a schema inspector for fluent operations.
      *
-     * @return SchemaInspector
+     * @return Inspector
      */
-    protected function inspect() : SchemaInspector {
-        return new SchemaInspector( $this->database );
+    protected function inspect() : Inspector {
+        return new Inspector( $this->database );
     }
 
     /**

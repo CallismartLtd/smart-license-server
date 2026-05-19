@@ -41,7 +41,7 @@ class ColumnHelper {
 	 * 
 	 * @param string|Column $column The new column name.
 	 * @param array{
-     *     type: int, // @see \SmartLicenseServer\Database\Schema\Helpers\ColumnType
+     *     type: int, // @see \SmartLicenseServer\Database\Utils\ColumnType
      *     length?: int|null,
      *     precision?: int|null,
      *     scale?: int|null,
@@ -196,7 +196,7 @@ class ColumnHelper {
 	 * Change column type.
 	 * 
 	 * @param string $column The column name.
-	 * @param int $type The column type @see \SmartLicenseServer\Database\Schema\Helpers\ColumnType constants
+	 * @param int $type The column type @see \SmartLicenseServer\Database\Utils\ColumnType constants
 	 */
 	public function changeType( string $column, int $type ) : static {
 

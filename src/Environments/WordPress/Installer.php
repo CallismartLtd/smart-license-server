@@ -9,7 +9,7 @@
  */
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Database\Inspection\SchemaInspector;
+use SmartLicenseServer\Database\Inspection\Inspector;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Database\Utils\Table;
 use SmartLicenseServer\Exceptions\Exception;
@@ -82,7 +82,7 @@ class Installer {
         $db     = \smliser_db();
         $schema = SchemaRegistry::instance();
         $tables = $schema->table_names();
-        $inspector  = new SchemaInspector( $db );
+        $inspector  = new Inspector( $db );
 
         foreach( $tables as $table ) {
 

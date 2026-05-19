@@ -3,6 +3,7 @@
  * Database related utility functions.
  */
 
+use SmartLicenseServer\Database\Inspection\Inspector;
 use SmartLicenseServer\Database\Query\CompositeSQLBuilder;
 use SmartLicenseServer\Database\Query\SQLBuilder;
 
@@ -38,4 +39,11 @@ function smliserCompositeQueryBuilder() : CompositeSQLBuilder {
  */
 function smliser_db_prefix() : string {
     return smliser_envProvider()->db_prefix();
+}
+
+/**
+ * Get the database schema inpection instance
+ */
+function smliserDBSchemaInspection() : Inspector {
+    return new Inspector( smliser_db() );
 }

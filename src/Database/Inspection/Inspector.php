@@ -43,7 +43,7 @@ use SmartLicenseServer\Database\Inspection\Providers\SQLiteInspector;
  * @method static string get_server_version() Get database server version.
  * @method static string get_engine_type() Get database engine type (mysql, pgsql, sqlite).
  */
-class SchemaInspector {
+class Inspector {
     /**
      * The schema inspector.
      * 
