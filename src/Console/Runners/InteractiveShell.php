@@ -208,7 +208,7 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
         $class = $this->registry->get( $command );
 
         if ( null === $class ) {
-            $this->print_error( sprintf( 'Unknown command "%s". Type "help" for a list.', $command ) );
+            $this->error( sprintf( 'Unknown command "%s". Type "help" for a list.', $command ) );
             return;
         }
 
@@ -223,7 +223,12 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
         try {
             ( new $class() )->execute( $args );
         } catch ( \Throwable $e ) {
-            $this->print_error( $e->getMessage() );
+            $message    = \sprintf(
+                '%s thrown in %s (%s)', 
+                $e->getMessage(), $e->getFile(), $e->getLine()
+            );
+
+            $this->print_error( $message );
         }
     }
 

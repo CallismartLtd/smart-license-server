@@ -49,7 +49,7 @@ class CliErrorHandler extends AbstractErrorHandler {
         $output .= '⚠  ' . $this->getTitle() . ': ' . $this->getMessage() . PHP_EOL;
         
         if ( $this->error_object instanceof \Throwable ) {
-            $output .= '   ' . $this->error_object->getFile() . ':' . $this->error_object->getLine() . PHP_EOL;
+            $output .= '   ' . $this->error_object->getFile() . ' (' . $this->error_object->getLine() . ')' . PHP_EOL;
         }
         
         return $output;

@@ -9,6 +9,7 @@
  */
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Console\CLIAwareTrait;
 use SmartLicenseServer\Console\CommandInterface;
 use SmartLicenseServer\Console\CommandRegistry;
 
@@ -16,6 +17,7 @@ use SmartLicenseServer\Console\CommandRegistry;
  * The core smliser command handles the base commands and flags in `smliser`
  */
 abstract class SmliserCommand implements CommandInterface {
+    use CLIAwareTrait;
     /*
     |----------------------
     | DEPENDENCIES
@@ -166,7 +168,8 @@ abstract class SmliserCommand implements CommandInterface {
      * @param string $message
      * @return void
      */
-    protected function print_error( string $message ): void {
-        echo 'Error: ' . $message . PHP_EOL;
+    protected function print_error( string $message ) : void {
+        $this->line( '' );
+        $this->error( $message );
     }
 }
