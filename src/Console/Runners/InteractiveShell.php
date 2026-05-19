@@ -39,6 +39,7 @@ use SmartLicenseServer\Console\ShellHistoryTrait;
 use SmartLicenseServer\Console\CLIWelcomeTrait;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Commands\SmliserCommand;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Interactive REPL shell for the SmartLicenseServer CLI.
@@ -146,7 +147,11 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * @return string|null The trimmed input line, or null on EOF.
      */
     private function read_line(): ?string {
-        $prompt = sprintf( '[smart-license-server-%s] > ', SMLISER_VER );
+        $principal      = Guard::get_principal();
+        $prompt_symbol  = $principal?->is( 'system_admin' ) ? '#' : '>';
+        $version_string = smliser_debug_enabled() ? '-' . SMLISER_VER : '';
+        $prompt         = sprintf( '[smart-license-server%s] %s ', $version_string, $prompt_symbol );
+        
 
         return $this->history_read_line(
             $this->colorize( static::ANSI_GREEN, $prompt )
