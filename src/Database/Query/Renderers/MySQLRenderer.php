@@ -14,8 +14,8 @@ use SmartLicenseServer\Database\Query\QueryIntents\AlterTableIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\CreateIndexIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\TruncateTableIntent;
-use SmartLicenseServer\Database\Schema\Constraint;
-use SmartLicenseServer\Database\Schema\Column;
+use SmartLicenseServer\Database\Utils\Constraint;
+use SmartLicenseServer\Database\Utils\Column;
 
 /**
  * MySQL Query Renderer.

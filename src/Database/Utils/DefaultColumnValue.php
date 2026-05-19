@@ -8,7 +8,7 @@
  */
 declare( strict_types=1 );
 
-namespace SmartLicenseServer\Database\Schema\Helpers;
+namespace SmartLicenseServer\Database\Utils;
 
 /**
  * The canonical data transfer object for default value of a database

@@ -8,7 +8,7 @@
  */
 declare( strict_types=1 );
 
-namespace SmartLicenseServer\Database\Schema\Helpers;
+namespace SmartLicenseServer\Database\Utils;
 
 use InvalidArgumentException;
 

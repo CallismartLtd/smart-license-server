@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Database\Inspection\SchemaInspector;
 use SmartLicenseServer\Schema\SchemaRegistry;
-use SmartLicenseServer\Database\Schema\Table;
+use SmartLicenseServer\Database\Utils\Table;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\Security\Permission\DefaultRoles;

@@ -6,10 +6,10 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Schema\Definitions;
 
-use SmartLicenseServer\Database\Schema\DatabaseSchemaInterface;
-use SmartLicenseServer\Database\Schema\Column;
-use SmartLicenseServer\Database\Schema\Constraint;
-use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
+use SmartLicenseServer\Schema\DatabaseSchemaInterface;
+use SmartLicenseServer\Database\Utils\Column;
+use SmartLicenseServer\Database\Utils\Constraint;
+use SmartLicenseServer\Database\Utils\ColumnType;
 
 class OrganizationsSchema implements DatabaseSchemaInterface {
 

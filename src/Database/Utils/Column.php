@@ -8,7 +8,7 @@
  */
 declare( strict_types=1 );
 
-namespace SmartLicenseServer\Database\Schema;
+namespace SmartLicenseServer\Database\Utils;
 
 /**
  * Represents a single column in a database table schema.

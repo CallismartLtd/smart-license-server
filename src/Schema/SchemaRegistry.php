@@ -22,7 +22,7 @@ use SmartLicenseServer\Schema\Definitions\{
     BackgroundJobsSchema, FailedJobsSchema
 };
 use InvalidArgumentException;
-use SmartLicenseServer\Database\Schema\Table;
+use SmartLicenseServer\Database\Utils\Table;
 
 /**
  * Database Schema Registry

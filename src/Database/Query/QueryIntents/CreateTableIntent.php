@@ -12,8 +12,8 @@ namespace SmartLicenseServer\Database\Query\QueryIntents;
 
 use SmartLicenseServer\Database\Query\SQLBuilder;
 use SmartLicenseServer\Database\Query\SQLBuilderStrategyTrait;
-use SmartLicenseServer\Database\Schema\Column;
-use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Utils\Column;
+use SmartLicenseServer\Database\Utils\Constraint;
 use SmartLicenseServer\Database\Schema\Table;
 
 /**

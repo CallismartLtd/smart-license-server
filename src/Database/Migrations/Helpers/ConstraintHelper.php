@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Database\Migrations\Helpers;
 use Exception;
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Query\SQLBuilder;
-use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Utils\Constraint;
 
 /**
  * Provides fluent interface for constraint operations.

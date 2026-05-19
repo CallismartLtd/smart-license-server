@@ -11,8 +11,8 @@ namespace SmartLicenseServer\Database\Migrations\Helpers;
 
 use SmartLicenseServer\Database\Database;
 use SmartLicenseServer\Database\Query\SQLBuilder;
-use SmartLicenseServer\Database\Schema\Column;
-use SmartLicenseServer\Database\Schema\Constraint;
+use SmartLicenseServer\Database\Utils\Column;
+use SmartLicenseServer\Database\Utils\Constraint;
 
 /**
  * Column migration orchestrator.

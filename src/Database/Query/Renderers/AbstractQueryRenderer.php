@@ -16,9 +16,9 @@ use SmartLicenseServer\Database\Query\QueryIntents\DeleteIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\PersistenceIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Database\Query\QueryIntents\TruncateTableIntent;
-use SmartLicenseServer\Database\Schema\Constraint;
-use SmartLicenseServer\Database\Schema\Helpers\ColumnType;
-use SmartLicenseServer\Database\Schema\Helpers\DefaultColumnValue;
+use SmartLicenseServer\Database\Utils\Constraint;
+use SmartLicenseServer\Database\Utils\ColumnType;
+use SmartLicenseServer\Database\Utils\DefaultColumnValue;
 
 /**
  * Provides a blueprint for engine-specific SQL renderers.
