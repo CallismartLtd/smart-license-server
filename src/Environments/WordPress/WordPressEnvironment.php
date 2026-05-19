@@ -116,6 +116,7 @@ class WordPressEnvironment extends Environment {
         
         );
 
+        // @TODO: remove.
         $this->dbConfig = new DBConfigDTO([
             'driver'    => 'mysql',
             'host'      => DB_HOST,
