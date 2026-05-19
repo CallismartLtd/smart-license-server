@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\Database\Inspection\Providers;
 
-use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
+use SmartLicenseServer\Database\Adapters\Contracts\DatabaseAdapterInterface;
 use SmartLicenseServer\Database\Inspection\Contracts\InspectionInterface;
 use SmartLicenseServer\Database\DBConfigDTO;
 

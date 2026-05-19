@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Database\Adapters;
 
 use SmartLicenseServer\Database\DBConfigDTO;
 use wpdb;
+use SmartLicenseServer\Database\Adapters\Contracts\DatabaseAdapterInterface;
 
 /**
  * Adapter for WordPress database access.

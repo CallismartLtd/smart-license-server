@@ -8,7 +8,7 @@
 
 namespace SmartLicenseServer\Database;
 
-use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
+use SmartLicenseServer\Database\Adapters\Contracts\DatabaseAdapterInterface;
 
 /**
  * Database abstraction API.

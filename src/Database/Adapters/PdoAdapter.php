@@ -14,6 +14,7 @@ use PDO;
 use PDOException;
 use PDOStatement;
 use SmartLicenseServer\Database\DBConfigDTO;
+use SmartLicenseServer\Database\Adapters\Contracts\DatabaseAdapterInterface;
 
 /**
  * Adapter for PDO database access.

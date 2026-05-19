@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\Database
  */
 
-namespace SmartLicenseServer\Database\Adapters;
+namespace SmartLicenseServer\Database\Adapters\Contracts;
 
 use SmartLicenseServer\Database\DBConfigDTO;
 

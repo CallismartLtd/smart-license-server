@@ -21,7 +21,7 @@ use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Database\DBConfigDTO;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Database\Database;
-use SmartLicenseServer\Database\Adapters\DatabaseAdapterInterface;
+use SmartLicenseServer\Database\Adapters\Contracts\DatabaseAdapterInterface;
 use SmartLicenseServer\Database\Adapters\MysqliAdapter;
 use SmartLicenseServer\Database\Adapters\PdoAdapter;
 use SmartLicenseServer\Database\Adapters\SqliteAdapter;

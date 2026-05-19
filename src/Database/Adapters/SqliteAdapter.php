@@ -14,6 +14,7 @@ use Exception;
 use SmartLicenseServer\Database\DBConfigDTO;
 use SmartLicenseServer\Database\SqliteCompatibilityTrait;
 use SQLite3Result;
+use SmartLicenseServer\Database\Adapters\Contracts\DatabaseAdapterInterface;
 
 /**
  * Adapter for native SQLite3 database access.
