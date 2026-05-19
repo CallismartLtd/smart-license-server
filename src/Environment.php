@@ -419,6 +419,10 @@ abstract class Environment implements EnvironmentProviderInterface {
 
         if ( ! isset( $this->database ) ) {
             $this->setGlobalDBAdapter();
+
+            if ( ! $this->database()->is_connected() && \smliser_debug_enabled() ) {
+                throw new EnvironmentBootstrapException( 'database_connect_error', $this->database()->get_last_error() );
+            }
         }
 
         if ( ! isset( $this->filesystem ) ) {
