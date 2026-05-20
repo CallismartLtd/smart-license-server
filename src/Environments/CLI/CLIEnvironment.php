@@ -15,7 +15,7 @@ use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\CLIRunner;
 use SmartLicenseServer\Console\Runners\InteractiveShell;
-use SmartLicenseServer\Database\DBConfigDTO;
+use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;

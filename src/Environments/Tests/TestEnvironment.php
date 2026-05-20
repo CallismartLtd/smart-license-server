@@ -12,7 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Environments\Tests;
 
 use SmartLicenseServer\Environment;
-use SmartLicenseServer\Database\DBConfigDTO;
+use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;

@@ -15,7 +15,7 @@ use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Database\Database;
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\FileSystem\FileSystem;

@@ -9,7 +9,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\SettingsAPI;
 
-use SmartLicenseServer\Database\Database;
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Utils\Format;
 

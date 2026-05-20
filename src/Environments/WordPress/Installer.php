@@ -9,9 +9,9 @@
  */
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Database\Inspection\Inspector;
+use Callismart\DBPrism\Inspection\Inspector;
 use SmartLicenseServer\Schema\SchemaRegistry;
-use SmartLicenseServer\Database\Utils\Table;
+use Callismart\DBPrism\Utils\Table;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\Security\Permission\DefaultRoles;

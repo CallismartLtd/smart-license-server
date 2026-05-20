@@ -8,7 +8,7 @@
  * SQL generation is delegated to schema/query renderers.
  *
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Database\Schema
+ * @package Callismart\DBPrism\Schema
  * @since 0.2.0
  */
 

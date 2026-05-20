@@ -22,7 +22,7 @@ use SmartLicenseServer\Schema\Definitions\{
     BackgroundJobsSchema, FailedJobsSchema
 };
 use InvalidArgumentException;
-use SmartLicenseServer\Database\Utils\Table;
+use Callismart\DBPrism\Utils\Table;
 
 /**
  * Database Schema Registry

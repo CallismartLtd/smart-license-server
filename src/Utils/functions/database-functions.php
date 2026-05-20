@@ -3,16 +3,16 @@
  * Database related utility functions.
  */
 
-use SmartLicenseServer\Database\Inspection\Inspector;
-use SmartLicenseServer\Database\Query\CompositeSQLBuilder;
-use SmartLicenseServer\Database\Query\SQLBuilder;
+use Callismart\DBPrism\Inspection\Inspector;
+use Callismart\DBPrism\Query\CompositeSQLBuilder;
+use Callismart\DBPrism\Query\SQLBuilder;
 
 /**
  * Get the DBAL instance.
  *
- * @return \SmartLicenseServer\Database\Database Singleton instance of the Database class.
+ * @return \Callismart\DBPrism\Database Singleton instance of the Database class.
  */
-function smliser_db() : \SmartLicenseServer\Database\Database {
+function smliser_db() : \Callismart\DBPrism\Database {
     return smliser_envProvider()->database();
 }
 

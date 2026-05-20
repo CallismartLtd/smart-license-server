@@ -3,7 +3,7 @@
  * Bulk Messages Apps Schema definition file.
  *
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Database\Schema\Definitions
+ * @package Callismart\DBPrism\Schema\Definitions
  * @since 0.2.0
  */
 declare( strict_types=1 );
@@ -11,9 +11,9 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Schema\Definitions;
 
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
-use SmartLicenseServer\Database\Utils\Column;
-use SmartLicenseServer\Database\Utils\Constraint;
-use SmartLicenseServer\Database\Utils\ColumnType;
+use Callismart\DBPrism\Utils\Column;
+use Callismart\DBPrism\Utils\Constraint;
+use Callismart\DBPrism\Utils\ColumnType;
 
 /**
  * Maps bulk messages to specific applications.

@@ -4,8 +4,67 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "59067107253b2ca000a066d8c2ca533b",
+    "content-hash": "28150393e6e91f64079ce305a2971101",
     "packages": [
+        {
+            "name": "callismart/dbprism",
+            "version": "v0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/CallismartLtd/DBPrism.git",
+                "reference": "fcc331611d13a841db59725543c50d765e02beab"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/CallismartLtd/DBPrism/zipball/fcc331611d13a841db59725543c50d765e02beab",
+                "reference": "fcc331611d13a841db59725543c50d765e02beab",
+                "shasum": ""
+            },
+            "require": {
+                "callismart/dto": "^1.0",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^13.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Callismart\\DBPrism\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Callistus Nwachukwu",
+                    "email": "admin@callismart.com.ng",
+                    "homepage": "https://github.com/CallismartLtd/dbprism"
+                }
+            ],
+            "description": "DBPrism: Intent-based database abstraction layer with unified adapters, schema inspection, and migrations. Supports MySQL, PostgreSQL, SQLite, PDO, and WordPress.",
+            "homepage": "https://github.com/callismart/dbprism",
+            "keywords": [
+                "abstraction",
+                "database",
+                "dbal",
+                "migrations",
+                "mysql",
+                "pdo",
+                "postgresql",
+                "query-builder",
+                "schema",
+                "sqlite",
+                "wordpress"
+            ],
+            "support": {
+                "issues": "https://github.com/CallismartLtd/DBPrism/issues",
+                "source": "https://github.com/CallismartLtd/DBPrism/tree/v0.1.0"
+            },
+            "time": "2026-05-20T16:55:22+00:00"
+        },
         {
             "name": "callismart/dto",
             "version": "v1.0.1",

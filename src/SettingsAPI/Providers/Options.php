@@ -11,7 +11,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\SettingsAPI\Providers;
 
-use SmartLicenseServer\Database\Database;
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Utils\Format;
 
 /**
@@ -41,7 +41,7 @@ class Options extends AbstractSettings {
     /**
      * Constructor for the Options class.
      *
-     * @param Database $db The instance of the current environment DB adapter @see `\SmartLicenseServer\Database\Adapters\Database`.
+     * @param Database $db The instance of the current environment DB adapter @see `\Callismart\DBPrism\Adapters\Database`.
      */
     public function __construct( Database $db ) {
         $this->db = $db;

@@ -13,9 +13,9 @@ namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CLIUtilsTrait;
 use SmartLicenseServer\Console\CommandInterface;
-use SmartLicenseServer\Database\Database;
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Schema\SchemaRegistry;
-use SmartLicenseServer\Database\Schema\Table;
+use Callismart\DBPrism\Schema\Table;
 
 /**
  * Creates any missing database tables.

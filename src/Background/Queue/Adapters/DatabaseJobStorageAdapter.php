@@ -32,7 +32,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Queue\Adapters;
 
 use SmartLicenseServer\Background\Queue\JobDTO;
-use SmartLicenseServer\Database\Database;
+use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use RuntimeException;
 
