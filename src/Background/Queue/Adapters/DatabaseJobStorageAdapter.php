@@ -391,7 +391,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             return 0;
         }
 
-        $this->db->query(
+        $this->db->execute(
             "DELETE FROM " . SMLISER_BACKGROUND_JOBS_TABLE . "
              WHERE status = ? AND completed_at <= ?",
             [ JobDTO::STATUS_COMPLETED, $cutoff ]

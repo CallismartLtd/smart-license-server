@@ -61,7 +61,14 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use Callismart\DTO\DTO;
 use DateTimeImmutable;
 use InvalidArgumentException;
-
+/**
+* @property string $job_class   Fully-qualified handler class name.
+* @property array  $payload     Argument array passed to the handler's handle() method.
+* @property string $queue       Processing lane. Default: 'default'.
+* @property int    $priority    1 (highest) – 10 (lowest). Default: 5.
+* @property int    $max_attempts Maximum delivery attempts. Default: 3.
+* @property int    $delay       Seconds to wait before the job becomes available. Default: 0.
+ */
 final class JobDTO extends DTO {
 
     /*
