@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\ThemeRepository;
@@ -58,7 +59,7 @@ class Theme extends AbstractHostedApp {
      * 
      * @var array $author The properties of the theme author.
      */
-    protected $author = [
+    protected array|string $author = [
         'user_nicename' => '',
         'profile'       => '',
         'avatar'        => '',
@@ -90,10 +91,10 @@ class Theme extends AbstractHostedApp {
     /**
      * Get the theme author name
      * 
-     * @param string $property The author property to return. 
-     * @return string
+     * @param string $context The author property to return. 
+     * @return string|array
      */
-    public function get_author( $context = 'author' ) {
+    public function get_author( $context = 'author' ) : string|array {
         $author = parent::get_author();
 
         if ( ! empty( $context ) && array_key_exists( $context, (array) $author ) ) {
@@ -107,10 +108,10 @@ class Theme extends AbstractHostedApp {
     /**
      * Get the author profile URL
      * 
-     * @return string
+     * @return URL
      */
-    public function get_author_profile() {
-        return $this->author['author_url'];
+    public function get_author_profile() : URL {
+        return new URL( $this->author['author_url'] );
     }
 
     /**
@@ -343,7 +344,7 @@ class Theme extends AbstractHostedApp {
 
         $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
         $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
-        $self->set_support_url( $self->get_meta( 'support_url', '' ) );
+        $self->set_support_url( (string) $self->get_meta( 'support_url', '' ) );
 
         return $self;
     }
@@ -369,9 +370,9 @@ class Theme extends AbstractHostedApp {
             'num_ratings'           => $this->get_num_ratings(),
             'reviews_url'           => '',
             'downloaded'            => 0,
-            'last_updated'          => gmdate( 'Y-m-d', strtotime( $this->get_last_updated() ) ),
-            'last_updated_time'     => gmdate( 'Y-m-d H:i:s', strtotime( $this->get_last_updated() ) ),
-            'creation_time'         => $this->get_date_created(),
+            'last_updated'          => $this->get_last_updated()->format( 'Y-m-d'),
+            'last_updated_time'     => $this->get_last_updated()->format( 'Y-m-d H:i:s' ),
+            'creation_time'         => $this->get_date_created()->format( 'Y-m-d H:i:s' ),
             'homepage'              => $this->get_homepage(),
             'sections'              => $this->get_sections(),
             'download_link'         => $this->get_download_url(),

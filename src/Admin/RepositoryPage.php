@@ -281,7 +281,7 @@ class RepositoryPage {
             'download_token' => wp_create_nonce( 'smliser_download_token' )
         ];
         $download_url           = adminUrl( 'admin-post.php' )->add_query_params( $download_actions);
-        $last_updated_string    = Format::time_ago( strtotime( $app->get_last_updated() ) );
+        $last_updated_string    = Format::time_ago( $app->get_last_updated()->getTimestamp() );
         $file_size              = FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) );
 
         $template_header    = [

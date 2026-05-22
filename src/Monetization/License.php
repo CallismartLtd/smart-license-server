@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
 use SmartLicenseServer\Cache\CacheAwareTrait;
@@ -33,7 +34,7 @@ class License {
      * 
      * @var int $id
      */
-    protected $id = 0;
+    protected int $id = 0;
 
     /**
      * The full name of the licensee.
@@ -47,7 +48,7 @@ class License {
      * 
      * @var string $license_key
      */
-    protected $license_key = '';
+    protected string $license_key = '';
 
     /**
      * The ID of the service associated with the license.
@@ -55,14 +56,14 @@ class License {
      * 
      * @var string $service_id
      */
-    protected $service_id = '';
+    protected string $service_id = '';
 
     /**
      * The type and slug of the hosted application this license is issued to.
      * 
      * @var array $app_prop
      */
-    protected $app_prop    = [
+    protected array $app_prop    = [
         'type'  => '',
         'slug'  => ''
     ];
@@ -79,7 +80,7 @@ class License {
      * 
      * @var string $status
      */
-    protected $status = '';
+    protected string $status = '';
 
     /**
      * The license commencement date.
@@ -114,14 +115,14 @@ class License {
      * 
      * @var int $max_allowed_domains
      */
-    protected $max_allowed_domains;
+    protected int $max_allowed_domains = 0;
 
     /**
      * The license meta data
      * 
      * @var array $meta_data
      */
-    protected $meta_data = array(
+    protected array $meta_data = array(
         'activated_on'  => array()
     );
 
@@ -558,12 +559,15 @@ class License {
     public static function get_license( $service_id, $license_key ) : ?static {
         $key    = static::make_cache_key( __METHOD__, [$service_id, $license_key] );
 
+        /** @var static|false $result */
         $result = static::cache_get( $key );
 
         if ( false === $result || ! ( $result instanceof static ) ) {
             $db     = \smliser_db();
             $table  = \SMLISER_LICENSE_TABLE;
-            $sql    = "SELECT * FROM {$table} WHERE `service_id` = ? AND `license_key` = ?";
+            $sql    = static::query()->select( '*' )->from( $table )
+                ->where( 'service_id', '=', $service_id )
+                ->where( 'license_key', '=', $license_key );
             $params = [$service_id, $license_key];
 
             $data = $db->get_row( $sql, $params );
@@ -608,20 +612,26 @@ class License {
      * @param int $page  Current page number.
      * @param int $limit Items per page.
      *
-     * @return array {
-     *     @type static[] $items
-     *     @type array    $pagination
-     * }
+     * @return array{
+     *  items: static[], 
+     *  pagination: 
+     *      array{
+     *          page: int,
+     *          limit: int,
+     *          total: int,
+     *          total_pages: int
+     *      }
+     *  } 
      */
     public static function get_all( int $page = 1, int $limit = 30 ) : array {
 
-        $page  = max( 1, $page );
-        $limit = max( 1, $limit );
+        $page  = (int) max( 1, $page );
+        $limit = (int) max( 1, $limit );
 
         $key  = static::make_cache_key( __METHOD__, array( $page, $limit ) );
         $data = static::cache_get( $key );
 
-        if ( false !== $data ) {
+        if ( false !== $data && is_array( $data ) ) {
             return $data;
         }
 
@@ -629,11 +639,10 @@ class License {
         $table  = \SMLISER_LICENSE_TABLE;
         $offset = $db->calculate_query_offset( $page, $limit );
 
-        /**
-         * Fetch paginated rows
-         */
-        $sql    = "SELECT * FROM {$table} ORDER BY id DESC LIMIT ? OFFSET ?";
-        $rows   = $db->get_results( $sql, [$limit, $offset]);
+        $sql    = static::query()->select( '*' )->from( $table )
+            ->order_by( 'id', 'DESC' )->limit( $limit )->offset( $offset );
+
+        $rows   = $db->get_results( $sql->build(), $sql->get_bindings() );
 
         $items = array();
 
@@ -646,8 +655,8 @@ class License {
         /**
          * Fetch total count
          */
-        $count_sql = "SELECT COUNT(*) FROM {$table}";
-        $total     = (int) $db->get_var( $count_sql );
+        $count_sql = self::query()->select( 'COUNT(*)' )->from( $table );
+        $total     = (int) $db->get_var( $count_sql->build_raw() );
 
         $result = array(
             'items'      => $items,
@@ -699,15 +708,15 @@ class License {
 
         $like   = $args['search_term'] . '%';
 
-        /**
-         * Fetch paginated rows
-         */
-        $sql    = "SELECT * FROM {$table} WHERE `licensee_fullname` LIKE ? OR `license_key` LIKE ?
-        OR `service_id` LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?";
-
-        $params = [$like, $like, $like, $limit, $offset];
+        $sql    = 
+            static::query()->select( '*' )->from( $table )
+            ->where( 'licensee_fullname', 'LIKE', $like )
+            ->or_where( 'license_key', 'LIKE', $like )
+            ->or_where( 'service_id', 'LIKE', $like )
+            ->order_by( 'id', 'DESC' )
+            ->limit( $limit )->offset( $offset );
         
-        $rows   = $db->get_results( $sql, $params );
+        $rows   = $db->get_results( $sql->build(), $sql->get_bindings() );
 
         $items = array();
 
@@ -720,10 +729,12 @@ class License {
         /**
          * Fetch total count
          */
-        $count_sql = "SELECT COUNT(*) FROM {$table} WHERE `licensee_fullname` LIKE ? OR `license_key` LIKE ?
-        OR `service_id` LIKE ?";
-        $params = [$like, $like, $like];
-        $total     = (int) $db->get_var( $count_sql, $params );
+        $count_sql  = static::query()->select( 'COUNT(*)' )->from( $table )
+            ->where( 'licensee_fullname', 'LIKE', $like )
+            ->or_where( 'license_key', 'LIKE', $like )
+            ->or_where( 'service_id', 'LIKE', $like );
+
+        $total  = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
 
         $result = array(
             'items'      => $items,
@@ -755,7 +766,7 @@ class License {
             'licensee_fullname'     => $this->get_licensee_fullname(),
             'service_id'            => $this->get_service_id(),
             'app_prop'              => $this->get_app_prop( 'view' ),
-            'max_allowed_domains'   => $this->get_max_allowed_domains(),
+            'max_allowed_domains'   => $this->get_max_allowed_domains( 'save' ),
             'status'                => $this->get_status( 'edit' ),
             'start_date'            => $this->get_start_date()?->format( 'Y-m-d H:i:s' ),
             'end_date'              => $this->get_end_date()?->format( 'Y-m-d H:i:s' ),
@@ -773,8 +784,10 @@ class License {
 
             foreach ( $meta_data as $k => $v ) {
                 
-                $sql        = "SELECT `id` FROM {$meta_table} WHERE `meta_key` = ? AND `license_id` = ?";
-                $meta_id    = $db->get_var( $sql, [$k, $this->id] );
+                $sql        = self::query()->select( 'id' )->from( $meta_table )
+                    ->where( 'meta_key', '=', $k )
+                    ->where( 'license_id', '=', $this->id );
+                $meta_id    = $db->get_var( $sql->build(), $sql->get_bindings() );
 
                 $metadata   = [
                     'meta_key'      => $k,
@@ -796,7 +809,7 @@ class License {
             $result = ( false !== $updated ) || ( $updated_meta > 0 );
 
         } else {
-            $data['license_key']    = $this->generate_license_key();
+            $data['license_key']    = $this->generate_license_key( '', false, 20 );
             $data['created_at']     = $now->format( 'Y-m-d H:i:s' );
             $inserted               = $db->insert( $table, $data );
 
@@ -836,9 +849,13 @@ class License {
     public function load_meta() : static {
         $db         = smliser_db();
         $table      = SMLISER_LICENSE_META_TABLE;
-        $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `license_id` = ?";
+        $sql        = 
+            $this->query()
+            ->select( 'meta_key', 'meta_value')
+            ->from( $table )
+            ->where( 'license_id', '=', $this->get_id() );
 
-        $results    = $db->get_results( $sql, [$this->get_id()] );
+        $results    = $db->get_results( $sql->build(), $sql->get_bindings() );
 
         foreach( $results as $result ) {
             $value      = $result['meta_value'] ?? '';
@@ -854,28 +871,53 @@ class License {
         return $this;
     }
 
-    /**
-     * Delete license from the database
+/**
+     * Delete license from the database along with its associated metadata.
      * 
-     * @return bool True on success, fase otherwise.
+     * @return bool True on success, false otherwise.
+     * @throws Exception If a concurrent modification is detected or if database execution fails.
      */
-    public function delete() {
+    public function delete() : bool {
         if ( ! $this->id ) {
             return false;
         }
 
-        $db         = smliser_db();
         $table      = \SMLISER_LICENSE_TABLE;
         $meta_table = \SMLISER_LICENSE_META_TABLE;
 
-        $deleted     = $db->delete( $table, ['id' => $this->id] );
+        // Compile query structures via the Query Builder
+        $delete_license_sql = static::query()->delete( $table )->where( 'id', '=', $this->id );
+        $delete_meta_sql    = static::query()->delete( $meta_table )->where( 'license_id', '=', $this->id );
+        $lock_query         = static::query()->select( 'id' )->from( $table )
+            ->where( 'id', '=', $this->id )->limit( 1 );
+
+        $deleted = false;
+
+        smliser_db()->transactional( function( Database $db ) use ( $lock_query, $table, $delete_license_sql, $delete_meta_sql, &$deleted ) {
+            $lock_sql = $lock_query->build() . $db->lock_suffix();
+
+            $exists   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
+
+            if ( ! $exists ) {
+                throw new Exception( 'delete_error', 'License record locked or already removed by a concurrent request.' );
+            }
+
+            if ( false === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
+                throw new Exception( 'delete_error', 'Database execution failure dropping license metadata entries.' );
+            }
+
+            if ( false === $db->execute( $delete_license_sql->build(), $delete_license_sql->get_bindings() ) ) {
+                throw new Exception( 'delete_error', 'Database execution failure dropping primary license record.' );
+            }
+
+            $deleted = true;
+        } );
+
         if ( $deleted ) {
-            $db->delete( $meta_table, ['license_id' => $this->id] );
+            static::cache_clear();
         }
 
-        static::cache_clear();
-
-        return false !== $deleted;
+        return $deleted;
     }
 
     /**
@@ -1161,14 +1203,14 @@ class License {
     }
 
     /**
-     * Generate a new license key.
+     * Generate a license key.
      *
      * @param string $prefix The prefix to be added to the license key.
      * @return string The generated license key.
      */
-    public function generate_license_key( $prefix = '' ) {
-        if ( empty( $prefix ) ) {
-            $prefix = \smliser_settings()->get( 'license_prefix', 'SMLISER', true );
+    public function make_licence_key( string $prefix = '' ) {
+        if ( '' === $prefix ) {
+            $prefix = (string) ( \smliser_settings()->get( 'license_key_prefix', 'SMLISER', true ) ?? 'SMLISER' );
         }
 
         $uid            = sha1( uniqid( '', true ) );
@@ -1202,18 +1244,18 @@ class License {
     }
 
     /**
-     * Regenerate the license key.
+     * Generate a unique license key.
      *
      * This will generate a new, unique license key and optionally persist it to the database.
-     * The method updates the in-memory object via set_license_key().
+     * The method updates the license key property.
      *
-     * @param string  $prefix  Optional prefix to pass to generate_license_key().
+     * @param string  $prefix  Optional prefix.
      * @param bool    $persist Whether to persist the new key to the database. Default true.
      * @param int     $tries   Maximum attempts to generate a unique key. Default 10.
      * @return string The newly generated license key.
-     * @throws \SmartLicenseServer\Exception If a unique key cannot be generated or DB persist fails.
+     * @throws Exception If a unique key cannot be generated or DB persist fails.
      */
-    public function regenerate_license_key( string $prefix = '', bool $persist = true, int $tries = 10 ) : string {
+    public function generate_license_key( string $prefix = '', bool $persist = true, int $tries = 10 ) : string {
         $db         = \smliser_db();
         $table      = \SMLISER_LICENSE_TABLE;
 
@@ -1223,11 +1265,13 @@ class License {
 
         do {
             $attempt++;
-            $new_key = $this->generate_license_key( $prefix );
+            $new_key = $this->make_licence_key( $prefix );
 
-            // Check uniqueness
-            $sql = "SELECT COUNT(*) FROM {$table} WHERE `license_key` = ?";
-            $count = (int) $db->get_var( $sql, [ $new_key ] );
+            $sql    =
+                $this->query()
+                ->select( 'COUNT(*)' )->from( $table )
+                ->where( 'license_key', '=', $new_key );
+            $count = (int) $db->get_var( $sql->build(), $sql->get_bindings() );
 
             if ( 0 === $count ) {
                 break;
@@ -1242,10 +1286,8 @@ class License {
             );
         }
 
-        // Update in-memory value
         $this->set_license_key( $new_key );
 
-        // Persist if requested and we have an ID
         if ( $persist ) {
             if ( ! $this->id ) {
                 throw new Exception(

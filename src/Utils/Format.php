@@ -799,7 +799,7 @@ class Format {
      *
      * @var string
      */
-    const ENCODING_JSON = 'json';
+    const ENCODING_JSON = 0;
 
     /**
      * Encoding strategy: PHP native serialize().
@@ -809,7 +809,7 @@ class Format {
      *
      * @var string
      */
-    const ENCODING_PHP = 'php';
+    const ENCODING_PHP = 1;
 
     /**
      * Encode a value for database or cache storage.

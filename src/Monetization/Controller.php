@@ -10,10 +10,9 @@
 
 namespace SmartLicenseServer\Monetization;
 
-use SmartLicenseServer\Core\DateDuration;
+use SmartLicenseServer\Core\Dates\DateDuration;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
@@ -569,7 +568,7 @@ class Controller {
             $message    = $e->get_error_message();
             $location   = smliser_license_page()
                 ->add_query_params([
-                    'success'   => $success,
+                    'success'   => false,
                     'message'   => $message
                 ]);
 

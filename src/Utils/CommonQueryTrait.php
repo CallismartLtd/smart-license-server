@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\Utils;
 
+use Callismart\DBPrism\Query\SQLBuilder;
+
 /**
  * Common reusable database query helpers for entity classes.
  *
@@ -49,45 +51,13 @@ trait CommonQueryTrait {
             return null;
         }
 
-        $sql    = "SELECT * FROM `{$table}` WHERE `{$column}` = ? LIMIT 1";
-        $result = $db->get_row( $sql, [ $value ] );
+        $sql    =
+            static::query()
+            ->select()->from( $table )->where( $column, '=', $value )->limit(1);
+
+        $result = $db->get_row( $sql->build(), $sql->get_bindings() );
 
         return $result ? static::from_array( (array) $result ) : null;
-    }
-
-    /**
-     * Get multiple entities by a column value.
-     *
-     * Useful for foreign-key style lookups
-     * (e.g. owner_id, user_id).
-     *
-     * @param string $column Column name.
-     * @param mixed  $value  Column value.
-     * @param string $table  Database table name.
-     * @return static[]
-     */
-    protected static function get_all_self_by( string $column, $value, string $table ) : array {
-        $db     = smliser_db();
-        $column = self::sanitize_key( $column );
-
-        if ( empty( $column ) ) {
-            return [];
-        }
-
-        $sql     = "SELECT * FROM {$table} WHERE `{$column}` = ?";
-        $results = $db->get_results( $sql, [ $value ] );
-
-        if ( empty( $results ) ) {
-            return [];
-        }
-
-        $entities = [];
-
-        foreach ( $results as $row ) {
-            $entities[] = static::from_array( (array) $row );
-        }
-
-        return $entities;
     }
 
     /**
@@ -97,17 +67,19 @@ trait CommonQueryTrait {
      * internal system operations.
      *
      * @param string $table Database table name.
-     * @param string $page The current pagination number.
+     * @param int $page The current pagination number.
      * @param int    $limit Optional limit.
      * @return static[]
      */
     protected static function get_all_self( string $table, int $page = 1, int $limit = 25 ) : array {
         $db = smliser_db();
 
-        $sql    = "SELECT * FROM {$table} LIMIT ? OFFSET ?";
         $offset = $db->calculate_query_offset( $page, $limit );
-
-        $results = $db->get_results( $sql, [$limit, $offset] );
+        $sql    = 
+            static::query()->select()
+            ->from( $table )->limit( $limit )->offset( $offset );
+        
+        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
 
         if ( empty( $results ) ) {
             return [];
@@ -140,11 +112,18 @@ trait CommonQueryTrait {
             return false;
         }
 
-        $sql    = "SELECT 1 FROM {$table} WHERE `{$column}` = ? LIMIT 1";
+        $sql    = 
+            static::query()
+            ->select('1')->from( $table )->where( $column, '=', $value )->limit(1);
+        
         $result = $db->get_var( $sql, [ $value ] );
 
         return ! empty( $result );
     }
 
-    public static function from_array( array $data ) {}
+    protected static function query() : SQLBuilder {
+        return \smliserQueryBuilder();
+    }
+
+    abstract public static function from_array( array $data ) : static;
 }

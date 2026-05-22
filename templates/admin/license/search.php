@@ -5,6 +5,11 @@
  * @author Callistus Nwachukwu
  * @package Smliser\templates
  * @var SmartLicenseServer\Monetization\License[] $licenses
+ * @var SmartLicenseServer\Core\Request $request
+ * @var SmartLicenseServer\Core\URL $add_url
+ * @var SmartLicenseServer\Core\URL $current_url
+ * @var SmartLicenseServer\Monetization\License[] $licenses
+ * @var array $pagination
  */
 
 use SmartLicenseServer\Admin\LicensePage;
@@ -39,7 +44,7 @@ $args   = LicensePage::get_menu_args( $request );
                 <input type="hidden" name="page" value="<?php echo esc_attr( $request->get( 'page' ) ) ?>">
                 <input type="hidden" name="tab" value="<?php echo esc_attr( $request->get( 'tab' ) ) ?>">
                 
-                <input type="search" name="search_term" value="<?php echo escHtml( $request->get( 'search_term' ) ) ?>" id="smliser-license-search-input" placeholder="Search licenses...">
+                <input type="search" name="search_term" value="<?php echo escHtml( $request->get( 'search_term', '' ) ) ?>" id="smliser-license-search-input" placeholder="Search licenses...">
                 <button type="submit" class="button smliser-btn">Search</button>
             </form>
             

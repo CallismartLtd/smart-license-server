@@ -1,6 +1,10 @@
 <?php
 /**
  * License edit form
+ * 
+ * @var \SmartLicenseServer\Core\Request $request
+ * @var int $license_id
+ * @var array $form_fields
  */
 
 use SmartLicenseServer\Admin\LicensePage;
@@ -17,7 +21,7 @@ if ( 'add-new' !== $tab ) {
             'title' => 'View License',
             'label' => 'View license',
             'url'   => \smliser_license_admin_action_page( 'view', $license_id ),
-            'icon'  => 'dashicons dashicons-edit'
+            'icon'  => 'dashicons dashicons-visibility'
         )
     );
 }

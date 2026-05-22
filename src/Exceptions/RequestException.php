@@ -285,11 +285,10 @@ class RequestException extends Exception {
             ? static::$error_map[ $error_slug ]
             : static::$error_map['invalid_input'];
 
-        // Do NOT mutate slug — preserve original
         $resolved_slug = $error_slug;
 
         $message = $custom_message ?? $default_data['message'];
-
+        
         $data = array_merge(
             [
                 'status' => $default_data['status'],

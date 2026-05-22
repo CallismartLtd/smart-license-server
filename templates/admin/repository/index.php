@@ -10,6 +10,7 @@
  * @var string|null $status
  * @var \SmartLicenseServer\Core\URL $add_url
  * @var \SmartLicenseServer\Core\URL $current_url
+ * @var string $page_title
  */
 
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
@@ -186,7 +187,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                                 <td><?php echo escHtml( $app->get_version() ); ?></td>
                                 <td><?php echo escHtml( $app->get_slug() ); ?></td>
                                 <td><?php echo escHtml( $app->get_status() ); ?></td>
-                                <td><?php echo escHtml( date( smliser_datetime_format(), strtotime( $app->get_updated_at() ) ) ); ?></td>
+                                <td><?php echo escHtml( $app->get_updated_at()->format( smliser_datetime_format() ) ); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

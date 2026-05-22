@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
 use SmartLicenseServer\Utils\CommonQueryTrait;
@@ -139,7 +140,7 @@ class Plugin extends AbstractHostedApp {
      *   ...
      * ]
      */
-    public function set_screenshots( array $screenshots ) {
+    public function set_screenshots( array $screenshots ) : static{
         foreach ( $screenshots as $key => &$screenshot ) {
             if ( isset( $screenshot['src'] ) ) {
                 $screenshot['src'] = self::sanitize_web_url( $screenshot['src'] );
@@ -151,6 +152,8 @@ class Plugin extends AbstractHostedApp {
         }
 
         $this->screenshots = $screenshots;
+
+        return $this;
     }
 
     /**
@@ -158,9 +161,10 @@ class Plugin extends AbstractHostedApp {
      * 
      * @param array $icons
      */
-    public function set_icons( array $icons ) {
+    public function set_icons( array $icons ) : static {
         $this->icons    = array_map( [__CLASS__, 'sanitize_url'], unslash( $icons ) );
 
+        return $this;
     }   
 
     /*
@@ -171,37 +175,44 @@ class Plugin extends AbstractHostedApp {
 
     /**
      * Get the author profile.
+     * 
+     * @return URL
      */
-    public function get_author_profile() {
+    public function get_author_profile() : URL {
         return $this->author_profile;
     }
 
     /**
      * Get WordPress required version for plugin.
+     * 
+     * @return string
      */
-    public function get_requires_at_least() {
+    public function get_requires_at_least() : string {
         return $this->requires_at_least;
     }
 
     /**
      * Get WordPress version tested up to.
+     * @return string
      */
-    public function get_tested_up_to() {
+    public function get_tested_up_to() : string {
         return $this->tested_up_to ;
     }
 
     /**
      * Get the required PHP version.
+     * @return string
      */
-    public function get_required_php() {
+    public function get_required_php() : string {
         return $this->requires_php;
     }
 
     /**
      * Get Download link.
+     * @return string
      */
-    public function get_download_link() {
-        return $this->get_download_url();
+    public function get_download_link() : string {
+        return $this->get_download_url()->url();
     }
 
     /**
@@ -342,7 +353,7 @@ class Plugin extends AbstractHostedApp {
 
         $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
         $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
-        $self->set_support_url( $self->get_meta( 'support_url', '' ) );
+        $self->set_support_url( (string) $self->get_meta( 'support_url', '' ) );
         
         $self->set_homepage( $self->get_meta( 'homepage_url' ) ?? '' );
 

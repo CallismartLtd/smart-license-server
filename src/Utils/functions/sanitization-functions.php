@@ -4,6 +4,7 @@
  * 
  * @author Callistus Nwachukwu
  */
+declare( strict_types=1 );
 
 use SmartLicenseServer\Utils\Sanitizer;
 
@@ -19,10 +20,10 @@ function unslash( $data ) {
 /**
  * Escape a string for safe HTML output.
  * 
- * @param string $value
+ * @param string $input
  * @return string
  */
-function escHtml( string $input ) : string {
+function escHtml( mixed $input ) : string {
     return Sanitizer::esc_html( $input );
 }
 

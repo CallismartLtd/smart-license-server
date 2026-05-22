@@ -10,6 +10,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -305,14 +306,16 @@ class PricingTier {
      * @return bool True on success, false on failure.
      */
     public function delete() : bool {
-        $db = smliser_db();
-
         if ( ! $this->id ) {
             return false;
         }
 
-        $deleted = $db->delete( SMLISER_PRICING_TIER_TABLE, [ 'id' => $this->id ] );
+        $deleted    = false;
 
+        smliser_db()->transactional( function( Database $db ) use ( &$deleted ) {
+            $deleted    = $db->delete( SMLISER_PRICING_TIER_TABLE, [ 'id' => $this->id ] );
+        });
+        
         return false !== $deleted;
     }
 

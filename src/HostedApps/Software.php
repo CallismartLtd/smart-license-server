@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\FileSystem\SoftwareRepository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
@@ -119,10 +120,10 @@ class Software extends AbstractHostedApp {
     /**
      * Get author profile
      * 
-     * @return string
+     * @return URL
      */
-    public function get_author_profile() : string {
-        return $this->author;
+    public function get_author_profile() : URL {
+        return new URL( $this->author );
     }
 
     /*
@@ -147,7 +148,7 @@ class Software extends AbstractHostedApp {
      * 
      * @param array $manifest
      */
-    public function set_manifest( array $manifest ) {
+    public function set_manifest( array $manifest ) : static {
         if ( isset( $manifest['version'] ) ) {
             $this->set_version( $manifest['version'] );
         }
@@ -156,7 +157,7 @@ class Software extends AbstractHostedApp {
             $this->short_description = self::sanitize_text( $manifest['short_description'] );
         }
 
-        parent::set_manifest( $manifest );
+        return parent::set_manifest( $manifest );
 
     }
 

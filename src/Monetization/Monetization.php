@@ -9,9 +9,12 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use Callismart\DBPrism\Database;
 use DateTimeImmutable;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
+use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -22,7 +25,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * Each tier specifies its own provider, billing rules, and feature set.
  */
 class Monetization {
-    use SanitizeAwareTrait, DatePropertyAwareTrait;
+    use SanitizeAwareTrait, DatePropertyAwareTrait, CommonQueryTrait;
     /**
      * The monetization ID.
      * 
@@ -291,23 +294,46 @@ class Monetization {
      * Delete this monetization record and its pricing tiers.
      *
      * @return bool True on success, false on failure.
+     * @throws Exception If a concurrent modification is detected or if database execution fails.
      */
     public function delete() : bool {
-        $db = smliser_db();
-
         if ( ! $this->id ) {
             return false;
         }
 
-        // Atomic delete to prevent race conditions where tiers are deleted but monetization isn't, or vice versa.
         $monetization_table = SMLISER_MONETIZATION_TABLE;
         $pricing_tier_table = SMLISER_PRICING_TIER_TABLE;
-        $sql                = "DELETE m, t FROM {$monetization_table} 
-            m LEFT JOIN {$pricing_tier_table} t ON m.id = t.monetization_id 
-        WHERE m.id = ?";
-        $deleted = $db->query( $db->prepare( $sql, [ $this->id ] ) );
 
-        return false !== $deleted;
+        $delete_monetn_sql  = static::query()->delete( $monetization_table  )->where( 'id', '=', $this->id );
+        $delete_tiers_sql   = static::query()->delete( $pricing_tier_table )->where( 'monetization_id', '=', $this->id );
+        
+        $deleted = false;
+
+        $lock_query = static::query()->select( 'id' )->from( $monetization_table )
+            ->where( 'id', '=', $this->id )
+            ->limit(1);
+      
+        smliser_db()->transactional( function( Database $db )
+        use ( $lock_query, $delete_monetn_sql, $delete_tiers_sql, &$deleted ) {
+            $lock_sql = $lock_query->build() . $db->lock_suffix();
+            $exists   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
+
+            if ( ! $exists ) {
+                throw new Exception( 'delete_error', 'Record locked or already removed by concurrent request.' );
+            }
+
+            if ( false === $db->execute( $delete_tiers_sql->build(), $delete_tiers_sql->get_bindings() ) ) {
+                throw new Exception( 'delete_error', 'Database execution failure dropping pricing tiers.' );
+            }
+
+            if ( false === $db->execute( $delete_monetn_sql->build(), $delete_monetn_sql->get_bindings() ) ) {
+                throw new Exception( 'delete_error', 'Database execution failure dropping monetization record.' );
+            }
+            
+            $deleted = true;
+        } );
+
+        return $deleted;
     }
 
     /**
@@ -342,22 +368,19 @@ class Monetization {
      */
     public static function get_by_id( $id ) : ?static {
         $db     = smliser_db();
+        $id     = static::sanitize_int( $id );
         $table  = SMLISER_MONETIZATION_TABLE;
-        $sql    = "SELECT * FROM {$table} WHERE id = ?";
-        $row    = $db->get_row( $sql, [static::sanitize_int( $id )] );
+        $sql    = static::query()->select( '*' )->from( $table)
+            ->where( 'id', '=', $id )->limit(1);
+
+        $row    = $db->get_row( $sql->build(), $sql->get_bindings() );
         
 
         if ( ! $row ) {
             return null;
         }
 
-        $static = new static();
-        $static->set_id( $row['id'] ?? 0 )
-            ->set_app_id( $row['app_id'] ?? '' )
-            ->set_app_type( $row['app_type'] ?? '' )
-            ->set_enabled( (bool) $row['enabled'] ?? false )
-            ->set_created_at( $row['created_at'] ?? '' )
-            ->set_updated_at( $row['updated_at'] ?? '' );
+        $static = static::from_array( $row );
 
         // hydrate tiers
         $static->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
@@ -376,8 +399,10 @@ class Monetization {
         $db     = smliser_db();
         $table  = SMLISER_MONETIZATION_TABLE;
 
-        $sql    = "SELECT * FROM {$table} WHERE app_type = ? AND app_id = ?";
-        $row    = $db->get_row( $sql, [$app_type, $app_id]);
+        $sql    = static::query()->select( '*' )->from( $table )
+            ->where( 'app_type', '=', $app_type )
+            ->where( 'app_id', '=', $app_id );
+        $row    = $db->get_row( $sql->build(), $sql->get_bindings() );
 
         if ( ! $row ) {
             return null;
@@ -461,6 +486,22 @@ class Monetization {
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
+    }
+
+    /**
+     * Hydratefrom array.
+     * 
+     * @param array $data
+     */
+    public static function from_array( array $data ) : static {
+        $static = new static();
+        $static->set_id( $data['id'] ?? 0 )
+            ->set_app_id( $data['app_id'] ?? '' )
+            ->set_app_type( $data['app_type'] ?? '' )
+            ->set_enabled( (bool) $data['enabled'] ?? false )
+            ->set_created_at( $data['created_at'] ?? '' )
+            ->set_updated_at( $data['updated_at'] ?? '' );
+        return $static;
     }
 
     /**

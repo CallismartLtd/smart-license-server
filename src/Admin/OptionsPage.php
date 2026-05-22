@@ -410,8 +410,8 @@ class OptionsPage {
                 'help'  => 'Prefix automatically added to generated license keys (e.g., SMLISER-XXXX-XXXX). Helps identify the issuing system.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'license_prefix',
-                    'value' => $settings->get( 'license_prefix', 'SMLISER', true ),
+                    'name'  => 'license_key_prefix',
+                    'value' => $settings->get( 'license_key_prefix', 'SMLISER', true ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',

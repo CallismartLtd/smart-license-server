@@ -5,14 +5,18 @@
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  * @package SmartLicenseServer\HostedApps
  */
+declare( strict_types=1 );
 namespace SmartLicenseServer\HostedApps;
 
+use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Utils\CommonQueryTrait;
+use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -25,84 +29,91 @@ use function smliser_db;
  * @package SmartLicenseServer\HostedApps
  */
 abstract class AbstractHostedApp implements HostedAppsInterface {
-    use SanitizeAwareTrait;
+    use SanitizeAwareTrait, DatePropertyAwareTrait, CommonQueryTrait;
 
     /**
      * App database ID
      * 
      * @var int $id The app ID.
      */
-    protected $id = 0;
+    protected int $id = 0;
 
     /**
      * App owner ID
      * 
      * @var int $owner_id
      */
-    protected $owner_id = 0;
+    protected int $owner_id = 0;
 
     /**
      * The name of the app..
      * 
      * @var string $name The app's name.
      */
-    protected $name = '';
+    protected string $name = '';
 
     /**
      * The app status
      * 
      * @var string $status
      */
-    protected $status = self::STATUS_ACTIVE;
+    protected string $status = self::STATUS_ACTIVE;
 
     /**
      * App slug.
      * 
      * @var string $slug app slug.
      */
-    protected $slug = '';
+    protected string $slug = '';
 
     /**
      * App Version.
      * 
      * @var string $version The current version of the app.
      */
-    protected $version = '';
+    protected string $version = '';
 
     /**
      * Author .
      * 
      * @var string|array $author The author of the app
      */
-    protected $author;
+    protected string|array $author;
 
     /**
      * Author profile.
      * 
-     * @var string $author_profile The author's app link or information.
+     * @var URL $author_profile The author's app link or information.
      */
-    protected $author_profile = '';
+    protected ?URL $author_profile = null;
 
     /**
      * Update time.
      * 
-     * @var string $updated_at The last time the app was updated
+     * @var DateTimeImmutable|null $updated_at The last time the app was updated
      */
-    protected $updated_at = '';
+    protected ?DateTimeImmutable $updated_at = null;
 
     /**
      * Date created
      * 
-     * @var string $created_at When app was created.
+     * @var DateTimeImmutable|null $created_at When app was created.
      */
-    protected $created_at;
+    protected ?DateTimeImmutable $created_at = null;
 
     /**
      * An array of app sections (e.g., description, installation, FAQ).
      * 
-     * @var array $sections
+     * @var array{
+     *  description: string, 
+     *  installation: string, 
+     *  faq: string, 
+     *  screenshots: string, 
+     *  changelog: string, 
+     *  reviews: string
+     * } $sections
      */
-    protected $sections = array(
+    protected array $sections = array(
         'description'   => '',
         'installation'  => '',
         'faq'           => '',
@@ -117,28 +128,28 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @var array $icons
      */
-    protected $icons = array();
+    protected array $icons = [];
 
     /**
      * Short description.
      * 
      * @var string $short_description A brief description of the app.
      */
-    protected $short_description = '';
+    protected string $short_description = '';
 
     /**
      * An array of app screenshots.
      * 
      * @var array $screenshots
      */
-    protected $screenshots = array();
+    protected array $screenshots = [];
 
     /**
      *  An array of app ratings.
      * 
-     * @var array $ratings
+     *  @var array{5: int, 4: int, 3: int, 2: int, 1: int} $ratings
      */
-    protected $ratings = array(
+    protected array $ratings = array(
         '5' => 0,
         '4' => 0,
         '3' => 0,
@@ -151,35 +162,35 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @var int $num_ratings
      */
-    protected $num_ratings = 0;
+    protected int $num_ratings = 0;
 
     /**
      * The number of active installations
      * 
      * @var int $active_installs
      */
-    protected $active_installs = 0;
+    protected int $active_installs = 0;
 
     /**
      * Download link.
      * 
-     * @var string $download_link The file url.
+     * @var URL|null $download_link The file url.
      */
-    protected $download_link = '#';
+    protected ?URL $download_link = null;
 
     /**
      * The app support URL
      * 
-     * @var string $support_url
+     * @var URL|null $support_url
      */
-    protected $support_url = '';
+    protected ?URL $support_url = null;
 
     /**
      * The app homepage URL
      * 
-     * @var string $homepage
+     * @var URL $homepage
      */
-    protected $homepage = '#';
+    protected ?URL $homepage = null;
 
     /**
      * Absolute path to the application's zip file.
@@ -193,14 +204,14 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @var array $tags
      */
-    protected $tags = [];
+    protected array $tags = [];
 
     /**
      * App meta data stored in the database.
      * 
      * @var array $meta_data
      */
-    protected $meta_data = [];
+    protected array $meta_data = [];
 
     /**
      * The applications manifest data used to build the app.json.
@@ -219,7 +230,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @var array $license
      */
-    protected $license = [
+    protected array $license = [
         'license'       => '',
         'license_uri'   => ''
     ];
@@ -274,27 +285,35 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * Set the database ID
      * 
      * @param int $id
+     * @return static Fluent.
      */
-    public function set_id( $id ) {
+    public function set_id( $id ) : static {
         $this->id = static::sanitize_int( $id );
+        return $this;
     }
 
     /**
      * Set the owner ID
      * 
      * @param int $owner_id
+     * @return static Fluent.
      */
-    public function set_owner_id( $owner_id ) {
+    public function set_owner_id( $owner_id ) : static {
         $this->owner_id = self::sanitize_int( $owner_id );
+
+        return $this;
     }
 
     /**
      * Set the app name
      * 
-     * @param string $name
+     * @param string|null $name
+     * @return static Fluent.
      */
-    public function set_name( $name ) {
+    public function set_name( ?string $name ) : static {
         $this->name = self::sanitize_text( $name );
+
+        return $this;
     }
 
     /**
@@ -302,8 +321,10 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param string $slug
      */
-    public function set_slug( $slug ) {
+    public function set_slug( string $slug ) : static {
         $this->slug = self::sanitize_text( $slug );
+
+        return $this;
     }
 
     /**
@@ -311,8 +332,10 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param string $status
      */
-    public function set_status( $status ) {
+    public function set_status( string $status ) : static {
         $this->status = self::sanitize_text( $status );
+
+        return $this;
     }
 
     /**
@@ -320,13 +343,14 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param string|array $value
      */
-    public function set_author( $value ) {
+    public function set_author( string|array $value ) : static {
         if ( is_array( $value ) ) {
             $this->author = array_intersect_key( $value, $this->author );
         } else {
             $this->author = $value;
         }
         
+        return $this;
     }
 
     /**
@@ -334,8 +358,10 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param string $url
      */
-    public function set_homepage( $url ) {
-        $this->homepage = self::sanitize_url( $url, array( 'https' ) );
+    public function set_homepage( ?string $url ) : static {
+        $this->homepage = ( new URL( $url ?? '' ) )->sanitize();
+
+        return $this;
     }
 
     /**
@@ -343,8 +369,10 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param array $screenshots
      */
-    public function set_screenshots( array $screenshots ) {
+    public function set_screenshots( array $screenshots ) : static {
         $this->screenshots = $screenshots;
+
+        return $this;
     }
 
     /**
@@ -352,17 +380,21 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param array $icons
      */
-    public function set_icons( array $icons ) {
+    public function set_icons( array $icons ) : static {
         $this->icons = $icons;
+
+        return $this;
 
     }
     /**
      * Set the link to the author's profile
      * 
-     * @param string $url
+     * @param string|URL|null $url
      */
-    public function set_author_profile( $url ) {
-        $this->author_profile = self::sanitize_url( $url );
+    public function set_author_profile( string|URL|null $url ) : static {
+        $this->author_profile = ( $url instanceof URL ) ? $url->sanitize() : ( new URL( $url ) )->sanitize();
+
+        return $this;
     }
 
     /**
@@ -370,56 +402,66 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param string $version
      */
-    public function set_version( $version ) {
+    public function set_version( ?string $version ) : static {
         $this->version = self::sanitize_text( $version );
+
+        return $this;
     }
     /**
      * Set Download url.
      * 
-     * @param string $link The download url.
+     * @param string|URL $url The download url.
      */
-    public function set_download_url( string $link = '' ) {
-        $url            = new URL( $link );
+    public function set_download_url( string|URL $url = '' ) : static {
+        $url    = ( $url instanceof URL ) ? $url : new URL( $url );
+        
         if ( $url->is_valid() ) {
-            $this->download_link = $url->__toString();
+            $this->download_link = $url->sanitize();
         } else {
-            $slug           = $this->get_slug();
-            $download_slug  = smliser_get_download_url_prefix();
-            $type           = $this->get_type();
-            $slug           = basename( $slug, '.zip' );
+            $prefix = smliser_get_download_url_prefix();
+            $type   = $this->get_type();
+            $slug   = basename( $this->get_slug(), '.zip' );
 
-            $parts          = [ $download_slug, $type, $slug ];
-            $path           = sprintf( '%s.zip', implode( '/', $parts ) );
-            $download_link  = url( $path );
+            $parts  = [ $prefix, $type, $slug ];
+            $path   = sprintf( '%s.zip', implode( '/', $parts ) );
 
-            $this->download_link = self::sanitize_url( $download_link, array( 'http', 'https' ) );            
+            $this->download_link = url( $path )->sanitize();            
         }
+
+        return $this;
     }
 
     /**
      * Set last updated
      * 
-     * @param $date
+     * @param mixed $date
      */
-    public function set_updated_at( $date ) {
-        $this->updated_at = self::sanitize_text( $date );
+    public function set_updated_at( mixed $date ) : static {
+        return $this->set_date_prop( $date, 'updated_at' );
     }
 
     /**
      * Set When created
      * 
-     * @param $date
+     * @param mixed $date
      */
-    public function set_created_at( $date ) {
-        $this->created_at = self::sanitize_text( $date );
+    public function set_created_at( mixed $date ) : static {
+        return $this->set_date_prop( $date, 'created_at' );
     }
 
     /**
      * Set Section
      * 
-     * @param array $section_data An associative array containing each section information.
+     * @param array{
+     *  description: string, 
+     *  installation: string, 
+     *  faq: string, 
+     *  screenshots: string, 
+     *  changelog: string, 
+     *  reviews: string
+     * } $section_data An associative array containing each section information.
      */
-    public function set_section( array $section_data ) {
+    public function set_section( array $section_data ) : static {
         if ( isset( $section_data['description'] ) ) {
             $this->sections['description'] = $section_data['description'];
         } 
@@ -443,6 +485,8 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         if ( isset( $section_data['reviews'] ) ) {
             $this->sections['reviews'] = $section_data['reviews'];
         }
+
+        return $this;
     }
 
     /**
@@ -450,17 +494,23 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param string|UploadedFile $file
      */
-    public function set_file( string|UploadedFile $file ) {
+    public function set_file( string|UploadedFile $file ) : static {
         $this->file = $file;
+
+        return $this;
     }
 
     /**
      * Set ratings
      * 
-     * @param array $ratings
+     * @param array{5: int, 4: int, 3: int, 2: int, 1: int} $ratings
      */
-    public function set_ratings( $ratings ) {
-        $this->ratings = array_intersect_key( $ratings, $this->ratings );
+    public function set_ratings( $ratings ) : static {
+        $this->ratings = array_map(
+            [$this, 'sanitize_int'],
+            array_intersect_key( $ratings, $this->ratings )
+        );
+        return $this;
     }
 
     /**
@@ -468,26 +518,32 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param int $value
      */
-    public function set_num_ratings( $value ) {
+    public function set_num_ratings( int $value ) : static {
         $this->num_ratings  = static::sanitize_int( $value );
+
+        return $this;
     }
 
     /**
      * The number of active installations
      * @param int $value
      */
-    public function set_active_installs( $value ) {
+    public function set_active_installs( mixed $value ) : static {
         $this->active_installs = static::sanitize_int( $value );
+
+        return $this;
     }
 
     /**
      * Set the app support URL
      *
-     * @param string $url The support URL
-     * @return void
+     * @param string|URL $url The support URL
+     * @return static
      */
-    public function set_support_url( $url ) {
-        $this->support_url = $url;
+    public function set_support_url( string|URL $url ) : static {
+        $this->support_url = ( $url instanceof URL ) ? $url : new URL( $url );
+
+        return $this;
     }
 
     /**
@@ -495,16 +551,19 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param array $tags
      */
-    public function set_tags( $tags ) {
+    public function set_tags( array $tags ) : static {
         $this->tags = array_map( [__CLASS__, 'sanitize_text'], (array) $tags );
+
+        return $this;
     }
 
     /**
      * Set the manifest property.
      * 
      * @param array $data
+     * 
      */
-    public function set_manifest( array $data ) {
+    public function set_manifest( array $data ) : static {
         $defaults   = [
             'type'          => '',
             'platforms'     => [],
@@ -513,6 +572,8 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         ];
         
         $this->manifest = $data + $defaults;
+
+        return $this;
     }
 
     /**
@@ -520,8 +581,10 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @param array $license
      */
-    public function set_license( array $license ) {
+    public function set_license( array $license ) : static {
         $this->license = $license + $this->license;
+
+        return $this;
     }
     
     /**
@@ -535,7 +598,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return int
      */
-    public function get_id() {
+    public function get_id() : int {
         return $this->id;
     }
 
@@ -544,7 +607,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return int
      */
-    public function get_owner_id() {
+    public function get_owner_id() : int {
         return $this->owner_id;
     }
 
@@ -554,7 +617,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return string
      */
-    public function get_name() {
+    public function get_name() : string {
         return $this->name;
     }
 
@@ -563,7 +626,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return string
      */
-    public function get_status() {
+    public function get_status() : string {
         return $this->status;
     }
 
@@ -572,16 +635,14 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return string
      */
-    public function get_version() {
+    public function get_version() : string {
         return $this->version;
     }
 
     /**
      * Get the download URL for the application.
-     * 
-     * @return string
      */
-    public function get_download_url() {
+    public function get_download_url() : URL {
         return $this->download_link;
     }
 
@@ -590,7 +651,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return string|array
      */
-    public function get_author() {
+    public function get_author() : string|array {
         return $this->author;
     }
 
@@ -599,16 +660,16 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return string
      */
-    public function get_slug() {
+    public function get_slug() : string {
         return $this->slug;
     }
 
     /**
      * Get the homepage URL
      * 
-     * @return string
+     * @return URL
      */
-    public function get_homepage() {
+    public function get_homepage() : URL {
         if ( empty( $this->homepage ) || '#' === $this->homepage ) {
             return $this->get_url();
         }
@@ -616,11 +677,11 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     }
     
     /**
-     * Get plugin screenshots
+     * Get app screenshots
      * 
      * @return array $screenshots
      */
-    public function get_screenshots() {
+    public function get_screenshots() : array {
         return $this->screenshots;
 
     }
@@ -630,7 +691,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return array
      */
-    public function get_icons() {
+    public function get_icons() : array {
         return $this->icons;
 
     }
@@ -640,14 +701,14 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return string
      */
-    public function get_description() {
+    public function get_description() : string {
         return $this->sections['description'];
     }
 
     /**
      * Get application short description.
      */
-    public function get_short_description() {
+    public function get_short_description() : string {
         return $this->short_description;
     }
 
@@ -656,22 +717,23 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return string
      */
-    public function get_changelog() {
+    public function get_changelog() : string {
         return $this->get_section( 'changelog' );
     }
+
     /**
      * Get the application's installation guide.
      * 
      * @return string a parsed HTML string from the readme file.
      */
-    public function get_installation() {
+    public function get_installation() : string {
         return $this->get_section( 'installation' );
     }
 
     /**
      * Get application support URL.
      */
-    public function get_support_url() {
+    public function get_support_url() : ?URL {
         return $this->support_url;
     }
 
@@ -681,7 +743,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $name  Section name.
      * @return string The particular section name
      */
-    public function get_section( $name ) {
+    public function get_section( $name ) : string {
         return isset($this->sections[$name] ) ? $this->sections[$name] : '';
     }
 
@@ -691,7 +753,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return array $ratings
      */
-    public function get_ratings() {
+    public function get_ratings() : array {
         return $this->ratings;
     }
 
@@ -700,7 +762,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return int
      */
-    public function get_num_ratings() {
+    public function get_num_ratings() : int {
         return $this->num_ratings;
     }
 
@@ -709,7 +771,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return float
      */
-    public function get_average_rating() {
+    public function get_average_rating() : float {
         $total_ratings  = array_sum( $this->ratings );
         $num_ratings    = $this->get_num_ratings();
 
@@ -723,7 +785,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     /**
      * The number of active installations
      */
-    public function get_active_installs() {
+    public function get_active_installs() : int {
         return $this->active_installs;
     }
 
@@ -741,28 +803,28 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return array $sections.
      */
-    public function get_sections() {
+    public function get_sections() : array {
         return $this->sections;
     }
     
     /**
      * Get last updated
      */
-    public function get_updated_at() {
+    public function get_updated_at() : DateTimeImmutable {
         return $this->updated_at;
     }
     
     /**
      * Get last updated
      */
-    public function get_last_updated() {
+    public function get_last_updated() : DateTimeImmutable {
         return $this->get_updated_at();
     }
 
     /**
      * Get when created.
      */
-    public function get_created_at() {
+    public function get_created_at() : DateTimeImmutable {
         return $this->created_at;
     }
     /**
@@ -777,7 +839,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return array $tags
      */
-    public function get_tags() {
+    public function get_tags() : array {
         return $this->tags;
     }
 
@@ -804,13 +866,6 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     | ABSTRACT METHODS THAT MUST BE IMPLEMENTED
     |-------------------------------------------
     */
-
-    /**
-     * get author profile
-     * 
-     * @return string
-     */
-    abstract public function get_author_profile();
 
     /**
      * Get the application type (e.g., 'plugin', 'theme', 'library').
@@ -865,7 +920,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     /**
      * Save the app.
      * 
-     * @return bool|Exception
+     * @return bool|Exception Does not throw.
      */
     final public function save() : bool|Exception {
         $db         = smliser_db();
@@ -876,64 +931,101 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
         $data       = [];
-
         foreach( $db_fields as $key ) {
-            $method     = "get_{$key}";
-
+            $method = "get_{$key}";
             if ( ! \is_callable( [$this, $method] ) ) {
                 continue;
             }
-
             $data[$key] = $this->$method();
         }
 
-        $data['updated_at']  = $now->format( 'Y-m-d H:i:s' );
+        $data['updated_at'] = $now->format( 'Y-m-d H:i:s' );
+        
+        // Trackers for structural rollback of files if DB fails
+        $uploaded_slug      = null;
+        $is_new_insert      = ! $this->get_id();
+        $backup_old_file    = null; 
 
-        if ( $this->get_id() ) {
-            if ( ( $file instanceof UploadedFile ) && $file->is_upload_successful() ) {
-                $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
-                
-                if ( is_smliser_error( $slug ) ) {
-                    return $slug;
-                }
+        try {
+            $db->transactional( function( Database $db_instance ) use (
+                $table, $file, $repo_class, $now, 
+                &$data, &$uploaded_slug, $is_new_insert, &$backup_old_file ) {
+                if ( ! $is_new_insert ) {
+                    $lock_query = static::query()->select( 'id', 'slug' )->from( $table )
+                        ->where( 'id', '=', static::sanitize_int( $this->get_id() ) )
+                        ->limit( 1 );
+                    
+                    $existing_record = $db_instance->get_row( 
+                        $lock_query->build() . $db_instance->lock_suffix(), 
+                        $lock_query->get_bindings() 
+                    );
 
-                /** @var string $slug  */
-                if ( $slug !== $this->get_slug() ) {
-                    $data['slug'] = $slug;
+                    if ( ! $existing_record ) {
+                        throw new Exception( 'save_error', 'The application record being updated does not exist or is locked.' );
+                    }
+
+                    if ( ( $file instanceof UploadedFile ) && $file->is_upload_successful() ) {
+                        $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
+                        
+                        if ( $slug instanceof Exception ) {
+                            throw $slug;
+                        }
+
+                        if ( $slug !== $this->get_slug() ) {
+                            $data['slug'] = $slug;
+                            $this->set_slug( $slug );
+                        }
+                        $uploaded_slug = $slug;
+                    }
+
+                    // Perform safe update query execution via builder context
+                    $update_query = static::query()->update( $table )->set( $data )
+                        ->where( 'id', '=', $this->get_id() );
+                    
+                    if ( false === $db_instance->execute( $update_query->build(), $update_query->get_bindings() ) ) {
+                        throw new Exception( 'db_update_error', $db_instance->get_last_error() );
+                    }
+
+                } else {
+                    if ( ! ( $file instanceof UploadedFile ) || ! $file->is_upload_successful() ) {
+                        throw new Exception( 'required_file', 'No plugin file provided for upload.', array( 'status' => 400 ) );
+                    }
+
+                    $filename = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
+                    $slug     = $repo_class->upload_zip( $file, $filename );
+
+                    if ( $slug instanceof Exception ) {
+                        throw $slug;
+                    }
+
                     $this->set_slug( $slug );
+                    $data['slug']       = $slug;
+                    $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
+
+                    $insert_query = static::query()->insert( $table )->values( $data );
+                    if ( false === $db_instance->execute( $insert_query->build(), $insert_query->get_bindings() ) ) {
+                        throw new Exception( 'db_insert_error', $db_instance->get_last_error() );
+                    }
+
+                    $this->set_id( $db_instance->get_insert_id() );
+                    $this->set_created_at( $now );
                 }
+            } );
+
+            $this->set_updated_at( $now );
+            $new_file   = $repo_class->locate( $this->get_slug() );
+
+            if ( ! $new_file instanceof Exception ) {
+                $this->set_file( $new_file );
             }
+            
+            $repo_class->regenerate_app_dot_json( $this );
 
-            $result = $db->update( $table, $data, array( 'id' => static::sanitize_int( $this->get_id() ) ) );
+            return true;
 
-        } else {
-            if ( ! ( $file instanceof UploadedFile ) || ! $file->is_upload_successful() ) {
-                return new Exception( 'required_file', 'No plugin file provided for upload.', array( 'status' => 400 ) );
-            }
-
-            $filename   = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
-            $slug       = $repo_class->upload_zip( $file, $filename );
-
-            if ( is_smliser_error( $slug ) ) {
-                return $slug;
-            }
-
-            /** @var string $slug  */
-            $this->set_slug( $slug );
-
-            $data['slug']       = $this->get_slug();
-            $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-            $result             = $db->insert( $table, $data );
-
-            $this->set_id( $db->get_insert_id() );
-            $this->set_created_at( $now->format( 'Y-m-d H:i:s' ) );
+        } catch ( Exception $e ) {          
+            return $e;
         }
-
-        $this->set_updated_at( $now->format( 'Y-m-d H:i:s' ) );
-        $this->set_file( $repo_class->locate( $this->get_slug() ) );
-        $repo_class->regenerate_app_dot_json( $this );
-
-        return ( false !== $result ) ? true : new Exception( 'db_insert_error', $db->get_last_error() );
     }
 
     /**
@@ -947,40 +1039,71 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             return null;
         }
         
-        $db     = smliser_db();
         $table  = static::get_db_table();
-        $slug   = basename( $slug, '.zip' );       
-    
-        $sql    = "SELECT * FROM {$table} WHERE `slug` = ?";
-        $result = $db->get_row( $sql, [$slug] );
+        $slug   = basename( $slug, '.zip' );   
 
-        if ( ! empty( $result ) ){
-            return static::from_array( $result );
-        }
+        return static::get_self_by( 'slug', $slug, $table );    
 
-        return null;
     }
 
-    /**
-     * Delete an app.
+/**
+     * Delete an app, its associated metadata, and its physical files.
      * 
-     * @return bool True on success, false on otherwise.
+     * @return bool True on success, false otherwise.
+     * @throws Exception If a concurrent modification is detected or database execution fails.
      */
     public function delete() : bool {
-        $db     = smliser_db();
-
         if ( empty( $this->id ) ) {
-            return false; // A valid app should have an ID.
+            return false;
         }
-            
-        $app_deletion   = $db->delete( $this->get_db_table(), array( 'id' => $this->get_id() ) );
-        $meta_deletion  = $db->delete( $this->get_db_meta_table(), array( $this->get_meta_foreign_key() => $this->get_id() ) );
 
-        if ( ! empty( $this->meta_data ) ) {
+        $db         = smliser_db();
+        $table      = $this->get_db_table();
+        $meta_table = $this->get_db_meta_table();
+        $foreign_key = $this->get_meta_foreign_key();
+
+        $delete_app_sql  = static::query()->delete( $table )->where( 'id', '=', $this->get_id() );
+        $delete_meta_sql = static::query()->delete( $meta_table )->where( $foreign_key, '=', $this->get_id() );
+        
+        $lock_query = static::query()->select( 'id', 'slug', 'type' )->from( $table )
+            ->where( 'id', '=', $this->get_id() )
+            ->limit( 1 );
+
+        $deleted    = false;
+        $app_slug   = $this->get_slug();
+        $app_type   = $this->get_type();
+
+        $db->transactional( function( Database $db_instance ) use ( $lock_query, $delete_meta_sql, $delete_app_sql, &$deleted, &$app_slug, &$app_type ) {
+            $lock_sql = $lock_query->build() . $db_instance->lock_suffix();
+            $record   = $db_instance->get_row( $lock_sql, $lock_query->get_bindings() );
+
+            if ( ! $record ) {
+                throw new Exception( 'delete_error', 'The application record is locked or has already been removed.' );
+            }
+
+            if ( ! empty( $record['slug'] ) ) {
+                $app_slug = $record['slug'];
+            }
+            if ( ! empty( $record['type'] ) ) {
+                $app_type = $record['type'];
+            }
+
+            if ( false === $db_instance->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
+                throw new Exception( 'delete_error', 'Database execution failure dropping application metadata rows.' );
+            }
+
+            if ( false === $db_instance->execute( $delete_app_sql->build(), $delete_app_sql->get_bindings() ) ) {
+                throw new Exception( 'delete_error', 'Database execution failure dropping primary application entry.' );
+            }
+
+            $deleted = true;
+        });
+
+        if ( $deleted  && ! empty( $this->meta_data ) ) {
             $this->meta_data = [];
         }
 
-        return ( $app_deletion > 0 || $meta_deletion > 0 );
+        return $deleted;
     }
 
     /**

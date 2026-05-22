@@ -461,12 +461,25 @@ class Sanitizer {
      * @param mixed $text The input value.
      * @return string Escaped string safe for HTML context.
      */
-    public static function esc_html( $text ) : string {
-        if ( ! is_scalar( $text ) ) {
+    public static function esc_html( mixed $text ) : string {
+        if ( null === $text ) {
             return '';
         }
 
-        return htmlspecialchars( (string) $text, ENT_QUOTES | ENT_HTML5, 'UTF-8', false );
+        if ( is_array( $text ) || is_resource( $text ) ) {
+            return '';
+        }
+
+        if ( is_object( $text ) && ! method_exists( $text, '__toString' ) ) {
+            return '';
+        }
+
+        return htmlspecialchars(
+            (string) $text,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8',
+            false
+        );
     }
 
     /**
@@ -476,11 +489,24 @@ class Sanitizer {
      * @return string Escaped string safe for HTML attributes.
      */
     public static function esc_attr( $text ) : string {
-        if ( ! is_scalar( $text ) ) {
+        if ( null === $text ) {
             return '';
         }
-        
-        return htmlspecialchars( (string) $text, ENT_QUOTES | ENT_HTML5, 'UTF-8', false );
+
+        if ( is_array( $text ) || is_resource( $text ) ) {
+            return '';
+        }
+
+        if ( is_object( $text ) && ! method_exists( $text, '__toString' ) ) {
+            return '';
+        }
+
+        return htmlspecialchars(
+            (string) $text,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8',
+            false
+        );
     }
 
     /**
