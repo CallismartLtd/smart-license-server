@@ -956,10 +956,10 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
                         ->limit( 1 );
                     
                     $existing_record = $db_instance->get_row( 
-                        $lock_query->build() . $db_instance->lock_suffix(), 
+                        $lock_query->lock_for_update()->build(), 
                         $lock_query->get_bindings() 
                     );
-
+                   
                     if ( ! $existing_record ) {
                         throw new Exception( 'save_error', 'The application record being updated does not exist or is locked.' );
                     }
@@ -1074,7 +1074,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $app_type   = $this->get_type();
 
         $db->transactional( function( Database $db_instance ) use ( $lock_query, $delete_meta_sql, $delete_app_sql, &$deleted, &$app_slug, &$app_type ) {
-            $lock_sql = $lock_query->build() . $db_instance->lock_suffix();
+            $lock_sql = $lock_query->lock_for_update()->build();
             $record   = $db_instance->get_row( $lock_sql, $lock_query->get_bindings() );
 
             if ( ! $record ) {

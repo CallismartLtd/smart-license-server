@@ -20,9 +20,9 @@ trait DatePropertyAwareTrait {
             return $this;
         }
 
-        $check   = static::sanitize_date( $date, null );
+        $date   = static::sanitize_date( $date, null, 'Y-m-d H:i:s' );
 
-        if ( \is_null( $check ) ) {
+        if ( null === $date ) {
             $this->{$prop} = null;
             return $this;
         }

@@ -68,7 +68,7 @@ class Plugins {
         if ( $plugin instanceof RequestException ) {
             return $plugin;
         }
-
+        
         $request->set( 'smliser_resource', $plugin );
         return true;
 

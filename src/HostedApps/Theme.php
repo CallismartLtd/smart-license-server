@@ -384,8 +384,8 @@ class Theme extends AbstractHostedApp {
             'support_url'               => $this->get_support_url(),
             'external_repository_url'   => '',
             'monetization'              => [],
-            'created_at'                => $this->get_date_created(),
-            'updated_at'                => $this->get_last_updated()
+            'created_at'                => $this->get_date_created()->format( 'Y-m-d H:i:s' ),
+            'updated_at'                => $this->get_last_updated()->format( 'Y-m-d H:i:s' )
         );
         
         if ( $this->is_monetized() ) {

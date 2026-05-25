@@ -13,10 +13,15 @@ namespace SmartLicenseServer\Analytics;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Override;
 use SmartLicenseServer\Background\Jobs\Analytics\LogLicenseActivityJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
+use SmartLicenseServer\Core\Dates\DateDuration;
+use SmartLicenseServer\Core\Dates\TimestampValue;
+use SmartLicenseServer\Utils\CommonQueryTrait;
 
 class RepositoryAnalytics {
+    use CommonQueryTrait;
 
     /**
      * Mapping of app types to their meta tables
@@ -44,19 +49,18 @@ class RepositoryAnalytics {
      */
     public static function get_total_downloads( ?string $type = null ) : int {
         $db = smliser_db();
-        
-        $sql = "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " WHERE event_type = 'download'";
-        $params = [];
+        $sql    = static::query()
+            ->select( 'COUNT(*)' )->from( SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'event_type', '=', 'download' );
 
         if ( $type ) {
-            $sql .= " AND app_type = ?";
-            $params[] = $type;
+            $sql->where( 'app_type', '=', $type );
         }
 
-        return (int) $db->get_var( $sql, $params );
+        return (int) $db->get_var( $sql->build(), $sql->get_bindings() );
     }
 
-    /**
+/**
      * Get per-day aggregated downloads for the last $days days
      * 
      * @param int $days Number of days. Default 30.
@@ -65,22 +69,41 @@ class RepositoryAnalytics {
      */
     public static function get_downloads_per_day( int $days = 30, ?string $type = null ) : array {
         $db = smliser_db();
-        
-        $sql = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
-                FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                WHERE event_type = 'download' 
-                AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
-        $params = [ $days ];
 
+        $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
+
+        // Standardized explicit 'as' aliases to ensure your custom column normalizer functions flawlessly
+        $sql = static::query()->select( 'created_at as log_date', 'COUNT(*) as count' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'event_type', '=', 'download' )
+            ->where( 'created_at', '>=', $date );
+        
         if ( $type ) {
-            $sql .= " AND app_type = ?";
-            $params[] = $type;
+            $sql->where( 'app_type', '=', $type );
         }
 
-        $sql .= " GROUP BY log_date ORDER BY log_date ASC";
+        $sql->group_by( 'created_at' )->order_by( 'created_at', 'ASC' );
         
-        $results = $db->get_results( $sql, $params );
-        return array_column( $results, 'count', 'log_date' );
+        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+        if ( empty( $results ) ) {
+            return [];
+        }
+
+        $aggregated = [];
+
+        foreach ( $results as $row ) {
+            // Truncate 'YYYY-MM-DD HH:MM:SS' down to just 'YYYY-MM-DD'
+            $day = substr( $row['log_date'], 0, 10 ); 
+            
+            if ( ! isset( $aggregated[ $day ] ) ) {
+                $aggregated[ $day ] = 0;
+            }
+            
+            $aggregated[ $day ] += (int) $row['count'];
+        }
+
+        return $aggregated;
     }
 
     /**
@@ -92,21 +115,21 @@ class RepositoryAnalytics {
      */
     public static function get_total_client_accesses( int $days = 30, ?string $type = null ) : int {
         $db = smliser_db();
-        
-        $sql = "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                WHERE event_type != 'download' 
-                AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
-        $params = [ $days ];
+
+        $date   = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
+        $sql    = static::query()
+            ->select( 'COUNT(*)' )->from( SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'event_type', '!=', 'download' )
+            ->where( 'created_at', '>=', $date );
 
         if ( $type ) {
-            $sql .= " AND app_type = ?";
-            $params[] = $type;
+            $sql->where( 'app_type', '=', $type );
         }
 
-        return (int) $db->get_var( $sql, $params );
+        return (int) $db->get_var( $sql->build(), $sql->get_bindings() );
     }
 
-    /**
+/**
      * Get per-day aggregated client accesses
      * 
      * @param int $days Number of days. Default 30.
@@ -114,26 +137,43 @@ class RepositoryAnalytics {
      * @return array<string,int>
      */
     public static function get_client_accesses_per_day( int $days = 30, ?string $type = null ) : array {
-        $db = smliser_db();
-        
-        $sql = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
-                FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                WHERE event_type != 'download' 
-                AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
-        $params = [ $days ];
+        $db   = smliser_db();
+        $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
+
+        $sql = static::query()
+            ->select( 'created_at as log_date', 'COUNT(*) as count' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'event_type', '!=', 'download' )
+            ->where( 'created_at', '>=', $date );
 
         if ( $type ) {
-            $sql .= " AND app_type = ?";
-            $params[] = $type;
+            $sql->where( 'app_type', '=', $type );
         }
 
-        $sql .= " GROUP BY log_date ORDER BY log_date ASC";
+        $sql->group_by( 'created_at' )->order_by( 'created_at', 'ASC' );
         
-        $results = $db->get_results( $sql, $params );
-        return array_column( $results, 'count', 'log_date' );
+        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+        if ( empty( $results ) ) {
+            return [];
+        }
+
+        $aggregated = [];
+
+        foreach ( $results as $row ) {
+            $day = substr( $row['log_date'], 0, 10 ); 
+            
+            if ( ! isset( $aggregated[ $day ] ) ) {
+                $aggregated[ $day ] = 0;
+            }
+            
+            $aggregated[ $day ] += (int) $row['count'];
+        }
+
+        return $aggregated;
     }
 
-    /**
+/**
      * Get total active installations across all apps
      * 
      * Active installations are computed from unique daily client hashes
@@ -143,18 +183,21 @@ class RepositoryAnalytics {
      * @return int
      */
     public static function get_active_installations( int $days = 30, ?string $type = null ) : int {
-        $db = smliser_db();
+        $db   = smliser_db();
+        $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
         
-        $sql = "SELECT COUNT(DISTINCT fingerprint) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
-        $params = [ $days ];
+        $sql = static::query()
+            ->select( 'COUNT(DISTINCT fingerprint) as active_count' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'created_at', '>=', $date );
 
         if ( $type ) {
-            $sql .= " AND app_type = ?";
-            $params[] = $type;
+            $sql->where( 'app_type', '=', $type );
         }
 
-        return (int) $db->get_var( $sql, $params );
+        $result = $db->get_row( $sql->build(), $sql->get_bindings() );
+
+        return ! empty( $result['active_count'] ) ? (int) $result['active_count'] : 0;
     }
 
     /*
@@ -237,11 +280,11 @@ class RepositoryAnalytics {
         $aggregated = [];
         $cutoff = strtotime( "-{$days} days" );
 
-        foreach ( $logs as $time => $log ) {
-            $timestamp = strtotime( $time );
+        foreach ( $logs as $log ) {
+            $timestamp = $log['created_at'];
             if ( $timestamp < $cutoff ) continue;
 
-            $day = substr( $time, 0, 10 );
+            $day = TimestampValue::fromTimestamp( $timestamp )->format( 'Y-m-d' );
             $event_type = $log['event_type'] ?? 'unknown';
 
             if ( ! isset( $aggregated[ $day ] ) ) {
@@ -312,21 +355,25 @@ class RepositoryAnalytics {
      */
     public static function get_total_apps( ?string $type = null ) : int {
         $db = smliser_db();
-        $types = $type ? [$type] : array_keys(self::$meta_tables);
         $total = 0;
 
-        foreach ( $types as $t ) {
-            $table = match( $t ) {
+        if ( $type ) {
+            $table = match( $type ) {
                 'plugin'   => SMLISER_PLUGINS_TABLE,
                 'theme'    => SMLISER_THEMES_TABLE,
                 'software' => SMLISER_SOFTWARE_TABLE,
             };
 
-            $row = $db->get_row( "SELECT COUNT(*) AS total FROM {$table}", [] );
-            $total += (int) $row['total'];
+            $sql    = static::query()->select( 'COUNT(*)' )->from( $table );
+
+            return (int) $db->get_var( $sql->build() );
         }
 
-        return $total;
+        $plugins_sql    = static::query()->select( 'COUNT(*)' )->from( SMLISER_PLUGINS_TABLE );
+        $themes_sql     = static::query()->select( 'COUNT(*)' )->from( SMLISER_THEMES_TABLE );
+        $software_sql   = static::query()->select( 'COUNT(*)' )->from( SMLISER_SOFTWARE_TABLE );
+
+        return 0;
     }
 
     /**
@@ -436,5 +483,10 @@ class RepositoryAnalytics {
         }
 
         return $maintained;
+    }
+
+    #[Override]
+    public static function from_array( array $data ): static {
+        throw new \Exception('Not implemented');
     }
 }

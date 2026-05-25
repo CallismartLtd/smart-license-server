@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use Exception;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
@@ -300,10 +301,10 @@ class Plugin extends AbstractHostedApp {
         
         $file   = $repo_class->locate( $self->get_slug() );
 
-        if ( ! is_smliser_error( $file ) ) {
-            $self->set_file( $file );
-        } else {
+        if ( $file instanceof Exception ) {
             $self->set_file( '' );
+        } else {
+            $self->set_file( $file );
         }
 
         /** 
@@ -316,6 +317,7 @@ class Plugin extends AbstractHostedApp {
             'screenshots'   => $repo_class->get_screenshot_html( $self->get_slug() ),
             'faq'           => $repo_class->get_faq( $self->get_slug() ),
         );
+
         $self->set_section( $sections );
 
         $manifest = $repo_class->get_app_dot_json( $self );
@@ -324,7 +326,7 @@ class Plugin extends AbstractHostedApp {
         /**
          * Icons
          */
-        $self->set_icons( $repo_class->get_assets( $self->get_slug(), 'icons' ) );
+        $self->set_icons( $repo_class->get_icons( $self->get_slug() ) );
 
         /**
          * Screenshots
@@ -334,7 +336,7 @@ class Plugin extends AbstractHostedApp {
         /**
          *  Banners.
          */
-        $self->set_banners( $repo_class->get_assets( $self->get_slug(), 'banners' ) );
+        $self->set_banners( $repo_class->get_banners( $self->get_slug() ) );
 
         /**
          * Set short description
@@ -372,11 +374,11 @@ class Plugin extends AbstractHostedApp {
             'slug'              => $this->get_slug(),
             'status'            => $this->get_status(),
             'version'           => $this->get_version(),
-            'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile(), $this->get_author() ),
-            'author_profile'    => $this->get_author_profile(),
+            'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile()->url(), $this->get_author() ),
+            'author_profile'    => $this->get_author_profile()->url(),
             'manifest'          => $this->get_manifest(),
-            'homepage'          => $this->get_homepage(),
-            'package'           => $this->get_download_link(),
+            'homepage'          => $this->get_homepage()->url(),
+            'package'           => $this->get_download_url()->url(),
             'download_link'     => $this->get_download_link(),
             'banners'           => $this->get_banners(),
             'screenshots'       => $this->get_screenshots(),
@@ -387,19 +389,19 @@ class Plugin extends AbstractHostedApp {
             'requires_php'      => $this->get_required_php(),
             'requires_plugins'  => [],
             'tags'              => $this->get_tags(),
-            'added'             => $this->get_date_created(),
-            'last_updated'      => $this->get_last_updated(),
+            'added'             => $this->get_date_created()->format( 'Y-m-d' ),
+            'last_updated'      => $this->get_last_updated()->format( 'Y-m-d' ),
             'short_description' => $this->get_short_description(),
             'sections'          => $this->get_sections(),
             'num_ratings'       => $this->get_num_ratings(),
             'rating'            => $this->get_average_rating(),
             'ratings'           => $this->get_ratings(),
-            'support_url'       => $this->get_support_url(),
+            'support_url'       => $this->get_support_url()?->url(),
             'active_installs'   => $this->get_active_installs(),
             'is_monetized'      => $this->is_monetized(),
             'monetization'      => [],
-            'created_at'        => $this->get_date_created(),
-            'updated_at'        => $this->get_last_updated()
+            'created_at'        => $this->get_date_created()->format( 'Y-m-d H:i:s' ),
+            'updated_at'        => $this->get_last_updated()->format( 'Y-m-d H:i:s' )
         );
 
         if ( $this->is_monetized() ) {
@@ -423,7 +425,7 @@ class Plugin extends AbstractHostedApp {
     /**
      * Get database fields.
      * 
-     * @return array<int, string>
+     * @return string[]
      */
     public function get_fillable() : array {
         return array( 'name', 'owner_id', 'author', 'status', 'author_profile', 'download_link' );

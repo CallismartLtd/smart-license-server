@@ -6,7 +6,8 @@
  * @author Callistus
  * @since 0.2.0
  * @package Smliser\templates
- * @var array{0: int, 1: array{license_id: int, event_type: string, ip_address: string, user_agent: string, website: string, comment: string, duration: string, created_at: int}} $all_tasks
+ * @var array{0: int, 1: array{license_id: int, event_type: string, ip_address: string, user_agent: string, website: string, comment: string, duration: string, created_at: int}} $logs
+ * @var \SmartLicenseServer\Core\Request $request
  */
 
 use SmartLicenseServer\Admin\LicensePage;
@@ -20,10 +21,18 @@ defined( 'SMLISER_ROOT' ) || exit;
 
     <div class="smliser-admin-body">
         <div class="notice notice-info" style="margin: 15px;">
-            <p>Logs over three months are automatically deleted</p>
+            <p>
+                <?php 
+                    printf( 
+                        'Logs over %s days are automatically deleted.',
+                        smliser_settings()->get( 'log_retention_days', 30, true ) ?? 30
+                    )
+                
+                ?>
+            </p>
         </div>
         
-        <?php if ( empty( $all_tasks ) ) : ?>
+        <?php if ( empty( $logs ) ) : ?>
             <?php echo smliser_not_found_container( 'All recent license activities will appear here.' ); ?>
         <?php else: ?>
             <table class="smliser-table widefat striped">
@@ -37,11 +46,11 @@ defined( 'SMLISER_ROOT' ) || exit;
                     <th></th>
 
                 </tr>
-                <?php if ( empty( $all_tasks ) ):?>
+                <?php if ( empty( $logs ) ):?>
                     <tr>
                         <td colspan="5">All license activation tasks will appear here.</td>
                     </tr> 
-                <?php else: foreach( $all_tasks as $task_data ):?>
+                <?php else: foreach( $logs as $task_data ):?>
                 <tr>
                     <td><?php echo escHtml( Format::datetime( $task_data['created_at'] ?? 0, smliser_datetime_format() ) );?></td>
                     <td><?php echo escHtml( $task_data['user_agent'] ?? 'N/A' );?></td>
@@ -53,7 +62,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                 </tr>
                 <?php endforeach; endif;?>
             </table>
-            <p class="smliser-table-count"><?php echo intval( count( $all_tasks ) ); echo ' Item'. ( count( $all_tasks ) > 1 ? 's' : '' ); ?></p>
+            <p class="smliser-table-count"><?php echo intval( count( $logs ) ); echo ' Item'. ( count( $logs ) > 1 ? 's' : '' ); ?></p>
         <?php endif; ?>      
     </div>
 

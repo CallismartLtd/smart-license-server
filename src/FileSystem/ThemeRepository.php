@@ -248,7 +248,7 @@ class ThemeRepository extends Repository {
                 
                 foreach( $screenshots as $screenshot ) {
                     if ( $this->is_file( $screenshot ) ) {
-                        return smliser_get_asset_url( 'theme', $slug, basename( $screenshot ) );
+                        return apps_asset_url( 'theme', $slug, basename( $screenshot ) );
                     }
                 }
                 
@@ -269,7 +269,7 @@ class ThemeRepository extends Repository {
                 foreach ( $screenshots as $screenshot ) {
                     $name   = basename( $screenshot );
 
-                    $url    = \smliser_get_asset_url( 'theme', $slug, $name );
+                    $url    = \apps_asset_url( 'theme', $slug, $name );
 
                     if ( preg_match( '/screenshot-(\d+)\./i', $name, $m ) ) {
                        $urls[ (int) $m[1] ] = $url;

@@ -7,10 +7,15 @@
  * @since 0.2.0
  * @var \SmartLicenseServer\Monetization\License $license
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp $licensed_app
+ * @var int $license_id
+ * @var string $licensee
+ * @var \SmartLicenseServer\Core\Request $request
  */
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_ROOT' ) || exit;
@@ -27,6 +32,13 @@ $args   = LicensePage::get_menu_args( $request );
 
 \array_unshift(
     $args['actions'],
+    array(
+        'title' => 'View logs for this license',
+        'label' => 'Logs',
+        'url'   => \smliser_license_admin_action_page( 'logs' )->add_query_param( 'filterBy',  $license_id ),
+        'icon'  => 'ti ti-logs'
+    ),
+
     array(
         'title' => 'Edit License',
         'label' => 'Edit license',
@@ -76,40 +88,48 @@ $args   = LicensePage::get_menu_args( $request );
     )
 );
 
+$total_logs = count( array_filter(
+    RepositoryAnalytics::get_license_activity_logs(),
+    fn( $data ) => $data['license_id'] === $license_id 
+));
 ?>
 
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $args ); ?>
     <?php if ( empty( $license ) ) : ?>
         
-        <?php echo wp_kses_post( smliser_not_found_container( 'Invalid or deleted license' ) ); ?>
+        <?php echo smliser_not_found_container( 'Invalid or deleted license' ); ?>
     
     <?php else: ?>
         <div class="smliser-admin-view-page-wrapper">
             <div class="smliser-admin-view-page-header"> 
                 <div class="smliser-admin-view-page-header-child">
-                    <h2>Info</h2>
-                    <p><span class="dashicons dashicons-database-view"></span> License ID: <?php echo escHtml( intval( $license->get_id() ) ) ?></p>
-                    <p><span class="dashicons dashicons-yes-alt"></span> Status: <?php echo escHtml( $license->get_status() ) ?></p>
-                    <p><span class="dashicons dashicons-businessman"></span> Licensee: <?php echo escHtml( $licensee ) ?></p>
+                    <h2>Overview</h2>
+                    <p><i class="dashicons dashicons-database-view"></i> License ID: <?php echo escHtml( intval( $license->get_id() ) ) ?></p>
+                    <p><i class="dashicons dashicons-yes-alt"></i> Status: <?php echo escHtml( $license->get_status() ) ?></p>
+                    <p><i class="dashicons dashicons-businessman"></i> Licensee: <?php echo escHtml( $licensee ?: 'N/A' ) ?></p>
                 </div>
 
                 <div class="smliser-admin-view-page-header-child">
                     <h2>Statistics</h2>
-                    <p><span class="dashicons dashicons-admin-site-alt"></span> Max Allowed Domains: <?php echo escHtml( $license->get_max_allowed_domains() ) ?></p>
-                    <p><span class="dashicons dashicons-admin-site-alt3"></span> Total Domains Activated: <?php echo intval( $license->get_total_active_domains() )?></p>
-                    <p><span class="dashicons dashicons-plugins-checked"></span> App Prop: <?php echo escHtml( $license->get_app_prop() ) ?></p>
+                    <p><i class="ti ti-app-window"></i> Max Allowed Domains: <?php echo escHtml( $license->get_max_allowed_domains() ) ?></p>
+                    <p><i class="ti ti-dice-6"></i> Total Domains Activated: <span id="total-active-domain"><?php echo intval( $license->get_total_active_domains() )?></span></p>
+                    <p><i class="ti ti-logs"></i> Total Logs: <?php echo escHtml( $total_logs ) ?></p>
+                </div>
+                
+                <div class="smliser-admin-view-page-header-child">
+                    <h2>Operations</h2>
+                    <p><i class="ti ti-calendar"></i> Last Updated: <?php echo escHtml( $license->get_updated_at()?->format( smliser_datetime_format() ) ?? 'N/A' )?></p>
+                    <p><i class="ti ti-calendar"></i> Date Created: <?php echo escHtml( $license->get_created_at()?->format( smliser_datetime_format() ) ?? 'N/A' ) ?></p>
+                    <p><i class="ti ti-apps"></i> App Attribute: <?php echo escHtml( $license->get_app_prop() ) ?></p>
                 </div>
 
             </div>
 
             <div class="smliser-admin-view-page-body">
+                <h3>License Details</h3>
                 <table class="widefat smliser-license-table">
                     <tbody>
-                        <tr>
-                            <th>License ID</th>
-                            <td><?php echo escHtml( intval( $license->get_id() ) ); ?></td>
-                        </tr>
     
                         <tr>
                             <th>Is issued</th>
@@ -249,7 +269,7 @@ function print_license_alert( License $license ) : void {
     // Activation / serving error.
     $activation_error = $license->can_serve_license( $license->get_app_id() );
 
-    if ( \is_smliser_error( $activation_error ) ) {
+    if ( $activation_error instanceof Exception ) {
         $messages[] = [
             'type'    => 'error',
             'message' => $activation_error->get_error_message(),

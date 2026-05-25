@@ -602,7 +602,7 @@ class OptionsPage {
                     'title'  => 'Monetization Provider Settings',
                     'label'  => 'Monetizations',
                     'url'    => $current_url->add_query_param( 'tab', 'monetization' ),
-                    'icon'   => 'ti ti-cash-register',
+                    'icon'   => 'ti ti-basket-dollar',
                     'active' => 'monetization' === $tab,
                 ],
                 [

@@ -421,7 +421,7 @@ abstract class Repository {
                 $app_type   = rtrim( $this->current_dir, 's' ); // "plugins" => "plugin"
                 $app_slug   = $slug;
                 $asset_name = basename( $path );
-                $raw_url    = smliser_get_asset_url( $app_type, $app_slug, $asset_name );
+                $raw_url    = apps_asset_url( $app_type, $app_slug, $asset_name );
                 $asset_url  = ( new URL( $raw_url ) )
                 ->add_query_param( 'ver', $this->filemtime( $path ) )->get_href();
 
@@ -481,7 +481,7 @@ abstract class Repository {
             $path       = $file->move( $assets_dir, $asset_name, true );
             $app_type   = $this->current_dir;
             $asset_name = basename( $path );
-            $raw_url    = smliser_get_asset_url( $app_type, $app_slug, $asset_name );
+            $raw_url    = apps_asset_url( $app_type, $app_slug, $asset_name );
             $asset_url  = ( new URL( $raw_url ) )
             ->add_query_param( 'ver', $this->filemtime( $path ) )->get_href();
 

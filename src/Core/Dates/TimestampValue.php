@@ -2,7 +2,6 @@
 
 namespace SmartLicenseServer\Core\Dates;
 
-use InvalidArgumentException;
 use DateTimeImmutable;
 use DateInterval;
 
@@ -22,9 +21,12 @@ class TimestampValue {
 		$this->timestamp = $timestamp;
 	}
 
-	/* ---------------------------------------------------------------------
-	 * Factory
-	 * ------------------------------------------------------------------ */
+
+	/*
+	|------------
+	| Factory
+	|------------
+	*/
 
 	public static function fromTimestamp( int $timestamp ) : self {
 		return new self( $timestamp );
@@ -34,33 +36,117 @@ class TimestampValue {
 		return new self( time() );
 	}
 
-	/* ---------------------------------------------------------------------
-	 * Safe arithmetic (seconds-based)
-	 * ------------------------------------------------------------------ */
+	/*
+	|--------------------------------------
+	| Safe arithmetic (seconds-based)
+	|--------------------------------------
+	*/
 
+	/**
+	 * Add seconds to timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
 	public function addSeconds( int $value ) : self {
 		return new self( $this->timestamp + $value );
 	}
 
+	/**
+	 * Add minutes to timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
 	public function addMinutes( int $value ) : self {
 		return $this->addSeconds( $value * 60 );
 	}
 
+	/**
+	 * Add hours to timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
 	public function addHours( int $value ) : self {
 		return $this->addSeconds( $value * 3600 );
 	}
 
+	/**
+	 * Add days to timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
 	public function addDays( int $value ) : self {
 		return $this->addSeconds( $value * 86400 );
 	}
 
+	/**
+	 * Add weeks to timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
 	public function addWeeks( int $value ) : self {
 		return $this->addSeconds( $value * 604800 );
 	}
 
-	/* ---------------------------------------------------------------------
-	 * Calendar-accurate operations
-	 * ------------------------------------------------------------------ */
+	/**
+	 * Subtract seconds from timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
+	public function subtractSeconds( int $value ) : self {
+		return new self( $this->timestamp - $value );
+	}
+
+	/**
+	 * Subtract minutes from timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
+	public function subtractMinutes( int $value ) : self {
+		return $this->subtractSeconds( $value * 60 );
+	}
+
+	/**
+	 * Subtract hours from timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
+	public function subtractHours( int $value ) : self {
+		return $this->subtractSeconds( $value * 3600 );
+	}
+
+	/**
+	 * Subtract days from timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
+	public function subtractDays( int $value ) : self {
+		return $this->subtractSeconds( $value * 86400 );
+	}
+
+	/**
+	 * Subtract weeks from timestamp.
+	 *
+	 * @param int $value
+	 * @return self
+	 */
+	public function subtractWeeks( int $value ) : self {
+		return $this->subtractSeconds( $value * 604800 );
+	}
+
+	/*
+	|---------------------------------
+	| Calendar-accurate operations
+	|---------------------------------
+	*/
 
 	/**
 	 * Add calendar months (accurate per calendar rules).
@@ -89,7 +175,33 @@ class TimestampValue {
 	}
 
 	/**
-	 * Add calendar months using clamp-based logic (billing-safe).
+	 * Subtract calendar months (accurate per calendar rules).
+	 *
+	 * @param int $months
+	 * @return self
+	 */
+	public function subtractMonths( int $months ) : self {
+		$dt = $this->toDateTime();
+		$dt = $dt->sub( new DateInterval( 'P' . $months . 'M' ) );
+
+		return new self( $dt->getTimestamp() );
+	}
+
+	/**
+	 * Subtract calendar years.
+	 *
+	 * @param int $years
+	 * @return self
+	 */
+	public function subtractYears( int $years ) : self {
+		$dt = $this->toDateTime();
+		$dt = $dt->sub( new DateInterval( 'P' . $years . 'Y' ) );
+
+		return new self( $dt->getTimestamp() );
+	}
+
+	/**
+	 * Subtract calendar months using clamp-based logic (billing-safe).
 	 *
 	 * This prevents PHP DateInterval overflow behavior and ensures:
 	 * - no drifting renewal dates
@@ -99,7 +211,7 @@ class TimestampValue {
 	 * @param int $months
 	 * @return self
 	 */
-	public function addMonthsClamped( int $months ) : self {
+	public function subtractMonthsClamped( int $months ) : self {
 		$dt = $this->toDateTime();
 
 		$day = (int) $dt->format( 'j' );
@@ -110,7 +222,7 @@ class TimestampValue {
 		$second = (int) $dt->format( 's' );
 
 		// Target month/year
-		$month += $months;
+		$month -= $months;
 
 		while ( $month > 12 ) {
 			$month -= 12;
@@ -136,9 +248,11 @@ class TimestampValue {
 		return new self( $newTimestamp );
 	}
 
-	/* ---------------------------------------------------------------------
-	 * Comparison
-	 * ------------------------------------------------------------------ */
+	/*
+	|---------------
+	| Comparison
+	|---------------
+	*/
 
 	public function isPast() : bool {
 		return $this->timestamp < time();
@@ -164,9 +278,11 @@ class TimestampValue {
 		return $this->timestamp === time();
 	}
 
-	/* ---------------------------------------------------------------------
-	 * Output
-	 * ------------------------------------------------------------------ */
+	/*
+	|-------------
+	| Output
+	|-------------
+	*/
 
 	public function value() : int {
 		return $this->timestamp;

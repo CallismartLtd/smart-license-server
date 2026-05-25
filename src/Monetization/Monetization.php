@@ -315,7 +315,7 @@ class Monetization {
       
         smliser_db()->transactional( function( Database $db )
         use ( $lock_query, $delete_monetn_sql, $delete_tiers_sql, &$deleted ) {
-            $lock_sql = $lock_query->build() . $db->lock_suffix();
+            $lock_sql = $lock_query->lock_for_update()->build();
             $exists   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
 
             if ( ! $exists ) {

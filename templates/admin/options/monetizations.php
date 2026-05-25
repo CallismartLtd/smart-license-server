@@ -5,6 +5,14 @@
  * @author Callistus Nwachukwu
  * @package SmartLicensseServer\templates
  * @see \SmartLicenseServer\Admin\OptionsPage::provider_settings()
+ * 
+ * @var \SmartLicenseServer\Admin\OptionsPage $this
+ * @var string $id The provider id.
+ * @var SmartLicenseServer\Core\Request $request The current request instance.
+ * @var array $settings The provider settings fields.
+ * @var string $name The provider name.
+ * @var array $provider The provider details.
+ * @var string $provider_key
  */
 
 use SmartLicenseServer\Admin\OptionsPage;
@@ -17,7 +25,7 @@ $current_label  = end( $args['breadcrumbs'] )['label'];
 $args['breadcrumbs'][1]  = array(
     'label' => $current_label,
     'url'   => smliser_get_current_url()->remove_query_param( 'provider' ),
-    'icon'  => 'ti ti-cash-register'
+    'icon'  => 'ti ti-basket-dollar'
 
 );
 

@@ -253,10 +253,10 @@ class DashboardPage {
                             'data' => $downloads_30_data,
                             'borderColor' => '#3b82f6',     // Modern Blue
                             'backgroundColor' => 'rgba(59, 130, 246, 0.08)', // Very subtle fill
-                            'borderWidth' => 3,
+                            'borderWidth' => 0.5,
                             'pointBackgroundColor' => '#ffffff',
                             'pointBorderColor' => '#3b82f6',
-                            'pointBorderWidth' => 2,
+                            'pointBorderWidth' => 1,
                             'tension' => 0.1
                         ]
                     ]
@@ -282,10 +282,10 @@ class DashboardPage {
                             'data' => $downloads_7_data,
                             'borderColor' => '#3b82f6',     // Modern Blue
                             'backgroundColor' => 'rgba(59, 130, 246, 0.08)', // Very subtle fill
-                            'borderWidth' => 1,
+                            'borderWidth' => 0.5,
                             'pointBackgroundColor' => '#ffffff',
                             'pointBorderColor' => '#3b82f6',
-                            'pointBorderWidth' => 2,
+                            'pointBorderWidth' => 1,
                         ]
                     ]
                 ],

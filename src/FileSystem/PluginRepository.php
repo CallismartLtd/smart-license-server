@@ -12,6 +12,7 @@
 namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Core\UploadedFile;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\Utils\MDParser;
@@ -203,8 +204,16 @@ class PluginRepository extends Repository {
      * @uses self::real_slug() and self::enter_slug() to ensure we operate inside the repository sandbox.
      *
      * @param string $slug Plugin slug.
-     * @param string $type Asset type: 'banners', 'icons', 'screenshots'.
-     * @return array URLs of assets. (banners/icons => keyed array, screenshots => [index => url]).
+     * @param string<'banners', 'icons', 'screenshots'> $type Asset type.
+     * @return URL[]
+     *  |array{
+     *      'low': URL|string,
+     *      'high': URL|string
+     *  }
+     *  |array{
+     *      '1x': URL|string,
+     *      '2x': URL|string
+     *  }
      */
     public function get_assets( string $slug, string $type ) : array {
         // Normalize slug and ensure it is valid inside the repo.
@@ -230,7 +239,7 @@ class PluginRepository extends Repository {
                     $pattern    = sprintf( '%s.*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
                     $matches    = glob( $pattern, GLOB_BRACE );
                     $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
-                        ? smliser_get_asset_url( 'plugin', $slug, basename( $matches[0] ) )
+                        ? apps_asset_url( 'plugin', $slug, basename( $matches[0] ) )
                         : '';
                 }
                 
@@ -244,7 +253,7 @@ class PluginRepository extends Repository {
                     $pattern    = sprintf( '%s.*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
                     $matches    = glob( $pattern, GLOB_BRACE );
                     $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
-                        ? smliser_get_asset_url( 'plugin', $slug, basename( $matches[0] ) )
+                        ? apps_asset_url( 'plugin', $slug, basename( $matches[0] ) )
                         : '';
                 }
 
@@ -256,7 +265,7 @@ class PluginRepository extends Repository {
                 if ( empty( $urls['1x'] ) && ! empty( $icon_matches ) ) {
                     foreach ( $icon_matches as $icon ) {
                         if ( $this->is_file( $icon ) ) {
-                            $urls['1x'] = smliser_get_asset_url( 'plugin', $slug, basename( $icon ) );
+                            $urls['1x'] = apps_asset_url( 'plugin', $slug, basename( $icon ) );
                             break;
                         }
 
@@ -277,7 +286,7 @@ class PluginRepository extends Repository {
                 $indexed = [];
                 foreach ( $files as $file_path ) {
                     $basename = basename( $file_path );
-                    $url      = smliser_get_asset_url( 'plugin', $slug, $basename );
+                    $url      = apps_asset_url( 'plugin', $slug, $basename );
 
                     if ( preg_match( '/screenshot-(\d+)\./i', $basename, $m ) ) {
                         $indexed[ (int) $m[1] ] = $url;
@@ -470,7 +479,7 @@ class PluginRepository extends Repository {
      * Extract screenshot captions from a plugin's readme.txt file.
      *
      * @param string $slug Plugin slug.
-     * @return array<int, string> [ index => caption ]
+     * @return string[]
      */
     public function get_screenshot_captions( string $slug ) : array {
         $content = $this->get_readme_txt( $slug );
@@ -510,10 +519,10 @@ class PluginRepository extends Repository {
      * Get plugin screenshots in WordPress.org-style format.
      *
      * @param string $slug Plugin slug.
-     * @return array<int, array{src: string, caption: string}>
+     * @return array{src: string, caption: string}[]
      */
     public function get_screenshots( string $slug ) : array {
-        // Get screenshot URLs from repo
+        /** @var URL[] */
         $assets = $this->get_assets( $slug, 'screenshots' );
 
         if ( empty( $assets ) ) {
@@ -523,15 +532,33 @@ class PluginRepository extends Repository {
         // Get captions from readme.txt
         $captions = $this->get_screenshot_captions( $slug );
 
-        $formatted = [];
+        $screenshots = [];
         foreach ( $assets as $i => $url ) {
-            $formatted[ $i ] = [
-                'src'     => $url,
+            $screenshots[ $i ] = [
+                'src'     => $url->url(),
                 'caption' => $captions[ $i ] ?? '',
             ];
         }
 
-        return $formatted;
+        return $screenshots;
+    }
+
+    /**
+     * Get plugin icons.
+     * 
+     * @return array{'1x': URL|string, '2x': URL|string}
+     */
+    public function get_icons( string $slug ) {
+        return $this->get_assets( $slug, 'icons' );
+    }
+
+    /**
+     * Get plugin banners.
+     * 
+     * @return array{'low': URL|string, 'high': URL|string}
+     */
+    public function get_banners( string $slug ) {
+        return $this->get_assets( $slug, 'banners' );
     }
     
     /**

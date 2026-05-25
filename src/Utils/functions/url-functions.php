@@ -214,14 +214,14 @@ function smliser_document_download_url( int $id = 0 ) : URL {
 }
 
 /**
- * Get the URL for a given app asset.
+ * Get the assets url for an app type.
  *
  * @param string $type     App type ('plugin' or 'theme').
  * @param string $slug     The app slug.
  * @param string $filename The asset file name (e.g. screenshot-1.png).
- * @return string
+ * @return URL
  */
-function smliser_get_asset_url( $type, $slug, $filename ) {
+function apps_asset_url( string $type, string $slug, string $filename = '' ) : URL {
     $path   = "$type/$slug/assets";
     return smliser_repository_url()
     ->append_path( $path )

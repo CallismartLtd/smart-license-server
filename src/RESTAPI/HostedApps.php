@@ -251,7 +251,7 @@ class HostedApps {
     public static function delete_app( Request $request ) : Response {
         try {
             $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-            $app_slug   = (string) $request->get( 'app_slug', 'string', '' );
+            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
 
             $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
@@ -325,7 +325,7 @@ class HostedApps {
     public static function upload_app_assets( Request $request ) : Response {
         try {
             $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-            $app_slug   = (string) $request->get( 'app_slug', 'string', '' );
+            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
 
             $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
@@ -352,7 +352,7 @@ class HostedApps {
     public static function update_app_asset( Request $request ) : Response {
         try {
             $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-            $app_slug   = (string) $request->get( 'app_slug', 'string', '' );
+            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
             $asset_name = $request->get( 'asset_name' );
 
             $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
@@ -383,7 +383,7 @@ class HostedApps {
     public static function delete_app_asset( Request $request ) : Response {
         try {
             $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-            $app_slug   = (string) $request->get( 'app_slug', 'string', '' );
+            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
 
             $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 

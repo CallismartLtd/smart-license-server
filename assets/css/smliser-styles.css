@@ -405,13 +405,13 @@ tr:hover:has(.smliser-edit-link) .smliser-edit-link,
 .smliser-admin-view-page-header-child p {
     font-size: 14px;
     padding-left: 10px;
-    color: #000000;
+    color: #333333;
     font-weight: bold;
 }
 
 .smliser-admin-view-page-header-child a {
     text-decoration: none;
-    color: #000000;
+    color: #333333;
     font-weight: bold;
 }
 
@@ -419,6 +419,19 @@ tr:hover:has(.smliser-edit-link) .smliser-edit-link,
 .smliser-admin-view-page-header-child a:hover {
     color: #ff0000;
 
+}
+
+.smliser-admin-view-page-header-child i {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	font-size: 18px;
+	font-weight: 600;
+	color: #666;
+	vertical-align: middle;
 }
 
 .smliser-admin-view-page-body {

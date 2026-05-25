@@ -13,6 +13,7 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Utils\MDParser;
 use SmartLicenseServer\Core\UploadedFile;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\HostedApps\Software;
@@ -192,21 +193,21 @@ class SoftwareRepository extends Repository {
      * 
      * @param string $slug Software slug.
      * @param string $type Asset type (e.g., cover, screenshots).
-     * @return string|array Asset URLs or Exception on failure.
+     * @return URL[]|URL Asset URLs or Exception on failure.
      */
-    public function get_assets( string $slug, string $type ) : string|array {
+    public function get_assets( string $slug, string $type ) : URL|array {
         $slug = $this->real_slug( $slug );
 
         try {
             $base_dir = $this->enter_slug( $slug );
         } catch ( FileSystemException $e ) {
-            return ( 'cover' === $type ) ? '' : [];
+            return ( 'cover' === $type ) ? new URL( '' ) : [];
         }
 
         $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
         if ( ! $this->is_dir( $assets_dir ) ) {
-            return ( 'cover' === $type ) ? '' : [];
+            return ( 'cover' === $type ) ? new URL( '' ) : [];
         }
 
         $possible_exts  = static::ALLOWED_IMAGE_EXTENSIONS;
@@ -222,7 +223,7 @@ class SoftwareRepository extends Repository {
                     $icon_files = glob( $pattern, GLOB_BRACE );
 
                     foreach ( $icon_files as $icon ) {
-                        $icons[] = smliser_get_asset_url( 'software', $slug, basename( $icon ) );
+                        $icons[] = apps_asset_url( 'software', $slug, basename( $icon ) );
                     }
                 }
 
@@ -233,16 +234,16 @@ class SoftwareRepository extends Repository {
                 $pattern        = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
                 $cover_files    = glob( $pattern, GLOB_BRACE );
                 if ( empty( $cover_files ) ) {
-                    return '';
+                    return new URL( '' );
                 }
                 
                 foreach ( $cover_files as $cover ) {
                     if ( $this->is_file( $cover ) ) {
-                        return smliser_get_asset_url( 'software', $slug, basename( $cover ) );
+                        return apps_asset_url( 'software', $slug, basename( $cover ) );
                     }
                 }
 
-                return '';
+                return new URL( '' );
                 
             case 'screenshots':
                 $path           = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
@@ -251,7 +252,7 @@ class SoftwareRepository extends Repository {
                 $screenshots    = [];
                 
                 foreach ( $files as $screenshot ) {
-                    $screenshots[] = smliser_get_asset_url( 'software', $slug, basename( $screenshot ) );
+                    $screenshots[] = apps_asset_url( 'software', $slug, basename( $screenshot ) );
                 }
 
                 return $screenshots;

@@ -245,11 +245,11 @@ class Software extends AbstractHostedApp {
             'status'            => $this->get_status(),
             'version'           => $this->get_version(),
             'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile(), $this->get_author() ),
-            'author_profile'    => $this->get_author_profile(),
+            'author_profile'    => $this->get_author_profile()->url(),
             'manifest'          => $this->get_manifest(),
-            'homepage'          => $this->get_homepage(),
-            'package'           => $this->get_download_url(),
-            'download_link'     => $this->get_download_url(),
+            'homepage'          => $this->get_homepage()->url(),
+            'package'           => $this->get_download_url()->url(),
+            'download_link'     => $this->get_download_url()->url(),
             'cover'             => $this->get_cover(),
             'screenshots'       => $this->get_screenshots(),
             'icons'             => $this->get_icons(),
@@ -264,8 +264,8 @@ class Software extends AbstractHostedApp {
             'active_installs'   => $this->get_active_installs(),
             'is_monetized'      => $this->is_monetized(),
             'monetization'      => [],
-            'created_at'        => $this->get_created_at(),
-            'updated_at'        => $this->get_updated_at(),
+            'created_at'        => $this->get_created_at()->format( 'Y-m-d H:i:s' ),
+            'updated_at'        => $this->get_updated_at()->format( 'Y-m-d H:i:s' ),
         );
 
         if ( $this->is_monetized() ) {

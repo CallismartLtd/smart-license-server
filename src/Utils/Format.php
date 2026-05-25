@@ -797,7 +797,7 @@ class Format {
     /**
      * Encoding strategy: JSON.
      *
-     * @var string
+     * @var int
      */
     const ENCODING_JSON = 0;
 
@@ -807,7 +807,7 @@ class Format {
      * Use only when PHP-specific types (objects with classes, resources)
      * must survive a round-trip exactly. Prefer JSON for plain data.
      *
-     * @var string
+     * @var int
      */
     const ENCODING_PHP = 1;
 
@@ -819,11 +819,11 @@ class Format {
      * chosen strategy.
      *
      * @param mixed  $value    The value to encode.
-     * @param string $strategy Encoding strategy: Format::ENCODING_JSON (default)
+     * @param int $strategy Encoding strategy: Format::ENCODING_JSON (default)
      *                         or Format::ENCODING_PHP.
      * @return mixed Encoded string for arrays/objects, original value otherwise.
      */
-    public static function encode( mixed $value, string $strategy = self::ENCODING_JSON ): mixed {
+    public static function encode( mixed $value, int $strategy = self::ENCODING_JSON ): mixed {
         if ( ! is_array( $value ) && ! is_object( $value ) ) {
             return $value;
         }

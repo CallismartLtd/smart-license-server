@@ -301,7 +301,7 @@ class RepositoryPage {
                 [
                     'text'  => 'Monetization',
                     'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->get_href(),
-                    'icon'  => 'ti ti-cash-register',
+                    'icon'  => 'ti ti-basket-dollar',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
                 ],
@@ -587,7 +587,7 @@ class RepositoryPage {
                             'tab'       => 'monetization' 
                         ) 
                     ),
-                    'icon'  => 'ti ti-eye',
+                    'icon'  => 'ti ti-basket-dollar',
                     'active'    => 'monetization' === $tab
                 ),
 

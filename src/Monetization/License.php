@@ -304,9 +304,9 @@ class License {
     /**
      * Set date created
      * 
-     * @param string|DateTimeImmutable $date
+     * @param mixed $date
      */
-    public function set_created_at( string|DateTimeImmutable $date ) : static {
+    public function set_created_at( mixed $date ) : static {
         return $this->set_date_prop( $date, 'created_at' );
     }
 
@@ -871,7 +871,7 @@ class License {
         return $this;
     }
 
-/**
+    /**
      * Delete license from the database along with its associated metadata.
      * 
      * @return bool True on success, false otherwise.
@@ -885,16 +885,15 @@ class License {
         $table      = \SMLISER_LICENSE_TABLE;
         $meta_table = \SMLISER_LICENSE_META_TABLE;
 
-        // Compile query structures via the Query Builder
+        // Compile query structures via the Query Builder.
         $delete_license_sql = static::query()->delete( $table )->where( 'id', '=', $this->id );
         $delete_meta_sql    = static::query()->delete( $meta_table )->where( 'license_id', '=', $this->id );
-        $lock_query         = static::query()->select( 'id' )->from( $table )
-            ->where( 'id', '=', $this->id )->limit( 1 );
+        $lock_query         = static::query()->select( 'id' )->from( $table )->where( 'id', '=', $this->id )->limit( 1 );
 
         $deleted = false;
 
         smliser_db()->transactional( function( Database $db ) use ( $lock_query, $table, $delete_license_sql, $delete_meta_sql, &$deleted ) {
-            $lock_sql = $lock_query->build() . $db->lock_suffix();
+            $lock_sql = $lock_query->lock_for_update()->build();
 
             $exists   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
 
@@ -956,6 +955,8 @@ class License {
         $static->set_start_date( $data['start_date'] ?? '' );
         $static->set_end_date( $data['end_date'] ?? '' );
         $static->set_max_allowed_domains( $data['max_allowed_domains'] ?? 0 );
+        $static->set_created_at( $data['created_at'] ?? null );
+        $static->set_updated_at( $data['updated_at'] ?? null );
 
         $app_prop   = $data['app_prop'] ?? '';
 
@@ -1043,9 +1044,9 @@ class License {
     /**
      * Remove a domain from activated list.
      * 
-     * @param $domain The domain
+     * @param string $domain The domain
      */
-    public function remove_activated_domain( $domain ) : bool {
+    public function remove_activated_domain( string|URL $domain ) : bool {
         $sites  = $this->get_meta( 'activated_on' );
 
         if ( empty( $sites ) || ! is_array( $sites ) ) {

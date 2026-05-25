@@ -158,8 +158,16 @@ class LicensePage {
      * License activation log page.
      */
     private static function license_logs_page( Request $request ) : void {
-        $all_tasks  = RepositoryAnalytics::get_license_activity_logs();
-        smliser_render_template( 'admin.license.logs', compact( 'all_tasks', 'request' ) );
+        $logs  = RepositoryAnalytics::get_license_activity_logs();
+
+        if ( $request->has( 'filterBy') ) {
+            $logs   = array_filter( 
+                $logs, 
+                fn( $log ) => ( $log['license_id'] ?? 0 ) === $request->get( 'filterBy' ) 
+            );
+        }
+        
+        smliser_render_template( 'admin.license.logs', compact( 'logs', 'request' ) );
     }
 
     /**
