@@ -9,10 +9,13 @@
 
 namespace SmartLicenseServer\Analytics;
 
+use Override;
 use SmartLicenseServer\Background\Jobs\Analytics\LogClientAccessJob;
 use SmartLicenseServer\Background\Jobs\Analytics\LogDownloadJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
+use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\Utils\CommonQueryTrait;
 
 /**
  * Apps analytics class is used to track analytical data for the given app instance.
@@ -20,6 +23,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
  * Supports multiple hosted application types.
  */
 class AppsAnalytics {
+    use CommonQueryTrait;
 
     const DOWNLOAD_COUNT_META_KEY               = 'download_count';
     const DOWNLOAD_TIMESTAMP_META_KEY           = 'download_timestamps';
@@ -68,19 +72,49 @@ class AppsAnalytics {
         return (int) $app->get_meta( self::DOWNLOAD_COUNT_META_KEY, 0 );
     }
 
-    /**
+/**
      * Get per-day download counts (Optimized SQL)
+     * 
+     * @param AbstractHostedApp $app  The target hosted application instance.
+     * @param int               $days Number of days to look back. Default 30.
+     * @return array<string,int> Array keyed by Y-m-d log date string.
      */
     public static function get_downloads_per_day( AbstractHostedApp $app, int $days = 30 ) : array {
         $db = smliser_db();
-        $query = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
-                  FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                  WHERE app_slug = ? AND event_type = 'download' 
-                  AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                  GROUP BY log_date ORDER BY log_date ASC";
-        
-        $results = $db->get_results( $query, [ $app->get_slug(), $days ] );
-        return array_column( $results, 'count', 'log_date' );
+
+        // Calculate the absolute historical lookup date via TimestampValue utility
+        $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
+
+        // Build the fluent intent tracking explicit log_date aliases
+        $sql = static::query()
+            ->select( 'created_at as log_date', 'COUNT(*) as count' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'app_slug', '=', $app->get_slug() )
+            ->where( 'event_type', '=', 'download' )
+            ->where( 'created_at', '>=', $date )
+            ->group_by( 'created_at' )
+            ->order_by( 'created_at', 'ASC' );
+
+        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+        if ( empty( $results ) ) {
+            return [];
+        }
+
+        $aggregated = [];
+
+        foreach ( $results as $row ) {
+            // Truncate 'YYYY-MM-DD HH:MM:SS' down to just 'YYYY-MM-DD'
+            $day = substr( $row['log_date'], 0, 10 );
+            
+            if ( ! isset( $aggregated[ $day ] ) ) {
+                $aggregated[ $day ] = 0;
+            }
+            
+            $aggregated[ $day ] += (int) $row['count'];
+        }
+
+        return $aggregated;
     }
 
     /**
@@ -107,17 +141,27 @@ class AppsAnalytics {
 
     /**
      * Get the number of downloads for a given day.
-     * * @param AbstractHostedApp $app
-     * @param string $date The date(Y-m-d) to search.
-     * @return int
+     * 
+     * @param AbstractHostedApp $app  The target hosted application instance.
+     * @param string            $date The target date string to search (Y-m-d).
+     * @return int Total download count for the specified day.
      */
     public static function get_downloads_on( AbstractHostedApp $app, string $date ) : int {
         $db = smliser_db();
-        $query = "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                  WHERE app_slug = ? AND event_type = 'download' 
-                  AND DATE(created_at) = ?";
+
+        // Establish an optimized boundary window for the targeted calendar day
+        $start_window = $date . ' 00:00:00';
+        $end_window   = $date . ' 23:59:59';
+
+        $sql = static::query()
+            ->select( 'COUNT(*)' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'app_slug', '=', $app->get_slug() )
+            ->where( 'event_type', '=', 'download' )
+            ->where( 'created_at', '>=', $start_window )
+            ->where( 'created_at', '<=', $end_window );
         
-        return (int) $db->get_var( $query, [ $app->get_slug(), $date ] );
+        return (int) $db->get_var( $sql->build(), $sql->get_bindings() );
     }
 
     /**
@@ -156,28 +200,46 @@ class AppsAnalytics {
 
     /**
      * Get download growth percentage comparing last $days days to previous $days days
-     * * @param AbstractHostedApp $app
-     * @param int $days Number of days for comparison.
-     * @return float
+     * 
+     * @param AbstractHostedApp $app  The target hosted application instance.
+     * @param int               $days Number of days for comparison. Default 30.
+     * @return float Growth percentage calculation.
      */
     public static function get_download_growth_percentage( AbstractHostedApp $app, int $days = 30 ) : float {
         $db = smliser_db();
         
-        $current_total = (int) $db->get_var(
-            "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-             WHERE app_slug = ? AND event_type = 'download' 
-             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)",
-            [ $app->get_slug(), $days ]
-        );
+        // Compute structural boundary windows via TimestampValue utility
+        $current_boundary  = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
+        $previous_boundary = TimestampValue::now()->subtractDays( $days * 2 )->format( 'Y-m-d H:i:s' );
 
-        $previous_total = (int) $db->get_var(
-            "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-             WHERE app_slug = ? AND event_type = 'download' 
-             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) 
-             AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY)",
-            [ $app->get_slug(), $days * 2, $days ]
-        );
+        // Fetch the global overlapping block window in a single efficient query execution step
+        $sql = static::query()
+            ->select( 'created_at' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'app_slug', '=', $app->get_slug() )
+            ->where( 'event_type', '=', 'download' )
+            ->where( 'created_at', '>=', $previous_boundary )
+            ->order_by( 'created_at', 'ASC' );
 
+        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+        if ( empty( $results ) ) {
+            return 0.0;
+        }
+
+        $current_total  = 0;
+        $previous_total = 0;
+
+        // Sort rows into their respective historical date buckets in memory
+        foreach ( $results as $row ) {
+            if ( $row['created_at'] >= $current_boundary ) {
+                $current_total++;
+            } else {
+                $previous_total++;
+            }
+        }
+
+        // Standard mathematical guards for zero-division exceptions
         if ( $previous_total === 0 ) {
             return $current_total === 0 ? 0.0 : 100.0;
         }
@@ -232,20 +294,46 @@ class AppsAnalytics {
     /**
      * Get daily client access counts for the last $days days.
      *
-     * @param AbstractHostedApp $app Hosted app instance.
+     * @param AbstractHostedApp $app  Hosted app instance.
      * @param int               $days Number of days to retrieve. Default 30.
      * @return array<string,int> Array keyed by 'Y-m-d'.
      */
     public static function get_client_access_per_day( AbstractHostedApp $app, int $days = 30 ) : array {
         $db = smliser_db();
-        $query = "SELECT DATE(created_at) as log_date, COUNT(*) as count 
-                  FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                  WHERE app_slug = ? AND event_type != 'download' 
-                  AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                  GROUP BY log_date ORDER BY log_date ASC";
-        
-        $results = $db->get_results( $query, [ $app->get_slug(), $days ] );
-        return array_column( $results, 'count', 'log_date' );
+
+        // Calculate the absolute historical lookup date via TimestampValue utility
+        $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
+
+        // Build the fluent intent tracking explicit log_date aliases
+        $sql = static::query()
+            ->select( 'created_at as log_date', 'COUNT(*) as count' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'app_slug', '=', $app->get_slug() )
+            ->where( 'event_type', '!=', 'download' )
+            ->where( 'created_at', '>=', $date )
+            ->group_by( 'created_at' )
+            ->order_by( 'created_at', 'ASC' );
+
+        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+        if ( empty( $results ) ) {
+            return [];
+        }
+
+        $aggregated = [];
+
+        foreach ( $results as $row ) {
+            // Truncate 'YYYY-MM-DD HH:MM:SS' down to just 'YYYY-MM-DD'
+            $day = substr( $row['log_date'], 0, 10 );
+            
+            if ( ! isset( $aggregated[ $day ] ) ) {
+                $aggregated[ $day ] = 0;
+            }
+            
+            $aggregated[ $day ] += (int) $row['count'];
+        }
+
+        return $aggregated;
     }
 
     /**
@@ -268,35 +356,69 @@ class AppsAnalytics {
     /**
      * Get event-type breakdown for the last $days days.
      *
-     * @param AbstractHostedApp $app Hosted app instance.
+     * @param AbstractHostedApp $app  Hosted app instance.
      * @param int               $days Number of days to include. Default 30.
      * @return array<string,array<string,int>> Format: [ 'Y-m-d' => [ 'event_type' => count ] ]
      */
     public static function get_client_access_event_breakdown( AbstractHostedApp $app, int $days = 30 ) : array {
         $db = smliser_db();
-        $query = "SELECT DATE(created_at) as log_date, event_type, COUNT(*) as count 
-                  FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                  WHERE app_slug = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                  GROUP BY log_date, event_type ORDER BY log_date ASC";
-        
-        $results = $db->get_results( $query, [ $app->get_slug(), $days ] );
-        
-        $formatted = [];
-        foreach ( $results as $row ) {
-            $formatted[ $row['log_date'] ][ $row['event_type'] ] = (int) $row['count'];
+
+        // Calculate the absolute historical lookup date via TimestampValue utility
+        $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
+
+        // Build the fluent intent tracking explicit log_date and event_type groupings
+        $sql = static::query()
+            ->select( 'created_at as log_date', 'event_type', 'COUNT(*) as count' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'app_slug', '=', $app->get_slug() )
+            ->where( 'created_at', '>=', $date )
+            ->group_by( 'created_at', 'event_type' )
+            ->order_by( 'created_at', 'ASC' );
+
+        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+        if ( empty( $results ) ) {
+            return [];
         }
+
+        $formatted = [];
+
+        foreach ( $results as $row ) {
+            // Truncate 'YYYY-MM-DD HH:MM:SS' down to just 'YYYY-MM-DD'
+            $day        = substr( $row['log_date'], 0, 10 );
+            $event_type = $row['event_type'];
+            
+            if ( ! isset( $formatted[ $day ][ $event_type ] ) ) {
+                $formatted[ $day ][ $event_type ] = 0;
+            }
+            
+            $formatted[ $day ][ $event_type ] += (int) $row['count'];
+        }
+
         return $formatted;
     }
 
     /**
      * Get estimated active installations (Optimized SQL)
+     * 
+     * @param AbstractHostedApp $app  Hosted app instance.
+     * @param int               $days Number of days to look back. Default 30.
+     * @return int Estimated active installation count based on unique fingerprints.
      */
     public static function get_estimated_active_installations( AbstractHostedApp $app, int $days = 30 ) : int {
         $db = smliser_db();
-        $query = "SELECT COUNT(DISTINCT fingerprint) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                  WHERE app_slug = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+
+        // Calculate the absolute historical lookup date via TimestampValue utility
+        $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
+
+        // Build the fluent intent using COUNT(DISTINCT ...) tracking
+        $sql = static::query()
+            ->select( 'COUNT(DISTINCT fingerprint)' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'app_slug', '=', $app->get_slug() )
+            ->where( 'created_at', '>=', $date );
         
-        return (int) $db->get_var( $query, [ $app->get_slug(), $days ] );
+        return (int) $db->get_var( $sql->build(), $sql->get_bindings() );
     }
 
     /**
@@ -320,30 +442,55 @@ class AppsAnalytics {
      * Get client access growth percentage comparing the last $days days 
      * to the previous $days days.
      *
-     * @param AbstractHostedApp $app Hosted app instance.
+     * @param AbstractHostedApp $app  Hosted app instance.
      * @param int               $days Number of days to compare. Default 30.
      * @return float Growth percentage (positive = growth, negative = decline).
      */
     public static function get_client_access_growth_percentage( AbstractHostedApp $app, int $days = 30 ) : float {
         $db = smliser_db();
         
-        $current_total = (int) $db->get_var(
-            "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-             WHERE app_slug = ? AND event_type != 'download' 
-             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)",
-            [ $app->get_slug(), $days ]
-        );
+        // Compute structural boundary windows via TimestampValue utility
+        $current_boundary  = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
+        $previous_boundary = TimestampValue::now()->subtractDays( $days * 2 )->format( 'Y-m-d H:i:s' );
 
-        $previous_total = (int) $db->get_var(
-            "SELECT COUNT(*) FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-             WHERE app_slug = ? AND event_type != 'download' 
-             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) 
-             AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY)",
-            [ $app->get_slug(), $days * 2, $days ]
-        );
+        // Fetch the global overlapping block window in a single efficient query execution step
+        $sql = static::query()
+            ->select( 'created_at' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'app_slug', '=', $app->get_slug() )
+            ->where( 'event_type', '!=', 'download' )
+            ->where( 'created_at', '>=', $previous_boundary )
+            ->order_by( 'created_at', 'ASC' );
 
-        if ( $previous_total === 0 ) return $current_total === 0 ? 0.0 : 100.0;
+        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+        if ( empty( $results ) ) {
+            return 0.0;
+        }
+
+        $current_total  = 0;
+        $previous_total = 0;
+
+        // Sort rows sequentially into their respective historical date buckets in memory
+        foreach ( $results as $row ) {
+            if ( $row['created_at'] >= $current_boundary ) {
+                $current_total++;
+            } else {
+                $previous_total++;
+            }
+        }
+
+        // Standard mathematical guards for zero-division exceptions
+        if ( $previous_total === 0 ) {
+            return $current_total === 0 ? 0.0 : 100.0;
+        }
+
         return ( ( $current_total - $previous_total ) / $previous_total ) * 100;
+    }
+
+    #[Override]
+    public static function from_array( array $data ): static {
+        throw new \Exception('Not implemented');
     }
 
 }

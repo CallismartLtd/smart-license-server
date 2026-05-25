@@ -11,12 +11,9 @@
 
 namespace SmartLicenseServer\Analytics;
 
-use DateTimeImmutable;
-use DateTimeZone;
 use Override;
 use SmartLicenseServer\Background\Jobs\Analytics\LogLicenseActivityJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
-use SmartLicenseServer\Core\Dates\DateDuration;
 use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 
@@ -60,7 +57,7 @@ class RepositoryAnalytics {
         return (int) $db->get_var( $sql->build(), $sql->get_bindings() );
     }
 
-/**
+    /**
      * Get per-day aggregated downloads for the last $days days
      * 
      * @param int $days Number of days. Default 30.
@@ -129,7 +126,7 @@ class RepositoryAnalytics {
         return (int) $db->get_var( $sql->build(), $sql->get_bindings() );
     }
 
-/**
+    /**
      * Get per-day aggregated client accesses
      * 
      * @param int $days Number of days. Default 30.
@@ -173,7 +170,7 @@ class RepositoryAnalytics {
         return $aggregated;
     }
 
-/**
+    /**
      * Get total active installations across all apps
      * 
      * Active installations are computed from unique daily client hashes
@@ -369,11 +366,18 @@ class RepositoryAnalytics {
             return (int) $db->get_var( $sql->build() );
         }
 
-        $plugins_sql    = static::query()->select( 'COUNT(*)' )->from( SMLISER_PLUGINS_TABLE );
-        $themes_sql     = static::query()->select( 'COUNT(*)' )->from( SMLISER_THEMES_TABLE );
-        $software_sql   = static::query()->select( 'COUNT(*)' )->from( SMLISER_SOFTWARE_TABLE );
+        $plugins_sql    = static::query()->select( 'COUNT(*) as total' )->from( SMLISER_PLUGINS_TABLE );
+        $themes_sql     = static::query()->select( 'COUNT(*) as total' )->from( SMLISER_THEMES_TABLE );
+        $software_sql   = static::query()->select( 'COUNT(*) as total' )->from( SMLISER_SOFTWARE_TABLE );
 
-        return 0;
+        $compound_sql = $plugins_sql->union( $themes_sql )->union( $software_sql );
+        $results = $db->get_results( $compound_sql->build() );
+
+        foreach ( $results as $row ) {
+            $total += (int) $row['total'];
+        }
+
+        return $total;
     }
 
     /**
@@ -383,25 +387,53 @@ class RepositoryAnalytics {
      * @return array<string,array<string,int>> [type][status] => count
      */
     public static function get_apps_by_status( ?string $type = null ) : array {
-        $db = smliser_db();
-        $types = $type ? [$type] : array_keys(self::$meta_tables);
-        $status_counts = [];
+        $db             = smliser_db();
+        $status_counts  = [];
 
-        foreach ( $types as $t ) {
-            $table = match( $t ) {
+        if ( $type ) {
+            $table = match( $type ) {
                 'plugin'   => SMLISER_PLUGINS_TABLE,
                 'theme'    => SMLISER_THEMES_TABLE,
                 'software' => SMLISER_SOFTWARE_TABLE,
+                default    => null,
             };
 
-            $results = $db->get_results(
-                "SELECT status, COUNT(*) AS total FROM {$table} GROUP BY status",
-                []
-            );
-
-            foreach ( $results as $row ) {
-                $status_counts[ $t ][ $row['status'] ] = (int) $row['total'];
+            if ( ! $table ) {
+                return [];
             }
+
+            $sql = static::query()
+                ->select( 'status', 'COUNT(*) as total' )
+                ->from( $table )
+                ->group_by( 'status' );
+
+            $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+            
+            foreach ( $results as $row ) {
+                $status_counts[ $type ][ $row['status'] ] = (int) $row['total'];
+            }
+
+            return $status_counts;
+        }
+
+        $base_sql   = static::query()
+            ->select( 'status', 'COUNT(*) as total', "'plugin' as app_type" )
+            ->from( SMLISER_PLUGINS_TABLE )->group_by( 'status' );
+
+        $themes_sql = static::query()
+            ->select( 'status', 'COUNT(*) as total', "'theme' as app_type" )
+            ->from( SMLISER_THEMES_TABLE )->group_by( 'status' );
+
+        $software_sql = static::query()
+            ->select( 'status', 'COUNT(*) as total', "'software' as app_type" )
+            ->from( SMLISER_SOFTWARE_TABLE )->group_by( 'status' );
+
+        $compound_sql = $base_sql->union_all( $themes_sql )->union_all( $software_sql );
+        
+        $results = $db->get_results( $compound_sql->build(), $compound_sql->get_bindings() );
+
+        foreach ( $results as $row ) {
+            $status_counts[ $row['app_type'] ][ $row['status'] ] = (int) $row['total'];
         }
 
         return $status_counts;
@@ -417,25 +449,27 @@ class RepositoryAnalytics {
      */
     public static function get_top_apps( int $limit = 10, string $metric = 'downloads', ?string $type = null ) : array {
         $db = smliser_db();
-        
-        $event_filter = ( $metric === 'downloads' ) ? "= 'download'" : "!= 'download'";
-        
-        $sql = "SELECT app_slug, app_type, COUNT(*) AS metric_total 
-                FROM " . \SMLISER_ANALYTICS_LOGS_TABLE . " 
-                WHERE event_type $event_filter";
-        $params = [];
 
-        if ( $type ) {
-            $sql .= " AND app_type = ?";
-            $params[] = $type;
+        $sql    = static::query()
+            ->select( 'app_slug', 'app_type', 'COUNT(*) as metric_total' )
+            ->from( \SMLISER_ANALYTICS_LOGS_TABLE );
+
+        if ( 'downloads' === $metric ) {
+            $sql->where( 'event_type', '=', 'download' );
+        } else {
+            $sql->where( 'event_type', '!=', 'download' );
         }
 
-        $sql .= " GROUP BY app_slug, app_type ORDER BY metric_total DESC LIMIT ?";
-        $params[] = $limit;
 
-        $results = $db->get_results( $sql, $params );
-        
-        // Group by type to match your original return format
+        if ( $type ) {
+            $sql->where( 'app_type', '=', $type );
+        }
+
+        $sql->group_by( 'app_slug', 'app_type' )
+            ->order_by( 'metric_total', 'DESC' )->limit( $limit );
+
+        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
         $top_apps = [];
         foreach ( $results as $row ) {
             $top_apps[ $row['app_type'] ][] = $row;
@@ -446,40 +480,75 @@ class RepositoryAnalytics {
 
     /**
      * Get apps maintained per month with app info and status breakdown.
-     * 
-     * @param int $months Number of months to look back
+     * * @param int $months Number of months to look back
      * @param string|null $type Optional app type filter
      * @return array<string,array<string,array<string,mixed>>> [type][YYYY-MM] => ['count'=>int,'apps'=>array]
      */
     public static function get_apps_maintained_by_month( int $months = 6, ?string $type = null ) : array {
-        $db = smliser_db();
-        $types = $type ? [$type] : array_keys(self::$meta_tables);
+        $db         = smliser_db();
         $maintained = [];
 
-        foreach ( $types as $t ) {
-            $table = match( $t ) {
+        // Corrected time calculation mapping to your TimestampValue value object framework
+        $date = TimestampValue::now()->subtractMonths( $months )->format( 'Y-m-d H:i:s' );
+
+        if ( $type ) {
+            $table = match( $type ) {
                 'plugin'   => SMLISER_PLUGINS_TABLE,
                 'theme'    => SMLISER_THEMES_TABLE,
                 'software' => SMLISER_SOFTWARE_TABLE,
             };
 
-            $sql = "SELECT name, slug, status, DATE_FORMAT(`updated_at`, '%Y-%m') AS month
-                FROM {$table}
-                WHERE `updated_at` >= DATE_SUB(CURDATE(), INTERVAL ? MONTH)
-                ORDER BY `updated_at` ASC
-            ";
+            $sql = static::query()
+                ->select( 'name', 'slug', 'status', 'updated_at', "'{$type}' as app_type" )
+                ->from( $table )
+                ->where( 'updated_at', '>=', $date )
+                ->order_by( 'updated_at', 'ASC' );
 
-            $results = $db->get_results( $sql, [$months] );
+            $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+            
+            // Critical Fix: Explicitly initialize the requested type index to guarantee structural consistency
+            $maintained[ $type ] = [];
+        } else {
+            // No type filter? Compile ALL tables using our brand new CompoundQueryIntent engine!
+            $plugins_sql = static::query()
+                ->select( 'name', 'slug', 'status', 'updated_at', "'plugin' as app_type" )
+                ->from( SMLISER_PLUGINS_TABLE )
+                ->where( 'updated_at', '>=', $date );
 
-            foreach ( $results as $row ) {
-                $month = $row['month'];
-                $maintained[ $t ][ $month ]['count'] = ($maintained[ $t ][ $month ]['count'] ?? 0) + 1;
-                $maintained[ $t ][ $month ]['apps'][] = [
-                    'name'   => $row['name'],
-                    'slug'   => $row['slug'],
-                    'status' => $row['status'],
-                ];
-            }
+            $themes_sql = static::query()
+                ->select( 'name', 'slug', 'status', 'updated_at', "'theme' as app_type" )
+                ->from( SMLISER_THEMES_TABLE )
+                ->where( 'updated_at', '>=', $date );
+
+            $software_sql = static::query()
+                ->select( 'name', 'slug', 'status', 'updated_at', "'software' as app_type" )
+                ->from( SMLISER_SOFTWARE_TABLE )
+                ->where( 'updated_at', '>=', $date );
+
+            // Captured using $compound_sql to extract unified bindings and strings safely
+            $compound_sql = $plugins_sql->union_all( $themes_sql )->union_all( $software_sql )
+                ->order_by( 'updated_at', 'ASC' );
+
+            $results = $db->get_results( $compound_sql->build(), $compound_sql->get_bindings() );
+        }
+
+        // Structural Safety Check: If the DB returns nothing, safely exit with our predictable layout
+        if ( empty( $results ) ) {
+            return $maintained;
+        }
+
+        foreach ( $results as $row ) {
+            $t = $row['app_type'];
+            
+            // Truncate 'YYYY-MM-DD HH:MM:SS' down to just 'YYYY-MM' via substring extraction matching your style
+            $month = substr( $row['updated_at'], 0, 7 ); 
+            
+            $maintained[ $t ][ $month ]['count'] = ( $maintained[ $t ][ $month ]['count'] ?? 0 ) + 1;
+            $maintained[ $t ][ $month ]['apps'][] = [
+                'name'   => $row['name'],
+                'slug'   => $row['slug'],
+                'status' => $row['status'],
+            ];
         }
 
         return $maintained;
