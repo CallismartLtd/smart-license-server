@@ -200,7 +200,7 @@ class SoftwareRepository extends Repository {
 
         try {
             $base_dir = $this->enter_slug( $slug );
-        } catch ( FileSystemException $e ) {
+        } catch ( FileSystemException ) {
             return ( 'cover' === $type ) ? new URL( '' ) : [];
         }
 

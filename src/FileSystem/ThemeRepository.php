@@ -12,6 +12,7 @@
 namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Core\UploadedFile;
+use SmartLicenseServer\Core\URL;
 use \ZipArchive;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
@@ -221,22 +222,22 @@ class ThemeRepository extends Repository {
      *
      * @param string $slug Theme slug.
      * @param string $type Asset type (e.g., 'screenshots').
-     * @return string|array URLs of assets.
+     * @return URL[]|URL URLs of assets.
      */
-    public function get_assets( string $slug, string $type ) {
+    public function get_assets( string $slug, string $type ) : array|URL|string {
         // Normalize slug and ensure it is valid inside the repo.
         $slug = $this->real_slug( $slug );
 
         try {
             $base_dir = $this->enter_slug( $slug );
         } catch ( FileSystemException $e ) {
-            return ( 'screenshot' === $type ) ? '' : [];
+            return ( 'screenshot' === $type ) ? new URL( '' ) : [];
         }
 
         $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
         if ( ! $this->is_dir( $assets_dir ) ) {
-            return ( 'screenshot' === $type ) ? '' : [];
+            return ( 'screenshot' === $type ) ? new URL( '' ) : [];
         }
 
         switch ( $type ) {
@@ -252,7 +253,7 @@ class ThemeRepository extends Repository {
                     }
                 }
                 
-                return '';
+                return new URL( '' );
 
             case 'screenshots':
                 // screenshot-{index}.{ext}.
@@ -288,11 +289,20 @@ class ThemeRepository extends Repository {
     }
 
     /**
+     * Get main theme screenshot URL.
+     * 
+     * @return URL|string URL of the main screenshot or empty string if not found.
+     */
+    public function get_screenshot( string $slug ) : URL|string {
+        return $this->get_assets( $slug, 'screenshot' );
+    }
+
+    /**
      * Get the theme descriptions.
      * 
      * @return string The theme description in HTML format.
      */
-    public function get_description( $slug ) : string {
+    public function get_description( string $slug ) : string {
         $metadata = $this->get_metadata( $slug );
 
         if ( ! isset( $metadata['description'] ) ) {
@@ -305,9 +315,9 @@ class ThemeRepository extends Repository {
     /**
      * Get short description.
      * 
-     * @return string
+     * @return string $slug The theme slug.
      */
-    public function get_short_description( $slug ) {
+    public function get_short_description( string $slug ) : string {
         return \substr( $this->get_description( $slug ), 0, 800 );
     }
 
@@ -317,7 +327,7 @@ class ThemeRepository extends Repository {
      * @param string $slug The theme slug.
      * @return string Style.css contents or empty string if not found.
      */
-    public function get_style_css( $slug ): string {
+    public function get_style_css( string $slug ): string {
         return $this->file_get_contents( $slug, 'style.css' );
     }
     
@@ -330,7 +340,7 @@ class ThemeRepository extends Repository {
      * @return array<string, mixed>
      */
     
-    public function get_metadata( $slug ): array {
+    public function get_metadata( string $slug ): array {
         $style_contents = $this->get_style_css( $slug );
 
         if ( ! $style_contents ) {
