@@ -10,7 +10,7 @@
  *
  * Payload:
  *   days_in_trash (int) — Days an app must be in trash before deletion. Default 30.
- *   batch_size    (int) — Max apps to delete per type per run. Default 50.
+ *   batch_size    (int) — Max apps to delete per run. Default 50.
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Background\Jobs\Apps
@@ -22,7 +22,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Jobs\Apps;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
-use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 /**
@@ -39,52 +39,57 @@ class CleanTrashedAppsJob implements JobHandlerInterface {
     }
 
     /**
-     * @param array $payload {
-     *     @type int $days_in_trash Days before permanent deletion. Default 30.
-     *     @type int $batch_size    Max apps per type per run. Default 50.
-     * }
-     * @return array{deleted: int, failed: int}
+     * 
+     * @param array{
+     *     days_in_trash?: int,
+     *     batch_size?: int
+     * 
+     * } $payload
+     * @return array{'deleted': int, 'failed': int}
      */
     public function handle( array $payload = [] ): mixed {
         $days_in_trash = max( 1, (int) ( $payload['days_in_trash'] ?? 30 ) );
         $batch_size    = max( 1, (int) ( $payload['batch_size']    ?? 50 ) );
 
-        $deleted = 0;
-        $failed  = 0;
+        $deleted            = 0;
+        $failed             = 0;
+        $processed_batch    = 0;
+        $trashed_apps_data  = HostedApplicationService::list_trashed_apps();
 
-        $type_tables = [
-            'plugin'   => SMLISER_PLUGINS_TABLE,
-            'theme'    => SMLISER_THEMES_TABLE,
-            'software' => SMLISER_SOFTWARE_TABLE,
-        ];
-
-        $db        = smliser_db();
-        $threshold = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days_in_trash} days" ) );
-
-        foreach ( $type_tables as $type => $table ) {
-            $sql = "SELECT `id` FROM {$table}
-                    WHERE `status` = ?
-                    AND `updated_at` < ?
-                    LIMIT ?";
-
-            $rows = $db->get_results( $sql, [
-                AbstractHostedApp::STATUS_TRASH,
-                $threshold,
-                $batch_size,
-            ] );
-
-            foreach ( $rows as $row ) {
-                $app = HostedApplicationService::get_app_by_id( $type, (int) $row['id'] );
-
-                if ( ! $app ) {
-                    $failed++;
-                    continue;
-                }
-
-                $app->delete()
-                    ? $deleted++
-                    : $failed++;
+        foreach ( $trashed_apps_data as $data ) {
+            if ( $processed_batch >= $batch_size ) {
+                break;
             }
+
+            $timestamp  = TimestampValue::fromTimestamp( $data['timestamp'] ?? 0 )
+                ->addDays( $days_in_trash );
+
+            if ( ! $timestamp->isPast() ) {
+                continue;
+            }
+
+            $type   = $data['app_type'] ?? '';
+            $slug   = $data['app_slug'] ?? '';
+            $app    = HostedApplicationService::get_app_by_slug( $type, $slug );
+
+            try {
+                $app_deleted    = $app?->delete() ?? false;
+
+                // Even if the app record is deleted, we attempt to delete the files.
+                // This ensures that if the record deletion fails but files are removed,
+                // we don't leave orphaned files.
+                $files_deleted  = smliser_filesystem()->rmdir( $data['trash_path'], true );
+
+                if ( $app_deleted || $files_deleted ) {
+                    $deleted++;
+                } else {
+                    $failed++;
+                }
+            } catch( \Throwable ) {
+                $failed++;
+            }
+
+            $processed_batch++;
         }
 
         return compact( 'deleted', 'failed' );

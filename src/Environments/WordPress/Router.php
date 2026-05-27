@@ -417,7 +417,9 @@ class Router implements RouterInterface {
         $handler = self::resolve_bulk_action_controller( $context );
 
         if ( 'repository' === $context ) {
-            $request->set( 'ids', self::normalize_app_ids_form_input( (array) $request->get( 'ids', [] ) ) );
+            $app_ids = self::normalize_app_ids_form_input( (array) $request->get( 'ids', [] ) );
+
+            $request->set( 'ids', $app_ids  );
         }
 
         call_user_func( $handler, $request )->send();
@@ -852,7 +854,7 @@ class Router implements RouterInterface {
         $renderer       = new ClientDashboardRenderer( $registry, $locator );
         $rest_base      = restAPIUrl( 'client-dashboard' );
         
-        $renderer->asResponse( $rest_base )
+        $renderer->asResponse( $rest_base->url() )
         ->send();
 
         exit;

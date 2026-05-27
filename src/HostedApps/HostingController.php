@@ -539,7 +539,7 @@ class HostingController {
             $app->set_status( $status );
             $saved = $app->save();
 
-            if ( is_smliser_error( $saved ) ) {
+            if ( $saved instanceof Exception ) {
                 throw new RequestException( 'status_change_failed', sprintf( 'Failed to change status for the %s from %s to %s, error: %s', $app_type, $old_status, $status, $saved->get_error_message() ), array( 'status' => 500 ) );
             }
 
@@ -617,13 +617,17 @@ class HostingController {
                     continue;
                 }
 
-                if ( 'delete' === strtolower( $action ) ) {
-                    $app->delete() && $affected++;
-                    continue;
-                }
+                $new_request    = new Request( array(
+                    'app_type' => $type,
+                    'app_slug' => $slug,
+                    'app_status' => $action,
+                ) );
 
-                $app->set_status( $action );
-                $app->save() && $affected++;
+                $new_request->set_headers( $request->get_headers() );
+
+                $response = static::change_app_status( $new_request, $app );
+
+                $response->ok() && $affected++;
             }
 
             $url = smliser_repository_url( 'admin' )

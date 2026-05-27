@@ -569,6 +569,45 @@ class HostedApplicationService {
         return $count;
     }
 
+    /**
+     * List all apps in trash.
+     * 
+     * @return array<int, array{
+     *  app_type: string,
+     *  app_slug: string,
+     *  timestamp: int,
+     *  trash_path: string
+     * }> An empty array if no trashed app are found, or an array of trashed app data.
+     */
+    public static function list_trashed_apps() : array {
+        $trash_dir	= rtrim( SMLISER_TRASH_DIR, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+        $pattern	= $trash_dir . '*/*/.smliser_meta';
+        $files		= glob( $pattern ) ?: [];
+        $app_data	= [];
+
+        foreach ( $files as $file ) {
+
+            $rel_path = substr( $file, strlen( $trash_dir ) );
+
+            $rel_path = dirname( $rel_path );
+
+            $parts = explode( DIRECTORY_SEPARATOR, $rel_path, 2 );
+
+            if ( 2 !== count( $parts ) ) {
+                continue;
+            }
+
+            [$app_type, $app_slug] = $parts;
+
+            $timestamp  = (int) \smliser_filesystem()->get_contents( $file );
+            $trash_path = dirname( $file );
+
+            $app_data[] = compact( 'app_type', 'app_slug', 'timestamp', 'trash_path' );
+        }
+
+        return $app_data;
+    }
+
     /*
     |-------------------
     | UTILITY  METHODS

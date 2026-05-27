@@ -166,6 +166,7 @@ class Request {
      */
     public function set( string $parameter, $value ): static {
         $this->params[ $parameter ] = $value;
+        $this->sanitized_params[ $parameter ] = null;
         return $this;
     }
 

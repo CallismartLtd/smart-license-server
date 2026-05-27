@@ -20,6 +20,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Jobs\Analytics;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
+use SmartLicenseServer\Core\Dates\TimestampValue;
 
 /**
  * Deletes raw analytics log entries from SMLISER_ANALYTICS_LOGS_TABLE
@@ -48,12 +49,13 @@ class PruneAnalyticsLogsJob implements JobHandlerInterface {
     public function handle( array $payload = [] ): mixed {
         $default_retention  = (int) \smliser_settings()->get( 'log_retention_days', 90, true );
         $retention_days = (int) ( $payload['retention_days'] ?? $default_retention );
-        $cutoff         = gmdate( 'Y-m-d H:i:s', strtotime( "-{$retention_days} days" ) );
+        $cutoff         = TimestampValue::now()->subtractDays( $retention_days )->format( 'Y-m-d H:i:s' );
 
-        $affected = (int) smliser_db()->get_var(
-            'DELETE FROM ' . SMLISER_ANALYTICS_LOGS_TABLE . ' WHERE created_at < ?',
-            [ $cutoff ]
-        );
+        $sql    = \smliserQueryBuilder()
+            ->delete( SMLISER_ANALYTICS_LOGS_TABLE )
+            ->where( 'created_at', '<', $cutoff );
+
+        $affected = (int) smliser_db()->execute( $sql->build(), $sql->get_bindings() );
 
         if ( ! $affected ) {
             return 0;

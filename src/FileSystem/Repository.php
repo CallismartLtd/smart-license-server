@@ -15,8 +15,6 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
 use ZipArchive;
 
-use function is_smliser_error, defined;
-
 /**
  * The repository class handles filesystem operations within the repository.
  *
@@ -349,7 +347,7 @@ abstract class Repository {
      * @param UploadedFileCollection    $files      The uploaded file instances.
      * @param string                    $asset_type The type of asset(eg screenshots, icon, banners etc).
      * @return array{
-     *      uploaded: array<
+     *      uploaded: array{
      *          string|int, array{
      *              app_slug: string,
      *              app_type: string,
@@ -421,9 +419,8 @@ abstract class Repository {
                 $app_type   = rtrim( $this->current_dir, 's' ); // "plugins" => "plugin"
                 $app_slug   = $slug;
                 $asset_name = basename( $path );
-                $raw_url    = apps_asset_url( $app_type, $app_slug, $asset_name );
-                $asset_url  = ( new URL( $raw_url ) )
-                ->add_query_param( 'ver', $this->filemtime( $path ) )->get_href();
+                $asset_url  = apps_asset_url( $app_type, $app_slug, $asset_name )
+                    ->add_query_param( 'ver', $this->filemtime( $path ) )->url();
 
                 $result['uploaded'][$file->get_client_name()] = \compact( 'app_slug', 'app_type', 'asset_name', 'asset_url', 'asset_type' );
             } catch( Exception $e ) {
@@ -481,9 +478,8 @@ abstract class Repository {
             $path       = $file->move( $assets_dir, $asset_name, true );
             $app_type   = $this->current_dir;
             $asset_name = basename( $path );
-            $raw_url    = apps_asset_url( $app_type, $app_slug, $asset_name );
-            $asset_url  = ( new URL( $raw_url ) )
-            ->add_query_param( 'ver', $this->filemtime( $path ) )->get_href();
+            $asset_url  = apps_asset_url( $app_type, $app_slug, $asset_name )
+                ->add_query_param( 'ver', $this->filemtime( $path ) )->url();
 
             return compact( 'app_slug', 'app_type', 'asset_name', 'asset_url', 'asset_type' );
         } catch ( FileSystemException $e ) {
@@ -550,10 +546,10 @@ abstract class Repository {
     /**
      * Construct the full absolute path inside the repository.
      * 
-     * @param $relative_path
+     * @param string $relative_path
      * @return string|false Absolute path or false on failure.
      */
-    public function full_path( $relative_path ) {
+    public function full_path( string $relative_path ) {
         $cleaned = \smliser_sanitize_path( $relative_path );
 
         if ( is_smliser_error( $cleaned ) ) {
@@ -594,7 +590,7 @@ abstract class Repository {
      * @param string $slug The application slug.
      * @return bool True on success, false on failure.
      */
-    public function queue_app_for_deletion( string $slug ) {
+    public function queue_app_for_deletion( string $slug ) : bool {
         // FileSystemHelper::join_path() will not join `.trash` with the base dir to prevent 
         // accidental misuse, so we concatenate manually here.
         $trash_dir = $this->base_dir . DIRECTORY_SEPARATOR . self::TRASH_DIR;
@@ -612,12 +608,12 @@ abstract class Repository {
 
         // Ensure destination folder exists.
         if ( ! $this->is_dir( $destination ) && ! $this->mkdir( $destination, SMLISER_DIR_PERMISSION, true ) ) {
-            return 'false';
+            return false;
         }
 
         // Move application files.
         if ( ! $this->move( $app_dir, $destination, true ) ) {
-            return 'false';
+            return false;
         }
 
         // Write timestamp file for cleanup.
@@ -759,7 +755,7 @@ abstract class Repository {
     /**
      * Regenerate app.json file
      * 
-     * @param \SmartLicenseServer\HostedApps\AbstractHostedApp
+     * @param \SmartLicenseServer\HostedApps\AbstractHostedApp $app
      * @return array
      */
     abstract public function regenerate_app_dot_json( \SmartLicenseServer\HostedApps\AbstractHostedApp $app ) : array;

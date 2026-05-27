@@ -48,11 +48,6 @@ use DateTimeImmutable;
 use RuntimeException;
 use SmartLicenseServer\Background\Jobs\Analytics\PruneAnalyticsLogsJob;
 use SmartLicenseServer\Background\Jobs\Analytics\PruneLicenseActivityLogsJob;
-use SmartLicenseServer\Background\Jobs\Apps\CleanTrashedAppsJob;
-use SmartLicenseServer\Background\Jobs\Licenses\ExpireLicensesJob;
-use SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob;
-use SmartLicenseServer\Background\Jobs\Licenses\PruneLicenseMetaJob;
-use SmartLicenseServer\Background\Jobs\Monetization\CleanExpiredTokensJob;
 
 /**
  * Scheduler — manages and runs recurring scheduled tasks.
