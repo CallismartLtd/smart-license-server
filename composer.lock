@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "58153e260d5c1fba68dc279f3fd1e7de",
+    "content-hash": "4868d69298db453def7208efe1abfcd7",
     "packages": [
         {
             "name": "callismart/dbprism",
-            "version": "v0.1.24",
+            "version": "v0.1.29",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CallismartLtd/DBPrism.git",
-                "reference": "e4e4ac09285b4e8f94efc73055deb174018936bb"
+                "reference": "eb5b91b8969cb305efd3ad6805dc6a9631b1d417"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CallismartLtd/DBPrism/zipball/e4e4ac09285b4e8f94efc73055deb174018936bb",
-                "reference": "e4e4ac09285b4e8f94efc73055deb174018936bb",
+                "url": "https://api.github.com/repos/CallismartLtd/DBPrism/zipball/eb5b91b8969cb305efd3ad6805dc6a9631b1d417",
+                "reference": "eb5b91b8969cb305efd3ad6805dc6a9631b1d417",
                 "shasum": ""
             },
             "require": {
@@ -61,9 +61,9 @@
             ],
             "support": {
                 "issues": "https://github.com/CallismartLtd/DBPrism/issues",
-                "source": "https://github.com/CallismartLtd/DBPrism/tree/v0.1.24"
+                "source": "https://github.com/CallismartLtd/DBPrism/tree/v0.1.29"
             },
-            "time": "2026-05-25T17:08:41+00:00"
+            "time": "2026-05-29T12:59:47+00:00"
         },
         {
             "name": "callismart/dto",
@@ -1471,16 +1471,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "12.5.27",
+            "version": "12.5.28",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "f37c01edaf3a0cd820331462506af93f1495696e"
+                "reference": "5895d05f5bf421ed230fbd76e1277e4b8955def4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/f37c01edaf3a0cd820331462506af93f1495696e",
-                "reference": "f37c01edaf3a0cd820331462506af93f1495696e",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/5895d05f5bf421ed230fbd76e1277e4b8955def4",
+                "reference": "5895d05f5bf421ed230fbd76e1277e4b8955def4",
                 "shasum": ""
             },
             "require": {
@@ -1549,7 +1549,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.27"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.28"
             },
             "funding": [
                 {
@@ -1557,7 +1557,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-05-25T15:35:34+00:00"
+            "time": "2026-05-27T14:01:10+00:00"
         },
         {
             "name": "sebastian/cli-parser",
