@@ -310,63 +310,46 @@ class HostedApplicationService {
     /**
      * Count hosted applications across multiple types by status.
      *
-     * @param array $args {
-     *     @type string $status Application status filter. Default 'active'.
-     *     @type array  $types  List of types to query. Default all ['plugin','theme','software'].
-     * }
+     * @param array{
+     *   status?: string,
+     *   types?: string[]
+     * } $args
      * @return int Total count of matching applications.
      */
-    public static function count_apps( array $args = array() ) {
-        $db = smliser_db();
-
-        $defaults = array(
+    public static function count_apps( array $args = [] ) : int {
+        $defaults = [
             'status' => AbstractHostedApp::STATUS_ACTIVE,
             'types'  => HostedAppsRegistry::instance()->app_types(),
-        );
-        $args = parse_args( $args, $defaults );
-
+        ];
+    
+        $args   = parse_args( $args, $defaults );
         $status = $args['status'];
-        $types  = empty( $args['types'] ) ? HostedAppsRegistry::instance()->app_types() : (array) $args['types'];
-
-        $key = self::make_cache_key( __METHOD__, \compact( 'status', 'types' ) );
-
+        $types  = array_filter( (array) $args['types'] );
+    
+        $key   = self::make_cache_key( __METHOD__, compact( 'status', 'types' ) );
         $count = self::cache_get( $key );
-
+    
         if ( false === $count ) {
-            $sql_parts = [];
-            $params    = [];
-
-            if ( in_array( 'plugin', $types, true ) ) {
-                $table_name  = SMLISER_PLUGINS_TABLE;
-                $sql_parts[] = "SELECT COUNT(*) AS total FROM {$table_name} WHERE status = ?";
-                $params[]    = $status;
-            }
-
-            if ( in_array( 'theme', $types, true ) ) {
-                $table_name  = SMLISER_THEMES_TABLE;
-                $sql_parts[] = "SELECT COUNT(*) AS total FROM {$table_name} WHERE status = ?";
-                $params[]    = $status;
-            }
-
-            if ( in_array( 'software', $types, true ) ) {
-                $table_name  = SMLISER_SOFTWARE_TABLE;
-                $sql_parts[] = "SELECT COUNT(*) AS total FROM {$table_name} WHERE status = ?";
-                $params[]    = $status;
-            }
-
+            $sql_parts = static::build_type_queries( $types, $status );
+    
             if ( empty( $sql_parts ) ) {
-                $count = 0;
-            } else {
-                // Build union and sum all counts
-                $union_sql = implode( " UNION ALL ", $sql_parts );
-                $sql       = "SELECT SUM(total) AS grand_total FROM ( {$union_sql} ) AS counts";
-
-                $count = (int) $db->get_var( $sql, $params );
+                return 0;
             }
-
+    
+            $db = smliser_db();
+    
+            if ( 1 === count( $sql_parts ) ) {
+                $count_sql = ( clone $sql_parts[0] )->select( 'COUNT(*) as total_records' );
+                $count     = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
+            } else {
+                $union_sql = static::build_union_query( $sql_parts );
+                $count_sql = ( clone $union_sql )->select( 'COUNT(*) as total_records' )->as( 'app_count' );
+                $count     = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
+            }
+    
             self::cache_set( $key, $count, static::default_ttl() );
         }
-
+    
         return $count;
     }
 
@@ -577,6 +560,10 @@ class HostedApplicationService {
                 }
                 unset( $row );
             } else {
+                $count_sql = static::query()
+                    ->select( 'COUNT(*) as total_records' )
+                    ->from( $data_sql->get_table_name() );
+    
                 // Copy WHERE clauses onto the count query by cloning and stripping
                 // projection; simplest approach is cloning the intent directly.
                 $count_clone = clone $data_sql;
@@ -592,18 +579,8 @@ class HostedApplicationService {
         }
     
         // Two or more intents: build a UNION ALL.
-        $base_union = null;
+        $base_union = static::build_union_query( $sql_parts );
     
-        foreach ( $sql_parts as $sql ) {
-            if ( null === $base_union ) {
-                $base_union = $sql;
-                continue;
-            }
-    
-            $base_union = $base_union->union_all( $sql );
-        }
-    
-        /** @var \Callismart\DBPrism\Query\QueryIntents\CompoundQueryIntent $base_union */
         $count_sql = ( clone $base_union )->select( 'COUNT(*) as total_records' )->as( 'app_count' );
         $total     = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
     
@@ -643,5 +620,21 @@ class HostedApplicationService {
         unset( $row );
     
         return $rows;
+    }
+
+    /**
+     * Fold a list of SelectionIntents into a single UNION ALL CompoundQueryIntent.
+     *
+     * @param  SelectionIntent[] $sql_parts  At least two intents.
+     * @return \Callismart\DBPrism\Query\QueryIntents\CompoundQueryIntent
+     */
+    private static function build_union_query( array $sql_parts ) : mixed {
+        $base = null;
+    
+        foreach ( $sql_parts as $sql ) {
+            $base = ( null === $base ) ? $sql : $base->union_all( $sql );
+        }
+    
+        return $base;
     }
 }
