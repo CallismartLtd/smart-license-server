@@ -10,25 +10,25 @@ namespace SmartLicenseServer\Contracts;
 use InvalidArgumentException;
 
 /**
- * Provides abstract implementation of service provider registry. 
+ * Abstract implemetation of the RegistryInterface.
  */
 abstract class AbstractRegistry implements RegistryInterface {
     /**
-     * Core providers/adapters.
+     * Core registry.
      *
      * @var array<string, class-string> $core
      */
     protected $core = [];
 
     /**
-     * Custom providers/adapters.
+     * Custom registry.
      *
      * @var array<string, class-string> $custom
      */
     protected $custom   = [];
 
     /**
-     * Tracks whether core providers/adapters have been loaded.
+     * Tracks whether core registry have been loaded.
      * 
      * @var bool $core_loaded
      */
@@ -37,21 +37,21 @@ abstract class AbstractRegistry implements RegistryInterface {
     /**
      * {@inheritDoc}.
      * 
-     * If a core provider with the same name exists, registration is
-     * silently skipped — core providers always take precedence.
+     * If a core registry entry with the same name exists, registration is
+     * silently skipped — core entries always take precedence.
      * 
-     * If a custom provider with the same name already exists it is
+     * If a custom entry with the same name already exists it is
      * replaced without error.
      *
      * @param class-string $class_string
-     * @return self
+     * @return static
      */
-    final public function add( string $class_string ) : self {
+    public function add( string $class_string ) : static {
         $this->ensure_core();
         $this->assert_implements_interface( $class_string );
         $id = $class_string::get_id();
 
-        // Core providers always win.
+        // Core registry entries always win.
         if ( isset( $this->core[$id] ) ) {
             return $this;
         }
@@ -62,31 +62,31 @@ abstract class AbstractRegistry implements RegistryInterface {
     }
 
     /**
-     * Check if a provider is registered.
+     * Check if a registry entry is registered.
      *
-     * @param string $provider_id
+     * @param string $id
      * @return bool
      */
-    public function has( $provider_id ) : bool {
+    public function has( $id ) : bool {
         $this->ensure_core();
-        return isset( $this->core[ $provider_id ] ) || isset( $this->custom[ $provider_id ] );
+        return isset( $this->core[ $id ] ) || isset( $this->custom[ $id ] );
     }
 
     /**
-     * Unregister a provider by its ID.
+     * Remove a registry entry by its ID.
      * 
-     * @param string $provider_id
-     * @return bool True if the provider was found and removed, false otherwise.
+     * @param string $id
+     * @return bool True if the entry was found and removed, false otherwise.
      */
-    public function remove( $provider_id ) : bool {
+    public function remove( $id ) : bool {
         $this->ensure_core();
-        // Guard against core providers removal.
-        if ( isset( $this->core[$provider_id] ) ) {
+        // Guard against core registry entry removal.
+        if ( isset( $this->core[$id] ) ) {
             return false;
         }
 
-        if ( isset( $this->custom[ $provider_id ] ) ) {
-            unset( $this->custom[ $provider_id ] );
+        if ( isset( $this->custom[ $id ] ) ) {
+            unset( $this->custom[ $id ] );
             return true;
         }
 
@@ -94,28 +94,29 @@ abstract class AbstractRegistry implements RegistryInterface {
     }
 
     /**
-     * Get a registered provider by its ID.
+     * Get a registered registry entry by its ID.
      *
-     * @param string $provider_id
+     * @param string $id
      * @return class-string|null
      */
-    public function get( $provider_id ) : ?string {
+    public function get( $id ) : ?string {
         $this->ensure_core();
-        return $this->core[ $provider_id ] ?? $this->custom[$provider_id] ?? null;
+        return $this->core[ $id ] ?? $this->custom[$id] ?? null;
     }
 
     /**
-     * Get all registered providers.
+     * Get all registered entries.
      *
-     * @param bool $assoc Whether to preserve keys by provider_id(default: true).
-     * @param bool $objects Whether to instanciat the providers(default: false).
+     * @param bool $assoc Whether to preserve keys by id(default: true).
+     * @param bool $instantiate Whether to instanciate the entries(default: false).
      * @return array<int|string, class-string<ServiceProviderInterface>|ServiceProviderInterface>
      */
-    public function all( bool $assoc = true, bool $objects = false ) : array {
+    public function all( bool $assoc = true, bool $instantiate = false ) : array {
         $this->ensure_core();
+        /** @var array<string, class-string> $all */
         $all    = array_merge( $this->custom, $this->core );
 
-        if ( $objects ) {
+        if ( $instantiate ) {
             foreach ( $all as $id => &$value ) {
                 $value = new $value;
             }
@@ -156,10 +157,12 @@ abstract class AbstractRegistry implements RegistryInterface {
     /**
      * Ensure core providers are loaded
      */
-    private function ensure_core()  : void {
+    protected function ensure_core()  : void {
         if ( ! $this->core_loaded ) {
             $this->load_core();
         }
+
+        $this->core_loaded = true;
     }
 
     /*
@@ -184,7 +187,7 @@ abstract class AbstractRegistry implements RegistryInterface {
     /**
      * Return only core commands keyed by name.
      *
-     * @return array<string, class-string<CommandInterface>>
+     * @return array<string, class-string>
      */
     public function core(): array {
         return $this->core;
@@ -193,7 +196,7 @@ abstract class AbstractRegistry implements RegistryInterface {
     /**
      * Return only custom commands keyed by name.
      *
-     * @return array<string, class-string<CommandInterface>>
+     * @return array<string, class-string>
      */
     public function custom(): array {
         return $this->custom;

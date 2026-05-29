@@ -1046,7 +1046,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
 
     }
 
-/**
+    /**
      * Delete an app, its associated metadata, and its physical files.
      * 
      * @return bool True on success, false otherwise.
@@ -1121,8 +1121,11 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $app_id     = static::sanitize_int( $this->get_id() );
         $fk_column  = $this->get_meta_foreign_key();
 
-        $sql        = "SELECT `meta_key`, `meta_value` FROM {$table} WHERE `{$fk_column}` = ? ORDER BY `id` ASC";
-        $results    = $db->get_results( $sql, [ $app_id ] );
+        $sql        = static::query()->select( 'meta_key', 'meta_value' )
+            ->from( $table )
+            ->where( $fk_column, '=', $app_id )
+            ->order_by( 'id', 'ASC' );
+        $results    = $db->get_results( $sql->build(), $sql->get_bindings() );
 
         $meta = [];
 
@@ -1150,9 +1153,8 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return bool True on success, false on failure.
      */
     public function update_meta( $key, $value ) : bool {
-        $app_id = static::sanitize_int( $this->get_id() );
 
-        if ( ! $app_id ) {
+        if ( ! $this->get_id() ) {
             return false;
         }
 
@@ -1163,18 +1165,18 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $key        = self::sanitize_key( $key );
         $store      = Format::encode( $value, Format::ENCODING_PHP );
 
-        // Look for existing meta row.
-        $meta_id = $db->get_var(
-            "SELECT `id` FROM {$table} WHERE `{$fk_column}` = ? AND `meta_key` = ?",
-            [ $app_id, $key ]
-        );
+        $meta_id_sql = static::query()->select( 'id' )->from( $table )
+            ->where( $fk_column, '=', $this->get_id() )
+            ->where( 'meta_key', '=', $key )
+            ->limit( 1 );
+        $meta_id = $db->get_var( $meta_id_sql->build(), $meta_id_sql->get_bindings() );
 
-        if ( empty( $meta_id ) ) {
+        if ( null === $meta_id ) {
             // INSERT
             $inserted = $db->insert(
                 $table,
                 [
-                    $fk_column   => $app_id,
+                    $fk_column   => $this->get_id(),
                     'meta_key'   => $key,
                     'meta_value' => $store,
                 ]
@@ -1193,7 +1195,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
                 $table,
                 [ 'meta_value' => $store ],
                 [
-                    $fk_column  => $app_id,
+                    $fk_column  => $this->get_id(),
                     'id'        => $meta_id,
                     'meta_key'  => $key,
                 ]
@@ -1215,7 +1217,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param mixed  $default_to The fallback value.
      * @return mixed|null
      */
-    public function get_meta( string $meta_key, mixed $default_to = null ) {
+    public function get_meta( string $meta_key, mixed $default_to = null ) : mixed {
         $meta_key = self::sanitize_text( $meta_key );
 
         if ( array_key_exists( $meta_key, $this->meta_data ) ) {
@@ -1226,21 +1228,28 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         $table      = static::get_db_meta_table();
         $fk_column  = $this->get_meta_foreign_key();
 
-        $sql    = "SELECT `meta_value` FROM {$table} WHERE `{$fk_column}` = ? AND `meta_key` = ?";
-        $params = [ static::sanitize_int( $this->get_id() ), $meta_key ];
+        $sql = static::query()->select( 'meta_value' )
+            ->from( $table )
+            ->where( $fk_column, '=', static::sanitize_int( $this->get_id() ) )
+            ->where( 'meta_key', '=', $meta_key )
+            ->limit( 1 );
 
-        $result = $db->get_var( $sql, $params );
+        $result = $db->get_var( $sql->build(), $sql->get_bindings() );
 
-        if ( is_null( $result ) ) {
-            $this->meta_data[ $meta_key ] = $default_to;
-            return $default_to;
+        $this->meta_data[ $meta_key ] = Format::decode( $result );
+
+        return $this->meta_data[ $meta_key ] ?? $default_to;
+    }
+
+    /**
+     * Get the value of all metadata in key => value format.
+     */
+    public function get_meta_data() : array {
+        if ( empty( $this->meta_data ) ) {
+            return $this->load_meta();
         }
 
-        $value = Format::decode( $result );
-
-        $this->meta_data[ $meta_key ] = $value ?? $default_to;
-
-        return $value;
+        return $this->meta_data;
     }
 
     /**
@@ -1461,9 +1470,12 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     public function is_monetized() : bool {
         $db         = smliser_db();
         $table_name = SMLISER_MONETIZATION_TABLE;
-        $query      = "SELECT COUNT(*) FROM {$table_name} WHERE `app_type` = ? AND `app_id` = ? AND `enabled` = ?";
-        $params     = [$this->get_type(), static::sanitize_int( $this->id ), '1'];
-        return $db->get_var( $query, $params ) > 0;
+        $query      = static::query()->select( 'COUNT(*)' )->from( $table_name )
+            ->where( 'app_type', '=', $this->get_type() )
+            ->where( 'app_id', '=', static::sanitize_int( $this->id ) )
+            ->where( 'enabled', '=', '1' );
+        $count    = (int) $db->get_var( $query->build(), $query->get_bindings() );
+        return $count > 0;
     }
 
     /**

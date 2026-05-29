@@ -33,11 +33,11 @@ class PluginSchema implements DatabaseSchemaInterface {
             Column::make( 'id' )
                 ->type( ColumnType::INTEGER )
                 ->unsigned()
-                ->auto_increment()
-                ->required(),
+                ->auto_increment(),
 
             Column::make( 'owner_id' )
-                ->type( ColumnType::BIG_INT ),
+                ->type( ColumnType::BIG_INT )
+                ->default( 0 ),
 
             Column::make( 'name' )
                 ->type( ColumnType::VARCHAR )
@@ -46,7 +46,8 @@ class PluginSchema implements DatabaseSchemaInterface {
 
             Column::make( 'slug' )
                 ->type( ColumnType::VARCHAR )
-                ->size( 300 ),
+                ->size( 300 )
+                ->required(),
 
             Column::make( 'status' )
                 ->type( ColumnType::VARCHAR )
@@ -55,22 +56,24 @@ class PluginSchema implements DatabaseSchemaInterface {
 
             Column::make( 'author' )
                 ->type( ColumnType::VARCHAR )
-                ->size( 255 ),
+                ->size( 255 )
+                ->default( NULL ),
 
             Column::make( 'author_profile' )
                 ->type( ColumnType::VARCHAR )
-                ->size( 255 ),
+                ->size( 255 )
+                ->default( NULL ),
 
             Column::make( 'download_link' )
                 ->type( ColumnType::VARCHAR )
-                ->size( 400 ),
+                ->size( 400 )
+                ->default( NULL ),
 
             Column::make( 'created_at' )
                 ->type( ColumnType::DATETIME ),
 
             Column::make( 'updated_at' )
                 ->type( ColumnType::DATETIME )
-                ->required(),
         ];
     }
 
@@ -78,6 +81,7 @@ class PluginSchema implements DatabaseSchemaInterface {
         $prefx  = static::constraintPrefix();
         return [
             Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+            Constraint::index( "{$prefx}name_index" )->on( 'name' ),
             Constraint::index( "{$prefx}download_link_index" )->on( 'download_link' ),
             Constraint::index( "{$prefx}slug_index" )->on( 'slug' ),
             Constraint::index( "{$prefx}author_index" )->on( 'author' ),

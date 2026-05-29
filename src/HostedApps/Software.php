@@ -120,9 +120,9 @@ class Software extends AbstractHostedApp {
     /**
      * Get author profile
      * 
-     * @return URL
+     * @return URL|null
      */
-    public function get_author_profile() : URL {
+    public function get_author_profile() : ?URL {
         return new URL( $this->author );
     }
 

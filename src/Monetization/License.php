@@ -16,7 +16,7 @@ use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\Format;
@@ -396,10 +396,10 @@ class License {
             $app        = null;
             $app_type   = $this->app_prop['type'] ?? '';
             $app_slug   = $this->app_prop['slug'] ?? '';
-            $app_class  = HostedApplicationService::get_app_class( $app_type );
+            $app_class  = HostedAppsRegistry::instance()->get_app_type_class( $app_type );
             $method     = "get_by_slug";
 
-            if ( \class_exists( $app_class ) && \method_exists( $app_class, $method ) ) {
+            if ( $app_class && \class_exists( $app_class ) && \method_exists( $app_class, $method ) ) {
                 /** @var AbstractHostedApp|null $app */
                 $app = $app_class::$method( $app_slug );
             }

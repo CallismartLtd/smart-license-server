@@ -177,9 +177,9 @@ class Plugin extends AbstractHostedApp {
     /**
      * Get the author profile.
      * 
-     * @return URL
+     * @return URL|null
      */
-    public function get_author_profile() : URL {
+    public function get_author_profile() : ?URL {
         return $this->author_profile;
     }
 
@@ -374,8 +374,8 @@ class Plugin extends AbstractHostedApp {
             'slug'              => $this->get_slug(),
             'status'            => $this->get_status(),
             'version'           => $this->get_version(),
-            'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile()->url(), $this->get_author() ),
-            'author_profile'    => $this->get_author_profile()->url(),
+            'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile()?->url() ?? '', $this->get_author() ),
+            'author_profile'    => $this->get_author_profile()?->url(),
             'manifest'          => $this->get_manifest(),
             'homepage'          => $this->get_homepage()->url(),
             'package'           => $this->get_download_url()->url(),

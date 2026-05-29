@@ -80,7 +80,7 @@ abstract class Repository {
      * @param string $dir One of the allowed directories.
      * @param bool $switch Whether to switch to the given dir immediately.
      */
-    public function __construct( $dir, $switch = true ) {
+    public function __construct( $dir = '', $switch = true ) {
         
         $this->base_dir = FileSystemHelper::sanitize_path( SMLISER_REPO_DIR );
 

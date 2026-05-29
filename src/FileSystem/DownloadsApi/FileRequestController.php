@@ -13,6 +13,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\SettingsAPI\Settings;
@@ -36,14 +37,14 @@ class FileRequestController {
             $app_slug = $request->get( 'app_slug' );
             $token    = $request->get( 'download_token' );
 
-            $app_class = HostedApplicationService::get_app_class( $app_type );
+            $app_class = HostedAppsRegistry::instance()->get_app_type_class( $app_type );
             $method    = 'get_by_slug';
 
-            if ( ! method_exists( $app_class, $method ) ) {
+            if ( ! $app_class || ! method_exists( $app_class, $method ) ) {
                 throw new FileRequestException( 'invalid_app_type_method' );
             }
 
-            /** @var \SmartLicenseServer\HostedApps\AbstractHostedApp $app */
+            /** @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $app */
             $app = $app_class::$method( $app_slug );
 
             if ( ! $app ) {

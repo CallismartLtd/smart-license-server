@@ -110,7 +110,7 @@ class Theme extends AbstractHostedApp {
      * 
      * @return URL
      */
-    public function get_author_profile() : URL {
+    public function get_author_profile() : ?URL {
         return new URL( $this->author['author_url'] );
     }
 

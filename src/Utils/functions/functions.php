@@ -37,20 +37,20 @@ function smliser_debug_enabled() : bool {
 /**
  * Form validation message intepreter.
  * 
- * @param mixed     $text   The message to show.
+ * @param mixed     $messages   The message to show.
  * @return string   $notice Formatted Notice to show 
  */
-function smliser_form_message( $texts ) {
+function smliser_form_message( mixed $messages ) : string {
     $notice = '<div class="smliser-form-notice-container">';
 
-    if ( is_array( $texts ) ) {
+    if ( is_array( $messages ) ) {
         $count = 1;
-        foreach ( $texts as $text ) {
-            $notice .= '<p>' . $count . ' ' . $text . '</p>';
+        foreach ( $messages as $message ) {
+            $notice .= '<p>' . $count . ' ' . $message . '</p>';
             $count++;
         }
     } else {
-        $notice .= '<p>' . $texts . '</p>';
+        $notice .= '<p>' . $messages . '</p>';
 
     }
     $notice .= '</div>';
@@ -408,7 +408,7 @@ function smliser_has_query_param( $key ) {
 
 /**
  * Parse a given argument with default arguments.
- * Similar to wp_parse_args(), but strips out undefined default keys.
+ * Strips out undefined default keys.
  *
  * @param array|object|null $args     The arguments to parse.
  * @param array             $defaults The default arguments.
@@ -905,9 +905,12 @@ function smliser_value_to_array( mixed $value, bool $use_object_vars = false ): 
 }
 
 /**
- * Helper: Check if array contains only scalar values
+ * Helper: Check if array contains only scalar values.
+ * 
+ * @param mixed $array The value to check.
+ * @return bool True if it's a non-empty array of only scalar values, false otherwise.
  */
-function smliser_is_scalar_array( $array ) {
+function smliser_is_scalar_array( mixed $array ): bool {
     if ( empty( $array ) || ! is_array( $array ) ) {
         return false;
     }

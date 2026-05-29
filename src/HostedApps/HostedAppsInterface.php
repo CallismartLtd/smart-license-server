@@ -259,9 +259,9 @@ interface HostedAppsInterface {
     /**
      * get author profile
      * 
-     * @return URL
+     * @return URL|null
      */
-    public function get_author_profile() : URL;
+    public function get_author_profile() : ?URL;
 
     /**
      * Get the application slug (URL-friendly name).
@@ -457,6 +457,36 @@ interface HostedAppsInterface {
      */
     public function exists() : bool;
 
+    /**
+     * Get the value of all metadata in key => value format.
+     */
+    public function get_meta_data() : array;
+
+    /**
+     * Get the value of a specific metadata key.
+     * 
+     * @param string $key The metadata key.
+     * @param mixed $default The default value to return if the key does not exist.
+     * @return mixed The value of the metadata key or the default value if the key does not exist.
+     */
+    public function get_meta( string $key, mixed $default = null ) : mixed;
+
+
+    /**
+     * Hydrate object from DB row with only core fields.
+     * Does NOT load meta, assets, sections, or files.
+     *
+     * @param array $row Associative array from DB.
+     * @return static
+     */
+    public static function from_array_minimal( array $row ): static ;
+
+    /**
+     * Get an instance of this class from an array
+     * 
+     * @param array $data
+     */
+    public static function from_array( $data ) : static;
     /*
     |----------------------------------
     | Repository FileSystem operations
