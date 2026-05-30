@@ -199,16 +199,6 @@ class Theme extends AbstractHostedApp {
     */
 
     /**
-     * Get a theme by its id
-     * 
-     * @param int $id
-     * @return self|null
-     */
-    public static function get_theme( $id = 0 ) : ?self {
-        return self::get_self_by_id( $id, self::TABLE );
-    }
-
-    /**
      * Get the database table name.
      * 
      * @return string

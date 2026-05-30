@@ -922,7 +922,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * 
      * @return bool|Exception Does not throw.
      */
-    final public function save() : bool|Exception {
+    public function save() : bool|Exception {
         $db         = smliser_db();
         $table      = static::get_db_table();
         $file       = $this->file;
@@ -944,7 +944,6 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         // Trackers for structural rollback of files if DB fails
         $uploaded_slug      = null;
         $is_new_insert      = ! $this->get_id();
-        $backup_old_file    = null; 
 
         try {
             $db->transactional( function( Database $db_instance ) use (

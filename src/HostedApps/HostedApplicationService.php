@@ -256,17 +256,28 @@ class HostedApplicationService {
 
         if ( false === $app || ! ( $app instanceof AbstractHostedApp ) ) {
             $app_class  = HostedAppsRegistry::instance()->get_app_type_class( $app_type );
+            $table      = HostedAppsRegistry::instance()->get_app_type_table( $app_type );
+            $app        = null;
 
-            if ( ! class_exists( $app_class ) || ! method_exists( $app_class, 'get_by_slug' ) ) {
-                $app    = null;
-            } else {
-                $app    = $app_class::get_by_slug( $app_slug );
+            if ( $table && $app_class && class_exists( $app_class ) ) {
+                $db = \smliser_db();
+                $sql = static::query()
+                    ->select( '*' )
+                    ->from( $table )
+                    ->where( 'slug', '=', $app_slug )
+                    ->limit( 1 );
+
+                $row = $db->get_row( $sql->build(), $sql->get_bindings() );
+
+                if ( $row ) {
+                    /** @var AbstractHostedApp $app */
+                    $app = $app_class::from_array( $row );
+                }
             }
 
             self::cache_set( $key, $app, static::default_ttl() );
         }
 
-        /** @var AbstractHostedApp|null $app */
         return $app;
     }
     
@@ -282,29 +293,95 @@ class HostedApplicationService {
         $app    = self::cache_get( $key );
 
         if ( false === $app || ! ( $app instanceof AbstractHostedApp ) ) {
-            $app_class  = self::get_app_class( $app_type );
-            $method     = "get_{$app_type}";
 
-            if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $method ) ) {
-                $app    = null;
-            } else {
-                $app    = $app_class::$method( $id );
+            $registry   = HostedAppsRegistry::instance();
+
+            $app_class  = $registry->get_app_type_class( $app_type );
+            $table      = $registry->get_app_type_table( $app_type );
+            $app        = null;
+
+            if ( $table && $app_class && class_exists( $app_class ) ) {
+                $db = \smliser_db();
+                $sql = static::query()
+                    ->select( '*' )
+                    ->from( $table )
+                    ->where( 'id', '=', $id )
+                    ->limit( 1 );
+
+                $row = $db->get_row( $sql->build(), $sql->get_bindings() );
+
+                if ( $row ) {
+                    /** @var AbstractHostedApp $app */
+                    $app = $app_class::from_array( $row );
+                }
             }
 
             self::cache_set( $key, $app, static::default_ttl() );
         }
 
-        /** @var AbstractHostedApp|null */
+        
         return $app;
     }
 
     /**
-     * Get app by owner ID
+     * Get all applications belonging to a specific owner, across all types.
+     *
      * @param int $owner_id
-     * @return AbstractHostedApp[]
+     * @param array{
+     *   page?:   int,
+     *   limit?:  int,
+     *   status?: string,
+     *   types?:  string[]
+     * } $args
+     * @return array{
+     *   items: AbstractHostedApp[],
+     *   pagination: array{
+     *     total: int,
+     *     page: int,
+     *     limit: int,
+     *     total_pages: int
+     *   }
+     * }
      */
-    public static function get_all_by_owner( $owner_id ) : array {
-        return []; //TODO: find and hydrate.
+    public static function get_apps_for_owner( int $owner_id, array $args = [] ) : array {
+        $db = smliser_db();
+    
+        $defaults = [
+            'page'   => 1,
+            'limit'  => 20,
+            'status' => AbstractHostedApp::STATUS_ACTIVE,
+            'types'  => HostedAppsRegistry::instance()->app_types(),
+        ];
+    
+        $args     = parse_args( $args, $defaults );
+        $page     = max( 1, (int) $args['page'] );
+        $limit    = max( 1, (int) $args['limit'] );
+        $offset   = $db->calculate_query_offset( $page, $limit );
+        $status   = $args['status'];
+        $types    = array_filter( (array) $args['types'] );
+    
+        $key     = self::make_cache_key( __METHOD__, compact( 'owner_id', 'page', 'limit', 'status', 'types' ) );
+        $results = self::cache_get( $key );
+    
+        if ( false === $results ) {
+            $sql_parts = static::build_type_queries(
+                $types,
+                $status,
+                extra_wheres: [ [ 'owner_id', '=', $owner_id ] ]
+            );
+    
+            if ( empty( $sql_parts ) ) {
+                return static::make_paginated_result( [], $page, $limit );
+            }
+    
+            [ $rows, $total ] = static::resolve_union_results( $sql_parts, $limit, $offset, use_window_fn: true );
+            $rows    = static::hydrate_rows( $rows );
+            $results = static::make_paginated_result( $rows, $page, $limit, $total );
+    
+            self::cache_set( $key, $results, static::default_ttl() );
+        }
+    
+        return $results;
     }
 
     /**
@@ -482,18 +559,20 @@ class HostedApplicationService {
     }
 
     /**
-     * Build one SelectionIntent per valid app type.
-     *
-     * When $term is provided each intent gets a WHERE group that filters by
-     * name/slug/author prefix.  When $term is omitted only the status filter
-     * is applied (used by get_apps).
-     *
      * @param  string[] $types
      * @param  string   $status
-     * @param  string   $term   Optional search term.
-     * @return SelectionIntent[]  Keyed by numeric index; empty when no valid tables exist.
+     * @param  string   $term          Optional search term; filters name/slug/author by prefix.
+     * @param  array<array{string, string, mixed}> $extra_wheres
+     *         Additional WHERE clauses applied to every intent, each as
+     *         [ $column, $operator, $value ] (e.g. [ 'owner_id', '=', 5 ]).
+     * @return SelectionIntent[]
      */
-    private static function build_type_queries( array $types, string $status, string $term = '' ) : array {
+    private static function build_type_queries(
+        array  $types,
+        string $status,
+        string $term         = '',
+        array  $extra_wheres = []
+    ) : array {
         $registry  = HostedAppsRegistry::instance();
         $sql_parts = [];
     
@@ -508,6 +587,10 @@ class HostedApplicationService {
                 ->select( "'{$type}' as type", ...static::APP_COLUMNS )
                 ->from( $table )
                 ->where( 'status', '=', $status );
+    
+            foreach ( $extra_wheres as [ $column, $operator, $value ] ) {
+                $query->where( $column, $operator, $value );
+            }
     
             if ( '' !== $term ) {
                 $query->where_group( static function ( SelectionIntent $group ) use ( $term ) {

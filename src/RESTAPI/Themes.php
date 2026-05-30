@@ -13,6 +13,7 @@ use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\Theme;
 
 /**
@@ -31,8 +32,8 @@ class Themes {
         /**
          * We handle the required parameters here.
          */
-        $theme_id   = $request->get( 'theme_id' );
-        $slug       = $request->get( 'slug' );
+        $theme_id   = (int) $request->get( 'id' );
+        $slug       = (string) $request->get( 'slug' );
 
         if ( empty( $theme_id ) && empty( $slug ) ) {
             return new RequestException(
@@ -49,7 +50,11 @@ class Themes {
         $theme      = static::cache_get( $cache_key );
 
         if ( false === $theme ) {
-            $theme = Theme::get_theme( $theme_id ) ?? Theme::get_by_slug( $slug );
+            if ( $theme_id ) {
+                $theme = HostedApplicationService::get_app_by_id( 'theme', $theme_id );
+            } else {
+                $theme = HostedApplicationService::get_app_by_slug( 'theme', $slug );
+            }
 
             if ( ! $theme ) {
                 $message    = __( 'The theme does not exist.', 'smliser' );

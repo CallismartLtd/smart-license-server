@@ -249,16 +249,6 @@ class Plugin extends AbstractHostedApp {
     |--------------
     */
 
-    /**
-     * Get a plugin by it's ID.
-     * 
-     * @param int $id The plugin ID.
-     * @return self|null
-     */
-    public static function get_plugin( $id = 0 ) : ?self {
-        return self::get_self_by_id( $id, self::TABLE );
-    }
-
     /*
     |---------------
     |UTILITY METHODS

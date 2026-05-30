@@ -13,7 +13,7 @@ use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\HostedApps\Plugin;
+use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 /**
  * Handles REST API Requests for hosted plugins.
@@ -31,8 +31,8 @@ class Plugins {
         /**
          * We handle the required parameters here.
          */
-        $plugin_id  = $request->get( 'id' );
-        $slug       = $request->get( 'slug' );
+        $plugin_id  = (int) $request->get( 'id' );
+        $slug       = (string) $request->get( 'slug' );
 
         if ( empty( $plugin_id ) && empty( $slug ) ) {
             return new RequestException(
@@ -50,9 +50,11 @@ class Plugins {
         $plugin     = static::cache_get( $cache_key );
 
         if ( false === $plugin ) {
-            $method = $plugin_id ? "get_plugin" : "get_by_slug";
-            /** @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $plugin */
-            $plugin = Plugin::$method( $arg );
+            if ( $plugin_id ) {
+                $plugin = HostedApplicationService::get_app_by_id( 'plugin', $plugin_id );
+            } else {
+                $plugin = HostedApplicationService::get_app_by_slug( 'plugin', $slug );
+            }
 
             if ( ! $plugin ) {
                 $message    = __( 'The plugin does not exist, please check the typography or the plugin slug.', 'smliser' );
