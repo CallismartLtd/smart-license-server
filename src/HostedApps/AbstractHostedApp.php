@@ -1028,24 +1028,6 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
     }
 
     /**
-     * Get a app by it's slug.
-     * 
-     * @param string $slug The app slug.
-     * @return self|null   The app object or null if not found.
-     */
-    public static function get_by_slug( string $slug ) : ?static {
-        if ( '' === $slug ) {
-            return null;
-        }
-        
-        $table  = static::get_db_table();
-        $slug   = basename( $slug, '.zip' );   
-
-        return static::get_self_by( 'slug', $slug, $table );    
-
-    }
-
-    /**
      * Delete an app, its associated metadata, and its physical files.
      * 
      * @return bool True on success, false otherwise.

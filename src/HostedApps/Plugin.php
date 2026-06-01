@@ -18,7 +18,6 @@ use SmartLicenseServer\Utils\CommonQueryTrait;
  * Represents a typical plugin hosted in this repository.
  */
 class Plugin extends AbstractHostedApp {
-    use CommonQueryTrait;
     /**
      * The plugin database table name.
      * 

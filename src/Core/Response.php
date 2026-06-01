@@ -381,7 +381,7 @@ class Response {
 		}
 
 		if ( ! $this->has_header( 'Content-Length' ) ) {
-			$this->set_header( 'Content-Length', strlen( $this->body ) );
+			$this->set_header( 'Content-Length', (string) strlen( $this->body ) );
 		}
 
 		echo $this->body;

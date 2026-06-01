@@ -49,28 +49,30 @@ class HostingController {
                 throw new RequestException( 'invalid_parameter_type', 'The app_type parameter is required.' , array( 'status' => 400 ) );
             }
 
-            if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
+            $registry   = HostedAppsRegistry::instance();
+
+            if ( ! $registry->is_app_type_registered( $app_type ) ) {
                 throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , array( 'status' => 400 ) );
             }
             
-            $app_id     = static::sanitize_int( $request->get( 'app_id', 0 ) );
-            $app_slug   = static::sanitize_text( $request->getTyped( 'app_slug', 'string', '' ) );
-            $app_class  = HostedApplicationService::get_app_class( static::sanitize_text( $app_type ) );
+            $app_id     = (int) $request->getTyped( 'app_id', 'int', 0 );
+            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
+            $app_class  = $registry->get_app_type_class( $app_type );
 
-            $init_method    = $app_id ? "get_{$app_type}" : "get_by_slug";
+            $init_method    = $app_id ? 'get_app_by_id' : 'get_app_by_slug';
             $arg            = $app_id ? $app_id : $app_slug;
 
-            if ( ! class_exists( $app_class ) || ! method_exists( $app_class, $init_method ) ) {
-                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" class did not define the required method "%s::%s($id)."', $app_type, $app_class, $init_method ) , array( 'status' => 500 ) );
+            if ( ! $app_class || ! class_exists( $app_class ) ) {
+                throw new RequestException( 'invalid_input', sprintf( 'App class for type "%s" not found.', $app_type ) , array( 'status' => 400 ) );
             }
             
             if ( $arg ) {
-                $app    = $app_class::$init_method( $arg );
+                $app    = HostedApplicationService::$init_method( $app_type, $arg );
             } else {
                 $app    = new $app_class;
             }
 
-            if ( ! ( $app instanceof AbstractHostedApp ) ) {
+            if ( ! $app instanceof AbstractHostedApp ) {
                 throw new RequestException( 'invalid_input', 'Sorry there is no app matching the provided slug or ID.' , array( 'status' => 404 ) );
             }
 

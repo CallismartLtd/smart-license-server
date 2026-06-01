@@ -335,19 +335,19 @@ class HttpErrorHandler extends AbstractErrorHandler {
      * @return string
      */
     private function renderThrowableInHtml() : string {
-        $nl = "\n";
-        $class = get_class( $this->error_object );
+        $nl = \PHP_EOL;
+        $class = $this->isDebug() ? get_class( $this->error_object ) : '';
         $file = $this->error_object->getFile();
         $line = $this->error_object->getLine();
-        $message = $this->getMessage();
+        $message = $this->error_object->getMessage() ?: $this->getMessage();
 
         $out = '';
         $out .= htmlspecialchars( $class, ENT_QUOTES, 'UTF-8' ) . $nl;
         $out .= htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' ) . $nl . $nl;
-        $out .= 'File: ' . htmlspecialchars( $file, ENT_QUOTES, 'UTF-8' ) . $nl;
-        $out .= 'Line: ' . $line . $nl;
 
         if ( $this->isDebug() ) {
+            $out .= 'File: ' . htmlspecialchars( $file, ENT_QUOTES, 'UTF-8' ) . $nl;
+            $out .= 'Line: ' . $line . $nl;
             $out .= $nl . 'Stack Trace:' . $nl;
             $out .= htmlspecialchars( $this->error_object->getTraceAsString(), ENT_QUOTES, 'UTF-8' ) . $nl;
 

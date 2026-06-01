@@ -4,7 +4,10 @@
  */
 
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
+use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Utils\Sanitizer;
 
 /**
@@ -521,7 +524,7 @@ function smliser_dump_url( $url ) : void {
  * the `$title` parameter (the default title would apply) or the `$args` parameter.
  *
  *
- * @param string|SmartLicenseServer\Exception  $message Optional. Error message. If this is an error object,
+ * @param string|SmartLicenseServer\Exceptions\Exception  $message Optional. Error message. If this is an error object,
  *                                  and not an Ajax or XML-RPC request, the error's messages are used.
  *                                  Default empty string.
  * @param string|int       $title   Optional. Error title. If `$message` is a `SmartLicenseServer\Exceptions\Exception;` object,
@@ -546,6 +549,15 @@ function smliser_dump_url( $url ) : void {
  * }
  */
 function smliser_abort_request( $message = '', $title = '', $args = [] ) {
+    $is_request_error   = ( $message instanceof RequestException ) || ( $message instanceof FileRequestException );
+    if ( $is_request_error ) {
+        $error_data = $message->get_error_data();
+        $message    = $message->get_error_message();
+        $title      = $error_data['title'] ?? '';
+        $args       = (array) $error_data;
+
+    }
+
     GlobalErrorHandler::instance()->abort( $message, $title, $args );
 }
 

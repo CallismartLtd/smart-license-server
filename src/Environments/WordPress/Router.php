@@ -195,7 +195,7 @@ class Router implements RouterInterface {
 
         $file_request = new FileRequest( [
             'app_type'       => $app_type,
-            'app_slug'       => $app_slug,
+            'app_slug'       => \basename( $app_slug, '.zip' ),
             'download_token' => $request->get( 'download_token' ),
             'authorization'  => $request->get_header( 'Authorization' ),
             'user_agent'     => $request->get_header( 'User-Agent' ),

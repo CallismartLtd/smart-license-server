@@ -408,13 +408,6 @@ interface HostedAppsInterface {
     public function save();
 
     /**
-     * Get the application by slug
-     * 
-     * @param string $slug
-     */
-    public static function get_by_slug( string $slug ) : ?static;
-
-    /**
      * Delete the application from the repository.
      * 
      * @return bool

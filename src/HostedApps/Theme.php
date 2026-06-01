@@ -18,7 +18,6 @@ use SmartLicenseServer\Utils\CommonQueryTrait;
  * Represents a typical theme hosted in the repository.
  */
 class Theme extends AbstractHostedApp {
-    use CommonQueryTrait;
     /**
      * The database table for themes.
      * 

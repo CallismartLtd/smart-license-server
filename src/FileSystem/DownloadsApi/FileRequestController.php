@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
+use Exception;
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\FileRequestException;
@@ -33,19 +34,10 @@ class FileRequestController {
     public static function get_application_zip_file( FileRequest $request ): FileResponse {
         try {
 
-            $app_type = $request->get( 'app_type' );
-            $app_slug = $request->get( 'app_slug' );
-            $token    = $request->get( 'download_token' );
-
-            $app_class = HostedAppsRegistry::instance()->get_app_type_class( $app_type );
-            $method    = 'get_by_slug';
-
-            if ( ! $app_class || ! method_exists( $app_class, $method ) ) {
-                throw new FileRequestException( 'invalid_app_type_method' );
-            }
-
-            /** @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $app */
-            $app = $app_class::$method( $app_slug );
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+            $token      = $request->get( 'download_token' );
+            $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
             if ( ! $app ) {
                 throw new FileRequestException( 'app_not_found' );
@@ -63,7 +55,9 @@ class FileRequestController {
                     throw new FileRequestException( 'payment_required' );
                 }
 
-                if ( \is_smliser_error( smliser_verify_item_token( $token, $app ) ) ) {
+                $verify_token_result    = smliser_verify_item_token( $token, $app );
+
+                if ( $verify_token_result instanceof Exception ) {
                     throw new FileRequestException( 'invalid_token' );
                 }
             }
