@@ -9,7 +9,8 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Messaging\BulkMessages;
+use SmartLicenseServer\Messaging\BulkMessage;
+use SmartLicenseServer\Messaging\BulkMessageService;
 
 use function compact, smliser_render_template;
 
@@ -44,7 +45,7 @@ class BulkMessagePage {
      * @param Request $request
      */
     private static function dashboard( Request $request ) : void {
-        $msg_data       = BulkMessages::get_all();
+        $msg_data       = BulkMessageService::raw()->get_all();
         $messages       = $msg_data['items'] ?? [];
         $pagination     = $msg_data['pagination'] ?? [];
         $current_url    = smliser_get_current_url();
@@ -62,7 +63,7 @@ class BulkMessagePage {
     private static function message_editor( Request $request ) : void {
         $message_id = $request->get( 'msg_id' );
         $menu_args  = static::get_menu_args( $request );
-        $message    = BulkMessages::get_message( $message_id );
+        $message    = BulkMessageService::raw()->get_message( $message_id );
         $vars       = compact( 'menu_args', 'request', 'message' );
         
         smliser_render_template( 'admin.bulk-messages.compose', $vars );
@@ -76,9 +77,9 @@ class BulkMessagePage {
     private static function edit_message_page( Request $request ) : void {
         $message_id = $request->get( 'msg_id' );
         $menu_args  = static::get_menu_args( $request );
-        $message    = BulkMessages::get_message( $message_id );
+        $message    = BulkMessageService::raw()->get_message( $message_id );
         $vars   = compact( 'menu_args', 'message', 'request',  );
-        smliser_render_template( 'admin.bulk-messages.edit', $vars );
+        smliser_render_template( 'admin.bulk-messages.compose', $vars );
     }
 
     /**
@@ -92,7 +93,7 @@ class BulkMessagePage {
         $search         = $request->get( 'msg_search' );
         $page           = $request->get( 'paged', 1 );
         $limit          = $request->get( 'limit', 10 );
-        $msg_data       = BulkMessages::search( \compact( 'page', 'search', 'limit' ) );
+        $msg_data       = BulkMessageService::raw()->search( \compact( 'page', 'search', 'limit' ) );
         $messages       = $msg_data['items'] ?? [];
         $pagination     = $msg_data['pagination'] ?? [];
 

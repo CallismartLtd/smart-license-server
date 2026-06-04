@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\Schema;
 
+use Callismart\DBPrism\Utils\Column;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Schema\Definitions\{
     LicenseSchema, LicenseMetaSchema, PluginSchema, PluginMetaSchema,
@@ -86,6 +87,43 @@ class SchemaRegistry extends AbstractRegistry {
         return Table::make( $table_name )
             ->add_columns( $class_string::get_columns() )
             ->add_constraints( $class_string::get_constraints() );
+    }
+
+    /**
+     * Get the columns of the given table
+     * 
+     * @param string $table_name
+     * @return null|Column[]
+     */
+    public function get_table_columns( string $table_name ) : ?array {
+        
+        $table  = $this->get_table( $table_name );
+
+        if ( ! $table ) {
+            return null;
+        }
+
+        return $table->get_columns();
+    }
+
+    /**
+     * Get table column names as array
+     * 
+     * @param string $table_name
+     * @return string[]
+     */
+    public function get_table_column_names( string $table_name ) : array {
+        $columns        = $this->get_table_columns( $table_name );
+
+        if ( ! $columns ) {
+            return [];
+        }
+
+        foreach( $columns as &$column_name ) {
+            $column_name    = $column_name->to_array()['name'];
+        }
+
+        return $columns;
     }
 
     /**

@@ -2,23 +2,6 @@
 /**
  * Database job storage adapter class file.
  *
- * Implements the job queue storage layer using the application's
- * existing Database abstraction. This is the primary adapter for
- * Smart License Server — it requires no additional infrastructure
- * beyond the database connection that is already bootstrapped.
- *
- * ## Table structure
- *
- * All jobs live in jobs table.
- * Failed jobs are archived to SMLISER_FAILED_JOBS_TABLE.
- *
- * ## Atomic job claiming
- *
- * dequeue() claims jobs atomically using a transaction:
- *   1. SELECT the next eligible job with FOR UPDATE (locks the row).
- *   2. UPDATE its status to 'running' and record started_at.
- *   3. COMMIT.
- *
  * This prevents two workers running concurrently from picking up
  * the same job, without requiring any external locking mechanism.
  *

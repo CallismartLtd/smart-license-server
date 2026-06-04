@@ -4,7 +4,11 @@
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\templates
- * @var \SmartLicenseServer\Messaging\BulkMessages|null $message
+ * @var array $menu_args
+ * @var array $pagination
+ * @var \SmartLicenseServer\Core\URL $current_url
+ * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Messaging\BulkMessage|null $message
  */
 
 
@@ -50,7 +54,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                     </select>
                 </div>
                 <input type="hidden" name="message_id" value="<?php echo esc_attr( $message?->get_id() ?: 0 ); ?>">
-                <button type="submit" class="button" title="<?php esc_html_e( 'Update this message', 'smliser' ); ?>"><?php esc_html_e( 'Update', 'smliser' ); ?></button>
+                <button type="submit" class="button" title="<?php esc_html_e( 'Update this message', 'smliser' ); ?>"><?php printf( '%s', $message ? 'Update' : 'Publish' ); ?></button>
             </div>
         </form>
     <?php endif; ?>

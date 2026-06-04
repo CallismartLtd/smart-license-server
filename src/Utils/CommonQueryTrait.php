@@ -85,13 +85,11 @@ trait CommonQueryTrait {
             return [];
         }
 
-        $entities = [];
-
-        foreach ( $results as $row ) {
-            $entities[] = static::from_array( (array) $row );
+        foreach ( $results as &$row ) {
+            $row = static::from_array( (array) $row );
         }
 
-        return $entities;
+        return $results;
     }
 
     /**

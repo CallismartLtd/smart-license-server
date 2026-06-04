@@ -76,7 +76,7 @@ final class CoreSchedules {
     }            
     
     /**
-     * Send 7-day expiry reminder to licensees.
+     * Send 3-day expiry reminder to licensees.
      */
     public static function sendExpiringLicense3Days() : void {
         smliser_job_queue()->dispatch(

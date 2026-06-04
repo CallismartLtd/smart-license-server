@@ -11,7 +11,8 @@ namespace SmartLicenseServer\RESTAPI;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\Messaging\BulkMessages as MessageModel;
+use SmartLicenseServer\Messaging\BulkMessage as MessageModel;
+use SmartLicenseServer\Messaging\BulkMessageService;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use function defined;
@@ -40,9 +41,9 @@ class BulkMessages {
         $app_types  = static::sanitize_deep( $app_types );
 
         if ( empty( $app_types ) && empty( $app_slugs ) ) {
-            $results = MessageModel::get_all( compact( 'page', 'limit' ) );
+            $results = BulkMessageService::raw()->get_all( compact( 'page', 'limit' ) );
         } else {
-            $results = MessageModel::get_for_slugs( compact( 'app_slugs', 'app_types', 'page', 'limit' ) );
+            $results = BulkMessageService::raw()->get_for_slugs( compact( 'app_slugs', 'app_types', 'page', 'limit' ) );
         }
 
         if ( empty( $results['items'] ) ) {
@@ -61,7 +62,7 @@ class BulkMessages {
      * @return Response The response object.
      */
     public static function dispatch_response( Request $request ) {
-        /** @var array{items: \SmartLicenseServer\Messaging\BulkMessages[], pagination: array{page: mixed, limit: mixed, total: int, total_pages: int}} $result*/
+        /** @var array{items: \SmartLicenseServer\Messaging\BulkMessage[], pagination: array{page: mixed, limit: mixed, total: int, total_pages: int}} $results */
         $results = $request->get( 'smliser_resource' );
         
         foreach ( $results['items'] as &$message ) {

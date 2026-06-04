@@ -45,7 +45,7 @@ class MessageController {
             $is_new_message     = true;
 
             if ( $message_id ) {
-                $message    = BulkMessages::get_message( $message_id );
+                $message    = BulkMessageService::raw()->get_message( $message_id );
 
                 if ( ! $message ) {
                     throw new RequestException( 'not_found', 'The specified message was not found.', ['status' => 404] );
@@ -54,14 +54,15 @@ class MessageController {
                 $is_new_message = false;
                 
             } else {
-                $message    = new BulkMessages();
+                $message    = new BulkMessage();
             }
 
             $message->set_subject( $subject );
             $message->set_body( $body );
             $message->set_associated_apps( $associated_apps, true );
+            $service    = BulkMessageService::with_message( $message );
 
-            if ( ! $message->save() ) {
+            if ( ! $service->save() ) {
                 throw new RequestException( 'save_failed', 'Failed to save the bulk message.', ['status' => 500] );
             }
 
@@ -110,9 +111,9 @@ class MessageController {
 
                 case 'delete': 
                     foreach( (array) $message_ids as $id ) {
-                        $message = BulkMessages::get_message( $id );
+                        $message = BulkMessageService::raw()->get_message( $id );
 
-                        if ( $message && $message->delete() ) {
+                        if ( $message && BulkMessageService::with_message( $message )->delete() ) {
                             $affected++;
                         }
 
