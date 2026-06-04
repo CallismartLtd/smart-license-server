@@ -94,6 +94,10 @@ class ScheduledTask {
      * Interval in seconds between executions.
      * Derived from the fluent schedule methods.
      *
+     * A value of  0  means no schedule has been defined yet.
+     * A value of -1  is a sentinel meaning "one calendar month" — used
+     * by monthly_on() to avoid the inaccuracy of a fixed 30-day offset.
+     *
      * @var int
      */
     private int $interval_seconds = 0;
@@ -226,7 +230,12 @@ class ScheduledTask {
     /**
      * Run once every month on a specific day and time.
      *
-     * @param int    $day  Day of month (1–28). Capped at 28 for universal month compatibility.
+     * Uses a calendar-month interval (+1 month) rather than a fixed
+     * 30-day offset, so January → February → March etc. are always
+     * correct regardless of month length.
+     *
+     * @param int    $day  Day of month (1–28). Values above 28 are rejected
+     *                     to guarantee the date exists in every month.
      * @param string $time Time in H:i format e.g. '06:00'.
      * @return static Fluent.
      * @throws InvalidArgumentException On invalid day or time.
@@ -239,7 +248,7 @@ class ScheduledTask {
         }
 
         $this->assert_valid_time( $time );
-        $this->interval_seconds = 2592000; // 30 days as base interval.
+        $this->interval_seconds = -1; // Sentinel: calendar month, not a raw second count.
         $this->day_of_month     = $day;
         $this->time_of_day      = $time;
         return $this;
@@ -283,14 +292,19 @@ class ScheduledTask {
      * Execute the registered callable.
      *
      * Called by the Scheduler when the task is determined to be due.
-     * All exceptions are caught and re-thrown so the Scheduler can
-     * record the failure without the runner dying.
+     * Any exception thrown by the callable is re-thrown so the Scheduler
+     * can record the failure without the runner dying.
      *
      * @return void
      * @throws \Throwable On any failure inside the callable.
      */
     public function execute(): void {
-        ( $this->callable )();
+        try {
+            ( $this->callable )();
+        } catch ( \Throwable $e ) {
+            // Re-throw so the Scheduler can record the failure.
+            throw $e;
+        }
     }
 
     /*
@@ -337,15 +351,29 @@ class ScheduledTask {
             [ $h, $m ] = explode( ':', $this->time_of_day );
             $first = $first->setTime( (int) $h, (int) $m, 0 );
 
-            // If time has already passed today, move to next interval.
+            // If the scheduled time has already passed today, advance by one interval
+            // and re-apply the time-of-day so the slot stays canonical.
             if ( $first < $now ) {
-                $first = $first->modify( "+{$this->interval_seconds} seconds" );
+                $first = $this->interval_seconds === -1
+                    ? $first->modify( '+1 month' )
+                    : $first->modify( "+{$this->interval_seconds} seconds" );
+
+                [ $h, $m ] = explode( ':', $this->time_of_day );
+                $first = $first->setTime( (int) $h, (int) $m, 0 );
             }
         }
 
         if ( $this->day_of_week !== null ) {
-            $days_ahead = ( $this->day_of_week - (int) $first->format( 'w' ) + 7 ) % 7;
-            if ( $days_ahead > 0 ) {
+            $current_dow = (int) $first->format( 'w' );
+            $days_ahead  = ( $this->day_of_week - $current_dow + 7 ) % 7;
+
+            if ( $days_ahead === 0 ) {
+                // Already the right weekday — only stay if the time slot is still ahead.
+                // Otherwise push a full week forward to avoid an immediate double-fire.
+                if ( $first <= $now ) {
+                    $first = $first->modify( '+7 days' );
+                }
+            } else {
                 $first = $first->modify( "+{$days_ahead} days" );
             }
         }
@@ -359,6 +387,12 @@ class ScheduledTask {
 
             if ( $first < $now ) {
                 $first = $first->modify( '+1 month' );
+                // Re-apply the day after the month advance in case setDate drifted.
+                $first = $first->setDate(
+                    (int) $first->format( 'Y' ),
+                    (int) $first->format( 'm' ),
+                    $this->day_of_month
+                );
             }
         }
 
@@ -368,14 +402,39 @@ class ScheduledTask {
     /**
      * Compute the next run datetime after the given last run time.
      *
+     * To avoid a late pickup causing the next run to land in the past
+     * (and therefore firing again immediately), we anchor to the canonical
+     * scheduled slot rather than the actual run timestamp.
+     *
+     * Example: daily-at-13:00 task picked up at 13:47.
+     *   Anchor  = 13:00 (snap back to scheduled time)
+     *   Next    = anchor + 24h → tomorrow 13:00  ✓
+     *
      * @param DateTimeImmutable $last_ran_at
      * @return DateTimeImmutable
      */
     public function compute_next_run( DateTimeImmutable $last_ran_at ): DateTimeImmutable {
-        // Start from the last run time plus the base interval.
-        $next = $last_ran_at->modify( "+{$this->interval_seconds} seconds" );
+        // Snap the anchor back to the canonical scheduled time so a late pickup
+        // does not shift the entire future schedule forward.
+        $anchor = $last_ran_at;
 
-        // Apply time-of-day constraint.
+        if ( $this->time_of_day !== null ) {
+            [ $h, $m ] = explode( ':', $this->time_of_day );
+            $canonical = $anchor->setTime( (int) $h, (int) $m, 0 );
+
+            // Only snap back if the task ran after the scheduled time (late pickup).
+            // If it somehow ran before (e.g. manual trigger), keep the real run time.
+            if ( $canonical <= $last_ran_at ) {
+                $anchor = $canonical;
+            }
+        }
+
+        // Advance by one interval from the canonical anchor.
+        $next = $this->interval_seconds === -1
+            ? $anchor->modify( '+1 month' )
+            : $anchor->modify( "+{$this->interval_seconds} seconds" );
+
+        // Re-apply time-of-day to the next slot.
         if ( $this->time_of_day !== null ) {
             [ $h, $m ] = explode( ':', $this->time_of_day );
             $next = $next->setTime( (int) $h, (int) $m, 0 );
@@ -383,8 +442,17 @@ class ScheduledTask {
 
         // Apply day-of-week constraint.
         if ( $this->day_of_week !== null ) {
-            $days_ahead = ( $this->day_of_week - (int) $next->format( 'w' ) + 7 ) % 7;
-            if ( $days_ahead > 0 ) {
+            $current_dow = (int) $next->format( 'w' );
+            $days_ahead  = ( $this->day_of_week - $current_dow + 7 ) % 7;
+
+            if ( $days_ahead === 0 ) {
+                // Already on the right weekday — but if that slot is now in the past
+                // (e.g. due to a late pickup spanning midnight), push a full week.
+                $now = new DateTimeImmutable();
+                if ( $next <= $now ) {
+                    $next = $next->modify( '+7 days' );
+                }
+            } else {
                 $next = $next->modify( "+{$days_ahead} days" );
             }
         }
@@ -397,7 +465,8 @@ class ScheduledTask {
                 $this->day_of_month
             );
 
-            // If computed day is in the past, advance one month.
+            // If the computed date is still in the past relative to the last run,
+            // advance one calendar month.
             if ( $next <= $last_ran_at ) {
                 $next = $next->modify( '+1 month' );
             }
@@ -432,6 +501,8 @@ class ScheduledTask {
 
     /**
      * Return the interval in seconds.
+     *
+     * Returns -1 for monthly tasks (calendar-month interval sentinel).
      *
      * @return int
      */
@@ -470,40 +541,33 @@ class ScheduledTask {
 
     /**
      * Describe the callable.
-     * 
+     *
      * @return string
      */
-    public function describe_callable() : string {
-        $callable   = $this->callable;
-        // Simple function name
+    public function describe_callable(): string {
+        $callable = $this->callable;
+
+        // Simple function name or "Class::method" string.
         if ( is_string( $callable ) ) {
-
-            // "Class::method"
-            if ( str_contains( $callable, '::' ) ) {
-                return $callable . '()';
-            }
-
             return $callable . '()';
         }
 
-        // Array callable
+        // Array callable — [class-or-object, method].
         if ( is_array( $callable ) ) {
-
             [ $target, $method ] = $callable;
 
-            // Static method
+            // Static method.
             if ( is_string( $target ) ) {
                 return $target . '::' . $method . '()';
             }
 
-            // Object method
+            // Object method.
             if ( is_object( $target ) ) {
-                return get_class( $target )
-                    . '->' . $method . '()';
+                return get_class( $target ) . '->' . $method . '()';
             }
         }
 
-        // Closure
+        // Closure.
         if ( $callable instanceof Closure ) {
             $ref = new ReflectionFunction( $callable );
 
@@ -514,7 +578,7 @@ class ScheduledTask {
             );
         }
 
-        // Invokable object
+        // Invokable object.
         if ( is_object( $callable ) && method_exists( $callable, '__invoke' ) ) {
             return get_class( $callable ) . '()';
         }
@@ -581,6 +645,12 @@ class ScheduledTask {
 
     /**
      * Generate a stable ID for any callable.
+     *
+     * Not called internally — available as a utility for the Scheduler
+     * when auto-generating task IDs before constructing a ScheduledTask.
+     *
+     * @param callable $callable
+     * @return string
      */
     private function generate_id( callable $callable ): string {
 
@@ -591,7 +661,6 @@ class ScheduledTask {
 
         // Class method or object method.
         if ( is_array( $callable ) ) {
-
             $class  = $callable[0];
             $method = $callable[1];
 

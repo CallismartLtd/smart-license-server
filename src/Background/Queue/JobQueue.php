@@ -68,8 +68,7 @@ use SmartLicenseServer\Background\Queue\Adapters\JobStorageAdapterInterface;
  * @method JobDTO[]        get_jobs_by_status( string $status, ?string $queue, int $limit, int $offset ) Retrieve jobs filtered by status.
  * @method int             count_jobs_by_status( string $status, ?string $queue = null )            Count jobs by status.
  * @method bool            remove_job( JobDTO $job )                                                Remove a job from the queue.
- * @method int             release_stale_running_jobs( int $timeout_seconds = 300 )                 Release jobs stuck in running state.
- * @method int             purge_completed_jobs( int $older_than_days = 7 )                         Purge old completed jobs.
+ * @method int             release_stale_running_jobs( int $timeout_seconds = 300 )                 Release jobs stuck in running state.                       Purge old completed jobs.
  * @method string          get_adapter_id()                                                         Return the active adapter identifier.
  */
 class JobQueue {

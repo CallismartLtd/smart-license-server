@@ -70,7 +70,6 @@ class NotifyAppUpdateJob implements JobHandlerInterface {
         }
 
         $db        = smliser_db();
-        $table     = SMLISER_LICENSE_TABLE;
         $app_prop  = sprintf( '%s/%s', $app_type, $app_slug );
 
         $terminal = [
@@ -79,17 +78,12 @@ class NotifyAppUpdateJob implements JobHandlerInterface {
             License::STATUS_SUSPENDED,
         ];
 
-        $placeholders = implode( ', ', array_fill( 0, count( $terminal ), '?' ) );
+        $sql    = \smliserQueryBuilder()
+            ->select( '*' )->from( SMLISER_LICENSE_TABLE )
+            ->where( 'app_prop', '=', $app_prop )
+            ->where_not_in( 'status', $terminal );
 
-        $sql = "SELECT * FROM {$table}
-                WHERE `app_prop` = ?
-                AND `status` NOT IN ( {$placeholders} )
-                LIMIT ? OFFSET ?";
-
-        $rows = $db->get_results(
-            $sql,
-            array_merge( [ $app_prop ], $terminal, [ $batch_size, $offset ] )
-        );
+        $rows = $db->get_results( $sql->build(), $sql->get_bindings() );
 
         foreach ( $rows as $row ) {
             $license    = License::from_array( $row );

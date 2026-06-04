@@ -20,6 +20,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Licenses;
 
+use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 
 /**
@@ -56,14 +57,18 @@ class PruneLicenseMetaJob implements JobHandlerInterface {
         $meta_table = SMLISER_LICENSE_META_TABLE;
         $table      = SMLISER_LICENSE_TABLE;
 
-        $sql = "DELETE FROM {$meta_table}
-                WHERE `license_id` NOT IN (
-                    SELECT `id` FROM {$table}
-                )";
+        $sql = \smliserQueryBuilder()
+            ->delete( $meta_table . ' AS meta' )
+            ->where_not_exists( fn( SelectionIntent $select ) => $select
+                ->select_raw( '1' )
+                ->from( $table . ' AS main' )
+                // CRITICAL CORRELATION: Links the subquery back to the
+                // outer target table row scope.
+                ->where_column( 'meta.license_id', '=', 'main.id' ) 
+            );
 
-        $db->query( $sql );
 
-        $deleted = $db->rows_affected();
+        $deleted    = $db->execute( $sql->build(), $sql->get_bindings() );
 
         return [ 'deleted' => $deleted ];
     }

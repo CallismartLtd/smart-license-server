@@ -32,6 +32,7 @@ namespace SmartLicenseServer\Background\Jobs\Licenses;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
+use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\Email\Templates\Licenses\LicenseExpiryReminderEmail;
 use SmartLicenseServer\Monetization\License;
 
@@ -75,19 +76,25 @@ class NotifyExpiringLicensesJob implements JobHandlerInterface {
         $db    = smliser_db();
         $table = SMLISER_LICENSE_TABLE;
 
-        // Query licenses expiring in exactly the target window.
-        // The window is: NOW() + days_before (inclusive of that day).
-        $sql = "SELECT * FROM {$table}
-                WHERE `status` = ?
-                AND `end_date` IS NOT NULL
-                AND DATE( `end_date` ) = DATE( NOW() + INTERVAL ? DAY )
-                LIMIT ?";
+        $start_of_day = TimestampValue::now()
+            ->addDays( $days_before )
+            ->toDateTime()
+            ->setTime( 0, 0, 0 );
 
-        $rows = $db->get_results( $sql, [
-            License::STATUS_ACTIVE,
-            $days_before,
-            $batch_size,
-        ] );
+        // Match next 24hrs so that times like 23:59:59.5000000 are included for same day.
+        $end_of_day = ( clone $start_of_day )
+            ->modify( '+1 day' );
+
+        // Query licenses expiring in exactly the target window.
+        $sql    = \smliserQueryBuilder()
+            ->select( '*' )->from( $table )
+            ->where( 'status', '=', License::STATUS_ACTIVE )
+            ->where_not_null( 'end_date' )
+            ->where( 'end_date', '>=', $start_of_day->format( 'Y-m-d H:i:s' ) )
+            ->where( 'end_date', '<=', $end_of_day->format( 'Y-m-d H:i:s' ) )
+            ->limit( $batch_size );
+
+        $rows = $db->get_results( $sql->build(), $sql->get_bindings() );
 
         $notified   = 0;
         $skipped    = 0;

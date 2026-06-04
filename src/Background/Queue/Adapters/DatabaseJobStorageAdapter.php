@@ -9,7 +9,7 @@
  *
  * ## Table structure
  *
- * All jobs live in SMLISER_BACKGROUND_JOBS_TABLE.
+ * All jobs live in jobs table.
  * Failed jobs are archived to SMLISER_FAILED_JOBS_TABLE.
  *
  * ## Atomic job claiming
@@ -33,6 +33,7 @@ namespace SmartLicenseServer\Background\Queue\Adapters;
 
 use SmartLicenseServer\Background\Queue\JobDTO;
 use Callismart\DBPrism\Database;
+use Callismart\DBPrism\Utils\CaseExpression;
 use DateTimeImmutable;
 use RuntimeException;
 
@@ -42,28 +43,20 @@ use RuntimeException;
 class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
 
     /**
-     * The database abstraction instance.
-     *
-     * Injected at construction — this adapter never opens or closes
-     * the connection. Lifecycle is managed by Environment::setGlobalDBAdapter().
-     *
-     * @var Database
-     */
-    private Database $db;
-
-    /**
      * Constructor.
      *
-     * @param Database $db The bootstrapped database instance.
+     * @param Database $db Database abstraction instance.
+     * @param string $jobs_table The database table name where jobs are stored.
      */
-    public function __construct( Database $db ) {
-        $this->db = $db;
-    }
+    public function __construct( 
+        private Database $db, 
+        private string $jobs_table = \SMLISER_BACKGROUND_JOBS_TABLE 
+    ) {}
 
     /*
-    |----------------------
+    |-------------------------------------------
     | JobStorageAdapterInterface implementation
-    |----------------------
+    |-------------------------------------------
     */
 
     /**
@@ -79,7 +72,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         // ID is assigned by the DB — never insert it explicitly.
         unset( $data['id'] );
 
-        $id = $this->db->insert( SMLISER_BACKGROUND_JOBS_TABLE, $data );
+        $id = $this->db->insert( $this->jobs_table, $data );
 
         if ( $id === false ) {
             throw new RuntimeException(
@@ -107,39 +100,35 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         $now = ( new DateTimeImmutable() )->format( 'Y-m-d H:i:s' );
 
         try {
-            // Build queue filter.
-            $queue_sql    = '';
-            $queue_params = [];
+            $this->db->begin_transaction();
 
-            if ( $queue !== null ) {
-                $queue_sql      = 'AND queue = ?';
-                $queue_params[] = $queue;
+            // Build queue filter.
+            $queue_sql    = \smliserQueryBuilder()
+                ->select( '*' )->from( $this->jobs_table )
+                ->where_in( 'status', [ JobDTO::STATUS_PENDING, JobDTO::STATUS_RETRYING] )
+                ->where( 'available_at', '<=', $now );
+
+            if ( null !== $queue ) {
+                $queue_sql->where( 'queue', '=', $queue );
             }
 
             // Select the next claimable job, ordered by queue priority
             // then numeric priority then availability time.
-            $params = array_merge(
-                [ JobDTO::STATUS_PENDING, JobDTO::STATUS_RETRYING, $now ],
-                $queue_params
-            );
+            $queue_sql->order_by_case( 
+                fn( CaseExpression $case ) => $case
+                    ->as( 'priority')
+                    ->when( fn( CaseExpression $q ) => $q->where( 'queue', '=', 'critical' ), '1' )
+                    ->when( fn( CaseExpression $q ) => $q->where( 'queue', '=', 'default' ), '2' )
+                    ->when( fn( CaseExpression $q ) => $q->where( 'queue', '=', 'low' ), '3' )
+                    ->else( 4 ),
+                'ASC'
+            )
+            ->order_by( 'priority', 'ASC' )
+            ->order_by( 'available_at', 'ASC' )
+            ->limit( 1 )
+            ->lock_for_update();
 
-            $row = $this->db->get_row(
-                "SELECT * FROM " . SMLISER_BACKGROUND_JOBS_TABLE . "
-                 WHERE status IN (?, ?)
-                   AND available_at <= ?
-                   {$queue_sql}
-                 ORDER BY
-                    CASE queue
-                        WHEN 'critical' THEN 1
-                        WHEN 'default'  THEN 2
-                        WHEN 'low'      THEN 3
-                        ELSE 4
-                    END ASC,
-                    priority ASC,
-                    available_at ASC
-                 LIMIT 1",
-                $params
-            );
+            $row = $this->db->get_row( $queue_sql->build(), $queue_sql->get_bindings() );
 
             if ( ! $row ) {
                 return null;
@@ -147,7 +136,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
 
             // Atomically mark as running.
             $affected = $this->db->update(
-                SMLISER_BACKGROUND_JOBS_TABLE,
+                $this->jobs_table,
                 [
                     'status'     => JobDTO::STATUS_RUNNING,
                     'started_at' => $now,
@@ -166,6 +155,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             $row['started_at'] = $now;
             $row['attempts']   = (int) $row['attempts'] + 1;
 
+            $this->db->commit();
             return $this->row_to_dto( $row );
 
         } catch ( \Throwable $e ) {
@@ -192,7 +182,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         unset( $data['id'], $data['created_at'] ); // Never overwrite immutable fields.
 
         $this->db->update(
-            SMLISER_BACKGROUND_JOBS_TABLE,
+            $this->jobs_table,
             $data,
             [ 'id' => $id ]
         );
@@ -204,10 +194,11 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * {@inheritdoc}
      */
     public function get_job_by_id( int $id ): ?JobDTO {
-        $row = $this->db->get_row(
-            'SELECT * FROM ' . SMLISER_BACKGROUND_JOBS_TABLE . ' WHERE id = ?',
-            [ $id ]
-        );
+        $sql    = \smliserQueryBuilder()
+            ->select( '*' )->from( $this->jobs_table )
+            ->where( 'id', '=', $id )
+            ->limit( 1 );
+        $row = $this->db->get_row( $sql->build(), $sql->get_bindings() );
 
         return $row ? $this->row_to_dto( $row ) : null;
     }
@@ -216,24 +207,19 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * {@inheritdoc}
      */
     public function get_jobs_by_status( string $status, ?string $queue = null, int $limit = 50, int $offset = 0 ): array {
-        $queue_sql    = '';
-        $params       = [ $status ];
+        $sql    = \smliserQueryBuilder()
+            ->select( '*' )->from( $this->jobs_table )
+            ->where( 'status', '=', $status );
 
         if ( $queue !== null ) {
-            $queue_sql = 'AND queue = ?';
-            $params[]  = $queue;
+            $sql->where( 'queue', '=', $queue );
         }
 
-        $params[] = $limit;
-        $params[] = $offset;
+        $sql->order_by( 'created_at', 'ASC' )
+        ->limit( $limit )
+        ->offset( $offset );
 
-        $rows = $this->db->get_results(
-            "SELECT * FROM " . SMLISER_BACKGROUND_JOBS_TABLE . "
-            WHERE status = ? {$queue_sql}
-            ORDER BY created_at ASC
-            LIMIT ? OFFSET ?",
-            $params
-        );
+        $rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
         return array_map( [ $this, 'row_to_dto' ], $rows );
     }
@@ -254,6 +240,8 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         $row = $this->dto_to_row( $job );
 
         try {
+            $this->db->begin_transaction();
+
             $archived = $this->db->insert( SMLISER_FAILED_JOBS_TABLE, [
                 'job_id'        => $id,
                 'job_class'     => $row['job_class'],
@@ -268,16 +256,14 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
                 return false;
             }
 
-            $removed = $this->db->delete(
-                SMLISER_BACKGROUND_JOBS_TABLE,
-                [ 'id' => $id ]
-            );
+            $removed = $this->db->delete( $this->jobs_table, [ 'id' => $id ] );
 
             if ( $removed === false ) {
                 $this->db->rollback();
                 return false;
             }
 
+            $this->db->commit();
             return true;
 
         } catch ( \Throwable $e ) {
@@ -296,10 +282,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             return false;
         }
 
-        $affected = $this->db->delete(
-            SMLISER_BACKGROUND_JOBS_TABLE,
-            [ 'id' => $id ]
-        );
+        $affected = $this->db->delete( $this->jobs_table, [ 'id' => $id ] );
 
         return (bool) $affected;
     }
@@ -308,19 +291,16 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * {@inheritdoc}
      */
     public function count_jobs_by_status( string $status, ?string $queue = null ): int {
-        $queue_sql = '';
-        $params    = [ $status ];
+        $queue_sql = smliserQueryBuilder()
+            ->select( 'COUNT(*)' )->from( $this->jobs_table )
+            ->where( 'status', '=', $status );
+
 
         if ( $queue !== null ) {
-            $queue_sql = 'AND queue = ?';
-            $params[]  = $queue;
+            $queue_sql->where( 'queue', '=', $queue );
         }
 
-        return (int) $this->db->get_var(
-            "SELECT COUNT(*) FROM " . SMLISER_BACKGROUND_JOBS_TABLE . "
-             WHERE status = ? {$queue_sql}",
-            $params
-        );
+        return (int) $this->db->get_var( $queue_sql->build(), $queue_sql->get_bindings() );
     }
 
     /**
@@ -335,11 +315,12 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             ->modify( "-{$timeout_seconds} seconds" )
             ->format( 'Y-m-d H:i:s' );
 
-        $stale_jobs = $this->db->get_results(
-            "SELECT * FROM " . SMLISER_BACKGROUND_JOBS_TABLE . "
-             WHERE status = ? AND started_at <= ?",
-            [ JobDTO::STATUS_RUNNING, $cutoff ]
-        );
+            $sql    = \smliserQueryBuilder()
+                ->select( '*' )->from( $this->jobs_table )
+                ->where( 'status', '=', JobDTO::STATUS_RUNNING )
+                ->where( 'started_at', '<=', $cutoff );
+
+        $stale_jobs = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
         if ( empty( $stale_jobs ) ) {
             return 0;
@@ -358,7 +339,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             } else {
                 // Otherwise return it to the queue for retry.
                 $this->db->update(
-                    SMLISER_BACKGROUND_JOBS_TABLE,
+                    $this->jobs_table,
                     [ 'status' => JobDTO::STATUS_RETRYING ],
                     [ 'id'     => $row['id'] ]
                 );
@@ -378,26 +359,13 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             ->modify( "-{$older_than_days} days" )
             ->format( 'Y-m-d H:i:s' );
 
-        // Count before deleting — db->query() returns a raw statement
-        // whose rowCount() behaviour varies across adapters, so we derive
-        // the count from a SELECT first to stay within the public DB API.
-        $count = (int) $this->db->get_var(
-            "SELECT COUNT(*) FROM " . SMLISER_BACKGROUND_JOBS_TABLE . "
-             WHERE status = ? AND completed_at <= ?",
-            [ JobDTO::STATUS_COMPLETED, $cutoff ]
-        );
+        $sql    = smliserQueryBuilder()
+            ->delete( $this->jobs_table )
+            ->where( 'status', '=', JobDTO::STATUS_COMPLETED )
+            ->where( 'completed_at', '<=', $cutoff );
+        $deleted = $this->db->execute( $sql->build(), $sql->get_bindings() );
 
-        if ( $count === 0 ) {
-            return 0;
-        }
-
-        $this->db->execute(
-            "DELETE FROM " . SMLISER_BACKGROUND_JOBS_TABLE . "
-             WHERE status = ? AND completed_at <= ?",
-            [ JobDTO::STATUS_COMPLETED, $cutoff ]
-        );
-
-        return $count;
+        return $deleted;
     }
 
     /**

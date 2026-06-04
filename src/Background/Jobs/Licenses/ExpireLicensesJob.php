@@ -21,6 +21,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Licenses;
 
+use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
@@ -72,15 +73,18 @@ class ExpireLicensesJob implements JobHandlerInterface {
             License::STATUS_LIFETIME,
         ];
 
-        $placeholders = implode( ', ', array_fill( 0, count( $terminal_statuses ), '?' ) );
+        $now    = gmdate( 'Y-m-d H:i:s' );
+        $sql    = \smliserQueryBuilder()
+            ->select( '*' )->from( $table )
+            ->where( 'end_date', '<', $now )
+            ->where_group( fn( SelectionIntent $q ) => $q
+                ->where_not_in( 'status', $terminal_statuses )
+                ->or_where_null( 'status' )
+                ->or_where( 'status', '=', '' )
+            )
+            ->limit( $batch_size );
 
-        $sql = "SELECT * FROM {$table}
-                WHERE `end_date` < NOW()
-                AND ( `status` NOT IN ( {$placeholders} ) OR `status` IS NULL OR `status` = '' )
-                LIMIT ?";
-
-        $params = array_merge( $terminal_statuses, [ $batch_size ] );
-        $rows   = $db->get_results( $sql, $params );
+        $rows   = $db->get_results( $sql->build(), $sql->get_bindings() );
 
         $expired   = 0;
         $notified  = 0;

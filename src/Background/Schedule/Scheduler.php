@@ -366,7 +366,14 @@ class Scheduler {
      *
      * Useful for building an admin dashboard showing task health.
      *
-     * @return array<string, array{task: ScheduledTask, state: array}>
+     * @return array<string, array{
+     *  task: ScheduledTask, 
+     *  state: array{
+     *      last_ran_at:  DateTimeImmutable|null,
+     *      next_run_at:  DateTimeImmutable|null,
+     *      last_error:   string|null
+     *  }
+     * }>
      */
     public function get_tasks_with_state(): array {
         $result = [];
