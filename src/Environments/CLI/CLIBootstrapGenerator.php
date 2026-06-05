@@ -249,6 +249,7 @@ class CLIBootstrapGenerator {
 		$src_dir	= $config['src_dir'];
 
 		$php_template = <<<'PHP'
+		#!/usr/bin/env php
 		<?php
 		/**
 		 * Smart License Server CLI bootstrap file.
