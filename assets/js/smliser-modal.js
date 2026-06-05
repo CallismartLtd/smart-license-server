@@ -1128,7 +1128,8 @@ class SmliserModal {
         return SmliserModal.alert({
             title: title,
             message: message,
-            type: 'success'
+            type: 'success',
+            buttonText: 'Close'
         });
     };
 

@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Utils;
 
 use Callismart\DBPrism\Query\SQLBuilder;
+use SmartLicenseServer\Schema\SchemaRegistry;
 
 /**
  * Common reusable database query helpers for entity classes.
@@ -121,6 +122,31 @@ trait CommonQueryTrait {
 
     protected static function query() : SQLBuilder {
         return \smliserQueryBuilder();
+    }
+
+    /**
+     * Helper method to hydrate from array.
+     * 
+     * @param string $table The database table name.
+     * @param array $data
+     * @return static
+     */
+    protected static function from_array_helper( string $table, array $data ) : static {
+        $self   = new static();
+        $cols   = SchemaRegistry::instance()->get_table_column_names( $table );
+        foreach ( $cols as $col ) {
+            if ( ! isset( $data[$col] ) ) {
+                continue;
+            }
+
+            $method = "set_{$col}";
+
+            if ( is_callable( [$self, $method] ) ) {
+                $self->$method( $data[$col] );
+            }
+        }
+        
+        return $self;
     }
 
     abstract public static function from_array( array $data ) : static;

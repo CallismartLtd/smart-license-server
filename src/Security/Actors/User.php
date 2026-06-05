@@ -388,9 +388,11 @@ class User implements ActorInterface, OwnerSubjectInterface {
             $db     = smliser_db();
             $table  = SMLISER_USERS_TABLE;
 
-            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
+            $sql    = static::query()
+                ->select( 'COUNT(*)' )->from( $table )
+                ->where( 'status', '=', $status );
 
-            $total  = $db->get_var( $sql, [$status] );
+            $total  = $db->get_var( $sql->build(), $sql->get_bindings() );
 
             $statuses[$status]  = (int) $total;
         }
@@ -407,24 +409,29 @@ class User implements ActorInterface, OwnerSubjectInterface {
         $db     = smliser_db();
         $table  = SMLISER_USERS_TABLE;
 
+        $now    = new DateTimeImmutable();
         $fields = array(
             'display_name'  => $this->get_display_name(),
             'email'         => $this->get_email(),
             'password_hash' => $this->get_password_hash(),
             'status'        => $this->get_status(),
-            'updated_at'    => gmdate( 'Y-m-d H:i:s' )
+            'updated_at'    => $now->format( 'Y-m-d H:i:s' )
         );
 
         if ( $this->get_id() ) {
             $result = $db->update( $table, $fields, [ 'id' => $this->get_id() ] );
-        } else {
-            $fields['created_at']   = gmdate( 'Y-m-d H:i:s' );
-            $result = $db->insert( $table, $fields );
-            $this->set_id( $db->get_insert_id() );
-            $this->set_created_at( $fields['created_at'] );
-        }
 
-        $this->set_updated_at( $fields['updated_at'] );
+            $result &&
+                $this->set_updated_at( $now );
+        } else {
+            $fields['created_at']   = $now->format( 'Y-m-d H:i:s' );
+            $result = $db->insert( $table, $fields );
+            
+            $result &&
+                $this->set_id( $db->get_insert_id() )
+                ->set_created_at( $now )
+                ->set_updated_at( $now );
+        }
 
         return $result !== false;
     }
@@ -442,17 +449,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        $self = new static();
-
-        foreach ( $data as $key => $value ) {
-            $method = "set_{$key}";
-
-            if ( is_callable( [ $self, $method ] ) ) {
-                $self->$method( $value );
-            }
-        }
-
-        return $self;
+        return static::from_array_helper( SMLISER_USERS_TABLE, $data );
     }
 
     /**
@@ -484,21 +481,7 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * @return bool True when the user exists, false otherwise.
      */
     public function exists() : bool {
-        if ( ! $this->get_id() ) {
-            return false;
-        }
-
-        if ( is_null( $this->exists_cache ) ) {
-            $db     = smliser_db();
-            $table  = SMLISER_USERS_TABLE;
-            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
-
-            $result = $db->get_var( $sql, [$this->get_id()] );
-
-            $this->exists_cache = boolval( $result );
-        }
-
-        return $this->exists_cache;
+        return $this->id > 0;
     }
 
     /**

@@ -15,6 +15,7 @@ use DateTimeZone;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -480,21 +481,6 @@ class ServiceAccount implements ActorInterface {
     }
 
     /**
-     * Get ServiceAccount by API key hash.
-     *
-     * @param string $api_key_hash
-     * @return static|null
-     */
-    public static function get_by_api_key( string $api_key_hash ) : ?static {
-        $db     = smliser_db();
-        $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
-        $sql    = "SELECT * FROM `{$table}` WHERE `api_key_hash` = ? LIMIT 1";
-
-        $row = $db->get_row( $sql, [ $api_key_hash ] );
-        return $row ? static::from_array( $row ) : null;
-    }
-
-    /**
      * Get all service accounts.
      * 
      * @param int $page
@@ -519,9 +505,11 @@ class ServiceAccount implements ActorInterface {
             $db     = smliser_db();
             $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
 
-            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
+            $sql    = static::query()
+                ->select( 'COUNT(*)' )->from( $table )
+                ->where( 'status', '=', $status );
 
-            $total  = $db->get_var( $sql, [$status] );
+            $total  = $db->get_var( $sql->build(), $sql->get_bindings() );
 
             $statuses[$status]  = (int) $total;
         }
@@ -542,16 +530,7 @@ class ServiceAccount implements ActorInterface {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        $self = new static();
-
-        foreach ( $data as $key => $value ) {
-            $method = "set_{$key}";
-            if ( is_callable( [ $self, $method ] ) ) {
-                $self->$method( $value );
-            }
-        }
-
-        return $self;
+        return static::from_array_helper( SMLISER_SERVICE_ACCOUNTS_TABLE, $data );
     }
 
     /**
@@ -563,7 +542,7 @@ class ServiceAccount implements ActorInterface {
         $data   = get_object_vars( $this );
         $extra  = ['avatar' => $this->get_avatar()->get_href()];
         $data   = $extra + $data;
-        unset( $data['owner'], $data['exists_cache'], $data['new_api_key_data'], $data['api_key_hash'] );
+        unset( $data['owner'], $data['new_api_key_data'], $data['api_key_hash'] );
 
         return $data;
     }
@@ -596,20 +575,7 @@ class ServiceAccount implements ActorInterface {
      * @return bool
      */
     public function exists() : bool {
-        if ( ! $this->get_id() ) {
-            return false;
-        }
-
-        if ( is_null( $this->exists_cache ) ) {
-            $db     = smliser_db();
-            $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
-            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
-
-            $result = $db->get_var( $sql, [ $this->get_id() ] );
-            $this->exists_cache = boolval( $result );
-        }
-
-        return $this->exists_cache;
+        return $this->id > 0;
     }
 
     /**

@@ -14,7 +14,8 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use DateMalformedStringException;
-use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\DatabaseException;
+use SmartLicenseServer\Schema\SchemaRegistry;
 
 use const SMLISER_OWNERS_TABLE;
 use function defined, smliser_db, array_key_exists, is_string, is_null, is_callable,
@@ -114,13 +115,6 @@ class Owner {
      * @var AbstractHostedApp[] $apps
      */
     protected ?array $apps = null;
-
-    /**
-     * Holds the value of `exists` check
-     *
-     * @var boolean|null 
-     */
-    protected ?bool $exists_cache = null;
 
     /**
      * Class constructor
@@ -334,18 +328,20 @@ class Owner {
     /**
      * Get hosted apps.
      * 
+     * @param array{page?: int, limit?: int, status?: string, types?: string[]} $args
+     * 
      * @return AbstractHostedApp[]
      */
-    public function get_apps() : array {
+    public function get_apps( $args = [] ) : array {
         if ( ! $this->id ) {
             return [];
         }
         // Lazy loaded.
-        if ( ! is_null( $this->apps ) ) {
+        if (  null !== $this->apps ) {
             return $this->apps;
         }
 
-        $this->apps = HostedApplicationService::get_all_by_owner( $this->get_id() );
+        $this->apps = HostedApplicationService::get_apps_for_owner( $this->get_id(), $args );
 
         return $this->apps;
     }
@@ -354,7 +350,7 @@ class Owner {
      * Save app to the database.
      * 
      * @return bool
-     * @throws \SmartLicenseServer\Exceptions\Exception
+     * @throws DatabaseException Sensitive database error, caller must handle accordingly.
      */
     public function save() : bool {
         $db     = smliser_db();
@@ -372,19 +368,30 @@ class Owner {
         if ( $this->get_id() ) {
             unset( $data['subject_id'], $data['type'] );
             $result = $db->update( $table, $data, ['id' => $this->get_id()] );
+
+            $result && $this->set_updated_at( $now );
         } else {
             $subject_exists = static::get_by_subject( $data['subject_id'], $data['type'] );
 
             if ( $subject_exists ) {
-                throw new Exception( 'duplicate_owner', sprintf( 'This %s is already a resource owner.', $data['type'] ) );
+                throw new DatabaseException( 'duplicate_entry', sprintf( 'This %s is already a resource owner.', $data['type'] ) );
             }
+
             $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
             $result = $db->insert( $table, $data );
 
-            $this->set_id( $db->get_insert_id() );
+            $result && 
+                $this->set_id( $db->get_insert_id() )
+                ->set_created_at( $now )
+                ->set_updated_at( $now );
         }
 
-        return false !== $result;
+        if ( false === $result ) {
+            $code = $this->id ? 'update_failed' : 'insert_failed';
+            throw new DatabaseException( $code, $db->get_last_error() ) ;
+        }
+
+        return true;
     }
 
     /**
@@ -410,16 +417,21 @@ class Owner {
      * @param string $owner_type    The owner type.
      * @return static|null
      */
-    public static function get_by_subject( int $subject_id, string $type ) : ?static {
+    public static function get_by_subject( int $subject_id, string $owner_type ) : ?static {
         static $owners = [];
 
-        $key    = sprintf( '%s:%s', $subject_id, $type );
+        $key    = "$subject_id:$owner_type";
+
         if ( ! array_key_exists( $key, $owners ) ) {
             $db     = smliser_db();
             $table  = SMLISER_OWNERS_TABLE;
-            $sql    = "SELECT * FROM `{$table}` WHERE `subject_id` = ? AND `type` = ?";
+            $sql    = static::query()
+                ->select( '*' )->from( $table )
+                ->where( 'subject_id', '=', $subject_id )
+                ->where( 'type', '=', $owner_type )
+                ->limit(1);
 
-            $result = $db->get_row( $sql, [$subject_id, $type] );
+            $result = $db->get_row( $sql->build(), $sql->get_bindings() );
 
             $owner  = $result ? static::from_array( $result ) : null;
             $owners[ $key ] = $owner;
@@ -453,9 +465,11 @@ class Owner {
             $db     = smliser_db();
             $table  = SMLISER_OWNERS_TABLE;
 
-            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
+            $sql    = static::query()
+                ->select( 'COUNT(*)' )->from( $table )
+                ->where( 'status', '=', $status );
 
-            $total  = $db->get_var( $sql, [$status] );
+            $total  = $db->get_var( $sql->build(), $sql->get_bindings() );
 
             $statuses[$status]  = (int) $total;
         }
@@ -476,16 +490,7 @@ class Owner {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        $self = new static();
-        foreach ( $data as $key => $value ) {
-            $method = "set_{$key}";
-
-            if ( is_callable( [$self, $method] ) ) {
-                $self->$method( $value );
-            }
-        }
-        
-        return $self;
+        return static::from_array_helper( SMLISER_OWNERS_TABLE, $data );
     }
 
     /**
@@ -498,7 +503,6 @@ class Owner {
         
         $data   = ['type' => $this->get_type()] + $data;
 
-        unset( $data['exists_cache'] );
         return $data;
     }
 
@@ -532,21 +536,7 @@ class Owner {
      * @return bool True when the owner exists, false otherwise.
      */
     public function exists() : bool {
-        if ( ! $this->get_id() ) {
-            return false;
-        }
-
-        if ( is_null( $this->exists_cache ) ) {
-            $db     = smliser_db();
-            $table  = SMLISER_OWNERS_TABLE;
-            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
-
-            $result = $db->get_var( $sql, [$this->get_id()] );
-
-            $this->exists_cache = boolval( $result );
-        }
-
-        return $this->exists_cache;
+        return $this->id > 0;
     }
 
     /**
@@ -579,7 +569,7 @@ class Owner {
     /**
      * Tells whether this app is owned by this owner.
      * 
-     * @param AbstractHostedApp
+     * @param AbstractHostedApp $app
      * @return bool
      */
     public function owns_app( AbstractHostedApp $app ) : bool {
