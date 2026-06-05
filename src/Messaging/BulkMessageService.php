@@ -15,7 +15,6 @@ use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use Callismart\DBPrism\Query\SQLBuilder;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Messaging\BulkMessage;
-use InvalidArgumentException;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -270,14 +269,14 @@ class BulkMessageService {
     public function get_for_app( array $args = [] ) : array {
         $db = \smliser_db();
 
-        $page     = (int) max( 1, (int) ( $args['page'] ?? 1 ) );
-        $limit    = (int) max( 1, (int) ( $args['limit'] ?? 20 ) );
-        $offset   = $db->calculate_query_offset( $page, $limit );
-        $app_type = (string) ( $args['app_type'] ?? '' );
-        $app_slug = (string) ( $args['app_slug'] ?? '' );
+        $page       = (int) max( 1, (int) ( $args['page'] ?? 1 ) );
+        $limit      = (int) max( 1, (int) ( $args['limit'] ?? 20 ) );
+        $offset     = $db->calculate_query_offset( $page, $limit );
+        $app_type   = (string) ( $args['app_type'] ?? '' );
+        $app_slug   = (string) ( $args['app_slug'] ?? '' );
 
-        $msg_table       = SMLISER_BULK_MESSAGES_TABLE;
-        $msgs_apps_table = SMLISER_BULK_MESSAGES_APPS_TABLE;
+        $msg_table          = SMLISER_BULK_MESSAGES_TABLE;
+        $msgs_apps_table    = SMLISER_BULK_MESSAGES_APPS_TABLE;
 
         // ---- Total Count Pipeline via Abstract Joins ----
         $count_query = $this->query()
@@ -427,15 +426,15 @@ class BulkMessageService {
         };
 
         // ---- Count Execution Context ----
-        $count_query = $this->query()->select( 'COUNT(*) as total' )->from( $table );
+        $count_query    = $this->query()->select( 'COUNT(*) as total' )->from( $table );
         $apply_search( $count_query );
-        $total = (int) $db->get_var( $count_query->build(), $count_query->get_bindings() );
-        $total_pages = (int) ceil( $total / $limit );
+        $total          = (int) $db->get_var( $count_query->build(), $count_query->get_bindings() );
+        $total_pages    = (int) ceil( $total / $limit );
 
         // ---- Data Extraction Context ----
         $fetch_query = $this->query()
-            ->select( '*' )
-            ->from( $table );
+            ->select( '*' )->from( $table );
+            
         $apply_search( $fetch_query );
         $fetch_query->order_by( 'created_at', 'DESC' )
                     ->limit( $limit )

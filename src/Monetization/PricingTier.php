@@ -165,7 +165,7 @@ class PricingTier {
     }
 
     /*
-    |-----=-----
+    |-----------
     | SETTERS
     |-----------
     */
@@ -336,7 +336,7 @@ class PricingTier {
             return null;
         }
 
-        $tier = ( new self() )
+        $tier = ( new static() )
             ->set_monetization_id( $row['monetization_id'] ?? 0 )
             ->set_id( $row['id'] ?? 0 )
             ->set_name( $row['name'] ?? '' )
