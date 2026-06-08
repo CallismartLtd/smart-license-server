@@ -39,6 +39,7 @@ use SmartLicenseServer\Security\Context\AbstractIdentityProvider;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Context\Principal;
+use Throwable;
 
 /**
  * Authenticates the CLI process via a service account API key.
@@ -103,7 +104,7 @@ final class CLIIdentityProvider extends AbstractIdentityProvider {
 
             return $principal;
 
-        } catch ( Exception $e ) {
+        } catch ( Throwable ) {
             return null;
         }
     }

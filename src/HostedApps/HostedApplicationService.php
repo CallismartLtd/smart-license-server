@@ -224,7 +224,7 @@ class HostedApplicationService {
     
         if ( false === $results ) {
             if ( '' === $term ) {
-                return static::make_paginated_result( [], page: $page, limit: $limit );
+                return static::make_paginated_result( data: [], page: $page, limit: $limit );
             }
     
             $sql_parts = static::build_type_queries( $types, $status, $term );

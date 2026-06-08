@@ -146,11 +146,7 @@ class RequestController {
                 $ent_object = new $class;
             }
 
-            $result    = ContextServiceProvider::delete_entity( $ent_object );
-
-            if ( is_smliser_error( $result ) ) {
-                throw $result;
-            }
+            ContextServiceProvider::delete_entity( $ent_object );
 
             $data   = [
                 'success'   => true,
@@ -713,15 +709,15 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $term   = $request->get( 'search_term' );
+            $search_term   = $request->get( 'search_term' );
 
-            if ( empty( $term ) ) {
+            if ( empty( $search_term ) ) {
                 throw new RequestException( 'required_param', 'Missing parameter "search".' );
             }
 
             $status = (string) $request->get( 'status', '' );
 
-            $args   = compact( 'term', 'status' );
+            $args   = compact( 'search_term', 'status' );
 
             $results    = ContextServiceProvider::search_owners( $args );
             $data       = Collection::make( $results['items'] )->map( 'smliser_value_to_array' );

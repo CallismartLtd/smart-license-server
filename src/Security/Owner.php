@@ -509,7 +509,7 @@ class Owner {
     /**
      * Get allowed owner types
      * 
-     * @return array
+     * @return ('individual'|'organization'|'platform')[]
      */
     public static function get_allowed_owner_types() : array {
         return [self::TYPE_INDIVIDUAL, self::TYPE_ORGANIZATION, self::TYPE_PLATFORM];

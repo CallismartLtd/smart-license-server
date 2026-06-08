@@ -8,11 +8,15 @@
 
 namespace SmartLicenseServer\Security\Context;
 
+use Callismart\DBPrism\Database;
+use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
+use Callismart\DBPrism\Query\SQLBuilder;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Collection;
+use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\SecurityException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
@@ -42,15 +46,15 @@ class ContextServiceProvider {
     /**
      * Search security entities across multiple db tables with pagination.
      *
-     * @param array $args {
-     *     @type string $term   Search term. Required.
-     *     @type int    $page   Current page number. Default 1.
-     *     @type int    $limit  Number of items per page. Default 20.
-     *     @type array  $types  Entity types.
-     * }
+     * @param array{
+     *  search_term: string,
+     *  page: int,
+     *  limit: int,
+     *  types: array
+     * } $args
      * @return array
      */
-    public static function search( array $args = array() ) {
+    public static function search( array $args = [] ) {
         $db = smliser_db();
 
         $defaults = array(
@@ -65,143 +69,143 @@ class ContextServiceProvider {
         $page   = max( 1, (int) $args['page'] );
         $limit  = max( 1, (int) $args['limit'] );
         $offset = $db->calculate_query_offset( $page, $limit );
+
+        /** @var ('individual'|'organization'|'platform')[] $types */
         $types  = array_filter( (array) $args['types'] );
 
-        if ( empty( $term ) || empty( $types ) ) {
-            return array(
-                'items'      => array(),
-                'pagination' => array(
-                    'page'        => $page,
-                    'limit'       => $limit,
-                    'total'       => 0,
-                    'total_pages' => 0,
-                ),
-            );
+        $cache_key  = static::make_cache_key( __METHOD__, \compact( 'term', 'page', 'limit', 'types' ) );
+
+        $results    = static::cache_get( $cache_key );
+
+        if ( false !== $results ) {
+            return $results;
         }
 
-        $like         = $term . '%';
-        $sql_parts    = array();
-        $count_parts  = array();
-        $params       = array();
-        $count_params = array();
+        if ( empty( $term ) || empty( $types ) ) {
+            return static::make_paginated_result( data: [], page: $page, limit: $limit );
+        }
 
-        foreach ( $types as $type ) {
+        $total_types    = count( $types );
 
-            $table = match ( $type ) {
-                Owner::TYPE_ORGANIZATION => SMLISER_ORGANIZATIONS_TABLE,
-                Owner::TYPE_INDIVIDUAL   => SMLISER_USERS_TABLE,
-                default                  => null,
-            };
+        if ( 1 === $total_types ) {
+            $type   = $types[0];
+            $table  = static::get_entity_table( $type );
 
             if ( ! $table ) {
+                return static::make_paginated_result( data: [], page: $page, limit: $limit );
+            }
+
+            $sql    = static::query()
+                ->select( '*' )->from( $table )
+                ->where_contains( 'display_name', $term )
+                ->limit( $limit )->offset( $offset );
+
+            $count_sql  = static::query()
+                ->select( 'COUNT(*)' )->from( $table )
+                ->where_contains( 'display_name', $term );
+
+            $row    = $db->get_row( $sql->build(), $sql->get_bindings() );
+            $total  = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
+
+            $class_name = static::get_entity_classname( $type );
+
+            $result = [];
+
+            if ( $row && class_exists( $class_name ) && method_exists( $class_name, 'from_array' ) ) {
+                $result = $class_name::from_array( (array) $row );
+            }
+
+            return static::make_paginated_result( data: $result, page: $page, limit: $limit, total: $total );
+
+        }
+
+        $sql_map   = fn( string $type, string $table ) => match( $type ) {
+            Owner::TYPE_ORGANIZATION    => static::query()
+                ->select(
+                    "'{$type}' as type", 'id', 'display_name', 'slug', 'NULL as email', 
+                    'NULL as status', 'created_at', 'updated_at' )->from( $table )
+                ->where_contains( 'display_name', $term ),
+            Owner::TYPE_INDIVIDUAL  => static::query()
+                ->select(
+                    "'{$type}' as type", 'id', 'display_name', 'NULL as slug', 'email',
+                    'status', 'created_at', 'updated_at' )->from( $table )
+                ->where_contains( 'display_name', $term ),
+            default => null
+        };
+
+        $sqls       = [];
+        $added_type = '';
+
+        foreach ( $types as $type ) {
+            $table  = static::get_entity_table( $type );
+
+            if ( ! $table ) continue;
+
+            $query  = $sql_map( type: $type, table: $table );
+
+            if ( ! $query ) continue;
+
+            $sqls[]     = $query;
+            $added_type = $type;
+        }
+
+        if ( empty( $sqls ) ) {
+            return static::make_paginated_result( data: [], page: $page, limit: $limit );
+        }
+
+        if ( count( $sqls ) === 1 ) {
+            $sql        = $sqls[0];
+            $count_sql  = ( clone $sql )->select( 'COUNT(*) as total_records' )->from( $sql->get_table_name() );
+
+            $sql->limit( $limit )->offset( $offset );
+
+            $row    = $db->get_row( $sql->build(), $sql->get_bindings() );
+            $total  = $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
+            
+            $class_name = static::get_entity_classname( $added_type );
+
+            $result = [];
+
+            if ( $row && class_exists( $class_name ) && method_exists( $class_name, 'from_array' ) ) {
+                $result = $class_name::from_array( (array) $row );
+            }
+
+            return static::make_paginated_result( data: $result, page: $page, limit: $limit, total: $total );
+        }
+
+        $base_union = null;
+
+        foreach( $sqls as $sql ) {
+            if ( ! isset( $base_union ) ) {
+                $base_union = $sql;
                 continue;
             }
 
-            if ( Owner::TYPE_ORGANIZATION === $type ) {
-
-                $sql_parts[] = "
-                    SELECT 
-                        id,
-                        '{$type}' AS type,
-                        display_name,
-                        slug,
-                        NULL AS email,
-                        NULL AS status,
-                        created_at,
-                        updated_at
-                    FROM {$table}
-                    WHERE display_name LIKE ?
-                ";
-
-            } elseif ( Owner::TYPE_INDIVIDUAL === $type ) {
-
-                $sql_parts[] = "
-                    SELECT 
-                        id,
-                        '{$type}' AS type,
-                        display_name,
-                        NULL AS slug,
-                        email,
-                        status,
-                        created_at,
-                        updated_at
-                    FROM {$table}
-                    WHERE display_name LIKE ?
-                ";
-            }
-
-            $count_parts[] = "
-                SELECT COUNT(*) AS total
-                FROM {$table}
-                WHERE display_name LIKE ?
-            ";
-
-            $params[]       = $like;
-            $count_params[] = $like;
+            $base_union = $base_union->union_all( $sql );
         }
 
-        if ( empty( $sql_parts ) ) {
-            return array(
-                'items'      => array(),
-                'pagination' => array(
-                    'page'        => $page,
-                    'limit'       => $limit,
-                    'total'       => 0,
-                    'total_pages' => 0,
-                ),
-            );
-        }
+        /** @var \Callismart\DBPrism\Query\QueryIntents\CompoundQueryIntent $base_union */
+        $count_sql    = ( clone $base_union )->select( 'COUNT(*) as total' )->as( 'counts' );
+        $data_sql   = $base_union
+            ->select( '*' )
+            ->as( 'combined' )->order_by( 'updated_at', 'DESC' )
+            ->limit( $limit )->offset( $offset );
 
-        /**
-         * Global UNION
-         */
-        $union_sql = implode( ' UNION ALL ', $sql_parts );
+        $rows   = $db->get_results( $data_sql->build(), $data_sql->get_bindings() );
+        $total  = $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
 
-        $final_sql = "
-            SELECT *
-            FROM ( {$union_sql} ) AS combined
-            ORDER BY updated_at DESC
-            LIMIT ? OFFSET ?
-        ";
-
-        $rows = $db->get_results(
-            $final_sql,
-            array_merge( $params, array( $limit, $offset ) )
-        );
-
-        /**
-         * Global count
-         */
-        $count_sql = "
-            SELECT SUM(total)
-            FROM ( " . implode( ' UNION ALL ', $count_parts ) . " ) AS counts
-        ";
-
-        $total = (int) $db->get_var( $count_sql, $count_params );
-
-        /**
-         * Immediate hydration
-         */
-        $objects = array();
-
-        foreach ( $rows as $row ) {
+        foreach ( $rows as $index => &$row ) {
 
             $class = self::get_entity_classname( $row['type'] );
 
             if ( $class && method_exists( $class, 'from_array' ) ) {
-                $objects[] = $class::from_array( $row );
+                $row = $class::from_array( $row );
+            } else {
+                unset( $rows[$index] );
             }
         }
 
-        return array(
-            'items'      => $objects,
-            'pagination' => array(
-                'page'        => $page,
-                'limit'       => $limit,
-                'total'       => $total,
-                'total_pages' => $limit > 0 ? (int) ceil( $total / $limit ) : 0,
-            ),
-        );
+        return static::make_paginated_result( data: $rows, page: $page, limit: $limit, total: $total );
     }
 
     /**
@@ -215,10 +219,7 @@ class ContextServiceProvider {
      *    @type string $status Entity status filter. Default 'active'.
      * }
      * 
-     * @return array {
-     *      @type Owner[] $items An array of owner objects.
-     *      @type array $pagination Pagination info (page, limit, total, total_pages).
-     * }
+     * @return array{items: array, pagination: array{total: int, page: int, limit: int, total_pages: int}}
      */
     public static function search_owners( array $args = [] ) : array {
         $db = smliser_db();
@@ -235,33 +236,28 @@ class ContextServiceProvider {
         $page   = max( 1, (int) $args['page'] );
         $offset = $db->calculate_query_offset( $page, $limit );
 
-        $where_clauses = [];
-        $params        = [];
-
-        // Focus strictly on display_name and type (logical search)
-        if ( ! empty( $term ) ) {
-            $like = $term . '%';
-            $where_clauses[] = "( `name` LIKE ? OR `type` LIKE ? )";
-            $params = array_merge( $params, [ $like, $like ] );
+        if ( empty( $term ) ) {
+            return static::make_paginated_result( data: [], page: $page, limit: $limit );
         }
 
-        $where_sql = ! empty( $where_clauses ) ? ' WHERE ' . implode( ' AND ', $where_clauses ) : '';
-        $sql  = "SELECT * FROM `{$table}` {$where_sql} ORDER BY `updated_at` DESC LIMIT ? OFFSET ?";
-        $rows = $db->get_results( $sql, array_merge( $params, [ $limit, $offset ] ) );
+        $sql   = static::query()
+            ->select( '*' )->from( $table )
+            ->where_contains( 'type', $term )
+            ->or_where_contains( 'name', $term )
+            ->order_by( 'updated_at', 'DESC' )
+            ->limit( $limit )->offset( $offset );
 
-        // Get total count
-        $total  = (int) $db->get_var( "SELECT COUNT(`id`) FROM `{$table}` {$where_sql}", $params );
+        $count_sql   = static::query()
+            ->select( 'COUNT(*)' )->from( $table )
+            ->where_contains( 'type', $term )
+            ->or_where_contains( 'name', $term );
+
+        $rows   = $db->get_results( $sql->build(), $sql->get_bindings() );
+        $total  = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
+
         $owners = array_map( [Owner::class, 'from_array'], $rows );
 
-        return [
-            'items'      => $owners,
-            'pagination' => [
-                'page'        => $page,
-                'limit'       => $limit,
-                'total'       => $total,
-                'total_pages' => $limit > 0 ? ceil( $total / $limit ) : 0,
-            ],
-        ];
+        return static::make_paginated_result( data: $owners, page: $page, limit: $limit, total: $total );
     }
 
     /**
@@ -271,28 +267,21 @@ class ContextServiceProvider {
      * - valid names are `owner`, `user`, `individual`, `organization`, `service_account`, and `role`.
      * @return class-string<Owner|Organization|User|ServiceAccount|Role>|null
      */
-    public static function get_entity_classname( $entity ) {
+    public static function get_entity_classname( $entity ) : ?string {
         if ( ! is_string( $entity ) ) {
             return null;
         }
 
         $entity = str_replace( '_', '', ucwords( $entity, '_' ) );
 
-        $class_name = match( strtolower( $entity ) ) {
-            Owner::TYPE_INDIVIDUAL, 'user'  => 'Actors\\User',
-            Owner::TYPE_ORGANIZATION        => 'OwnerSubjects\\Organization',
-            'serviceaccount'                => 'Actors\\ServiceAccount',
-            'owner'                         => 'Owner',
+        return match( strtolower( $entity ) ) {
+            Owner::TYPE_INDIVIDUAL, 'user'  => User::class,
+            Owner::TYPE_ORGANIZATION        => Organization::class,
+            'serviceaccount'                => ServiceAccount::class,
+            'owner'                         => Owner::class,
             default                         => ''
         };
 
-        $class_name = '\\SmartLicenseServer\\Security\\' . $class_name;
-
-        if ( ! class_exists( $class_name, true ) ) {
-            return null;
-        }
-
-        return $class_name;
     }
 
     /**
@@ -300,70 +289,85 @@ class ContextServiceProvider {
      * 
      * @param ActorInterface $actor The actor that can authenticate.
      * @param Role $role
-     * @param OwnerSubjectInterface|null $org The subject entity associated with resource owner.
+     * @param OwnerSubjectInterface|null $subject The subject entity associated with resource owner.
      * @throws InvalidArgumentException When one required field is missing.
+     * @throws DatabaseException Sensitive database error, caller must handle accordingly.
      */
     public static function save_actor_role( ActorInterface $actor, Role $role, ?OwnerSubjectInterface $subject = null ) : bool {
-        $db             = smliser_db();
         $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
         $subject_id     = $subject ? $subject->get_id() : $actor->get_id();
-        
-        $data   = array(
-            'role_id'               => $role->get_id(),
-            'principal_id'          => $actor->get_id(),
-            'principal_type'        => $actor->get_type(),
-            'owner_subject_type'    => $subject_type,
-            'owner_subject_id'      => $subject_id,
-        );
 
-        $missing_keys = Collection::make( $data )
-            ->filter( fn( $value ) => empty( $value ) )
-            ->keys()
-            ->all();
-
-        if ( ! empty( $missing_keys ) ) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    'Role assignment failed. Missing required fields: %s',
-                    implode( ', ', $missing_keys )
-                )
+        $result = smliser_db()->transactional( function( Database $db ) use ( $role, $subject, $table, $actor, $subject_type, $subject_id) {
+            $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+            $data   = array(
+                'role_id'               => $role->get_id(),
+                'principal_id'          => $actor->get_id(),
+                'principal_type'        => $actor->get_type(),
+                'owner_subject_type'    => $subject_type,
+                'owner_subject_id'      => $subject_id,
+                'updated_at'            => $now->format( 'Y-m-d H:i:s' )
             );
-        }
-        
-        $exists_sql    = 
-        "SELECT `role_id` FROM `{$table}` WHERE `principal_id` = ? AND `principal_type` = ? 
-        AND `owner_subject_type` = ? AND `owner_subject_id` = ? LIMIT 1";
+            
+            $missing_keys = Collection::make( $data )
+                ->filter( fn( $value ) => empty( $value ) )
+                ->keys()
+                ->all();
 
-        $role_id    = (int) $db->get_var( 
-            $exists_sql,
-            [ $actor->get_id(), $actor->get_type(), $subject_type, $subject_id ]
-        );
-
-        if ( $role_id ) {
-            if ( $role->get_id() !== $role_id ) {
-                // Only the role assigned to this owner changes.
-                // Existing owner and principal data remains immutable.
-                $where = [
-                    'principal_id'          => $actor->get_id(),
-                    'principal_type'        => $actor->get_type(),
-                    'owner_subject_type'    => $subject_type,
-                    'owner_subject_id'      => $subject ? $subject->get_id() : $actor->get_id(),
-                ];
-                
-                $data   = ['role_id' => $role->get_id()];
-                $result = $db->update( $table, $data, $where );
-            } else{
-                $result = true;
+            if ( ! empty( $missing_keys ) ) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        'Role assignment failed. Missing required fields: %s',
+                        implode( ', ', $missing_keys )
+                    )
+                );
             }
 
-        } else {
-            $data['created_at']   = gmdate( 'Y-m-d H:i:s' );
-            
-            $result = $db->insert( $table, $data );
-        }
+            $exists_sql    = static::query()
+                ->select( 'role_id' )->from( $table )
+                ->where( 'principal_id', '=', $actor->get_id() )
+                ->where( 'principal_type', '=', $actor->get_type() )
+                ->where( 'owner_subject_type', '=', $subject_type )
+                ->where( 'owner_subject_id', '=', $subject_id )
+                ->limit( 1 )->lock_for_update();
 
-        static::cache_clear();
+            $role_id    = (int) $db->get_var( $exists_sql->build(), $exists_sql->get_bindings() );
+
+            if ( $role_id ) {
+                if ( $role->get_id() !== $role_id ) {
+                    // Only the role assigned to this owner changes.
+                    // Existing owner and principal data remains immutable.
+                    $where = [
+                        'principal_id'          => $actor->get_id(),
+                        'principal_type'        => $actor->get_type(),
+                        'owner_subject_type'    => $subject_type,
+                        'owner_subject_id'      => $subject ? $subject->get_id() : $actor->get_id(),
+                    ];
+                    
+                    $data   = ['role_id' => $role->get_id()];
+                    $result = $db->update( $table, $data, $where );
+                } else{
+                    $result = true;
+                }
+
+                $code   = 'updated_failed';
+
+            } else {
+                $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
+                $result             = $db->insert( $table, $data );
+
+                $code               = 'insert_failed';
+            }
+
+            if ( ! $result ) {
+                throw new DatabaseException( $code, $db->get_last_error() );
+            }
+
+            static::cache_clear();
+
+            return $result;
+        });
+        
         return false !== $result;
     }
 
@@ -372,7 +376,7 @@ class ContextServiceProvider {
      * 
      * @param ActorInterface $actor
      * @param OwnerSubjectInterface|null $subject
-     * @throws SecurityException On failure.
+     * @throws DatabaseException Sensitive database error, caller must handle accordingly.
      */
     public static function delete_actor_role( ActorInterface $actor, ?OwnerSubjectInterface $subject ) : void {
         if ( ! $subject && ! in_array( OwnerSubjectInterface::class, class_implements( $actor ), true ) ) {
@@ -395,11 +399,7 @@ class ContextServiceProvider {
         ]);
 
         if ( ! $deleted ) {
-            throw new SecurityException( 
-                'delete_error', 
-                'Unable to delete the role of this actor.',
-                ['status' => 500]
-            );
+            throw new DatabaseException( 'delete_failed', $db->get_last_error() );
         }
 
         static::cache_clear();
@@ -413,27 +413,23 @@ class ContextServiceProvider {
      * @return Role|null
      */
     public static function get_principal_role( ActorInterface $actor, ?OwnerSubjectInterface $subject = null ) : ?Role {
-        $db             = smliser_db();
-        $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
-        $principal_type = $actor->get_type();
-        $principal_id   = $actor->get_id();
-        
-        $subject_type = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
-        $sbj_owner_id       = $subject ? $subject->get_id() : $actor->get_id();
+        $db     = smliser_db();
+        $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+                
+        $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
+        $sbj_owner_id   = $subject ? $subject->get_id() : $actor->get_id();
 
-        $sql    = 
-        "SELECT `role_id` FROM `{$table}` WHERE `principal_id` = ? AND `principal_type` = ? 
-        AND `owner_subject_type` = ? AND `owner_subject_id` = ? LIMIT 1";
+        $sql    = static::query()
+            ->select( 'role_id' )->from( $table )
+            ->where( 'principal_id', '=', $actor->get_id() )
+            ->where( 'principal_type', '=', $actor->get_type() )
+            ->where( 'owner_subject_type', '=', $subject_type )
+            ->where( 'owner_subject_id', '=', $sbj_owner_id )
+            ->limit( 1 );
 
-        $role_id    = $db->get_var( $sql, [ $principal_id, $principal_type, $subject_type, $sbj_owner_id ] );
+        $role_id    = $db->get_var( $sql->build(), $sql->get_bindings() );
 
-        $role       = null;
-
-        if ( $role_id ) {
-            $role = Role::get_by_id( (int) $role_id );
-        }
-
-        return $role;
+        return $role_id ? Role::get_by_id( (int) $role_id ) : null;
     }
 
     /**
@@ -445,9 +441,12 @@ class ContextServiceProvider {
     public static function get_default_owner( User $user ) : ?Owner {
         $db     = smliser_db();
         $table  = SMLISER_OWNERS_TABLE;
-
-        $sql    = "SELECT `id` FROM {$table} WHERE `subject_id` = ? AND `type` = ?";
-        $id     = (int) $db->get_var( $sql, [$user->get_id(), Owner::TYPE_INDIVIDUAL] );
+        $sql    = static::query()
+            ->select( 'id' )->from( $table )
+            ->where( 'subject_id', '=', $user->get_id() )
+            ->where( 'type', '=', Owner::TYPE_INDIVIDUAL )
+            ->limit( 1 );
+        $id     = (int) $db->get_var( $sql->build(), $sql->get_bindings() );
 
         return Owner::get_by_id( $id );
     }
@@ -474,53 +473,58 @@ class ContextServiceProvider {
      * @param OrganizationMember $member
      * @param Organization $organization
      * @param Role $role
-     * @throws Exception|InvalidArgumentException
+     * @throws DatabaseException|InvalidArgumentException
      */
     public static function save_organization_member( OrganizationMember $member, Organization $organization, Role $role ) {
-
-        if ( ! $organization->is_member( $member ) ) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    '%s does not belong to this organization "%s"',
-                    $member->get_display_name(),
-                    $organization->get_display_name()
-                )
-            );
-        }
-
-        if ( ! $role->exists() ) {
-            throw new InvalidArgumentException( 'The role assigned to this member does not exist.' );
-        }
-
-        $db     = smliser_db();
-        $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
-        $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
-
-        $id     = $db->get_var(
-            "SELECT `id` FROM {$table} WHERE `organization_id` = ? AND `member_id` = ?",
-            [$organization->get_id(), $member->get_user()->get_id()]
-        );
-
-        if ( $id ) {
-            $data   = ['updated_at' => $now->format( 'Y-m-d H:i:s' ) ];
-           $db->update( $table, $data, ['id' => $id] ); 
-        } else {
-            $data   = [
-                'organization_id'   => $organization->get_id(),
-                'member_id'         => $member->get_user()->get_id(),
-                'created_at'        => $now->format( 'Y-m-d H:i:s' ),
-                'updated_at'        => $now->format( 'Y-m-d H:i:s' )
-            ];
-
-            $db->insert( $table, $data );
-
-            if ( ! $db->get_insert_id() ) {
-                throw new Exception( 'saving_error', 'Unable to save member' );
+        smliser_db()->transactional( function( Database $db ) use ( $member, $organization, $role ) {
+            if ( ! $organization->is_member( $member ) ) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        '%s does not belong to this organization "%s"',
+                        $member->get_display_name(),
+                        $organization->get_display_name()
+                    )
+                );
             }
-        }
-        
-        static::save_actor_role( $member->get_user(), $role, $organization );
-        static::cache_clear();
+
+            if ( ! $role->exists() ) {
+                throw new InvalidArgumentException( 'The role assigned to this member does not exist.' );
+            }
+
+            $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+            $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+
+            $exists_sql = static::query()
+                ->select( 'id' )->from( $table )
+                ->where( 'organization_id', '=', $organization->get_id() )
+                ->where( 'member_id', '=', $member->get_id() )
+                ->limit( 1 )->lock_for_update();
+
+            $id = $db->get_var( $exists_sql->build(), $exists_sql->get_bindings() );
+
+            if ( $id ) {
+                $data   = ['updated_at' => $now->format( 'Y-m-d H:i:s' ) ];
+                
+                if ( false === $db->update( $table, $data, ['id' => $id] ) ) {
+                    throw new DatabaseException( 'update_failed', $db->get_last_error() );
+                }
+
+            } else {
+                $data   = [
+                    'organization_id'   => $organization->get_id(),
+                    'member_id'         => $member->get_user()->get_id(),
+                    'created_at'        => $now->format( 'Y-m-d H:i:s' ),
+                    'updated_at'        => $now->format( 'Y-m-d H:i:s' )
+                ];
+
+                if ( false === $db->insert( $table, $data ) ) {
+                    throw new DatabaseException( 'insert_failed', $db->get_last_error() );
+                }
+            }
+            
+            static::save_actor_role( $member->get_user(), $role, $organization );
+            static::cache_clear();            
+        });
     }
 
     /**
@@ -530,11 +534,14 @@ class ContextServiceProvider {
      * @return OrganizationMembers
      */
     public static function get_organization_members( Organization $organization ): OrganizationMembers {
-        $table   = SMLISER_ORGANIZATION_MEMBERS_TABLE;
-        $db      = smliser_db();
+        $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+        $db     = smliser_db();
 
-        $sql      = "SELECT * FROM `{$table}` WHERE `organization_id` = ?";
-        $results  = $db->get_results( $sql, [$organization->get_id() ]);
+        $sql    = static::query()
+            ->select( '*' )->from( $table )
+            ->where( 'organization_id', '=', $organization->get_id() );
+        $results  = $db->get_results( $sql->build(), $sql->get_bindings() );
+
         $members  = new OrganizationMembers();
 
         foreach ( $results as $result ) {
@@ -567,16 +574,24 @@ class ContextServiceProvider {
         $table  = SMLISER_ORGANIZATIONS_TABLE;
         $db     = smliser_db();
 
-        $sql    = "SELECT `organization_id` FROM `{$table}` WHERE `member_id` = ?";
-        $results    = $db->get_col( $sql, [$user->get_id()] );
+        $sql    = static::query()
+            ->select( 'organization_id' )->from( $table )
+            ->where( 'member_id', '=', $user->get_id() )
+            ->limit( 1 );
 
-        $organizations = array();
+        $results    = $db->get_col( $sql->build(), $sql->get_bindings() );
 
-        foreach ( $results as $result ) {
-            $organization[] = Organization::get_by_id( $result['id'] ?? 0 );
+        foreach ( $results as $index => &$result ) {
+            $org = Organization::get_by_id( $result['id'] ?? 0 );
+
+            if ( ! $org ) {
+                unset( $results[$index] );
+            }
+
+            $result = $org;
         }
 
-        return empty( $organizations ) ? null : $organizations;
+        return empty( $results ) ? null : $results;
     }
 
     /**
@@ -584,32 +599,36 @@ class ContextServiceProvider {
      * 
      * @param OrganizationMember $member
      * @param Organization $organization
+     * @throws InvalidArgumentException
+     * @throws DatabaseException Sensitive database error, caller must handle accordingly.
      */
     public static function delete_organization_member( OrganizationMember $member, Organization $organization ) {
-        if ( ! $organization->is_member( $member ) ) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    '%s does not belong to this organization "%s"',
-                    $member->get_display_name(),
-                    $organization->get_display_name()
-                )
-            );
-        }
-        $db     = smliser_db();
-        $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+        smliser_db()->transactional( function( Database $db ) use ( $member, $organization ) {
+            if ( ! $organization->is_member( $member ) ) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        '%s does not belong to this organization "%s"',
+                        $member->get_display_name(),
+                        $organization->get_display_name()
+                    )
+                );
+            }
+            $db     = smliser_db();
+            $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
 
-        $deleted    = $db->delete( $table, [
-            'id'                => $member->get_id(),
-            'member_id'         => $member->get_user()->get_id(),
-            'organization_id'   => $organization->get_id()
-        ]);
+            $deleted    = $db->delete( $table, [
+                'id'                => $member->get_id(),
+                'member_id'         => $member->get_user()->get_id(),
+                'organization_id'   => $organization->get_id()
+            ]);
 
-        if ( ! $deleted ) {
-            throw new SecurityException( 'delete_error', 'Unable to delete member', ['status' => 500] );
-        }
+            if ( ! $deleted ) {
+                throw new DatabaseException( 'delete_failed', $db->get_last_error() );
+            }
 
-        static::delete_actor_role( $member, $organization );
-        static::cache_clear();
+            static::delete_actor_role( $member, $organization );
+            static::cache_clear();
+        });
     }
 
     /**
@@ -620,111 +639,26 @@ class ContextServiceProvider {
      * @throws SecurityException On failed or partial delete.
      */
     public static function delete_entity( User|Organization|ServiceAccount|Owner $entity ) : void {
-        $interfaces = class_implements( $entity );
-        $can_delete = ( $entity instanceof Owner )
-            || in_array( ActorInterface::class, $interfaces, true )
-            || in_array( OwnerSubjectInterface::class, $interfaces, true );
-
-        if ( ! $can_delete ) {
-            throw new SecurityException(
-                'delete_error',
-                'The provided entity cannot be deleted.',
-                ['status' => 404]
-            );
-        }
-
-        $db                     = smliser_db();
-        $users_table            = SMLISER_USERS_TABLE;
-        $org_table              = SMLISER_ORGANIZATIONS_TABLE;
-        $org_member_table       = SMLISER_ORGANIZATION_MEMBERS_TABLE;
-        $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
-        $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
-        $resource_owners_table  = SMLISER_OWNERS_TABLE;
 
         try {
-            $db->begin_transaction();
-
             switch ( true ) {
                 case $entity instanceof User:
-                    // Delete user + related individual role assignments, organization memberships,
-                    // resource ownership and owned service accounts + role assignment in a single transaction.
-                    $sql = "DELETE u, ra, om, ro, sa, rsa
-                        FROM `{$users_table}` AS u
-                        LEFT JOIN `{$role_assignment_table}` AS ra
-                            ON ra.principal_type = 'individual' AND ra.principal_id = u.id
-                        LEFT JOIN `{$org_member_table}` AS om
-                            ON om.member_id = u.id
-                        LEFT JOIN `{$resource_owners_table}` AS ro
-                            ON ro.type = 'individual' AND ro.subject_id = u.id
-                        LEFT JOIN `{$service_accounts_table}` AS sa
-                            ON sa.owner_id = ro.id
-                        LEFT JOIN `{$role_assignment_table}` AS rsa
-                            ON rsa.principal_type = 'service_account' AND rsa.principal_id = sa.id
-                        WHERE u.id = ?
-                    ";
-                    $deleted = $db->query( $sql, [ $entity->get_id() ] );
+                    $deleted    = static::delete_user( $entity );
                     break;
 
                 case $entity instanceof Organization:
-                    // Delete organization, its members, direct role assignments,
-                    // organization ownership records, owned service accounts,
-                    // and roles assigned to those service accounts – all in one query.
-                    $sql = "DELETE o, om, ra, ro, sa, rsa
-                        FROM `{$org_table}` AS o
-
-                        LEFT JOIN `{$org_member_table}` AS om
-                            ON om.organization_id = o.id
-
-                        LEFT JOIN `{$role_assignment_table}` AS ra
-                            ON ra.owner_subject_type = 'organization'
-                            AND ra.owner_subject_id = o.id
-
-                        LEFT JOIN `{$resource_owners_table}` AS ro
-                            ON ro.type = 'organization'
-                            AND ro.subject_id = o.id
-
-                        LEFT JOIN `{$service_accounts_table}` AS sa
-                            ON sa.owner_id = ro.id
-
-                        LEFT JOIN `{$role_assignment_table}` AS rsa
-                            ON rsa.principal_type = 'service_account'
-                            AND rsa.principal_id = sa.id
-
-                        WHERE o.id = ?
-                    ";
-
-                    $deleted = $db->query( $sql, [ $entity->get_id() ] );
+                    $deleted = static::delete_organization( $entity );
+                    
                     break;
 
                 case $entity instanceof ServiceAccount:
                     // Delete service account and all roles assigned to it.
-                    $sql = "DELETE sa, ra
-                        FROM `{$service_accounts_table}` AS sa
-                        LEFT JOIN `{$role_assignment_table}` AS ra
-                            ON ra.principal_type = 'service_account'
-                            AND ra.principal_id = sa.id
-                        WHERE sa.id = ?
-                    ";
-
-                    $deleted = $db->query( $sql, [ $entity->get_id() ] );
+                    $deleted    = static::delete_service_account( $entity );
                     break;
 
                 case $entity instanceof Owner:
-                    // Delete owner, all owned service accounts, and their role assignments.
-                    $sql = "DELETE ro, sa, ra
-                        FROM `{$resource_owners_table}` AS ro
 
-                        LEFT JOIN `{$service_accounts_table}` AS sa
-                            ON sa.owner_id = ro.id
-
-                        LEFT JOIN `{$role_assignment_table}` AS ra
-                            ON ra.principal_type = 'service_account'
-                            AND ra.principal_id = sa.id
-
-                        WHERE ro.id = ?
-                    ";
-
-                    $deleted = $db->query( $sql, [ $entity->get_id() ] );
+                    $deleted = static::delete_resource_owner( $entity );
                     break;
 
 
@@ -744,10 +678,8 @@ class ContextServiceProvider {
                 );
             }
 
-            $db->commit();
             static::cache_clear();
         } catch ( \Exception $e ) {
-            $db->rollback();
             throw new SecurityException(
                 'delete_error',
                 'Failed to delete entity. Transaction rolled back.',
@@ -878,6 +810,334 @@ class ContextServiceProvider {
                 ]
             );
         }
+    }
+
+    /*
+    |-----------------------
+    | PRIVATE HELPERS
+    |-----------------------
+    */
+
+    /**
+     * Delete user and all related data cascading cleanly through relational IDs.
+     * 
+     * @param User $user
+     * @return bool
+     */
+    public static function delete_user( User $user ) : bool {
+        return smliser_db()->transactional( function ( Database $db ) use ( $user ) {
+            $users_table            = SMLISER_USERS_TABLE;
+            $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+            $resource_owners_table  = SMLISER_OWNERS_TABLE;
+            $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
+            $org_member_table       = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+
+            $lock_sql = static::query()
+                ->select( 'id' )->from( $users_table )
+                ->where( 'id', '=', $user->get_id() )->lock_for_update();
+            
+            $lock = (int) $db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
+            if ( ! $lock ) {
+                return false;
+            }
+
+            // Delete straight-linked user associations (Individual Roles & Org Memberships)
+            $db->delete(
+                $role_assignment_table,
+                [
+                    'principal_type' => Owner::TYPE_INDIVIDUAL,
+                    'principal_id'   => $user->get_id()
+                ]
+            );
+            
+            $db->delete(
+                $org_member_table,
+                [
+                    'member_id' => $user->get_id()
+                ]
+            );
+
+            // Extract the Resource Owner IDs linked to this user (Matches: ON ro.subject_id = u.id)
+            $owner_ids_sql = static::query()
+                ->select( 'id' )->from( $resource_owners_table )
+                ->where( 'subject_id', '=', $user->get_id() )
+                ->where( 'type', '=', Owner::TYPE_INDIVIDUAL );
+            
+            $owner_ids = $db->get_col( $owner_ids_sql->build(), $owner_ids_sql->get_bindings() );
+
+            // Process the deep dependent tables ONLY if resource owners exist
+            if ( ! empty( $owner_ids ) ) {
+                // Find all Service Account IDs pointing to these Resource Owners (Matches: ON sa.owner_id = ro.id)
+                $sa_ids_sql = static::query()
+                    ->select( 'id' )->from( $service_accounts_table )
+                    ->where_in( 'owner_id', $owner_ids );
+                
+                $sa_ids = $db->get_col( $sa_ids_sql->build(), $sa_ids_sql->get_bindings() );
+
+                if ( ! empty( $sa_ids ) ) {
+                    // Delete roles assigned to these specific service accounts.
+                    $sa_roles_delete = static::query()
+                        ->delete( $role_assignment_table )
+                        ->where( 'principal_type', '=', 'service_account' )
+                        ->where_in( 'principal_id', $sa_ids );
+                    
+                    $db->execute( $sa_roles_delete->build(), $sa_roles_delete->get_bindings() );
+
+                    // Delete the actual Service Accounts.
+                    $sa_purge_delete = static::query()
+                        ->delete( $service_accounts_table )
+                        ->where_in( 'id', $sa_ids );
+
+                    $db->execute( $sa_purge_delete->build(), $sa_purge_delete->get_bindings() );
+                }
+            }
+
+            // Delete the Resource Ownership records now that dependencies are gone
+            $db->delete(
+                $resource_owners_table,
+                [
+                    'type'       => Owner::TYPE_INDIVIDUAL,
+                    'subject_id' => $user->get_id()
+                ]
+            );
+
+            // Finally, safely delete primary user root identity.
+            $db->delete( $users_table, [ 'id' => $user->get_id() ] );
+
+            return true;
+        } );
+    }
+
+    /**
+     * Delete an organization and all cascading dependencies safely.
+     * 
+     * @param Organization $organization
+     * @return bool
+     */
+    public static function delete_organization( Organization $organization ) : bool {
+        return smliser_db()->transactional( function ( Database $db ) use ( $organization ) {
+            $org_table              = SMLISER_ORGANIZATIONS_TABLE;
+            $org_member_table       = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+            $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+            $resource_owners_table  = SMLISER_OWNERS_TABLE;
+            $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
+
+            $org_id = $organization->get_id();
+
+            // Lock the parent organization record for update safety.
+            $lock_sql = static::query()
+                ->select( 'id' )->from( $org_table )
+                ->where( 'id', '=', $org_id )->lock_for_update();
+            
+            $lock = (int) $db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
+            if ( ! $lock ) {
+                return false;
+            }
+
+            // Delete direct simple mappings (Memberships & Specific Org Role Assignments).
+            $db->delete(
+                $org_member_table,
+                [
+                    'organization_id' => $org_id
+                ]
+            );
+
+            $db->delete(
+                $role_assignment_table,
+                [
+                    'owner_subject_type' => Owner::TYPE_ORGANIZATION,
+                    'owner_subject_id'   => $org_id
+                ]
+            );
+
+            // Extract the Resource Owner IDs owned by this organization.
+            $owner_ids_sql = static::query()
+                ->select( 'id' )->from( $resource_owners_table )
+                ->where( 'subject_id', '=', $org_id )
+                ->where( 'type', '=', Owner::TYPE_ORGANIZATION );
+            
+            $owner_ids = $db->get_col( $owner_ids_sql->build(), $owner_ids_sql->get_bindings() );
+
+            // Trace and flush nested service accounts and their permissions.
+            if ( ! empty( $owner_ids ) ) {
+                // Find all Service Accounts pointing to these Resource Owners.
+                $sa_ids_sql = static::query()
+                    ->select( 'id' )->from( $service_accounts_table )
+                    ->where_in( 'owner_id', $owner_ids );
+                
+                $sa_ids = $db->get_col( $sa_ids_sql->build(), $sa_ids_sql->get_bindings() );
+
+                if ( ! empty( $sa_ids ) ) {
+                    // Delete roles belonging to these service accounts via fluent DeleteIntent.
+                    $sa_roles_delete = static::query()
+                        ->delete( $role_assignment_table )
+                        ->where( 'principal_type', '=', 'service_account' )
+                        ->where_in( 'principal_id', $sa_ids );
+                    
+                    $db->execute( $sa_roles_delete->build(), $sa_roles_delete->get_bindings() );
+
+                    // Delete the actual Service Accounts via fluent DeleteIntent.
+                    $sa_purge_delete = static::query()
+                        ->delete( $service_accounts_table )
+                        ->where_in( 'id', $sa_ids );
+
+                    $db->execute( $sa_purge_delete->build(), $sa_purge_delete->get_bindings() );
+                }
+            }
+
+            // Delete the Resource Ownership base keys now that downstream tracks are wiped.
+            $db->delete(
+                $resource_owners_table,
+                [
+                    'type'       => Owner::TYPE_ORGANIZATION,
+                    'subject_id' => $org_id
+                ]
+            );
+
+            $db->delete( $org_table, [ 'id' => $org_id ] );
+
+            return true;
+        } );
+    }
+
+    /**
+     * Delete a service account and all its assigned roles cleanly.
+     * 
+     * @param ServiceAccount $service_account
+     * @return bool
+     */
+    public static function delete_service_account( ServiceAccount $service_account ) : bool {
+        return smliser_db()->transactional( function ( Database $db ) use ( $service_account ) {
+            $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
+            $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+
+            $sa_id = $service_account->get_id();
+
+            $lock_sql = static::query()
+                ->select( 'id' )->from( $service_accounts_table )
+                ->where( 'id', '=', $sa_id )->lock_for_update();
+            
+            $lock = (int) $db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
+            if ( ! $lock ) {
+                return false;
+            }
+
+            // Delete roles assigned to this specific service account via fluent DeleteIntent
+            $sa_roles_delete = static::query()
+                ->delete( $role_assignment_table )
+                ->where( 'principal_type', '=', 'service_account' )
+                ->where( 'principal_id', '=', $sa_id );
+            
+            $db->execute( $sa_roles_delete->build(), $sa_roles_delete->get_bindings() );
+
+            // Finally, delete the parent service account record safely
+            $db->delete( $service_accounts_table, [ 'id' => $sa_id ] );
+
+            return true;
+        } );
+    }
+
+    /**
+     * Delete a resource owner and all cascading service accounts and roles.
+     * 
+     * @param Owner $owner
+     * @return bool
+     */
+    public static function delete_resource_owner( Owner $owner ) : bool {
+        $owner_id   = $owner->get_id();
+        return smliser_db()->transactional( function ( Database $db ) use ( $owner_id ) {
+            $resource_owners_table  = SMLISER_OWNERS_TABLE;
+            $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
+            $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+
+            $lock_sql = static::query()
+                ->select( 'id' )->from( $resource_owners_table )
+                ->where( 'id', '=', $owner_id )->lock_for_update();
+            
+            $lock = (int) $db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
+            if ( ! $lock ) {
+                return false;
+            }
+
+            // Extract Service Account IDs linked to this owner
+            $sa_ids_sql = static::query()
+                ->select( 'id' )->from( $service_accounts_table )
+                ->where( 'owner_id', '=', $owner_id );
+            
+            $sa_ids = $db->get_col( $sa_ids_sql->build(), $sa_ids_sql->get_bindings() );
+
+            // If Service Accounts exist, wipe their roles and the accounts themselves
+            if ( ! empty( $sa_ids ) ) {
+                // Delete roles assigned to these specific service accounts
+                $sa_roles_delete = static::query()
+                    ->delete( $role_assignment_table )
+                    ->where( 'principal_type', '=', 'service_account' )
+                    ->where_in( 'principal_id', $sa_ids );
+                
+                $db->execute( $sa_roles_delete->build(), $sa_roles_delete->get_bindings() );
+
+                // Delete the actual Service Accounts
+                $sa_purge_delete = static::query()
+                    ->delete( $service_accounts_table )
+                    ->where_in( 'id', $sa_ids );
+
+                $db->execute( $sa_purge_delete->build(), $sa_purge_delete->get_bindings() );
+            }
+
+            //  Finally, delete the Resource Ownership record
+            $db->delete( $resource_owners_table, [ 'id' => $owner_id ] );
+
+            return true;
+        } );
+    }
+
+    /**
+     * Calculate total pages.
+     * 
+     * @param int $total The total items.
+     * @param int $limit The pagination limit.
+     */
+    private static function cal_total_pages( int $total, int $limit ) : int {
+        return ( $limit > 0 ) ? (int) ceil( $total / $limit ) : 1;
+    }
+
+    /**
+     * Make a paginated result.
+     * 
+     * @param mixed $data
+     * @param int $page
+     * @param int $total
+     * @param int $limit
+     * @return array{items: mixed, pagination: array{total: int, page: int, limit: int, total_pages: int}}
+     */
+    private static function make_paginated_result( mixed $data, int $page = 1, int $limit = 20 , int $total = 0 ) : array {
+        return [
+            'items'      => $data,
+            'pagination' => [
+                'total'       => $total,
+                'page'        => $page,
+                'limit'       => $limit,
+                'total_pages' => static::cal_total_pages( $total, $limit ),
+            ],
+        ];
+    }
+
+    protected static function query() : SQLBuilder {
+        return \smliserQueryBuilder();
+    }
+
+    /**
+     * Get entity table
+     * 
+     * @param string $type
+     * @return string|null
+     */
+    protected static function get_entity_table( string $type ) : ?string {
+        return match ( $type ) {
+            Owner::TYPE_ORGANIZATION        => SMLISER_ORGANIZATIONS_TABLE,
+            Owner::TYPE_INDIVIDUAL, 'user'  => SMLISER_USERS_TABLE,
+            default                         => null,
+        };
     }
 
 }

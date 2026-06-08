@@ -15,6 +15,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\CommonQueryTrait;
+use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_ROLES_TABLE, SMLISER_ROLE_CAPABILITIES_TABLE;
@@ -435,7 +436,7 @@ class Role {
 
                 $caps_data  = [
                     'role_id'       => $this->get_id(),
-                    'capabilities'  => smliser_safe_json_encode( $capabilities )
+                    'capabilities'  => Format::encode( $capabilities, Format::ENCODING_JSON )
                 ];
 
                 $db->insert( $caps_table, $caps_data );
@@ -447,7 +448,7 @@ class Role {
         $this->set_id( $existing->get_id() );
 
         $caps_data  = [
-            'capabilities' => smliser_safe_json_encode( $capabilities )
+            'capabilities' => Format::encode( $capabilities, Format::ENCODING_JSON )
         ];
 
         $cap_id = $db->get_var(

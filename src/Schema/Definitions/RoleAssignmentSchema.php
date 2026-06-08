@@ -68,8 +68,11 @@ class RoleAssignmentSchema implements DatabaseSchemaInterface {
 
             Column::make( 'created_by' )
                 ->type( ColumnType::BIG_INT )
-                ->unsigned(),
+                ->unsigned()
+                ->default( null ),
 
+            Column::make( 'updated_at' )
+                ->type( ColumnType::DATETIME ),
             Column::make( 'created_at' )
                 ->type( ColumnType::DATETIME ),
         ];

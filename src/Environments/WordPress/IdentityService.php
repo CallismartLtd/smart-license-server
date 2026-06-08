@@ -222,8 +222,8 @@ final class IdentityService extends AbstractIdentityProvider {
             return;
         }
 
-        $email = $wp_user->user_email;
-        $smliser_user = User::get_by_email( $email );
+        $email          = $wp_user->user_email;
+        $smliser_user   = User::get_by_email( $email );
 
         if ( $smliser_user ) {
             $this->sync_user( $wp_user_id, $smliser_user );
@@ -313,13 +313,13 @@ final class IdentityService extends AbstractIdentityProvider {
         }
         
         $owner = $this->get_actor_owner();
-
+        
         if ( ! $owner || ! $owner->exists() ) {
             $owner = ContextServiceProvider::get_default_owner( $actor );
         }
 
-        $owner_subject = $owner ? ContextServiceProvider::get_owner_subject( $owner ) : null;
-        $role = ContextServiceProvider::get_principal_role( $actor, $owner_subject );
+        $owner_subject  = $owner ? ContextServiceProvider::get_owner_subject( $owner ) : null;
+        $role           = ContextServiceProvider::get_principal_role( $actor, $owner_subject );
 
         if ( ! $role || ! $role->exists() ) {
             return null;

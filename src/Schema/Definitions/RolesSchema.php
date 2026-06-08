@@ -47,7 +47,7 @@ class RolesSchema implements DatabaseSchemaInterface {
                 ->required(),
 
             Column::make( 'is_canonical' )
-                ->type( ColumnType::INTEGER )
+                ->type( ColumnType::BOOLEAN )
                 ->size( 1 )
                 ->default( 0 ),
 
