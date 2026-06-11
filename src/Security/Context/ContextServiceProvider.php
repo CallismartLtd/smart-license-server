@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Security\Context;
 
 use Callismart\DBPrism\Database;
+use Callismart\DBPrism\Query\QueryIntents\JoinCriteria;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use Callismart\DBPrism\Query\SQLBuilder;
 use DateTimeImmutable;
@@ -112,7 +113,7 @@ class ContextServiceProvider {
             $result = [];
 
             if ( $row && class_exists( $class_name ) && method_exists( $class_name, 'from_array' ) ) {
-                $result = $class_name::from_array( (array) $row );
+                $result[] = $class_name::from_array( (array) $row );
             }
 
             return static::make_paginated_result( data: $result, page: $page, limit: $limit, total: $total );
@@ -167,7 +168,7 @@ class ContextServiceProvider {
             $result = [];
 
             if ( $row && class_exists( $class_name ) && method_exists( $class_name, 'from_array' ) ) {
-                $result = $class_name::from_array( (array) $row );
+                $result[] = $class_name::from_array( (array) $row );
             }
 
             return static::make_paginated_result( data: $result, page: $page, limit: $limit, total: $total );
@@ -700,7 +701,7 @@ class ContextServiceProvider {
     /**
      * Generate overview report for Accounts & Access dashboard.
      *
-     * @return array<string, mixed>
+     * @return array{summary: array{users: int, organizations: int, service_accounts: int, organization_members: int, resource_owners: int}, integrity: array{orphaned_service_accounts: int, orphaned_members: int, orphaned_owners: int, has_issues: bool}, usage: array{service_accounts: array{total: int, ever_used: int, never_used: int, most_recent_use: mixed, oldest_use: mixed}}} $report
      * @throws SecurityException
      */
     public static function get_accounts_summary_report() : array {
@@ -719,53 +720,60 @@ class ContextServiceProvider {
         $owners_table           = SMLISER_OWNERS_TABLE;
 
         try {
-            $counts = $db->get_row(
-                "SELECT
-                    ( SELECT COUNT(*) FROM `{$users_table}` ) AS users_total,
-                    ( SELECT COUNT(*) FROM `{$organizations_table}` ) AS organizations_total,
-                    ( SELECT COUNT(*) FROM `{$service_accounts_table}` ) AS service_accounts_total,
-                    ( SELECT COUNT(*) FROM `{$org_members_table}` ) AS organization_members_total,
-                    ( SELECT COUNT(*) FROM `{$owners_table}` ) AS resource_owners_total
-                ",
-            );
+            $counts_sql = static::query()
+                ->select_raw(
+                    "( SELECT COUNT(*) FROM [{$users_table}] ) AS users_total",
+                    "( SELECT COUNT(*) FROM [{$organizations_table}] ) AS organizations_total",
+                    "( SELECT COUNT(*) FROM [{$service_accounts_table}] ) AS service_accounts_total",
+                    "( SELECT COUNT(*) FROM [{$org_members_table}] ) AS organization_members_total",
+                    "( SELECT COUNT(*) FROM [{$owners_table}] ) AS resource_owners_total"
+                );
+            $counts = $db->get_row( $counts_sql->build(), $counts_sql->get_bindings() );
 
-            $integrity = $db->get_row(
-                "SELECT
-                    ( SELECT COUNT(*) 
-                      FROM `{$service_accounts_table}` sa
-                      LEFT JOIN `{$owners_table}` ro ON sa.owner_id = ro.id
-                      WHERE ro.id IS NULL 
-                    ) AS orphaned_service_accounts,
-                    
-                    ( SELECT COUNT(*) 
-                      FROM `{$org_members_table}` om
-                      LEFT JOIN `{$users_table}` u ON om.member_id = u.id
-                      WHERE u.id IS NULL 
-                    ) AS orphaned_members,
-                    
-                    ( SELECT COUNT(*) 
-                      FROM `{$owners_table}` ro
-                      LEFT JOIN `{$users_table}` u
-                          ON ro.type = 'individual' AND ro.subject_id = u.id
-                      LEFT JOIN `{$organizations_table}` o
-                          ON ro.type = 'organization' AND ro.subject_id = o.id
-                      WHERE
-                          ( ro.type = 'individual' AND u.id IS NULL )
-                          OR
-                          ( ro.type = 'organization' AND o.id IS NULL )
-                    ) AS orphaned_owners
-                ",
-            );
+            $integrity_sql = static::query()
+                ->select_subquery( fn( SelectionIntent $q ) => $q
+                    ->select( 'COUNT(*)' )->from( "$service_accounts_table as sa" )
+                    ->left_join( "$owners_table ro", 'sa.owner_id', '=', 'ro.id' )
+                    ->where_null( 'ro.id' )
+                , 'orphaned_service_accounts' )
+                
+                ->select_subquery( fn( SelectionIntent $q ) => $q
+                    ->select( 'COUNT(*)' )->from( "$org_members_table om" )
+                    ->left_join( "$users_table u", 'om.member_id', '=', 'u.id' )
+                    ->where_null( 'u.id' )
+                , 'orphaned_members' )
+                
+                ->select_subquery( fn( SelectionIntent $q ) => $q
+                    ->select( 'COUNT(*)' )->from( "$owners_table ro" )
+                    // Explicit multi-conditional ON mappings replacing the legacy linear splits
+                    ->left_join( "$users_table u", fn( JoinCriteria $join ) => $join
+                        ->on_value( 'ro.type', '=', Owner::TYPE_INDIVIDUAL )
+                        ->on_column( 'ro.subject_id', '=', 'u.id' )
+                    )
+                    ->left_join( "$organizations_table o", fn( JoinCriteria $join ) => $join
+                        ->on_value( 'ro.type', '=', Owner::TYPE_ORGANIZATION )
+                        ->on_column( 'ro.subject_id', '=', 'o.id' )
+                    )
+                    ->where_group( fn( SelectionIntent $group ) => $group 
+                        ->where( 'ro.type', '=', Owner::TYPE_INDIVIDUAL )
+                        ->where_null( 'u.id' ) 
+                    )
+                    ->or_where_group( fn( SelectionIntent $group ) => $group 
+                        ->where( 'ro.type', '=', Owner::TYPE_ORGANIZATION )
+                        ->where_null( 'o.id' )
+                    )
+                , 'orphaned_owners' );
 
-            $usage = $db->get_row(
-                "SELECT
-                    COUNT(*) AS total,
-                    COUNT( last_used_at ) AS ever_used,
-                    MAX( last_used_at ) AS most_recent_use,
-                    MIN( last_used_at ) AS oldest_use
-                FROM `{$service_accounts_table}`
-                ",
-            );
+            $integrity = $db->get_row( $integrity_sql->build(), $integrity_sql->get_bindings() );
+
+            $usage_sql  = static::query()
+                ->select(
+                    'COUNT(*) as total', 
+                    'COUNT( last_used_at ) as ever_used',
+                    'MAX( last_used_at ) AS most_recent_use',
+                    'MIN( last_used_at ) AS oldest_use'
+                )->from( $service_accounts_table );
+            $usage = $db->get_row( $usage_sql->build(), $usage_sql->get_bindings() );
             
             $report = [
                 'summary' => [

@@ -385,9 +385,11 @@ class Organization implements OwnerSubjectInterface {
             $db     = smliser_db();
             $table  = SMLISER_ORGANIZATIONS_TABLE;
 
-            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `status` = ?";
+            $sql    = static::query()
+                ->select( 'COUNT(*)' )->from( $table )
+                ->where( 'status', '=', $status );
 
-            $total  = $db->get_var( $sql, [$status] );
+            $total  = $db->get_var( $sql->build(), $sql->get_bindings() );
 
             $statuses[$status]  = (int) $total;
         }
@@ -408,17 +410,7 @@ class Organization implements OwnerSubjectInterface {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        $self = new static();
-
-        foreach ( $data as $key => $value ) {
-            $method = "set_{$key}";
-
-            if ( is_callable( [ $self, $method ] ) ) {
-                $self->$method( $value );
-            }
-        }
-
-        return $self;
+        return static::from_array_helper( SMLISER_ORGANIZATIONS_TABLE, $data );
     }
 
     /**
@@ -447,21 +439,7 @@ class Organization implements OwnerSubjectInterface {
      * @return bool True when the organization exists, false otherwise.
      */
     public function exists() : bool {
-        if ( ! $this->get_id() ) {
-            return false;
-        }
-
-        if ( is_null( $this->exists_cache ) ) {
-            $db     = smliser_db();
-            $table  = SMLISER_ORGANIZATIONS_TABLE;
-            $sql    = "SELECT COUNT(*) FROM `{$table}` WHERE `id` = ?";
-
-            $result = $db->get_var( $sql, [$this->get_id()] );
-
-            $this->exists_cache = boolval( $result );
-        }
-
-        return $this->exists_cache;
+        return $this->id > 0;
     }
 
     /**

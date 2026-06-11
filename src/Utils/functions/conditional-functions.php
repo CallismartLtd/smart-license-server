@@ -12,6 +12,11 @@ if ( ! function_exists( 'is_json' ) ) {
      * @return bool
      */
     function is_json( $value ) {
+
+        if ( function_exists( 'json_validate' ) ) {
+            return json_validate( $value );
+        }
+        
         if ( ! is_string( $value ) ) {
             return false;
         }

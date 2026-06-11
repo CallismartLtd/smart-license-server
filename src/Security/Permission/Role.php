@@ -11,8 +11,10 @@
 
 namespace SmartLicenseServer\Security\Permission;
 
+use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
+use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\Format;
@@ -328,13 +330,15 @@ class Role {
         $db     = smliser_db();
         $table  = SMLISER_ROLE_CAPABILITIES_TABLE;
 
-        $sql    = "SELECT `capabilities` FROM `{$table}` WHERE `role_id` = ?";
+        $sql    = static::query()
+            ->select( 'capabilities' )->from( $table )
+            ->where( 'role_id', '=', $this->get_id() );
 
-        $caps   = $db->get_row( $sql, [$this->get_id()] );
+        $caps   = $db->get_row( $sql->build(), $sql->get_bindings() );
 
         try {
             $this->set_capabilities( $caps['capabilities'] ?? [] );
-        } catch ( Exception $e ) {}
+        } catch ( Exception ) {}
 
         return $this;
     }
@@ -352,25 +356,19 @@ class Role {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        $self = new static();
+        $static   = static::from_array_helper( SMLISER_ROLES_TABLE, $data );
 
-        foreach ( self::$fillable as $key ) {
-            if ( array_key_exists( $key, $data ) ) {
-                $method = "set_{$key}";
-                $self->$method( $data[ $key ] );
-            }
+        if ( $static->get_id() ) {
+            $static->load_capabilities();
         }
 
-        if ( $self->get_id() ) {
-            $self->load_capabilities();
-        }
-
-        return $self;
+        return $static;
     }
+
     /**
      * Convert roles to array.
      * 
-     * @return array
+     * array{id: int, slug: string, label: string, capabilities: string[], is_canonical: bool}
      */
     public function to_array() : array {
         return [
@@ -386,14 +384,10 @@ class Role {
     /**
      * Tells whether this role exists in the database.
      * 
-     * @return true;
+     * @return true
      */
     public function exists() : bool {
-        if ( $this->id > 0 ) {
-            return true;
-        }
-
-        return null !== static::get_by_slug( $this->get_slug() );
+        return  $this->id > 0;
     }
 
     /*
@@ -406,32 +400,44 @@ class Role {
      * Save role to database.
      *
      * @return bool
-     * @throws \SmartLicenseServer\Exceptions\Exception
+     * @throws Exception
+     * @throws DatabaseException
      */
     public function save() : bool {
         if ( ! $this->get_slug() ) {
             throw new Exception( 'role_save_error', 'Role slug must be set' );
         }
 
-        $db             = smliser_db();
-        $roles_table    = SMLISER_ROLES_TABLE;
-        $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
-        $existing       = static::get_by_slug( $this->get_slug() );
-        $capabilities   = array_values( array_unique( $this->get_capabilities() ) );
-        $now            = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+        $result = (bool) smliser_db()->transactional( function ( Database $db ) {
+            $roles_table    = SMLISER_ROLES_TABLE;
+            $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
+            $lock_sql       = static::query()
+                ->select( 'id' )->from( SMLISER_ROLES_TABLE )
+                ->where( 'slug', '=', $this->get_slug() )
+                ->limit( 1 )->lock_for_update();
 
-        if ( ! $existing ) {
-            $roles_data = [
-                'is_canonical'  => $this->get_is_canonical(),
-                'slug'          => $this->get_slug(),
-                'label'         => $this->get_label(),
-                'updated_at'    => $now->format( 'Y-m-d H:i:s' ),
-                'created_at'    => $now->format( 'Y-m-d H:i:s' ),
-            ];
+            $id             = (int) $db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
+            $capabilities   = array_values( array_unique( $this->get_capabilities() ) );
+            $now            = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
-            $result = $db->insert( $roles_table, $roles_data );
+            if ( ! $id ) {
+                $roles_data = [
+                    'is_canonical'  => $this->get_is_canonical(),
+                    'slug'          => $this->get_slug(),
+                    'label'         => $this->get_label(),
+                    'updated_at'    => $now->format( 'Y-m-d H:i:s' ),
+                    'created_at'    => $now->format( 'Y-m-d H:i:s' ),
+                ];
 
-            if ( $result ) {
+                $result = $db->insert( $roles_table, $roles_data );
+
+                if ( ! $result ) {
+                    throw new DatabaseException(
+                        'insert_failed',  
+                        sprintf( 'Inserting roles failed with error: %s', $db->get_last_error() )    
+                    );
+                }
+
                 $this->set_id( $db->get_insert_id() );
 
                 $caps_data  = [
@@ -439,47 +445,59 @@ class Role {
                     'capabilities'  => Format::encode( $capabilities, Format::ENCODING_JSON )
                 ];
 
-                $db->insert( $caps_table, $caps_data );
+                if ( ! $db->insert( $caps_table, $caps_data ) ) {
+                    throw new DatabaseException(
+                        'insert_failed',
+                        sprintf(
+                            'Inserting role capabilities failed with error: %s',
+                            $db->get_last_error()
+                        )
+                    );
+                }
+
+                return true;
             }
 
-            return false !== $result;
-        }
+            $caps_data  = [
+                'capabilities' => Format::encode( $capabilities, Format::ENCODING_JSON )
+            ];
 
-        $this->set_id( $existing->get_id() );
+            $cap_id_sql = static::query()->select( 'id' )->from( $caps_table )
+                ->where( 'role_id', '=', $id )->limit( 1 );
 
-        $caps_data  = [
-            'capabilities' => Format::encode( $capabilities, Format::ENCODING_JSON )
-        ];
+            $cap_id = (int) $db->get_var( $cap_id_sql->build(), $cap_id_sql->get_bindings() );
 
-        $cap_id = $db->get_var(
-            "SELECT `id` FROM {$caps_table} WHERE `role_id` = ?", 
-            [$this->get_id()]
-        );
+            if ( $cap_id ) {
+                $result = $db->update( $caps_table, $caps_data, ['id' => $cap_id] );
 
-        if ( $cap_id ) {
-            $result = $db->update( $caps_table, $caps_data, ['id' => $cap_id] );
-        } else {
-            $caps_data['role_id'] = $this->get_id();
-            $result = $db->insert( $caps_table, $caps_data );
-        }
+                if ( false === $result ) {
+                    throw new DatabaseException(
+                        'update_failed',
+                        sprintf(
+                            'Updating capabilities failed with error: %s',
+                            $db->get_last_error()
+                        )
+                    );
+                }
+            } else {
+                $caps_data['role_id'] = $this->get_id();
+                $result = $db->insert( $caps_table, $caps_data );
 
-        return false !== $result;
-    }
+                if ( false === $result ) {
+                    throw new DatabaseException(
+                        'insert_failed',
+                        sprintf(
+                            'Inserting capabilities failed with error: %s',
+                            $db->get_last_error()
+                        )
+                    );
+                }
+            }
 
-    /**
-     * Delete role.
-     *
-     * @return bool
-     */
-    public function delete() : bool {
-        if ( ! $this->get_id() ) {
-            return false;
-        }
+            return true;
+        });
 
-        $db     = smliser_db();
-        $table  = SMLISER_ROLES_TABLE;
 
-        $result = $db->delete( $table, [ 'id' => $this->get_id() ] );
 
         return false !== $result;
     }
@@ -513,14 +531,20 @@ class Role {
     /**
      * Get all available roles from the database
      * 
-     * @param bool $return_array Whether to skip instantiation of self and return array.
-     * @return self[]|array An array of role objects or array of roles if return param is true.
+     * @param bool $to_array Whether to run the static::to_array method on each record.
+     * @return array{
+     *  id: int,
+     *  slug: string,
+     *  label: string,
+     *  capabilities: string[],
+     *  is_canonical: bool
+     * }|static[] An array of role objects or array of roles if return param is true.
      */
-    public static function all( bool $return_array = false ) : array {
+    public static function all( bool $to_array = false ) : array {
         $db         = smliser_db();
         $table      = SMLISER_ROLES_TABLE;
-        $sql        = "SELECT * FROM {$table}";
-        $results    = $db->get_results( $sql );
+        $sql        = static::query()->select( '*' )->from( $table );
+        $results    = $db->get_results( $sql->build(), $sql->get_bindings() );
 
         if ( empty( $results ) ) {
             return [];
@@ -528,12 +552,12 @@ class Role {
         
         /** @var self[] $roles */
         $roles  = array_map( [__CLASS__, 'from_array'], $results );
-        if ( $return_array ) {
-            $role_objs  = $roles;
-            $roles      = [];
-            foreach ( $role_objs as $role ) {
+        if ( $to_array ) {
+            foreach ( $roles as $i => $role ) {
                 $roles[$role->get_slug()]   = $role->to_array();
+                unset( $roles[$i] );
             }
+            /** @var array{id: int, slug: string, label: string, capabilities: string[], is_canonical: bool} $roles */
         }
 
         return $roles;

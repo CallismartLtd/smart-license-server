@@ -59,9 +59,12 @@ class Options extends AbstractSettings {
     protected function do_get( string $key, $default = null ) {
         $table          = self::TABLE_NAME;
 
-        $sql = "SELECT `option_value` FROM `{$table}` WHERE `option_name` = ?";
+        $sql    = smliserQueryBuilder()
+            ->select( 'option_value' )->from( $table )
+            ->where( 'option_name', '=', $key )
+            ->limit( 1 );
 
-        $result = $this->db->get_var( $sql, [ $key ] );
+        $result = $this->db->get_var( $sql->build(), $sql->get_bindings() );
 
         if ( null === $result || false === $result ) {
             return $default;
@@ -74,9 +77,6 @@ class Options extends AbstractSettings {
 
     /**
      * Concrete implementation for storing or updating a setting in the custom options table.
-     *
-     * We use a SELECT + UPDATE/INSERT strategy, or an explicit UPSERT if the adapter supports it.
-     * Since the interface provides UPDATE and INSERT, we'll use them.
      *
      * @since 0.2.0
      *
@@ -136,11 +136,14 @@ class Options extends AbstractSettings {
      * @return bool True if the key exists, false otherwise.
      */
     protected function do_has( string $key ): bool {
-        $table          = self::TABLE_NAME;
+        $table  = self::TABLE_NAME;
 
-        $sql            = "SELECT 1 FROM `{$table}` WHERE `option_name` = ?";
+        $sql    = smliserQueryBuilder()
+            ->select( '1' )->from( $table )
+            ->where( 'option_name', '=', $key )
+            ->limit(1);
 
-        $result         = $this->db->get_var( $sql, [ $key ] );
+        $result         = $this->db->get_var( $sql->build(), $sql->get_bindings() );
 
         return ! empty( $result );
     }

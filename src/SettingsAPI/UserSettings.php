@@ -46,12 +46,11 @@ class UserSettings {
         }
 
         $table  = SMLISER_USER_OPTIONS_TABLE;
-        $sql    = "SELECT option_key, option_value FROM {$table} WHERE user_id = ?";
+        $sql    = smliserQueryBuilder()
+            ->select( 'option_key', 'option_value' )->from( $table )
+            ->where( 'user_id', '=', $this->user->get_id() );
 
-        $results = $this->database->get_results(
-            $sql,
-            [ $this->user->get_id() ]
-        );
+        $results = $this->database->get_results( $sql->build(), $sql->get_bindings() );
 
         if ( ! \is_array( $results ) || $results === [] ) {
             return $this->settings_cache = [];
