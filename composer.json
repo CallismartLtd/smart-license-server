@@ -13,7 +13,7 @@
         "league/commonmark": "^2.7",
         "callismart/http": "^1.0",
         "callismart/dto": "^1.0",
-        "callismart/dbprism": "^0.1.25"
+        "callismart/dbprism": "^0.1.36"
     },
     "suggest": {
         "ext-pdo_mysql": "Required for MySQL 8.0.45 support.",
