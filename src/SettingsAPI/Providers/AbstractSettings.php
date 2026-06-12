@@ -142,6 +142,42 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	}
 
 	/**
+	 * Retrieves a paginated collection of settings.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param int $page  The page number to retrieve.
+	 * @param int $limit The maximum number of settings to return per page.
+	 * @return array<string, mixed> Associative array of settings.
+	 */
+	public function all( int $page = 1, int $limit = 20 ): array {
+		return $this->do_all( $page, $limit );
+	}
+
+	/**
+	 * Searches for settings matching a given query.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $query      The search term or pattern.
+	 * @param int    $page       The page number to retrieve.
+	 * @param int    $limit      The maximum number of results to return.
+	 * @param bool   $use_prefix Optional flag to apply the storage prefix to the query.
+	 * @return array<string, mixed> Matching settings.
+	 */
+	public function search(
+		string $query,
+		int $page,
+		int $limit = 50,
+		bool $use_prefix = true
+	): array {
+
+		$query = $use_prefix ? $this->prefix_key( $query ) : $query;
+
+		return $this->do_search( $query, $page, $limit );
+	}
+
+	/**
 	 * Checks if a specific setting key is currently held in the in-memory cache.
 	 *
 	 * @param string $key The unique identifier/name of the setting.
@@ -196,4 +232,24 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @return bool True if the key exists, false otherwise.
 	 */
 	abstract protected function do_has( string $key ): bool;
+
+	/**
+	 * Concrete implementation for retrieving a paginated collection of settings
+	 * from the physical storage.
+	 *
+	 * @param int $page  The page number to retrieve.
+	 * @param int $limit The maximum number of settings to return.
+	 * @return array<string, mixed> Associative array of settings.
+	 */
+	abstract protected function do_all( int $page, int $limit ): array;
+
+	/**
+	 * Concrete implementation for searching settings in the physical storage.
+	 *
+	 * @param string $query The search term or pattern.
+	 * @param int    $page  The page number to retrieve.
+	 * @param int    $limit The maximum number of results to return.
+	 * @return array<string, mixed> Matching settings.
+	 */
+	abstract protected function do_search( string $query, int $page, int $limit ): array;
 }

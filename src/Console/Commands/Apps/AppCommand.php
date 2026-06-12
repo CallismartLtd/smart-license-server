@@ -141,12 +141,13 @@ class AppCommand implements CommandInterface {
                 $app->get_slug(),
                 $app->get_type(),
                 $app->get_status(),
-                $app->get_last_updated(),
+                $app->get_created_at()->format( \smliser_datetime_format() ),
+                $app->get_updated_at()->format( \smliser_datetime_format() ),
             ];
         }
 
         $this->newline();
-        $this->table( [ 'ID', 'Name', 'Slug', 'Type', 'Status', 'Updated' ], $rows );
+        $this->table( [ 'ID', 'Name', 'Slug', 'Type', 'Status', 'Created', 'Updated' ], $rows );
 
         if ( ! empty( $pagination ) ) {
             $this->newline();

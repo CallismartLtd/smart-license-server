@@ -14,13 +14,28 @@ namespace SmartLicenseServer\SettingsAPI;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 
 /**
- * The Settings class is the wrapper around the settings API, all settings methods are delegated to the
- * underlying storage provider.
+ * The Settings class is the wrapper around the settings API.
  *
- * @method mixed get( string $key, mixed $default = null, bool $use_prefix = true ) Retrieves the value of a specific setting key from storage.
- * @method bool set( string $key, mixed $value, bool $use_prefix = true ) Stores or updates the value of a specific setting key in storage (persistence).
- * @method bool delete( string $key, bool $use_prefix = true )Removes a specific setting key and its value from storage.
- * @method bool has( string $key, bool $use_prefix = true ) Checks if a specific setting key exists in the storage.
+ * All settings methods are delegated to the underlying storage provider.
+ *
+ * @method mixed get(string $key, mixed $default = null, bool $use_prefix = true)
+ *         Retrieves the value of a specific setting key from storage.
+ *
+ * @method bool set(string $key, mixed $value, bool $use_prefix = true)
+ *         Stores or updates the value of a specific setting key in storage (persistence).
+ *
+ * @method bool delete(string $key, bool $use_prefix = true)
+ *         Removes a specific setting key and its value from storage.
+ *
+ * @method bool has(string $key, bool $use_prefix = true)
+ *         Checks if a specific setting key exists in the storage.
+ *
+ * @method array all(int $page = 1, int $limit = 20)
+ *         Retrieves a paginated list of all settings.
+ *
+ * @method array search(string $query, int $page = 1, int $limit = 20)
+ *         Searches settings by key using a partial match query.
+ *
  * @since 0.2.0
  */
 class Settings {

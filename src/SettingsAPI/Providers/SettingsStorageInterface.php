@@ -67,4 +67,34 @@ interface SettingsStorageInterface {
 	 * @return bool True if the key exists, false otherwise.
 	 */
 	public function has( string $key, bool $use_prefix = true ): bool;
+
+	/**
+	 * Retrieves a paginated collection of settings from storage.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param int $page  The page number to retrieve. Must be greater than zero.
+	 * @param int $limit The maximum number of settings to return per page.
+	 * @return array<string, mixed> Associative array of settings keyed by setting name.
+	 */
+	public function all( int $page = 1, int $limit = 20 ): array;
+
+	/**
+	 * Searches for settings matching a given query.
+	 *
+	 * Implementations may use exact matching, partial matching,
+	 * wildcard matching, or storage-specific search capabilities.
+	 *
+	 * Results should be returned in a paginated format.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $query      The search term or pattern to match against setting keys.
+	 * @param int    $page       The page number to retrieve. Must be greater than zero.
+	 * @param int    $limit      The maximum number of matching settings to return per page.
+	 * @param bool   $use_prefix Optional flag indicating whether the storage prefix
+	 *                           should be applied to the search query.
+	 * @return array<string, mixed> Associative array of matching settings keyed by setting name.
+	 */
+	public function search( string $query, int $page, int $limit = 50, bool $use_prefix = true ): array;
 }

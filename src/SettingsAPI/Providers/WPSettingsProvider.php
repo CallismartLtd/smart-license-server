@@ -14,76 +14,121 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\SettingsAPI\Providers;
 
+use SmartLicenseServer\Utils\Format;
+
 /**
  * Concrete adapter class to manage settings storage using the WordPress Options API.
- *
- * This class implements the abstract do_* methods defined in AbstractSettings.
  *
  * @since 0.2.0
  */
 class WPSettingsProvider extends AbstractSettings {
 
 	/**
-	 * Concrete implementation for retrieving a setting from the WordPress options table.
-	 *
-	 * Note: Caching is handled by the parent AbstractSettings class.
+	 * Retrieve a single option from WordPress.
 	 *
 	 * @since 0.2.0
-	 *
-	 * @param string $key     The unique identifier/name of the setting.
-	 * @param mixed  $default The value to return if the key is not found.
-	 * @return mixed The stored setting value.
 	 */
 	protected function do_get( string $key, $default = null ) {
 		return \get_option( $key, $default );
 	}
 
 	/**
-	 * Concrete implementation for storing or updating a setting in the WordPress options table.
-	 *
-	 * Note: Cache update is handled by the parent AbstractSettings class.
+	 * Store or update an option in WordPress.
 	 *
 	 * @since 0.2.0
-	 *
-	 * @param string $key   The unique identifier/name of the setting.
-	 * @param mixed  $value The data to be stored.
-	 * @return bool True on successful storage/update, false otherwise.
 	 */
 	protected function do_set( string $key, $value ): bool {
 		$result = \update_option( $key, $value );
-
 		return false !== $result;
 	}
 
 	/**
-	 * Concrete implementation for removing a setting from the WordPress options table.
-	 *
-	 * Note: Cache clearing is handled by the parent AbstractSettings class.
+	 * Delete an option from WordPress.
 	 *
 	 * @since 0.2.0
-	 *
-	 * @param string $key The unique identifier/name of the setting to delete.
-	 * @return bool True on successful deletion, false otherwise.
 	 */
 	protected function do_delete( string $key ): bool {
 		return \delete_option( $key );
 	}
 
 	/**
-	 * Concrete implementation for checking existence in the WordPress options table.
-	 *
-	 * Note: Cache check is handled by the parent AbstractSettings class.
+	 * Check existence of an option in WordPress.
 	 *
 	 * @since 0.2.0
-	 *
-	 * @param string $key The unique identifier/name of the setting.
-	 * @return bool True if the key exists, false otherwise.
 	 */
 	protected function do_has( string $key ): bool {
-		// Use a unique sentinel value that is highly unlikely to be a stored setting value.
-		$not_found_sentinel = new \stdClass();
-		$value              = \get_option( $key, $not_found_sentinel );
 
-		return $value !== $not_found_sentinel;
+		$sentinel = new \stdClass();
+		$value    = \get_option( $key, $sentinel );
+
+		return $value !== $sentinel;
+	}
+
+	protected function do_all( int $page, int $limit ): array {
+
+		$db     = smliser_db();
+		$offset = $db->calculate_query_offset( $page, $limit );
+		$table  = $GLOBALS['wpdb']?->options;
+
+		$sql = smliserQueryBuilder()
+			->select( 'option_name', 'option_value' )
+			->from( $table )
+			->limit( $limit )
+			->offset( $offset )
+			->order_by( 'option_id', 'ASC' );
+
+		$rows = $db->get_results(
+			$sql->build(),
+			$sql->get_bindings()
+		);
+
+		if ( empty( $rows ) ) {
+			return [];
+		}
+
+		$results = [];
+
+		foreach ( $rows as $row ) {
+			$results[ $row['option_name'] ] = Format::decode( $row['option_value'] );
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Search settings in WordPress options table.
+	 *
+	 * @since 0.2.0
+	 */
+	protected function do_search( string $query, int $page, int $limit ): array {
+
+		$db     = smliser_db();
+		$offset = $db->calculate_query_offset( $page, $limit );
+		$table  = $GLOBALS['wpdb']?->options;
+
+		$sql	= smliserQueryBuilder()
+			->select( 'option_name', 'option_value' )
+			->from( $table )
+			->where_contains( 'option_name', $query )
+			->limit( $limit )
+			->offset( $offset )
+			->order_by( 'option_id', 'ASC' );
+
+		$rows = $db->get_results(
+			$sql->build(),
+			$sql->get_bindings()
+		);
+
+		if ( empty( $rows ) ) {
+			return [];
+		}
+
+		$results = [];
+
+		foreach ( $rows as $row ) {
+			$results[ $row['option_name'] ] = Format::decode( $row['option_value'] );
+		}
+
+		return $results;
 	}
 }

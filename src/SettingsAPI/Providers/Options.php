@@ -57,7 +57,7 @@ class Options extends AbstractSettings {
      * @return mixed The stored setting value.
      */
     protected function do_get( string $key, $default = null ) {
-        $table          = self::TABLE_NAME;
+        $table          = static::TABLE_NAME;
 
         $sql    = smliserQueryBuilder()
             ->select( 'option_value' )->from( $table )
@@ -85,7 +85,7 @@ class Options extends AbstractSettings {
      * @return bool True on successful storage/update, false otherwise.
      */
     protected function do_set( string $key, $value ): bool {
-        $table          = self::TABLE_NAME;
+        $table          = static::TABLE_NAME;
 
         $value_to_store = Format::encode( $value, Format::ENCODING_PHP );
         
@@ -120,7 +120,7 @@ class Options extends AbstractSettings {
      * @return bool True on successful deletion, false otherwise.
      */
     protected function do_delete( string $key ): bool {
-        $table        = self::TABLE_NAME;
+        $table        = static::TABLE_NAME;
 
         $result = $this->db->delete( $table, [ 'option_name' => $key ] );
 
@@ -136,7 +136,7 @@ class Options extends AbstractSettings {
      * @return bool True if the key exists, false otherwise.
      */
     protected function do_has( string $key ): bool {
-        $table  = self::TABLE_NAME;
+        $table  = static::TABLE_NAME;
 
         $sql    = smliserQueryBuilder()
             ->select( '1' )->from( $table )
@@ -146,5 +146,76 @@ class Options extends AbstractSettings {
         $result         = $this->db->get_var( $sql->build(), $sql->get_bindings() );
 
         return ! empty( $result );
+    }
+
+    /**
+     * Retrieve paginated settings from the custom options table.
+     *
+     * @since 0.2.0
+     */
+    protected function do_all( int $page, int $limit ): array {
+
+        $table  = static::TABLE_NAME;
+        $offset = $this->db->calculate_query_offset( $page, $limit );
+
+        $sql = smliserQueryBuilder()
+            ->select( 'option_name', 'option_value' )
+            ->from( $table )
+            ->limit( $limit )
+            ->offset( $offset )
+            ->order_by( 'option_id', 'ASC' );
+
+        $rows = $this->db->get_results(
+            $sql->build(),
+            $sql->get_bindings()
+        );
+
+        if ( empty( $rows ) ) {
+            return [];
+        }
+
+        $results = [];
+
+        foreach ( $rows as $row ) {
+            $results[ $row['option_name'] ] = Format::decode( $row['option_value'] );
+        }
+
+        return $results;
+    }
+
+    /**
+     * Search settings in the custom options table.
+     *
+     * @since 0.2.0
+     */
+    protected function do_search( string $query, int $page, int $limit ): array {
+
+        $table  = static::TABLE_NAME;
+        $offset = $this->db->calculate_query_offset( $page, $limit );
+
+        $sql = smliserQueryBuilder()
+            ->select( 'option_name', 'option_value' )
+            ->from( $table )
+            ->where_contains( 'option_name', $query )
+            ->limit( $limit )
+            ->offset( $offset )
+            ->order_by( 'option_id', 'ASC' );
+
+        $rows = $this->db->get_results(
+            $sql->build(),
+            $sql->get_bindings()
+        );
+
+        if ( empty( $rows ) ) {
+            return [];
+        }
+
+        $results = [];
+
+        foreach ( $rows as $row ) {
+            $results[ $row['option_name'] ] = Format::decode( $row['option_value'] );
+        }
+
+        return $results;
     }
 }
