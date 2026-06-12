@@ -169,7 +169,7 @@ class CommandRegistry extends AbstractRegistry {
     /**
      * Boot core commands at once.
      *
-     * @return void.
+     * @return void
      */
     protected function load_core() : void {
 
@@ -188,9 +188,9 @@ class CommandRegistry extends AbstractRegistry {
     }
 
     /*
-    |--------------------------------------------
+    |-------------------------
     | CUSTOM REGISTRATION
-    |--------------------------------------------
+    |-------------------------
     */
 
     /**
@@ -205,6 +205,18 @@ class CommandRegistry extends AbstractRegistry {
         }
 
         return $this;
+    }
+
+    /**
+     * Register a single command.
+     * 
+     * An alias for the add() method
+     * 
+     * @param class-string<CommandInterface> $command_classname
+     * @return static Fluent.
+     */
+    public function register_command( string $command_classname ) : static {
+        return $this->add( $command_classname );
     }
 
     /**
@@ -240,7 +252,7 @@ class CommandRegistry extends AbstractRegistry {
      * @throws InvalidArgumentException
      */
     protected function assert_implements_interface( string $class ): void {
-        if ( ! class_exists( $class ) ) {
+        if ( ! class_exists( $class, true ) ) {
             throw new InvalidArgumentException(
                 sprintf( 'CommandRegistry: class "%s" does not exist.', $class )
             );

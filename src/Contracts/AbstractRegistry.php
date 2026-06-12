@@ -35,7 +35,6 @@ abstract class AbstractRegistry implements RegistryInterface {
     protected $core_loaded = false;
 
     /**
-     * {@inheritDoc}.
      * 
      * If a core registry entry with the same name exists, registration is
      * silently skipped — core entries always take precedence.

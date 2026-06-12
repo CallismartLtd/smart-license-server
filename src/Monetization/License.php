@@ -563,9 +563,8 @@ class License {
             $sql    = static::query()->select( '*' )->from( $table )
                 ->where( 'service_id', '=', $service_id )
                 ->where( 'license_key', '=', $license_key );
-            $params = [$service_id, $license_key];
 
-            $data = $db->get_row( $sql, $params );
+            $data = $db->get_row( $sql->build(), $sql->get_bindings() );
             
             if ( $data ) {
                 $result =  static::from_array( $data );
