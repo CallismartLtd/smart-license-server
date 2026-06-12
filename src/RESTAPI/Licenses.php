@@ -282,6 +282,7 @@ class Licenses {
             $response = new RequestException( 'license_error', sprintf( 'The %s with this slug "%s" does not exist', $app_type, $app_slug ), array( 'status' => 404 ) );
             return $response;
         }
+
         $license        = License::get_license( $service_id, $license_key );
         
         if ( ! $license ) {
@@ -330,7 +331,8 @@ class Licenses {
                     'status'        => $license->get_status(),
                     'expiry_date'   => $license->get_end_date()?->format( 'Y-m-d' ) ?? \gmdate( 'Y-m-d', \strtotime( '+15 years' ) )
                 ),
-                'token_validity'    => \is_smliser_error( $token_validity ) ? 'Invalid' : 'Valid',                
+                'token_validity'    => \is_smliser_error( $token_validity ) ? 'Invalid' : 'Valid',
+                'token_error'       => \is_smliser_error( $token_validity ) ? $token_validity->get_error_message() : null               
             )
         );
 

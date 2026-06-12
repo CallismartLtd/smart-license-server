@@ -378,6 +378,7 @@ class DownloadToken {
      * @param string $client_token
      * @param AbstractHostedApp $app
      * @return static
+     * @throws \SmartLicenseServer\Exceptions\Exception
      */
     public static function verify_token_for_app( string $client_token, AbstractHostedApp $app ) : static {
         $decoded = static::base64url_decode( $client_token );
@@ -416,7 +417,7 @@ class DownloadToken {
         $token_app_prop     = $static->get_app_prop( 'view' );
         $requested_app_prop = sprintf( '%s/%s', $app_type, $app_slug );
 
-        if ( \hash_equals( $token_app_prop, $requested_app_prop ) ) {
+        if ( ! \hash_equals( $token_app_prop, $requested_app_prop ) ) {
             throw new Exception( 'download_token_invalid', 'Token does not match requested app', ['status' => 403] );
         }
 

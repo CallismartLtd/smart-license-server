@@ -12,8 +12,6 @@ namespace SmartLicenseServer\RESTAPI\Versions;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRouter;
 use SmartLicenseServer\RESTAPI\RESTInterface;
 
-use function defined;
-
 /**
  * API version 1
  * 
