@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "callismart/dbprism",
-            "version": "v0.1.36",
+            "version": "v0.1.37",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CallismartLtd/DBPrism.git",
-                "reference": "ddf40e24b9ffb3379316d9324fe7ece4721f60e4"
+                "reference": "10505aa61845ed1d74ba5974309a6567317696aa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CallismartLtd/DBPrism/zipball/ddf40e24b9ffb3379316d9324fe7ece4721f60e4",
-                "reference": "ddf40e24b9ffb3379316d9324fe7ece4721f60e4",
+                "url": "https://api.github.com/repos/CallismartLtd/DBPrism/zipball/10505aa61845ed1d74ba5974309a6567317696aa",
+                "reference": "10505aa61845ed1d74ba5974309a6567317696aa",
                 "shasum": ""
             },
             "require": {
@@ -61,9 +61,9 @@
             ],
             "support": {
                 "issues": "https://github.com/CallismartLtd/DBPrism/issues",
-                "source": "https://github.com/CallismartLtd/DBPrism/tree/v0.1.36"
+                "source": "https://github.com/CallismartLtd/DBPrism/tree/v0.1.37"
             },
-            "time": "2026-06-11T15:24:24+00:00"
+            "time": "2026-06-12T15:39:12+00:00"
         },
         {
             "name": "callismart/dto",
