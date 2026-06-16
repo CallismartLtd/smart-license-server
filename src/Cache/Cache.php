@@ -23,13 +23,13 @@ use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
  * @method bool clear() Clear all cache entries.
  * @method CacheStats get_stats() Return runtime statistics for this cache adapter.
  * @method bool is_supported() Tells whether the adapter can run in the host environment.
+ * @method bool is_active() Tells whether the adapter is active.
  * @method bool test( array<string, mixed> $settings ) Test whether the adapter can connect and operate with the supplied settings.
  * @method void set_settings( array<string, mixed> $settings )Set adapter configuration.
  * @method array get_settings_schema() Return required configuration fields.
  * @method string get_name() Get the underlining cache adapter name.
  * @method string get_id() Get the underlining cache adapter ID.
  * @method bool has( string $key ) Check if a cache entry exists.
- * @method
  */
 class Cache {
 

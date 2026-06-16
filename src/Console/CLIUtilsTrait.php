@@ -61,38 +61,26 @@ trait CLIUtilsTrait {
     }
 
     /**
-     * Parse --key=value and --key options from an args array.
+     * Parse options.
      */
     private function parse_options( array $args ): array {
-        $opts = [];
+        return $this->parse_args_opts( $args )['options'];
+    }
 
-        foreach ( $args as $k => $arg ) {
+    /**
+     * Parse Arguments.
+     */
+    private function parse_arguments( array $args ): array {
+        return $this->parse_args_opts( $args )['arguments'];
+    }
 
-            if ( is_string( $k ) ) {
-                $opts[$k] = $arg;
-                continue;
-            }
-            
-            if ( ! str_starts_with( $arg, '--' ) ) {
-                continue;
-            }
-
-            $arg = substr( $arg, 2 );
-
-            if ( str_contains( $arg, '=' ) ) {
-                [ $key, $value ] = explode( '=', $arg, 2 );
-            } else {
-                $key   = $arg;
-                $value = 'true';
-            }
-
-            if ( isset( $opts[ $key ] ) ) {
-                $opts[ $key ] = array_merge( (array) $opts[ $key ], [ $value ] );
-            } else {
-                $opts[ $key ] = $value;
-            }
-        }
-
-        return $opts;
+    /**
+     * Parse arguments and flags from the CLI input...
+     * 
+     * @param array $args
+     * @return array{arguments: array, options: array}
+     */
+    private function parse_args_opts( array $args ) : array {
+        return ( new OptionParser )->parse( $args );
     }
 }

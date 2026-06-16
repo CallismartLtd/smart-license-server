@@ -12,6 +12,7 @@ namespace SmartLicenseServer\RESTAPI;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
@@ -379,23 +380,23 @@ class Licenses {
 
         $request->set( 'smliser_resource', $license );
         $status_access  = $license->can_serve_license( $hosted_app->get_id() );
-        $domain_access  = self::verify_domain( $request );
-        $has_error      = is_smliser_error( $status_access ) || is_smliser_error( $domain_access );
 
-        if ( $has_error ) {
-            $error = is_smliser_error( $status_access ) ? $status_access : $domain_access;    
-            return $error;
-        
+        if ( $status_access instanceof Exception ) {
+            return $status_access;
+        }
+
+        $domain_access  = self::verify_domain( $request );
+
+        if ( $domain_access instanceof Exception ) {
+            return $domain_access;
         }
 
         $download_token = $request->get( 'download_token' );
         $token          = smliser_verify_item_token( $download_token, $hosted_app );
 
-        if ( is_smliser_error( $token ) ) {
-            return $token;
+        if ( ! ( $token instanceof Exception ) ) {
+            $token->delete();
         }
-
-        $token->delete();
 
         return true;
     }

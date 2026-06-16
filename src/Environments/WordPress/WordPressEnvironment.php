@@ -25,12 +25,6 @@ use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
  * WordPress Environment setup class
  */
 class WordPressEnvironment extends Environment {
-    /**
-     * The singleton instance of the environment.
-     * 
-     * @var self $instance
-     */
-    private static ?self $instance = null;
 
     protected ScriptManager $script_manager;
     protected AdminMenu $menu;
@@ -82,7 +76,7 @@ class WordPressEnvironment extends Environment {
      * Bootstrap the class properties.
      */
     private function setProps() : void {
-        $debug_mode         = defined( 'WP_DEBUG' ) && constant( 'WP_DEBUG' );
+        $debug_mode = defined( 'WP_DEBUG' ) && (bool) constant( 'WP_DEBUG' );
 
         GlobalErrorHandler::instance()
             ->bootstrap([
@@ -94,7 +88,6 @@ class WordPressEnvironment extends Environment {
             ])
             ->registerHandlers();
 
-        static::$envProvider    = $this;
         /** @var \wpdb $wpdb */
         $wpdb               = $GLOBALS['wpdb'] ?? null;
         $repo_path          = WP_CONTENT_DIR;
@@ -138,8 +131,8 @@ class WordPressEnvironment extends Environment {
      * {@inheritdoc}
      */
     public static function boot() : void {
-        if ( null === static::$instance ) {
-            static::$instance = new static();
+        if ( ! isset( static::$envProvider ) ) {
+            static::$envProvider = new static();
         }
     }
 

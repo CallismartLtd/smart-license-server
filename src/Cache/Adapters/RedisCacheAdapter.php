@@ -93,18 +93,17 @@ class RedisCacheAdapter implements CacheAdapterInterface {
         }
 
         try {
-            $client = new Redis();
-            $client->connect( $this->hostname, $this->port );
+            $this->redis = new Redis();
+            $this->redis->connect( $this->hostname, $this->port );
 
             if ( $this->password !== '' ) {
-                $client->auth( $this->password );
+                $this->redis->auth( $this->password );
             }
 
             if ( $this->database !== 0 ) {
-                $client->select( $this->database );
+                $this->redis->select( $this->database );
             }
 
-            $this->redis = $client;
             return true;
         } catch ( RedisException ) {
             $this->redis = null;
@@ -119,12 +118,12 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      *
      * @return bool
      */
-    protected function is_connected(): bool {
+    public function is_active(): bool {
         if ( ! isset( $this->redis ) ) {
             $this->connect();
         }
         
-        return $this->redis instanceof Redis;
+        return ( $this->redis instanceof Redis );
     }
 
     /*
@@ -159,7 +158,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      * @return mixed|false
      */
     public function get( string $key ): mixed {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -181,7 +180,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function set( string $key, mixed $value, int $ttl = 0 ): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -204,7 +203,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function delete( string $key ): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -222,7 +221,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function has( string $key ): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -242,7 +241,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function clear(): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -368,7 +367,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
      * @return CacheStats
      */
     public function get_stats(): CacheStats {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return new CacheStats();
         }
 

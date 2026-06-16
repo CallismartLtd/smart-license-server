@@ -218,8 +218,8 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
             return;
         }
 
-        // Execute — catch every Throwable so one bad command cannot
-        // kill the session.
+        // Execute — catch every Throwable so one 
+        // bad command cannot kill the session.
         try {
             ( new $class() )->execute( $args );
         } catch ( \Throwable $e ) {
@@ -229,6 +229,13 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
             );
 
             $this->print_error( $message );
+        } finally {
+            // Drop connections to free up resources.
+            $db = smliser_db();
+
+            if ( $db->is_connected() ) {
+                $db->close();
+            }
         }
     }
 
@@ -240,12 +247,6 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
 
     /**
      * Split a raw input line into an array of argument tokens.
-     *
-     * Respects single and double quoted strings so a value like
-     * "my plugin" is preserved as one token. Escape sequences are
-     * not processed — this matches the behaviour of most CLI tools
-     * and is sufficient for the argument patterns used by existing
-     * commands.
      *
      * Examples:
      *   'app list --type=plugin'           → ['app', 'list', '--type=plugin']
@@ -291,6 +292,12 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
 
         if ( $current !== '' ) {
             $tokens[] = $current;
+        }
+
+        // Security Check: If we finished the loop but are still "in_quote", 
+        // the user provided a malformed string. You might want to warn them.
+        if ( $in_quote !== null ) {
+            $this->print_error( "Warning: Unclosed string quote detected." );
         }
 
         return $tokens;

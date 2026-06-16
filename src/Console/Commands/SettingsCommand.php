@@ -81,11 +81,10 @@ class SettingsCommand implements CommandInterface {
      * 
      * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function handle_set( array $args ) : void {
+    protected function handle_set( array $args ) : void {
         $opts   = $this->parse_options( $args );
         $name   = $opts['name'] ?? null;
         $value  = $opts['value'] ?? null;
-        var_dump( $opts ); return;
 
         if ( empty( $name ) ) {
             $this->error( 'Usage: smliser settings set --name=option_name --value=option_value' );
@@ -109,7 +108,7 @@ class SettingsCommand implements CommandInterface {
      *
      * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function handle_get( array $args  ): void {
+    protected function handle_get( array $args  ): void {
         $key = $args[0] ?? null;
 
         if ( empty( $key ) || is_array( $key ) || str_starts_with( $key, '--' ) ) {
@@ -117,24 +116,14 @@ class SettingsCommand implements CommandInterface {
             return;
         }
 
-        $value  = smliser_settings()->get( $key, null, true );
-        $value  = Format::decode( $value );
-
-
-        if ( ! is_scalar( $value ) ) {
-            $value      = is_object( $value ) ? get_object_vars( $value ) : $value;
-            $formatted  = is_array( $value ) 
-            ? sprintf( 'Array [%s]', Format::implode_deep( $value ) ) : 
-            sprintf( 'NULL' );
-        } else {
-            $formatted  = is_bool( $value ) ? sprintf( '%s', $value ? 'TRUE' : 'FALSE' ) : $value;
-        }
+        $value      = smliser_settings()->get( $key, null, true );
+        $formatted  = $this->format_option_value( $value );
 
         $this->info( "Settings value for [{$key}]:" );
         $this->table(
             ['Option Name', 'Option Value'],
             [
-                [$key, $formatted]
+                [Format::truncate( $key, 35 ), $formatted]
             ]
         );
     }
@@ -144,7 +133,7 @@ class SettingsCommand implements CommandInterface {
      *
      * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function handle_delete( array $args ): void {
+    protected function handle_delete( array $args ): void {
         $key = $args[0] ?? null;
 
         if ( empty( $key ) || is_array( $key ) || str_starts_with( $key, '--' ) ) {
@@ -168,11 +157,11 @@ class SettingsCommand implements CommandInterface {
      * Usage:
      *   smliser settings list --page=1 --limit=20
      */
-    private function handle_list( array $args ): void {
+    protected function handle_list( array $args ): void {
 
         $opts  = $this->parse_options( $args );
         $page  = isset( $opts['page'] ) ? (int) $opts['page'] : 1;
-        $limit = isset( $opts['limit'] ) ? (int) $opts['limit'] : 20;
+        $limit = isset( $opts['limit'] ) ? (int) $opts['limit'] : 30;
 
         $this->start_timer();
 
@@ -186,12 +175,7 @@ class SettingsCommand implements CommandInterface {
         $rows = [];
 
         foreach ( $results as $key => $value ) {
-            $rows[] = [
-                $key,
-                is_scalar( $value )
-                    ? (string) $value
-                    : json_encode( $value )
-            ];
+            $rows[] = [ Format::truncate( $key, 35 ), $this->format_option_value( $value ) ];
         }
 
         $this->table(
@@ -208,7 +192,7 @@ class SettingsCommand implements CommandInterface {
      * Usage:
      *   smliser settings search --query="license" --page=1 --limit=20
      */
-    private function handle_search( array $args ): void {
+    protected function handle_search( array $args ): void {
 
         $opts   = $this->parse_options( $args );
         $query  = $opts['query'] ?? null;
@@ -232,12 +216,7 @@ class SettingsCommand implements CommandInterface {
         $rows = [];
 
         foreach ( $results as $key => $value ) {
-            $rows[] = [
-                $key,
-                is_scalar( $value )
-                    ? (string) $value
-                    : json_encode( $value )
-            ];
+            $rows[] = [ Format::truncate( $key, 35 ), $this->format_option_value( $value ) ];
         }
 
         $this->info( "Search results for [{$query}]:" );
@@ -253,7 +232,7 @@ class SettingsCommand implements CommandInterface {
     /**
      * Show the active adapter name and quick usage hint.
      */
-    private function handle_default(): void {
+    protected function handle_default(): void {
         $this->info( 'Active Settings Adapter: ' . get_class( smliser_settings()->get_adapter() ) );
         $this->newline();
         $this->line( 'Run `smliser settings help` to see available subcommands.' );
@@ -262,7 +241,7 @@ class SettingsCommand implements CommandInterface {
     /**
      * Print help for the settings command.
      */
-    private function handle_help(): void {
+    protected function handle_help(): void {
         $this->info( 'Settings Command' );
         $this->newline();
         $this->line( 'Usage:' );
@@ -276,9 +255,51 @@ class SettingsCommand implements CommandInterface {
      *
      * @param string $subcommand
      */
-    private function handle_unknown( string $subcommand ): void {
+    protected function handle_unknown( string $subcommand ): void {
         $this->error( "Unknown subcommand: {$subcommand}" );
         $this->newline();
         $this->handle_help();
+    }
+
+    /*
+    |--------------------------------------------
+    | FORMATTING
+    |--------------------------------------------
+    */
+
+    /**
+     * Maximum display length for an option value in a table cell.
+     */
+    private const VALUE_DISPLAY_LENGTH = 60;
+
+    /**
+     * Format an option value for table display.
+     *
+     * Handles all PHP types and keeps the output within
+     * VALUE_DISPLAY_LENGTH characters to prevent table overflow.
+     *
+     * @param mixed $value Raw value from the settings store.
+     * @return string Display-safe string.
+     */
+    private function format_option_value( mixed $value ): string {
+        if ( is_null( $value ) ) {
+            return 'NULL';
+        }
+
+        if ( is_bool( $value ) ) {
+            return $value ? 'TRUE' : 'FALSE';
+        }
+
+        if ( is_scalar( $value ) ) {
+            return Format::truncate( (string) $value, self::VALUE_DISPLAY_LENGTH );
+        }
+
+        if ( is_object( $value ) ) {
+            $value = get_object_vars( $value );
+        }
+
+        // Array (or object cast to array).
+        $flat = Format::implode_deep( $value );
+        return Format::truncate( $flat, self::VALUE_DISPLAY_LENGTH );
     }
 }

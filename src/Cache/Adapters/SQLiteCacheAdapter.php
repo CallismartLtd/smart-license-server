@@ -30,7 +30,7 @@ use SQLite3Stmt;
  *   get/set/delete/has reuse the same SQLite3Stmt objects.
  * - Probabilistic pruning (1% of reads rather than writes) amortises the
  *   cost of the cleanup DELETE across the workload without delaying writes.
- * - connect() only runs once per instance — is_connected() gates everything
+ * - connect() only runs once per instance — is_active() gates everything
  *   with a fast isset() check on subsequent calls.
  *
  * ## Stats design — atomic, race-free, zero hot-path cost
@@ -178,7 +178,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @return mixed|false
      */
     public function get( string $key ): mixed {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             $this->record_miss();
             return false;
         }
@@ -234,7 +234,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function has( string $key ): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             $this->record_miss();
             return false;
         }
@@ -292,7 +292,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function set( string $key, mixed $value, int $ttl = 0 ): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -335,7 +335,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @return bool         True if a row was deleted.
      */
     public function delete( string $key ): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -371,7 +371,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function clear(): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -397,7 +397,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @return int Number of rows deleted.
      */
     public function prune_expired(): int {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return 0;
         }
 
@@ -433,7 +433,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @return CacheStats
      */
     public function get_stats(): CacheStats {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return new CacheStats();
         }
 
@@ -835,10 +835,11 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         return $this->stmts[ $label ];
     }
 
-    private function is_connected(): bool {
+    public function is_active() : bool {
         if ( isset( $this->db ) ) {
             return true;
         }
+        
         $this->connect();
         return isset( $this->db );
     }

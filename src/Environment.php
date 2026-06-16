@@ -385,7 +385,7 @@ abstract class Environment implements EnvironmentProviderInterface {
             'filesystem_adapter'    => 'filesystemAdapter',
             'cache_adapter'         => 'cacheAdapter',
             'settings_provider'     => 'settingsStorage',
-            // 'database_adapter'      => 'dbadapter',
+            'database_adapter'      => 'dbadapter',
             'rest_api_provider'     => 'restProvider',
             'http_client'           => 'httpClient',
             'admin_menu_config'     => 'adminDashboardRegistry',
@@ -770,7 +770,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Sets up the global database adapter
      */
-    protected function setGlobalDBAdapter() : void {
+    public function setGlobalDBAdapter() : void {
         if ( ! isset( $this->dbadapter ) ) {
             if ( ! isset( $this->dbConfig ) ) {
                 throw new EnvironmentBootstrapException( 'missing_db_config' );
@@ -808,7 +808,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Sets up the global filesystem adapter
      */
-    protected function setGlobalFileSystemAdapter() : void {
+    public function setGlobalFileSystemAdapter() : void {
 
         if ( ! isset( $this->filesystemAdapter ) ) {
             $this->filesystemAdapter = new DirectFileSystem;
@@ -818,9 +818,15 @@ abstract class Environment implements EnvironmentProviderInterface {
     }
 
     /**
-     * Sets up the global cache adapter
+     * Sets up the global cache adapter.
+     * 
+     * @param bool $force Whether to force reloading the cache provider.
      */
-    protected function setGlobalCacheAdapter() : void {
+    public function setGlobalCacheAdapter( bool $force = false ) : void {
+
+        if ( $force ) {
+            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings )->get_adapter();
+        }
 
         if ( ! isset( $this->cacheAdapter ) ) {
             $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings )->get_adapter();
@@ -833,7 +839,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Sets up the global settings adapter
      */
-    protected function setGlobalSettingsAdapter() : void {
+    public function setGlobalSettingsAdapter() : void {
         if ( ! isset( $this->settingsStorage ) ) {
             $this->settingsStorage = new Options( $this->database );
         }
@@ -844,7 +850,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Sets up the global mailing service to use the default provider.
      */
-    protected function setGlobalMailingAdapter() : void {
+    public function setGlobalMailingAdapter() : void {
         // Instantiate the email registry with storage.
         $registry       = $this->emailProviders();
         $this->mailer   = new Mailer( $registry->get_provider() );
@@ -861,7 +867,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Does not override adapter or worker instances already set by the
      * environment (e.g. a test environment injecting a mock worker).
      */
-    protected function setGlobalQueueAdapter(): void {
+    public function setGlobalQueueAdapter(): void {
         if ( ! isset( $this->job_queue ) ) {
             $this->job_queue = new JobQueue( new DatabaseJobStorageAdapter( $this->database ) );
         }

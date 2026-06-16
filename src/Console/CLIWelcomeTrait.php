@@ -16,11 +16,6 @@ trait CLIWelcomeTrait {
     use CLIAwareTrait;
 
     /**
-     * Input tokens that end the session.
-     */
-    private const EXIT_TOKENS = [ 'exit', 'quit', 'q' ];
-
-    /**
      * ASCII logo for Smart License Server
      */
     public const ASCII_LOGO = <<<ASCII
@@ -46,19 +41,6 @@ ASCII;
         $this->line( 'Author: ' . $this->colorize( static::ANSI_CYAN, $author ) );
         $this->newline();
         $this->print_system_info();
-    }
-
-    /**
-     * Print the welcome banner at the start of an interactive session
-     */
-    private function print_banner(): void {
-        $quit_tokens = implode( '", "', self::EXIT_TOKENS );
-
-        echo PHP_EOL;
-        echo self::ASCII_LOGO . PHP_EOL;
-        echo PHP_EOL;
-        echo sprintf( 'Type "help" to list commands. Type "%s" to quit.', $quit_tokens ) . PHP_EOL;
-        echo PHP_EOL;
     }
 
     /**

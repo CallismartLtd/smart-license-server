@@ -235,4 +235,11 @@ class WPCacheAdapter implements CacheAdapterInterface {
             return false;
         }
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function is_active() : bool {
+        return function_exists( 'wp_cache_set' );
+    }
 }

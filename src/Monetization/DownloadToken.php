@@ -385,7 +385,7 @@ class DownloadToken {
 
         $parts = explode('.', $decoded, 2);
         if ( count( $parts ) !== 2 ) {
-            throw new Exception('download_token_invalid', 'Malformed token', ['status' => 400]);
+            throw new Exception('download_token_invalid', 'Malformed download token.', ['status' => 400]);
         }
 
         [$encoded_payload, $signature] = $parts;
@@ -393,21 +393,21 @@ class DownloadToken {
         $secret = static::derive_key();
 
         if ( ! hash_equals( hash_hmac( 'sha256', $encoded_payload, $secret ), $signature ) ) {
-            throw new Exception( 'download_token_invalid', 'Invalid token signature', ['status' => 403] );
+            throw new Exception( 'download_token_invalid', 'Invalid download token signature.', ['status' => 403] );
         }
 
         $payload = json_decode( $encoded_payload, true );
         if ( ! $payload || empty( $payload['token'] ) ) {
-            throw new Exception( 'download_token_invalid', 'Invalid payload', ['status' => 400] );
+            throw new Exception( 'download_token_invalid', 'Invalid download token payload.', ['status' => 400] );
         }
 
         $static = static::get_by_token( hash_hmac( 'sha256', $payload['token'], $secret ) );
         if ( ! $static ) {
-            throw new Exception( 'download_token_invalid', 'Token not found', ['status' => 404] );
+            throw new Exception( 'download_token_invalid', 'Download token record not found.', ['status' => 404] );
         }
 
         if ( $static->is_expired() ) {
-            throw new Exception( 'download_token_expired', 'Token has expired', ['status' => 403] );
+            throw new Exception( 'download_token_expired', 'Download token has expired.', ['status' => 403] );
         }
 
         $app_type   = $app->get_type();
@@ -418,7 +418,7 @@ class DownloadToken {
         $requested_app_prop = sprintf( '%s/%s', $app_type, $app_slug );
 
         if ( ! \hash_equals( $token_app_prop, $requested_app_prop ) ) {
-            throw new Exception( 'download_token_invalid', 'Token does not match requested app', ['status' => 403] );
+            throw new Exception( 'download_token_invalid', 'Download token does not match requested app.', ['status' => 403] );
         }
 
         return $static;

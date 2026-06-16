@@ -260,4 +260,11 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
             );
         }
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function is_active() : bool {
+        return true;
+    }
 }

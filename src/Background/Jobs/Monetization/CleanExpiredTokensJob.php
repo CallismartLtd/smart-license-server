@@ -20,6 +20,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Monetization;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 
 /**
@@ -53,14 +54,11 @@ class CleanExpiredTokensJob implements JobHandlerInterface {
      * @return array{deleted: int}
      */
     public function handle( array $payload = [] ): array {
-        $db     = smliser_db();
         $sql    = \smliserQueryBuilder()
             ->delete( SMLISER_APP_DOWNLOAD_TOKEN_TABLE )
             ->where( 'expiry', '<', \time() );
-        $affected   = (int) $db->transactional(
-            function() use( $db, $sql ) {
-                return $db->execute( $sql->build(), $sql->get_bindings() );
-            }
+        $affected   = (int) smliser_db()->transactional( fn( Database $db ) => $db
+            ->execute( $sql->build(), $sql->get_bindings() )
         );
         
         return [ 'deleted' => $affected ];

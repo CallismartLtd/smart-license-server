@@ -89,6 +89,7 @@ class CacheCommand implements CommandInterface {
         $stats = $cache->get_stats();
 
         $this->info( 'Cache Engine: ' . $cache->get_name() );
+        $this->info( 'Connection status: ' . ( $cache->is_active() ? 'Connected' : 'Not Connected' ) );
         $this->newline();
 
         $this->table(
@@ -195,13 +196,11 @@ class CacheCommand implements CommandInterface {
         $success    = CacheAdapterRegistry::instance()->set_default_adapter( $adapter_id );
 
         if ( $success ) {
+            smliser_envProvider()->setGlobalCacheAdapter( true );
             $adapter_class  = CacheAdapterRegistry::instance()->get( $adapter_id );
             $adapter_name   = $adapter_class ? $adapter_class::get_name() : $adapter_id;
             $message        = sprintf( 'Now using %s.', $adapter_name );
 
-            if( \is_interactive_shell() ) {
-                $message .= ' Please restart CLI to effect changes.';
-            }
             $this->success( $message );
         } else {
             $this->error( 'Unable to set new adapter.' );

@@ -257,4 +257,11 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
             );
         }
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function is_active() : bool {
+        return \apcu_enabled();
+    }
 }

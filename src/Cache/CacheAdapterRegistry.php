@@ -70,7 +70,6 @@ class CacheAdapterRegistry extends AbstractRegistry {
      */
     private function __construct( Settings $settings ) {
         $this->settings = $settings;
-        // $this->load_core();
     }
 
     /*
@@ -143,7 +142,7 @@ class CacheAdapterRegistry extends AbstractRegistry {
      *
      * @param string $adapter_id
      * @return bool True if saved successfully.
-     * @throws InvalidArgumentException If the adapter is not registered.
+     * @throws EnvironmentBootstrapException If the adapter is not registered.
      */
     public static function set_default_adapter( string $adapter_id ): bool {
         if ( ! static::instance()->has( $adapter_id ) ) {

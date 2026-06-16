@@ -92,7 +92,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      *
      * @return bool
      */
-    protected function is_connected(): bool {
+    public function is_active(): bool {
         if ( $this->memcached === null ) {
             $this->connect();
         }
@@ -131,7 +131,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return mixed|false
      */
     public function get( string $key ): mixed {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -151,7 +151,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function set( string $key, mixed $value, int $ttl = 0 ): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -165,7 +165,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function delete( string $key ): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -182,7 +182,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function has( string $key ): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -197,7 +197,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return bool
      */
     public function clear(): bool {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return false;
         }
 
@@ -300,7 +300,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return CacheStats
      */
     public function get_stats(): CacheStats {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return new CacheStats();
         }
 
@@ -369,7 +369,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
      * @return int
      */
     private function get_client_connections(): int {
-        if ( ! $this->is_connected() ) {
+        if ( ! $this->is_active() ) {
             return 0;
         }
 
