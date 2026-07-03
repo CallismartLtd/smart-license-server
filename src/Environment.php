@@ -415,8 +415,6 @@ abstract class Environment implements EnvironmentProviderInterface {
         EventServiceProvider::instance()->boot();
         smliser_dispatch_event( new \SmartLicenseServer\Events\Bootstrap\EnvironmentBooting() );
 
-        // Auto provisions.
-
         if ( ! isset( $this->database ) ) {
             $this->setGlobalDBAdapter();
 
@@ -776,27 +774,21 @@ abstract class Environment implements EnvironmentProviderInterface {
                 throw new EnvironmentBootstrapException( 'missing_db_config' );
             }
 
-            $config = $this->dbConfig;
+            $adapter    = match( $this->dbConfig->driver ) {
+                'mysql'     => MysqliAdapter::class,
+                'sqlite'    => SqliteAdapter::class,
+                'pgsql'     => PostgresAdapter::class,
+                default     => PdoAdapter::class
 
-            /** @var array<class-string<DatabaseAdapterInterface>, bool> $adapters */
-            $adapters   = [
-                MysqliAdapter::class    => 'mysql' === $config->driver && class_exists( mysqli::class ),
-                SqliteAdapter::class    => 'sqlite' === $config->driver && class_exists( SQLite3::class ),
-                PostgresAdapter::class  => 'pgsql' === $config->driver && \extension_loaded( 'pgsql' ),
-                PdoAdapter::class       => class_exists( PDO::class ) && in_array( $config->driver, PDO::getAvailableDrivers() ),
-            ];
+            };
 
-            foreach( $adapters as $adapter_class => $is_supported ) {
-                if ( $is_supported ) {
-                    $this->dbadapter = new $adapter_class( $config );
-                    break;
-                }
-            }
+            $this->dbadapter    = new $adapter( $this->dbConfig );
+            
 
             if ( ! isset( $this->dbadapter ) ) {
                 throw new EnvironmentBootstrapException(
                     'no_db_adapter_found',
-                    sprintf( 'No supported database adapter for "%s" driver.', $config->driver )
+                    sprintf( 'No supported database adapter for "%s" driver.', $this->dbConfig->driver )
                     
                 ); 
             }          
