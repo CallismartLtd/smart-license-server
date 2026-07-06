@@ -1,7 +1,7 @@
 {
-    "name": "callismartltd/smart-license-server",
-    "description": "Smart License Server with modern SQL constraint management.",
-    "license": "GPL-3.0-or-later",
+    "name": "callismart/smart-license-server",
+    "description": "A PHP, database-agnostic application for privately hosting, licensing, updating, and distributing custom software, WordPress plugins, and themes.",
+    "license": "MIT",
     "authors": [
         {
             "name": "Callistus Nwachukwu",

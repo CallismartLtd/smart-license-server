@@ -38,7 +38,12 @@ It ships with a UI and tooling to monitor app usage and licensing, monetize your
 - **License management** — issue, validate, and revoke licenses for your software, plugins, and themes.
 - **Update & distribution control** — privately host and serve updates for your own apps, WP plugins, and themes.
 - **Usage monitoring** — a built-in UI to track app usage and licensing activity.
-- **Monetization-ready** — licensing is decoupled from any specific payment platform, so you can monetize through whichever platform you already use.
+- **Monetization-ready** — includes a built-in WooCommerce provider, with a pluggable interface for connecting other monetization platforms.
+- **Client dashboard** — a dedicated portal for your customers with its own signup, login, password reset, and two-factor authentication.
+- **Role-based access control** — fine-grained roles and capabilities govern what admins, organization members, and service accounts can do.
+- **Multi-tenant organizations** — group users into organizations with their own members and ownership boundaries.
+- **Background job processing** — a queue, worker, and scheduler handle emails, notifications, analytics pruning, and other async work without blocking requests.
+- **Versioned REST API** — a dedicated, versioned API layer for licenses, hosted apps, and bulk messaging.
 - **Pluggable email delivery** — 8 supported providers out of the box.
 - **Pluggable caching layer** — 5 supported cache adapters out of the box.
 - **Modern PHP** — built for PHP 8.4+, including PHP 8.5.
