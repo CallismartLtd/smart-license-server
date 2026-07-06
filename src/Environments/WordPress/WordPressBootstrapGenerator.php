@@ -450,6 +450,4 @@ class WordPressBootstrapGenerator {
 	}
 }
 
-// Instantiate and run.
-$generator = new WordPressBootstrapGenerator();
-exit( $generator->run() );
+exit( ( new WordPressBootstrapGenerator() )->run() );
