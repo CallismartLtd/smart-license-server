@@ -42,7 +42,7 @@ class TestEnvironment extends Environment {
     */
 
     private function loadDotEnv(): void {
-        (new DotEnv(SMLISER_ROOT))->load();
+        ( new DotEnv( SMLISER_ROOT ) )->load();
     }
 
     private function setProps(): void {
@@ -97,26 +97,26 @@ class TestEnvironment extends Environment {
     |----------------------
     */
 
-    public static function url(string $path = '', array $qv = []): URL {
-        return (new URL(''))
-            ->append_path($path)
-            ->add_query_params($qv);
+    public static function url( string $path = '', array $qv = [] ): URL {
+        return ( new URL( '' ) )
+            ->append_path( $path )
+            ->add_query_params( $qv );
     }
 
-    public static function adminUrl(string $path = '', array $qv = []): URL {
-        return static::url($path, $qv);
+    public static function adminUrl( string $path = '', array $qv = [] ): URL {
+        return static::url( $path, $qv );
     }
 
-    public static function restAPIUrl(string $path = '', array $qv = []): URL {
+    public static function restAPIUrl( string $path = '', array $qv = [] ): URL {
         $namespace = static::$envProvider->restProvider()->namespace();
 
-        return static::url($namespace, $qv)
-            ->append_path($path);
+        return static::url( $namespace, $qv )
+            ->append_path( $path );
     }
 
-    public static function assetsUrl(string $path = '', $params = []): URL {
-        return static::url('assets', $params)
-            ->append_path($path);
+    public static function assetsUrl( string $path = '', $params = [] ): URL {
+        return static::url( 'assets', $params )
+            ->append_path( $path );
     }
 
     public function check_filesystem_errors(): void {}
