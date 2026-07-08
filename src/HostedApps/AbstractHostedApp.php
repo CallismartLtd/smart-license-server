@@ -936,7 +936,8 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
             if ( ! \is_callable( [$this, $method] ) ) {
                 continue;
             }
-            $data[$key] = $this->$method();
+
+            $data[$key] = (string) $this->$method();
         }
 
         $data['updated_at'] = $now->format( 'Y-m-d H:i:s' );

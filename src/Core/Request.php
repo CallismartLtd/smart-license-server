@@ -279,7 +279,7 @@ class Request {
     /**
      * Magic setter.
      */
-    public function __set( string $name, $value ) {
+    public function __set( string $name, mixed $value ) {
         $this->set( $name, $value );
     }
 
@@ -393,7 +393,7 @@ class Request {
      * @return static
      */
     public function remove( string $parameter ): static {
-        unset( $this->params[ $parameter ] );
+        unset( $this->params[ $parameter ], $this->sanitized_params[ $parameter] );
         return $this;
     }
 

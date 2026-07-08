@@ -15,6 +15,7 @@
 
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
@@ -96,7 +97,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                 $count     = HostedApplicationService::count_apps(
                     array(
                         'status' => $k,
-                        'types'  => $type,
+                        'types'  => $type ?? HostedAppsRegistry::instance()->app_types(),
                     )
                 );
                 ?>
@@ -125,7 +126,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
             <?php if ( ! $current_url->has_query_param( 'status' ) ) :
                 $type_name  = $type ? $type : 'application';
                 $message    = sprintf( 
-                    'No app found in the repository, upload your first %1$s <a href="%3$s">here</a>.',
+                    'No app found in the repository, upload new %1$s <a href="%3$s">here</a>.',
                     escHtml( $type_name ), 
                     escHtml( $status ?? '' ),
                     esc_url( $add_url->get_href() )

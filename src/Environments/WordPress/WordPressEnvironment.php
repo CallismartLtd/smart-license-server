@@ -12,7 +12,6 @@ use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\WPCLIRunner;
-use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use Callismart\DBPrism\Adapters\WPDBAdapter;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
@@ -76,6 +75,8 @@ class WordPressEnvironment extends Environment {
      * Bootstrap the class properties.
      */
     private function setProps() : void {
+        static::$envProvider = $this;
+        
         $debug_mode = defined( 'WP_DEBUG' ) && (bool) constant( 'WP_DEBUG' );
 
         GlobalErrorHandler::instance()
@@ -104,22 +105,9 @@ class WordPressEnvironment extends Environment {
         $identity_provider  = new IdentityService();        
 
         $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
-        'filesystem_adapter', 'cache_adapter', 'settings_provider',
-        'rest_api_provider', 'secret', 'identity_provider', 'database_adapter', 'debug_mode', 'salt'
-        
+            'filesystem_adapter', 'cache_adapter', 'settings_provider', 'rest_api_provider',
+            'secret', 'identity_provider', 'database_adapter', 'debug_mode', 'salt'
         );
-
-        // @TODO: remove.
-        $this->dbConfig = new DBConfigDTO([
-            'driver'    => 'mysql',
-            'host'      => DB_HOST,
-            'port'      => 3306,
-            'dbname'    => DB_NAME,
-            'username'  => DB_USER,
-            'password'  => DB_PASSWORD,
-            'charset'   => DB_CHARSET,
-            'path'      => ABSPATH
-        ]);
         
         $this->setup( $env );
         
@@ -132,7 +120,7 @@ class WordPressEnvironment extends Environment {
      */
     public static function boot() : void {
         if ( ! isset( static::$envProvider ) ) {
-            static::$envProvider = new static();
+            new static();
         }
     }
 

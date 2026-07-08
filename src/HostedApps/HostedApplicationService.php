@@ -404,6 +404,7 @@ class HostedApplicationService {
         $types  = array_filter( (array) $args['types'] );
     
         $key   = self::make_cache_key( __METHOD__, compact( 'status', 'types' ) );
+        /** @var int|false $count */
         $count = self::cache_get( $key );
     
         if ( false === $count ) {
@@ -416,8 +417,9 @@ class HostedApplicationService {
             $db = smliser_db();
     
             if ( 1 === count( $sql_parts ) ) {
-                $count_sql = ( clone $sql_parts[0] )->select( 'COUNT(*) as total_records' );
-                $count     = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
+                $count_sql  = $sql_parts[0]->select( 'COUNT(*) as total_records' );
+                $result     = $db->get_row( $count_sql->build(), $count_sql->get_bindings() );
+                $count      = (int) $result['total_records'] ?? 0;
             } else {
                 $union_sql = static::build_union_query( $sql_parts );
                 $count_sql = ( clone $union_sql )->select( 'COUNT(*) as total_records' )->as( 'app_count' );

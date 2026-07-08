@@ -36,13 +36,13 @@ final class IdentityService extends AbstractIdentityProvider {
      * @return string
      */
     protected function issuer() : string {
-        $adapter = \smliser_settings();
+        $settings = \smliser_settings();
 
-        $inst_id = $adapter->get( 'installation_uuid', false, true );
+        $inst_id = $settings->get( 'installation_uuid', false, true );
 
         if ( empty( $inst_id ) ) {
             $inst_id = \smliser_generate_uuid_v4();
-            $adapter->set( 'installation_uuid', $inst_id, true );
+            $settings->set( 'installation_uuid', $inst_id, true );
         }
 
         return 'urn:smliser:wordpress:' . $inst_id;
@@ -213,14 +213,12 @@ final class IdentityService extends AbstractIdentityProvider {
 
         if ( Guard::has_principal() ) return;
 
-        $wp_user = wp_get_current_user();
-        $issuer = $this->issuer();
+        $wp_user    = wp_get_current_user();
+        $issuer     = $this->issuer();
         $wp_user_id = $wp_user->ID;
-        $actor = $this->find_actor( $issuer, (string) $wp_user_id );
+        $actor      = $this->find_actor( $issuer, (string) $wp_user_id );
 
-        if ( $actor ) {
-            return;
-        }
+        if ( $actor ) return;
 
         $email          = $wp_user->user_email;
         $smliser_user   = User::get_by_email( $email );
@@ -230,23 +228,21 @@ final class IdentityService extends AbstractIdentityProvider {
             return;
         }
 
-        $user = new User;
-        $password_hash = password_hash( wp_generate_password(), PASSWORD_ARGON2ID );
+        $user           = new User;
+        $password_hash  = password_hash( wp_generate_password(), PASSWORD_ARGON2ID );
         $user->set_display_name( $wp_user->display_name )
             ->set_password_hash( $password_hash )
             ->set_status( User::STATUS_ACTIVE )
             ->set_email( $email );
 
-        if ( ! $user->save() ) {
-            return;
-        }
+        if ( ! $user->save() ) return;
         
-        $default_role = DefaultRoles::get( 'system_admin' );
-        $caps = $default_role['capabilities'];
-        $role_slug = $default_role['slug'];
-        $role_label = $default_role['label'];
+        $default_role   = DefaultRoles::get( 'system_admin' );
+        $caps           = $default_role['capabilities'];
+        $role_slug      = $default_role['slug'];
+        $role_label     = $default_role['label'];
         
-        $role = Role::get_by_slug( $role_slug );
+        $role           = Role::get_by_slug( $role_slug );
 
         if ( ! $role ) {
             $role = new Role();
@@ -272,12 +268,9 @@ final class IdentityService extends AbstractIdentityProvider {
             
             $owner_subject = ContextServiceProvider::get_owner_subject( $owner );
             ContextServiceProvider::save_actor_role( $user, $role, $owner_subject );
+            $this->sync_user( $wp_user_id, $user );
 
-        } catch ( \Throwable $th ) {
-            return;
-        }
-
-        $this->sync_user( $wp_user_id, $user );
+        } catch ( \Throwable ) {}
     }
 
     /*

@@ -121,7 +121,7 @@ $total_logs = count( array_filter(
                     <h2>Operations</h2>
                     <p><i class="ti ti-calendar"></i> Last Updated: <?php echo escHtml( $license->get_updated_at()?->format( smliser_datetime_format() ) ?? 'N/A' )?></p>
                     <p><i class="ti ti-calendar"></i> Date Created: <?php echo escHtml( $license->get_created_at()?->format( smliser_datetime_format() ) ?? 'N/A' ) ?></p>
-                    <p><i class="ti ti-apps"></i> App Attribute: <?php echo escHtml( $license->get_app_prop() ) ?></p>
+                    <p><i class="ti ti-apps"></i> App Attribute: <?php echo escHtml( $license->get_app_prop() ?: 'N/A' ) ?></p>
                 </div>
 
             </div>

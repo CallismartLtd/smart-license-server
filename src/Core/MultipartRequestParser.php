@@ -531,7 +531,7 @@ class MultipartRequestParser {
     /**
      * Get statistics.
      *
-     * @return array
+     * @return array{method: string, parsed: bool, bytes_read: string, post_count: int, files_count: int, temp_files: int, limits: array{post_max_size: string, upload_max_filesize: string, max_file_uploads: mixed, memory_limit: string}}
      */
     public function get_stats(): array {
         return [
