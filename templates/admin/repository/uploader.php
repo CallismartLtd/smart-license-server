@@ -5,6 +5,11 @@
  * @author Callistus Nwachukwu
  * @see \SmartLicenseServer\Admin\RepositoryPage::upload_page()
  * @see \SmartLicenseServer\Admin\RepositoryPage::edit_page()
+ * @var \SmartLicenseServer\Core\Request $request
+ * @var array $essential_fields
+ * @var string $type
+ * @var string $type_title
+ * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|unset $app
  */
 
 use SmartLicenseServer\Admin\RepositoryPage;
@@ -14,6 +19,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 $max_upload_size_bytes  = wp_max_upload_size();
 $max_upload_size_mb     = $max_upload_size_bytes / 1024 / 1024;
 $args                   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );
+$is_edit                = 'edit' === smliser_get_query_param( 'tab' );
 
 if ( ! isset( $app ) ) {
     unset(
@@ -41,7 +47,7 @@ if ( ! isset( $app ) ) {
                 <?php endforeach; ?>
             </div>
             <div class="app-uploader-right">
-                <h3>File Upload</h3>
+                <h3><?php printf( 'Upload %s Zip File', $type_title ) ?></h3>
                 <em>Max Upload Size: <?php echo escHtml( $max_upload_size_mb ) . 'MB'; ?></em>
                 <div class="smliser-form-file-row">
                     <input type="file" name="app_zip_file" id="smliser-file-input"  style="display: none;">
@@ -49,8 +55,12 @@ if ( ! isset( $app ) ) {
                         <span>No file selected.</span>
                     </div>
                     <button type="button" class="smliser-upload-btn button">Drag over or click to upload file</button>
-                    <button type="button" class="smliser-file-remove button smliser-hide"><span class="dashicons dashicons-no-alt" title="remove file"></span> Clear</button>
+                    <button type="button" class="smliser-file-remove button smliser-hide"><span class="ti ti-x" title="remove file"></span> Clear</button>
                 </div>
+
+                <?php if ( $is_edit ) : ?>
+                    <em><?php printf( 'Manage other distributable artifacts for this %s <a href="%s">here</a>', $type, smliser_get_current_url()->add_query_param( 'tab', 'edit-artifacts' ) ); ?></em>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -77,8 +87,8 @@ if ( ! isset( $app ) ) {
                                         $asset_name = basename( $url );
                                         $json_data = smliser_safe_json_encode([
                                             'asset_type'    => $key,
-                                            'app_slug'      => $app->get_slug(),
-                                            'app_type'      => $app->get_type(),
+                                            'app_slug'      => isset( $app ) ? $app->get_slug() : '',
+                                            'app_type'      => isset( $app ) ? $app->get_type() : '',
                                             'asset_name'    => $asset_name,
                                             'asset_url'     => $url,
                                             'context'       => 'edit'
@@ -87,22 +97,22 @@ if ( ! isset( $app ) ) {
                                         <div class="app-uploader-image-preview">
                                             <img src="<?php echo esc_url( $url ); ?>" id="<?php echo esc_attr( explode( '.', $asset_name )[0] ); ?>" alt="<?php echo esc_attr( $asset_name ) ?>" loading="lazy" title="<?php echo esc_attr( $asset_name ) ?>">
                                             <div class="app-uploader-image-preview_edit">
-                                                <span class="dashicons dashicons-edit edit-image" data-config="<?php echo urlencode( $json_data ) ?>" data-action="openModal" title="Edit"></span>
-                                                <span class="dashicons dashicons-trash delete-image" data-config="<?php echo urlencode( $json_data ) ?>" data-action="deleteImage" title="Delete"></span>
+                                                <span class="ti ti-edit edit-image" data-config="<?php echo urlencode( $json_data ) ?>" data-action="openModal" title="Edit"></span>
+                                                <span class="ti ti-trash delete-image" data-config="<?php echo urlencode( $json_data ) ?>" data-action="deleteImage" title="Delete"></span>
                                             </div>
                                         </div>
                                     <?php endif; ?>
                                 <?php endforeach; 
                                 $config = smliser_safe_json_encode([
                                     'asset_type'    => $key,
-                                    'app_slug'      => $app->get_slug(),
-                                    'app_type'      => $app->get_type(),
+                                    'app_slug'      => isset( $app ) ? $app->get_slug() : '',
+                                    'app_type'      => isset( $app ) ? $app->get_type() : '',
                                     'context'       => 'add_new'
                                     
                                 ])
                                 ?>    
                                 <div class="smliser-uploader-add-image" data-action="openModal" data-config="<?php echo urlencode( $config ) ?>">
-                                    <span class="dashicons dashicons-plus"></span>
+                                    <span class="ti ti-plus"></span>
                                 </div>             
                             </div>
                         </div>
@@ -114,12 +124,12 @@ if ( ! isset( $app ) ) {
         <button type="submit" class="button authoritatively"><?php printf( 'Save %s', escHtml( $type_title ) ); ?></button>
     </form>
 </div>
-<?php if ( 'edit' === smliser_get_query_param( 'tab' ) ) : ?>
+<?php if ( $is_edit ) : ?>
     <div class="smliser-admin-modal app-asset-uploader hidden" role="dialog" aria-modal="true" aria-labelledby="modal-header" aria-describedby="modal-description">
         <div class="smliser-admin-modal_content">
 
             <span
-                class="dashicons dashicons-dismiss remove-modal"
+                class="ti ti-x remove-modal"
                 title="Close"
                 data-action="closeModal"
                 role="button"
@@ -138,13 +148,13 @@ if ( ! isset( $app ) ) {
                 <!-- {{-- Single-image preview (shown when exactly one image is staged) --}} -->
                 <div class="app-asset-uploader-body_uploaded-asset">
                     <div class="app-asset-uploader-placeholder">
-                        <span class="dashicons dashicons-format-image"></span>
+                        <span class="ti ti-image-in-picture"></span>
                         <p class="app-asset-uploader-placeholder_hint">No image selected</p>
                     </div>
 
                     <div class="app-asset-uploader-uploaded-image">
                         <span
-                            class="dashicons dashicons-dismiss clear-uploaded"
+                            class="ti ti-minus clear-uploaded"
                             title="Clear selected image"
                             data-action="resetModal"
                             role="button"
@@ -160,7 +170,7 @@ if ( ! isset( $app ) ) {
                         id="upload-image"
                         data-action="uploadToRepository"
                     >
-                        <span class="dashicons dashicons-cloud-upload"></span>
+                        <span class="ti ti-cloud-upload"></span>
                         Upload to repository
                     </button>
                 </div>
@@ -191,15 +201,15 @@ if ( ! isset( $app ) ) {
 
                 <div class="app-asset-uploader-buttons-container">
                     <button type="button" class="button smliser-nav-btn" id="upload-from-device" data-action="uploadFromDevice">
-                        <span class="dashicons dashicons-open-folder"></span>
+                        <span class="ti ti-folder-open"></span>
                         Upload from device
                     </button>
                     <button type="button" class="button smliser-nav-btn" id="upload-from-wp" data-action="uploadFromWpGallery">
-                        <span class="dashicons dashicons-format-gallery"></span>
+                        <span class="ti ti-files"></span>
                         Upload from Gallery
                     </button>
                     <button type="button" class="button smliser-nav-btn" id="upload-from-url" data-action="uploadFromUrl">
-                        <span class="dashicons dashicons-admin-links"></span>
+                        <span class="ti ti-link"></span>
                         Upload from URL
                     </button>
                 </div>

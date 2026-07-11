@@ -250,6 +250,14 @@ interface HostedAppsInterface {
     public function get_download_url() : URL;
 
     /**
+     * Get the URL to download an app artifact file.
+     * 
+     * @param string $filename
+     * @return URL
+     */
+    public function get_artifact_url( string $filename ) : URL;
+
+    /**
      * Get the application author.
      * 
      * @return string|array

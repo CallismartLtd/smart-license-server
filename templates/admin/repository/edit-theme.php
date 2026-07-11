@@ -42,7 +42,7 @@ $other_fields   = array(
 
     array(
         'label' => __( 'Tested WordPress Version', 'smliser' ),
-        'input' => 'Use theme style.css file to edit the WordPress version the theme has been tested up to.',
+        'help'  => 'Use theme style.css file to edit the WordPress version the theme has been tested up to.',
         'input' => array(
             'type'  => 'text',
             'name'  => 'app_tested_wp_version',

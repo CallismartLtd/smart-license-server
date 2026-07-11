@@ -195,9 +195,8 @@ function smliser_get_client_dashboard_url_prefix() : string {
  * @return URL
  */
 function smliser_client_dashboard_url( string $path = '', array $params = [] ) : URL {
-    return url( smliser_get_client_dashboard_url_prefix() )
-    ->append_path( $path )
-    ->add_query_params( $params );
+    return url( smliser_get_client_dashboard_url_prefix(), $params )
+    ->append_path( $path );
 }
 
 /**
@@ -250,16 +249,10 @@ function smliser_uploads_url( string $path  = '' ) : URL {
  */
 function smliser_avatar_url( string $filename_hash, string $type ) : URL {
     $type       = smliser_pluralize( str_replace( '_', '-', $type ) );
-    $path       = FileSystemHelper::join_path( 'avatars', $type );
-
-    if ( is_smliser_error( $path ) ) {
-        return new URL( '' );
-    }
-
-    $path       = FileSystemHelper::join_path( $path, $filename_hash );
+    $path       = FileSystemHelper::join_path( 'avatars', $type, $filename_hash );
     $abs_path   = FileSystemHelper::join_path( SMLISER_UPLOADS_DIR, $path );
 
-    if ( is_smliser_error( $path ) || ! FileSystemHelper::is_valid_file( $abs_path ) ) {
+    if ( ! FileSystemHelper::is_valid_file( $abs_path ) ) {
         return new URL( '' );
     }
 
@@ -297,4 +290,52 @@ function smliser_sanitize_url( $url ) : string {
     return ( new URL( $url ) )
     ->sanitize()
     ->url();
+}
+
+/**
+ * Get the download URL for an app type.
+ * 
+ * @param string $type The app type.
+ * @param string $slug The app slug.
+ * 
+ * @return URL
+ */
+function smliser_get_app_download_url( string $type, string $slug ) : URL {
+    $prefix = smliser_get_download_url_prefix();
+    $parts  = [ $prefix, $type, $slug ];
+    $path   = sprintf( '%s.zip', implode( '/', $parts ) );
+
+    return url( $path )->sanitize();
+}
+
+/**
+ * Get the preview/homepage URL of an app.
+ * 
+ * @param string $type The app type.
+ * @param string $slug The app slug.
+ * 
+ * @return URL
+ */
+function smliser_get_app_url( string $type, string $slug ) : URL {
+    $prefix = \smliser_get_repository_url_prefix();
+    $path   = implode( '/', [$prefix, $type, $slug] );
+    
+    return url( $path );
+}
+
+/**
+ * Get app artifact URL.
+ * 
+ * @param string $app_type The app type.
+ * @param string $app_slug The app slug.
+ * @param string $filename The artifact file name 
+ * 
+ * @return URL
+ */
+function smliser_get_app_artifact_url( string $app_type, string $app_slug, string $filename ) : URL {
+    $prefix = smliser_get_download_url_prefix();
+    $parts  = [ $prefix, $app_type, $app_slug, 'artifacts', $filename ];
+    $path   = implode( '/', $parts );
+
+    return url( $path )->sanitize();
 }

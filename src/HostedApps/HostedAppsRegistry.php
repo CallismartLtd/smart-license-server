@@ -277,7 +277,7 @@ class HostedAppsRegistry extends AbstractRegistry {
         $this->core_loaded = true;
     }
 
-    protected function normalize_app_type( string $type ) : string {
+    public function normalize_app_type( string $type ) : string {
         $type = strtolower( $type );
 
         return $type   = match ( $type ) {

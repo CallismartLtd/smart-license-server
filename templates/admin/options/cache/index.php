@@ -10,6 +10,7 @@
  *
  * @package SmartLicenseServer\templates
  * @since   0.2.0
+ * @var \SmartLicenseServer\Core\Request $request
  */
 
 use SmartLicenseServer\Admin\OptionsPage;

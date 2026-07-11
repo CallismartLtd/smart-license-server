@@ -8,11 +8,12 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use Override;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\ThemeRepository;
-use SmartLicenseServer\Utils\CommonQueryTrait;
+use SmartLicenseServer\Utils\Format;
 
 /**
  * Represents a typical theme hosted in the repository.
@@ -110,7 +111,7 @@ class Theme extends AbstractHostedApp {
      * @return URL
      */
     public function get_author_profile() : ?URL {
-        return new URL( $this->author['author_url'] );
+        return new URL( $this->author['author_url'] ?? '' );
     }
 
     /**
@@ -190,6 +191,19 @@ class Theme extends AbstractHostedApp {
     public function set_screenshot_url( string $url ) {
         $this->screenshot_url = $url;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    #[Override]
+    public function set_author( string|array $value ): static {
+        if ( ! is_array( $value ) ) {
+
+            $value  = ['author' => $value];
+        }
+
+        return parent::set_author( $value );
+    }
     
     /**
     |--------------
@@ -243,7 +257,7 @@ class Theme extends AbstractHostedApp {
      * Converts associative array to object of this class.
      * 
      * @param array $result The associative array representing a theme.
-     * @return self
+     * @return static
      */
     public static function from_array( $result ) : static {
         $self = new static();
@@ -263,13 +277,16 @@ class Theme extends AbstractHostedApp {
         $theme_metadata = $repo_class->get_metadata( $self->get_slug() );
         $self->set_version( $theme_metadata['version'] ?? '' );
         $self->set_tags( $theme_metadata['tags'] ?? [] );
+
+        $author = Format::decode( $result['author'] );
+        
         $self->set_author( array(
-            'user_nicename' => $theme_metadata['author_nicename'] ?? '',
-            'profile'       => $theme_metadata['author_profile'] ?? '',
-            'avatar'        => $theme_metadata['author_avatar'] ?? '',
-            'display_name'  => $theme_metadata['author_display_name'] ?? '',
-            'author'        => $theme_metadata['author'] ?? '',
-            'author_url'    => $theme_metadata['author_uri'] ?? '',
+            'user_nicename' => $theme_metadata['author_nicename'] ?? $author['author_nicename'] ?? '',
+            'profile'       => $theme_metadata['author_profile'] ?? $author['author_profile'] ?? '',
+            'avatar'        => $theme_metadata['author_avatar'] ?? $author['author_avatar'] ?? '',
+            'display_name'  => $theme_metadata['author_display_name'] ?? $author['author_display_name'] ?? '',
+            'author'        => $theme_metadata['author'] ?? $author['author'] ?? '',
+            'author_url'    => $theme_metadata['author_uri'] ?? $author['author_url'] ?? '',
         ));
 
         $self->set_author_profile( $theme_metadata['author_profile'] ?? '' );

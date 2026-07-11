@@ -160,9 +160,6 @@ button.smliser-upload-btn {
 
 }
 
-
-
-
 .smliser-form-notice-container {
     background-color: rgba(236, 161, 49, 0.295);
     width: 100%;
@@ -514,13 +511,62 @@ button.smliser-upload-btn {
 }
 
 .smliser-access-control-form,
-.app-uploader-form {
+.app-uploader-form,
+.smliser-app-files-list {
     display: block;
     background-color: #FFFFFF;
     padding: 10px;
     margin: 20px;
     border-radius: 8px;
+}
 
+.smliser-app-files-list ul.smliser-app-artifacts {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+ul.smliser-app-artifacts li.smliser-app-artifacts_item {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: #f1f1f1;
+    min-width: 200px;
+    border-radius: 4px;
+    border: solid #dcdcde 1px;
+    padding: 10px;
+}
+
+.smliser-app-artifacts_item-heading {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.smliser-app-artifacts_item-info {
+    margin: 10px 2px 2px 2px;
+    padding: 10px;
+    background-color: #fff;
+}
+
+.smliser-app-artifacts_item-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.smliser-app-artifacts_item-buttons button {
+    background-color: #fff;
+    color: #333333;
+    cursor: pointer;
+    border: solid #dcdcde 1px;
+    font-size: 16px;
+}
+
+.smliser-app-artifacts_item-info table {
+    text-align: left;
 }
 
 .app-uploader-top-section,

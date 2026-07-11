@@ -165,7 +165,7 @@ class FileRequestController {
 
             $url    = new URL( $asset_url );
 
-            if ( ! $url->is_valid( true ) ) {
+            if ( ! $url->is_valid() ) {
                 throw new FileRequestException( 'malformed_request', 'The provided URL is not valid.' );
             }
             

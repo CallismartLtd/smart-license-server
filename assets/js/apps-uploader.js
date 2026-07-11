@@ -43,6 +43,11 @@ class AppUploader {
         ZIP_DROP_ZONE           : '.smliser-form-file-row',
         ZIP_CLEAR_BTN           : '.smliser-file-remove',
         CLICKABLE_ACTIONS       : '.delete-image, .remove-modal, .clear-uploaded, #upload-image, #upload-from-device, #upload-from-wp, #upload-from-url, .smliser-uploader-add-image, .edit-image',
+        ARTIFACT_UPLOADER       : '.application-uploader-page.artifact-editor',
+        ARTIFACT_ADD_NEW_BTN    : '.smliser-add-new-artifact',
+        ARTIFACT_DELETE_BTN     : '.smliser-delete-artifact',
+        ARTIFACT_EDIT_BTN       : '.smliser-edit-artifact',
+
     });
 
     /*
@@ -77,6 +82,9 @@ class AppUploader {
         this.assetImageUploaderContainer= qs( AppUploader.SELECTORS.IMAGE_UPLOADER_BODY );
         this.imagePreview               = qs( AppUploader.SELECTORS.IMAGE_PREVIEW );
         this.appJsonTextarea            = this.appUploaderForm?.querySelector( AppUploader.SELECTORS.JSON_TEXTAREA );
+
+        // Artifact uploader.
+        this.artifactUploader           = qs( AppUploader.SELECTORS.ARTIFACT_UPLOADER );
     }
 
     /**
@@ -86,6 +94,7 @@ class AppUploader {
         this.currentFiles   = [];   // Supports multiple files
         this.currentConfig  = new Map();
         this.editor         = null;
+        this.artifactModal  = null;
     }
 
     /**
@@ -100,6 +109,10 @@ class AppUploader {
 
         if ( this.appJsonTextarea ) {
             this.#mountJsonEditor();
+        }
+
+        if ( this.artifactUploader ) {
+            this._initArtifactUploader();
         }
     }
 
@@ -121,7 +134,7 @@ class AppUploader {
         const clearBtn      = document.querySelector( AppUploader.SELECTORS.ZIP_CLEAR_BTN );
         const originalText  = fileInfo.textContent;
 
-        fileInput.setAttribute( 'accept', '.zip' );
+        fileInput.setAttribute( 'accept', 'application/zip' );
 
         uploadBtn.addEventListener( 'click', () => fileInput.click() );
 
@@ -171,7 +184,7 @@ class AppUploader {
                     <td>
                         ${ fileSizeMB } MB
                         <span
-                            class="dashicons ${ exceedsLimit ? 'dashicons-no' : 'dashicons-yes' }"
+                            class="ti ti-${ exceedsLimit ? 'x' : 'check' }"
                             style="color: ${ exceedsLimit ? 'red' : 'green' };"
                             title="${ exceedsLimit
                                 ? `File size exceeds the maximum upload limit of ${ maxUploadSize } MB`
@@ -905,13 +918,13 @@ class AppUploader {
             <img src="${ imageUrl }" alt="${ imageName }" title="${ imageName }" id="${imageID}">
             <div class="app-uploader-image-preview_edit">
                 <span
-                    class="dashicons dashicons-edit edit-image"
+                    class="ti ti-edit edit-image"
                     data-config="${ encodeURIComponent( JSON.stringify( configJson ) ) }"
                     data-action="openModal"
                     title="Edit"
                 ></span>
                 <span
-                    class="dashicons dashicons-trash delete-image"
+                    class="ti ti-trash delete-image"
                     data-config="${ encodeURIComponent( JSON.stringify( configJson ) ) }"
                     data-action="deleteImage"
                     title="Delete"
@@ -994,9 +1007,7 @@ class AppUploader {
 
             if ( contentType.includes( 'application/json' ) ) {
                 const body      = await response.json();
-                errorMessage    = body?.result?.message
-                               ?? body?.data?.message
-                               ?? errorMessage;
+                errorMessage    = body?.result?.message ?? body?.data?.message ?? errorMessage;
             } else {
                 errorMessage = await response.text();
             }
@@ -1117,6 +1128,107 @@ class AppUploader {
         });
 
         this.editor.expandAll();
+    }
+
+    /*
+    |----------------------
+    |Artifact Uploader
+    |----------------------
+    */
+
+    /**
+     * Initialize the artifact uploader section.
+     */
+    _initArtifactUploader() {
+        this.artifactUploader.addEventListener( 'click', this._handleArtifactPageClick.bind(this) );
+    }
+
+    /**
+     * Handle click events on the artifact uploads page.
+     * 
+     * @param {MouseEvent} e
+     */
+    async _handleArtifactPageClick( e ) {
+        const clickedBtn    = e.target;
+        const config        = StringUtils.JSONparse( decodeURIComponent( clickedBtn?.getAttribute( 'data-config' ) ?? '' ) );
+
+        if ( clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_ADD_NEW_BTN ) ) {
+            // Open modal for add new artifact.
+            this.openArtifactModal();
+            return;
+
+        }
+
+        if ( clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_EDIT_BTN ) ) {
+            // Open modal to edit artifact.
+            this.openArtifactModal( config );
+            return;
+        }
+
+        const deleteBtn     = clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_DELETE_BTN );
+
+        if ( deleteBtn && await SmliserModal.confirm( 'Are you sure to delete artifact?' ) ) {
+            // Handle artifact deletion.
+            
+        }
+    }
+
+    /**
+     * Open the artifact modal for adding or editing an artifact.
+     * 
+     * @param {Object} config  Optional configuration for editing an existing artifact.
+     */
+    openArtifactModal( config = null ) {
+        if ( ! this.artifactModal ) {
+            const modalBody = document.createElement( 'form' );
+            modalBody.className = 'smliser-artifact-form';
+            modalBody.id = Date.now().toString();
+            modalBody.innerHTML = `
+                <label for="artifact-name" class="smliser-form-label-row">
+                    <span class="smliser-form-label">Artifact File Name:</span>
+                    <input type="text" class="smliser-form-input" id="artifact-name" name="artifact_filename" value="${config?.filename || ''}" required>
+                </label>
+
+                <div class="smliser-form-file-row">
+                    <input type="file" class="smliser-hide artifact-file-input" id="artifact-file" name="artifact_file">
+                    <div class="smliser-file-info">
+                        <span>No file selected.</span>
+                    </div>
+                    <button type="button" class="smliser-upload-btn button">Drag over or click to upload file</button>
+                    <button type="button" class="smliser-file-remove button smliser-hide"><span class="ti ti-x" title="remove file"></span> Clear</button>
+                </div>`;
+
+            const modalFooter       = document.createElement( 'div' );
+            modalFooter.className   = 'smliser-button-container';
+            const saveButton        = document.createElement( 'button' );
+            saveButton.type         = 'submit';
+            saveButton.className    = 'smliser-save-btn button';
+            saveButton.textContent  = 'Save';
+            saveButton.setAttribute( 'form', modalBody.id );
+
+            modalFooter.appendChild( saveButton );
+
+            this.artifactModal = new SmliserModal({
+                title: config ? 'Edit Artifact' : 'Add New Artifact',
+                body: modalBody,
+                width: '90%',
+                footer: modalFooter
+            });
+
+            this.artifactModal.on( 'afterClose', async ( modal ) => {
+                const inputs    = modal.queryAll( 'body', 'input' );
+                inputs.forEach( ( input ) => {
+                    input.value = '';
+                });
+            });
+
+            this.artifactModal.on( 'onSubmit', async ( modal ) => {
+                console.log( modal.target );
+                
+            });
+        }
+
+        this.artifactModal.open();
     }
 }
 

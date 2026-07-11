@@ -48,6 +48,11 @@ class SmliserModal {
             onClose: []
         };
 
+        /**
+         * @var {HTMLElement|null} target - The current event target element.
+         */
+        this.target = null;
+
         this._init();
     }
 
@@ -69,10 +74,6 @@ class SmliserModal {
         this.backdrop = document.createElement('div');
         this.backdrop.className = 'smliser-modal-backdrop';
         this.backdrop.style.zIndex = this.options.zIndex;
-        
-        if (this.options.closeOnBackdropClick) {
-            this.backdrop.addEventListener( 'click', (e) => e.target === this.backdrop && this.close() );
-        }
     }
 
     /**
@@ -193,10 +194,21 @@ class SmliserModal {
             };
         }
 
+        if (this.options.closeOnBackdropClick) {
+            this.backdrop.addEventListener( 'click', (e) => e.target === this.backdrop && this.close() );
+        }
+
         this.backdrop.addEventListener( 'submit', async (e) => {
             e.preventDefault()
-            await this._triggerEvent( 'onSubmit' );
-        })
+            await this._triggerEvent( 'onSubmit', e.target );
+        });
+
+        // Bind click events.
+        this.backdrop.addEventListener( 'click', async (e) => {
+            await this._triggerEvent( 'onClick', e.target );
+        });
+
+
     }
 
     /**
@@ -327,7 +339,7 @@ class SmliserModal {
     async open() {
         if ( this.isOpen ) return this;
         // Trigger beforeOpen event.
-        await this._triggerEvent( 'beforeOpen' );
+        await this._triggerEvent( 'beforeOpen', null );
 
         // Append to body.
         document.body.appendChild( this.backdrop );
@@ -354,7 +366,7 @@ class SmliserModal {
         if (this.options.animation) {
             await this._delay( this.options.animationDuration );
         }
-        await this._triggerEvent( 'afterOpen' );
+        await this._triggerEvent( 'afterOpen', this.backdrop );
         
         return this;
     }
@@ -367,7 +379,7 @@ class SmliserModal {
         if ( ! this.isOpen ) return this;
 
         // Trigger beforeClose event.
-        await this._triggerEvent( 'beforeClose' );
+        await this._triggerEvent( 'beforeClose', this.backdrop );
 
         // Remove open class.
         this.backdrop.classList.remove( 'smliser-modal-open' );
@@ -394,7 +406,7 @@ class SmliserModal {
         }
 
         // Trigger afterClose event.
-        await this._triggerEvent( 'afterClose' );
+        await this._triggerEvent( 'afterClose', null );
 
         return this;
     }
@@ -550,12 +562,17 @@ class SmliserModal {
      * Trigger event.
      * @private
      * @param {string} eventName - Event name
+     * @param {HTMLElement|null} target - The target element that triggered the event
      */
-    async _triggerEvent( eventName ) {
+    async _triggerEvent( eventName, target = null ) {
+
         if ( this.eventHandlers[eventName] ) {
+            this.target = target;
             for ( const handler of this.eventHandlers[eventName] ) {
                 await handler(this);
             }
+
+            this.target = null;
         }
     }
 

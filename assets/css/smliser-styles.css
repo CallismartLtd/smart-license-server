@@ -355,6 +355,7 @@ tr:hover:has(.smliser-edit-link) .smliser-edit-link,
     margin: 10px 5px;
     padding: 5px 10px;
     border-radius: 5px;
+    gap: 4px;
 }
 
 .smliser-bulk-action-select {

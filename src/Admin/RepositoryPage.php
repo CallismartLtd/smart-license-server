@@ -14,8 +14,8 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Monetization\Monetization;
-use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Utils\Format;
 
 use function compact, smliser_render_template;
@@ -46,6 +46,9 @@ class RepositoryPage {
                 break;
             case 'search':
                 self::search_page( $request );
+                break;
+            case 'edit-artifacts':
+                self::edit_app_artifacts( $request );
                 break;
             default:
             self::dashboard( $request );
@@ -215,8 +218,9 @@ class RepositoryPage {
      * The edit page
      */
     private static function edit_page( Request $request ) {
-        $id     = $request->get( 'app_id' );
-        $type   = $request->get( 'type' );
+        $registry   = HostedAppsRegistry::instance();
+        $id         = $request->get( 'app_id' );
+        $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
             echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
@@ -245,9 +249,49 @@ class RepositoryPage {
         $essential_fields   = self::prepare_essential_app_fields( $request, $app );
         $type_title         = ucfirst( $type );
         
-        $vars   = compact( 'type_title', 'app_action', 'request', 'essential_fields', 'type',
-        'app' );
+        $vars   = compact( 'type_title', 'app_action', 'request', 'essential_fields', 'type', 'app' );
         smliser_render_template( "admin.repository.edit-{$type}", $vars );
+    }
+
+    /**
+     * The edit page
+     */
+    private static function edit_app_artifacts( Request $request ) {
+        $registry   = HostedAppsRegistry::instance();
+        $id         = $request->getTyped( 'app_id', 'int', 0 );
+        $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
+    
+        if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
+            return;
+        }
+
+        $app = HostedApplicationService::get_app_by_id( $type, $id );
+        
+        if ( ! $app ) {
+            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repository_url( 'admin' ) ) ) );
+            return;
+        }
+
+        $app_action = array(
+            'title' => 'View App',
+            'label' => 'View App',
+            'url'   => smliser_get_current_url()->add_query_params( 
+                array(
+                    'app_id'    => $app->get_id(), 
+                    'type'      => $app->get_type(),
+                    'tab'       => 'view' 
+                ) 
+            ),
+            'icon'  => 'ti ti-eye'
+        );
+
+        $type_title = ucfirst( $type );
+        $repo_class = $registry->get_app_type_directory_class( $type );
+        $app_files  = $repo_class->get_artifacts( $app->get_slug() );
+        
+        $vars   = compact( 'type_title', 'app_action', 'request', 'type', 'app', 'app_files' );
+        smliser_render_template( "admin.repository.edit-app-files", $vars );
     }
 
     /**
@@ -261,8 +305,6 @@ class RepositoryPage {
             echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
-
-        $file   = \sprintf( '%s/templates/admin/repository/view-%s.php', SMLISER_PATH, $type );
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
 
@@ -524,11 +566,12 @@ class RepositoryPage {
         $app_name   = $app?->get_name() ?? '';
 
         $title  = match( $tab ) {
-            'monetization'  => sprintf( '%s Monetization', $app_type ),
-            'edit'          => sprintf( 'Edit %s: %s', $app_type, $app_name ),
-            'view'          => $app_name,
-            'add-new'       => 'Add New',
-            default         => ''
+            'monetization'      => sprintf( '%s Monetization', $app_type ),
+            'edit'              => sprintf( 'Edit %s: %s', $app_type, $app_name ),
+            'view'              => $app_name,
+            'add-new'           => 'Add New',
+            'edit-artifacts'    => sprintf( '%s Distributable Artifacts', $app_type ),
+            default             => ''
         };
         
         return [

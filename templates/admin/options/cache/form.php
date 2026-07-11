@@ -2,15 +2,17 @@
 /**
  * Individual cache adapter settings template.
  *
- * Variables available from OptionsPage::cache_adapter_settings():
- *   $adapter_name  — string
- *   $adapter_id    — string
- *   $schema         — array<string, array>   field schema from get_settings_schema()
- *   $saved_settings — array<string, mixed>   persisted values keyed by field name
- *   $is_default     — bool
  *
  * @package SmartLicenseServer\templates
  * @since   0.2.0
+ * @var \SmartLicenseServer\Core\Request $request
+ * @var string $adapter_name
+ * @var string $adapter_id
+ * @var array<string, array> $schema
+ * @var array<string, mixed> $saved_settings 
+ * @var bool $is_default
+ * @var object $adapter
+ * @var string $adapter_key
  */
 
 use SmartLicenseServer\Admin\OptionsPage;

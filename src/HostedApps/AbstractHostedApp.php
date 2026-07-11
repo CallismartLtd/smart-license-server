@@ -345,7 +345,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     public function set_author( string|array $value ) : static {
         if ( is_array( $value ) ) {
-            $this->author = array_intersect_key( $value, $this->author );
+            $this->author = \array_merge( (array) $this->author, $value );
         } else {
             $this->author = $value;
         }
@@ -404,29 +404,6 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     public function set_version( ?string $version ) : static {
         $this->version = self::sanitize_text( $version );
-
-        return $this;
-    }
-    /**
-     * Set Download url.
-     * 
-     * @param string|URL $url The download url.
-     */
-    public function set_download_url( string|URL $url = '' ) : static {
-        $url    = ( $url instanceof URL ) ? $url : new URL( $url );
-        
-        if ( $url->is_valid() ) {
-            $this->download_link = $url->sanitize();
-        } else {
-            $prefix = smliser_get_download_url_prefix();
-            $type   = $this->get_type();
-            $slug   = basename( $this->get_slug(), '.zip' );
-
-            $parts  = [ $prefix, $type, $slug ];
-            $path   = sprintf( '%s.zip', implode( '/', $parts ) );
-
-            $this->download_link = url( $path )->sanitize();            
-        }
 
         return $this;
     }
@@ -637,13 +614,6 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     public function get_version() : string {
         return $this->version;
-    }
-
-    /**
-     * Get the download URL for the application.
-     */
-    public function get_download_url() : URL {
-        return $this->download_link;
     }
 
     /**
@@ -937,7 +907,9 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
                 continue;
             }
 
-            $data[$key] = (string) $this->$method();
+            $value  = 'get_author' === $method ? $this->$method( '' ) : $this->$method();
+
+            $data[$key] = is_array( $value ) ? Format::encode( $value, Format::ENCODING_PHP ) : (string) $value;
         }
 
         $data['updated_at'] = $now->format( 'Y-m-d H:i:s' );
@@ -1284,19 +1256,53 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
         return false === \is_smliser_error( $this->save() );
     }
 
+    /*
+    |--------------
+    | URL METHODS
+    |--------------
+    */
+
     /**
-     * Get a sample of download URL for licensed app
+     * Set Download url.
+     * 
+     * @param string|URL $url The download url.
      */
-    public function monetized_url_sample() {
-        return sprintf( '%s?download_token=[TOKEN]', $this->get_download_url() );
+    public function set_download_url( string|URL $url = '' ) : static {
+        $url    = ( $url instanceof URL ) ? $url : new URL( $url );
+        
+        if ( $url->is_valid() ) {
+            $this->download_link = $url->sanitize();
+        } else {
+            $slug   = basename( $this->get_slug(), '.zip' );
+            $this->download_link = \smliser_get_app_download_url( $this->get_type(), $slug );            
+        }
+
+        return $this;
     }
 
-    /*
-    |------------------------
-    | SHARED UTILITY METHODS
-    |------------------------
-    */
-        
+    /**
+     * Get the download URL for the application.
+     */
+    public function get_download_url() : URL {
+        return $this->download_link;
+    }
+
+    /**
+     * Get the URL of an app artifact.
+     * 
+     * @param string $filename
+     */
+    public function get_artifact_url( string $filename ) : URL {
+        return \smliser_get_app_artifact_url( $this->get_type(), $this->get_slug(), $filename );
+    }
+
+    /**
+     * Get a sample of download URL for licensed app.
+     */
+    public function monetized_url_sample() {
+        return sprintf( '%s?download_token=[TOKEN]', $this->get_download_url()->url() );
+    }
+
     /**
      * Get the URL to view the app.
      * 
@@ -1304,13 +1310,16 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      */
     public function get_url() : URL {
         $slug               = basename( $this->get_slug(), '.zip' );
-        $repostory_prefix   = \smliser_get_repository_url_prefix();
         $type               = $this->get_type();
-        $path               = implode( '/', [$repostory_prefix, $type, $slug] );
         
-        return url( $path );
-        
+        return \smliser_get_app_url( $type, $slug );
     }
+
+    /*
+    |------------------------
+    | SHARED UTILITY METHODS
+    |------------------------
+    */
 
     /**
      * Get the absolute path to the app zip file

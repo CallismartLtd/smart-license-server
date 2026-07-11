@@ -713,6 +713,51 @@ abstract class Repository {
     }
 
     /**
+     * Get all the artifact files for this app slug.
+     * 
+     * @param string $slug The app slug.
+     * @return array{slug: string, path: string, size: int, mtime: int, mime_type: string|null, filename: string}[]
+     */
+    public function get_artifacts( string $slug ) : array {
+        try {
+            $slug       = $this->real_slug( $slug );
+            $files      = [];
+            $main_file  = $this->locate( $slug );
+
+            if ( ! ( $main_file instanceof Exception ) ) {
+                $files[]  = [
+                    'slug'  => 'main',
+                    'path'  => $main_file,
+                    'size'  => (int) $this->filesize( $main_file ),
+                    'mtime' => (int) $this->filemtime( $main_file ),
+                    'mime_type' => FileSystemHelper::get_mime_type( $main_file ),
+                    'filename'  => basename( $main_file ),
+                ];
+            }
+            
+            $path               = $this->enter_slug( $slug );
+            $variations_path    = FileSystemHelper::join_path( $path, 'variations/' );
+            $all_var_files      = \glob( $variations_path . '*' );
+
+            foreach( (array) $all_var_files as $file ) {
+                $files[]    = [
+                    'slug'  => \basename( $file, '.zip' ),
+                    'path'  => (string) $file,
+                    'size'  => (int) $this->filesize( (string) $file ),
+                    'mtime' => (int) $this->filemtime( (string) $file ),
+                    'mime_type' => FileSystemHelper::get_mime_type( (string) $file ),
+                    'filename'  => basename( (string) $file )
+                ];
+            }
+
+            return $files;
+        } catch ( FileSystemException ) {
+            return [];
+        }
+
+    }
+
+    /**
     |---------------------------
     | ABSTRACT METHODS
     |---------------------------
@@ -770,7 +815,7 @@ abstract class Repository {
      */
     abstract public function validate_app_asset( UploadedFile $file, string $type, string $dir ) : Exception|string;
 
-    /**
+    /*
     |---------------------------
     | SETTING UP THE REPOSITORY 
     |---------------------------

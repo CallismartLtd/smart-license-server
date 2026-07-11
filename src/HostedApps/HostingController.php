@@ -263,6 +263,15 @@ class HostingController {
             $theme->set_manifest( $theme_manifest );
         }
     
+        $author     = $request->get( 'app_author', null );
+        $author_url = $request->get( 'app_author_url', '' );
+
+        $theme->set_author([
+            'author'                => $author,
+            'author_display_name'   => $author,
+            'author_url'            => $author_url,
+        ]);
+
         $theme->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
         $theme->update_meta( 'support_url', $request->get( 'app_support_url' ) );
         $theme->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
