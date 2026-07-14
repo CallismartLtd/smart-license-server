@@ -29,6 +29,7 @@ use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
  * @method bool put_contents(string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION) Write string content to the specified filename
  * @method bool delete(string $file, bool $recursive = false, string|false $type = false) Deletes a file or directory.
  * @method bool mkdir(string $path, int|false $chmod = false, bool $recursive = true) Makes directory.
+ * @method bool mkdir_recursive( string $path, int|false $chmod = false ) Create directories recursively.
  * @method bool rmdir(string $path, bool $recursive = false) Removes directory.
  * @method bool copy(string $source, string $dest, bool $overwrite = false) Copy file
  * @method bool move(string $source, string $dest, bool $overwrite = false) Moves file

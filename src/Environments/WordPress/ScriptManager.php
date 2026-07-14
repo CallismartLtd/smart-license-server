@@ -14,6 +14,7 @@ use SmartLicenseServer\Security\Permission\Capability;
 use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Assets\CSS;
 use SmartLicenseServer\Assets\JS;
+use SmartLicenseServer\Utils\Format;
 
 use function wp_register_script, wp_register_style, is_admin, wp_enqueue_script, wp_enqueue_style, wp_localize_script;
 
@@ -111,19 +112,23 @@ final class ScriptManager {
     }
 
     /**
-     * All variables to localize to JS.
+     * App configuration data used to build JS object `smliser_var`
      */
     private function allVars() : array {
         return [
-            'ajaxURL'           => adminUrl( 'admin-ajax.php' )->get_href(),
+            'ajaxURL'           => adminUrl( 'admin-ajax.php' )->url(),
             'csrf_token'        => wp_create_nonce( 'smliser_nonce' ),
-            'admin_url'         => \adminUrl()->get_href(),
-            'wp_spinner_gif'    => \adminUrl( 'images/spinner.gif' )->get_href(),
-            'wp_spinner_gif_2x' => \adminUrl( 'images/spinner-2x.gif' )->get_href(),
+            'admin_url'         => \adminUrl()->url(),
+            'spinner_gif'       => \adminUrl( 'images/spinner.gif' )->url(),
+            'spinner_gif_2x'    => \adminUrl( 'images/spinner-2x.gif' )->url(),
             'app_search_api'    => \restAPIUrl( '/repository/' ),
             'default_roles'     => [
                 'roles'         => Role::all( true ),
                 'capabilities'  => Capability::get_caps()
+            ],
+            'uploads'            => [
+                'max_upload_size'           => smliser_max_upload_size(),
+                'max_upload_size_readable'  => Format::bytes( smliser_max_upload_size() ) 
             ]
         ];
     }

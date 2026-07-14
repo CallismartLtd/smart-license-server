@@ -26,6 +26,61 @@ class Format {
     }
 
     /**
+     * Parse a PHP size string into bytes.
+     *
+     * Examples:
+     * - 1024      => 1024
+     * - "2K"      => 2048
+     * - "8M"      => 8388608
+     * - "1.5G"    => 1610612736
+     *
+     * @param string|int|float $value Size value.
+     * @return int Size in bytes.
+     */
+    public static function parse_bytes( string|int|float $value ): int {
+
+        if ( is_int( $value ) ) {
+            return $value;
+        }
+
+        if ( is_float( $value ) ) {
+            return (int) $value;
+        }
+
+        $value = trim( $value );
+
+        if ( '' === $value ) {
+            return 0;
+        }
+
+        if ( is_numeric( $value ) ) {
+            return (int) $value;
+        }
+
+        if ( ! preg_match( '/^([\d.]+)\s*([kmgtpe])?b?$/i', $value, $matches ) ) {
+            return 0;
+        }
+
+        $bytes = (float) $matches[1];
+        $unit  = strtolower( $matches[2] ?? '' );
+
+        $units = [
+            'k' => 1,
+            'm' => 2,
+            'g' => 3,
+            't' => 4,
+            'p' => 5,
+            'e' => 6,
+        ];
+
+        if ( isset( $units[ $unit ] ) ) {
+            $bytes *= 1024 ** $units[ $unit ];
+        }
+
+        return (int) round( $bytes );
+    }
+
+    /**
      * Format seconds into readable duration.
      */
     public static function duration( int $seconds, string $format = 'long' ): string {
@@ -788,7 +843,7 @@ class Format {
         return implode( ' ', $words );
     }
 
-/*
+    /*
     |--------------------------------------------
     | ENCODING / DECODING
     |--------------------------------------------

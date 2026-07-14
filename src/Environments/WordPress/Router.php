@@ -15,14 +15,12 @@ use SmartLicenseServer\Email\RequestController as EmailRequestController;
 use SmartLicenseServer\Environments\RouterInterface;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
-use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Environments\WordPress\Installer;
 use SmartLicenseServer\Messaging\MessageController;
 use SmartLicenseServer\Monetization\Controller;
-use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\RequestController;
 use SmartLicenseServer\SettingsAPI\SettingsController;
@@ -68,6 +66,7 @@ class Router implements RouterInterface {
             'smliser_remove_licensed_domain'                => [ __CLASS__, 'parse_licensed_domain_removal_request' ],
             'smliser_app_asset_upload'                      => [ __CLASS__, 'parse_app_asset_upload_request' ],
             'smliser_app_asset_delete'                      => [ __CLASS__, 'parse_app_asset_delete_request' ],
+            'smliser_app_artifact_upload'                   => [ __CLASS__, 'parse_app_artifact_upload_request' ],
             'smliser_save_monetization_tier'                => [ __CLASS__, 'parse_monetization_tier_form_request' ],
             'smliser_bulk_action'                           => [ __CLASS__, 'parse_bulk_action_request' ],
             'smliser_all_actions'                           => [ __CLASS__, 'parse_bulk_action_request' ],
@@ -368,6 +367,15 @@ class Router implements RouterInterface {
         static::guard( $request, 'manage_options' );
 
         HostingController::app_asset_delete( $request )->send();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public static function parse_app_artifact_upload_request( Request $request ): void {
+        static::guard( $request, 'install_plugins' );
+
+        HostingController::app_artifact_upload( $request )->send();
     }
 
     /**

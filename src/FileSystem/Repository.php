@@ -712,6 +712,12 @@ abstract class Repository {
         return sprintf( 'screenshot-%d', $next_index );
     }
 
+    /*
+    |-----------------------
+    | ARTIFACTS OPERATIONS.
+    |-----------------------
+    */
+
     /**
      * Get all the artifact files for this app slug.
      * 
@@ -741,10 +747,10 @@ abstract class Repository {
 
             foreach( (array) $all_var_files as $file ) {
                 $files[]    = [
-                    'slug'  => \basename( $file, '.zip' ),
-                    'path'  => (string) $file,
-                    'size'  => (int) $this->filesize( (string) $file ),
-                    'mtime' => (int) $this->filemtime( (string) $file ),
+                    'slug'      => FileSystemHelper::remove_extension( $file ),
+                    'path'      => (string) $file,
+                    'size'      => (int) $this->filesize( (string) $file ),
+                    'mtime'     => (int) $this->filemtime( (string) $file ),
                     'mime_type' => FileSystemHelper::get_mime_type( (string) $file ),
                     'filename'  => basename( (string) $file )
                 ];
@@ -754,6 +760,18 @@ abstract class Repository {
         } catch ( FileSystemException ) {
             return [];
         }
+
+    }
+
+    /**
+     * Upload new or edit an artifact file.
+     * 
+     * @param string $app_slug      The app slug.
+     * @param UploadedFile $file    The artifact file binary.
+     * @param bool $overwrite       Overwrite existing artifact file?
+     * 
+     */
+    public function upload_artifact( string $app_slug, ?UploadedFile $file = null, bool $overwrite = false ) {
 
     }
 

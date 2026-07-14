@@ -18,8 +18,8 @@ use SmartLicenseServer\Admin\RepositoryPage;
 use SmartLicenseServer\Utils\Format;
 
 $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );
-$max_upload_size_bytes  = wp_max_upload_size();
-$max_upload_size_mb     = $max_upload_size_bytes / 1024 / 1024;
+
+pp( $app_files );
 ?>
 
 <div class="application-uploader-page artifact-editor">
@@ -39,10 +39,24 @@ $max_upload_size_mb     = $max_upload_size_bytes / 1024 / 1024;
         </div>
 
         <ul class="smliser-app-artifacts">
-            <?php foreach( $app_files as $file_data ) : 
+            <?php 
+            $new_upload_config  = urlencode( smliser_json_encode_attr([
+                'app_slug'  => $app->get_slug(),
+                'app_type'  => $app->get_type(),
+                'isNew'     => true
+            ]));
+            foreach( $app_files as $file_data ) : 
                 $download_url   = 'main' === $file_data['slug'] ? $app->get_download_url() : $app->get_artifact_url( $file_data['filename'] );
+                $config         = urlencode( smliser_json_encode_attr([
+                    'filename'  => $file_data['filename'],
+                    'slug'      => $file_data['slug'],
+                    'size'      => $file_data['size'],
+                    'app_slug'  => $app->get_slug(),
+                    'app_type'  => $app->get_type(),
+                    'isNew'     => false
+                ]));
             ?>
-                <li class="smliser-app-artifacts_item">
+                <li class="smliser-app-artifacts_item <?php echo escHtml( $file_data['slug'] ); ?>">
                     <div class="smliser-app-artifacts_item-heading">
                         <span>
                             <strong>Name:</strong> <?php echo escHtml( $file_data['filename'] ); ?>
@@ -52,16 +66,18 @@ $max_upload_size_mb     = $max_upload_size_bytes / 1024 / 1024;
                             <span class="smliser-provider-card__badge">
                                 Main artifact
                             </span>
+                        <?php else: ?>
+                            <div class="smliser-app-artifacts_item-buttons">
+                                <button title="Edit artifact" class="smliser-edit-artifact" data-config="<?php echo esc_attr( $config ); ?>"> <i class="ti ti-edit"></i></button>
+                                <button title="Delete artifact" class="smliser-delete-artifact" data-config="<?php echo esc_attr( $config ); ?>"> <i class="ti ti-trash"></i></button>
+                            </div>
+
                         <?php endif; ?>
                     </div>
                     
                     <div class="smliser-app-artifacts_item-info">
                         <table>
                             <tbody>
-                                <tr>
-                                    <th>Slug:</th>
-                                    <td><?php echo escHtml( $file_data['slug'] ) ?></td>
-                                </tr>
                                 <tr>
                                     <th>Size:</th>
                                     <td><?php echo escHtml( Format::bytes( $file_data['size'] ) ) ?></td>
@@ -86,16 +102,14 @@ $max_upload_size_mb     = $max_upload_size_bytes / 1024 / 1024;
                             </tbody>
                         </table>
                     </div>
-
-                    <div class="smliser-app-artifacts_item-buttons">
-                        <button title="Edit artifact" class="smliser-edit-artifact"> <i class="ti ti-edit"></i></button>
-                        <button title="Delete artifact" class="smliser-delete-artifact"> <i class="ti ti-trash"></i></button>
-                    </div>
                 </li>
             <?php endforeach; ?>
         </ul>
         
-        <button class="smliser-nav-btn button smliser-add-new-artifact" title="Add new artifact">
+        <button 
+            class="smliser-nav-btn button smliser-add-new-artifact"
+            title="Add new artifact" data-config="<?php echo esc_attr( $new_upload_config ); ?>"
+            >
             <i class="ti ti-add"></i> Add Artifact
         </button>
     </div>

@@ -62,7 +62,7 @@ function smliser_auto_derive_permissions( string $path, string $type ) : int {
  * Sanitize and normalize a file path to prevent directory traversal attacks.
  *
  * @param string $path The input path.
- * @return string|SmartLicenseServer\Exception The sanitized and normalized path, or Exception on failure.
+ * @return string|\SmartLicenseServer\Exceptions\Exception The sanitized and normalized path, or Exception on failure.
  */
 function smliser_sanitize_path( $path ) {
     return FileSystemHelper::sanitize_path( $path );
@@ -88,4 +88,45 @@ function smliser_dirsize( string $directory, bool $human_readable = false ) : in
     }
 
     return $human_readable ? Format::bytes( $size ) : $size;
+}
+
+/**
+ * Get the effective maximum upload file size.
+ *
+ * The returned value is the smallest positive limit imposed by PHP and the
+ * optional application limit.
+ *
+ * @param int|null $application_limit Optional application limit in bytes.
+ * @return int Maximum upload file size in bytes. Returns 0 if no limit exists.
+ */
+function smliser_max_upload_size( ?int $application_limit = null ): int {
+
+	$limits = [
+		Format::parse_bytes( ini_get( 'upload_max_filesize' ) ),
+		Format::parse_bytes( ini_get( 'post_max_size' ) ),
+	];
+
+	if ( null !== $application_limit ) {
+		$limits[] = $application_limit;
+	}
+
+	$limits = array_filter(
+		$limits,
+		static fn ( int $limit ) => $limit > 0
+	);
+
+	return empty( $limits ) ? 0 : min( $limits );
+}
+
+/**
+ * Get windows resrved names.
+ * 
+ * @return string[] List of reserved names.
+ */
+function smliser_get_windows_reserved_names() : array {
+    return [
+        'con', 'prn', 'aux', 'nul','com1', 'com2', 'com3', 'com4', 'com5', 
+        'com6', 'com7', 'com8', 'com9','lpt1', 'lpt2', 'lpt3', 'lpt4', 'lpt5',
+        'lpt6', 'lpt7', 'lpt8', 'lpt9',
+    ];
 }

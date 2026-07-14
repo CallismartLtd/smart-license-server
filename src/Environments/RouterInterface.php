@@ -88,6 +88,14 @@ interface RouterInterface {
     public static function parse_app_asset_delete_request( Request $request ): void;
 
     /**
+     * Parse application artifact upload request.
+     *
+     * @param  Request $request
+     * @return void
+     */
+    public static function parse_app_artifact_upload_request( Request $request ): void;
+
+    /**
      * Parse save license request.
      *
      * @param  Request $request

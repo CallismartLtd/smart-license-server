@@ -431,6 +431,9 @@ class FileSystemHelper {
                 $extension = preg_replace( '/[^a-zA-Z0-9]/', '', $extension );
                 $extension = $extension ? '.' . $extension : '';
             }
+        } else {
+            // Remove any extension entirely.
+            $base_filename = static::remove_extension( $filename );
         }
 
         $filename = $base_filename;
@@ -459,11 +462,7 @@ class FileSystemHelper {
         $filename = trim( $filename, ".-_" );
 
         // Windows reserved device names.
-        $reserved = array(
-            'con', 'prn', 'aux', 'nul',
-            'com1', 'com2', 'com3', 'com4', 'com5', 'com6', 'com7', 'com8', 'com9',
-            'lpt1', 'lpt2', 'lpt3', 'lpt4', 'lpt5', 'lpt6', 'lpt7', 'lpt8', 'lpt9',
-        );
+        $reserved = smliser_get_windows_reserved_names();
 
         if ( in_array( strtolower( $filename ), $reserved, true ) ) {
             $filename .= '_';
