@@ -521,23 +521,20 @@ button.smliser-upload-btn {
 }
 
 .smliser-app-files-list ul.smliser-app-artifacts {
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    margin-top: 20px;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+	gap: 10px;
+	margin-top: 20px;
 }
 
 ul.smliser-app-artifacts li.smliser-app-artifacts_item {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background-color: #f1f1f1;
-    min-width: 200px;
-    border-radius: 4px;
-    border: solid #dcdcde 1px;
-    padding: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	background-color: #f1f1f1;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 10px;
 }
 
 .smliser-app-artifacts_item-heading {
