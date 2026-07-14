@@ -11,6 +11,16 @@
  * Updated for 2026: Added modern formats (AVIF, WebP video, HEIC sequences),
  * removed legacy variants, consolidated duplicates, and improved organization.
  *
+ * Revision 2: Fixed a duplicate 'webm' array key (audio/webm was silently
+ * shadowed by video/webm — PHP keeps the last duplicate key, so the audio
+ * entry was dead code). Added missing modern archive/compression extensions
+ * (zst, xz, lzma, br, lz4, cab, cpio, arj, lzh, Z) plus epub, apng, jxl, and
+ * opus for consistency with the MIME->extension map. Note: 'ts' is kept as
+ * TypeScript (application/typescript) rather than MPEG transport stream
+ * (video/mp2t) since both use the same extension and only one value can be
+ * stored per key — flag this if the project ever needs to serve .ts video
+ * segments.
+ *
  * @package SmartLicenseServer\FileSystem\bundles
  * @author Callistus Nwachukwu
  * @updated 2026
@@ -22,9 +32,11 @@ return [
     'jpeg'  => 'image/jpeg',
     'jpe'   => 'image/jpeg',
     'png'   => 'image/png',
+    'apng'  => 'image/apng',
     'gif'   => 'image/gif',
     'webp'  => 'image/webp',
     'avif'  => 'image/avif',
+    'jxl'   => 'image/jxl',
     'bmp'   => 'image/bmp',
     'ico'   => 'image/x-icon',
     'svg'   => 'image/svg+xml',
@@ -38,6 +50,7 @@ return [
 
     // --- Documents & Text ---
     'pdf'   => 'application/pdf',
+    'epub'  => 'application/epub+zip',
     'txt'   => 'text/plain',
     'log'   => 'text/plain',
     'csv'   => 'text/csv',
@@ -89,14 +102,25 @@ return [
     'odf'   => 'application/vnd.oasis.opendocument.formula',
     'odb'   => 'application/vnd.oasis.opendocument.database',
 
-    // --- Archives ---
+    // --- Archives & Compression ---
     'zip'   => 'application/zip',
     'rar'   => 'application/vnd.rar',
     '7z'    => 'application/x-7z-compressed',
     'tar'   => 'application/x-tar',
     'gz'    => 'application/gzip',
     'tgz'   => 'application/gzip',
+    'bz'    => 'application/x-bzip',
     'bz2'   => 'application/x-bzip2',
+    'xz'    => 'application/x-xz',
+    'lzma'  => 'application/x-lzma',
+    'zst'   => 'application/zstd',
+    'lz4'   => 'application/x-lz4',
+    'br'    => 'application/x-brotli',
+    'z'     => 'application/x-compress',
+    'cpio'  => 'application/x-cpio',
+    'arj'   => 'application/x-arj',
+    'lzh'   => 'application/x-lzh-compressed',
+    'cab'   => 'application/vnd.ms-cab-compressed',
     'dmg'   => 'application/x-apple-diskimage',
     'iso'   => 'application/x-iso9660-image',
 
@@ -106,9 +130,9 @@ return [
     'ogg'   => 'audio/ogg',
     'oga'   => 'audio/ogg',
     'flac'  => 'audio/flac',
+    'opus'  => 'audio/opus',
     'aac'   => 'audio/aac',
     'm4a'   => 'audio/mp4',
-    'webm'  => 'audio/webm',
 
     // --- Video ---
     'mp4'   => 'video/mp4',
@@ -133,7 +157,6 @@ return [
     'eot'   => 'application/vnd.ms-fontobject',
 
     // --- Programming & Scripts ---
-    'html'  => 'text/html',
     'xhtml' => 'application/xhtml+xml',
     'js'    => 'application/javascript',
     'ts'    => 'application/typescript',
@@ -162,7 +185,7 @@ return [
     'apk'   => 'application/vnd.android.package-archive',
     'aab'   => 'application/vnd.android.package-archive',
     'ipa'   => 'application/octet-stream',
-    'deb'   => 'application/x-deb',
+    'deb'   => 'application/vnd.debian.binary-package',
     'rpm'   => 'application/x-rpm',
     'msi'   => 'application/x-msi',
 

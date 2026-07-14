@@ -8,6 +8,10 @@
  * Updated for 2026: Removed legacy variants, added modern formats (AVIF, WebP video),
  * consolidated duplicates, and organized by category.
  *
+ * Revision 2: Filled in missing modern archive/compression formats (zstd, xz, lzma,
+ * brotli, lz4, cab, cpio, lzh, arj) and closed similar gaps found in other
+ * categories (JPEG XL, APNG, EPUB, Opus, MPEG-TS, correct Debian package MIME).
+ *
  * @package SmartLicenseServer\FileSystem\bundles
  * @author Callistus Nwachukwu
  * @updated 2026
@@ -18,9 +22,11 @@ return [
     // --- Images (Modern & Legacy) ---
     'image/jpeg'                    => 'jpg',
     'image/png'                     => 'png',
+    'image/apng'                    => 'apng',
     'image/gif'                     => 'gif',
     'image/webp'                    => 'webp',
     'image/avif'                    => 'avif',
+    'image/jxl'                     => 'jxl',
     'image/bmp'                     => 'bmp',
     'image/x-icon'                  => 'ico',
     'image/svg+xml'                 => 'svg',
@@ -36,6 +42,7 @@ return [
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
     'application/vnd.ms-powerpoint' => 'ppt',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+    'application/epub+zip'          => 'epub',
     'text/plain'                    => 'txt',
     'text/csv'                      => 'csv',
     'text/tab-separated-values'     => 'tsv',
@@ -54,16 +61,27 @@ return [
     'application/vnd.oasis.opendocument.formula'        => 'odf',
     'application/vnd.oasis.opendocument.database'       => 'odb',
 
-    // --- Archives (Software Distribution) ---
+    // --- Archives & Compression (Software Distribution) ---
     'application/zip'               => 'zip',
     'application/x-zip-compressed'  => 'zip',
     'application/x-tar'             => 'tar',
     'application/gzip'              => 'gz',
     'application/x-gzip'            => 'gz',
+    'application/x-bzip'            => 'bz',
     'application/x-bzip2'           => 'bz2',
+    'application/x-xz'              => 'xz',
+    'application/x-lzma'            => 'lzma',
+    'application/zstd'              => 'zst',
+    'application/x-lz4'             => 'lz4',
+    'application/x-brotli'          => 'br',
     'application/x-7z-compressed'   => '7z',
     'application/x-rar-compressed'  => 'rar',
     'application/vnd.rar'           => 'rar',
+    'application/x-compress'        => 'Z',
+    'application/x-cpio'            => 'cpio',
+    'application/x-arj'             => 'arj',
+    'application/x-lzh-compressed'  => 'lzh',
+    'application/vnd.ms-cab-compressed' => 'cab',
     'application/x-apple-diskimage' => 'dmg',
     'application/x-iso9660-image'   => 'iso',
 
@@ -71,7 +89,9 @@ return [
     'audio/mpeg'                    => 'mp3',
     'audio/wav'                     => 'wav',
     'audio/ogg'                     => 'ogg',
+    'audio/flac'                    => 'flac',
     'audio/x-flac'                  => 'flac',
+    'audio/opus'                    => 'opus',
     'audio/aac'                     => 'aac',
     'audio/webm'                    => 'webm',
     'audio/mp4'                     => 'm4a',
@@ -82,6 +102,7 @@ return [
     'video/x-msvideo'               => 'avi',
     'video/x-ms-wmv'                => 'wmv',
     'video/mpeg'                    => 'mpeg',
+    'video/mp2t'                    => 'ts',
     'video/ogg'                     => 'ogv',
     'video/3gpp'                    => '3gp',
     'video/quicktime'               => 'mov',
@@ -122,6 +143,7 @@ return [
     'application/x-msdos-program'   => 'exe',
     'application/vnd.android.package-archive' => 'apk',
     'application/x-rpm'             => 'rpm',
+    'application/vnd.debian.binary-package' => 'deb',
     'application/x-deb'             => 'deb',
 
     // --- Web & Mobile ---
