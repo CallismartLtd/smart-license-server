@@ -169,9 +169,9 @@ class AppUploader {
             return;
         }
 
-        const maxUploadSize = parseFloat( fileInfo.getAttribute( 'wp-max-upload-size' ) );
-        const fileSizeMB    = ( file.size / 1024 / 1024 ).toFixed( 2 );
-        const exceedsLimit  = maxUploadSize < fileSizeMB;
+        const maxUploadSize = smliser_var.uploads.max_upload_size;
+        const exceedsLimit  = file.size > maxUploadSize;
+        const fileSizeMB    = StringUtils.formatBytes( file.size, 2 );        
 
         fileInfo.innerHTML = `
             <table class="widefat fixed striped">
@@ -182,7 +182,7 @@ class AppUploader {
                 <tr>
                     <th>File Size:</th>
                     <td>
-                        ${ fileSizeMB } MB
+                        ${ fileSizeMB }
                         <span
                             class="ti ti-${ exceedsLimit ? 'x' : 'check' }"
                             style="color: ${ exceedsLimit ? 'red' : 'green' };"
@@ -1132,7 +1132,7 @@ class AppUploader {
 
     /*
     |----------------------
-    |Artifact Uploader
+    | Artifact Uploader
     |----------------------
     */
 
@@ -1150,13 +1150,13 @@ class AppUploader {
      */
     async _handleArtifactPageClick( e ) {
         const clickedBtn    = e.target;
-        const config        = StringUtils.JSONparse( decodeURIComponent( clickedBtn?.getAttribute( 'data-config' ) ?? '' ) );
+        const configEl      = clickedBtn?.closest( '[data-config]' );
+        const config        = StringUtils.JSONparse( decodeURIComponent( configEl?.getAttribute( 'data-config' ) ?? null ) );        
 
         if ( clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_ADD_NEW_BTN ) ) {
             // Open modal for add new artifact.
-            this.openArtifactModal();
+            this.openArtifactModal( config );
             return;
-
         }
 
         if ( clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_EDIT_BTN ) ) {
@@ -1165,30 +1165,31 @@ class AppUploader {
             return;
         }
 
-        const deleteBtn     = clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_DELETE_BTN );
+        const deleteBtn = clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_DELETE_BTN );
+        const filename  = config?.filename ?? 'artifact';        
 
-        if ( deleteBtn && await SmliserModal.confirm( 'Are you sure to delete artifact?' ) ) {
+        if ( deleteBtn && await SmliserModal.confirm( `Are you sure to delete  ${filename}?` ) ) {
             // Handle artifact deletion.
-            
         }
     }
 
     /**
      * Open the artifact modal for adding or editing an artifact.
-     * 
-     * @param {Object} config  Optional configuration for editing an existing artifact.
      */
-    openArtifactModal( config = null ) {
+    openArtifactModal( config = {isNew: true, filename: '' } ) {        
+
         if ( ! this.artifactModal ) {
             const modalBody = document.createElement( 'form' );
             modalBody.className = 'smliser-artifact-form';
             modalBody.id = Date.now().toString();
             modalBody.innerHTML = `
                 <label for="artifact-name" class="smliser-form-label-row">
-                    <span class="smliser-form-label">Artifact File Name:</span>
-                    <input type="text" class="smliser-form-input" id="artifact-name" name="artifact_filename" value="${config?.filename || ''}" required>
+                    <span class="smliser-form-label">Artifact File Name: <i class="smliser-form-description ti ti-question-mark" title="Artifact file name will be sanitized and uploaded file extension will be used. e.g. &quot;my artifact.zip&quot; will be sanitized to &quot;my-artifact.zip&quot;"></i></span>
+                    <input type="text" class="smliser-form-input" style="font-size: 15px;" id="artifact-name" name="artifact_filename" required>
+                    
                 </label>
-
+                <span class="smliser-spinner modal"></span>
+                <textarea id="artifact-config" class="smliser-hide">${StringUtils.JSONstringify( config, 2 )}</textarea>
                 <div class="smliser-form-file-row">
                     <input type="file" class="smliser-hide artifact-file-input" id="artifact-file" name="artifact_file">
                     <div class="smliser-file-info">
@@ -1196,7 +1197,8 @@ class AppUploader {
                     </div>
                     <button type="button" class="smliser-upload-btn button">Drag over or click to upload file</button>
                     <button type="button" class="smliser-file-remove button smliser-hide"><span class="ti ti-x" title="remove file"></span> Clear</button>
-                </div>`;
+                </div>
+                <em>Max Upload Size: ${smliser_var.uploads.max_upload_size_readable}</em>`;
 
             const modalFooter       = document.createElement( 'div' );
             modalFooter.className   = 'smliser-button-container';
@@ -1209,27 +1211,162 @@ class AppUploader {
             modalFooter.appendChild( saveButton );
 
             this.artifactModal = new SmliserModal({
-                title: config ? 'Edit Artifact' : 'Add New Artifact',
+                title: '',
                 body: modalBody,
                 width: '90%',
-                footer: modalFooter
+                footer: modalFooter,
+                autoFocus: false,
             });
 
-            this.artifactModal.on( 'afterClose', async ( modal ) => {
-                const inputs    = modal.queryAll( 'body', 'input' );
-                inputs.forEach( ( input ) => {
-                    input.value = '';
-                });
-            });
-
-            this.artifactModal.on( 'onSubmit', async ( modal ) => {
-                console.log( modal.target );
-                
-            });
+            this.initArtifactFileUploader();
         }
 
+        this.artifactModal.setHeaderTitle( config?.isNew ? 'Add New Artifact' : 'Edit Artifact' );
+        this.artifactModal.getBody( '#artifact-name' ).value    = config?.filename ?? '';
         this.artifactModal.open();
     }
+
+    /**
+     * Initialize artifact file upload feature.
+     */
+    initArtifactFileUploader() {
+        this.artifactFileUploader   = this.artifactModal.getBody( '.smliser-form-file-row' );
+        this.artifactFileInput      = this.artifactModal.getBody( '#artifact-file' );
+        const fileUploadBtn         = this.artifactModal.getBody( '.smliser-upload-btn' );
+        const clearBtn              = this.artifactModal.getBody( '.smliser-file-remove' );
+        const fileInfo              = this.artifactModal.getBody( '.smliser-file-info' );
+
+        fileUploadBtn.addEventListener( 'click', () => this.artifactFileInput.click() );
+        
+        this.artifactFileInput.addEventListener( 'change', e => {
+            this._handleZipFileChange( e, fileInfo, clearBtn, fileUploadBtn );
+        });
+
+        clearBtn.addEventListener( 'click', () => {
+            this.artifactFileInput.value    = '';
+            fileInfo.innerHTML              = '<span>No file selected.</span>';
+
+            clearBtn.classList.add( 'smliser-hide' );
+            fileUploadBtn.classList.remove( 'smliser-hide' );
+        });
+
+        const originalText  = fileInfo.textContent;
+        const dropZone      = this.artifactFileUploader;
+        this._initDragAndDrop( dropZone, this.artifactFileInput, fileInfo, originalText );
+
+        this.artifactModal.on( 'beforeClose', () => clearBtn.click() );
+        this.artifactModal.on( 'afterClose', async ( modal ) => {
+            const inputs    = modal.queryAll( 'body', 'input' );
+            inputs.forEach( ( input ) => {
+                input.value = '';
+            });
+        });
+
+        this.artifactModal.on( 'onSubmit', async ( modal ) => {
+            const canonicalFileName     = modal.getBody( '#artifact-name' ).value.trim();
+            const file                  = this.artifactFileInput.files[0];
+
+            if ( ! canonicalFileName ) {
+                smliserNotify( 'Please enter a valid artifact filename.', 5000 );
+                return;
+            }
+
+            const config    = StringUtils.JSONparse( modal.getBody( '#artifact-config' ).value );
+            
+            if ( ! config ) {
+                smliserNotify( 'Invalid artifact configuration.', 5000 );
+                return;
+            }
+
+            if ( ! file ) {
+                let errorMessage = config.isNew ? 
+                    'Please select a file to upload.' :
+                    ( canonicalFileName === config.filename ? 'No changes detected' : null ); 
+                let proceed = false;
+
+                if ( errorMessage ) {
+                    await SmliserModal.error( errorMessage, 'Error' );
+                } else {
+                    const message = `No file selected. Do you want to proceed with changing the artifact filename from "${config.filename}" to "${canonicalFileName}"?`;
+                    proceed = await SmliserModal.confirm({
+                        title: 'File Name Change',
+                        message: message,
+                        confirmText: 'Yes, Proceed',
+                        cancelText: 'No, Cancel'
+                    });                    
+                }
+
+                if ( ! proceed ) return;
+            }
+
+            const payLoad = new FormData();
+            payLoad.set( 'action',   'smliser_app_artifact_upload' );
+            payLoad.set( 'security', smliser_var.csrf_token );
+            payLoad.set( 'app_slug', config.app_slug );
+            payLoad.set( 'app_type', config.app_type );
+            payLoad.set( 'artifact_filename', config.filename );
+            payLoad.set( 'artifact_name', canonicalFileName );
+
+            if ( file ) {
+                payLoad.set( 'artifact_file', file );
+            }
+
+            const result = await this._uploadArtifactFile( payLoad, config.isNew );
+
+            if ( ! result ) return;
+
+            this.artifactModal.close();
+            this._updateArtifactList( result, config );
+            
+        });
+    }
+
+    /**
+     * Upload the artifact file to the server.
+     * 
+     * @param {FormData} payLoad
+     * @param {boolean} isNew
+     * @returns {Promise<{filename: string, slug: string, size: number, url: string, mimeType: string, mTime: string}|null>}
+     */
+    async _uploadArtifactFile( payLoad, isNew ) {
+        const spinner = showSpinner( '.smliser-spinner.modal', true );
+        
+        try {    
+            const url = new URL( smliser_var.ajaxURL );
+
+            const response  = await smliserFetchJSON( url, {
+                method: isNew ? 'POST' : 'PATCH',
+                body: payLoad,
+                credentials: 'same-origin',
+            });
+
+            if ( ! response.success ) {
+                throw new Error( response?.data?.message ?? 'Artifact upload request failed with an unknown error.' );
+            }
+
+            return {
+                filename: response.data.filename,
+                slug: response.data.slug,
+                size: response.data.size,
+                url: response.data.url,
+                mimeType: response.data.mime_type,
+                mTime: response.data.mtime,
+            };
+        } catch( error ) {
+            smliserNotify( error.message, 10000 );
+            return null;
+        } finally {
+            removeSpinner( spinner );
+        }
+        
+    }
+
+    /**
+     * Update the artifact list in the UI after a successful upload or edit.
+     * 
+     * @param {{filename: string, slug: string, size: number, url: string, mimeType: string, mTime: string}} artifactData
+     * @param {{isNew: boolean, filename: string}} config
+     */
 }
 
 /*

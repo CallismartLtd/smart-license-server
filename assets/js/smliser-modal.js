@@ -18,6 +18,7 @@ class SmliserModal {
             width: options.width || '70%',
             maxWidth: options.maxWidth || '90vw',
             zIndex: options.zIndex || 9999,
+            autoFocus: options.autoFocus || true,
             ...options
         };
 
@@ -112,14 +113,14 @@ class SmliserModal {
         this.header = document.createElement( 'div' );
         this.header.className = 'smliser-modal-header';
 
-        const title = document.createElement( 'h2' );
-        title.className = 'smliser-modal-title';
-        title.id = this.titleId;
-        title.textContent = this.options.title;
-        title.setAttribute( 'role', 'heading' );
-        title.setAttribute( 'aria-level', '2' );
+        this.headerTitle = document.createElement( 'h2' );
+        this.headerTitle.className = 'smliser-modal-title';
+        this.headerTitle.id = this.titleId;
+        this.headerTitle.textContent = this.options.title;
+        this.headerTitle.setAttribute( 'role', 'heading' );
+        this.headerTitle.setAttribute( 'aria-level', '2' );
 
-        this.header.appendChild( title );
+        this.header.appendChild( this.headerTitle );
 
         if ( this.options.showCloseButton ) {
             const closeBtn = document.createElement( 'button' );
@@ -275,9 +276,10 @@ class SmliserModal {
      */
     _manageFocus() {
         this.previousFocus = document.activeElement;
-
-        this.previousFocus.blur();
+        this.previousFocus.blur(); // So aria-live regions can announce the modal opening.
         
+        if ( ! this.options.autoFocus ) return;
+
         const focusableElements = this._getFocusableElements();
         if ( focusableElements.length > 0 ) {
             setTimeout( () => focusableElements[0].focus(), 100 );
@@ -478,6 +480,25 @@ class SmliserModal {
                 this._setContent( this.footerElement, content );
             }
         }
+        return this;
+    }
+
+    /**
+     * Set the header title text.
+     * 
+     * @param {HTMLElement|String} text
+     */
+    setHeaderTitle( text ) {
+        if ( text instanceof HTMLElement ) {
+            const closeBtn  = this.query( 'header', '.smliser-modal-close' );
+            this.headerTitle.remove();
+            this.header.insertBefore( text, closeBtn );
+
+            this.headerTitle    = text;
+        } else {
+            this.headerTitle.textContent = text;
+        }
+        
         return this;
     }
 

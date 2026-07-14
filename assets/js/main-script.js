@@ -11,7 +11,7 @@ function showSpinner( selector, larger = false ) {
     if ( ! element ) { console.warn( 'Spinner element not found' ); return };
 
     const image     = document.createElement( 'img' );
-    const gifUrl    = larger ? smliser_var.wp_spinner_gif_2x : smliser_var.wp_spinner_gif;
+    const gifUrl    = larger ? smliser_var.spinner_gif_2x : smliser_var.spinner_gif;
 
     image.src       = gifUrl;
     image.id        = 'smliser-spinner-image';
