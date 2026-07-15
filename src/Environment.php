@@ -382,7 +382,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     private function setProps() : void {
         $prop_map   = [
-            'filesystem_adapter'    => 'filesystemAdapter',
+            // 'filesystem_adapter'    => 'filesystemAdapter',
             'cache_adapter'         => 'cacheAdapter',
             'settings_provider'     => 'settingsStorage',
             'database_adapter'      => 'dbadapter',

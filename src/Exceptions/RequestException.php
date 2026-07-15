@@ -19,7 +19,7 @@ use SmartLicenseServer\Exceptions\Exception;
  */
 class RequestException extends Exception {
 
-    protected static $error_map = [
+    protected static array $error_map = [
 
         // 400 Bad Request Errors.
         'invalid_input' => [

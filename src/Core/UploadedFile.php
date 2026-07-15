@@ -331,7 +331,7 @@ final class UploadedFile {
 
         $safe_directory = FileSystemHelper::join_path( $directory );
 
-        if ( ! $safe_directory ) {
+        if ( '' === $safe_directory ) {
             throw new Exception( 'malicious_directory', 'The provided directory name is not safe.' );
         }
 
@@ -340,8 +340,8 @@ final class UploadedFile {
         }
 
         $filename       = $filename ? FileSystemHelper::remove_extension( $filename ) : $this->get_name( false );
-        $pathname       = FileSystemHelper::join_path( $safe_directory, $filename );
-        $destination    = sprintf( '%s.%s', $pathname, $this->get_canonical_extension() );
+        $path           = FileSystemHelper::join_path( $safe_directory, $filename );
+        $destination    = sprintf( '%s.%s', $path, $this->get_canonical_extension() );
 
         if ( ! $this->fs->move( $this->get_tmp_path(), $destination, $overwrite ) ) {
             $message    = 'Failed to move uploaded file';

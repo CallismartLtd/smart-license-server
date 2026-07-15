@@ -18,8 +18,6 @@ use SmartLicenseServer\Admin\RepositoryPage;
 use SmartLicenseServer\Utils\Format;
 
 $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );
-
-pp( $app_files );
 ?>
 
 <div class="application-uploader-page artifact-editor">

@@ -176,7 +176,7 @@ class AppUploader {
         fileInfo.innerHTML = `
             <table class="widefat fixed striped">
                 <tr>
-                    <th>File Name:</th>
+                    <th>Selected File Name:</th>
                     <td>${ file.name }</td>
                 </tr>
                 <tr>
@@ -1184,7 +1184,7 @@ class AppUploader {
             modalBody.id = Date.now().toString();
             modalBody.innerHTML = `
                 <label for="artifact-name" class="smliser-form-label-row">
-                    <span class="smliser-form-label">Artifact File Name: <i class="smliser-form-description ti ti-question-mark" title="Artifact file name will be sanitized and uploaded file extension will be used. e.g. &quot;my artifact.zip&quot; will be sanitized to &quot;my-artifact.zip&quot;"></i></span>
+                    <span class="smliser-form-label">Artifact File Name: <i class="smliser-form-description ti ti-question-mark" title="This artifact file name will be sanitized and the uploaded file extension will be appended to it. e.g. &quot;my artifact.zip&quot; will be sanitized to &quot;my-artifact.zip&quot;"></i></span>
                     <input type="text" class="smliser-form-input" style="font-size: 15px;" id="artifact-name" name="artifact_filename" required>
                     
                 </label>
@@ -1348,7 +1348,7 @@ class AppUploader {
                 filename: response.data.filename,
                 slug: response.data.slug,
                 size: response.data.size,
-                url: response.data.url,
+                url: response.data.download_url,
                 mimeType: response.data.mime_type,
                 mTime: response.data.mtime,
             };

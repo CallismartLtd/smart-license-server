@@ -292,15 +292,26 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function move( string $source, string $dest, bool $overwrite = false ): bool {
+        if ( ! $this->exists( $source ) ) {
+            return false;
+        }
+
+        if ( $source === $dest ) {
+            return true;
+        }
 
         if ( $this->exists( $dest ) ) {
+
             if ( ! $overwrite ) {
                 return false;
             }
-            $this->delete( $dest, true );
+
+            if ( ! $this->delete( $dest, true ) ) {
+                return false;
+            }
         }
 
-        return @rename( $source, $dest );
+        return $this->rename( $source, $dest );
     }
 
     /**

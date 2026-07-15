@@ -43,23 +43,31 @@ abstract class Repository {
      * 
      * @var string
      */
-    const TRASH_DIR = '.trash';
+    public const TRASH_DIR = '.trash';
+
+    /**
+     * The artifacts directory name.
+     * 
+     * @var string 
+     */
+    public const ARTIFACTS_DIR = 'artifacts';
+
     /**
      * Trash metadata filename.
      * 
      * @var string
      */
-    const TRASH_METADATA_FILE = '.smliser_meta';
+    public const TRASH_METADATA_FILE = '.smliser_meta';
 
     /**
      * Allowed image extensions.
      */
-    const ALLOWED_IMAGE_EXTENSIONS = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif' ];
+    public const ALLOWED_IMAGE_EXTENSIONS = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif' ];
 
     /**
      * Allowed icon names.
      */
-    const ALLOWED_ICON_NAMES    = [ 'icon-128x128', 'icon-256x256', 'icon' ];
+    public const ALLOWED_ICON_NAMES    = [ 'icon-128x128', 'icon-256x256', 'icon' ];
     /**
      * Currently active subdirectory.
      *
@@ -741,13 +749,14 @@ abstract class Repository {
                 ];
             }
             
-            $path               = $this->enter_slug( $slug );
-            $variations_path    = FileSystemHelper::join_path( $path, 'variations/' );
-            $all_var_files      = \glob( $variations_path . '*' );
+            $path           = $this->enter_slug( $slug );
+            $artifacts_dir  = FileSystemHelper::join_path( $path, static::ARTIFACTS_DIR, \DIRECTORY_SEPARATOR );
+            $available_artifacts    = \glob( "$artifacts_dir*" );
 
-            foreach( (array) $all_var_files as $file ) {
+            foreach( (array) $available_artifacts as $file ) {
+                $ext        = FileSystemHelper::get_extension( $file );
                 $files[]    = [
-                    'slug'      => FileSystemHelper::remove_extension( $file ),
+                    'slug'      => FileSystemHelper::sanitize_filename( basename( $file, $ext ) ),
                     'path'      => (string) $file,
                     'size'      => (int) $this->filesize( (string) $file ),
                     'mtime'     => (int) $this->filemtime( (string) $file ),
@@ -766,14 +775,103 @@ abstract class Repository {
     /**
      * Upload new or edit an artifact file.
      * 
-     * @param string $app_slug      The app slug.
-     * @param UploadedFile $file    The artifact file binary.
-     * @param bool $overwrite       Overwrite existing artifact file?
+     * @param  array{app_slug: string, filename?: string, overwrite: bool, file: UploadedFile} $data
      * 
      */
-    public function upload_artifact( string $app_slug, ?UploadedFile $file = null, bool $overwrite = false ) {
+    public function upload_artifact( array $data ) {
+        try {
+            $app_slug   = $data['app_slug'] ?? null;
 
+            if ( ! $app_slug ) {
+                throw new FileSystemException( 'App slug is required to upload artifact.' );
+            }
+
+            $file   = $data['file'] ?? null;
+
+            if ( ! $file || ! $file->is_upload_successful() ) {
+                throw new FileSystemException( 'Artifact file was not uploaded' );
+            }
+
+            $canonical_ext    = $file->get_canonical_extension();
+
+            if ( '' === $canonical_ext ) {
+                throw new Exception(
+                    'unsupported_media_type',
+                    'Sorry, the server cannot handle this file type.',
+                    ['status' => 415]
+                );
+            }
+
+            // The name of the existing artifact filename if any.
+            $filename       = $data['filename'] ?? '';
+
+            $overwrite      =  (bool) ( $data['overwrite'] ?? false );
+            $path           = $this->enter_slug( $app_slug );
+            $artifacts_dir  = FileSystemHelper::join_path( $path, static::ARTIFACTS_DIR, \DIRECTORY_SEPARATOR );
+
+            if ( $overwrite ) {
+                // We are dealing with file edit.
+                $old_file_path      = FileSystemHelper::join_path( $artifacts_dir, $filename );
+
+                if ( ! $this->exists( $old_file_path ) ) {
+                    throw new FileSystemException(
+                        sprintf( 'The target filename %s does not exist in the artifacts directory.', $filename )
+                    );
+                }
+
+                $mime_type  = FileSystemHelper::get_mime_type( $old_file_path );
+
+                if ( $mime_type !== $file->get_detected_mime() ) {
+                    throw new Exception( 
+                        'mime_type_mismatch' ,
+                        sprintf(
+                            'Cannot safely replace the existing file type "%s" with the uploaded file type "%s".',
+                            $mime_type,
+                            $file->get_detected_mime()
+                        )     
+                    );
+                }
+
+                $new_filename   = FileSystemHelper::sanitize_filename( $file->get_name( false ) );
+                $new_filename   = $new_filename . ( $canonical_ext ? ".$canonical_ext" : '' );
+                $new_file_path  = FileSystemHelper::join_path( $artifacts_dir, $new_filename );
+
+                if ( '' === $new_file_path ) {
+                    throw new FileSystemException(
+                        'The new file name contains invalid characters.'
+                    );
+                }
+
+                if ( ! $this->rename( $old_file_path, $new_file_path ) ) {
+                    throw new FileSystemException(
+                        sprintf(
+                            'Unable to rename artifact from "%s" to "%s".',
+                            $filename,
+                            $new_filename
+                        )
+                    );
+                }
+            }
+
+            $uploaded_file_path = $file->move( $artifacts_dir, '', $overwrite );
+            $uploaded_filename  = basename( $uploaded_file_path );
+
+            return [
+                'filename'      => $uploaded_filename,
+                'slug'          => FileSystemHelper::remove_extension( $uploaded_filename ),
+                'size'          => $this->filesize( $uploaded_file_path ),
+                'mime_type'     => FileSystemHelper::get_mime_type( $uploaded_file_path ),
+                'mtime'         => $this->filemtime( $uploaded_file_path )
+            ];
+            
+        } catch ( Exception $e ) {
+            return $e;
+        }
     }
+
+    /**
+     * Rename an artifact file.
+     */
 
     /**
     |---------------------------

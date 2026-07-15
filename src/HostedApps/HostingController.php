@@ -560,6 +560,7 @@ class HostingController {
 
             $artifact_file  = $request->get_file( 'artifact_file' );
             $is_edit        = $request->isPut() || $request->isPatch();
+            $new_filename   = FileSystemHelper::sanitize_filename( $artifact_name );
 
             $artifacts      = $repo_class->get_artifacts( $app->get_slug() );
 
@@ -586,7 +587,6 @@ class HostingController {
                     );
                 }
 
-                $new_filename   = FileSystemHelper::sanitize_filename( $artifact_name, false );
 
                 if ( '' === $new_filename ) {
                     throw new RequestException(
@@ -614,19 +614,43 @@ class HostingController {
                 }
 
                 $response_data  = [
-                    'filename'  => $new_filename,
-                    'path'      => $new_path,
-                    'slug'      => FileSystemHelper::remove_extension( $new_filename )
+                    'filename'      => $new_filename,
+                    'slug'          => FileSystemHelper::remove_extension( $new_filename ),
+                    'size'          => $repo_class->filesize( $new_path ),
+                    'download_url'  => $app->get_artifact_url( $new_filename ),
+                    'mime_type'     => FileSystemHelper::get_mime_type( $new_path ),
+                    'mtime'         => $repo_class->filemtime( $new_path )
                 ];
-
-                pp( $new_path );
 
             } else {
 
-                $result = $repo_class->upload_artifact( $app->get_slug(), $artifact_file, $is_edit );
+                $artifact_file->set_new_name( $new_filename );
+                $response_data = $repo_class->upload_artifact([
+                    'app_slug'  => $app->get_slug(),
+                    'file'      => $artifact_file,
+                    'filename'  => $artifact_filename,
+                    'overwrite' => $is_edit
+                ]);
 
+                if ( $response_data instanceof Exception ) {
+                    throw new RequestException(
+                        $response_data->get_error_code(),
+                        $response_data->get_error_message(),
+                        $response_data->get_error_data()
+                    );
+                }
+
+                $response_data['download_url']  = $app->get_artifact_url( $response_data['filename'] );
+            
             }
 
+            $response   = [
+                'success'   => true,
+                'data'      => $response_data
+            ];
+
+            return ( new Response( 200, [], $response ) )
+                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )

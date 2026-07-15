@@ -262,7 +262,61 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function copy( string $source, string $dest, bool $overwrite = false ): bool {
-        return $this->fs->copy( $source, $dest, $overwrite, SMLISER_FILE_PERMISSION );
+
+        if ( ! $this->exists( $source ) ) {
+            return false;
+        }
+
+        if ( $this->exists( $dest ) ) {
+
+            if ( ! $overwrite ) {
+                return false;
+            }
+
+            if ( ! $this->delete( $dest, true ) ) {
+                return false;
+            }
+        }
+
+        if ( $this->is_file( $source ) ) {
+            return $this->fs->copy(
+                $source,
+                $dest,
+                false,
+                SMLISER_FILE_PERMISSION
+            );
+        }
+
+        if ( ! $this->is_dir( $source ) ) {
+            return false;
+        }
+
+        if ( ! $this->mkdir( $dest ) ) {
+            return false;
+        }
+
+        $entries = $this->list( $source );
+
+        if ( false === $entries ) {
+            return false;
+        }
+
+        foreach ( $entries as $name => $info ) {
+
+            if ( '.' === $name || '..' === $name ) {
+                continue;
+            }
+
+            $from = $source . DIRECTORY_SEPARATOR . $name;
+            $to   = $dest . DIRECTORY_SEPARATOR . $name;
+
+            if ( ! $this->copy( $from, $to, false ) ) {
+                return false;
+            }
+        }
+
+        return true;
+
     }
 
     /**
@@ -274,7 +328,26 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function move( string $source, string $dest, bool $overwrite = false ): bool {
-        return $this->fs->move( $source, $dest, $overwrite );
+        if ( ! $this->exists( $source ) ) {
+            return false;
+        }
+
+        if ( $source === $dest ) {
+            return true;
+        }
+
+        if ( $this->exists( $dest ) ) {
+
+            if ( ! $overwrite ) {
+                return false;
+            }
+
+            if ( ! $this->delete( $dest, true ) ) {
+                return false;
+            }
+        }
+
+        return $this->rename( $source, $dest );
     }
 
     /**
@@ -285,7 +358,28 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function rename( string $source, string $dest ): bool {
-        return $this->move( $source, $dest, true );
+        // WP Filesystem API does not support ::rename().
+        if ( ! $this->exists( $source ) ) {
+            return false;
+        }
+
+        if ( $source === $dest ) {
+            return true;
+        }
+
+        if ( ! $this->copy( $source, $dest, true ) ) {
+            return false;
+        }
+
+        if ( ! $this->exists( $dest ) ) {
+            return false;
+        }
+
+        if ( ! $this->delete( $source ) ) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

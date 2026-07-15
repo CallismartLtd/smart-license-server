@@ -39,12 +39,12 @@ class FileSystemHelper {
      * Initializes the map properties.
      */
     protected static function init_maps(): void {
-        if ( ! isset( self::$ext_mime_type_map ) ) {
-            self::$ext_mime_type_map = include_once \SMLISER_SRC_DIR . 'FileSystem/bundles/ext-2-mime-type-map.php';
+        if ( ! isset( static::$ext_mime_type_map ) ) {
+            static::$ext_mime_type_map = include_once \SMLISER_SRC_DIR . 'FileSystem/bundles/ext-2-mime-type-map.php';
         }
 
-        if ( ! isset( self::$mimes_to_ext_map  ) ) {
-            self::$mimes_to_ext_map  = include_once \SMLISER_SRC_DIR . 'FileSystem/bundles/mime-type-2-ext-map.php';
+        if ( ! isset( static::$mimes_to_ext_map  ) ) {
+            static::$mimes_to_ext_map  = include_once \SMLISER_SRC_DIR . 'FileSystem/bundles/mime-type-2-ext-map.php';
 
         }
     }
@@ -71,15 +71,15 @@ class FileSystemHelper {
             return '';
         }
         
-        self::init_maps();
+        static::init_maps();
 
-        $mime   = self::get_mime_type( $path );
+        $mime   = static::get_mime_type( $path );
 
         if ( ! $mime ) {
             return '';
         }
 
-        return self::$mimes_to_ext_map[$mime] ?? '';
+        return static::$mimes_to_ext_map[$mime] ?? '';
     }
 
     /**
@@ -113,8 +113,8 @@ class FileSystemHelper {
         }
 
         // Last fallback: use extension map
-        $ext = self::get_extension( $path );
-        return $ext ? self::guess_mime_from_extension( $ext ) : null;
+        $ext = static::get_extension( $path );
+        return $ext ? static::guess_mime_from_extension( $ext ) : null;
     }
 
     /**
@@ -124,11 +124,11 @@ class FileSystemHelper {
      * @return string
      */
     public static function guess_mime_from_extension( string $ext ): string {
-        self::init_maps();
+        static::init_maps();
 
         $ext    = strtolower( basename( $ext ) );
 
-        return self::$ext_mime_type_map[ $ext ] ?? 'application/octet-stream';
+        return static::$ext_mime_type_map[ $ext ] ?? 'application/octet-stream';
     }
 
     /**
@@ -139,7 +139,7 @@ class FileSystemHelper {
      * @return bool
      */
     public static function has_allowed_extension( string $path, array $allowed_extensions ): bool {
-        $ext = self::get_extension( $path );
+        $ext = static::get_extension( $path );
         return $ext && in_array( $ext, array_map( 'strtolower', $allowed_extensions ), true );
     }
 
@@ -148,13 +148,18 @@ class FileSystemHelper {
      * 
      * @param string $filename
      * @return string
+     * @since 0.0.6
+     * @since 0.2.0 Now using pathinfo() for better handling of complex filenames.
      */
     public static function remove_extension( string $filename ) : string {
-        if ( ! \str_contains( $filename, '.' ) ) {
-            return $filename;
+        $dir  = dirname( $filename );
+        $name = pathinfo( $filename, PATHINFO_FILENAME );
+
+        if ( '.' === $dir ) {
+            return $name;
         }
 
-        return substr( $filename, 0, strpos( $filename, '.' ) );
+        return static::join_path( $dir, $name );
     }
 
     /**
@@ -165,7 +170,7 @@ class FileSystemHelper {
      * @return bool
      */
     public static function has_mime( string $path, $mimes ): bool {
-        $mime = self::get_mime_type( $path );
+        $mime = static::get_mime_type( $path );
         if ( ! $mime ) {
             return false;
         }
@@ -212,7 +217,7 @@ class FileSystemHelper {
         }
 
         if ( ! empty( $allowed_extensions ) ) {
-            return self::has_allowed_extension( $path, $allowed_extensions );
+            return static::has_allowed_extension( $path, $allowed_extensions );
         }
 
         return true;
@@ -252,7 +257,7 @@ class FileSystemHelper {
         if ( UPLOAD_ERR_OK !== (int) $file['error'] ) {
             throw new Exception(
                 'upload_error',
-                self::interpret_upload_error( (int) $file['error'], $name )
+                static::interpret_upload_error( (int) $file['error'], $name )
             );
         }
 
@@ -286,7 +291,7 @@ class FileSystemHelper {
      * @return bool
      */
     public static function is_image( string $path ): bool {
-        $mime = self::get_mime_type( $path );
+        $mime = static::get_mime_type( $path );
         return $mime && str_starts_with( $mime, 'image/' );
     }
 
@@ -297,7 +302,7 @@ class FileSystemHelper {
      * @return bool
      */
     public static function is_archive( string $path ): bool {
-        $mime = self::get_mime_type( $path );
+        $mime = static::get_mime_type( $path );
         return $mime && preg_match( '/(zip|rar|7z|tar|gzip|x-gzip)/i', $mime );
     }
 
@@ -331,7 +336,7 @@ class FileSystemHelper {
      * @return bool
      */
     public static function verify_checksum( string $path, string $expected_hash, string $algo = 'sha256' ): bool {
-        $actual = self::checksum( $path, $algo );
+        $actual = static::checksum( $path, $algo );
         return $actual && hash_equals( $expected_hash, $actual );
     }
 
@@ -344,8 +349,8 @@ class FileSystemHelper {
      * @return bool
      */
     public static function compare_files( string $file1, string $file2, string $algo = 'sha256' ): bool {
-        $hash1 = self::checksum( $file1, $algo );
-        $hash2 = self::checksum( $file2, $algo );
+        $hash1 = static::checksum( $file1, $algo );
+        $hash2 = static::checksum( $file2, $algo );
         return $hash1 && $hash2 && hash_equals( $hash1, $hash2 );
     }
 
@@ -369,12 +374,12 @@ class FileSystemHelper {
             'is_file'       => $fs->is_file( $path ),
             'size'          => $fs->filesize( $path ),
             'mtime'         => $fs->filemtime( $path ),
-            'extension'     => self::get_extension( $path ),
-            'mime_type'     => self::get_mime_type( $path ),
-            'checksum'      => self::checksum( $path ),
-            'is_image'      => self::is_image( $path ),
-            'is_archive'    => self::is_archive( $path ),
-            'is_valid_file' => self::is_valid_file( $path ),
+            'extension'     => static::get_extension( $path ),
+            'mime_type'     => static::get_mime_type( $path ),
+            'checksum'      => static::checksum( $path ),
+            'is_image'      => static::is_image( $path ),
+            'is_archive'    => static::is_archive( $path ),
+            'is_valid_file' => static::is_valid_file( $path ),
         ];
     }
 
@@ -392,16 +397,17 @@ class FileSystemHelper {
      * - Multibyte-safe
      *
      * @param string $filename           Raw file name.
-     * @param bool   $preserve_extension Whether to preserve the last dot segment as extension.
      *
      * @return string Sanitized file name.
      */
-    public static function sanitize_filename( string $filename, bool $preserve_extension = true ): string {
-        $extension  = '';
+    public static function sanitize_filename( string $filename ): string {
         $max_length = 255;
 
-        $filename = rawurldecode( $filename );
-        $filename = trim( $filename );
+        $filename   = rawurldecode( $filename );
+        $filename   = trim( $filename );
+        
+        $extension  = static::get_extension( $filename );
+        $filename   = static::remove_extension( $filename );
 
         // Remove traversal sequences.
         $filename = preg_replace( '#(\.\./|\.\.\\\\|\.\/|\\\\\.)+#u', '', $filename );
@@ -418,26 +424,6 @@ class FileSystemHelper {
             }
         }
 
-        $base_filename = $filename;
-
-        if ( $preserve_extension ) {
-            $parts = explode( '.', $filename );
-
-            if ( count( $parts ) > 1 && end( $parts ) !== '' ) {
-                $extension      = array_pop( $parts );
-                $base_filename  = implode( '.', $parts );
-
-                // Strict extension sanitization: letters + numbers only.
-                $extension = preg_replace( '/[^a-zA-Z0-9]/', '', $extension );
-                $extension = $extension ? '.' . $extension : '';
-            }
-        } else {
-            // Remove any extension entirely.
-            $base_filename = static::remove_extension( $filename );
-        }
-
-        $filename = $base_filename;
-
         $filename = preg_replace( '/[\x00-\x1F\x7F]/u', '', $filename );
 
         // Replace invalid OS characters.
@@ -453,8 +439,8 @@ class FileSystemHelper {
             $filename
         );
 
-        // Convert spaces, dots, and underscores to hyphens.
-        $filename = preg_replace( '/[\s\.\_]+/u', '-', $filename );
+        // Convert spaces, and underscores to hyphens.
+        $filename = preg_replace( '/[\s\_]+/u', '-', $filename );
 
         // Collapse repeated hyphens.
         $filename = preg_replace( '/-+/u', '-', $filename );
@@ -476,10 +462,10 @@ class FileSystemHelper {
         }
 
         if ( empty( $filename ) ) {
-            return 'untitled' . $extension;
+            $filename = 'untitle';
         }
 
-        return $filename . $extension;
+        return $filename . ( $extension ? ".$extension" : '' );
     }
 
     /**
@@ -507,10 +493,11 @@ class FileSystemHelper {
             if ( $part === '' || $part === '.' || $part === '\\' || $part === '/' ) {
                 continue;
             }
+            
             $cleaned_segments[] = $part;
         }
         $joined = implode( '/', $cleaned_segments );
-        $cleaned = self::sanitize_path( $joined );
+        $cleaned = static::sanitize_path( $joined );
 
         if ( $cleaned instanceof Exception ) {
             return '';
@@ -551,8 +538,8 @@ class FileSystemHelper {
         }
 
         $path                   = str_replace( '\\', '/', $path );
-        [ $prefix, $remainder ] = self::extract_path_prefix( $path );
-        $segments               = self::parse_segments( $remainder );
+        [ $prefix, $remainder ] = static::extract_path_prefix( $path );
+        $segments               = static::parse_segments( $remainder );
 
         if ( $segments instanceof Exception ) {
             return $segments;
@@ -725,7 +712,7 @@ class FileSystemHelper {
      */
     public static function upload_avatar( UploadedFile $avatar, string $type, string $filename ) : bool {
         $type           = smliser_pluralize( str_replace( '_', '-', $type ) );
-        $avatar_path    = self::join_path( SMLISER_UPLOADS_DIR, 'avatars', $type, $filename );
+        $avatar_path    = static::join_path( SMLISER_UPLOADS_DIR, 'avatars', $type, $filename );
         $tmp_file       = $avatar->get_tmp_path();
 
         $uploaded       = (bool) smliser_filesystem()->move( $tmp_file, $avatar_path, true );
@@ -746,7 +733,7 @@ class FileSystemHelper {
      */
     public static function delete_avatar( $filename, $type ) : bool {
         $type   = smliser_pluralize( str_replace( '_', '-', $type ) );
-        $file   = self::join_path( SMLISER_UPLOADS_DIR, sprintf( 'avatars/%s', $type ), $filename);
+        $file   = static::join_path( SMLISER_UPLOADS_DIR, sprintf( 'avatars/%s', $type ), $filename);
 
         $fs     = smliser_filesystem();
 
