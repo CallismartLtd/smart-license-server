@@ -871,7 +871,71 @@ abstract class Repository {
 
     /**
      * Rename an artifact file.
+     * 
+     * @param string $app_slug
+     * @param string $artifact_filename The current artifact file name.
+     * @param string $new_filename      The new artifact file name.
+     * @return array{filename: string, slug: string, size: int, mime_type: string|null, mtime: int}|Exception
      */
+    public function rename_artifact( string $app_slug, $artifact_filename, string $new_filename ) {
+        try {
+            $artifact   = null;
+            $artifacts  = $this->get_artifacts( $app_slug );
+
+            foreach( $artifacts as $data ) {
+                if ( $data['filename'] === $artifact_filename ) {
+                    $artifact   = $data;
+                    break;
+                }
+            }
+
+            if ( ! $artifact ) {
+                throw new Exception(
+                    'resource_not_found',
+                    sprintf( 'The artifact file with name "%s" cannot be renamed to "%s" because it does not exist.', $artifact_filename, $new_filename ),
+                    ['status' => 404]
+                );
+            }
+            
+            $new_artifact_filename  = FileSystemHelper::sanitize_filename( $new_filename );
+            $new_artifact_filename  = FileSystemHelper::remove_extension( $new_filename );
+
+            if ( '' === $new_artifact_filename ) {
+                throw new Exception(
+                    'invalid_input',
+                    sprintf( 'The artifact filename "%s" is invalid after sanitization.', $new_filename ),
+                    ['status' => 400]
+                );
+            }
+
+            $ext            = FileSystemHelper::get_extension( $artifact['path'] );
+            $new_filename   = '' === $ext ? $new_artifact_filename : "{$new_artifact_filename}.{$ext}";
+
+            // Rebuild the artifact path with the new filename.
+            $parts                          = explode( DIRECTORY_SEPARATOR, $artifact['path'] );
+            $parts[ count( $parts ) - 1 ]   = $new_artifact_filename;
+            
+            $new_path   = implode( DIRECTORY_SEPARATOR, $parts );
+
+            if ( ! $this->rename( $artifact['path'], $new_path ) ) {
+                throw new Exception(
+                    'rename_failed',
+                    sprintf( 'Failed to rename artifact from "%s" to "%s".', $artifact['path'], $new_path ),
+                    ['status' => 500]
+                );
+            }
+
+            return [
+                'filename'      => $new_filename,
+                'slug'          => FileSystemHelper::remove_extension( $new_filename ),
+                'size'          => $this->filesize( $new_path ),
+                'mime_type'     => FileSystemHelper::get_mime_type( $new_path ),
+                'mtime'         => $this->filemtime( $new_path )
+            ];            
+        } catch( Exception $e ) {
+            return $e;
+        }
+    }
 
     /**
     |---------------------------

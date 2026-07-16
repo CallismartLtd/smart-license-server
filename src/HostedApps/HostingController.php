@@ -562,69 +562,17 @@ class HostingController {
             $is_edit        = $request->isPut() || $request->isPatch();
             $new_filename   = FileSystemHelper::sanitize_filename( $artifact_name );
 
-            $artifacts      = $repo_class->get_artifacts( $app->get_slug() );
-
             if ( null === $artifact_file ) {
 
                 if ( ! $is_edit ) {
                     throw new RequestException( 'required_param', 'Please upload the artifact file using "artifact_file" as file parameter key.' );
                 }
 
-                $artifact   = null;
-
-                foreach( $artifacts as $data ) {
-                    if ( $data['filename'] === $artifact_filename ) {
-                        $artifact   = $data;
-                        break;
-                    }
-                }
-
-                if ( ! $artifact ) {
-                    throw new RequestException(
-                        'resource_not_found',
-                        sprintf( 'The artifact file with name "%s" cannot be renamed to "%s" because it does not exist.', $artifact_filename, $artifact_name ),
-                        ['status' => 404]
-                    );
-                }
-
-
-                if ( '' === $new_filename ) {
-                    throw new RequestException(
-                        'invalid_input',
-                        sprintf( 'The artifact filename "%s" is invalid after sanitization.', $artifact_name ),
-                        ['status' => 400]
-                    );
-                }
-
-                $ext            = FileSystemHelper::get_extension( $artifact['path'] );
-                $new_filename   = '' === $ext ? $new_filename : "{$new_filename}.{$ext}";
-
-                // Rebuild the artifact path with the new filename.
-                $parts                          = explode( DIRECTORY_SEPARATOR, $artifact['path'] );
-                $parts[ count( $parts ) - 1 ]   = $new_filename;
-                
-                $new_path   = implode( DIRECTORY_SEPARATOR, $parts );
-
-                if ( ! $repo_class->rename( $artifact['path'], $new_path ) ) {
-                    throw new RequestException(
-                        'rename_failed',
-                        sprintf( 'Failed to rename artifact from "%s" to "%s".', $artifact['path'], $new_path ),
-                        ['status' => 500]
-                    );
-                }
-
-                $response_data  = [
-                    'filename'      => $new_filename,
-                    'slug'          => FileSystemHelper::remove_extension( $new_filename ),
-                    'size'          => $repo_class->filesize( $new_path ),
-                    'download_url'  => $app->get_artifact_url( $new_filename ),
-                    'mime_type'     => FileSystemHelper::get_mime_type( $new_path ),
-                    'mtime'         => $repo_class->filemtime( $new_path )
-                ];
+                $response_data  = $repo_class->rename_artifact( $app->get_slug(), $artifact_filename, $new_filename );
 
             } else {
-
                 $artifact_file->set_new_name( $new_filename );
+                
                 $response_data = $repo_class->upload_artifact([
                     'app_slug'  => $app->get_slug(),
                     'file'      => $artifact_file,

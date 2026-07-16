@@ -259,7 +259,7 @@ class DirectFileSystem implements FileSystemAdapterInterface {
         }
 
         if ( $this->is_file( $source ) ) {
-            return @copy( $source, $dest );
+            return @copy( $source, $dest ) && $this->exists( $dest ) && $this->chmod( $dest, \SMLISER_FILE_PERMISSION );
         }
 
         if ( $this->is_dir( $source ) ) {

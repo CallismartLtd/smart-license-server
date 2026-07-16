@@ -38,14 +38,14 @@ $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null )
 
         <ul class="smliser-app-artifacts">
             <?php 
-            $new_upload_config  = urlencode( smliser_json_encode_attr([
+            $new_upload_config  = rawurlencode( smliser_json_encode_attr([
                 'app_slug'  => $app->get_slug(),
                 'app_type'  => $app->get_type(),
                 'isNew'     => true
             ]));
             foreach( $app_files as $file_data ) : 
                 $download_url   = 'main' === $file_data['slug'] ? $app->get_download_url() : $app->get_artifact_url( $file_data['filename'] );
-                $config         = urlencode( smliser_json_encode_attr([
+                $config         = rawurlencode( smliser_json_encode_attr([
                     'filename'  => $file_data['filename'],
                     'slug'      => $file_data['slug'],
                     'size'      => $file_data['size'],
