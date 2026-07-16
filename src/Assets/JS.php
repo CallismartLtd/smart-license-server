@@ -18,9 +18,15 @@ final class JS {
      */
     public static function all( string $suffix = '' ) : array {
         return [
+            'string-utils' => [
+                'src'    => assetsUrl( sprintf( 'js/string-utils%s.js', $suffix ) ),
+                'deps'   => [],
+                'ver'    => SMLISER_VER,
+                'footer' => true
+            ],
             'smliser-script' => [
                 'src'    => assetsUrl( sprintf( 'js/main-script%s.js', $suffix ) ),
-                'deps'   => ['smliser-jquery', 'select2', 'smliser-datetime-picker', 'smliser-modal'],
+                'deps'   => ['string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
