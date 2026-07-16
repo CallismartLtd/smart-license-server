@@ -354,7 +354,7 @@ class AppUploader {
 
         if ( ! action ) return;
 
-        const config = StringUtils.JSONparse( decodeURIComponent( btn.getAttribute( 'data-config' ) ) );
+        const config = StringUtils.JSONparse( StringUtils.rawUrlDecode( btn.getAttribute( 'data-config' ) ) );
 
         const actionMap = {
             [ AppUploader.ACTIONS.OPEN_MODAL        ]: () => this.openModal( config ),
@@ -1151,7 +1151,7 @@ class AppUploader {
     async _handleArtifactPageClick( e ) {
         const clickedBtn    = e.target;
         const configEl      = clickedBtn?.closest( '[data-config]' );
-        const config        = StringUtils.JSONparse( decodeURIComponent( configEl?.getAttribute( 'data-config' ) ?? null ) );        
+        const config        = StringUtils.JSONparse( StringUtils.rawUrlDecode( configEl?.getAttribute( 'data-config' ) ?? null ) );        
 
         if ( clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_ADD_NEW_BTN ) ) {
             // Open modal for add new artifact.
@@ -1176,7 +1176,10 @@ class AppUploader {
     /**
      * Open the artifact modal for adding or editing an artifact.
      */
-    openArtifactModal( config = {isNew: true, filename: '' } ) {        
+    openArtifactModal( config = {isNew: true, filename: '' } ) {   
+
+        console.log(config );
+             
 
         if ( ! this.artifactModal ) {
             const modalBody = document.createElement( 'form' );
