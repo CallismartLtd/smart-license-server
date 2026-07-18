@@ -54,7 +54,7 @@ $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null )
                     'isNew'     => false
                 ]));
             ?>
-                <li class="smliser-app-artifacts_item <?php echo escHtml( $file_data['slug'] ); ?>">
+                <li class="smliser-app-artifacts_item <?php echo escHtml( str_replace( '.', '-', $file_data['slug'] ) ); ?>">
                     <div class="smliser-app-artifacts_item-heading">
                         <span>
                             <strong>Name:</strong> <?php echo escHtml( $file_data['filename'] ); ?>
