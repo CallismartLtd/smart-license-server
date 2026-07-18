@@ -1169,17 +1169,15 @@ class AppUploader {
         const filename  = config?.filename ?? 'artifact';        
 
         if ( deleteBtn && await SmliserModal.confirm( `Are you sure to delete  ${filename}?` ) ) {
-            // Handle artifact deletion.
+            config.artifact_filename    = config?.filename ?? null;
+            this._deleteArtifact( config );
         }
     }
 
     /**
      * Open the artifact modal for adding or editing an artifact.
      */
-    openArtifactModal( config = {isNew: true, filename: '' } ) {   
-
-        console.log(config );
-             
+    openArtifactModal( config = {isNew: true, filename: '' } ) {             
 
         if ( ! this.artifactModal ) {
             const modalBody = document.createElement( 'form' );
@@ -1188,11 +1186,11 @@ class AppUploader {
             modalBody.innerHTML = `
                 <label for="artifact-name" class="smliser-form-label-row">
                     <span class="smliser-form-label">Artifact File Name: <i class="smliser-form-description ti ti-question-mark" title="This artifact file name will be sanitized and the uploaded file extension will be appended to it. e.g. &quot;my artifact.zip&quot; will be sanitized to &quot;my-artifact.zip&quot;"></i></span>
-                    <input type="text" class="smliser-form-input" style="font-size: 15px;" id="artifact-name" name="artifact_filename" required>
+                    <input type="text" class="smliser-form-input" style="font-size: 15px;" id="artifact-name" name="canonical_filename" required>
                     
                 </label>
                 <span class="smliser-spinner modal"></span>
-                <textarea id="artifact-config" class="smliser-hide">${StringUtils.JSONstringify( config, 2 )}</textarea>
+                <textarea id="artifact-config" class="smliser-hide" style="width: 100%; height: 200px;"></textarea>
                 <div class="smliser-form-file-row">
                     <input type="file" class="smliser-hide artifact-file-input" id="artifact-file" name="artifact_file">
                     <div class="smliser-file-info">
@@ -1226,6 +1224,7 @@ class AppUploader {
 
         this.artifactModal.setHeaderTitle( config?.isNew ? 'Add New Artifact' : 'Edit Artifact' );
         this.artifactModal.getBody( '#artifact-name' ).value    = config?.filename ?? '';
+        this.artifactModal.getBody( 'textarea' ).value          = StringUtils.JSONstringify( config, 2 );
         this.artifactModal.open();
     }
 
@@ -1234,6 +1233,7 @@ class AppUploader {
      */
     initArtifactFileUploader() {
         this.artifactFileUploader   = this.artifactModal.getBody( '.smliser-form-file-row' );
+        
         this.artifactFileInput      = this.artifactModal.getBody( '#artifact-file' );
         const fileUploadBtn         = this.artifactModal.getBody( '.smliser-upload-btn' );
         const clearBtn              = this.artifactModal.getBody( '.smliser-file-remove' );
@@ -1308,7 +1308,7 @@ class AppUploader {
             payLoad.set( 'app_slug', config.app_slug );
             payLoad.set( 'app_type', config.app_type );
             payLoad.set( 'artifact_filename', config.filename );
-            payLoad.set( 'artifact_name', canonicalFileName );
+            payLoad.set( 'canonical_filename', canonicalFileName );
 
             if ( file ) {
                 payLoad.set( 'artifact_file', file );
@@ -1318,8 +1318,15 @@ class AppUploader {
 
             if ( ! result ) return;
 
+            const newConfig  = {
+                oldSlug: config.slug,
+                ...config, 
+                ...result
+            }
+
             this.artifactModal.close();
-            this._updateArtifactList( result, config );
+
+            this._updateArtifactList( newConfig );
             
         });
     }
@@ -1356,7 +1363,7 @@ class AppUploader {
                 mTime: response.data.mtime,
             };
         } catch( error ) {
-            smliserNotify( error.message, 10000 );
+            await SmliserModal.error( error.message );
             return null;
         } finally {
             removeSpinner( spinner );
@@ -1365,11 +1372,130 @@ class AppUploader {
     }
 
     /**
+     * Delete an artifact
+     */
+    async _deleteArtifact( config ) {        
+        try {
+            const defaultParams = {
+                app_slug: '',
+                app_type: '',
+                artifact_filename: '',
+            };
+
+            const requestBody   = {...defaultParams, ...config }
+            const url           = new URL( smliser_var.ajaxURL );
+
+            requestBody.security    = smliser_var.csrf_token;
+
+            url.searchParams.set( 'action', 'smliser_delete_artifact' );
+
+            const response  = await smliserFetchJSON( url, {
+                method: 'DELETE',
+                credentials: 'same-origin',
+                headers: {
+                    'accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: StringUtils.JSONstringify( requestBody )
+            });
+
+            if ( ! response.success ) {
+                throw new Error( response?.data?.message ?? 'Artifact upload request failed with an unknown error.' );
+            }
+
+            await SmliserModal.success( response.message || 'Sucessfully deleted.' );
+
+            const slug      = StringUtils.replace( '.', '-', config.slug )
+            const targetEl  = this.artifactUploader.querySelector( `.smliser-app-artifacts_item.${slug}` );
+
+            if ( targetEl ) {
+                jQuery( targetEl ).fadeOut( 1000, () => {
+                    targetEl.remove();
+                });
+            }
+
+        } catch (error) {
+            await SmliserModal.error( error.message, 'Delete Error' );
+        }
+        
+    }
+
+    /**
      * Update the artifact list in the UI after a successful upload or edit.
      * 
-     * @param {{filename: string, slug: string, size: number, url: string, mimeType: string, mTime: string}} artifactData
-     * @param {{isNew: boolean, filename: string}} config
+     * @param {{filename: string, oldSlug: string, slug: string, size: number, url: string, mimeType: string, mTime: string, isNew: boolean}} artifactData
      */
+    async _updateArtifactList( artifactData ) {
+
+        if ( ! artifactData ) return;
+        
+        const listBase  = this.artifactUploader.querySelector( '.smliser-app-artifacts' );
+        const liEl      = artifactData.isNew 
+            ? document.createElement( 'li' ) : 
+            this.artifactUploader.querySelector( `li.smliser-app-artifacts_item.${StringUtils.replace( '.', '-', artifactData.oldSlug )}` );
+
+        if ( ! liEl ) {
+            await SmliserModal.error( 'Target list was not found in the DOM.');
+            return;
+        }
+
+        jQuery( liEl ).fadeOut( 100 );
+        
+        const originalConfig    = structuredClone( artifactData );
+        artifactData.isNew      = false;
+        delete artifactData.oldSlug;
+        const data              = StringUtils.rawUrlEncode( StringUtils.JSONstringify( artifactData ) );
+        const newSlug           = StringUtils.replace( '.', '-', artifactData.slug );
+        liEl.className = `smliser-app-artifacts_item ${newSlug}`;
+
+        liEl.innerHTML  = `
+            <div class="smliser-app-artifacts_item-heading">
+                <span>
+                    <strong>Name:</strong> ${artifactData.filename}
+                </span>
+                    
+                <div class="smliser-app-artifacts_item-buttons">
+                    <button title="Edit artifact" class="smliser-edit-artifact" data-config="${data}"> <i class="ti ti-edit"></i></button>
+                    <button title="Delete artifact" class="smliser-delete-artifact" data-config="${data}"> <i class="ti ti-trash"></i></button>
+                </div>
+
+            </div>
+                
+            <div class="smliser-app-artifacts_item-info">
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>Size:</th>
+                            <td>${StringUtils.formatBytes( artifactData.size )}</td>
+                        </tr>
+                        <tr>
+                            <th>Mime Type:</th>
+                            <td>${artifactData.mimeType}</td>
+                        </tr>
+                        <tr>
+                            <th>Download URL:</th>
+                            <td>
+                                <span title="${artifactData.url}">
+                                    ${StringUtils.truncate( artifactData.url, 40 )}   
+                                </span>
+                                <i class="ti ti-copy smliser-click-to-copy" title="Click to copy" data-copy-value="${artifactData.url}"></i>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Last Updated:</th>
+                            <td>Now</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        if ( originalConfig.isNew ) {
+            listBase.appendChild( liEl );
+        }
+
+        jQuery( liEl ).fadeIn( 1000 );
+    }
 }
 
 /*
