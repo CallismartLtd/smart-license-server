@@ -522,14 +522,23 @@ class HostingController {
      */
     public static function app_artifact_upload( Request $request ): Response {
         try {
-            static::check_permissions( 'hosted_apps.upload_assets', 'hosted_apps.edit_assets' );
-            $app_type       = (string) $request->get( 'app_type', '' );
-            $app_slug       = (string) $request->get( 'app_slug', '' );
-            $app            = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+            $is_edit    = $request->isPut() || $request->isPatch();
+            
+            if ( $is_edit ) {
+                static::check_permissions( 'hosted_apps.edit_assets' );
+            } else {
+                static::check_permissions( 'hosted_apps.upload_assets' );
+            }
+
+            $app_type   = (string) $request->get( 'app_type', '' );
+            $app_slug   = (string) $request->get( 'app_slug', '' );
+            $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
             if ( ! $app ) {
                 throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found.', $app_type, $app_slug ), array( 'status' => 404 ) );
             }
+
+            static::check_app_ownership( $app );
 
             $registry   = HostedAppsRegistry::instance();
             $repo_class  = $registry->get_app_type_directory_class( $app_type );
@@ -538,19 +547,24 @@ class HostingController {
                 throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.', array( 'status' => 500 ) );
             }
 
-            /**
-             * @var string|null $artifact_name The canonical filename for the artifact.
-             * @var string|null $artifact_filename The original filename of the artifact.
-             */
-            $artifact_name      = (string) $request->get( 'artifact_name', '' );
-            $artifact_filename  = (string) $request->get( 'artifact_filename', '' );
+            $current_filename   = (string) $request->get( 'artifact_filename', '' );
 
-            if ( ! $artifact_name ) {
+            if ( $is_edit && '' === $current_filename ) {
+                throw new RequestException(
+                    'required_param',
+                    'The artifact filename is required.'
+                );
+            }
+            
+            $canonical_filename = (string) $request->get( 'canonical_filename', '' );
+
+            if ( ! $canonical_filename ) {
                 throw new RequestException( 'required_param', 'The canonical filename for this artifact is required.' );
             }
 
-            $contains_dir_seps = str_contains( $artifact_name, DIRECTORY_SEPARATOR ) 
-                || str_contains( $artifact_name, '/' ) || str_contains( $artifact_name, '\\' );
+            // Redundant is better.
+            $contains_dir_seps = str_contains( $canonical_filename, DIRECTORY_SEPARATOR ) 
+                || str_contains( $canonical_filename, '/' ) || str_contains( $canonical_filename, '\\' );
 
             if ( $contains_dir_seps ) {
                 throw new RequestException( 'invalid_input', 'The artifact name must not contain directory separators.' );
@@ -558,9 +572,15 @@ class HostingController {
 
             unset( $contains_dir_seps );
 
-            $artifact_file  = $request->get_file( 'artifact_file' );
-            $is_edit        = $request->isPut() || $request->isPatch();
-            $new_filename   = FileSystemHelper::sanitize_filename( $artifact_name );
+            $artifact_file      = $request->get_file( 'artifact_file' );
+            $canonical_filename = FileSystemHelper::sanitize_filename( $canonical_filename );
+
+            if ( '' === $canonical_filename ) {
+                throw new RequestException(
+                    'invalid_input',
+                    'The artifact filename is invalid.'
+                );
+            }
 
             if ( null === $artifact_file ) {
 
@@ -568,34 +588,29 @@ class HostingController {
                     throw new RequestException( 'required_param', 'Please upload the artifact file using "artifact_file" as file parameter key.' );
                 }
 
-                $response_data  = $repo_class->rename_artifact( $app->get_slug(), $artifact_filename, $new_filename );
+                $response_data  = $repo_class->rename_artifact( $app->get_slug(), $current_filename, $canonical_filename );
 
             } else {
-                $artifact_file->set_new_name( $new_filename );
+                $artifact_file->set_new_name( $canonical_filename );
                 
                 $response_data = $repo_class->upload_artifact([
                     'app_slug'  => $app->get_slug(),
                     'file'      => $artifact_file,
-                    'filename'  => $artifact_filename,
+                    'filename'  => $current_filename,
                     'overwrite' => $is_edit
-                ]);
-
-                if ( $response_data instanceof Exception ) {
-                    throw new RequestException(
-                        $response_data->get_error_code(),
-                        $response_data->get_error_message(),
-                        $response_data->get_error_data()
-                    );
-                }
-
-                $response_data['download_url']  = $app->get_artifact_url( $response_data['filename'] );
-            
+                ]);           
             }
 
-            $response   = [
-                'success'   => true,
-                'data'      => $response_data
-            ];
+            if ( $response_data instanceof Exception ) {
+                throw new RequestException(
+                    $response_data->get_error_code(),
+                    $response_data->get_error_message(),
+                    $response_data->get_error_data()
+                );
+            } 
+
+            $response_data['download_url']  = $app->get_artifact_url( $response_data['filename'] );
+            $response                       = ['success' => true, 'data' => $response_data ];
 
             return ( new Response( 200, [], $response ) )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
@@ -603,6 +618,101 @@ class HostingController {
             return ( new Response() )
                 ->set_exception( $e )
                 ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+        }
+    }
+
+    /**
+     * Handles application artifact deletion.
+     *
+     * @param Request $request The request object.
+     * @return Response
+     */
+    public static function app_artifact_delete( Request $request ): Response {
+        try {
+            static::check_permissions( 'hosted_apps.delete_assets', 'hosted_apps.edit_assets' );
+
+            $app_type          = (string) $request->get( 'app_type', '' );
+            $app_slug          = (string) $request->get( 'app_slug', '' );
+            $artifact_filename = (string) $request->get( 'artifact_filename', '' );
+
+            $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app ) {
+                throw new RequestException(
+                    'resource_not_found',
+                    sprintf(
+                        'The %s with slug "%s" was not found.',
+                        $app_type,
+                        $app_slug
+                    ),
+                    [ 'status' => 404 ]
+                );
+            }
+
+            static::check_app_ownership( $app );
+
+            if ( '' === $artifact_filename ) {
+                throw new RequestException(
+                    'required_param',
+                    'The artifact filename is required.'
+                );
+            }
+
+            if (
+                str_contains( $artifact_filename, '/' ) ||
+                str_contains( $artifact_filename, '\\' )
+            ) {
+                throw new RequestException(
+                    'invalid_input',
+                    'The artifact filename must not contain directory separators.'
+                );
+            }
+
+            $registry   = HostedAppsRegistry::instance();
+            $repo_class = $registry->get_app_type_directory_class( $app_type );
+
+            if ( ! $repo_class ) {
+                throw new RequestException(
+                    'internal_server_error',
+                    'Unable to resolve repository class.',
+                    [ 'status' => 500 ]
+                );
+            }
+
+            $response = $repo_class->delete_artifact( $app->get_slug(), $artifact_filename );
+
+            if ( $response instanceof Exception ) {
+                throw new RequestException(
+                    $response->get_error_code(),
+                    $response->get_error_message(),
+                    $response->get_error_data()
+                );
+            }
+
+            $response_data = [
+                'success' => true,
+                'message'   => 'Deleted successfully',
+                'data'    => [
+                    'filename' => $artifact_filename,
+                    'deleted'  => true,
+                ],
+            ];
+
+            return ( new Response( 200, [], $response_data ) )
+            ->set_header( 'Content-Type',
+                sprintf(
+                    'application/json; charset=%s',
+                    smliser_settings()->get( 'charset', 'UTF-8' )
+                )
+            );
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', sprintf(
+                    'application/json; charset=%s',
+                    smliser_settings()->get( 'charset', 'UTF-8' )
+                    )
+                );
         }
     }
 
