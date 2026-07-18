@@ -393,14 +393,19 @@ const StringUtils = {
 	 * @returns {string} Formatted size string
 	 */
 	formatBytes: function ( bytes, decimals = 2 ) {
-		if ( bytes === 0 ) return '0 Bytes';
 
-		const k = 1024;
-		const dm = decimals < 0 ? 0 : decimals;
-		const sizes = [ 'Bytes', 'KB', 'MB', 'GB', 'TB', 'PB' ];
-		const i = Math.floor( Math.log( bytes ) / Math.log( k ) );
+		const units = [ 'B', 'KB', 'MB', 'GB', 'TB', 'PB' ];
 
-		return parseFloat( ( bytes / Math.pow( k, i ) ).toFixed( dm ) ) + ' ' + sizes[ i ];
+		bytes = Math.max( bytes, 0 );
+
+		const pow = Math.min(
+			Math.floor( bytes ? Math.log( bytes ) / Math.log( 1024 ) : 0 ),
+			units.length - 1
+		);
+
+		const value = bytes / Math.pow( 1024, pow );
+
+		return value.toFixed( decimals ).replace( /\.?0+$/, '' ) + ' ' + units[ pow ];
 	},
 
 	/**
@@ -718,6 +723,75 @@ const StringUtils = {
 			return str.toLowerCase().includes( search.toLowerCase() );
 		}
 		return str.includes( search );
+	},
+
+	/* ---------------------------------------------------------------------
+	 * Search & replace
+	 * ------------------------------------------------------------------- */
+
+	/**
+	 * Replace occurrences of a search string (or array of search strings)
+	 * with a replacement string (or array of replacements) within a
+	 * subject string. Mirrors PHP's str_replace().
+	 *
+	 * - search: string, replacement: string -> simple global replace.
+	 * - search: array, replacement: string -> every match replaced with
+	 *   the same replacement.
+	 * - search: array, replacement: array -> paired by index; if
+	 *   replacement is shorter than search, remaining matches are
+	 *   replaced with '' (same behaviour as PHP).
+	 *
+	 * @param {string|Array<string>} search - Value(s) to search for
+	 * @param {string|Array<string>} replacement - Value(s) to replace with
+	 * @param {string} subject - String to perform replacements on
+	 * @returns {string} Resulting string
+	 */
+	replace: function ( search, replacement, subject ) {
+		if ( typeof subject !== 'string' ) return '';
+
+		const searches = Array.isArray( search ) ? search : [ search ];
+		const replacements = Array.isArray( replacement )
+			? replacement
+			: searches.map( () => replacement );
+
+		let result = subject;
+
+		searches.forEach( ( needle, index ) => {
+			if ( needle === '' || needle === undefined || needle === null ) return;
+			const withValue = replacements[ index ] !== undefined ? replacements[ index ] : '';
+			result = result.split( String( needle ) ).join( String( withValue ) );
+		} );
+
+		return result;
+	},
+
+	/**
+	 * Case-insensitive replace, mirroring PHP's str_ireplace(). Supports
+	 * the same string/array combinations as replace().
+	 * @param {string|Array<string>} search - Value(s) to search for
+	 * @param {string|Array<string>} replacement - Value(s) to replace with
+	 * @param {string} subject - String to perform replacements on
+	 * @returns {string} Resulting string
+	 */
+	ireplace: function ( search, replacement, subject ) {
+		if ( typeof subject !== 'string' ) return '';
+
+		const searches = Array.isArray( search ) ? search : [ search ];
+		const replacements = Array.isArray( replacement )
+			? replacement
+			: searches.map( () => replacement );
+
+		let result = subject;
+
+		searches.forEach( ( needle, index ) => {
+			if ( needle === '' || needle === undefined || needle === null ) return;
+			const withValue = replacements[ index ] !== undefined ? replacements[ index ] : '';
+			const escaped = String( needle ).replace( /[.*+?^${}()|[\]\\]/g, '\\$&' );
+			const regex = new RegExp( escaped, 'gi' );
+			result = result.replace( regex, String( withValue ) );
+		} );
+
+		return result;
 	},
 
 	/* ---------------------------------------------------------------------
