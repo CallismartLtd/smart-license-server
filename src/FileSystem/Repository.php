@@ -839,6 +839,9 @@ abstract class Repository {
             $path           = $this->enter_slug( $app_slug );
             $artifacts_dir  = FileSystemHelper::join_path( $path, static::ARTIFACTS_DIR, \DIRECTORY_SEPARATOR );
 
+            if ( ! $this->is_dir( $artifacts_dir ) && ! $this->mkdir( $artifacts_dir, SMLISER_DIR_PERMISSION ) ) {
+                throw new FileSystemException( 'Unable to created destination directory.' );
+            }
 
             $new_filename   = FileSystemHelper::sanitize_filename( $file->get_name( false ) );
             $new_filename   = $new_filename . ( '' !== $canonical_ext ? ".$canonical_ext" : '' );
@@ -947,29 +950,30 @@ abstract class Repository {
 
             $new_artifact_filename  = FileSystemHelper::remove_extension( $new_filename );
             $ext                    = FileSystemHelper::get_canonical_extension( $artifact['path'] );
-            $new_filename           = '' === $ext ? $new_artifact_filename : "{$new_artifact_filename}.{$ext}";
+
+            if ( '' === $ext ) {
+                $ext    = FileSystemHelper::get_extension( $artifact['path'] );
+            }
+
+            $new_filename   = '' === $ext ? $new_artifact_filename : "{$new_artifact_filename}.{$ext}";
 
             // Rebuild the artifact path with the new filename.
-            $new_path = FileSystemHelper::join_path(
-                dirname( $artifact['path'] ),
-                $new_filename,
-                DIRECTORY_SEPARATOR
-            );
+            $new_file_path  = FileSystemHelper::join_path( dirname( $artifact['path'] ), $new_filename );
 
-            if ( ! $this->rename( $artifact['path'], $new_path ) ) {
+            if ( ! $this->rename( $artifact['path'], $new_file_path ) ) {
                 throw new Exception(
                     'rename_failed',
-                    sprintf( 'Failed to rename artifact from "%s" to "%s".', $artifact['path'], $new_path ),
+                    sprintf( 'Failed to rename artifact from "%s" to "%s".', $artifact['path'], $new_file_path ),
                     ['status' => 500]
                 );
             }
 
             return [
-                'filename'      => $new_filename,
-                'slug'          => FileSystemHelper::remove_extension( $new_filename ),
-                'size'          => $this->filesize( $new_path ),
-                'mime_type'     => FileSystemHelper::get_mime_type( $new_path ),
-                'mtime'         => $this->filemtime( $new_path )
+                'filename'  => $new_filename,
+                'slug'      => FileSystemHelper::remove_extension( $new_filename ),
+                'size'      => $this->filesize( $new_file_path ),
+                'mime_type' => FileSystemHelper::get_mime_type( $new_file_path ),
+                'mtime'     => $this->filemtime( $new_file_path )
             ];            
         } catch( Exception $e ) {
             return $e;
