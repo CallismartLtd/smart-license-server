@@ -67,6 +67,7 @@ class Router implements RouterInterface {
             'smliser_app_asset_upload'                      => [ __CLASS__, 'parse_app_asset_upload_request' ],
             'smliser_app_asset_delete'                      => [ __CLASS__, 'parse_app_asset_delete_request' ],
             'smliser_app_artifact_upload'                   => [ __CLASS__, 'parse_app_artifact_upload_request' ],
+            'smliser_delete_artifact'                       => [ __CLASS__, 'parse_app_artifact_delete_request' ],
             'smliser_save_monetization_tier'                => [ __CLASS__, 'parse_monetization_tier_form_request' ],
             'smliser_bulk_action'                           => [ __CLASS__, 'parse_bulk_action_request' ],
             'smliser_all_actions'                           => [ __CLASS__, 'parse_bulk_action_request' ],
@@ -376,6 +377,15 @@ class Router implements RouterInterface {
         static::guard( $request, 'install_plugins' );
 
         HostingController::app_artifact_upload( $request )->send();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public static function parse_app_artifact_delete_request( Request $request ): void {
+        static::guard( $request, 'install_plugins' );
+
+        HostingController::app_artifact_delete( $request )->send();
     }
 
     /**
