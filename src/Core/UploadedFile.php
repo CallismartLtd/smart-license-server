@@ -335,8 +335,8 @@ final class UploadedFile {
             throw new Exception( 'malicious_directory', 'The provided directory name is not safe.' );
         }
 
-        if ( ! $this->fs->is_dir( $safe_directory ) ) {
-            $this->fs->mkdir( $safe_directory, SMLISER_DIR_PERMISSION );
+        if ( ! $this->fs->is_dir( $safe_directory ) && ! $this->fs->mkdir( $safe_directory, SMLISER_DIR_PERMISSION ) ) {
+            throw new Exception( 'filesystem_error', 'Unable to created destination directory.' );
         }
 
         $filename       = $filename ? FileSystemHelper::remove_extension( $filename ) : $this->get_name( false );
