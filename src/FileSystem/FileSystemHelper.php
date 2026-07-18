@@ -98,18 +98,37 @@ class FileSystemHelper {
         // Try finfo first (most accurate).
         if ( function_exists( 'finfo_open' ) ) {
             $finfo = @finfo_open( FILEINFO_MIME_TYPE );
+
             if ( $finfo ) {
-                $mime = finfo_file( $finfo, $path );
-                // finfo_close( $finfo ); // Deprecated in PHP 8.0, no longer needed.
-                if ( $mime ) {
-                    return strtolower( $mime );
+                $mime = strtolower( (string) finfo_file( $finfo, $path ) );
+
+                if ( '' !== $mime ) {
+                    // libmagic often reports source files as text/plain.
+                    // If we know the extension, prefer the mapped MIME type.
+                    if ( 'text/plain' === $mime ) {
+                        $ext = static::get_extension( $path );
+
+                        if ( '' !== $ext ) {
+                            $mapped = static::guess_mime_from_extension( $ext );
+
+                            if ( null !== $mapped ) {
+                                return strtolower( $mapped );
+                            }
+                        }
+                    }
+
+                    return $mime;
                 }
             }
         }
 
         // Fallback to mime_content_type()
         if ( function_exists( 'mime_content_type' ) ) {
-            return strtolower( mime_content_type( $path ) );
+            $mime   = mime_content_type( $path );
+
+            if ( $mime ) {
+                return strtolower( $mime );
+            }
         }
 
         // Last fallback: use extension map
