@@ -1174,11 +1174,12 @@ class SmliserModal {
     /**
      * Convenience method: Show error alert
      */
-    static error( message, title = 'Error' ) {
+    static error( message, title = 'Error', buttonText = 'Close' ) {
         return SmliserModal.alert({
             title: title,
             message: message,
-            type: 'error'
+            type: 'error',
+            buttonText: buttonText
         });
     };
 
