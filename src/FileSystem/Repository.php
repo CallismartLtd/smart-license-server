@@ -173,22 +173,6 @@ abstract class Repository {
         return $this->full_path( $relative );
     }
 
-    /**
-     * List contents of the current slug directory or given dir.
-     *
-     * @param string|null $filename Optional file or directory inside current slug.
-     * @return array|false
-     */
-    public function list( $filename = null ) {
-        $path = $filename ? $this->path( $filename ) : $this->path();
-
-        if ( ! $path || ! $this->is_dir( $path ) ) {
-            return false;
-        }
-
-        return $this->fs()->list( $path );
-    }
-
     /* -------------------------------------------------------------------------
      * ZIP Utilities
      * ---------------------------------------------------------------------- */
@@ -247,12 +231,6 @@ abstract class Repository {
      * @return string|Exception Absolute path of stored ZIP or error on failure.
      */
     private function save_zip_file( $from, $to ) {
-        // Ensure destination file name ends with .zip.
-        $ext    = FileSystemHelper::get_extension( $to );
-        if ( 'zip' !== strtolower( $ext ) ) {
-            return new Exception( 'invalid_file_type', 'The file must have a .zip extension.', [ 'status' => 400 ] );
-        }
-
         // Save the file to the destination.
         if ( ! $this->rename( $from, $to ) ) {
             return new Exception( 'file_saving_failed', 'Failed to save the uploaded ZIP file.', [ 'status' => 500 ] );
@@ -299,15 +277,11 @@ abstract class Repository {
 
         try {
             $slug = $this->real_slug( $new_name );
-        } catch ( FileSystemException $e ) {
-            return new Exception( $e->get_error_code(), $e->get_error_message(), [ 'status' => 400 ] );
-        }
 
-        // Force the filename to strictly be "{slug}.zip".
-        $file_name = "{$slug}.zip";
+            // Force the filename to strictly be "{slug}.zip".
+            $file_name = "{$slug}.zip";
 
-        // Build destination directory.
-        try {
+            // Build destination directory.
             $base_folder = $this->path( $slug );
             $dest_path   = FileSystemHelper::join_path( $base_folder, $file_name );
 
@@ -315,7 +289,7 @@ abstract class Repository {
                 throw new FileSystemException( 'Destination directory contains invalid characters' );
             }
         } catch ( FileSystemException $e ) {
-            return new Exception( $e->get_error_code(), $e->get_error_message(), [ 'status' => 500 ] );
+            return new Exception( $e->get_error_code(), $e->get_error_message(), [ 'status' => 400 ] );
         }
 
         $active_dirname    = rtrim( $this->current_dir, 's' ); // "plugins" => "plugin"
@@ -727,42 +701,58 @@ abstract class Repository {
     */
 
     /**
-     * Get all the artifact files for this app slug.
-     * 
-     * @param string $slug The app slug.
-     * @return array{slug: string, path: string, size: int, mtime: int, mime_type: string|null, filename: string}[]
+     * Get all artifact files for an application.
+     *
+     * @param string $slug Application slug.
+     * @return array<int, array{
+     *     slug: string,
+     *     path: string,
+     *     size: int,
+     *     mtime: int,
+     *     mime_type: string|null,
+     *     filename: string
+     * }>
      */
     public function get_artifacts( string $slug ) : array {
         try {
             $slug       = $this->real_slug( $slug );
             $files      = [];
+            
+            $path           = $this->enter_slug( $slug );
+            $artifacts_dir  = FileSystemHelper::join_path( $path, static::ARTIFACTS_DIR, \DIRECTORY_SEPARATOR );
+            $available_artifacts    = array_filter(
+                \glob( $artifacts_dir . '*' ) ?: [],
+                [$this, 'is_file']
+            );
+
+            foreach( $available_artifacts as $file ) {
+                $filename   = basename( $file );
+                $files[]    = [
+                    'slug'      => FileSystemHelper::remove_extension( $filename ),
+                    'path'      => $file,
+                    'size'      => (int) $this->filesize( $file ),
+                    'mtime'     => (int) $this->filemtime( $file ),
+                    'mime_type' => FileSystemHelper::get_mime_type( $file ),
+                    'filename'  => $filename
+                ];
+            }
+
+            usort(
+                $files,
+                static fn ( $a, $b ) => $b['mtime'] <=> $a['mtime']
+            );
+            
             $main_file  = $this->locate( $slug );
 
             if ( ! ( $main_file instanceof Exception ) ) {
-                $files[]  = [
+                \array_unshift( $files, [
                     'slug'  => 'main',
                     'path'  => $main_file,
                     'size'  => (int) $this->filesize( $main_file ),
                     'mtime' => (int) $this->filemtime( $main_file ),
                     'mime_type' => FileSystemHelper::get_mime_type( $main_file ),
                     'filename'  => basename( $main_file ),
-                ];
-            }
-            
-            $path           = $this->enter_slug( $slug );
-            $artifacts_dir  = FileSystemHelper::join_path( $path, static::ARTIFACTS_DIR, \DIRECTORY_SEPARATOR );
-            $available_artifacts    = \glob( "$artifacts_dir*" );
-
-            foreach( (array) $available_artifacts as $file ) {
-                $ext        = FileSystemHelper::get_extension( $file );
-                $files[]    = [
-                    'slug'      => FileSystemHelper::sanitize_filename( basename( $file, $ext ) ),
-                    'path'      => (string) $file,
-                    'size'      => (int) $this->filesize( (string) $file ),
-                    'mtime'     => (int) $this->filemtime( (string) $file ),
-                    'mime_type' => FileSystemHelper::get_mime_type( (string) $file ),
-                    'filename'  => basename( (string) $file )
-                ];
+                ]);
             }
 
             return $files;
@@ -773,10 +763,34 @@ abstract class Repository {
     }
 
     /**
-     * Upload new or edit an artifact file.
-     * 
-     * @param  array{app_slug: string, filename?: string, overwrite: bool, file: UploadedFile} $data
-     * 
+     * Upload a new artifact or replace an existing one.
+     *
+     * When replacing an existing artifact (`overwrite` is `true`), the existing
+     * artifact is first renamed to the developer-supplied filename before the
+     * uploaded file is moved into place. If the move operation fails, the rename
+     * is not rolled back.
+     *
+     * @param array{
+     *     app_slug: string,
+     *     file: UploadedFile,
+     *     overwrite?: bool,
+     *     filename?: string
+     * } $data {
+     *     Upload data.
+     *
+     *     @type string       $app_slug  Application slug.
+     *     @type UploadedFile $file      Uploaded artifact file.
+     *     @type bool         $overwrite Optional. Whether to replace an existing artifact. Default false.
+     *     @type string       $filename  Optional. Existing artifact filename when replacing an artifact.
+     * }
+     *
+     * @return array{
+     *     filename: string,
+     *     slug: string,
+     *     size: int|false,
+     *     mime_type: string|null,
+     *     mtime: int|false
+     * }|\SmartLicenseServer\Exceptions\Exception
      */
     public function upload_artifact( array $data ) {
         try {
@@ -792,14 +806,30 @@ abstract class Repository {
                 throw new FileSystemException( 'Artifact file was not uploaded' );
             }
 
-            $canonical_ext    = $file->get_canonical_extension();
+            if ( ! $file->is_moveable() ) {
+                throw new FileSystemException( $file->get_error_message() );
+            }
+
+            $canonical_ext  = $file->get_canonical_extension();
+            $detected_mime  = $file->get_detected_mime();
 
             if ( '' === $canonical_ext ) {
-                throw new Exception(
-                    'unsupported_media_type',
-                    'Sorry, the server cannot handle this file type.',
-                    ['status' => 415]
-                );
+                // We are dealing with possible Unsupported file, but because
+                // this is an artifact, we can fallback on the client supplied
+                // extension only if the file mime type is detected.
+
+                if ( ! $detected_mime || ! \str_starts_with( $detected_mime, 'application/' ) ) {
+                    throw new Exception(
+                        'unsupported_media_type',
+                        'Sorry, direct uploads of this file type are not supported. Please upload it as an archive instead.',
+                        ['status' => 415]
+                    );                    
+                }
+
+                // File is valid and servable, so we can proceed to use the
+                // client-supplied extension from file name to store this artifact.
+                $canonical_ext  = FileSystemHelper::get_extension( $file->get_client_name() );
+
             }
 
             // The name of the existing artifact filename if any.
@@ -808,6 +838,11 @@ abstract class Repository {
             $overwrite      =  (bool) ( $data['overwrite'] ?? false );
             $path           = $this->enter_slug( $app_slug );
             $artifacts_dir  = FileSystemHelper::join_path( $path, static::ARTIFACTS_DIR, \DIRECTORY_SEPARATOR );
+
+
+            $new_filename   = FileSystemHelper::sanitize_filename( $file->get_name( false ) );
+            $new_filename   = $new_filename . ( '' !== $canonical_ext ? ".$canonical_ext" : '' );
+            $new_file_path  = FileSystemHelper::join_path( $artifacts_dir, $new_filename );
 
             if ( $overwrite ) {
                 // We are dealing with file edit.
@@ -821,20 +856,16 @@ abstract class Repository {
 
                 $mime_type  = FileSystemHelper::get_mime_type( $old_file_path );
 
-                if ( $mime_type !== $file->get_detected_mime() ) {
+                if ( $mime_type !== $detected_mime ) {
                     throw new Exception( 
                         'mime_type_mismatch' ,
                         sprintf(
                             'Cannot safely replace the existing file type "%s" with the uploaded file type "%s".',
                             $mime_type,
-                            $file->get_detected_mime()
+                            $detected_mime
                         )     
                     );
                 }
-
-                $new_filename   = FileSystemHelper::sanitize_filename( $file->get_name( false ) );
-                $new_filename   = $new_filename . ( $canonical_ext ? ".$canonical_ext" : '' );
-                $new_file_path  = FileSystemHelper::join_path( $artifacts_dir, $new_filename );
 
                 if ( '' === $new_file_path ) {
                     throw new FileSystemException(
@@ -853,15 +884,24 @@ abstract class Repository {
                 }
             }
 
-            $uploaded_file_path = $file->move( $artifacts_dir, '', $overwrite );
-            $uploaded_filename  = basename( $uploaded_file_path );
+            if ( ! $this->move( $file->get_tmp_path(), $new_file_path, $overwrite ) ) {
+                if ( $overwrite ) {
+                    $error_msg = 'The artifact was renamed successfully, but the uploaded file could not replace it.';
+                } else {
+                    $error_msg = 'Unable to move the uploaded file. The destination file may already exist.';
+                }
+
+                throw new FileSystemException( $error_msg );
+            }
+
+            $uploaded_filename  = basename( $new_file_path );
 
             return [
                 'filename'      => $uploaded_filename,
                 'slug'          => FileSystemHelper::remove_extension( $uploaded_filename ),
-                'size'          => $this->filesize( $uploaded_file_path ),
-                'mime_type'     => FileSystemHelper::get_mime_type( $uploaded_file_path ),
-                'mtime'         => $this->filemtime( $uploaded_file_path )
+                'size'          => $this->filesize( $new_file_path ),
+                'mime_type'     => FileSystemHelper::get_mime_type( $new_file_path ),
+                'mtime'         => $this->filemtime( $new_file_path )
             ];
             
         } catch ( Exception $e ) {
@@ -877,7 +917,7 @@ abstract class Repository {
      * @param string $new_filename      The new artifact file name.
      * @return array{filename: string, slug: string, size: int, mime_type: string|null, mtime: int}|Exception
      */
-    public function rename_artifact( string $app_slug, $artifact_filename, string $new_filename ) {
+    public function rename_artifact( string $app_slug, string $artifact_filename, string $new_filename ) {
         try {
             $artifact   = null;
             $artifacts  = $this->get_artifacts( $app_slug );
@@ -897,25 +937,24 @@ abstract class Repository {
                 );
             }
             
-            $new_artifact_filename  = FileSystemHelper::sanitize_filename( $new_filename );
-            $new_artifact_filename  = FileSystemHelper::remove_extension( $new_filename );
-
-            if ( '' === $new_artifact_filename ) {
+            if ( '' === $new_filename ) {
                 throw new Exception(
                     'invalid_input',
-                    sprintf( 'The artifact filename "%s" is invalid after sanitization.', $new_filename ),
+                    'New artifact file name must not be empty.',
                     ['status' => 400]
                 );
             }
 
-            $ext            = FileSystemHelper::get_extension( $artifact['path'] );
-            $new_filename   = '' === $ext ? $new_artifact_filename : "{$new_artifact_filename}.{$ext}";
+            $new_artifact_filename  = FileSystemHelper::remove_extension( $new_filename );
+            $ext                    = FileSystemHelper::get_canonical_extension( $artifact['path'] );
+            $new_filename           = '' === $ext ? $new_artifact_filename : "{$new_artifact_filename}.{$ext}";
 
             // Rebuild the artifact path with the new filename.
-            $parts                          = explode( DIRECTORY_SEPARATOR, $artifact['path'] );
-            $parts[ count( $parts ) - 1 ]   = $new_artifact_filename;
-            
-            $new_path   = implode( DIRECTORY_SEPARATOR, $parts );
+            $new_path = FileSystemHelper::join_path(
+                dirname( $artifact['path'] ),
+                $new_filename,
+                DIRECTORY_SEPARATOR
+            );
 
             if ( ! $this->rename( $artifact['path'], $new_path ) ) {
                 throw new Exception(
@@ -933,6 +972,52 @@ abstract class Repository {
                 'mtime'         => $this->filemtime( $new_path )
             ];            
         } catch( Exception $e ) {
+            return $e;
+        }
+    }
+
+    /**
+     * Delete an artifact file.
+     *
+     * @param string $app_slug          Application slug.
+     * @param string $artifact_filename Artifact filename.
+     * @return bool|\SmartLicenseServer\Exceptions\Exception True on success, otherwise an Exception.
+     */
+    public function delete_artifact( string $app_slug, string $artifact_filename ) {
+        try {
+            $artifact = null;
+
+            foreach ( $this->get_artifacts( $app_slug ) as $data ) {
+                if ( $data['filename'] === $artifact_filename ) {
+                    $artifact = $data;
+                    break;
+                }
+            }
+
+            if ( ! $artifact ) {
+                throw new Exception(
+                    'resource_not_found',
+                    sprintf(
+                        'The artifact file "%s" does not exist.',
+                        $artifact_filename
+                    ),
+                    [ 'status' => 404 ]
+                );
+            }
+
+            if ( ! $this->delete( $artifact['path'] ) ) {
+                throw new Exception(
+                    'delete_failed',
+                    sprintf(
+                        'Failed to delete artifact "%s".',
+                        $artifact_filename
+                    ),
+                    [ 'status' => 500 ]
+                );
+            }
+
+            return true;
+        } catch ( Exception $e ) {
             return $e;
         }
     }
