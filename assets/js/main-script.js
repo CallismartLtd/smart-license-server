@@ -216,6 +216,94 @@ async function smliserFetchBlob( url, options = {} ) {
     return await smliserFetch( url, { ...options, responseType: 'blob' } );
 }
 
+/**
+ * Download a file from a URL.
+ *
+ * @param {string} url - Download URL.
+ * @param {Object} [options={}] - Fetch options.
+ * @returns {Promise<{
+ *     filename: string,
+ *     size: number,
+ *     type: string,
+ *     duration: number,
+ *     url: string,
+ *     status: number,
+ *     statusText: string,
+ *     headers: Headers
+ * }>} Information about the downloaded file.
+ */
+async function smliserDownloadUrl( url, options = {} ) {
+
+	const started  = performance.now();
+	const response = await fetch( url, {
+		...options,
+		responseType: 'response'
+	} );
+
+	const blob = await response.blob();
+
+	let filename = 'download';
+
+	// Try Content-Disposition first.
+	const disposition = response.headers.get( 'Content-Disposition' );
+
+	if ( disposition ) {
+		const match = disposition.match(
+			/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i
+		);
+
+		if ( match ) {
+			try {
+				filename = decodeURIComponent( match[1] );
+			} catch ( error ) {
+				filename = match[1];
+			}
+		}
+	}
+
+	// Fallback to filename from URL.
+	if ( 'download' === filename ) {
+		try {
+			const pathname = new URL( response.url || url, window.location.href ).pathname;
+			const basename = pathname.substring( pathname.lastIndexOf( '/' ) + 1 );
+
+			if ( basename ) {
+				filename = decodeURIComponent( basename );
+			}
+		} catch ( error ) {
+			// Ignore malformed URLs.
+		}
+	}
+
+	const objectUrl = URL.createObjectURL( blob );
+
+	const anchor = document.createElement( 'a' );
+
+	anchor.href = objectUrl;
+	anchor.download = filename;
+	anchor.style.display = 'none';
+
+	document.body.appendChild( anchor );
+	anchor.click();
+	document.body.removeChild( anchor );
+
+	// Delay revocation for browser compatibility.
+	setTimeout( () => URL.revokeObjectURL( objectUrl ), 1000 );
+
+	const duration = performance.now() - started;
+
+	return {
+		filename,
+		size: blob.size,
+		type: blob.type,
+		duration,
+		url: response.url,
+		status: response.status,
+		statusText: response.statusText,
+		headers: response.headers
+	};
+}
+
 function smliserNotify(message, duration) {
     // Create a div element for the notification
     const notification = document.createElement('div');
