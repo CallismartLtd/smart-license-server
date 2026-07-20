@@ -299,22 +299,6 @@ function smliser_verify_item_token( string $client_token, HostedAppsInterface $a
 }
 
 /**
- * Load app authentication page header
- */
-function smliser_load_auth_header() {
-    $theme_template_dir = get_template_directory() . '/smliser/auth/auth-header.php';
-    include_once file_exists( $theme_template_dir ) ? $theme_template_dir : SMLISER_PATH . 'templates/auth/auth-header.php';
-}
-
-/**
- * Load app authentication page footer
- */
-function smliser_load_auth_footer() {
-    $theme_template_dir = get_template_directory() . '/smliser/auth/auth-footer.php';
-    include_once file_exists( $theme_template_dir ) ? $theme_template_dir : SMLISER_PATH . 'templates/auth/auth-footer.php';
-}
-
-/**
  * Get the value of a URL query parameter.
  * @param string $param The name of the query parameter.
  * @param mixed $default The default value to return.
