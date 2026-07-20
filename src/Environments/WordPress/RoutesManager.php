@@ -105,7 +105,7 @@ class RoutesManager {
 		*/
 		$this->router->group(
 			$download_slug,
-			function ( Router $router ) use ( $download_slug ): void {
+			function ( Router $router ): void {
 				// The base downloads page.
 				$router->add( '', 'smliser-downloads' );
 
@@ -118,19 +118,36 @@ class RoutesManager {
 					'smliser-downloads'
 				);
 
-				// siteurl/$download_slug/download_type/app-slug|app-slug.zip
-				$router->group( '{download_type}', function( Router $r ) {
-					$r->add(
-						'{app_slug_filename_ext}',
-						'smliser-downloads'
-					);
+				// siteurl/$download_slug/{download_type}/app-slug|app-slug.zip
+				//
+				// Two explicit rules instead of one regex with an optional,
+				// uncaptured ".zip" suffix (which the placeholder DSL can't express
+				// — see Router::raw()'s docblock). Both constraints below matter:
+				//
+				//   - (?![0-9]+$)   excludes pure-numeric values, which would
+				//                   otherwise collide with {license_id:int} above —
+				//                   both are a bare second segment under {download_type},
+				//                   and [^/]+ matches digits just as happily as letters.
+				//   - (?!.*\.zip$)  excludes anything ending in ".zip", so this rule
+				//                   and the ".zip"-specific one below can never both
+				//                   match the same URL. Without it, both match
+				//                   "my-plugin.zip" and only WordPress' internal
+				//                   registration-order tie-break decides which wins —
+				//                   fragile, and not something to depend on.
+				$router->group(
+					'{download_type}',
+					function ( Router $r ): void {
+						$r->add(
+							'{app_slug_filename_ext:(?![0-9]+$)(?!.*\.zip$)[^/]+}',
+							'smliser-downloads'
+						);
 
-					$r->add(
-						'{app_slug_filename.ext:zip}',
-						'smliser-downloads'
-					);
-
-				});
+						$r->add(
+							'{app_slug_filename.ext:zip}',
+							'smliser-downloads'
+						);
+					}
+				);
 
 				// Artifact download URI.
 				$router->add(
@@ -140,31 +157,11 @@ class RoutesManager {
 			}
 		);
 
-		// File Download URI Rule.
-		//
-		// Kept as a raw rule rather than forced through the placeholder DSL:
-		// the original regex uses a negative lookahead so this only matches when
-		// the second segment ISN'T purely numeric (avoiding collision with the
-		// license-ID rule above), and an optional ".zip" suffix that is matched
-		// but deliberately excluded from the captured slug value. `{name.ext}`
-		// can't express "optional suffix, present-or-absent, but never captured" —
-		// it always captures the extension as its own var — so reproducing this
-		// rule through the DSL would either capture ".zip" into the slug (a
-		// behavior change) or drop the lookahead (a routing collision). See
-		// Router::raw()'s docblock for when this escape hatch is the right call.
-		// $this->router->raw(
-		// 	'^' . $download_slug . '/([^/]+)/((?![0-9]+$)[^/]+)(?:\.zip)?/?$',
-		// 	'index.php?pagename=smliser-downloads&app_type=$matches[1]&app_slug=$matches[2]',
-		// 	'top',
-		// 	array( 'app_type', 'app_slug' )
-		// );
-
 		/*
 		|--------------------------------------------------------------------
 		| OAuth authorization endpoint
 		|--------------------------------------------------------------------
 		*/
-		//
 		// NOTE: the original rule referenced $matches[1] in a pattern with no
 		// capturing group ('^smliser-auth/v1/authorize$'), so smliser_auth would
 		// silently resolve empty. This fixes that by passing a fixed value

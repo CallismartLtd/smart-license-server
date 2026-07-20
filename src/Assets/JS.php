@@ -26,7 +26,11 @@ final class JS {
             ],
             'smliser-script' => [
                 'src'    => assetsUrl( sprintf( 'js/main-script%s.js', $suffix ) ),
-                'deps'   => ['string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker', 'smliser-modal'],
+                'deps'   => [
+                    'string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker', 
+                    'smliser-modal',
+                    'smliser-toast'
+                ],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
@@ -115,7 +119,13 @@ final class JS {
                 'deps'   => ['smliser-client-dashboard', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
-            ]
+            ],
+            'smliser-toast' => [
+                'src'    => assetsUrl( sprintf( 'js/smliser-toast%s.js', $suffix ) ),
+                'deps'   => [],
+                'ver'    => SMLISER_VER,
+                'footer' => true
+            ],
         ];
     }
 }

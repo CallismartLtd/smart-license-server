@@ -20,7 +20,7 @@ final class CSS {
         return [
             'smliser-styles'    => [
                 'src'   => assetsUrl( sprintf( 'css/smliser-styles%s.css', $suffix ) ),
-                'deps'  => [],
+                'deps'  => ['smliser-toast'],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ],
@@ -99,6 +99,12 @@ final class CSS {
             'smliser-client-auth' => [
                 'src'   => assetsUrl( sprintf( 'css/smliser-client-auth%s.css', $suffix ) ),
                 'deps'  => ['smliser-client-dashboard', 'smliser-modal'],
+                'ver'   => SMLISER_VER,
+                'media' => 'all'
+            ],
+            'smliser-toast' => [
+                'src'   => assetsUrl( sprintf( 'css/smliser-toast%s.css', $suffix ) ),
+                'deps'  => [],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ]

@@ -3,7 +3,7 @@
  * Request dispatcher for WordPress.
  * 
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Environment
+ * @package SmartLicenseServer
  */
 
 namespace SmartLicenseServer\Environments\WordPress;
