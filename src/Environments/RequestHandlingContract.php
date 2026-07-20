@@ -144,14 +144,6 @@ interface RequestHandlingContract {
     public static function parse_save_routes_settings_request( Request $request ): void;
 
     /**
-     * Load authentication template.
-     *
-     * @param  string $template
-     * @return string
-     */
-    public static function load_auth_template( string $template ): string;
-
-    /**
      * Parse download token generation request.
      *
      * @param  Request $request
