@@ -44,6 +44,7 @@ class AppUploader {
         ZIP_CLEAR_BTN           : '.smliser-file-remove',
         CLICKABLE_ACTIONS       : '.delete-image, .remove-modal, .clear-uploaded, #upload-image, #upload-from-device, #upload-from-wp, #upload-from-url, .smliser-uploader-add-image, .edit-image',
         ARTIFACT_UPLOADER       : '.application-uploader-page.artifact-editor',
+        ARTIFACT_DOWNLOAD_BTN   : '.smliser-download-artifact',
         ARTIFACT_ADD_NEW_BTN    : '.smliser-add-new-artifact',
         ARTIFACT_DELETE_BTN     : '.smliser-delete-artifact',
         ARTIFACT_EDIT_BTN       : '.smliser-edit-artifact',
@@ -1172,6 +1173,10 @@ class AppUploader {
             config.artifact_filename    = config?.filename ?? null;
             this._deleteArtifact( config );
         }
+
+        if ( clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_DOWNLOAD_BTN ) ) {
+            this._downloadArtifact( config.url );
+        }
     }
 
     /**
@@ -1420,6 +1425,22 @@ class AppUploader {
         
     }
 
+    async _downloadArtifact( url ) {
+        try {
+            const response  = await smliserDownloadUrl( url );
+            const fileSize  = StringUtils.formatBytes( response.size );
+            const duration  = ( response.duration / 1000 ).toFixed( 2 );
+
+            await SmliserModal.success(
+                `Successfully downloaded <strong>${ response.filename }</strong> (${ fileSize }) in ${ duration } seconds.`,
+                'File Downloaded'
+            );
+
+        } catch ( error ) {
+            await SmliserModal.error( error.message );
+        }
+    }
+
     /**
      * Update the artifact list in the UI after a successful upload or edit.
      * 
@@ -1457,6 +1478,7 @@ class AppUploader {
                 <div class="smliser-app-artifacts_item-buttons">
                     <button title="Edit artifact" class="smliser-edit-artifact" data-config="${data}"> <i class="ti ti-edit"></i></button>
                     <button title="Delete artifact" class="smliser-delete-artifact" data-config="${data}"> <i class="ti ti-trash"></i></button>
+                    <button title="Download artifact" class="smliser-download-artifact" data-config="${data}"> <i class="ti ti-download"></i></button>
                 </div>
 
             </div>
