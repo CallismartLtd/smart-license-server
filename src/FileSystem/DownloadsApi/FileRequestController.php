@@ -17,6 +17,7 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -433,6 +434,10 @@ class FileRequestController {
      */
     protected static function check_monetization( HostedAppsInterface $app, FileRequest $request ) : void {
         if ( ! $app->is_monetized() ) {
+            return;
+        }
+
+        if ( Guard::get_principal()?->is( 'system_admin' ) ) {
             return;
         }
 
