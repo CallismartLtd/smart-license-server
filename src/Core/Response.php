@@ -174,7 +174,7 @@ class Response {
 	 * @return static
 	 */
 	public function set_header( string $name, string $value, bool $override = true  ) {
-		$key					= $this->header_canonical( $name );
+		$key	= $this->header_canonical( $name );
 
 		if ( ! $this->has_header( $key ) || $override ) {
 			$this->headers[ $key ]	= $value;
@@ -189,7 +189,7 @@ class Response {
 	 * Get a response header.
 	 *
 	 * @param string $name Header name.
-	 * @return string|array|null
+	 * @return string|null
 	 */
 	public function get_header( $name ) {
 		$key = $this->header_canonical( $name );
@@ -518,6 +518,7 @@ class Response {
 		if ( is_array( $content_type ) ) {
 			$content_type = reset( $content_type );
 		}
+
 		return is_string( $content_type ) && stripos( $content_type, 'application/json' ) !== false;
 	}
 
