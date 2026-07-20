@@ -1,6 +1,6 @@
 <?php
 /**
- * Application zip files variation template.
+ * Edit app artifacts.
  * 
  * @author Callistus Nwachukwu
  * 
@@ -51,7 +51,8 @@ $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null )
                     'size'      => $file_data['size'],
                     'app_slug'  => $app->get_slug(),
                     'app_type'  => $app->get_type(),
-                    'isNew'     => false
+                    'isNew'     => false,
+                    'url'       => $download_url
                 ]));
             ?>
                 <li class="smliser-app-artifacts_item <?php echo escHtml( str_replace( '.', '-', $file_data['slug'] ) ); ?>">
@@ -59,18 +60,16 @@ $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null )
                         <span>
                             <strong>Name:</strong> <?php echo escHtml( $file_data['filename'] ); ?>
                         </span>
-                         
-                        <?php if ( 'main' === $file_data['slug'] ) : ?>
-                            <span class="smliser-provider-card__badge">
-                                Main artifact
-                            </span>
-                        <?php else: ?>
-                            <div class="smliser-app-artifacts_item-buttons">
+                        
+                        <div class="smliser-app-artifacts_item-buttons">
+                            <?php if ( 'main' === $file_data['slug'] ) : ?>
+                                <span class="smliser-provider-card__badge"><?php printf( 'Main %s file', $app->get_type() ) ?></span>
+                            <?php else: ?>     
                                 <button title="Edit artifact" class="smliser-edit-artifact" data-config="<?php echo esc_attr( $config ); ?>"> <i class="ti ti-edit"></i></button>
                                 <button title="Delete artifact" class="smliser-delete-artifact" data-config="<?php echo esc_attr( $config ); ?>"> <i class="ti ti-trash"></i></button>
-                            </div>
-
-                        <?php endif; ?>
+                            <?php endif; ?>
+                            <button title="Download artifact" class="smliser-download-artifact" data-config="<?php echo esc_attr( $config ); ?>"> <i class="ti ti-download"></i></button>
+                        </div>
                     </div>
                     
                     <div class="smliser-app-artifacts_item-info">
