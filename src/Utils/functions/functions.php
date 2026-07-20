@@ -18,6 +18,7 @@ use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use Callismart\Http\Exceptions\HttpRequestException;
 use Callismart\Http\HttpClient;
+use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
@@ -279,10 +280,10 @@ function smliser_generate_item_token( License $license, int $expiry = 864000 ) {
  * Verify a licensed plugin download token.
  *
  * @param string                  $client_token     The base64url-encoded token received from the client.
- * @param AbstractHostedApp    $app             app context to validate against.
+ * @param HostedAppsInterface    $app             app context to validate against.
  * @return DownloadToken|Exception                  Returns the DownloadToken object on success, false on failure.
  */
-function smliser_verify_item_token( string $client_token, AbstractHostedApp $app ) : DownloadToken|Exception {
+function smliser_verify_item_token( string $client_token, HostedAppsInterface $app ) : DownloadToken|Exception {
     if ( empty( $client_token ) ) {
         return new Exception( 'empty_token', 'Download token cannot be empty' );
     }

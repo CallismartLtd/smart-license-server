@@ -544,18 +544,17 @@ function smliser_dump_url( $url ) : void {
  *                                  Default is the value of is_rtl().
  *     @type string $charset        Character set of the HTML output. Default 'utf-8'.
  *     @type string $code           Error code to use. Default is 'smliser_error', or the main error code if $message
- *                                  is a WP_Error.
- *     @type bool   $exit           Whether to exit the process after completion. Default true.
+ *                                  is an Exception instance.
  * }
+ * @return never
  */
-function smliser_abort_request( $message = '', $title = '', $args = [] ) {
+function smliser_abort_request( $message = '', $title = '', $args = [] ) : never {
     $is_request_error   = ( $message instanceof RequestException ) || ( $message instanceof FileRequestException );
     if ( $is_request_error ) {
         $error_data = $message->get_error_data();
         $message    = $message->get_error_message();
         $title      = $error_data['title'] ?? '';
         $args       = (array) $error_data;
-
     }
 
     GlobalErrorHandler::instance()->abort( $message, $title, $args );
