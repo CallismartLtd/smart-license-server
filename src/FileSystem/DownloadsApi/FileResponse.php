@@ -49,7 +49,7 @@ class FileResponse extends Response {
      * @param string|FileRequestException $file Absolute path to the file, the file string or an instance of error.
      * @param string|array $args An associative array of options.
      */
-    public function __construct( $file, $args = '' ) {
+    public function __construct( string|FileRequestException $file, $args = '' ) {
         parent::__construct();
 
         if ( \is_smliser_error( $file ) ) {
@@ -130,21 +130,24 @@ class FileResponse extends Response {
 
         if ( ! $this->repo_class ) {
             $this->set_exception( new FileRequestException( 'unsupported_repo_type' ) );
+            return;
         }
 
         if ( ! $this->repo_class->exists( $this->file ) ) {
             $this->set_exception( new FileRequestException( 'file_not_found' ) );
+            return;
         }
 
         if ( ! $this->repo_class->is_readable( $this->file ) ) {
-            $this->set_exception( new FileRequestException( 'file_reading_error' ) );
+            $this->set_exception( new FileRequestException( 'file_reading_error', 'File not readable' ) );
+            return;
         }
 
         if ( $this->has_errors() ) {
             return;
         }
 
-        $file_size      = $this->repo_class->filesize( $this->file );
+        $file_size      = (string) $this->repo_class->filesize( $this->file );
         $last_modified  = sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', $this->repo_class->filemtime( $this->file ) ) );
         $content_type   = $content_type ?: FileSystemHelper::get_mime_type( $this->file );
 
@@ -166,7 +169,7 @@ class FileResponse extends Response {
      * @param string $content_type The file mime content type
      */
     public function parse_document( $file_name, $content_type ) {
-        $file_size = strlen( $this->file );
+        $file_size = (string) strlen( $this->file );
 
         if ( ! static::is_filesize_within_limit( $file_size ) ) {
             $this->set_exception( new FileRequestException( 'file_too_large' ) );
@@ -191,7 +194,7 @@ class FileResponse extends Response {
         // Set default headers, can be overwritten later...
         $last_modified  = sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s' ) );
         
-        $this->set_header( 'Expires', 0 )
+        $this->set_header( 'Expires', '0' )
         ->set_header( 'Cache-Control', 'private, must-revalidate, max-age=0' )
         ->set_header( 'Last-Modified', $last_modified )
         ->set_header( 'Date', gmdate('D, d M Y H:i:s \G\M\T') )
@@ -202,7 +205,7 @@ class FileResponse extends Response {
         ->set_header( 'Pragma', 'Public' )
         ->set_header( 'ETag', "" )
         ->set_header( 'Content-Type', 'text/plain' )
-        ->set_header( 'Content-Length', 0 );
+        ->set_header( 'Content-Length', '0' );
 
     }
 

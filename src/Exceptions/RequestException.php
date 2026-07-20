@@ -299,4 +299,15 @@ class RequestException extends Exception {
 
         parent::__construct( $resolved_slug, $message, $data );
     }
+
+    /**
+     * Static factory.
+     * 
+     * @param string $error_slug The known error code (must exist in $error_map keys).
+     * @param string|null $custom_message Optional custom message.
+     * @param mixed $custom_data Optional custom data array to merge with defaults.
+     */
+    public static function make( string $error_slug, ?string $custom_message, mixed $custom_data ) : static {
+        return new static( $error_slug, $custom_message, $custom_data );
+    }
 }

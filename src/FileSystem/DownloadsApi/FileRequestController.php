@@ -8,12 +8,13 @@
 
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
-use Exception;
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Security\SecurityAwareTrait;
@@ -25,6 +26,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  */
 class FileRequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
+    
     /**
      * Process and serve download request for a hosted application zip file.
      *
@@ -36,33 +38,80 @@ class FileRequestController {
 
             $app_type   = $request->get( 'app_type' );
             $app_slug   = $request->get( 'app_slug' );
-            $token      = $request->get( 'download_token' );
             $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
             if ( ! $app ) {
                 throw new FileRequestException( 'app_not_found' );
             }
 
-            
-            if ( $app->is_monetized() ) {
-
-                if ( empty( $token ) ) {
-                    $token = $request->bearerToken();
-                    $request->set( 'download_token', $token );
-                }
-
-                if ( empty( $token ) ) {
-                    throw new FileRequestException( 'payment_required' );
-                }
-
-                $verify_token_result    = smliser_verify_item_token( $token, $app );
-
-                if ( $verify_token_result instanceof Exception ) {
-                    throw new FileRequestException( 'invalid_token' );
-                }
-            }
+            static::check_monetization( $app, $request );
 
             $file_path = $app->get_zip_file();
+
+            if ( ( $file_path instanceof Exception ) || empty( $file_path ) ) {
+                throw new FileRequestException( 'file_not_found' );
+            }
+
+            $request->set( 'file_path', $file_path );
+            
+            $response = new FileResponse( $file_path, ['type' => $app->get_type()] );
+
+            $response->register_after_serve_callback( [AppsAnalytics::class,'log_download'], [$app] );
+            $response->register_after_serve_callback( [AppsAnalytics::class,'log_client_access'], [$app, 'download'] );
+            
+            return $response;
+
+        } catch ( FileRequestException $e ) {
+            return new FileResponse( $e );
+        }
+    }
+
+    /**
+     * Process and serve download request for a hosted application zip file.
+     *
+     * @param FileRequest $request The file request object.
+     * @return FileResponse
+     */
+    public static function get_application_artifact_file( FileRequest $request ): FileResponse {
+        try {
+
+            $app_type   = $request->get( 'app_type' );
+            $app_slug   = $request->get( 'app_slug' );
+            $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+            if ( ! $app ) {
+                throw new FileRequestException( 'app_not_found' );
+            }
+
+            static::check_monetization( $app, $request );
+
+            $repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( $app_type );
+
+            if ( ! $repo_class ) {
+                throw new FileRequestException( 'file_not_found' );
+            }
+
+            $artifact_filename  = (string) $request->getTyped( 'artifact_filename', 'string', '' );
+
+            if ( '' === $artifact_filename ) {
+                throw new FileRequestException(
+                    'missing_file_parameter',
+                    'Artifact file name is required.'
+                );
+            }
+
+            $artifact   = $repo_class->get_artifact( $app->get_slug(), $artifact_filename );
+
+            if ( ! $artifact ) {
+                throw new FileRequestException( 'file_not_found' );
+            }
+
+            $file_path = $artifact['path'] ?? '';
+
+            if (  empty( $file_path ) ) {
+                throw new FileRequestException( 'file_not_found' );
+            }
+
             $request->set( 'file_path', $file_path );
             
             $response = new FileResponse( $file_path, ['type' => $app->get_type()] );
@@ -227,7 +276,7 @@ class FileRequestController {
             $app_slug   = $request->get( 'app_slug' );
             $asset_name = $request->get( 'asset_name' );
 
-            $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
+            $repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( $app_type );
             if ( ! $repo_class ) {
                 throw new FileRequestException( 'unsupported_repo_type' );
             }
@@ -377,6 +426,33 @@ class FileRequestController {
         LICENSE;
 
         return $document;
+    }
+
+    /**
+     * Validates monetized app file download request
+     */
+    protected static function check_monetization( HostedAppsInterface $app, FileRequest $request ) : void {
+        if ( ! $app->is_monetized() ) {
+            return;
+        }
+
+        $token  = $request->get( 'download_token', '', false );
+
+        if ( empty( $token ) ) {
+            $token = $request->bearerToken();
+            $request->set( 'download_token', $token );
+        }
+
+        if ( empty( $token ) ) {
+            throw new FileRequestException( 'payment_required' );
+        }
+
+        $verify_token_result    = smliser_verify_item_token( $token, $app );
+
+        if ( $verify_token_result instanceof Exception ) {
+            throw new FileRequestException( 'invalid_token' );
+        }
+        
     }
 
 }
