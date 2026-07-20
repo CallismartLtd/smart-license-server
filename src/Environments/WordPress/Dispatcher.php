@@ -1,6 +1,6 @@
 <?php
 /**
- * WordPress environment router file.
+ * Request dispatcher for WordPress.
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Environment
@@ -12,13 +12,15 @@ use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Email\RequestController as EmailRequestController;
-use SmartLicenseServer\Environments\RouterInterface;
+use SmartLicenseServer\Environments\RequestHandlingContract;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Environments\WordPress\Installer;
+use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Messaging\MessageController;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Security\Owner;
@@ -27,9 +29,9 @@ use SmartLicenseServer\SettingsAPI\SettingsController;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
- * Concrete implementation of routing in WordPress.
+ * WordPress request dispatcher class
  */
-class Router implements RouterInterface {
+class Dispatcher implements RequestHandlingContract {
     use SanitizeAwareTrait;
 
     /**
@@ -41,7 +43,9 @@ class Router implements RouterInterface {
         $trigger    = get_query_var( 'pagename' );
 
         if ( $trigger ) {
-            $request->set( 'smliser_pagename', $trigger );
+            $request->set_params(
+                $GLOBALS['wp']->query_vars
+            );
         }
 
         if ( ! $trigger && $request->hasValue( 'action' ) ) {
@@ -54,7 +58,7 @@ class Router implements RouterInterface {
 
         $handler_map = [
             'smliser-dashboard'                             => [ __CLASS__, 'render_client_dashboard' ],
-            'smliser-downloads'                             => function( Request $r ) { ( self::resolve_download_request_parser() )( $r ); },
+            'smliser-downloads'                             => function( Request $r ) { ( self::resolve_download_request_parser( $r ) )( $r ); },
             'smliser-repository-assets'                     => [ __CLASS__, 'parse_app_asset_request' ],
             'smliser-uploads'                               => [ __CLASS__, 'parse_uploads_dir_request' ],
             'smliser_admin_download'                        => [ __CLASS__, 'parse_admin_download_request' ],
@@ -182,25 +186,37 @@ class Router implements RouterInterface {
      * Parse public package download request.
      */
     public static function parse_public_package_download_request( Request $request ): void {
-        $app_type = get_query_var( 'smliser_app_type' );
-        $app_slug = smliser_sanitize_path( get_query_var( 'smliser_app_slug' ) );
+        $app_type           = $request->get( 'download_type' );
+        $app_slug_filename  = smliser_sanitize_path( $request->get( 'app_slug_filename_ext', '', false ) );
 
-        if ( is_smliser_error( $app_slug ) ) {
+        if ( $app_slug_filename instanceof Exception ) {
             smliser_abort_request(
-                __( 'Please provide the correct application slug', 'smliser' ),
+                $app_slug_filename->get_error_message(),
                 'Bad Request',
                 [ 'response' => 400 ]
             );
         }
 
+        $ext    = FileSystemHelper::get_extension( $app_slug_filename );
+
+        if ( '' !== $ext && 'zip' !== $ext ) {
+            smliser_abort_request(
+                sprintf(
+                    '%s file extension must be ".zip".',
+                    $app_type
+                ),
+                'Bad Request',
+                [ 'response' => 400 ]
+            );
+        }
+
+        $app_slug   = FileSystemHelper::remove_extension( $app_slug_filename );
+
         $file_request = new FileRequest( [
             'app_type'       => $app_type,
-            'app_slug'       => \basename( $app_slug, '.zip' ),
+            'app_slug'       => $app_slug,
             'download_token' => $request->get( 'download_token' ),
             'authorization'  => $request->get_header( 'Authorization' ),
-            'user_agent'     => $request->get_header( 'User-Agent' ),
-            'request_time'   => $request->startTime(),
-            'client_ip'      => smliser_get_client_ip(),
         ] );
 
         $response = FileRequestController::get_application_zip_file( $file_request );
@@ -210,6 +226,26 @@ class Router implements RouterInterface {
         }
 
         $response->send();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function parse_public_artifact_download_request( Request $request ) : void {
+        $app_type   = $request->get( 'app_type' );
+        $app_slug   = $request->get( 'app_slug' );
+        $filename   = $request->get( 'filename' );
+
+        $file_request   = new FileRequest([
+            'artifact_filename' => $filename,
+            'app_slug'          => $app_slug,
+            'app_type'          => $app_type
+        ]);
+
+        $response   = FileRequestController::get_application_artifact_file( $file_request );
+
+        $response->send();
+        exit;
     }
 
     /**
@@ -265,9 +301,6 @@ class Router implements RouterInterface {
         $file_request = new FileRequest( [
             'license_id'     => get_query_var( 'license_id', 0 ),
             'download_token' => $request->get( 'download_token' ),
-            'user_agent'     => $request->get_header( 'User-Agent' ),
-            'request_time'   => $request->startTime(),
-            'client_ip'      => smliser_get_client_ip(),
         ] );
 
         FileRequestController::get_license_document( $file_request )->send();
@@ -278,12 +311,9 @@ class Router implements RouterInterface {
      */
     public static function parse_app_asset_request( Request $request ): void {
         $file_request = new FileRequest( [
-            'app_type'    => static::sanitize_text( get_query_var( 'smliser_app_type' ) ),
-            'app_slug'    => static::sanitize_text( get_query_var( 'smliser_app_slug' ) ),
-            'asset_name'  => static::sanitize_text( get_query_var( 'smliser_asset_name' ) ),
-            'user_agent'  => $request->get_header( 'User-Agent' ),
-            'request_time'=> $request->startTime(),
-            'client_ip'   => smliser_get_client_ip(),
+            'app_type'    => static::sanitize_text( get_query_var( 'app_type' ) ),
+            'app_slug'    => static::sanitize_text( get_query_var( 'app_slug' ) ),
+            'asset_name'  => static::sanitize_text( get_query_var( 'asset_name' ) ),
         ] );
 
         FileRequestController::get_app_static_asset( $file_request )->send();
@@ -295,7 +325,7 @@ class Router implements RouterInterface {
     public static function parse_uploads_dir_request( Request $request ): void {
         $path = smliser_sanitize_path( get_query_var( 'smliser_upload_path' ) );
 
-        if ( is_smliser_error( $path ) ) {
+        if ( $path instanceof Exception ) {
             smliser_abort_request(
                 __( 'Please provide a valid file path', 'smliser' ),
                 'Bad Request',
@@ -305,9 +335,6 @@ class Router implements RouterInterface {
 
         $file_request = new FileRequest( [
             'file_path'    => $path,
-            'user_agent'   => $request->get_header( 'User-Agent' ),
-            'request_time' => $request->startTime(),
-            'client_ip'    => smliser_get_client_ip(),
         ] );
 
         FileRequestController::get_uploads_dir_asset( $file_request )->send();
@@ -325,9 +352,6 @@ class Router implements RouterInterface {
         $file_request = new FileRequest( [
             'asset_url'    => $image_url,
             'asset_name'   => $request->get( 'asset_name', '' ),
-            'user_agent'   => $request->get_header( 'User-Agent' ),
-            'request_time' => $request->startTime(),
-            'client_ip'    => smliser_get_client_ip(),
         ] );
 
         $response = FileRequestController::get_proxy_asset( $file_request );
@@ -907,10 +931,12 @@ class Router implements RouterInterface {
     /**
      * Resolve the correct download request parser based on app type.
      *
+     * @param Request $request The current request object.
      * @return callable
      */
-    public static function resolve_download_request_parser(): callable {
-        switch ( get_query_var( 'smliser_app_type' ) ) {
+    public static function resolve_download_request_parser( Request $request ): callable {
+
+        switch ( $request->get( 'download_type' ) ) {
             case 'plugin':
             case 'plugins':
             case 'theme':
@@ -920,11 +946,18 @@ class Router implements RouterInterface {
             case 'document':
             case 'documents':
                 return [ __CLASS__, 'parse_license_document_download_request' ];
+            case 'artifacts':
+            case 'artifact':
+                return [__CLASS__, 'parse_public_artifact_download_request'];
+            default:
+            return function() {
+                smliser_abort_request( RequestException::make(
+                    'unsupported_route',
+                    'Download type was not found.',
+                    [ 'status' => 404 ]
+                ) );
+            };
         }
-
-        return function( Request $request ) {
-            smliser_abort_request( new Exception( 'unsupported_route', 'The requested route is not supported', [ 'status' => 404 ] ) );
-        };
     }
 
     /**
