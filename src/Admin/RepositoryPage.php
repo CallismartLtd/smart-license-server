@@ -339,6 +339,14 @@ class RepositoryPage {
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
                 ],
+                
+                [
+                    'text'  => 'Artifacts',
+                    'url'   => $url->add_query_params( ['tab' => 'edit-artifacts', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->get_href(),
+                    'icon'  => 'ti ti-files',
+                    'class' => ['smliser-btn', 'smliser-btn-glass'],
+                    'attr'  => []
+                ],
 
                 [
                     'text'  => 'Monetization',
