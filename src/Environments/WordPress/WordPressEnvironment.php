@@ -27,12 +27,14 @@ class WordPressEnvironment extends Environment {
 
     protected ScriptManager $script_manager;
     protected AdminMenu $menu;
+    protected RoutesManager $routes_manager;
 
     /**
      * Class constructor
      */
     private function __construct() {
         $this->setProps();
+        $this->route_register();
 
         add_action( 'set_current_user', [$this->identityProvider, 'authenticate'] );
         add_action( 'deleted_user', [IdentityService::class, 'desync_user'] );
@@ -41,8 +43,8 @@ class WordPressEnvironment extends Environment {
 
         add_action( 'admin_notices', [ $this, 'check_filesystem_errors'] );
         add_action( 'admin_notices', [$this, 'print_admin_notices'] );
-        
-        add_action( 'init', [$this, 'route_register'], 9 );
+        add_action( 'init', [$this->routes_manager, 'route_register'] );
+
         add_action( 'init', [$this, 'schedule_events'], 10 );
         add_action( 'init', [$this->script_manager, 'register_scripts'], 10 );
         add_action( 'init', [$this->script_manager, 'register_styles'], 10 );
@@ -50,8 +52,8 @@ class WordPressEnvironment extends Environment {
         add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
         add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
         
-        add_action( 'admin_init', [Router::class, 'init_request'] );
-        add_action( 'template_redirect', [Router::class, 'init_request'] );
+        add_action( 'admin_init', [Dispatcher::class, 'init_request'] );
+        add_action( 'template_redirect', [Dispatcher::class, 'init_request'] );
         
         add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
         add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
@@ -59,9 +61,9 @@ class WordPressEnvironment extends Environment {
         add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
 
         add_filter( 'redirect_canonical', [$this, 'disable_redirect_on_downloads'], 10, 2 );
-        add_filter( 'template_include', [Router::class, 'load_auth_template'] );
-        add_filter( 'query_vars', [$this, 'query_vars'] );
+        add_filter( 'template_include', [Dispatcher::class, 'load_auth_template'] );
         add_filter( 'cron_schedules', [$this, 'register_cron'] );
+        add_filter( 'query_vars', [$this->routes_manager, 'query_vars'] );
 
         add_action( 'smliser_process_queue', [$this->queue_worker, 'process_within_time_budget'] );
         add_action( 'smliser_run_scheduler', [$this->scheduler(), 'run_due_tasks'] );
@@ -290,134 +292,7 @@ class WordPressEnvironment extends Environment {
      * Sets up custom routes.
      */
     public function route_register() :void {
-        $repo_prefix = smliser_get_repository_url_prefix();
-    
-        add_rewrite_rule(
-            '^' . $repo_prefix . '$',
-            'index.php?pagename=smliser-repository',
-            'top'
-        );
-    
-        /**
-         * Repository app type page matches siteurl/repository/{app_type}/ where app type can be (themes, plugins, software)
-         */
-        add_rewrite_rule(
-            '^' . $repo_prefix . '/([^/]+)$',
-            'index.php?pagename=smliser-repository&smliser_app_type=$matches[1]',
-            'top'
-        );
-
-        /**
-         * Repository app type page matches siteurl/repository/{app_type}/{app_slug}/
-         */
-        add_rewrite_rule(
-            '^' . $repo_prefix . '/([^/]+)/([^/]+)/?$',
-            'index.php?pagename=smliser-repository&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]',
-            'top'
-        );
-
-        /**
-         * Asset serving url matchs siteurl/repository/{app_type}/{app_slug}/assets/{filename}
-         */
-        add_rewrite_rule(
-            '^' . $repo_prefix . '/([^/]+)/([^/]+)/assets/(.+)$',
-            'index.php?pagename=smliser-repository-assets&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]&smliser_asset_name=$matches[3]',
-            'top'
-        );
-
-        /**
-         * Smliser uploads dir serving url matchs siteurl/smliser-uploads/{path_to_file}
-         */
-        add_rewrite_rule(
-            '^smliser-uploads/(.+)$',
-            'index.php?pagename=smliser-uploads&smliser_upload_path=$matches[1]',
-            'top'
-        );
-
-        /**
-         * Client dashboard route
-         */
-        $dashboard_slug = smliser_get_client_dashboard_url_prefix();
-        
-        add_rewrite_rule(
-            '^' . $dashboard_slug . '$',
-            'index.php?pagename=smliser-dashboard',
-            'top'
-        );
-
-        /*
-        |------------------------
-        | Software download rules
-        |------------------------
-        */
-
-        $download_slug = smliser_get_download_url_prefix();
-
-        /**
-         * The base downloads page 
-         */
-        add_rewrite_rule(
-            '^' . $download_slug . '/?$',
-            'index.php?pagename=smliser-downloads',
-            'top'
-        );
-
-        /**
-         * Downloads category page
-         */
-        add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/?$',
-            'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]',
-            'top'
-        );
-        
-        /** 
-         * License document download rule (specific)
-         */
-        add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/([0-9]+)/?$',
-            'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]&license_id=$matches[2]',
-            'top'
-        );
-
-        /** 
-         * File Download URI Rule
-         */
-        add_rewrite_rule(
-            '^' . $download_slug . '/([^/]+)/((?![0-9]+$)[^/]+)(?:\.zip)?/?$',
-            'index.php?pagename=smliser-downloads&smliser_app_type=$matches[1]&smliser_app_slug=$matches[2]',
-            'top'
-        );
-
-        /**OAUTH authorization endpoint */
-        add_rewrite_rule(
-            '^smliser-auth/v1/authorize$',
-            'index.php?smliser_auth=$matches[1]',
-            'top'
-        );
-    }
-
-    /**
-     * Plugin Query Variables
-     *
-     * Adds custom query variables to WordPress recognized query variables.
-     *
-     * @param array $vars The existing array of query variables.
-     * @return array Modified array of query variables.
-     */
-    public function query_vars( $vars ) {
-        
-        $vars[] = 'smliser_repository';
-        $vars[] = 'smliser_repository_plugin_slug';
-        $vars[] = 'license_id';
-        $vars[] = 'smliser_app_type';
-        $vars[] = 'smliser_auth';
-        
-        $vars[] = 'smliser_app_slug';
-        $vars[] = 'smliser_asset_name';
-        $vars[] = 'smliser_upload_path';
-        
-        return $vars;
+        $this->routes_manager   = new RoutesManager();
     }
 
     /**
