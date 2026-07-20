@@ -514,22 +514,6 @@ class Dispatcher implements RequestHandlingContract {
     }
 
     /**
-     * Load authentication template.
-     *
-     * @param  string $template
-     * @return string
-     */
-    public static function load_auth_template( string $template ): string {
-        global $wp_query;
-
-        if ( isset( $wp_query->query_vars['smliser_auth'] ) ) {
-            $template = SMLISER_PATH . 'templates/auth/auth-controller.php';
-        }
-
-        return $template;
-    }
-
-    /**
      * Parse download token generation request.
      */
     public static function parse_download_token_generation_request( Request $request ): void {

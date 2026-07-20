@@ -14,6 +14,7 @@ use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\WPCLIRunner;
 use SmartLicenseServer\Core\URL;
 use Callismart\DBPrism\Adapters\WPDBAdapter;
+use SmartLicenseServer\Autoloader;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
@@ -33,44 +34,15 @@ class WordPressEnvironment extends Environment {
      * Class constructor
      */
     private function __construct() {
+        Autoloader::add_function_dir( __DIR__ . '/functions' );
+        
         $this->setProps();
         $this->route_register();
 
-        add_action( 'set_current_user', [$this->identityProvider, 'authenticate'] );
-        add_action( 'deleted_user', [IdentityService::class, 'desync_user'] );
-        add_action( 'admin_menu', [$this->menu, 'register_menus'] );
-        add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
-
-        add_action( 'admin_notices', [ $this, 'check_filesystem_errors'] );
-        add_action( 'admin_notices', [$this, 'print_admin_notices'] );
-        add_action( 'init', [$this->routes_manager, 'route_register'] );
-
-        add_action( 'init', [$this, 'schedule_events'], 10 );
-        add_action( 'init', [$this->script_manager, 'register_scripts'], 10 );
-        add_action( 'init', [$this->script_manager, 'register_styles'], 10 );
-        
-        add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
-        add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
-        
-        add_action( 'admin_init', [Dispatcher::class, 'init_request'] );
-        add_action( 'template_redirect', [Dispatcher::class, 'init_request'] );
-        
-        add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
-        add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
-        add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
-        add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
-
-        add_filter( 'redirect_canonical', [$this, 'disable_redirect_on_downloads'], 10, 2 );
-        add_filter( 'template_include', [Dispatcher::class, 'load_auth_template'] );
-        add_filter( 'cron_schedules', [$this, 'register_cron'] );
-        add_filter( 'query_vars', [$this->routes_manager, 'query_vars'] );
-
-        add_action( 'smliser_process_queue', [$this->queue_worker, 'process_within_time_budget'] );
-        add_action( 'smliser_run_scheduler', [$this->scheduler(), 'run_due_tasks'] );
+        $this->register_action_hooks();
+        $this->register_filters();
 
         register_activation_hook( SMLISER_FILE, [Installer::class, 'install'] );
-
-        add_action( 'cli_init', [$this, 'setup_cli'] );
     }
 
     /**
@@ -115,6 +87,50 @@ class WordPressEnvironment extends Environment {
         
         $this->script_manager   = new ScriptManager( $this->request );
         $this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request );
+    }
+
+    /**
+     * Register action hooks
+     */
+    protected function register_action_hooks() : void {
+        add_action( 'set_current_user', [$this->identityProvider, 'authenticate'] );
+        add_action( 'deleted_user', [IdentityService::class, 'desync_user'] );
+        add_action( 'admin_menu', [$this->menu, 'register_menus'] );
+        add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
+
+        add_action( 'admin_notices', [ $this, 'check_filesystem_errors'] );
+        add_action( 'admin_notices', [$this, 'print_admin_notices'] );
+        add_action( 'init', [$this->routes_manager, 'route_register'] );
+
+        add_action( 'init', [$this, 'schedule_events'], 10 );
+        add_action( 'init', [$this->script_manager, 'register_scripts'], 10 );
+        add_action( 'init', [$this->script_manager, 'register_styles'], 10 );
+        
+        add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
+        add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
+
+        add_action( 'admin_init', [Dispatcher::class, 'init_request'] );
+        add_action( 'template_redirect', [Dispatcher::class, 'init_request'] );
+        
+        add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
+        add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
+        add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
+        add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
+
+        add_action( 'smliser_process_queue', [$this->queue_worker, 'process_within_time_budget'] );
+        add_action( 'smliser_run_scheduler', [$this->scheduler(), 'run_due_tasks'] );
+
+        add_action( 'cli_init', [$this, 'setup_cli'] );
+    }
+
+    /**
+     * Register filters
+     */
+    protected function register_filters() : void {
+        add_filter( 'redirect_canonical', [$this, 'disable_redirect_on_downloads'], 10, 2 );
+        add_filter( 'template_include', __NAMESPACE__ . '\\load_auth_template' );
+        add_filter( 'cron_schedules', [$this, 'register_cron'] );
+        add_filter( 'query_vars', [$this->routes_manager, 'query_vars'] );
     }
 
     /**
