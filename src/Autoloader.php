@@ -53,7 +53,7 @@ class Autoloader {
      */
     public static function autoload( $class ) : void {    
         // Check each registered namespace.
-        foreach ( self::$namespaces as $namespace => $base_dir ) {
+        foreach ( static::$namespaces as $namespace => $base_dir ) {
             // Does the class use the namespace prefix?
             $len = strlen( $namespace );
             if ( strncmp( $namespace, $class, $len ) !== 0 ) {
@@ -64,7 +64,7 @@ class Autoloader {
             $relative_class = substr( $class, $len );
             
             // Try to load the file
-            $file = self::get_file_path( $base_dir, $relative_class );
+            $file = static::get_file_path( $base_dir, $relative_class );
             
             if ( $file ) {
                 require_once $file;
@@ -96,7 +96,7 @@ class Autoloader {
      * @param string $base_dir  The base directory
      */
     public static function add_namespace( $namespace, $base_dir ) {
-        self::$namespaces[ $namespace ] = rtrim( $base_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+        static::$namespaces[ $namespace ] = rtrim( $base_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
     }
 
     /**
@@ -107,11 +107,11 @@ class Autoloader {
     public static function add_function_dir( $dir ) : void {
         $dir = rtrim( $dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 
-        if ( ! in_array( $dir, self::$function_dirs, true ) ) {
-            self::$function_dirs[] = $dir;
+        if ( ! in_array( $dir, static::$function_dirs, true ) ) {
+            static::$function_dirs[] = $dir;
 
             // Immediately load functions from this directory.
-            self::load_function_dir( $dir );
+            static::load_function_dir( $dir );
         }
     }
 
@@ -119,8 +119,8 @@ class Autoloader {
      * Autoload all function files from registered function directories.
      */
     private static function autoload_functions() : void {
-        foreach ( self::$function_dirs as $dir ) {
-            self::load_function_dir( $dir );
+        foreach ( static::$function_dirs as $dir ) {
+            static::load_function_dir( $dir );
         }
     }
 
@@ -140,13 +140,13 @@ class Autoloader {
         }
 
         foreach ( glob( $dir . '*.php' ) as $file ) {
-            if ( isset( self::$loaded_function_files[ $file ] ) ) {
+            if ( isset( static::$loaded_function_files[ $file ] ) ) {
                 continue;
             }
 
             require_once $file;
 
-            self::$loaded_function_files[ $file ] = true;
+            static::$loaded_function_files[ $file ] = true;
         }
     }
 }
