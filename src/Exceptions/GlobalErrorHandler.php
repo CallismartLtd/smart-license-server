@@ -223,12 +223,14 @@ class GlobalErrorHandler {
      * @param string|Exception $message Error message or exception.
      * @param string|int $title Error title or HTTP code.
      * @param array|int $args Additional arguments or HTTP code.
-     * @return void
+     * @return never
      */
-    public function abort( $message = '', $title = '', $args = [] ) : void {
+    public function abort( $message = '', $title = '', $args = [] ) : never {
         $this->create( $message, $title, $args )
             ->setExit( true )
             ->display();
+
+        exit; // Redundant to fulfil type hinting.
     }
 
     /**

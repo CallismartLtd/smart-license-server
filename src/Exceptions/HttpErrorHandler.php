@@ -32,9 +32,9 @@ class HttpErrorHandler extends AbstractErrorHandler {
      * @param string $name Attribute name.
      * @param string $content Attribute content.
      * @param array $attributes Additional attributes.
-     * @return self
+     * @return static
      */
-    public function addMeta( string $name, string $content, array $attributes = [] ) : self {
+    public function addMeta( string $name, string $content, array $attributes = [] ) : static {
         $meta = array_merge(
             [ 'name' => $name, 'content' => $content ],
             $attributes
@@ -49,9 +49,9 @@ class HttpErrorHandler extends AbstractErrorHandler {
      * @param string $rel Relationship type.
      * @param string $href URL.
      * @param array $attributes Additional attributes.
-     * @return self
+     * @return static
      */
-    public function addLink( string $rel, string $href, array $attributes = [] ) : self {
+    public function addLink( string $rel, string $href, array $attributes = [] ) : static {
         $link = array_merge(
             [ 'rel' => $rel, 'href' => $href ],
             $attributes
@@ -78,9 +78,9 @@ class HttpErrorHandler extends AbstractErrorHandler {
      *
      * @param string $selector CSS selector.
      * @param array $properties CSS properties as key-value pairs.
-     * @return self
+     * @return static
      */
-    public function addStyle( string $selector, array $properties ) : self {
+    public function addStyle( string $selector, array $properties ) : static {
         $this->styles[ $selector ] = $properties;
         return $this;
     }
@@ -89,9 +89,9 @@ class HttpErrorHandler extends AbstractErrorHandler {
      * Set multiple styles at once.
      *
      * @param array $styles Styles array (selector => properties).
-     * @return self
+     * @return static
      */
-    public function setStyles( array $styles ) : self {
+    public function setStyles( array $styles ) : static {
         $this->styles = array_merge( $this->styles, $styles );
         return $this;
     }
@@ -120,9 +120,9 @@ class HttpErrorHandler extends AbstractErrorHandler {
      * Set custom HTML attributes.
      *
      * @param array $attributes Attributes for html tag.
-     * @return self
+     * @return static
      */
-    public function setHtmlAttributes( array $attributes ) : self {
+    public function setHtmlAttributes( array $attributes ) : static {
         $this->html_attributes = array_merge( $this->html_attributes, $attributes );
         return $this;
     }
@@ -131,9 +131,9 @@ class HttpErrorHandler extends AbstractErrorHandler {
      * Set custom body attributes.
      *
      * @param array $attributes Attributes for body tag.
-     * @return self
+     * @return static
      */
-    public function setBodyAttributes( array $attributes ) : self {
+    public function setBodyAttributes( array $attributes ) : static {
         $this->body_attributes = array_merge( $this->body_attributes, $attributes );
         return $this;
     }
@@ -142,9 +142,9 @@ class HttpErrorHandler extends AbstractErrorHandler {
      * Add CSS class to body tag.
      *
      * @param string $class CSS class name.
-     * @return self
+     * @return static
      */
-    public function addBodyClass( string $class ) : self {
+    public function addBodyClass( string $class ) : static {
         $existing = $this->body_attributes['class'] ?? '';
         $this->body_attributes['class'] = trim( $existing . ' ' . $class );
         return $this;
@@ -409,9 +409,9 @@ class HttpErrorHandler extends AbstractErrorHandler {
     /**
      * Send HTTP headers.
      *
-     * @return self
+     * @return static
      */
-    public function sendHeaders() : self {
+    public function sendHeaders() : static {
         if ( ! headers_sent() ) {
             http_response_code( $this->getResponseCode() );
             header( 'Content-Type: text/html; charset=' . $this->getCharset() );
@@ -421,11 +421,11 @@ class HttpErrorHandler extends AbstractErrorHandler {
 
             header(
                 "Content-Security-Policy: " .
-                "default-src 'self'; " .
-                "style-src 'self' 'unsafe-inline'; " .
-                "script-src 'self'; " .
-                "img-src 'self' data:; " .
-                "font-src 'self';"
+                "default-src 'static'; " .
+                "style-src 'static' 'unsafe-inline'; " .
+                "script-src 'static'; " .
+                "img-src 'static' data:; " .
+                "font-src 'static';"
             );
         }
         

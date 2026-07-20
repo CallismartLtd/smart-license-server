@@ -120,14 +120,19 @@ abstract class AbstractErrorHandler {
      * @param string|Exception $message Error message or exception.
      * @param string|int $title Error title or HTTP code.
      * @param array|int $args Additional arguments or HTTP code.
-     * @return self
+     * @return static
      */
-    private function initialize( $message, $title, $args ) : self {
+    private function initialize( string|Exception $message, string|int $title, array|int $args ) : static {
         if ( is_int( $title ) ) {
             $args   = [ 'response' => $title ];
             $title  = '';
         } elseif ( is_int( $args ) ) {
             $args = [ 'response' => $args ];
+        }
+
+        if ( ! isset( $args['response'] ) && isset( $args['status'] ) ) {
+            $args['response'] = (int) $args['status'];
+            unset( $args['status'] );
         }
 
         if ( is_array( $args ) ) {
@@ -178,9 +183,9 @@ abstract class AbstractErrorHandler {
      * Set error message.
      *
      * @param string $message Error message.
-     * @return self
+     * @return static
      */
-    public function setMessage( string $message ) : self {
+    public function setMessage( string $message ) : static {
         $this->message = $message;
         return $this;
     }
@@ -198,9 +203,9 @@ abstract class AbstractErrorHandler {
      * Set error title.
      *
      * @param string $title Error title.
-     * @return self
+     * @return static
      */
-    public function setTitle( string $title ) : self {
+    public function setTitle( string $title ) : static {
         $this->title = $title;
         return $this;
     }
@@ -224,9 +229,9 @@ abstract class AbstractErrorHandler {
      * Set error code.
      *
      * @param string $code Error code.
-     * @return self
+     * @return static
      */
-    public function setCode( string $code ) : self {
+    public function setCode( string $code ) : static {
         $this->code = $code;
         $this->config['code'] = $code;
         return $this;
@@ -245,9 +250,9 @@ abstract class AbstractErrorHandler {
      * Set HTTP response code.
      *
      * @param int $code HTTP response code.
-     * @return self
+     * @return static
      */
-    public function setResponseCode( int $code ) : self {
+    public function setResponseCode( int $code ) : static {
         $this->config['response'] = $code;
         return $this;
     }
@@ -258,7 +263,7 @@ abstract class AbstractErrorHandler {
      * @return int
      */
     public function getResponseCode() : int {
-        return (int) $this->config['response'];
+        return (int) ( $this->config['response'] );
     }
 
     /*
@@ -271,9 +276,9 @@ abstract class AbstractErrorHandler {
      * Set character encoding.
      *
      * @param string $charset Character encoding.
-     * @return self
+     * @return static
      */
-    public function setCharset( string $charset ) : self {
+    public function setCharset( string $charset ) : static {
         $this->config['charset'] = $charset;
         return $this;
     }
@@ -291,9 +296,9 @@ abstract class AbstractErrorHandler {
      * Enable/disable debug mode for current instance.
      *
      * @param bool $debug Whether to enable debug mode.
-     * @return self
+     * @return static
      */
-    public function setDebug( bool $debug ) : self {
+    public function setDebug( bool $debug ) : static {
         $this->config['debug'] = $debug;
         return $this;
     }
@@ -311,9 +316,9 @@ abstract class AbstractErrorHandler {
      * Enable/disable display error for current instance.
      *
      * @param bool $display Whether to enable error display.
-     * @return self
+     * @return static
      */
-    public function setDisplayErrors( bool $display ) : self {
+    public function setDisplayErrors( bool $display ) : static {
         $this->config['display_errors'] = $display;
         return $this;
     }
@@ -331,9 +336,9 @@ abstract class AbstractErrorHandler {
      * Enable/disable auto-exit after display.
      *
      * @param bool $exit Whether to exit.
-     * @return self
+     * @return static
      */
-    public function setExit( bool $exit ) : self {
+    public function setExit( bool $exit ) : static {
         $this->config['exit'] = $exit;
         return $this;
     }
@@ -344,7 +349,7 @@ abstract class AbstractErrorHandler {
      * @return bool
      */
     public function shouldExit() : bool {
-        return $this->config['exit'];
+        return (bool) $this->config['exit'];
     }
 
     /**
@@ -390,9 +395,9 @@ abstract class AbstractErrorHandler {
      * Set back link display.
      *
      * @param bool $show Whether to show back link.
-     * @return self
+     * @return static
      */
-    public function setBackLink( bool $show ) : self {
+    public function setBackLink( bool $show ) : static {
         $this->config['back_link'] = $show;
         return $this;
     }
@@ -402,9 +407,9 @@ abstract class AbstractErrorHandler {
      *
      * @param string $url URL for the link.
      * @param string $text Link text.
-     * @return self
+     * @return static
      */
-    public function setLink( string $url, string $text ) : self {
+    public function setLink( string $url, string $text ) : static {
         $this->config['link_url']  = $url;
         $this->config['link_text'] = $text;
         return $this;
@@ -440,9 +445,9 @@ abstract class AbstractErrorHandler {
      *
      * HTTP handlers send HTTP headers. CLI handlers are no-op.
      *
-     * @return self
+     * @return static
      */
-    abstract public function sendHeaders() : self;
+    abstract public function sendHeaders() : static;
 
     /*
     |------------------------------------------
