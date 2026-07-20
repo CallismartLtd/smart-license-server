@@ -201,7 +201,7 @@ class AppUploader {
         uploadBtn.classList.add( 'smliser-hide' );
 
         if ( exceedsLimit ) {
-            smliserNotify( 'The uploaded file exceeds the max_upload_size; this server cannot process this request.', 6000 );
+            SmliserToast.show( 'The uploaded file exceeds the max_upload_size; this server cannot process this request.', 6000 );
         }
     }
 
@@ -212,7 +212,7 @@ class AppUploader {
         if ( this.queryParam.get( 'tab' ) === 'add-new' && fileInput.files.length === 0 ) {
             e.preventDefault();
             const appType = StringUtils.ucfirst( this.queryParam.get( 'type' ) );
-            smliserNotify( `A ${ appType } file is required.`, 5000 );
+            SmliserToast.show( `A ${ appType } file is required.`, 5000 );
         }
     }
 
@@ -292,14 +292,14 @@ class AppUploader {
                 throw new Error( data.data.message );
             }
 
-            smliserNotify( data?.data?.message ?? 'Saved', 6000 );
+            SmliserToast.show( data?.data?.message ?? 'Saved', 6000 );
 
             setTimeout( () => {
                 window.location.href = data.data.redirect_url;
             }, 6000 );
 
         } catch ( error ) {
-            smliserNotify( error.message, 10000 );
+            SmliserToast.show( error.message, 10000 );
         } finally {
             removeSpinner( spinner );
         }
@@ -461,7 +461,7 @@ class AppUploader {
             const attachment = frame.state().get( 'selection' ).first().toJSON();
 
             if ( ! attachment?.url ) {
-                smliserNotify( 'No image selected', 5000 );
+                SmliserToast.show( 'No image selected', 5000 );
                 return;
             }
 
@@ -579,7 +579,7 @@ class AppUploader {
 
         if ( needsPng && ! file.type.includes( 'image/png' ) ) {
             const converted = await this._convertToPng( file );
-            smliserNotify( `"${ file.name }" has been converted to PNG.`, 4000 );
+            SmliserToast.show( `"${ file.name }" has been converted to PNG.`, 4000 );
             return converted;
         }
 
@@ -619,14 +619,14 @@ class AppUploader {
 
             if ( needsPng && ! contentType.includes( 'image/png' ) ) {
                 const converted = await this._convertToPng( blob, fileName );
-                smliserNotify( 'Image has been converted to PNG.', 5000 );
+                SmliserToast.show( 'Image has been converted to PNG.', 5000 );
                 return converted;
             }
 
             return new File( [blob], fileName, { type: blob.type || 'image/png' } );
 
         } catch ( error ) {
-            smliserNotify( error.message, 10000 );
+            SmliserToast.show( error.message, 10000 );
             return null;
         } finally {
             removeSpinner( spinner );
@@ -777,7 +777,7 @@ class AppUploader {
      */
     async uploadToRepository( config, btn ) {
         if ( ! this.currentFiles.length ) {
-            smliserNotify( 'Please select at least one image.', 3000 );
+            SmliserToast.show( 'Please select at least one image.', 3000 );
             return;
         }
 
@@ -824,7 +824,7 @@ class AppUploader {
             this._processBatchResult( data.result, container );
 
         } catch ( error ) {
-            smliserNotify( error.message, 20000 );
+            SmliserToast.show( error.message, 20000 );
             console.error( error );
         } finally {
             removeSpinner( spinner );
@@ -867,7 +867,7 @@ class AppUploader {
         // ── Bulk Failures ───────────────────────────────────────────────────────────
         failedEntries.forEach( ( [ filename, errors ] ) => {
             const messages = Object.values( errors ).join( ' ' );
-            smliserNotify( `"${ filename }": ${ messages }`, 12000 );
+            SmliserToast.show( `"${ filename }": ${ messages }`, 12000 );
             console.warn( `Asset upload failed — ${ filename }:`, errors );
         });
 
@@ -881,7 +881,7 @@ class AppUploader {
             this.closeModal();
         } else if ( uploadCount > 0 && failCount > 0 ) {
             // Partial success — close but leave the user informed via the notices above
-            smliserNotify( `${ uploadCount } uploaded, ${ failCount } failed. See details above.`, 8000 );
+            SmliserToast.show( `${ uploadCount } uploaded, ${ failCount } failed. See details above.`, 8000 );
             this.resetModal();
             this.closeModal();
         }
@@ -968,13 +968,13 @@ class AppUploader {
                 throw new Error( data.data?.message ?? `Unable to delete ${ config.asset_name }.` );
             }
 
-            smliserNotify( data.data?.message, 3000 );
+            SmliserToast.show( data.data?.message, 3000 );
 
             const card = btn.closest( '.app-uploader-image-preview' );
             jQuery( card ).fadeOut( 'slow', () => card.remove() );
 
         } catch ( error ) {
-            smliserNotify( error.message, 10000 );
+            SmliserToast.show( error.message, 10000 );
         } finally {
             btn.removeAttribute( 'disabled' );
         }
@@ -1275,14 +1275,14 @@ class AppUploader {
             const file                  = this.artifactFileInput.files[0];
 
             if ( ! canonicalFileName ) {
-                smliserNotify( 'Please enter a valid artifact filename.', 5000 );
+                SmliserToast.show( 'Please enter a valid artifact filename.', 5000 );
                 return;
             }
 
             const config    = StringUtils.JSONparse( modal.getBody( '#artifact-config' ).value );
             
             if ( ! config ) {
-                smliserNotify( 'Invalid artifact configuration.', 5000 );
+                SmliserToast.show( 'Invalid artifact configuration.', 5000 );
                 return;
             }
 

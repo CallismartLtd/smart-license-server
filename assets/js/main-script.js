@@ -308,7 +308,7 @@ async function smliserDownloadUrl( url, options = {} ) {
 function smliserCopyToClipboard(text) {
     navigator.clipboard.writeText(text).then( () => {
         const copiedText    = text.length > 0 && text.length < 50 ? `: ${text}` : '';
-        smliserNotify( `Copied to clipboard ${copiedText}`, 3000);
+        SmliserToast.show( `Copied to clipboard ${copiedText}`, 3000);
     }).catch( (err) => {
         console.error('Could not copy text', err);
     });
@@ -1178,9 +1178,9 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 if ( copyButton ) {
                     const licenseKeyField = container.querySelector( '.smliser-license-text' );
                     navigator.clipboard.writeText(licenseKeyField.value).then(function() {
-                        smliserNotify('copied', 2000)
+                        SmliserToast.show('copied', 2000)
                     }).catch(function(error) {
-                        smliserNotify( error, 2000)
+                        SmliserToast.show( error, 2000)
                     });
                 }
             });
@@ -1304,16 +1304,16 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 })
                 .then(data => {
                     if (data.success) {
-                        smliserNotify(data.data.message || 'Upgrade successful!', 5000);
+                        SmliserToast.show(data.data.message || 'Upgrade successful!', 5000);
                         updateBtn.parentElement.style.display = 'none'; // Update UI only if successful
                         updateClickedNotice.style.display = 'block';
                     } else {
-                        smliserNotify(data.data?.message || 'An error occurred', 5000);
+                        SmliserToast.show(data.data?.message || 'An error occurred', 5000);
                     }
                 })
                 .catch(error => {
                     // Handle fetch or JSON parsing errors
-                    smliserNotify(error.message || 'An unexpected error occurred', 5000);
+                    SmliserToast.show(error.message || 'An unexpected error occurred', 5000);
                 });
         });
     }
@@ -1325,7 +1325,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 let requestArgs    = StringUtils.JSONparse( actionBtn.getAttribute( 'data-action-args' ) );
                 
                 if ( ! requestArgs ) {
-                    smliserNotify( 'App data not found', 5000 );
+                    SmliserToast.show( 'App data not found', 5000 );
                     return;
                 }
 
@@ -1348,19 +1348,19 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 fetch(url)
                     .then( response=>{
                         if ( ! response.ok ) {
-                            smliserNotify(`Error: [${response.status}] ${response.statusText}`, 5000);
+                            SmliserToast.show(`Error: [${response.status}] ${response.statusText}`, 5000);
                         }
                         return response.json();
                     })
                     .then( responseData => {
                         
                         if ( responseData.success ) {
-                            smliserNotify(`Success: ${responseData.data.message}`, 3000);
+                            SmliserToast.show(`Success: ${responseData.data.message}`, 3000);
                             setTimeout( () => {
                                 window.location.href = responseData.data.redirect_url;
                             }, 3000);
                         } else {
-                            smliserNotify(`Error: ${responseData.data.message}`, 6000 );
+                            SmliserToast.show(`Error: ${responseData.data.message}`, 6000 );
 
                         }
                     });
@@ -1487,18 +1487,18 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             smliserFetch( smliser_var.ajaxURL, { method: 'POST', body: payLoad } )
             .then( responseJson => {
                 if ( responseJson.success ) {
-                    smliserNotify( responseJson.data?.message || 'Operation successful', 3000 );
+                    SmliserToast.show( responseJson.data?.message || 'Operation successful', 3000 );
                     setTimeout( () => window.location.reload(), 3000 );
                 } else {
                     let errorMessage = responseJson.data?.message || 'An unknown error occurred.';
                     let errorField   = responseJson.data?.field_id || null;
                     if ( errorField ) highlightErrorField( errorField, errorMessage );
-                    smliserNotify( errorMessage, 6000 );
+                    SmliserToast.show( errorMessage, 6000 );
                 }
             })
             .catch( error => {
                 if ( error.field ) highlightErrorField( error.field, error.message );
-                smliserNotify( error.message || 'An unexpected error occurred', 6000 );
+                SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
             })
             .finally( () => removeSpinner( spinner ) );
         };
@@ -1550,13 +1550,13 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 smliserFetch( smliser_var.ajaxURL, { method: 'POST', body: payLoad } )
                 .then( responseJson => {
                     if ( responseJson.success ) {
-                        smliserNotify( responseJson.data?.message || 'Tier deleted', 3000 );
+                        SmliserToast.show( responseJson.data?.message || 'Tier deleted', 3000 );
                         // setTimeout( () => window.location.reload(), 2000 );
                     } else {
-                        smliserNotify( responseJson.data?.message || 'Delete failed', 6000 );
+                        SmliserToast.show( responseJson.data?.message || 'Delete failed', 6000 );
                     }
                 })
-                .catch( error => smliserNotify( error.message || 'Delete failed', 6000 ) );
+                .catch( error => SmliserToast.show( error.message || 'Delete failed', 6000 ) );
                 
             },
 
@@ -1614,7 +1614,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     .then( responseJson => {
                         modal.querySelector( '.spinner-overlay' )?.remove();
                         if ( ! responseJson.success ) {
-                            smliserNotify( responseJson.data?.message || 'Could not fetch product data', 6000 );
+                            SmliserToast.show( responseJson.data?.message || 'Could not fetch product data', 6000 );
                             return;
                         }
 
@@ -1641,7 +1641,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     })
                     .catch( error => {
                         modal.querySelector( '.spinner-overlay' )?.remove();
-                        smliserNotify( error.message || 'An unexpected error occurred', 6000 );
+                        SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
                     });
             },
 
@@ -1658,13 +1658,13 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 })
                 .then( responseJson => {
                     if ( responseJson.success ) {
-                        smliserNotify( responseJson.data?.message || 'Monetization updated', 3000 );
+                        SmliserToast.show( responseJson.data?.message || 'Monetization updated', 3000 );
                     } else {
                         throw new Error( responseJson.data?.message || 'Update failed' );
                     }
                 })
                 .catch( error => {
-                    smliserNotify( error.message || 'An unexpected error occurred', 6000 );
+                    SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
                     const toggle    = monetizationUI.querySelector( '.smliser_toggle-switch-input' );
                     const current   = toggle?.checked;
                     toggle.checked  = ! current;
@@ -1805,7 +1805,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 }
 
                 if ( responseData.success ) {
-                    smliserNotify( responseData.data?.message || 'Message sent successfully', 5000 );
+                    SmliserToast.show( responseData.data?.message || 'Message sent successfully', 5000 );
                     bulkMessageForm.reset();
                     jQuery( appSelect ).val( null ).trigger( 'change' );
                     editor?.setContent( '' );
@@ -1820,11 +1820,11 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             } catch ( error ) {
 
                 if ( error instanceof TypeError ) {
-                    smliserNotify( 'Network error or server is unreachable.', 6000 );
+                    SmliserToast.show( 'Network error or server is unreachable.', 6000 );
                 } else if ( error.type === 'SMLISER_NOT_OK' || error.type === 'SMLISER_FAILURE' ) {
-                    smliserNotify( error.message, 6000 );
+                    SmliserToast.show( error.message, 6000 );
                 } else {
-                    smliserNotify( 'An unexpected error occurred.', 10000 );
+                    SmliserToast.show( 'An unexpected error occurred.', 10000 );
                 }
 
                 console.log(error);
@@ -1862,7 +1862,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             const domain    = e.target.closest( '[data-domain-value]' )?.getAttribute( 'data-domain-value' );
 
             if ( ! domain ) {
-                smliserNotify( 'Domain value was not found', 5000 );
+                SmliserToast.show( 'Domain value was not found', 5000 );
                 return;
             }
 
@@ -1898,7 +1898,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 }
 
                 const message = responseJson?.data?.message ?? 'Success';
-                smliserNotify( message, 5000 );
+                SmliserToast.show( message, 5000 );
                 const el    = e.target.closest( '[data-domain-value]' );
 
                 jQuery( el ).fadeOut( 'slow', () => {
@@ -1906,7 +1906,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 });
                 
             } catch (error) {
-                smliserNotify( error.message, 5000 );
+                SmliserToast.show( error.message, 5000 );
             }
 
         });
@@ -1960,10 +1960,10 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
                 message   = message ?? 'Request was successfull, but no response message.';
 
-                smliserNotify( message, 3000 );
+                SmliserToast.show( message, 3000 );
                 setTimeout( processAfterEntitySave, 3000, response );
             } catch ( error ) {
-                smliserNotify( error.message, 10000 );
+                SmliserToast.show( error.message, 10000 );
                 
             } finally {
                 removeSpinner( spinner );
@@ -2027,14 +2027,14 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                                     memberContainer.remove();
                                 });
 
-                                smliserNotify( message, 5000 );
+                                SmliserToast.show( message, 5000 );
                             } else {
                                 throw new Error( message );
                             }                         
 
                         } catch (error) {
                             clickedBtn.disabled = false;
-                            smliserNotify( error.message, 10000 );
+                            SmliserToast.show( error.message, 10000 );
                         } finally {
                             removeSpinner( spinner );
                         }
@@ -2257,12 +2257,12 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             imagePreview?.setAttribute( 'draggable', false );
             const imageFullScreenMode = () => {
                 if ( ! imageHolder.requestFullscreen ) {
-                    smliserNotify( 'Fullscreen not supported by your browser.', 3000 );
+                    SmliserToast.show( 'Fullscreen not supported by your browser.', 3000 );
                     return;
                 }
 
                 imageHolder.requestFullscreen().catch( err => {
-                    smliserNotify( `Error attempting to enable fullscreen: ${err.message}`, 3000 );
+                    SmliserToast.show( `Error attempting to enable fullscreen: ${err.message}`, 3000 );
                 });
             }
 
@@ -2305,14 +2305,14 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 
                 if ( ! image || ! image.type.includes( 'image/' ) ) {
                     clearImagePreview();
-                    smliserNotify( 'Please upload an image.', 3000 );
+                    SmliserToast.show( 'Please upload an image.', 3000 );
                     return;
                 }
 
                 const maxSize = 2 * 1024 * 1024;
 
                 if ( image.size > maxSize ) {
-                    smliserNotify( 'File is too large. Maximum size is 2MB.', 3000 );
+                    SmliserToast.show( 'File is too large. Maximum size is 2MB.', 3000 );
                     fileInput.value = ''; // Reset the input
                     return;
                 }
