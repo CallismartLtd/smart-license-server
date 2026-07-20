@@ -183,7 +183,11 @@ abstract class Repository {
      * @param string $path Absolute path
      * @return bool
      */
-    public function is_valid_zip( $path ) {
+    public function is_valid_zip( string $path ) {
+        if ( '' === $path ) {
+            return false;
+        }
+        
         $zip = new \ZipArchive();
         $res = $zip->open( $path );
 
@@ -763,6 +767,25 @@ abstract class Repository {
     }
 
     /**
+     * Get a single artifact.
+     * 
+     * @param mixed $app_slug
+     * @param mixed $artifact_filename
+     * @return array{slug: string, path: string, size: int, mtime: int, mime_type: string|null, filename: string}|null
+     */
+    public function get_artifact( $app_slug, $artifact_filename ) : ?array {
+        $artifacts  = $this->get_artifacts( $app_slug );
+
+        foreach( $artifacts as $data ) {
+            if ( $data['filename'] === $artifact_filename ) {
+                return $data;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Upload a new artifact or replace an existing one.
      *
      * When replacing an existing artifact (`overwrite` is `true`), the existing
@@ -922,15 +945,7 @@ abstract class Repository {
      */
     public function rename_artifact( string $app_slug, string $artifact_filename, string $new_filename ) {
         try {
-            $artifact   = null;
-            $artifacts  = $this->get_artifacts( $app_slug );
-
-            foreach( $artifacts as $data ) {
-                if ( $data['filename'] === $artifact_filename ) {
-                    $artifact   = $data;
-                    break;
-                }
-            }
+            $artifact   = $this->get_artifact( $app_slug, $artifact_filename );
 
             if ( ! $artifact ) {
                 throw new Exception(
@@ -989,14 +1004,7 @@ abstract class Repository {
      */
     public function delete_artifact( string $app_slug, string $artifact_filename ) {
         try {
-            $artifact = null;
-
-            foreach ( $this->get_artifacts( $app_slug ) as $data ) {
-                if ( $data['filename'] === $artifact_filename ) {
-                    $artifact = $data;
-                    break;
-                }
-            }
+            $artifact = $this->get_artifact( $app_slug, $artifact_filename );
 
             if ( ! $artifact ) {
                 throw new Exception(
