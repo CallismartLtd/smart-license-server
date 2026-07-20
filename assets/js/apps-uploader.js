@@ -1175,7 +1175,7 @@ class AppUploader {
         }
 
         if ( clickedBtn.closest( AppUploader.SELECTORS.ARTIFACT_DOWNLOAD_BTN ) ) {
-            this._downloadArtifact( config.url );
+            this._downloadArtifact( config.url, config.filename );
         }
     }
 
@@ -1425,8 +1425,9 @@ class AppUploader {
         
     }
 
-    async _downloadArtifact( url ) {
+    async _downloadArtifact( url, fileName ) {
         try {
+            SmliserToast.show( `Downloading ${fileName ?? 'artifact'}...` );
             const response  = await smliserDownloadUrl( url );
             const fileSize  = StringUtils.formatBytes( response.size );
             const duration  = ( response.duration / 1000 ).toFixed( 2 );

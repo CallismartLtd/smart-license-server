@@ -1,0 +1,191 @@
+/*|---------------------------------------------------------------------|*/
+/*| Smliser Toast — notification component                             |*/
+/*|                                                                     |*/
+/*| @since 1.0.0                                                       |*/
+/*|---------------------------------------------------------------------|*/
+
+:root {
+	--smliser-toast-bg: #ffffff;
+	--smliser-toast-color: #1f2328;
+	--smliser-toast-border: rgba( 0, 0, 0, 0.08 );
+	--smliser-toast-shadow: 0 4px 12px rgba( 0, 0, 0, 0.12 ), 0 1px 3px rgba( 0, 0, 0, 0.08 );
+	--smliser-toast-radius: 10px;
+	--smliser-toast-gap: 12px;
+	--smliser-toast-width: 360px;
+	--smliser-toast-offset: 24px;
+	--smliser-toast-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+	--smliser-toast-accent-default: #6b7280;
+	--smliser-toast-accent-success: #1a9d5b;
+	--smliser-toast-accent-error: #d3402f;
+	--smliser-toast-accent-warning: #c58a12;
+	--smliser-toast-accent-info: #2563eb;
+
+	--smliser-toast-close-color: #6b7280;
+	--smliser-toast-close-hover-bg: rgba( 0, 0, 0, 0.06 );
+}
+
+@media ( prefers-color-scheme: dark ) {
+	:root {
+		--smliser-toast-bg: #24262b;
+		--smliser-toast-color: #f0f1f3;
+		--smliser-toast-border: rgba( 255, 255, 255, 0.08 );
+		--smliser-toast-shadow: 0 4px 16px rgba( 0, 0, 0, 0.45 ), 0 1px 3px rgba( 0, 0, 0, 0.3 );
+		--smliser-toast-close-color: #a1a5ab;
+		--smliser-toast-close-hover-bg: rgba( 255, 255, 255, 0.08 );
+	}
+}
+
+/*|---------------------------------------------------------------------|*/
+/*| Container — one per screen corner, holds a stack of toasts.        |*/
+/*|---------------------------------------------------------------------|*/
+
+.smliser-toast-container {
+	position: fixed;
+	z-index: 999999;
+	display: flex;
+	flex-direction: column;
+	gap: var( --smliser-toast-gap );
+	width: var( --smliser-toast-width );
+	max-width: calc( 100vw - ( var( --smliser-toast-offset ) * 2 ) );
+	pointer-events: none;
+}
+
+.smliser-toast-container.is-top {
+	top: var( --smliser-toast-offset );
+	flex-direction: column;
+}
+
+.smliser-toast-container.is-bottom {
+	bottom: var( --smliser-toast-offset );
+	flex-direction: column-reverse;
+}
+
+.smliser-toast-container.is-left {
+	left: var( --smliser-toast-offset );
+	align-items: flex-start;
+}
+
+.smliser-toast-container.is-right {
+	right: var( --smliser-toast-offset );
+	align-items: flex-end;
+}
+
+/*|---------------------------------------------------------------------|*/
+/*| Toast card                                                          |*/
+/*|---------------------------------------------------------------------|*/
+
+.smliser-toast {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 14px 16px;
+	background: var( --smliser-toast-bg );
+	color: var( --smliser-toast-color );
+	border: 1px solid var( --smliser-toast-border );
+	border-radius: var( --smliser-toast-radius );
+	box-shadow: var( --smliser-toast-shadow );
+	font-family: var( --smliser-toast-font );
+	pointer-events: auto;
+	overflow: hidden;
+	opacity: 0;
+	transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.smliser-toast::before {
+	content: '';
+	position: absolute;
+	inset: 0 auto 0 0;
+	width: 4px;
+	background: var( --smliser-toast-accent-default );
+}
+
+.smliser-toast.smliser-toast--success::before { background: var( --smliser-toast-accent-success ); }
+.smliser-toast.smliser-toast--error::before    { background: var( --smliser-toast-accent-error ); }
+.smliser-toast.smliser-toast--warning::before  { background: var( --smliser-toast-accent-warning ); }
+.smliser-toast.smliser-toast--info::before     { background: var( --smliser-toast-accent-info ); }
+
+/*| Entrance / exit states, direction-aware so a toast slides in from  |*/
+/*| whichever edge of the screen its container is anchored to.        |*/
+.smliser-toast-container.is-right .smliser-toast { transform: translateX( 16px ); }
+.smliser-toast-container.is-left .smliser-toast  { transform: translateX( -16px ); }
+
+.smliser-toast.is-visible {
+	opacity: 1;
+	transform: translateX( 0 );
+}
+
+.smliser-toast.is-leaving {
+	opacity: 0;
+	transform: scale( 0.96 );
+}
+
+.smliser-toast__content {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding-left: 6px;
+}
+
+.smliser-toast__message {
+	margin: 0;
+	font-size: 13.5px;
+	line-height: 1.5;
+	font-weight: 600;
+	word-wrap: break-word;
+}
+
+.smliser-toast__close {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	margin: -2px -4px 0 0;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var( --smliser-toast-close-color );
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.smliser-toast__close:hover {
+	background: var( --smliser-toast-close-hover-bg );
+}
+
+.smliser-toast__close:focus-visible {
+	outline: 2px solid var( --smliser-toast-accent-info );
+	outline-offset: 2px;
+}
+
+/*|---------------------------------------------------------------------|*/
+/*| Responsive — collapse to a single full-width column on small       |*/
+/*| screens regardless of the configured corner.                       |*/
+/*|---------------------------------------------------------------------|*/
+
+@media ( max-width: 600px ) {
+	.smliser-toast-container {
+		left: var( --smliser-toast-offset );
+		right: var( --smliser-toast-offset );
+		width: auto;
+		max-width: none;
+		align-items: stretch;
+	}
+}
+
+/*|---------------------------------------------------------------------|*/
+/*| Reduced motion — fade only, no directional movement.               |*/
+/*|---------------------------------------------------------------------|*/
+
+@media ( prefers-reduced-motion: reduce ) {
+	.smliser-toast {
+		transition: opacity 0.22s ease;
+		transform: none !important;
+	}
+}
