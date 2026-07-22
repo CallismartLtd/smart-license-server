@@ -13,7 +13,7 @@ use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Email\RequestController as EmailRequestController;
-use SmartLicenseServer\Environments\RequestBridgeInterface;
+use SmartLicenseServer\Environments\RequestDispatcherInterface;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
@@ -29,9 +29,14 @@ use SmartLicenseServer\Security\RequestController;
 use SmartLicenseServer\SettingsAPI\SettingsController;
 
 /**
- * WordPress request dispatcher class
+ * Dispatches incoming WordPress requests to the appropriate
+ * SmartLicenseServer core controllers.
+ *
+ * This dispatcher adapts WordPress-specific request data into core
+ * Request objects, invokes the corresponding controllers, and returns
+ * their Response objects.
  */
-class Dispatcher implements RequestBridgeInterface {
+class Dispatcher implements RequestDispatcherInterface { 
     /**
      * Map of registered request triggers to callback.
      * 
@@ -96,7 +101,7 @@ class Dispatcher implements RequestBridgeInterface {
      * terminate the request.
      */
     public static function init_request() : void {
-        // Single Request instance — all parsers read from this.
+        // Single Request instance — all handlers read from this.
         $request    = \smliser_request();
         $trigger    = get_query_var( 'pagename' );
 
@@ -750,29 +755,19 @@ class Dispatcher implements RequestBridgeInterface {
     }
 
     /**
-     * Resolve the correct download request parser based on app type.
+     * Resolve the correct download request handler based on app type.
      *
      * @param Request $request The current request object.
      * @return null|callable(Request):Response
      */
-    protected static function resolve_download_request_parser( Request $request ): ?callable {
-
-        switch ( $request->get( 'download_type' ) ) {
-            case 'plugin':
-            case 'plugins':
-            case 'theme':
-            case 'themes':
-            case 'software':
-                return [ __CLASS__, 'handle_public_package_download_request' ];
-            case 'document':
-            case 'documents':
-                return [ __CLASS__, 'handle_license_document_download_request' ];
-            case 'artifacts':
-            case 'artifact':
-                return [__CLASS__, 'handle_public_artifact_download_request'];
-            default:
-            return null;
-        }
+    protected static function resolve_download_request_handler( Request $request ): ?callable {
+        return match( $request->get( 'download_type' ) ) {
+            'plugin', 'plugins', 'theme', 
+            'themes', 'software'    => [ __CLASS__, 'handle_public_package_download_request' ],
+            'document', 'documents' => [ __CLASS__, 'handle_license_document_download_request' ],
+            'artifact', 'artifacts' => [__CLASS__, 'handle_public_artifact_download_request'],
+            default                 => null
+        };
     }
 
     /**
@@ -782,7 +777,7 @@ class Dispatcher implements RequestBridgeInterface {
      * @return Response
      */
     protected static function handle_public_downloads( Request $request ) : Response {
-        $resolved_callback  = static::resolve_download_request_parser( $request );
+        $resolved_callback  = static::resolve_download_request_handler( $request );
 
         if ( ! $resolved_callback ) {
             return new FileResponse( new FileRequestException(
