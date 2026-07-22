@@ -285,7 +285,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return void
      */
-    public static function parse_save_system_settings_request( Request $request ) : void;
+    public static function parse_save_system_settings_request( Request $request ): void;
 
     /**
      * Parse request to preview email template.
@@ -293,7 +293,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return void
      */
-    public static function parse_preview_email_template_request(  Request $request ) : void;
+    public static function parse_preview_email_template_request(  Request $request ): void;
 
     /**
      * Parse request to save email template.
@@ -301,7 +301,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return void
      */
-    public static function parse_save_email_template_request(  Request $request ) : void;
+    public static function parse_save_email_template_request(  Request $request ): void;
     
     /**
      * Parse request to reset email template.
@@ -309,7 +309,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return void
      */
-    public static function parse_reset_email_template_request(  Request $request ) : void;
+    public static function parse_reset_email_template_request(  Request $request ): void;
     
     /**
      * Parse license delete request.
@@ -317,7 +317,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return void
      */
-    public static function parse_license_delete_request( Request $request ) : void;
+    public static function parse_license_delete_request( Request $request ): void;
 
     /**
      * Parse request to save cache adapter settings.
@@ -325,7 +325,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return void
      */
-    public static function parse_save_cache_adapter_settings_request( Request $request ) : void;
+    public static function parse_save_cache_adapter_settings_request( Request $request ): void;
 
     /**
      * Parse test cache adapter settings request.
@@ -333,7 +333,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return void
      */
-    public static function parse_test_cache_adapter_settings_request( Request $request ) : void;
+    public static function parse_test_cache_adapter_settings_request( Request $request ): void;
     
     /**
      * Parse request to get cache stats.
@@ -381,5 +381,5 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return void
      */
-    public static function render_client_dashboard( Request $request ) : void;   
+    public static function render_client_dashboard( Request $request ): void;   
 }

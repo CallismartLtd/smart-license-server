@@ -35,11 +35,7 @@ if ( $render_image_only ) {
 <div class="smliser-admin-repository-template" role="main">
     <?php AccessControlPage::print_header( $request ); ?>
 
-    <form  class="smliser-access-control-form" 
-        method="post" 
-        action="<?php echo esc_url( adminUrl( 'admin-post.php' ) ); ?>"
-        aria-labelledby="smliser-form-title"
-    >
+    <form  class="smliser-access-control-form" aria-labelledby="smliser-form-title">
 
         <h2 id="smliser-form-title"><?php echo escHtml( $title ); ?></h2>
 
