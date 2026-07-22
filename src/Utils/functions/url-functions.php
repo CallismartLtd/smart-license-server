@@ -207,7 +207,8 @@ function smliser_client_dashboard_url( string $path = '', array $params = [] ) :
  */
 function smliser_document_download_url( int $id = 0 ) : URL {
     $downloads_slug = smliser_get_download_url_prefix();
-    $path           = implode( '/', [$downloads_slug,'document', $id] );
+    $id_string      = sprintf( 'license-document-%d.txt', $id );
+    $path           = implode( '/', [$downloads_slug,'document', $id_string] );
 
     return url( $path );
 }
