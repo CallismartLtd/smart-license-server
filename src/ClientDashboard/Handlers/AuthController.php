@@ -322,7 +322,7 @@ class AuthController {
         static::cache_set(
             $cache_key,
             hash( 'sha256', $token ),
-            DateDuration::fromHours(1)->toSeconds()
+            (int) DateDuration::fromHours(1)->toSeconds()
         );
 
         $reset_link = smliser_client_dashboard_url()

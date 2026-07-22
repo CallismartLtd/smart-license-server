@@ -24,10 +24,7 @@ use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 
 class ClientDashboardRouter {
-
-    /**
-     * @param ClientDashboardRegistry $registry
-     */
+    
     private function __construct() {}
 
     /*

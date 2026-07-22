@@ -13,7 +13,6 @@ use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Permission\Capability;
-use function defined;
 use function get_class;
 use function method_exists;
 use function sprintf;
@@ -37,6 +36,7 @@ use function sprintf;
  * --- PROXIED ACTOR UTILITY ---
  * @method bool exists() Determine if the actor exists in storage.
  * @method array to_array() Convert the actor's data into an associative array.
+ * @method string get_email() Get the principals' email address. Always check that actor is human.
  */
 final class Principal {
     /**

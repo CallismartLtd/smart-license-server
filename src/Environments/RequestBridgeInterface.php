@@ -12,9 +12,14 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 
 /**
- * Defines the contracts for handling requests in any PHP environment.
+ * Defines the request bridge between a host PHP environment and the
+ * SmartLicenseServer core.
+ *
+ * Implementations adapt environment-specific requests into core Request
+ * objects and delegate them to the corresponding core controllers,
+ * returning the resulting Response.
  */
-interface RequestHandlingContract {
+interface RequestBridgeInterface {
 
     /**
      * Parse public request to download a hoted app main zip file.
@@ -22,7 +27,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_public_package_download_request( Request $request ) : Response;
+    public static function handle_public_package_download_request( Request $request ) : Response;
 
     /**
      * Parse public request to download a hosted app artifact file.
@@ -30,7 +35,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_public_artifact_download_request( Request $request ) : Response;
+    public static function handle_public_artifact_download_request( Request $request ) : Response;
 
     /**
      * Parse admin download request.
@@ -38,7 +43,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_admin_download_request( Request $request ) : Response;
+    public static function handle_admin_download_request( Request $request ) : Response;
 
     /**
      * Parse license document download request.
@@ -46,7 +51,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_license_document_download_request( Request $request ) : Response;
+    public static function handle_license_document_download_request( Request $request ) : Response;
 
     /**
      * Parse application asset request.
@@ -54,7 +59,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_app_asset_request( Request $request ) : Response;
+    public static function handle_app_asset_request( Request $request ) : Response;
 
     /**
      * Parse uploads directory access request.
@@ -62,7 +67,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_uploads_dir_request( Request $request ) : Response;
+    public static function handle_uploads_dir_request( Request $request ) : Response;
 
     /**
      * Parse proxy image request.
@@ -70,7 +75,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_proxy_image_request( Request $request ) : Response;
+    public static function handle_proxy_image_request( Request $request ) : Response;
 
     /**
      * Parse save application request.
@@ -78,7 +83,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_save_app_request( Request $request ) : Response;
+    public static function handle_save_app_request( Request $request ) : Response;
 
     /**
      * Parse application asset upload request.
@@ -86,7 +91,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_app_asset_upload_request( Request $request ) : Response;
+    public static function handle_app_asset_upload_request( Request $request ) : Response;
 
     /**
      * Parse application asset delete request.
@@ -94,7 +99,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_app_asset_delete_request( Request $request ) : Response;
+    public static function handle_app_asset_delete_request( Request $request ) : Response;
 
     /**
      * Parse application artifact upload request.
@@ -102,7 +107,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_app_artifact_upload_request( Request $request ) : Response;
+    public static function handle_app_artifact_upload_request( Request $request ) : Response;
 
     /**
      * Parse application artifact delete request.
@@ -110,7 +115,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_app_artifact_delete_request( Request $request ) : Response;
+    public static function handle_app_artifact_delete_request( Request $request ) : Response;
 
     /**
      * Parse save license request.
@@ -118,7 +123,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_save_license_request( Request $request ) : Response;
+    public static function handle_save_license_request( Request $request ) : Response;
 
     /**
      * Parse bulk action request.
@@ -126,7 +131,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_bulk_action_request( Request $request ) : Response;
+    public static function handle_bulk_action_request( Request $request ) : Response;
 
     /**
      * Parse monetization tier form submission.
@@ -134,7 +139,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_monetization_tier_form_request( Request $request ) : Response;
+    public static function handle_monetization_tier_form_request( Request $request ) : Response;
 
     /**
      * Parse save routes settings request.
@@ -142,7 +147,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_save_routes_settings_request( Request $request ) : Response;
+    public static function handle_save_routes_settings_request( Request $request ) : Response;
 
     /**
      * Parse download token generation request.
@@ -150,7 +155,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_download_token_generation_request( Request $request ) : Response;
+    public static function handle_download_token_generation_request( Request $request ) : Response;
 
     /**
      * Parse application status action request.
@@ -158,7 +163,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_app_status_action_request( Request $request ) : Response;
+    public static function handle_app_status_action_request( Request $request ) : Response;
 
     /**
      * Parse database migration request.
@@ -166,7 +171,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_database_migration_request( Request $request ) : Response;
+    public static function handle_database_migration_request( Request $request ) : Response;
 
     /**
      * Parse save provider options request.
@@ -174,7 +179,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_save_provider_options_request( Request $request ) : Response;
+    public static function handle_save_provider_options_request( Request $request ) : Response;
 
     /**
      * Parse toggle monetization request.
@@ -182,7 +187,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_toggle_monetization_request( Request $request ) : Response;
+    public static function handle_toggle_monetization_request( Request $request ) : Response;
 
     /**
      * Parse monetization provider product request.
@@ -190,7 +195,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_monetization_provider_product_request( Request $request ) : Response;
+    public static function handle_monetization_provider_product_request( Request $request ) : Response;
 
     /**
      * Parse monetization tier deletion request.
@@ -198,7 +203,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_monetization_tier_deletion_request( Request $request ) : Response;
+    public static function handle_monetization_tier_deletion_request( Request $request ) : Response;
 
     /**
      * Parse licensed domain removal request.
@@ -206,7 +211,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_licensed_domain_removal_request( Request $request ) : Response;
+    public static function handle_licensed_domain_removal_request( Request $request ) : Response;
 
     /**
      * Parse bulk message publish request.
@@ -214,7 +219,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_bulk_message_publish_request( Request $request ) : Response;
+    public static function handle_bulk_message_publish_request( Request $request ) : Response;
 
     /**
      * Parse access control save request.
@@ -222,7 +227,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_access_control_save_request( Request $request ) : Response;
+    public static function handle_access_control_save_request( Request $request ) : Response;
 
     /**
      * Parse access control delete request.
@@ -230,7 +235,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_access_control_delete_request( Request $request ) : Response;
+    public static function handle_access_control_delete_request( Request $request ) : Response;
 
     /**
      * Parse admin security entity search request.
@@ -238,7 +243,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_admin_security_entity_search_request( Request $request ) : Response;
+    public static function handle_admin_security_entity_search_request( Request $request ) : Response;
 
     /**
      * Parse request to delete an organization member.
@@ -246,7 +251,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_smliser_delete_org_member_request( Request $request ) : Response;
+    public static function handle_smliser_delete_org_member_request( Request $request ) : Response;
 
     /**
      * Parse request to save default email settings.
@@ -254,7 +259,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_default_email_settings_request( Request $request ) : Response;
+    public static function handle_default_email_settings_request( Request $request ) : Response;
 
     /**
      * Parse email test request.
@@ -262,7 +267,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_email_test_request( Request $request ) : Response;
+    public static function handle_email_test_request( Request $request ) : Response;
 
     /**
      * Parse save email provider settings request.
@@ -270,7 +275,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_save_email_provider_request( Request $request ) : Response;
+    public static function handle_save_email_provider_request( Request $request ) : Response;
 
     /**
      * Parse save email template toggle request.
@@ -278,7 +283,7 @@ interface RequestHandlingContract {
      * @param  Request $request
      * @return Response
      */
-    public static function parse_save_email_template_toggle_request( Request $request ) : Response;
+    public static function handle_save_email_template_toggle_request( Request $request ) : Response;
 
     /**
      * Parse save system settings request.
@@ -286,7 +291,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_save_system_settings_request( Request $request ) : Response;
+    public static function handle_save_system_settings_request( Request $request ) : Response;
 
     /**
      * Parse request to preview email template.
@@ -294,7 +299,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_preview_email_template_request(  Request $request ) : Response;
+    public static function handle_preview_email_template_request(  Request $request ) : Response;
 
     /**
      * Parse request to save email template.
@@ -302,7 +307,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_save_email_template_request(  Request $request ) : Response;
+    public static function handle_save_email_template_request(  Request $request ) : Response;
     
     /**
      * Parse request to reset email template.
@@ -310,7 +315,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_reset_email_template_request(  Request $request ) : Response;
+    public static function handle_reset_email_template_request(  Request $request ) : Response;
     
     /**
      * Parse license delete request.
@@ -318,7 +323,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_license_delete_request( Request $request ) : Response;
+    public static function handle_license_delete_request( Request $request ) : Response;
 
     /**
      * Parse request to save cache adapter settings.
@@ -326,7 +331,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_save_cache_adapter_settings_request( Request $request ) : Response;
+    public static function handle_save_cache_adapter_settings_request( Request $request ) : Response;
 
     /**
      * Parse test cache adapter settings request.
@@ -334,7 +339,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_test_cache_adapter_settings_request( Request $request ) : Response;
+    public static function handle_test_cache_adapter_settings_request( Request $request ) : Response;
     
     /**
      * Parse request to get cache stats.
@@ -342,7 +347,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_get_cache_stats_request( Request $request ) : Response;
+    public static function handle_get_cache_stats_request( Request $request ) : Response;
 
     /**
      * Parse request to clear all cache data.
@@ -350,7 +355,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_clear_all_cache_request( Request $request ) : Response;
+    public static function handle_clear_all_cache_request( Request $request ) : Response;
     
     /**
      * Parse request to delete cache by prefix.
@@ -358,7 +363,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_delete_cache_by_prefix_request( Request $request ) : Response;
+    public static function handle_delete_cache_by_prefix_request( Request $request ) : Response;
 
     /**
      * Parse request to flush expired cache data.
@@ -366,7 +371,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_flush_expired_cache_request( Request $request ) : Response;
+    public static function handle_flush_expired_cache_request( Request $request ) : Response;
 
     /**
      * Parse request to get top cache keys.
@@ -374,7 +379,7 @@ interface RequestHandlingContract {
      * @param Request $request
      * @return Response
      */
-    public static function parse_get_top_cache_keys_request( Request $request ) : Response;
+    public static function handle_get_top_cache_keys_request( Request $request ) : Response;
 
     /**
      * Render the client dashboard shell.
