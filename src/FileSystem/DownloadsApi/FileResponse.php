@@ -1,7 +1,8 @@
 <?php
 /**
  * Resource download handler file
- * * @author Callistus
+ * 
+ * @author Callistus
  * @package SmartLicenseServer\FileRequestController
  */
 
@@ -10,15 +11,18 @@ namespace SmartLicenseServer\FileSystem\DownloadsApi;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
+use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 
 /**
  * The download response class
  */
 
 class FileResponse extends Response {
-    
+
     /**
      * The file request exception.
      * * NOTE: This property is used here to hold the specific FileRequestException 
@@ -28,13 +32,13 @@ class FileResponse extends Response {
      *
      */
     protected $error;
-    
+
     /**
      * The filesystem instance
      *
-     * @var \SmartLicenseServer\FileSystem\PluginRepository|\SmartLicenseServer\FileSystem\ThemeRepository|\SmartLicenseServer\FileSystem\SoftwareRepository|\SmartLicenseServer\Filesystem|null $repo_class The app's repository class instance.
+     * @var FileSystem|Repository $repo_class The app's repository class instance.
      */
-    protected $repo_class;
+    protected FileSystem|Repository $repo_class;
 
     /**
      * The file.
@@ -42,6 +46,27 @@ class FileResponse extends Response {
      * @var string|Exception $file Absolute path to the file or the file string.
      */
     protected $file;
+
+    /**
+     * The resolved start byte for a ranged response.
+     *
+     * @var int
+     */
+    protected $range_start = 0;
+
+    /**
+     * The resolved end byte for a ranged response.
+     *
+     * @var int
+     */
+    protected $range_end = 0;
+
+    /**
+     * Whether the current request is a valid, honored Range request.
+     *
+     * @var bool
+     */
+    protected $is_range_request = false;
 
     /**
      * Class constructor.
@@ -52,43 +77,52 @@ class FileResponse extends Response {
     public function __construct( string|FileRequestException $file, $args = '' ) {
         parent::__construct();
 
-        if ( \is_smliser_error( $file ) ) {
+        if (  $file instanceof FileRequestException ) {
             // Overrides `set_exception` which handles both the parent and local error state.
             $this->set_exception( $file ); 
+        } else { 
+            $this->file = $file;
         }
-            
-        $this->file    = $file;
 
         $default_args = array(
             'is_file'       => true, // Treated as file by default, use false if it is binary.
             'name'          => '',  // File basename will be used as default file name, `untitled` is used when the file does not exist.
-            'type'          => '', // The valid default values are `plugin`, `theme`, `software`, and `document`, except there is a corresponding repository class to handle it.
+            'type'          => 'binary', // The valid default values are all registered app types and `binary`.
             'content_type'  => '', // The file mime type will be used by default.
         );
 
-        $options = \parse_args( (array) $args, $default_args );
+        $options        = \parse_args( (array) $args, $default_args );
+        $download_type  = ! empty( $options['type'] ) ? (string) $options['type'] : 'binary';
+        $app_registery  = HostedAppsRegistry::instance();
 
-        if ( ! empty( $options['type'] ) ) {
-            $this->repo_class   = HostedApplicationService::get_app_repository_class( (string) $options['type'] );
-        } else {
-            $this->repo_class = smliser_filesystem();
+        try {
+            if ( '' !== $download_type && in_array( $download_type, $app_registery->app_types() ) ) {
+                $this->repo_class   = $app_registery->get_app_type_directory_class( $download_type );
+            }            
+        } finally {
+            if ( ! isset( $this->repo_class ) ) {
+                $this->repo_class = smliser_filesystem();
+            }            
         }
-        
+
         if ( $this->has_errors() ) {
             return; 
         }
 
+        $filename   = ! empty( $options['name'] ) ? FileSystemHelper::sanitize_filename( $options['name'] ) : '';
+
         if ( (bool) $options['is_file'] ) {
-            $this->parse_file( (string) $options['name'], (string) $options['content_type'] );
+            $this->parse_file( $filename, (string) $options['content_type'] );
         } else {
-            $this->parse_document( (string) $options['name'], (string) $options['content_type'] );
+            $this->parse_binary( $filename, (string) $options['content_type'] );
         }
         
     }
 
     /**
      * Get the file path
-     * * @return string|Exception
+     * 
+     * @return string|Exception
      */
     public function get_file() {
         return $this->file;
@@ -96,7 +130,8 @@ class FileResponse extends Response {
 
     /**
      * Get the filesystem instance.
-     * * @return \SmartLicenseServer\PluginRepository|\SmartLicenseServer\ThemeRepository|\SmartLicenseServer\SoftwareRepository|\SmartLicenseServer\Filesystem|null $repo_class The app's repository class instance.
+     * 
+     * @return \SmartLicenseServer\FileSystem\Repository The app's repository class instance.
      */
     public function get_fs() {
         return $this->repo_class;
@@ -147,29 +182,32 @@ class FileResponse extends Response {
             return;
         }
 
-        $file_size      = (string) $this->repo_class->filesize( $this->file );
-        $last_modified  = sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', $this->repo_class->filemtime( $this->file ) ) );
+        $file_size      = (int) $this->repo_class->filesize( $this->file );
+        $mtime          = (int) $this->repo_class->filemtime( $this->file );
+        $last_modified  = sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', $mtime ) );
+        $etag           = sprintf( '"%s"', md5( $file_size . $last_modified ) );
         $content_type   = $content_type ?: FileSystemHelper::get_mime_type( $this->file );
 
         $this->set_default_headers();
-        
-        $this->set_header( 'Last-Modified', $last_modified );
-        $this->set_header( 'ETag', sprintf( ' "%s"', md5( $file_size . $last_modified ) ) );
 
-        $this->set_header( 'Content-Length', $file_size );
+        $this->set_header( 'Last-Modified', $last_modified );
+        $this->set_header( 'ETag', $etag );
         $this->set_header( 'Content-Type', $content_type );
         $this->set_header( 'Content-Disposition', $this->get_content_disposition( $file_name ) );
+        $this->set_header( 'Accept-Ranges', 'bytes' );
+
+        $this->set_range_headers( $file_size, $etag, $mtime );
 
     }
 
     /**
-     * Parse a raw document file that is not on filesystem.
+     * Parse a raw binary file string for download.
      * 
      * @param string $file_name The name of the file.
      * @param string $content_type The file mime content type
      */
-    public function parse_document( $file_name, $content_type ) {
-        $file_size = (string) strlen( $this->file );
+    public function parse_binary( string $file_name, string $content_type ) {
+        $file_size = strlen( $this->file );
 
         if ( ! static::is_filesize_within_limit( $file_size ) ) {
             $this->set_exception( new FileRequestException( 'file_too_large' ) );
@@ -179,11 +217,30 @@ class FileResponse extends Response {
             return;
         }
 
-        $this->set_body( $this->file );
+        // Content is generated/held in memory, so its "freshness" is tied to this
+        // request only — an ETag is still useful for If-Range but there is no
+        // meaningful Last-Modified, so date-based If-Range checks fail closed
+        // (see passes_if_range()) and always fall back to a full response.
+        $etag = sprintf( '"%s"', md5( $this->file ) );
+
         $this->set_default_headers();
-        $this->set_header( 'Content-Length', $file_size );
         $this->set_header( 'Content-Type', $content_type );
         $this->set_header( 'Content-Disposition', $this->get_content_disposition( $file_name, $content_type ) );
+        $this->set_header( 'Accept-Ranges', 'bytes' );
+        $this->set_header( 'ETag', $etag );
+
+        $this->set_range_headers( $file_size, $etag, null );
+
+        if ( $this->has_errors() ) {
+            return; // 416 already set; don't touch the body.
+        }
+
+        if ( $this->is_range_request ) {
+            $length = $this->range_end - $this->range_start + 1;
+            $this->set_body( substr( $this->file, $this->range_start, $length ) );
+        } else {
+            $this->set_body( $this->file );
+        }
         
     }
 
@@ -207,6 +264,114 @@ class FileResponse extends Response {
         ->set_header( 'Content-Type', 'text/plain' )
         ->set_header( 'Content-Length', '0' );
 
+    }
+
+    /**
+     * Determine whether an incoming If-Range condition allows honoring the Range header.
+     *
+     * Per RFC 7233 §3.2: If-Range may carry either an ETag or an HTTP-date.
+     * If the value doesn't match the resource's current validator, the Range
+     * header must be ignored and the full entity served instead.
+     *
+     * When no If-Range header is present, the condition is trivially satisfied
+     * and the Range header (if any) is honored as normal.
+     *
+     * @param string   $etag  The resource's current ETag, including surrounding quotes.
+     * @param int|null $mtime The resource's current modification time as a Unix timestamp,
+     *                        or null when no meaningful Last-Modified exists (e.g. in-memory
+     *                        binaries) — a date-based If-Range then always fails closed.
+     * @return bool True if Range may be honored, false if it must be ignored.
+     */
+    protected function passes_if_range( string $etag, ?int $mtime ): bool {
+        $if_range = smliser_request()->get_header( 'if-range' );
+
+        if ( empty( $if_range ) ) {
+            return true;
+        }
+
+        $if_range = trim( $if_range );
+
+        // HTTP-date form: only valid if it parses AND looks like an actual HTTP-date
+        // (avoids treating a loosely-quoted ETag as a date via strtotime() false positives).
+        if ( preg_match( '/^[A-Za-z]{3},\s\d{2}\s[A-Za-z]{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\sGMT$/', $if_range ) ) {
+            if ( null === $mtime ) {
+                return false;
+            }
+
+            $timestamp = strtotime( $if_range );
+
+            return false !== $timestamp && $timestamp === $mtime;
+        }
+
+        // Otherwise, treat as an ETag comparison (strong comparison — exact match required).
+        $normalize = static function( string $value ): string {
+            return trim( trim( $value ), '"' );
+        };
+
+        return $normalize( $if_range ) === $normalize( $etag );
+    }
+
+    /**
+     * Parse the Range header (if present) against the file size and set
+     * the appropriate 206/416 headers and status code.
+     *
+     * If an If-Range header is present and does not match the resource's
+     * current ETag/Last-Modified, the Range header is ignored entirely and
+     * a normal full (200) response is prepared instead.
+     *
+     * @param int      $file_size Total size of the file/content in bytes.
+     * @param string   $etag      The resource's current ETag (quoted).
+     * @param int|null $mtime     The resource's current mtime as a Unix timestamp, or null if not applicable.
+     */
+    protected function set_range_headers( int $file_size, string $etag = '', ?int $mtime = null ) {
+        $this->range_start  = 0;
+        $this->range_end    = $file_size - 1;
+        $range              = smliser_request()->get_header( 'range' );
+
+        if ( empty( $range ) ) {
+            $this->set_header( 'Content-Length', (string) $file_size );
+            return;
+        }
+
+        if ( ! $this->passes_if_range( $etag, $mtime ) ) {
+            // Condition failed — ignore Range, serve the full entity as a normal 200.
+            $this->set_header( 'Content-Length', (string) $file_size );
+            return;
+        }
+
+        if ( ! preg_match( '/bytes=(\d*)-(\d*)/', $range, $matches ) ) {
+            $this->set_status_code( 416 );
+            $this->set_header( 'Content-Range', "bytes */{$file_size}" );
+            $this->set_exception( new FileRequestException( 'invalid_range' ) );
+            return;
+        }
+
+        $start = ( '' !== $matches[1] ) ? (int) $matches[1] : null;
+        $end   = ( '' !== $matches[2] ) ? (int) $matches[2] : null;
+
+        // Suffix range, e.g. "bytes=-500" (last 500 bytes).
+        if ( null === $start && null !== $end ) {
+            $start = (int) max( 0, $file_size - $end );
+            $end   = $file_size - 1;
+        } else {
+            $start = $start ?? 0;
+            $end   = $end ?? ( $file_size - 1 );
+        }
+
+        if ( $start > $end || $start >= $file_size || $end >= $file_size ) {
+            $this->set_status_code( 416 );
+            $this->set_header( 'Content-Range', "bytes */{$file_size}" );
+            $this->set_exception( new FileRequestException( 'invalid_range' ) );
+            return;
+        }
+
+        $this->range_start      = $start;
+        $this->range_end        = $end;
+        $this->is_range_request = true;
+
+        $this->set_status_code( 206 );
+        $this->set_header( 'Content-Range', "bytes {$start}-{$end}/{$file_size}" );
+        $this->set_header( 'Content-Length', (string) ( $end - $start + 1 ) );
     }
 
     /**
@@ -256,6 +421,13 @@ class FileResponse extends Response {
     public function download() {
         if ( ! empty( $this->get_body() ) ) {
             echo $this->get_body(); // phpcs:ignore
+            $this->trigger_after_serve_callbacks();
+            exit;
+        }
+
+        if ( $this->is_range_request ) {
+            $length = $this->range_end - $this->range_start + 1;
+            $this->repo_class->readfile( $this->file, $this->range_start, $length );
         } else {
             $this->repo_class->readfile( $this->file );
         }
