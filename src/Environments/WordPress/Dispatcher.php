@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environments\WordPress;
 use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Email\RequestController as EmailRequestController;
 use SmartLicenseServer\Environments\RequestHandlingContract;
 use SmartLicenseServer\Exceptions\Exception;
@@ -19,25 +20,82 @@ use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Environments\WordPress\Installer;
-use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\FileSystem\DownloadsApi\FileResponse;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Messaging\MessageController;
 use SmartLicenseServer\Monetization\Controller;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\RequestController;
 use SmartLicenseServer\SettingsAPI\SettingsController;
-use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
  * WordPress request dispatcher class
  */
 class Dispatcher implements RequestHandlingContract {
-    use SanitizeAwareTrait;
+    /**
+     * Map of registered request triggers to callback.
+     * 
+     * @var array<string, callable(Request):Response> $registered_handlers
+     */
+    public static array $registered_handlers = [
+        'smliser-dashboard'                             => [ __CLASS__, 'render_client_dashboard' ],
+        'smliser-downloads'                             => [ __CLASS__, 'handle_public_downloads' ],
+        'smliser-repository-assets'                     => [ __CLASS__, 'parse_app_asset_request' ],
+        'smliser-uploads'                               => [ __CLASS__, 'parse_uploads_dir_request' ],
+        'smliser_admin_download'                        => [ __CLASS__, 'parse_admin_download_request' ],
+        'smliser_download_image'                        => [ __CLASS__, 'parse_proxy_image_request' ],
+        'smliser_save_plugin'                           => [ __CLASS__, 'parse_save_app_request' ],
+        'smliser_save_theme'                            => [ __CLASS__, 'parse_save_app_request' ],
+        'smliser_save_software'                         => [ __CLASS__, 'parse_save_app_request' ],
+        'smliser_save_license'                          => [ __CLASS__, 'parse_save_license_request' ],
+        'smliser_remove_licensed_domain'                => [ __CLASS__, 'parse_licensed_domain_removal_request' ],
+        'smliser_app_asset_upload'                      => [ __CLASS__, 'parse_app_asset_upload_request' ],
+        'smliser_app_asset_delete'                      => [ __CLASS__, 'parse_app_asset_delete_request' ],
+        'smliser_app_artifact_upload'                   => [ __CLASS__, 'parse_app_artifact_upload_request' ],
+        'smliser_delete_artifact'                       => [ __CLASS__, 'parse_app_artifact_delete_request' ],
+        'smliser_save_monetization_tier'                => [ __CLASS__, 'parse_monetization_tier_form_request' ],
+        'smliser_bulk_action'                           => [ __CLASS__, 'parse_bulk_action_request' ],
+        'smliser_all_actions'                           => [ __CLASS__, 'parse_bulk_action_request' ],
+        'smliser_generate_download_token'               => [ __CLASS__, 'parse_download_token_generation_request' ],
+        'smliser_app_status_action'                     => [ __CLASS__, 'parse_app_status_action_request' ],
+        'smliser_save_monetization_provider_options'    => [ __CLASS__, 'parse_save_provider_options_request' ],
+        'smliser_upgrade'                               => [ __CLASS__, 'parse_database_migration_request' ],
+        'smliser_publish_bulk_message'                  => [ __CLASS__, 'parse_bulk_message_publish_request' ],
+        'smliser_get_product_data'                      => [ __CLASS__, 'parse_monetization_provider_product_request' ],
+        'smliser_delete_monetization_tier'              => [ __CLASS__, 'parse_monetization_tier_deletion_request' ],
+        'smliser_toggle_monetization'                   => [ __CLASS__, 'parse_toggle_monetization_request' ],
+        'smliser_access_control_save'                   => [ __CLASS__, 'parse_access_control_save_request' ],
+        'smliser_access_control_delete'                 => [ __CLASS__, 'parse_access_control_delete_request' ],
+        'smliser_delete_org_member'                     => [ __CLASS__, 'parse_smliser_delete_org_member_request' ],
+        'smliser_admin_security_entity_search'          => [ __CLASS__, 'parse_admin_security_entity_search_request' ],
+        'smliser_save_default_email_settings'           => [ __CLASS__, 'parse_default_email_settings_request' ],
+        'smliser_send_test_email'                       => [ __CLASS__, 'parse_email_test_request' ],
+        'smliser_save_email_provider_settings'          => [ __CLASS__, 'parse_save_email_provider_request' ],
+        'smliser_save_system_options'                   => [ __CLASS__, 'parse_save_system_settings_request' ],
+        'smliser_save_route_options'                    => [ __CLASS__, 'parse_save_routes_settings_request' ],
+        'smliser_toggle_email_template'                 => [ __CLASS__, 'parse_save_email_template_toggle_request' ],
+        'smliser_preview_email_template'                => [ __CLASS__, 'parse_preview_email_template_request' ],
+        'smliser_save_email_template'                   => [ __CLASS__, 'parse_save_email_template_request' ],
+        'smliser_reset_email_template'                  => [ __CLASS__, 'parse_reset_email_template_request' ],
+        'smliser_delete_license'                        => [ __CLASS__, 'parse_license_delete_request' ],
+        
+        'smliser_save_cache_adapter_settings'           => [ __CLASS__, 'parse_save_cache_adapter_settings_request' ],
+        'smliser_test_cache_adapter_settings'           => [ __CLASS__, 'parse_test_cache_adapter_settings_request' ],
+        'smliser_cache_get_stats'                       => [ __CLASS__, 'parse_get_cache_stats_request' ],
+        'smliser_cache_clear_all'                       => [ __CLASS__, 'parse_clear_all_cache_request' ],
+        'smliser_cache_delete_by_prefix'                => [ __CLASS__, 'parse_delete_cache_by_prefix_request' ],
+        'smliser_cache_flush_expired'                   => [ __CLASS__, 'parse_flush_expired_cache_request' ],
+        'smliser_cache_get_top_keys'                    => [ __CLASS__, 'parse_get_top_cache_keys_request' ],
+    ];
 
     /**
      * Handle incoming requests for this application.
+     * 
+     * If a request matches any of this application action or registered rewrite rules,
+     * we pass such request to Smart License Server, prempt futher WordPress execution and
+     * terminate the request.
      */
-    public static function init_request(): void {
+    public static function init_request() : void {
         // Single Request instance — all parsers read from this.
         $request    = \smliser_request();
         $trigger    = get_query_var( 'pagename' );
@@ -56,60 +114,12 @@ class Dispatcher implements RequestHandlingContract {
             return;
         }
 
-        $handler_map = [
-            'smliser-dashboard'                             => [ __CLASS__, 'render_client_dashboard' ],
-            'smliser-downloads'                             => function( Request $r ) { ( self::resolve_download_request_parser( $r ) )( $r ); },
-            'smliser-repository-assets'                     => [ __CLASS__, 'parse_app_asset_request' ],
-            'smliser-uploads'                               => [ __CLASS__, 'parse_uploads_dir_request' ],
-            'smliser_admin_download'                        => [ __CLASS__, 'parse_admin_download_request' ],
-            'smliser_download_image'                        => [ __CLASS__, 'parse_proxy_image_request' ],
-            'smliser_save_plugin'                           => [ __CLASS__, 'parse_save_app_request' ],
-            'smliser_save_theme'                            => [ __CLASS__, 'parse_save_app_request' ],
-            'smliser_save_software'                         => [ __CLASS__, 'parse_save_app_request' ],
-            'smliser_save_license'                          => [ __CLASS__, 'parse_save_license_request' ],
-            'smliser_remove_licensed_domain'                => [ __CLASS__, 'parse_licensed_domain_removal_request' ],
-            'smliser_app_asset_upload'                      => [ __CLASS__, 'parse_app_asset_upload_request' ],
-            'smliser_app_asset_delete'                      => [ __CLASS__, 'parse_app_asset_delete_request' ],
-            'smliser_app_artifact_upload'                   => [ __CLASS__, 'parse_app_artifact_upload_request' ],
-            'smliser_delete_artifact'                       => [ __CLASS__, 'parse_app_artifact_delete_request' ],
-            'smliser_save_monetization_tier'                => [ __CLASS__, 'parse_monetization_tier_form_request' ],
-            'smliser_bulk_action'                           => [ __CLASS__, 'parse_bulk_action_request' ],
-            'smliser_all_actions'                           => [ __CLASS__, 'parse_bulk_action_request' ],
-            'smliser_generate_download_token'               => [ __CLASS__, 'parse_download_token_generation_request' ],
-            'smliser_app_status_action'                     => [ __CLASS__, 'parse_app_status_action_request' ],
-            'smliser_save_monetization_provider_options'    => [ __CLASS__, 'parse_save_provider_options_request' ],
-            'smliser_upgrade'                               => [ __CLASS__, 'parse_database_migration_request' ],
-            'smliser_publish_bulk_message'                  => [ __CLASS__, 'parse_bulk_message_publish_request' ],
-            'smliser_get_product_data'                      => [ __CLASS__, 'parse_monetization_provider_product_request' ],
-            'smliser_delete_monetization_tier'              => [ __CLASS__, 'parse_monetization_tier_deletion_request' ],
-            'smliser_toggle_monetization'                   => [ __CLASS__, 'parse_toggle_monetization_request' ],
-            'smliser_access_control_save'                   => [ __CLASS__, 'parse_access_control_save_request' ],
-            'smliser_access_control_delete'                 => [ __CLASS__, 'parse_access_control_delete_request' ],
-            'smliser_delete_org_member'                     => [ __CLASS__, 'parse_smliser_delete_org_member_request' ],
-            'smliser_admin_security_entity_search'          => [ __CLASS__, 'parse_admin_security_entity_search_request' ],
-            'smliser_save_default_email_settings'           => [ __CLASS__, 'parse_default_email_settings_request' ],
-            'smliser_send_test_email'                       => [ __CLASS__, 'parse_email_test_request' ],
-            'smliser_save_email_provider_settings'          => [ __CLASS__, 'parse_save_email_provider_request' ],
-            'smliser_save_system_options'                   => [ __CLASS__, 'parse_save_system_settings_request' ],
-            'smliser_save_route_options'                    => [ __CLASS__, 'parse_save_routes_settings_request' ],
-            'smliser_toggle_email_template'                 => [ __CLASS__, 'parse_save_email_template_toggle_request' ],
-            'smliser_preview_email_template'                => [ __CLASS__, 'parse_preview_email_template_request' ],
-            'smliser_save_email_template'                   => [ __CLASS__, 'parse_save_email_template_request' ],
-            'smliser_reset_email_template'                  => [ __CLASS__, 'parse_reset_email_template_request' ],
-            'smliser_delete_license'                        => [ __CLASS__, 'parse_license_delete_request' ],
-            
-            'smliser_save_cache_adapter_settings'           => [ __CLASS__, 'parse_save_cache_adapter_settings_request' ],
-            'smliser_test_cache_adapter_settings'           => [ __CLASS__, 'parse_test_cache_adapter_settings_request' ],
-            'smliser_cache_get_stats'                       => [ __CLASS__, 'parse_get_cache_stats_request' ],
-            'smliser_cache_clear_all'                       => [ __CLASS__, 'parse_clear_all_cache_request' ],
-            'smliser_cache_delete_by_prefix'                => [ __CLASS__, 'parse_delete_cache_by_prefix_request' ],
-            'smliser_cache_flush_expired'                   => [ __CLASS__, 'parse_flush_expired_cache_request' ],
-            'smliser_cache_get_top_keys'                    => [ __CLASS__, 'parse_get_top_cache_keys_request' ],
-        ];
+        $callback = static::$registered_handlers[ $trigger ] ?? null;
 
-        if ( isset( $handler_map[ $trigger ] ) ) {
-            $callback = $handler_map[ $trigger ];
-            is_callable( $callback ) && $callback( $request );
+        if ( $callback ) {
+            
+            $callback( $request )->send();
+            exit;
         }
     }
 
@@ -129,10 +139,10 @@ class Dispatcher implements RequestHandlingContract {
      * @param  string  $action   Expected nonce action.
      * @return bool
      */
-    private static function verify_nonce( Request $request, string $action = 'smliser_nonce' ): bool {
-        $nonce = $request->get( 'security' )
-            ?? $request->get( 'smliser_nonce' )
-            ?? $request->get( '_wpnonce' )
+    protected static function verify_nonce( Request $request, string $action = 'smliser_nonce' ): bool {
+        $nonce = $request->get( 'security', null, false )
+            ?? $request->get( 'smliser_nonce', null, false )
+            ?? $request->get( '_wpnonce', null, false )
             ?? $request->get_header( 'X-WP-Nonce' );
 
         return (bool) wp_verify_nonce( (string) $nonce, $action );
@@ -144,7 +154,7 @@ class Dispatcher implements RequestHandlingContract {
      * @param  string $capability
      * @return bool
      */
-    private static function verify_capability( string $capability ): bool {
+    protected static function verify_capability( string $capability ): bool {
         if ( 'super_admin' === $capability ) {
             return is_super_admin();
         }
@@ -162,11 +172,11 @@ class Dispatcher implements RequestHandlingContract {
      * @param  string  $nonce_action Nonce action string.
      * @return void
      */
-    private static function guard(
+    protected static function guard(
         Request $request,
         string $capability  = 'manage_options',
         string $nonce_action = 'smliser_nonce'
-    ): void {
+    ) : void {
         if ( ! static::verify_nonce( $request, $nonce_action ) ) {
             smliser_send_json_error( [ 'message' => __( 'Security check failed.', 'smliser' ) ], 401 );
         }
@@ -182,12 +192,9 @@ class Dispatcher implements RequestHandlingContract {
     |----------------------------
     */
 
-    /**
-     * Parse public package download request.
-     */
-    public static function parse_public_package_download_request( Request $request ): void {
+    public static function parse_public_package_download_request( Request $request ) : Response {
         $app_type           = $request->get( 'download_type' );
-        $app_slug_filename  = smliser_sanitize_path( $request->get( 'app_slug_filename_ext', '', false ) );
+        $app_slug_filename  = smliser_sanitize_path( $request->get( 'app_slug_filename', '', false ) );
 
         if ( $app_slug_filename instanceof Exception ) {
             smliser_abort_request(
@@ -217,23 +224,25 @@ class Dispatcher implements RequestHandlingContract {
             'app_slug'       => $app_slug,
             'download_token' => $request->get( 'download_token' ),
             'authorization'  => $request->get_header( 'Authorization' ),
-        ] );
+        ], $request->get_headers(), $request->method(), $request->uri() );
 
         $response = FileRequestController::get_application_zip_file( $file_request );
 
-        if ( ! $response->is_valid_zip_file() && $response->ok() ) {
+        if ( $response->ok() && ! $response->is_valid_zip_file() ) {
             $response->set_exception( new FileRequestException( 'file_corrupted' ) );
         }
 
-        $response->send();
+        return $response;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function parse_public_artifact_download_request( Request $request ) : void {
+    public static function parse_public_artifact_download_request( Request $request ) : Response {
 
-        $file_request   = new FileRequest( $request->get_params() );
+        $file_request   = new FileRequest( 
+            $request->get_params(),
+            $request->get_headers(),
+            $request->method(),
+            $request->uri()
+        );
 
         $file_request->set( 'artifact_filename', $request->get( 'filename' ) );
 
@@ -241,14 +250,13 @@ class Dispatcher implements RequestHandlingContract {
 
         $response   = FileRequestController::get_application_artifact_file( $file_request );
 
-        $response->send();
+        return $response;
     }
 
-    /**
-     * Parse admin download request.
-     */
-    public static function parse_admin_download_request( Request $request ): void {
-        if ( ! wp_verify_nonce( (string) $request->get( 'download_token' ), 'smliser_download_token' ) ) {
+    public static function parse_admin_download_request( Request $request ) : Response {
+        $download_token = (string) $request->get( 'download_token', '', false );
+
+        if ( ! wp_verify_nonce( $download_token, 'smliser_download_token' ) ) {
             smliser_abort_request(
                 __( 'Expired download link, please refresh current page.', 'smliser' ),
                 'Expired Link',
@@ -256,7 +264,7 @@ class Dispatcher implements RequestHandlingContract {
             );
         }
 
-        if ( ! is_admin() || ! current_user_can( 'install_plugins' ) ) {
+        if ( ! current_user_can( 'install_plugins' ) ) {
             smliser_abort_request(
                 __( 'You are not authorized to perform this action.', 'smliser' ),
                 'Unauthorized Download',
@@ -285,40 +293,31 @@ class Dispatcher implements RequestHandlingContract {
             'app_type'      => $type,
             'app_id'        => $id,
             'license_id'    => $id,
-        ] );
+        ], $request->get_headers(), $request->method(), $request->uri() );
 
-        FileRequestController::$method( $file_request )->send();
+        return FileRequestController::$method( $file_request );
     }
 
-    /**
-     * Parse license document download request.
-     */
-    public static function parse_license_document_download_request( Request $request ): void {
+    public static function parse_license_document_download_request( Request $request ) : Response {
         $file_request = new FileRequest( [
             'license_id'     => get_query_var( 'license_id', 0 ),
             'download_token' => $request->get( 'download_token' ),
-        ] );
+        ], $request->get_headers(), $request->method(), $request->uri() );
 
-        FileRequestController::get_license_document( $file_request )->send();
+        return FileRequestController::get_license_document( $file_request );
     }
 
-    /**
-     * Parse application asset request.
-     */
-    public static function parse_app_asset_request( Request $request ): void {
+    public static function parse_app_asset_request( Request $request ) : Response {
         $file_request = new FileRequest( [
-            'app_type'    => static::sanitize_text( get_query_var( 'app_type' ) ),
-            'app_slug'    => static::sanitize_text( get_query_var( 'app_slug' ) ),
-            'asset_name'  => static::sanitize_text( get_query_var( 'asset_name' ) ),
-        ] );
+            'app_type'    => $request->get( 'app_type' ),
+            'app_slug'    => $request->get( 'app_slug' ),
+            'asset_name'  => $request->get( 'asset_name' ),
+        ], $request->get_headers(), $request->method(), $request->uri() );
 
-        FileRequestController::get_app_static_asset( $file_request )->send();
+        return FileRequestController::get_app_static_asset( $file_request );
     }
 
-    /**
-     * Parse uploads directory access request.
-     */
-    public static function parse_uploads_dir_request( Request $request ): void {
+    public static function parse_uploads_dir_request( Request $request ) : Response {
         $path = smliser_sanitize_path( get_query_var( 'smliser_upload_path' ) );
 
         if ( $path instanceof Exception ) {
@@ -331,15 +330,12 @@ class Dispatcher implements RequestHandlingContract {
 
         $file_request = new FileRequest( [
             'file_path'    => $path,
-        ] );
+        ], $request->get_headers(), $request->method(), $request->uri() );
 
-        FileRequestController::get_uploads_dir_asset( $file_request )->send();
+        return FileRequestController::get_uploads_dir_asset( $file_request );
     }
 
-    /**
-     * Parse proxy image request.
-     */
-    public static function parse_proxy_image_request( Request $request ): void {
+    public static function parse_proxy_image_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
         $image_url = $request->get( 'image_url' )
@@ -348,7 +344,7 @@ class Dispatcher implements RequestHandlingContract {
         $file_request = new FileRequest( [
             'asset_url'    => $image_url,
             'asset_name'   => $request->get( 'asset_name', '' ),
-        ] );
+        ], $request->get_headers(), $request->method(), $request->uri() );
 
         $response = FileRequestController::get_proxy_asset( $file_request );
 
@@ -356,62 +352,44 @@ class Dispatcher implements RequestHandlingContract {
             @unlink( $r->get_file() );
         } );
 
-        $response->send();
+        return $response;
     }
 
-    /**
-     * Parse save application request.
-     */
-    public static function parse_save_app_request( Request $request ): void {
+    public static function parse_save_app_request( Request $request ) : Response {
         static::guard( $request, 'install_plugins' );
 
-        HostingController::save_app( $request )->send();
+        return HostingController::save_app( $request );
     }
 
-    /**
-     * Parse application asset upload request.
-     */
-    public static function parse_app_asset_upload_request( Request $request ): void {
+    public static function parse_app_asset_upload_request( Request $request ) : Response {
         static::guard( $request, 'install_plugins' );
 
         if ( $request->isPatch() || $request->isPut() ) {
             $request->get_file( 'asset_file' )?->set_new_name( (string) $request->get( 'asset_name' ) );
         }
 
-        HostingController::app_asset_upload( $request )->send();
+        return HostingController::app_asset_upload( $request );
     }
 
-    /**
-     * Parse application asset delete request.
-     */
-    public static function parse_app_asset_delete_request( Request $request ): void {
+    public static function parse_app_asset_delete_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        HostingController::app_asset_delete( $request )->send();
+        return HostingController::app_asset_delete( $request );
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public static function parse_app_artifact_upload_request( Request $request ): void {
+    public static function parse_app_artifact_upload_request( Request $request ) : Response {
         static::guard( $request, 'install_plugins' );
 
-        HostingController::app_artifact_upload( $request )->send();
+        return HostingController::app_artifact_upload( $request );
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public static function parse_app_artifact_delete_request( Request $request ): void {
+    public static function parse_app_artifact_delete_request( Request $request ) : Response {
         static::guard( $request, 'install_plugins' );
 
-        HostingController::app_artifact_delete( $request )->send();
+        return HostingController::app_artifact_delete( $request );
     }
 
-    /**
-     * Parse save license request.
-     */
-    public static function parse_save_license_request( Request $request ): void {
+    public static function parse_save_license_request( Request $request ) : Response {
         static::guard( $request, 'install_plugins' );
 
         $app_prop = (string) $request->get( 'app_prop' );
@@ -433,20 +411,16 @@ class Dispatcher implements RequestHandlingContract {
             $response->set_body( $body );
         }
 
-        $response->send();
-        exit;
+        return $response;
     }
 
-    /**
-     * Parse bulk action request.
-     */
-    public static function parse_bulk_action_request( Request $request ): void {
-        $table_nonce_verified = wp_verify_nonce( (string) $request->get( 'smliser_table_nonce' ), 'smliser_table_nonce' );
+    public static function parse_bulk_action_request( Request $request ) : Response {
+        $table_nonce_verified = wp_verify_nonce( (string) $request->get( 'smliser_table_nonce', '', false ), 'smliser_table_nonce' );
         $nonce_verified       = static::verify_nonce( $request );
 
         if ( ! $table_nonce_verified && ! $nonce_verified ) {
             wp_safe_redirect( wp_get_referer() );
-            exit;
+
         }
 
         $context = $request->get( 'context' )
@@ -460,24 +434,16 @@ class Dispatcher implements RequestHandlingContract {
             $request->set( 'ids', $app_ids  );
         }
 
-        call_user_func( $handler, $request )->send();
-        exit;
+        return call_user_func( $handler, $request );
     }
 
-    /**
-     * Parse monetization tier form request.
-     */
-    public static function parse_monetization_tier_form_request( Request $request ): void {
+    public static function parse_monetization_tier_form_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        Controller::save_monetization( $request )->send();
-        exit;
+        return Controller::save_monetization( $request );
     }
 
-    /**
-     * Parse route settings request.
-     */
-    public static function parse_save_routes_settings_request( Request $request ): void {
+    public static function parse_save_routes_settings_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
         $response   = SettingsController::save_routing_settings( $request );
@@ -486,17 +452,10 @@ class Dispatcher implements RequestHandlingContract {
             \flush_rewrite_rules();
         }
 
-        $response->send();
-        exit;
+        return $response;
     }
 
-    /**
-     * Parse save email template toggle request.
-     *
-     * @param  Request $request
-     * @return void
-     */
-    public static function parse_save_email_template_toggle_request( Request $request ): void {
+    public static function parse_save_email_template_toggle_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
         $response   = SettingsController::toggle_email_template( $request );
@@ -505,35 +464,23 @@ class Dispatcher implements RequestHandlingContract {
             \flush_rewrite_rules();
         }
 
-        $response->send();
-        exit;
+        return $response;
     }
 
-    /**
-     * Parse download token generation request.
-     */
-    public static function parse_download_token_generation_request( Request $request ): void {
+    public static function parse_download_token_generation_request( Request $request ) : Response {
         static::guard( $request, 'install_plugins' );
 
-        Controller::generate_app_download_token( $request )
-        ->send();
+        return Controller::generate_app_download_token( $request );
 
-        exit;
     }
 
-    /**
-     * Parse application status action request.
-     */
-    public static function parse_app_status_action_request( Request $request ): void {
+    public static function parse_app_status_action_request( Request $request ) : Response {
         static::guard( $request, 'install_plugins' );
 
-        HostingController::change_app_status( $request )->send();
+        return HostingController::change_app_status( $request );
     }
 
-    /**
-     * Parse database migration request.
-     */
-    public static function parse_database_migration_request( Request $request ): void {
+    public static function parse_database_migration_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
         $repo_version = smliser_settings()->get( 'smliser_repo_version', 0 );
@@ -557,55 +504,37 @@ class Dispatcher implements RequestHandlingContract {
         ] );
     }
 
-    /**
-     * Parse save provider options request.
-     */
-    public static function parse_save_provider_options_request( Request $request ): void {
+    public static function parse_save_provider_options_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        Controller::save_provider_options( $request )->send();
+        return Controller::save_provider_options( $request );
     }
 
-    /**
-     * Parse toggle monetization request.
-     */
-    public static function parse_toggle_monetization_request( Request $request ): void {
+    public static function parse_toggle_monetization_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        Controller::toggle_monetization( $request )->send();
+        return Controller::toggle_monetization( $request );
     }
 
-    /**
-     * Parse monetization provider product request.
-     */
-    public static function parse_monetization_provider_product_request( Request $request ): void {
+    public static function parse_monetization_provider_product_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        Controller::get_provider_product( $request )->send();
+        return Controller::get_provider_product( $request );
     }
 
-    /**
-     * Parse monetization tier deletion request.
-     */
-    public static function parse_monetization_tier_deletion_request( Request $request ): void {
+    public static function parse_monetization_tier_deletion_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        Controller::delete_monetization_tier( $request )->send();
+        return Controller::delete_monetization_tier( $request );
     }
 
-    /**
-     * Parse licensed domain removal request.
-     */
-    public static function parse_licensed_domain_removal_request( Request $request ): void {
+    public static function parse_licensed_domain_removal_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        Controller::uninstall_domain_from_license( $request )->send();
+        return Controller::uninstall_domain_from_license( $request );
     }
 
-    /**
-     * Parse bulk message publish request.
-     */
-    public static function parse_bulk_message_publish_request( Request $request ): void {
+    public static function parse_bulk_message_publish_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
         // message_body requires HTML preservation — sanitize here before passing to core.
@@ -633,13 +562,10 @@ class Dispatcher implements RequestHandlingContract {
             $response->set_body( $body );
         }
 
-        $response->send();
+        return $response;
     }
 
-    /**
-     * Parse access control save request.
-     */
-    public static function parse_access_control_save_request( Request $request ): void {
+    public static function parse_access_control_save_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
         $entity = $request->get( 'entity' );
@@ -651,13 +577,10 @@ class Dispatcher implements RequestHandlingContract {
         $method   = 'organization_member' === $entity ? 'save_organization_member' : 'save_entity';
         $response = RequestController::$method( $request );
 
-        $response->send();
+        return $response;
     }
 
-    /**
-     * Parse access control delete request.
-     */
-    public static function parse_access_control_delete_request( Request $request ): void {
+    public static function parse_access_control_delete_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
         if ( ! $request->hasValue( 'entity_type' ) ) {
@@ -667,16 +590,11 @@ class Dispatcher implements RequestHandlingContract {
         // Core controller expects 'entity' key.
         $request->set( 'entity', $request->get( 'entity_type' ) );
 
-        RequestController::delete_entity( $request )
-        ->send();
+        return RequestController::delete_entity( $request );
 
-        exit;
     }
 
-    /**
-     * Parse admin security entity search request.
-     */
-    public static function parse_admin_security_entity_search_request( Request $request ): void {
+    public static function parse_admin_security_entity_search_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
         $entity = $request->get( 'entity_type', 'user' );
@@ -689,197 +607,120 @@ class Dispatcher implements RequestHandlingContract {
             ? RequestController::search_users_orgs( $request )
             : RequestController::search_resource_owners( $request );
 
-        $response->send();
-        exit;
+        return $response;
     }
 
-    /**
-     * Parse request to delete an organization member.
-     */
-    public static function parse_smliser_delete_org_member_request( Request $request ): void {
+    public static function parse_smliser_delete_org_member_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
-        RequestController::delete_org_member( $request )
-        ->send();
-        exit;
+        return RequestController::delete_org_member( $request );
     }
 
-    /**
-     * Parse request to save default email settings.
-     */
-    public static function parse_default_email_settings_request( Request $request ): void {
+    public static function parse_default_email_settings_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
-        EmailRequestController::save_default_email_options( $request )
-        ->send();
-        exit;
+        return EmailRequestController::save_default_email_options( $request );
     }
 
-    /**
-     * Parse email test request.
-     */
-    public static function parse_email_test_request( Request $request ): void {
+    public static function parse_email_test_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
-        EmailRequestController::send_test_email( $request )
-        ->send();
-        exit;
+        return EmailRequestController::send_test_email( $request );
     }
 
-    /**
-     * Parse save email provider settings request.
-     */
-    public static function parse_save_email_provider_request( Request $request ): void {
+    public static function parse_save_email_provider_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
-        EmailRequestController::save_provider_settings( $request )
-        ->send();
-        exit;
+        return EmailRequestController::save_provider_settings( $request );
     }
 
-    /**
-     * Parse save system settings request
-     * 
-     * @param Request $request
-     */
-    public static function parse_save_system_settings_request( Request $request ) : void {
+    public static function parse_save_system_settings_request( Request $request ) : Response {
         static::guard( $request );
         
-        SettingsController::save_system_settings( $request )
-        ->send();
-        exit;
+        return SettingsController::save_system_settings( $request );
     }
 
-    /**
-     * Route a live preview render request to the settings controller.
-     *
-     * Called from the email editor on every debounced state change.
-     * Returns rendered HTML without persisting anything.
-     *
-     * @param Request $request
-     */
-    public static function parse_preview_email_template_request( Request $request ): void {
+    public static function parse_preview_email_template_request( Request $request ) : Response {
         static::guard( $request );
-        SettingsController::preview_email_template( $request )
-        ->send();
-        exit;
+        return SettingsController::preview_email_template( $request );
     }
 
-    /**
-     * Route a template save request to the settings controller.
-     *
-     * Renders the block and style state from the editor and persists
-     * the resulting HTML as the custom template for this type.
-     *
-     * @param Request $request
-     */
-    public static function parse_save_email_template_request( Request $request ): void {
+
+    public static function parse_save_email_template_request( Request $request ) : Response {
         static::guard( $request );
-        SettingsController::save_email_template( $request )
-        ->send();
+        return SettingsController::save_email_template( $request );
 
-        exit;
     }
 
-    /**
-     * Route a template reset request to the settings controller.
-     *
-     * Deletes the stored custom template, reverting to the system
-     * default skeleton on the next render.
-     *
-     * @param Request $request
-     */
-    public static function parse_reset_email_template_request( Request $request ): void {
+    public static function parse_reset_email_template_request( Request $request ) : Response {
         static::guard( $request );
-        SettingsController::reset_email_template( $request )
-        ->send();
+        return SettingsController::reset_email_template( $request );
 
-        exit;
     }
 
-    public static function parse_license_delete_request( Request $request ) : void {
+    public static function parse_license_delete_request( Request $request ) : Response {
         static::guard( $request, 'manage_options', 'smliser_delete_license_nonce' );
 
-        Controller::delete_license( $request )
-        ->send();
+        return Controller::delete_license( $request );
 
-        exit;
     }
 
-    public static function parse_save_cache_adapter_settings_request( Request $request ) : void {
+    public static function parse_save_cache_adapter_settings_request( Request $request ) : Response {
         static::guard( $request );
 
-        CacheRequestController::save_adapter_settings( $request )
-        ->send();
+        return CacheRequestController::save_adapter_settings( $request );
 
-        exit;
     }
 
-    public static function parse_test_cache_adapter_settings_request( Request $request ) : void {
+    public static function parse_test_cache_adapter_settings_request( Request $request ) : Response {
         static::guard( $request );
 
-        CacheRequestController::test_cache_adapter_settings( $request )
-        ->send();
+        return CacheRequestController::test_cache_adapter_settings( $request );
 
-        exit;
     }
 
-    public static function parse_get_cache_stats_request( Request $request ): void {
+    public static function parse_get_cache_stats_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        CacheRequestController::get_cache_stats( $request )
-        ->send();
+        return CacheRequestController::get_cache_stats( $request );
 
-        exit;
     }
 
-    public static function parse_clear_all_cache_request( Request $request ): void {
+    public static function parse_clear_all_cache_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        CacheRequestController::clear_all_cache( $request )
-        ->send();
+        return CacheRequestController::clear_all_cache( $request );
 
-        exit;
     }
 
-    public static function parse_delete_cache_by_prefix_request( Request $request ): void {
+    public static function parse_delete_cache_by_prefix_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        CacheRequestController::delete_cache_by_prefix( $request )
-        ->send();
+        return CacheRequestController::delete_cache_by_prefix( $request );
 
-        exit;
     }
 
-    public static function parse_flush_expired_cache_request( Request $request ): void {
+    public static function parse_flush_expired_cache_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        CacheRequestController::flush_expired_cache( $request )
-        ->send();
+        return CacheRequestController::flush_expired_cache( $request );
 
-        exit;
     }
 
-    public static function parse_get_top_cache_keys_request( Request $request ): void {
+    public static function parse_get_top_cache_keys_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        CacheRequestController::get_top_cache_keys( $request )
-        ->send();
-
-        exit;
+        return CacheRequestController::get_top_cache_keys( $request );
     }
 
-    public static function render_client_dashboard( Request $request ): void {
+    public static function render_client_dashboard( Request $request ) : Response {
         $registry       = smliserFrontendTemplate();
         $locator        = smliser_template_locator();
 
         $renderer       = new ClientDashboardRenderer( $registry, $locator );
         $rest_base      = restAPIUrl( 'client-dashboard' );
         
-        $renderer->asResponse( $rest_base->url() )
-        ->send();
-
-        exit;
+        return $renderer->asResponse ( $rest_base->url() );
     }
 
     /*
@@ -894,7 +735,7 @@ class Dispatcher implements RequestHandlingContract {
      * @param  array $app_ids
      * @return array
      */
-    public static function normalize_app_ids_form_input( array $app_ids ): array {
+    protected static function normalize_app_ids_form_input( array $app_ids ): array {
         $normalized = [];
 
         foreach ( $app_ids as $item ) {
@@ -912,9 +753,9 @@ class Dispatcher implements RequestHandlingContract {
      * Resolve the correct download request parser based on app type.
      *
      * @param Request $request The current request object.
-     * @return callable
+     * @return null|callable(Request):Response
      */
-    public static function resolve_download_request_parser( Request $request ): callable {
+    protected static function resolve_download_request_parser( Request $request ): ?callable {
 
         switch ( $request->get( 'download_type' ) ) {
             case 'plugin':
@@ -930,14 +771,28 @@ class Dispatcher implements RequestHandlingContract {
             case 'artifact':
                 return [__CLASS__, 'parse_public_artifact_download_request'];
             default:
-            return function() {
-                smliser_abort_request( RequestException::make(
-                    'unsupported_route',
-                    'Download type was not found.',
-                    [ 'status' => 404 ]
-                ) );
-            };
+            return null;
         }
+    }
+
+    /**
+     * Handle public downloads.
+     * 
+     * @param Request $request
+     * @return Response
+     */
+    protected static function handle_public_downloads( Request $request ) : Response {
+        $resolved_callback  = static::resolve_download_request_parser( $request );
+
+        if ( ! $resolved_callback ) {
+            return new FileResponse( new FileRequestException(
+                'file_not_found',
+                'Download type was not found.',
+                [ 'status' => 404 ]
+            ));
+        }
+
+        return $resolved_callback( $request );
     }
 
     /**
@@ -946,7 +801,7 @@ class Dispatcher implements RequestHandlingContract {
      * @param  string $context
      * @return callable
      */
-    public static function resolve_bulk_action_controller( $context ): callable {
+    protected static function resolve_bulk_action_controller( $context ): callable {
         switch ( (string) $context ) {
             case 'license':
                 return [ Controller::class, 'license_bulk_action' ];

@@ -146,7 +146,7 @@ class RoutesManager {
 					'{download_type}',
 					function ( Router $r ): void {
 						$r->add(
-							'{app_slug_filename_ext:(?![0-9]+$)(?!.*\.zip$)[^/]+}',
+							'{app_slug_filename:path}',
 							'smliser-downloads'
 						);
 
