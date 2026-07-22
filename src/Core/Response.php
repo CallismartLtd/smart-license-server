@@ -221,6 +221,16 @@ class Response {
 	}
 
 	/**
+	 * Clears all headers.
+	 * 
+	 * @return true
+	 */
+	public function remove_headers() : bool {
+		$this->headers	= [];
+		return true;
+	}
+
+	/**
 	 * Get all headers.
 	 *
 	 * @param bool $normalize Whether to nomalize the headers.
@@ -339,6 +349,11 @@ class Response {
 	 */
 	public function send_headers() : void {
 		if ( headers_sent( $file, $line ) ) {
+			\smliser_abort_request(
+				'Unable to start download. Headers already sent.',
+				'Headers Sent',
+				['status' => 500]	
+			);
 			return;
 		}
 
