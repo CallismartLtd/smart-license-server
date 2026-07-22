@@ -593,7 +593,7 @@ class AppUploader {
      * @returns {Promise<File|null>}
      */
     async _processFromUrl( imageUrl ) {
-        const endpoint = new URL( smliser_var.admin_url );
+        const endpoint = new URL( smliser_var.ajaxURL );
         endpoint.searchParams.set( 'action',    'smliser_download_image' );
         endpoint.searchParams.set( 'image_url', imageUrl );
         endpoint.searchParams.set( 'security',  smliser_var.csrf_token );

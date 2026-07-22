@@ -1590,7 +1590,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                             </tbody>
                         </table>
                         <div class="spinner-overlay show">
-                            <img src="${smliser_var.admin_url}images/spinner.gif" alt="Loading..." class="spinner-img">
+                            <img src="${smliser_var.spinner_gif_2x}" alt="Loading..." class="spinner-img">
                         </div>
                     </div>
                 `;
