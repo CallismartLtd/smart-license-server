@@ -92,6 +92,8 @@ $total_logs = count( array_filter(
     RepositoryAnalytics::get_license_activity_logs(),
     fn( $data ) => $data['license_id'] === $license_id 
 ));
+
+$document_download_url  = \smliser_document_download_url( $license ? $license->get_id() : 0 );
 ?>
 
 <div class="smliser-admin-page">
@@ -152,6 +154,14 @@ $total_logs = count( array_filter(
                                 <?php else : ?>
                                     <span>N/L</span>
                                 <?php endif; ?>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Document Download URL</th>
+                            <td>
+                                <span><?php echo escHtml( $document_download_url ); ?></span>
+                                <i class="ti ti-copy smliser-click-to-copy" title="Copy" data-copy-value="<?php echo esc_attr( $document_download_url ); ?>"></i>
                             </td>
                         </tr>
 

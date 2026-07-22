@@ -385,15 +385,21 @@ tr:hover:has(.smliser-edit-link) .smliser-edit-link,
 
 .smliser-admin-view-page-header {
     display: flex;
-    justify-content: space-evenly;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+    
 }
 
 .smliser-admin-view-page-header-child {
+    flex: 1 1 20%;
     border-radius: 9px;
     background-color: #fff;
     min-height: 100px;
-    min-width: 350px;
-    margin: 20px auto;
+    height: auto;
+    min-width: 220px;
+    margin: 10px;
     padding: 5px;
     font-family: Aloe;
 }
