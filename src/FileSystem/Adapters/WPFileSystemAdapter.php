@@ -468,7 +468,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ): bool {
-        if ( ! $path || ! $this->exists( $path ) || ! $this->is_readable( $path ) ) {
+        if ( ! $this->is_file( $path ) ) {
             return false;
         }
 

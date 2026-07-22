@@ -259,7 +259,10 @@ class DirectFileSystem implements FileSystemAdapterInterface {
         }
 
         if ( $this->is_file( $source ) ) {
-            return @copy( $source, $dest ) && $this->exists( $dest ) && $this->chmod( $dest, \SMLISER_FILE_PERMISSION );
+            return 
+                @copy( $source, $dest )
+                && $this->exists( $dest )
+                && $this->chmod( $dest, \SMLISER_FILE_PERMISSION );
         }
 
         if ( $this->is_dir( $source ) ) {
@@ -470,30 +473,25 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * @param int $chunk_size Optional chunk size (default 1MB).
      * @return bool True on success, false on failure.
      */
-    public function readfile(
-        string $path,
-        int $start = 0,
-        int $length = 0,
-        int $chunk_size = 1048576
-    ): bool {
+    public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ): bool {
 
-        if ( ! $this->is_readable( $path ) ) {
+        if ( ! $this->is_file( $path ) ) {
             return false;
         }
 
-        $handle = fopen( $path, 'rb' );
+        $stream = fopen( $path, 'rb' );
 
-        if ( false === $handle ) {
+        if ( false === $stream ) {
             return false;
         }
 
         if ( $start > 0 ) {
-            fseek( $handle, $start );
+            fseek( $stream, $start );
         }
 
         $remaining = $length > 0 ? $length : null;
 
-        while ( ! feof( $handle ) ) {
+        while ( ! feof( $stream ) ) {
 
             if ( null !== $remaining && $remaining <= 0 ) {
                 break;
@@ -503,10 +501,10 @@ class DirectFileSystem implements FileSystemAdapterInterface {
                 ? min( $chunk_size, $remaining )
                 : $chunk_size;
 
-            $buffer = fread( $handle, $read_length );
+            $buffer = fread( $stream, $read_length );
 
             if ( false === $buffer ) {
-                fclose( $handle );
+                fclose( $stream );
                 return false;
             }
 
@@ -518,7 +516,7 @@ class DirectFileSystem implements FileSystemAdapterInterface {
             }
         }
 
-        fclose( $handle );
+        fclose( $stream );
 
         return true;
     }
