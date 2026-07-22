@@ -593,7 +593,7 @@ class AppUploader {
      * @returns {Promise<File|null>}
      */
     async _processFromUrl( imageUrl ) {
-        const endpoint = new URL( `${ smliser_var.admin_url }admin-post.php` );
+        const endpoint = new URL( smliser_var.admin_url );
         endpoint.searchParams.set( 'action',    'smliser_download_image' );
         endpoint.searchParams.set( 'image_url', imageUrl );
         endpoint.searchParams.set( 'security',  smliser_var.csrf_token );
@@ -626,7 +626,7 @@ class AppUploader {
             return new File( [blob], fileName, { type: blob.type || 'image/png' } );
 
         } catch ( error ) {
-            SmliserToast.show( error.message, 10000 );
+            await SmliserModal.error( error.message );
             return null;
         } finally {
             removeSpinner( spinner );
@@ -645,13 +645,19 @@ class AppUploader {
      * @param {File} file
      */
     _showImagePreview( file ) {
-        const reader    = new FileReader();
-        reader.onload   = ( e ) => {
-            this.imagePreview.src = e.target.result;
-            this.assetImageUploaderContainer.classList.add( 'has-image' );
-            this.uploadToRepoButton.removeAttribute( 'disabled' );
-        };
-        reader.readAsDataURL( file );
+
+        // Release the previous preview URL.
+        if ( this.imagePreview.dataset.objectUrl ) {
+            URL.revokeObjectURL( this.imagePreview.dataset.objectUrl );
+        }
+
+        const objectUrl = URL.createObjectURL( file );
+
+        this.imagePreview.dataset.objectUrl = objectUrl;
+        this.imagePreview.src               = objectUrl;
+
+        this.assetImageUploaderContainer.classList.add( 'has-image' );
+        this.uploadToRepoButton.removeAttribute( 'disabled' );
     }
 
     /**
@@ -691,68 +697,72 @@ class AppUploader {
             thumbEl.classList.add( 'is-active' );
         };
 
-        files.forEach( ( file, renderIndex ) => {
-            const reader    = new FileReader();
-            reader.onload   = ( e ) => {
-                const thumb         = document.createElement( 'div' );
-                thumb.className     = 'smliser-multi-preview_thumb';
-                thumb.setAttribute( 'title', 'Click to preview' );
-                thumb.innerHTML     = `
-                    <img src="${ e.target.result }" alt="${ file.name }">
-                    <span class="smliser-multi-preview_name">${ file.name }</span>
-                    <button type="button" class="smliser-multi-preview_remove" title="Remove this file">✕</button>
-                `;
+    files.forEach( ( file, renderIndex ) => {
+        const objectUrl = URL.createObjectURL( file );
 
-                // Click anywhere on the thumb (except the remove button) → send to main preview
-                thumb.addEventListener( 'click', ( e ) => {
-                    if ( e.target.closest( '.smliser-multi-preview_remove' ) ) return;
-                    activateThumb( file, thumb );
-                });
+        const thumb = document.createElement( 'div' );
+        thumb.className = 'smliser-multi-preview_thumb';
+        thumb.title = 'Click to preview';
 
-                // Remove button
-                thumb.querySelector( '.smliser-multi-preview_remove' ).addEventListener( 'click', ( e ) => {
-                    e.stopPropagation();
+        thumb.innerHTML = `
+            <img src="${ objectUrl }" alt="${ file.name }" loading="lazy">
+            <span class="smliser-multi-preview_name">${ file.name }</span>
+            <button type="button" class="smliser-multi-preview_remove" title="Remove this file">✕</button>
+        `;
 
-                    const liveIndex = this.currentFiles.indexOf( file );
-                    if ( liveIndex === -1 ) return;
+        // Release the object URL once the thumbnail has loaded.
+        thumb.querySelector( 'img' ).addEventListener( 'load', () => {
+            URL.revokeObjectURL( objectUrl );
+        }, { once: true } );
 
-                    this.currentFiles.splice( liveIndex, 1 );
-                    thumb.remove();
+        // Click anywhere on the thumb (except the remove button)
+        thumb.addEventListener( 'click', ( e ) => {
+            if ( e.target.closest( '.smliser-multi-preview_remove' ) ) {
+                return;
+            }
 
-                    if ( this.currentFiles.length === 0 ) {
-                        this.resetModal();
-                        return;
-                    }
+            activateThumb( file, thumb );
+        } );
 
-                    if ( this.currentFiles.length === 1 ) {
-                        // Drop back to single-image mode
-                        strip.innerHTML = '';
-                        this._showImagePreview( this.currentFiles[0] );
-                        return;
-                    }
+        // Remove button.
+        thumb.querySelector( '.smliser-multi-preview_remove' ).addEventListener( 'click', ( e ) => {
+            e.stopPropagation();
 
-                    // More than one file remains — if the removed thumb was active,
-                    // activate the first thumb in the strip automatically.
-                    const wasActive = thumb.classList.contains( 'is-active' );
-                    if ( wasActive ) {
-                        const firstThumb = strip.querySelector( '.smliser-multi-preview_thumb' );
-                        if ( firstThumb ) {
-                            const firstFile = this.currentFiles[0];
-                            activateThumb( firstFile, firstThumb );
-                        }
-                    }
-                });
+            const liveIndex = this.currentFiles.indexOf( file );
 
-                strip.appendChild( thumb );
+            if ( liveIndex === -1 ) {
+                return;
+            }
 
-                // Auto-activate the very first thumb once it is rendered
-                if ( renderIndex === 0 ) {
-                    activateThumb( file, thumb );
+            this.currentFiles.splice( liveIndex, 1 );
+            thumb.remove();
+
+            if ( 0 === this.currentFiles.length ) {
+                this.resetModal();
+                return;
+            }
+
+            if ( 1 === this.currentFiles.length ) {
+                strip.innerHTML = '';
+                this._showImagePreview( this.currentFiles[0] );
+                return;
+            }
+
+            if ( thumb.classList.contains( 'is-active' ) ) {
+                const firstThumb = strip.querySelector( '.smliser-multi-preview_thumb' );
+
+                if ( firstThumb ) {
+                    activateThumb( this.currentFiles[0], firstThumb );
                 }
-            };
+            }
+        } );
 
-            reader.readAsDataURL( file );
-        });
+        strip.appendChild( thumb );
+
+        if ( 0 === renderIndex ) {
+            activateThumb( file, thumb );
+        }
+    } );
 
         this.uploadToRepoButton.removeAttribute( 'disabled' );
     }
