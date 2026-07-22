@@ -113,10 +113,18 @@ class RoutesManager {
 				$router->add( '{download_type}', 'smliser-downloads' );
 
 				// License document download rule (specific): numeric license ID.
-				$router->add(
-					'{download_type}/{license_id:int}',
-					'smliser-downloads'
-				);
+				$router->group( '{download_type}', function( Router $r ){
+					$r->add(
+						'{license_id:int}',
+						'smliser-downloads'
+					);
+
+					$r->add(
+						'license-document-{license_id:int}.txt',
+						'smliser-downloads'
+					);					
+				});
+
 
 				// siteurl/$download_slug/{download_type}/app-slug|app-slug.zip
 				//
@@ -171,5 +179,14 @@ class RoutesManager {
 			'',
 			array( 'smliser_auth' => '1' )
 		);
+	}
+
+	/**
+	 * Get all compiled routes.
+	 * 
+	 * @return array<int, array{regex: string, query: string, priority: string}>
+	 */
+	public function getCompiledRoutes() {
+		return $this->router->getCompiledRules();
 	}
 }

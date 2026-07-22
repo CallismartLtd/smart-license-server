@@ -165,7 +165,7 @@ class FileRequestController {
     public static function get_admin_license_document( FileRequest $request ): FileResponse {
         try {
             static::is_system_admin();
-            $license_id = $request->get( 'license_id' );
+            $license_id = (int) $request->get( 'license_id' );
 
             if ( empty( $license_id ) ) {
                 throw new FileRequestException( 'invalid_param_license_id' );
@@ -176,12 +176,12 @@ class FileRequestController {
                 throw new FileRequestException( 'file_not_found' );
             }
             
-            $document = self::generate_license_document( $license, smliser_settings() );
+            $document = static::generate_license_document( $license, smliser_settings() );
 
             $file_props = [
                 'type'         => 'document',
                 'is_file'      => false,
-                'name'         => 'license-document.txt',
+                'name'         => sprintf( 'license-document-%d.txt', $license_id ),
                 'content_type' => 'text/plain',
             ];
 
@@ -319,6 +319,10 @@ class FileRequestController {
                 throw new FileRequestException( 'invalid_param_license_id' );
             }
 
+            if ( ! is_int( $license_id ) && @preg_match( '#^license-document-(\d+)(?:\.txt|$)#', $license_id, $m )) {
+                $license_id = (int) $m[1];
+            }
+
             $license = License::get_by_id( $license_id );
             if ( ! $license ) {
                 throw new FileRequestException( 'file_not_found' );
@@ -336,12 +340,12 @@ class FileRequestController {
                 throw new FileRequestException( 'invalid_token' );
             }
             
-            $document = self::generate_license_document( $license, smliser_settings() );
+            $document = static::generate_license_document( $license, smliser_settings() );
 
             $file_props = [
                 'type'         => 'document',
                 'is_file'      => false,
-                'name'         => 'license-document.txt',
+                'name'         => sprintf( 'license-document-%d.txt', $license_id ),
                 'content_type' => 'text/plain',
             ];
 

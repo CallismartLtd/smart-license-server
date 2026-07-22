@@ -232,20 +232,16 @@ class Dispatcher implements RequestHandlingContract {
      * {@inheritdoc}
      */
     public static function parse_public_artifact_download_request( Request $request ) : void {
-        $app_type   = $request->get( 'app_type' );
-        $app_slug   = $request->get( 'app_slug' );
-        $filename   = $request->get( 'filename' );
 
-        $file_request   = new FileRequest([
-            'artifact_filename' => $filename,
-            'app_slug'          => $app_slug,
-            'app_type'          => $app_type
-        ]);
+        $file_request   = new FileRequest( $request->get_params() );
+
+        $file_request->set( 'artifact_filename', $request->get( 'filename' ) );
+
+        $file_request->remove( 'filename' );
 
         $response   = FileRequestController::get_application_artifact_file( $file_request );
 
         $response->send();
-        exit;
     }
 
     /**
@@ -256,7 +252,7 @@ class Dispatcher implements RequestHandlingContract {
             smliser_abort_request(
                 __( 'Expired download link, please refresh current page.', 'smliser' ),
                 'Expired Link',
-                [ 'response' => 400, 'back_link' => true ]
+                [ 'response' => 400 ]
             );
         }
 
@@ -264,7 +260,7 @@ class Dispatcher implements RequestHandlingContract {
             smliser_abort_request(
                 __( 'You are not authorized to perform this action.', 'smliser' ),
                 'Unauthorized Download',
-                [ 'response' => 403, 'back_link' => true ]
+                [ 'response' => 403 ]
             );
         }
 
@@ -275,7 +271,7 @@ class Dispatcher implements RequestHandlingContract {
             smliser_abort_request( 
                 __( 'Please specify the download type.', 'smliser' ),
                 'Download Type Missing', 
-                [ 'response' => 400, 'back_link' => true ]
+                [ 'response' => 400 ]
             );
         }
 
