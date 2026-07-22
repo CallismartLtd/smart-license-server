@@ -51,14 +51,6 @@ class ClientSettingsController {
 
     }
 
-
-
-
-
-
-
-
-
     /**
      * Checks whether the current user is authenticated
      * 
