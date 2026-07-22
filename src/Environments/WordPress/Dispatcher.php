@@ -426,10 +426,10 @@ class Dispatcher implements RequestHandlingContract {
         $context = $request->get( 'context' )
             ?? smliser_abort_request( 'Bulk action context is required', 'Context Required', [ 'status_code' => 400 ] );
 
-        $handler = self::resolve_bulk_action_controller( $context );
+        $handler = static::resolve_bulk_action_controller( $context );
 
         if ( 'repository' === $context ) {
-            $app_ids = self::normalize_app_ids_form_input( (array) $request->get( 'ids', [] ) );
+            $app_ids = static::normalize_app_ids_form_input( (array) $request->get( 'ids', [] ) );
 
             $request->set( 'ids', $app_ids  );
         }
