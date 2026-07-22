@@ -443,67 +443,6 @@ function parse_args_recursive( $args, $defaults ) {
 }
 
 /**
- * Unified download function.
- *
- * Attempts WordPress download_url, Laravel HTTP client, cURL, or PHP fopen/file_get_contents.
- *
- * @param string|URL    $url        URL to download.
- * @param int           $timeout    Timeout in seconds (default: 30).
- * @param bool          $autoclean  Whether to automatically delete the downloaded file(Default: true).
- * @return string|FileRequestException
- */
-function smliser_download_url( string|URL $url, int $timeout = 30, bool $autoclean = true ) : string|FileRequestException {
-    try {
-        $url  = is_string( $url ) ? new URL( $url ) : $url;
-        // Validate URL.
-        if ( ! $url->is_valid() ) {
-            throw new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
-        }
-
-        $url        = $url->url();
-        $options    = [
-            'timeout'   => max( 1, $timeout )
-        ];
-
-        $destination    = sprintf( '%s/%s', SMLISER_TMP_DIR, uniqid( SMLISER_UPLOAD_TMP_PREFIX ) );
-
-        $response    = smliser_http_client()->download( $url, $destination, [], $options );
-
-        if ( $response->is_error() ) {
-            throw new FileRequestException(
-                'http_download_error',
-                $response->reason_phrase,
-                ['status' => $response->status_code]
-            );
-        }
-
-        if ( ! $response->is_download() ) {
-            throw new FileRequestException(
-                'http_download_missing_file',
-                'Downloaded file was corrupted',
-                ['status' => 400]
-            );
-        }
-
-        if ( $autoclean ) {
-            register_shutdown_function( function() use ( $response ){
-                @unlink( $response->sink_path );
-            });            
-        }
-
-        return $response->sink_path;
-
-    } catch ( InvalidArgumentException|HttpRequestException $e ) {
-        return new FileRequestException(
-            'malformed_request',
-            $e->getMessage()
-        );
-    } catch ( FileRequestException $e ) {
-        return $e;
-    }
-}
-
-/**
  * Get the environment provider instance.
  * 
  * @return \SmartLicenseServer\Environment
