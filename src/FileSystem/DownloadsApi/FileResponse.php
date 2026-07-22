@@ -384,6 +384,10 @@ class FileResponse extends Response {
      * @return string The formatted Content-Disposition header value.
      */
     public function get_content_disposition( string $fileName = '', $mimeType = '', bool $isInlineRequested = false ): string {
+        if ( $this->has_errors() ) {
+            return '';
+        }
+        
         $mimeType = $mimeType ?: FileSystemHelper::get_mime_type( $this->file );
         $fileName = $fileName ?: basename( $this->file );
 
@@ -454,11 +458,17 @@ class FileResponse extends Response {
      * @return bool True if valid, false otherwise.
      */
     public function is_valid_zip_file() : bool {
-        if ( method_exists( $this->repo_class, 'is_valid_zip' ) ) {
-            return $this->repo_class->is_valid_zip( $this->get_file() );
+        $file   = $this->get_file();
+
+        if ( $file instanceof Exception || '' === $file ) {
+            return false;
         }
 
-        return FileSystemHelper::is_archive( $this->get_file() );
+        if ( method_exists( $this->repo_class, 'is_valid_zip' ) ) {
+            return $this->repo_class->is_valid_zip( $file );
+        }
+
+        return FileSystemHelper::is_archive( $file );
     }
 
     /**
