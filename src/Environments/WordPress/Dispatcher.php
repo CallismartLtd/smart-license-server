@@ -353,10 +353,6 @@ class Dispatcher implements RequestDispatcherInterface {
 
         $response = FileRequestController::get_proxy_asset( $file_request );
 
-        $response->register_after_serve_callback( function( $r ) {
-            @unlink( $r->get_file() );
-        } );
-
         return $response;
     }
 
