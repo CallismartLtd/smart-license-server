@@ -139,15 +139,14 @@ class LicensePage {
         $vars   = compact( 'request', 'license', 'licensed_app', 'license_id' );
         if ( $license ) {
             $licensee   = $license->get_licensee_fullname();
-            $delete_url = ( new URL( admin_url() ) )
-                ->add_query_params([
-                    'action'        => 'smliser_delete_license',
-                    'license_id'    => $license_id,
-                    'smliser_nonce' => wp_create_nonce( 'smliser_delete_license_nonce' )
-                ]);
+            $delete_url = \adminUrl( '', [
+                'action'        => 'smliser_delete_license',
+                'license_id'    => $license_id,
+                'smliser_nonce' => wp_create_nonce( 'smliser_delete_license_nonce' )
+            ]);
 
-            $vars['licensee']    = $licensee;
-            $vars['delete_url']         = $delete_url;
+            $vars['licensee']   = $licensee;
+            $vars['delete_url'] = $delete_url;
         }
         
         smliser_render_template( 'admin.license.view', $vars );
@@ -202,7 +201,7 @@ class LicensePage {
                 array(
                     'title' => 'Settings',
                     'label' => 'Settings',
-                    'url'   => admin_url( 'admin.php?page=smliser-options'),
+                    'url'   => \adminUrl( 'admin.php', ['page' => 'smliser-settings'] ),
                     'icon'  => 'dashicons dashicons-admin-generic'
                 )
             )

@@ -58,6 +58,12 @@ class FileRequestException extends Exception {
             'title'   => 'Invalid MIME Type',
             'message' => 'The file MIME type does not match the expected type or is disallowed.'
         ],
+
+        'http_file_download_bad_request' => [
+            'status'  => 400,
+            'title'   => 'Malformed Download Request',
+            'message' => 'Failed to download file(error: bad request).'
+        ],
         'file_too_large' => [
             'status'  => 400,
             'title'   => 'File Too Large',
@@ -74,6 +80,12 @@ class FileRequestException extends Exception {
             'status'  => 401,
             'title'   => 'Unauthorized',
             'message' => 'The provided download token is invalid, expired, or does not match the file.'
+        ],
+
+        'http_file_download_unauthorized' => [
+            'status'  => 401,
+            'title'   => 'Unauthorized Download',
+            'message' => 'Unauthorized file download error.'
         ],
         'auth_header_missing' => [
             'status'  => 401,

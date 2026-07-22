@@ -223,8 +223,11 @@ class FileRequestController {
             $asset_name = $request->get( 'asset_name' );
             
             $response   = new FileResponse( $file );
-            $response->set_header( 'Content-Disposition', $response->get_content_disposition( $asset_name, '', true ) );
 
+            if ( ! $file instanceof FileRequestException ) {
+                $response->set_header( 'Content-Disposition', $response->get_content_disposition( $asset_name, '', true ) );
+            }
+            
             return $response;
             
         } catch ( FileRequestException $e ) {
@@ -257,7 +260,11 @@ class FileRequestController {
                 ->set_header( 'Cache-Control', 'max-age=31536000, immutable' )
                 ->set_header( 'Expires', sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', time() + 31536000 ) ) )
                 ->remove_header( 'X-Content-Type-Options');
-            $response   = $response->set_header( 'Content-Disposition', $response->get_content_disposition( '', '', true ) );
+
+            if ( ! $file_path instanceof FileRequestException ) {
+                $response   = $response->set_header( 'Content-Disposition', $response->get_content_disposition( '', '', true ) );
+            }
+            
             return $response;
 
         } catch ( FileRequestException $e ) {
@@ -294,9 +301,12 @@ class FileRequestController {
             ];
 
             $response = new FileResponse( $file_path, $file_props );
-            $response->set_header( 'Content-Disposition', $response->get_content_disposition( $asset_name, '', true ) );
-            $response->set_header( 'Cache-Control', 'max-age=31536000, immutable' );
-            $response->set_header( 'Expires', sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', time() + 31536000 ) ) );
+            if ( ! $file_path instanceof FileRequestException ) {
+                $response->set_header( 'Content-Disposition', $response->get_content_disposition( $asset_name, '', true ) );
+                $response->set_header( 'Cache-Control', 'max-age=31536000, immutable' );
+                $response->set_header( 'Expires', sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', time() + 31536000 ) ) );                
+            }
+
             return $response;
 
         } catch ( FileRequestException $e ) {
