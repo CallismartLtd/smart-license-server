@@ -19,7 +19,7 @@ use SmartLicenseServer\Core\Response;
  * objects and delegate them to the corresponding core controllers,
  * returning the resulting Response.
  */
-interface RequestBridgeInterface {
+interface RequestDispatcherInterface {
 
     /**
      * Parse public request to download a hoted app main zip file.
