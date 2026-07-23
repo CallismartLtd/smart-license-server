@@ -510,7 +510,6 @@ class SMTPProvider implements EmailProviderInterface {
         if ( empty( $this->auth_mechanisms ) ) {
             return;
         }
-        
         // Trim here as a final safety net — credentials may have been stored
         // with trailing whitespace from a form submission or copy-paste.
         $username = trim( $username );
