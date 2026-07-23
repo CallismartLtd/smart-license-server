@@ -179,7 +179,14 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      * @return string|null
      */
     public static function get_default_provider_id(): string {
-        return (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, 'php_mail', true );
+        $default    = 'php_mail';
+        $value      = (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, $default, true );
+
+        if ( ! static::instance()->has( $value ) ) {
+            $value  = $default;
+        }
+
+        return  $value;
     }
 
     /**
@@ -197,6 +204,16 @@ class EmailProvidersRegistry  extends AbstractRegistry {
         }
 
         return static::instance()->settings->set( static::DEFAULT_PROVIDER_KEY, $provider_id, true );
+    }
+
+    /**
+     * Get the ids of all registered providers.
+     * 
+     * @return string[]
+     */
+    public function get_registered_ids() : array {
+        $this->ensure_core();
+        return array_keys( array_merge( $this->custom , $this->core ) );
     }
 
     /*
