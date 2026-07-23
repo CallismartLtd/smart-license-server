@@ -930,18 +930,30 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     }
 
     if ( emailProviderSelect ) {
-        emailProviderSelect.addEventListener( 'change', e => {
-            e.preventDefault();
-            const value = e.target.value;
-            const selected  = document.querySelector( `.smliser-email-provider-card.${value}` );
+        // emailProviderSelect.addEventListener( 'change', e => {
+        //     e.preventDefault();
+        //     const value = e.target.value;
+        //     const selected  = document.querySelector( `.smliser-email-provider-card.${value}` );
 
-            if ( selected ) {
-                document.querySelectorAll( '.smliser-email-provider-card' )
-                .forEach( el => el.classList.remove( 'smliser-provider-card--active' ) );
+        //     if ( selected ) {
+        //         document.querySelectorAll( '.smliser-email-provider-card' )
+        //         .forEach( el => el.classList.remove( 'smliser-provider-card--active' ) );
 
-                selected.classList.add( 'smliser-provider-card--active' );
-            }
-        })
+        //         selected.classList.add( 'smliser-provider-card--active' );
+        //     }
+        // });
+
+        const $providerSel = jQuery( emailProviderSelect );
+
+        $providerSel.on( 'select2:select', ( e ) => {
+            const value = e.params.data.id;
+
+            jQuery( '.smliser-provider-card' )
+                .removeClass( 'smliser-provider-card--active' );
+
+            jQuery( `.smliser-provider-card.${value}` )
+                .addClass( 'smliser-provider-card--active' );
+        } );
     }
 
     if ( deleteLicenseBtn ) {
