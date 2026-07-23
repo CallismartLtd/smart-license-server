@@ -24,6 +24,7 @@ use SmartLicenseServer\Email\Providers\PostmarkProvider;
 use SmartLicenseServer\Email\Providers\ResendProvider;
 use SmartLicenseServer\Email\Providers\AmazonSESProvider;
 use InvalidArgumentException;
+use Override;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\SettingsAPI\Settings;
@@ -138,7 +139,7 @@ class EmailProvidersRegistry  extends AbstractRegistry {
         $provider       = null;
         if ( $class_string ) {
             /** @var EmailProviderInterface $provider */
-            $provider = new $class_string;
+            $provider = new $class_string( \smliser_http_client() );
             $settings = [];
 
             foreach ( $provider->get_settings_schema() as $key => $data ) {
@@ -149,6 +150,21 @@ class EmailProvidersRegistry  extends AbstractRegistry {
         }
 
         return $provider;
+    }
+
+    #[Override]
+    public function all(bool $assoc = true, bool $instantiate = false): array {
+        $this->ensure_core();
+        /** @var array<string, class-string<EmailProviderInterface>> $all */
+        $all    = array_merge( $this->custom, $this->core );
+
+        if ( $instantiate ) {
+            foreach ( $all as $_ => &$value ) {
+                $value = new $value( \smliser_http_client() );
+            }
+        }
+
+        return $assoc ? $all : array_values( $all );
     }
 
     /*

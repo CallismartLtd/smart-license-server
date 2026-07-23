@@ -304,8 +304,8 @@ class OptionsPage {
                     'value' => EmailProvidersRegistry::get_default_provider_id() ?? '',
                     'class' => 'smliser-form-label-row smliser-auto-select2',
                     'options' => array_map(
-                        static fn( EmailProviderInterface $p ) => $p->get_name(),
-                        smliser_emailProvidersRegistry()->all( true, true )
+                        static fn( string $p ) => $p::get_name(),
+                        smliser_emailProvidersRegistry()->all()
                     ),
                 ],
             ],

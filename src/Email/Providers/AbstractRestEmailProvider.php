@@ -71,8 +71,8 @@ abstract class AbstractRestEmailProvider implements EmailProviderInterface {
      *
      * @param HttpClient|null $http_client
      */
-    public function __construct( ?HttpClient $http_client = null ) {
-        $this->http_client = $http_client ?? smliser_http_client();
+    public function __construct( HttpClient $http_client ) {
+        $this->http_client = $http_client;
     }
 
     /*
