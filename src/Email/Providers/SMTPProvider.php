@@ -21,7 +21,6 @@ use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use InvalidArgumentException;
-use SmartLicenseServer\Email\EmailProvidersRegistry;
 
 class SMTPProvider implements EmailProviderInterface {
 
@@ -137,10 +136,10 @@ class SMTPProvider implements EmailProviderInterface {
                 'label'       => 'Encryption',
                 'required'    => false,
                 'options'     => [
-                    self::ENCRYPTION_NONE     => 'None',
-                    self::ENCRYPTION_SSL      => 'SSL',
-                    self::ENCRYPTION_TLS      => 'TLS',
-                    self::ENCRYPTION_STARTTLS => 'STARTTLS',
+                    static::ENCRYPTION_NONE     => 'None',
+                    static::ENCRYPTION_SSL      => 'SSL',
+                    static::ENCRYPTION_TLS      => 'TLS',
+                    static::ENCRYPTION_STARTTLS => 'STARTTLS',
                 ],
                 'description' => 'Transport encryption method.',
             ],
@@ -172,7 +171,7 @@ class SMTPProvider implements EmailProviderInterface {
                 'type'        => 'number',
                 'label'       => 'Connection Timeout (seconds)',
                 'required'    => false,
-                'description' => 'Socket connection timeout. Default: ' . self::DEFAULT_TIMEOUT . 's.',
+                'description' => 'Socket connection timeout. Default: ' . static::DEFAULT_TIMEOUT . 's.',
             ],
             'helo_hostname' => [
                 'type'        => 'text',
@@ -197,9 +196,9 @@ class SMTPProvider implements EmailProviderInterface {
      */
     public function set_settings( array $settings ): void {
         $host       = trim( $settings['host']       ?? '' );
-        $port       = (int) ( $settings['port']     ?? self::DEFAULT_PORT );
+        $port       = (int) ( $settings['port']     ?? static::DEFAULT_PORT );
         $from_email = trim( $settings['from_email'] ?? '' );
-        $encryption = $settings['encryption']       ?? self::ENCRYPTION_NONE;
+        $encryption = $settings['encryption']       ?? static::ENCRYPTION_NONE;
 
         if ( empty( $host ) ) {
             throw new InvalidArgumentException( 'SMTPProvider: "host" is required.' );
@@ -214,10 +213,10 @@ class SMTPProvider implements EmailProviderInterface {
         }
 
         $valid_encryptions = [
-            self::ENCRYPTION_NONE,
-            self::ENCRYPTION_SSL,
-            self::ENCRYPTION_TLS,
-            self::ENCRYPTION_STARTTLS,
+            static::ENCRYPTION_NONE,
+            static::ENCRYPTION_SSL,
+            static::ENCRYPTION_TLS,
+            static::ENCRYPTION_STARTTLS,
         ];
 
         if ( ! in_array( $encryption, $valid_encryptions, true ) ) {
@@ -287,7 +286,7 @@ class SMTPProvider implements EmailProviderInterface {
      * @throws EmailTransportException
      */
     protected function ensure_connected(): void {
-        $limit_reached = $this->send_count >= self::MAX_SENDS_PER_CONNECTION;
+        $limit_reached = $this->send_count >= static::MAX_SENDS_PER_CONNECTION;
         $stale         = $this->is_connected() && $this->is_socket_stale();
 
         if ( $limit_reached || $stale ) {
@@ -330,11 +329,11 @@ class SMTPProvider implements EmailProviderInterface {
      */
     protected function connect(): void {
         $host       = $this->settings['host'];
-        $port       = (int) ( $this->settings['port']    ?? self::DEFAULT_PORT );
-        $encryption = $this->settings['encryption']      ?? self::ENCRYPTION_NONE;
-        $timeout    = (int) ( $this->settings['timeout'] ?? self::DEFAULT_TIMEOUT );
+        $port       = (int) ( $this->settings['port']    ?? static::DEFAULT_PORT );
+        $encryption = $this->settings['encryption']      ?? static::ENCRYPTION_NONE;
+        $timeout    = (int) ( $this->settings['timeout'] ?? static::DEFAULT_TIMEOUT );
 
-        $socket_host = ( $encryption === self::ENCRYPTION_SSL )
+        $socket_host = ( $encryption === static::ENCRYPTION_SSL )
             ? "ssl://{$host}"
             : $host;
 
@@ -361,7 +360,7 @@ class SMTPProvider implements EmailProviderInterface {
 
         $this->ehlo();
 
-        if ( in_array( $encryption, [ self::ENCRYPTION_STARTTLS, self::ENCRYPTION_TLS ], true ) ) {
+        if ( in_array( $encryption, [ static::ENCRYPTION_STARTTLS, static::ENCRYPTION_TLS ], true ) ) {
 
             // Only attempt STARTTLS if the server advertised it.
             if ( ! isset( $this->extensions['starttls'] ) ) {
@@ -507,15 +506,15 @@ class SMTPProvider implements EmailProviderInterface {
      * @throws EmailTransportException
      */
     protected function authenticate( string $username, string $password ): void {
-        // Trim here as a final safety net — credentials may have been stored
-        // with trailing whitespace from a form submission or copy-paste.
-        $username = trim( $username );
-        $password = trim( $password );
-
         // No mechanisms advertised — open relay.
         if ( empty( $this->auth_mechanisms ) ) {
             return;
         }
+        
+        // Trim here as a final safety net — credentials may have been stored
+        // with trailing whitespace from a form submission or copy-paste.
+        $username = trim( $username );
+        $password = trim( $password );
 
         if ( in_array( 'plain', $this->auth_mechanisms, true ) ) {
             $this->authenticate_plain( $username, $password );
@@ -850,7 +849,7 @@ class SMTPProvider implements EmailProviderInterface {
         $lines_read = 0;
 
         while ( $lines_read < $max_lines ) {
-            $line = fgets( $this->socket, self::SOCKET_READ_LENGTH );
+            $line = fgets( $this->socket, static::SOCKET_READ_LENGTH );
 
             if ( $line === false ) {
                 throw new EmailTransportException(
