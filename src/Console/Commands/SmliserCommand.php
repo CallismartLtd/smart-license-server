@@ -47,7 +47,7 @@ abstract class SmliserCommand implements CommandInterface {
     }
 
     public static function description(): string {
-        return 'Smart License Server CLI.';
+        return sprintf( '% CLI.', SMLISER_APP_NAME );
     }
 
     public static function help(): string {

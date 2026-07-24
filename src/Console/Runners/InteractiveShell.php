@@ -55,9 +55,9 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     use ShellHistoryTrait;
 
     /*
-    |--------------------------------------------
+    |------------
     | CONSTANTS
-    |--------------------------------------------
+    |------------
     */
 
     /**
@@ -86,9 +86,9 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     }
 
     /*
-    |--------------------------------------------
+    |------------------
     | RunnerInterface
-    |--------------------------------------------
+    |------------------
     */
 
     /**
@@ -130,15 +130,15 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     }
 
     /*
-    |--------------------------------------------
+    |-------
     | INPUT
-    |--------------------------------------------
+    |-------
     */
 
     /**
      * Read one line of input from STDIN, with history support.
      *
-     * Delegates entirely to CLIHistoryTrait::history_read_line() which
+     * Delegates entirely to ShellHistoryTrait::history_read_line() which
      * selects the best available strategy for the current platform:
      *   - readline extension  → native history + editing (all platforms)
      *   - pure-PHP raw input  → in-memory history with ↑/↓ navigation
@@ -150,18 +150,18 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
         $principal      = Guard::get_principal();
         $prompt_symbol  = $principal?->is( 'system_admin' ) ? '#' : '>';
         $version_string = smliser_debug_enabled() ? '-' . SMLISER_VER : '';
-        $prompt         = sprintf( '[smart-license-server%s] %s ', $version_string, $prompt_symbol );
+        $prompt_slug    = \str_replace( ['_', ' '], '-', strtolower( SMLISER_APP_NAME ) );
+        $prompt         = sprintf( '[%s%s] %s ', $prompt_slug, $version_string, $prompt_symbol );
         
-
         return $this->history_read_line(
             $this->colorize( static::ANSI_GREEN, $prompt )
         );
     }
 
     /*
-    |--------------------------------------------
+    |-----------
     | DISPATCH
-    |--------------------------------------------
+    |-----------
     */
 
     /**
@@ -341,11 +341,11 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     private function print_shell_help(): void {
         $this->print_global_help();
 
-        $clear_tokens = '"clear", "cls"';
-        $exit_tokens  = implode( ', ', array_map( fn( $t ) => "\"$t\"", self::EXIT_TOKENS ) );
+        $clear_token    = $this->is_windows() ? '"cls"' : '"clear"';
+        $exit_tokens    = implode( ', ', array_map( fn( $t ) => "\"$t\"", self::EXIT_TOKENS ) );
 
         echo 'Shell built-ins:' . PHP_EOL;
-        echo sprintf( '  %-30s  Clear the terminal screen.', $clear_tokens ) . PHP_EOL;
+        echo sprintf( '  %-30s  Clear the terminal screen.', $clear_token ) . PHP_EOL;
         echo sprintf( '  %-30s  End the interactive session.', $exit_tokens ) . PHP_EOL;
         echo PHP_EOL;
     }

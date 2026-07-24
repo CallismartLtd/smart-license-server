@@ -51,20 +51,20 @@ namespace SmartLicenseServer\Console;
 trait ShellHistoryTrait {
 
     /*
-    |--------------------------------------------
+    |-----------
     | CONSTANTS
-    |--------------------------------------------
+    |-----------
     */
 
     /**
      * Maximum number of history entries kept in memory and on disk.
      */
-    private const HISTORY_LIMIT = 500;
+    private const HISTORY_LIMIT = 1000;
 
     /*
-    |--------------------------------------------
+    |--------
     | STATE
-    |--------------------------------------------
+    |--------
     */
 
     /**
@@ -83,9 +83,9 @@ trait ShellHistoryTrait {
     private bool $shell_history_loaded = false;
 
     /*
-    |--------------------------------------------
+    |------------
     | PUBLIC API
-    |--------------------------------------------
+    |------------
     */
 
     /**
@@ -104,7 +104,7 @@ trait ShellHistoryTrait {
         // readline() does not interpret ANSI escape codes — it prints them
         // literally. Strip them so the prompt renders cleanly.
         if ( $this->readline_available() ) {
-            return $this->read_line_readline( $this->strip_ansi( $prompt ) );
+            // return $this->read_line_readline( $this->strip_ansi( $prompt ) );
         }
 
         // Tier 2 — stty raw mode (POSIX without readline).
@@ -119,9 +119,9 @@ trait ShellHistoryTrait {
     }
 
     /*
-    |--------------------------------------------
+    |-------------------
     | TIER 1 — readline
-    |--------------------------------------------
+    |-------------------
     */
 
     /**
@@ -164,9 +164,9 @@ trait ShellHistoryTrait {
     }
 
     /*
-    |--------------------------------------------
+    |------------------------
     | TIER 2 — stty raw mode
-    |--------------------------------------------
+    |------------------------
     */
 
     /**
@@ -268,7 +268,7 @@ trait ShellHistoryTrait {
                     continue;
                 }
 
-                // ── Printable character ──────────────────────────────
+                // ── Printable character ─
                 if ( $byte >= 32 ) {
                     $buffer .= $char;
                     echo $char;
@@ -480,7 +480,7 @@ trait ShellHistoryTrait {
 
         $this->shell_history[] = $line;
 
-        if ( count( $this->shell_history ) > self::HISTORY_LIMIT ) {
+        if ( count( $this->shell_history ) > static::HISTORY_LIMIT ) {
             array_shift( $this->shell_history );
         }
     }
@@ -513,7 +513,7 @@ trait ShellHistoryTrait {
         }
 
         // Keep only the most recent HISTORY_LIMIT entries.
-        $lines               = array_slice( $lines, -self::HISTORY_LIMIT );
+        $lines               = array_slice( $lines, -static::HISTORY_LIMIT );
         $this->shell_history = array_values( $lines );
     }
 
