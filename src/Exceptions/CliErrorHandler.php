@@ -123,9 +123,9 @@ class CliErrorHandler extends AbstractErrorHandler {
      * CLI environments don't send HTTP headers.
      * Method exists for interface compliance.
      *
-     * @return self
+     * @return static
      */
-    public function sendHeaders() : self {
+    public function sendHeaders() : static {
         return $this;
     }
 }

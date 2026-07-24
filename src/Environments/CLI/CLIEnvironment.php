@@ -63,8 +63,7 @@ class CLIEnvironment extends Environment {
      * @return void
      */
     private function loadDotEnv() : void {
-        ( new DotEnv( SMLISER_ROOT ) )
-        ->load();
+        ( new DotEnv( SMLISER_ROOT ) )->load();
     }
 
     /**
