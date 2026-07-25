@@ -10,7 +10,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CLIAwareTrait;
-use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**

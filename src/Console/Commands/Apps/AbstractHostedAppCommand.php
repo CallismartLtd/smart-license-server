@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Console\Commands\Apps;
 
 use SmartLicenseServer\Console\CLIFilesystemAwareTrait;
 use SmartLicenseServer\Console\CLIUtilsTrait;
-use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;

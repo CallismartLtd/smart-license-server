@@ -12,7 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CLIUtilsTrait;
-use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 use Callismart\DBPrism\Database;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use Callismart\DBPrism\Schema\Table;

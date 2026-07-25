@@ -11,7 +11,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
-use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 
 /**
  * Execute PHPUnit test suites.

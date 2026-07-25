@@ -13,7 +13,7 @@ namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Console\CLIAwareTrait;
-use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Utils\Format;
 
 /**

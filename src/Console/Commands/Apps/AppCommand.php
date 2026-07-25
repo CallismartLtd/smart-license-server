@@ -36,7 +36,7 @@ namespace SmartLicenseServer\Console\Commands\Apps;
 
 use SmartLicenseServer\Console\CLIFilesystemAwareTrait;
 use SmartLicenseServer\Console\CLIUtilsTrait;
-use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;

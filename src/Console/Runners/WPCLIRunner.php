@@ -11,7 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Runners;
 
-use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;

@@ -12,7 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CLIAwareTrait;
-use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 
 /**
  * Evaluates all registered scheduled tasks and runs any that are due.

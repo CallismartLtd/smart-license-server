@@ -13,7 +13,7 @@
 
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Console;
+namespace SmartLicenseServer\Console\Contracts;
 
 /**
  * Console command contract.

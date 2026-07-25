@@ -12,7 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CLIAwareTrait;
-use SmartLicenseServer\Console\CommandInterface;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 
 /**
  * Processes background jobs and runs due scheduled tasks in a single pass.
