@@ -50,6 +50,7 @@ use SmartLicenseServer\Console\Commands\TestCommand;
 use SmartLicenseServer\Console\Commands\WhoAmI;
 use SmartLicenseServer\Console\Commands\WorkCommand;
 use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 
 /**

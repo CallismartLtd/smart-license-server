@@ -11,7 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
-use SmartLicenseServer\Console\CLIAwareTrait;
+use SmartLicenseServer\Console\Traits\CLIAwareTrait;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;

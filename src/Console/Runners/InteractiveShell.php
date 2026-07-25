@@ -35,8 +35,8 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Runners;
 
-use SmartLicenseServer\Console\ShellHistoryTrait;
-use SmartLicenseServer\Console\CLIWelcomeTrait;
+use SmartLicenseServer\Console\Traits\ShellHistoryTrait;
+use SmartLicenseServer\Console\Traits\CLIWelcomeTrait;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Commands\SmliserCommand;
 use SmartLicenseServer\Security\Context\Guard;

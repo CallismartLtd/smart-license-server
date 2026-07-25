@@ -43,12 +43,13 @@
 
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Console;
+namespace SmartLicenseServer\Console\Traits;
 
 /**
  * Cross-platform, history-aware line reading for the interactive shell.
  */
 trait ShellHistoryTrait {
+    use CLIAwareTrait;
 
     /*
     |-----------

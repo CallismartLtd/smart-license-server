@@ -10,7 +10,7 @@
 
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Console;
+namespace SmartLicenseServer\Console\Traits;
 
 trait CLIWelcomeTrait {
     use CLIAwareTrait;

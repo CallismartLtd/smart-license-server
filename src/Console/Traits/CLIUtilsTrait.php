@@ -2,8 +2,9 @@
 /**
  * CLI utility trait file
  */
-namespace SmartLicenseServer\Console;
+namespace SmartLicenseServer\Console\Traits;
 
+use SmartLicenseServer\Console\OptionParser;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**

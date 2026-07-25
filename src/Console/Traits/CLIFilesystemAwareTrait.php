@@ -8,7 +8,7 @@
  */
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Console;
+namespace SmartLicenseServer\Console\Traits;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\FileRequestException;

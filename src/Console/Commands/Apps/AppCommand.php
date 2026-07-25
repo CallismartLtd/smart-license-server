@@ -34,13 +34,11 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands\Apps;
 
-use SmartLicenseServer\Console\CLIFilesystemAwareTrait;
-use SmartLicenseServer\Console\CLIUtilsTrait;
+use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
-use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Console\Traits\CLIFilesystemAwareTrait;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-use SmartLicenseServer\HostedApps\HostingController;
 
 /**
  * Manage hosted applications from the CLI.

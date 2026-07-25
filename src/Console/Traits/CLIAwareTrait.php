@@ -44,7 +44,7 @@
 
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Console;
+namespace SmartLicenseServer\Console\Traits;
 
 /**
  * Rich console output, interaction, progress, and timing for CLI commands.
