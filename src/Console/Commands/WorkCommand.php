@@ -11,15 +11,16 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Traits\CLIAwareTrait;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
+use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Processes background jobs until the queue is empty or the time
  * budget is exhausted.
  */
-class WorkCommand implements CommandInterface {
-    use CLIAwareTrait;
+class WorkCommand extends AbstractCommand {
 
     public static function name(): string {
         return 'work';
@@ -37,17 +38,22 @@ class WorkCommand implements CommandInterface {
     }
 
 
-    public function execute( array $args = [] ): void {
-        $this->start_timer();
-        $this->info( 'Processing queue...' );
+    public function run( CommandInput $input ): int {
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
+
+        $this->output->info( 'Processing queue...' );
 
         $processed = smliser_queue_worker()->process_within_time_budget();
 
         if ( $processed === 0 ) {
-            $this->line( 'No jobs were waiting in the queue.', self::VERBOSITY_VERBOSE );
+            $this->output->writeln( 'No jobs were waiting in the queue.' );
         }
 
-        $this->newline();
-        $this->done( sprintf( '%d job(s) processed.', $processed ) );
+        $this->output->success( 
+            sprintf( '%d job(s) processed. Completed in %ss', $processed, $stopwatch->elapsed() ) 
+        );
+
+        return 0;
     }
 }

@@ -12,9 +12,9 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
-use SmartLicenseServer\Console\Traits\CLIAwareTrait;
-use SmartLicenseServer\Console\Contracts\CommandInterface;
+use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Utils\Format;
+use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Manage and inspect the system cache.
@@ -24,10 +24,10 @@ use SmartLicenseServer\Utils\Format;
  *   smliser cache clear
  *   smliser cache get <key>
  *   smliser cache delete <key>
+ *   smliser cache use-adapter <adapter_id>
  *   smliser cache help
  */
-class CacheCommand implements CommandInterface {
-    use CLIAwareTrait;
+class CacheCommand extends AbstractCommand {
 
     public static function name(): string {
         return 'cache';
@@ -36,6 +36,7 @@ class CacheCommand implements CommandInterface {
     public static function description(): string {
         return 'Inspect and manage the system cache.';
     }
+
     public static function synopsis(): string {
         return 'smliser cache <subcommand> [key]';
     }
@@ -56,23 +57,44 @@ class CacheCommand implements CommandInterface {
             '  smliser cache get smliser_some_key',
             '  smliser cache delete smliser_some_key',
             '  smliser cache use-adapter redis',
-        ]);
+        ] );
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * Every handler here must stay public — AbstractCommandRouter
+     * invokes these as callables from outside this class
+     * (`$handler( $command_input )`), and PHP enforces method
+     * visibility against the calling scope at invocation time, not
+     * the scope the callable array was built in. A private handler
+     * would compile fine and then fatal the moment it's dispatched.
+     */
+    public function get_subcommands(): array {
+        return [
+            'stats'       => [ $this, 'handle_stats' ],
+            'clear'       => [ $this, 'handle_clear' ],
+            'get'         => [ $this, 'handle_get' ],
+            'delete'      => [ $this, 'handle_delete' ],
+            'use-adapter' => [ $this, 'switch_adapter' ],
+            'help'        => [ $this, 'handle_help' ],
+        ];
+    }
 
-    public function execute( array $args = [] ): void {
-        $subcommand = $args[0] ?? null;
+    /**
+     * {@inheritdoc}
+     *
+     * Only reached when no subcommand is given at all (`smliser cache`
+     * with nothing after it) — AbstractCommandRouter already rejects
+     * an unrecognised subcommand before this class is ever consulted,
+     * so there's no "unknown subcommand" branch to handle here anymore.
+     */
+    public function run( CommandInput $input ): int {
+        $this->output->info( 'Active Cache Adapter: ' . smliser_cache()->get_name() );
+        $this->output->newline();
+        $this->output->writeln( 'Run `smliser cache help` to see available subcommands.' );
 
-        match ( $subcommand ) {
-            'stats'         => $this->handle_stats(),
-            'clear'         => $this->handle_clear(),
-            'get'           => $this->handle_get( $args[1] ?? null ),
-            'delete'        => $this->handle_delete( $args[1] ?? null ),
-            'use-adapter'   => $this->switch_adapter( $args[1] ?? null ),
-            'help'          => $this->handle_help(),
-            null            => $this->handle_default(),
-            default         => $this->handle_unknown( $subcommand ),
-        };
+        return 0;
     }
 
     /*
@@ -83,178 +105,194 @@ class CacheCommand implements CommandInterface {
 
     /**
      * Display cache engine statistics.
+     *
+     * @param CommandInput $input
+     * @return int
      */
-    private function handle_stats(): void {
+    public function handle_stats( CommandInput $input ): int {
         $cache = smliser_cache();
         $stats = $cache->get_stats();
 
-        $this->info( 'Cache Engine: ' . $cache->get_name() );
-        $this->info( 'Connection status: ' . ( $cache->is_active() ? 'Connected' : 'Not Connected' ) );
-        $this->newline();
+        $this->output->info( 'Cache Engine: ' . $cache->get_name() );
+        $this->output->info( 'Connection status: ' . ( $cache->is_active() ? 'Connected' : 'Not Connected' ) );
+        $this->output->newline();
 
-        $this->table(
+        $this->output->table(
             [ 'Metric', 'Value' ],
             [
-                [ 'Uptime',       $this->format_uptime( $stats->uptime ?? 0 ) ],
+                [ 'Uptime',       $this->format_uptime( (int) ( $stats->uptime ?? 0 ) ) ],
                 [ 'Hits',         number_format( (float) ( $stats->hits ?? 0 ) ) ],
                 [ 'Misses',       number_format( (float) ( $stats->misses ?? 0 ) ) ],
                 [ 'Entries',      number_format( (float) ( $stats->entries ?? 0 ) ) ],
-                [ 'Memory Used',  $this->format_bytes( $stats->memory_used ?? 0 ) ],
-                [ 'Memory Total', $this->format_bytes( $stats->memory_total ?? 0 ) ],
+                [ 'Memory Used',  $this->format_bytes( (int) ( $stats->memory_used ?? 0 ) ) ],
+                [ 'Memory Total', $this->format_bytes( (int) ( $stats->memory_total ?? 0 ) ) ],
             ]
         );
+
+        return 0;
     }
 
     /**
      * Flush the entire cache after confirmation.
+     *
+     * @param CommandInput $input
+     * @return int
      */
-    private function handle_clear(): void {
-        if ( ! $this->confirm( 'This will flush all cached data. Are you sure?' ) ) {
-            $this->line( 'Aborted.' );
-            return;
+    public function handle_clear( CommandInput $input ): int {
+        if ( ! $this->io->confirm( 'This will flush all cached data. Are you sure?' ) ) {
+            $this->output->writeln( 'Aborted.' );
+            return 0;
         }
 
-        $this->start_timer();
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
 
-        smliser_cache()->clear()
-            ? $this->done( 'Cache cleared successfully.' )
-            : $this->error( 'Failed to clear cache.' );
+        if ( ! smliser_cache()->clear() ) {
+            $this->output->error( 'Failed to clear cache.' );
+            return 1;
+        }
+
+        $this->output->success( sprintf( 'Cache cleared successfully. Completed in %ss.', $stopwatch->elapsed() ) );
+
+        return 0;
     }
 
     /**
      * Retrieve and display a specific cache key.
      *
-     * @param string|null $key
+     * @param CommandInput $input
+     * @return int
      */
-    private function handle_get( ?string $key ): void {
+    public function handle_get( CommandInput $input ): int {
+        $key = $input->get_argument( 0 );
+
         if ( empty( $key ) ) {
-            $this->error( 'Usage: smliser cache get <key>' );
-            return;
+            $this->output->error( 'Usage: smliser cache get <key>' );
+            return 1;
         }
 
         $value = smliser_cache()->get( $key );
 
-        if ( $value === false ) {
-            $this->warning( "Key [{$key}] not found in cache." );
-            return;
+        if ( false === $value ) {
+            $this->output->warning( "Key [{$key}] not found in cache." );
+            return 1;
         }
 
-        $this->info( "Cache value for [{$key}]:" );
-        $this->newline();
+        $this->output->info( "Cache value for [{$key}]:" );
+        $this->output->newline();
 
         if ( is_array( $value ) || is_object( $value ) ) {
-            $this->table(
+            $this->output->table(
                 [ 'Key', 'Value' ],
                 array_map(
-                    fn( $k, $v ) => [ $k, Format::decode( $v )  ],
+                    fn( $k, $v ) => [ $k, Format::decode( $v ) ],
                     array_keys( (array) $value ),
                     array_values( (array) $value )
                 )
             );
         } else {
-            $this->line( (string) $value );
+            $this->output->writeln( (string) $value );
         }
+
+        return 0;
     }
 
     /**
      * Delete a specific cache key.
      *
-     * @param string|null $key
+     * @param CommandInput $input
+     * @return int
      */
-    private function handle_delete( ?string $key ): void {
+    public function handle_delete( CommandInput $input ): int {
+        $key = $input->get_argument( 0 );
+
         if ( empty( $key ) ) {
-            $this->error( 'Usage: smliser cache delete <key>' );
-            return;
+            $this->output->error( 'Usage: smliser cache delete <key>' );
+            return 1;
         }
 
-        if ( ! $this->confirm( "Delete cache key [{$key}]?" ) ) {
-            $this->line( 'Aborted.' );
-            return;
+        if ( ! $this->io->confirm( "Delete cache key [{$key}]?" ) ) {
+            $this->output->writeln( 'Aborted.' );
+            return 0;
         }
 
-        smliser_cache()->delete( $key )
-            ? $this->success( "Key [{$key}] deleted from cache." )
-            : $this->error( "Failed to delete key [{$key}]. It may not exist." );
+        if ( ! smliser_cache()->delete( $key ) ) {
+            $this->output->error( "Failed to delete key [{$key}]. It may not exist." );
+            return 1;
+        }
+
+        $this->output->success( "Key [{$key}] deleted from cache." );
+
+        return 0;
     }
 
     /**
      * Change the cache adapter.
      *
-     * @param string|null $adapter_id
+     * @param CommandInput $input
+     * @return int
      */
-    private function switch_adapter( ?string $adapter_id ): void {
+    public function switch_adapter( CommandInput $input ): int {
+        $adapter_id = $input->get_argument( 0 );
+
         if ( empty( $adapter_id ) ) {
-            $this->error( 'Usage: smliser cache use-adapter <adapter_id>' );
-            return;
+            $this->output->error( 'Usage: smliser cache use-adapter <adapter_id>' );
+            return 1;
         }
 
         if ( ! CacheAdapterRegistry::instance()->has( $adapter_id ) ) {
-            $this->error( sprintf( 'The cache adapter "%s" does not exist.', $adapter_id ) );
-            return;
+            $this->output->error( sprintf( 'The cache adapter "%s" does not exist.', $adapter_id ) );
+            return 1;
         }
 
-        $success    = CacheAdapterRegistry::instance()->set_default_adapter( $adapter_id );
-
-        if ( $success ) {
-            smliser_envProvider()->setGlobalCacheAdapter( true );
-            $adapter_class  = CacheAdapterRegistry::instance()->get( $adapter_id );
-            $adapter_name   = $adapter_class ? $adapter_class::get_name() : $adapter_id;
-            $message        = sprintf( 'Now using %s.', $adapter_name );
-
-            $this->success( $message );
-        } else {
-            $this->error( 'Unable to set new adapter.' );
+        if ( ! CacheAdapterRegistry::instance()->set_default_adapter( $adapter_id ) ) {
+            $this->output->error( 'Unable to set new adapter.' );
+            return 1;
         }
-    }
 
-    /**
-     * Show the active adapter name and quick usage hint.
-     */
-    private function handle_default(): void {
-        $this->info( 'Active Cache Adapter: ' . smliser_cache()->get_name() );
-        $this->newline();
-        $this->line( 'Run `smliser cache help` to see available subcommands.' );
+        smliser_envProvider()->setGlobalCacheAdapter( true );
+
+        $adapter_class = CacheAdapterRegistry::instance()->get( $adapter_id );
+        $adapter_name  = $adapter_class ? $adapter_class::get_name() : $adapter_id;
+
+        $this->output->success( sprintf( 'Now using %s.', $adapter_name ) );
+
+        return 0;
     }
 
     /**
      * Print help for the cache command.
+     *
+     * @param CommandInput $input
+     * @return int
      */
-    private function handle_help(): void {
-        $this->info( 'Cache Command' );
-        $this->newline();
-        $this->line( 'Usage:' );
-        $this->line( '  smliser cache <subcommand> [argument]' );
-        $this->newline();
+    public function handle_help( CommandInput $input ): int {
+        $this->output->info( 'Cache Command' );
+        $this->output->newline();
+        $this->output->writeln( 'Usage:' );
+        $this->output->writeln( '  smliser cache <subcommand> [argument]' );
+        $this->output->newline();
 
-        $this->table(
+        $this->output->table(
             [ 'Subcommand', 'Argument', 'Description' ],
             [
-                [ 'stats',  '',      'Show cache engine metrics.' ],
-                [ 'clear',  '',      'Flush all cached data (confirms first).' ],
-                [ 'get',    '<key>', 'Retrieve and display a specific cache key.' ],
-                [ 'delete', '<key>', 'Remove a specific key from the cache.' ],
+                [ 'stats',       '',             'Show cache engine metrics.' ],
+                [ 'clear',       '',             'Flush all cached data (confirms first).' ],
+                [ 'get',         '<key>',        'Retrieve and display a specific cache key.' ],
+                [ 'delete',      '<key>',        'Remove a specific key from the cache.' ],
                 [ 'use-adapter', '<adapter_id>', 'Switch to a specific cache adapter.' ],
-                [ 'help',   '',      'Show this help message.' ],
+                [ 'help',        '',             'Show this help message.' ],
             ]
         );
 
-        $this->newline();
-        $this->line( 'Examples:' );
-        $this->line( '  smliser cache stats' );
-        $this->line( '  smliser cache clear' );
-        $this->line( '  smliser cache get smliser_some_key' );
-        $this->line( '  smliser cache delete smliser_some_key' );
-    }
+        $this->output->newline();
+        $this->output->writeln( 'Examples:' );
+        $this->output->writeln( '  smliser cache stats' );
+        $this->output->writeln( '  smliser cache clear' );
+        $this->output->writeln( '  smliser cache get smliser_some_key' );
+        $this->output->writeln( '  smliser cache delete smliser_some_key' );
 
-    /**
-     * Handle an unrecognised subcommand.
-     *
-     * @param string $subcommand
-     */
-    private function handle_unknown( string $subcommand ): void {
-        $this->error( "Unknown subcommand: {$subcommand}" );
-        $this->newline();
-        $this->handle_help();
+        return 0;
     }
 
     /*
@@ -296,9 +334,16 @@ class CacheCommand implements CommandInterface {
         $minutes = intdiv( $seconds % 3600, 60 );
 
         $parts = [];
-        if ( $days > 0 )    $parts[] = "{$days}d";
-        if ( $hours > 0 )   $parts[] = "{$hours}h";
-        if ( $minutes > 0 ) $parts[] = "{$minutes}m";
+
+        if ( $days > 0 ) {
+            $parts[] = "{$days}d";
+        }
+        if ( $hours > 0 ) {
+            $parts[] = "{$hours}h";
+        }
+        if ( $minutes > 0 ) {
+            $parts[] = "{$minutes}m";
+        }
 
         return $parts ? implode( ' ', $parts ) : '< 1m';
     }

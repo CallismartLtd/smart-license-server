@@ -26,16 +26,6 @@
  *   ShellHistoryTrait::HISTORY_LIMIT entries. It is created on first use
  *   and silently skipped when the filesystem is not writable.
  *
- * ## Usage
- *
- *   class InteractiveShell extends SmliserCommand implements RunnerInterface {
- *       use ShellHistoryTrait;
- *
- *       private function read_line(): ?string {
- *           return $this->history_read_line( $this->prompt_string() );
- *       }
- *   }
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Console
  * @since   0.2.0

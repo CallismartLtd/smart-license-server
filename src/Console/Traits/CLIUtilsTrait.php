@@ -4,22 +4,25 @@
  */
 namespace SmartLicenseServer\Console\Traits;
 
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\OptionParser;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Provides utility methods for CLI operations
  */
-trait CLIUtilsTrait {
-    use CLIAwareTrait;
+trait CLIUtilsTrait {    
+    protected OutputInterface $output;
+    protected InputInterface $io;
     /**
      * Validate that required positional arguments are present.
      */
     private function require_args( array $args, string $usage ): bool {
         foreach ( $args as $name => $value ) {
             if ( empty( $value ) ) {
-                $this->error( sprintf( 'Missing required argument: <%s>', $name ) );
-                $this->line( 'Usage: ' . $usage );
+                $this->output->error( sprintf( 'Missing required argument: <%s>', $name ) );
+                $this->output->writeln( 'Usage: ' . $usage );
                 return false;
             }
         }
@@ -39,8 +42,8 @@ trait CLIUtilsTrait {
     private function require_options( array $opts, array $required_opts, string $usage ): bool {
         foreach ( $required_opts as $opt ) {
             if ( ! isset( $opts[ $opt ] ) || empty( $opts[ $opt ] ) ) {
-                $this->error( sprintf( 'Missing required option: --%s', $opt ) );
-                $this->line( 'Usage: ' . $usage );
+                $this->output->error( sprintf( 'Missing required option: --%s', $opt ) );
+                $this->output->writeln( 'Usage: ' . $usage );
                 return false;
             }
         }
@@ -56,8 +59,8 @@ trait CLIUtilsTrait {
             return true;
         }
 
-        $this->error( 'Authentication required.' );
-        $this->line( 'Set SMLISER_CLI_API_KEY in your .env file and ensure the service account is active.' );
+        $this->output->error( 'Authentication required.' );
+        $this->output->writeln( 'Set SMLISER_CLI_API_KEY in your .env file and ensure the service account is active.' );
         return false;
     }
 

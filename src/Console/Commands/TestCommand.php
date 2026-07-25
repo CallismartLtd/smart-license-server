@@ -11,6 +11,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
 
 /**
@@ -18,7 +19,7 @@ use SmartLicenseServer\Console\Contracts\CommandInterface;
  *
  * @since 0.2.0
  */
-class TestCommand implements CommandInterface {
+class TestCommand extends AbstractCommand {
 
     /**
      * {@inheritDoc}
@@ -59,17 +60,20 @@ class TestCommand implements CommandInterface {
     /**
      * {@inheritDoc}
      */
-    public function execute( array $args = [] ) : void {
+    public function run( CommandInput $input ) : int {
 
         $binary = SMLISER_PATH . 'vendor/bin/phpunit';
 
         if ( ! file_exists( $binary ) ) {
-            fwrite( STDERR, "PHPUnit binary not found.\n" );
-            exit( 1 );
+            $this->output->error( 'PHPUnit binary not found.' );
+
+            return 1;
         }
 
         $command = escapeshellcmd( $binary );
 
+        $args   = \array_merge( $input->get_arguments(), $input->get_options() );
+        
         if ( ! empty( $args ) ) {
             $command .= ' ' . implode(
                 ' ',
@@ -79,6 +83,6 @@ class TestCommand implements CommandInterface {
 
         passthru( $command, $exit_code );
 
-        exit( (int) $exit_code );
+        return $exit_code;
     }
 }

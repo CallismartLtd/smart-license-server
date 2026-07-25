@@ -12,16 +12,17 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
-use SmartLicenseServer\Console\Contracts\CommandInterface;
 use Callismart\DBPrism\Database;
+use Callismart\DBPrism\Inspection\Inspector;
+use Callismart\DBPrism\Utils\Table;
+use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Schema\SchemaRegistry;
-use Callismart\DBPrism\Schema\Table;
+use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Creates any missing database tables.
  */
-class MigrateCommand implements CommandInterface {
-    use CLIUtilsTrait;
+class MigrateCommand extends AbstractCommand {
 
     public static function name(): string {
         return 'migrate';
@@ -39,49 +40,50 @@ class MigrateCommand implements CommandInterface {
     }
 
 
-    public function execute( array $args = [] ): void {
-        $options    = $this->parse_options( $args );
-        $info       = (bool) ( $options['info'] ?? false );
+    public function run( CommandInput $input ): int {
+        $info       = $input->get_option( 'info', false );
         $confirmed  = (bool) ( $options['y'] ?? $options['yes'] ?? false );
 
         if ( $info ) {
-            $this->info( $this->description() );
-            $this->line( 'Database Adapter: '. smliser_db()->get_driver() );
-            return;
+            $this->output->info( $this->description() );
+            $this->output->writeln( 'Database Adapter: '. smliser_db()->get_driver() );
+            return 0;
         }
 
-        $confirmed  = $confirmed ? true : $this->confirm( 'Are you sure you want to perform database migration?', true );
+        $confirmed  = $confirmed ? true : $this->io->confirm( 'Are you sure you want to perform database migration?', true );
 
         if ( ! $confirmed ) {
-            $this->done( 'Migration aborted' );
-            return;
+            $this->output->success( 'Migration aborted' );
+            return 0;
         }
 
-        $this->migrate();
+        return $this->migrate();
     }
 
-    protected function migrate() : void {
-        $this->start_timer();
-        $this->info( 'Running database migrations...' );
-        $this->newline();
+    protected function migrate() : int {
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
+        $this->output->info( 'Running database migrations...' );
 
         $db         = smliser_db();
         $schema     = SchemaRegistry::instance();
         $tables     = $schema->get_all_tables();
+        $inspector  = new Inspector( $db );
+        
         $headers    = [ 'Table', 'Status' ];
         $rows       = [];
 
-        $this->progress_start( count( $tables ), 'Checking' );
+        $this->output->progress_start( count( $tables ), 'Checking' );
 
         foreach ( $tables as $table ) {
             $table_name = $table->get_name();
 
-            $this->progress_update_label( "Checking {$table_name}" );
+            $this->output->progress_update_label( "Checking {$table_name}" );
             
-            $table_exists   = $db->table_exists( $table_name );
+            $table_exists   = $inspector->table_exists( $table_name );
 
             if ( ! $table_exists ) {
-                $this->progress_update_label( "Creating {$table_name}" );
+                $this->output->progress_update_label( "Creating {$table_name}" );
                 $created    = $this->create_table( $table, $db );
 
                 if ( $created ) {
@@ -93,18 +95,19 @@ class MigrateCommand implements CommandInterface {
                 
                 $rows[] = [ $table_name, $message ];
             } else {
-                $this->progress_update_label( "Skipping {$table_name}" );
+                $this->output->progress_update_label( "Skipping {$table_name}" );
                 $rows[] = [ $table_name, '— Already exists' ];
             }
 
-            $this->progress_advance();
+            $this->output->progress_advance();
         }
 
-        $this->progress_finish( 'Migration complete.' );
-        $this->newline();
-        $this->table( $headers, $rows );
-        $this->newline();
-        $this->done( 'Migration complete.' );
+        $this->output->progress_finish( 'Migration complete.' );
+        $this->output->table( $headers, $rows );
+
+        $this->output->success( sprintf( 'All migrations processed. Completed in %ss.', $stopwatch->elapsed() ) );
+
+        return 0;
     }
 
     /**

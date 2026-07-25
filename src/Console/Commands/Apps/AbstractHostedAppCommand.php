@@ -10,22 +10,26 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands\Apps;
 
-use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
-use SmartLicenseServer\Console\Contracts\CommandInterface;
+use Override;
+use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Console\Commands\AbstractCommand;
 use SmartLicenseServer\Console\Traits\CLIFilesystemAwareTrait;
+use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\HostedApps\HostingController;
+use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Abstract implementation of commands that are common to hosted applications.
  */
-abstract class AbstractHostedAppCommand implements CommandInterface {
-    use CLIUtilsTrait, CLIFilesystemAwareTrait;
+abstract class AbstractHostedAppCommand extends AbstractCommand {
+    use CLIFilesystemAwareTrait, CLIUtilsTrait;
 
     /*
     |-------------------
@@ -45,24 +49,31 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         return sprintf( 'smliser %s <subcommand> [arguments] [--options]', static::get_type() );
     }
 
-    public function execute( array $args = [] ): void {
-        $this->start_timer();
+    public function run( CommandInput $input ): int {
+        $this->output->info( static::description() );
+        $this->output->newline();
+        $this->output->writeln( 
+            sprintf(
+                'Run `smliser %s help` to see available subcommands.', 
+                static::name()
+            )
+        );
 
-        $subcommand     = $args[0] ?? null;
-        $command_args   = array_slice( $args, 1 );
+        return 0;
+    }
 
-        match ( $subcommand ) {
-            'create'        => $this->create_app( $command_args ),
-            'update'        => $this->update_app( $command_args ),
-            'upload-asset'  => $this->upload_asset( $command_args ),
-            'change-status' => $this->change_status( $command_args ),
-            'trash'         => $this->trash_app( $command_args ),
-            'delete'        => $this->trash_app( $command_args ),
-            'purge'         => $this->purge_app( $command_args ),
-            'help'          => $this->handle_help(),
-            null            => $this->handle_default(),
-            default         => $this->handle_unknown( $subcommand ),
-        };
+    #[Override]
+    public function get_subcommands(): array {
+        return [
+            'create'        => [$this, 'create_app'],
+            'update'        => [$this, 'update_app'],
+            'upload-asset'  => [$this, 'upload_asset'],
+            'change-status' => [$this, 'change_status'],
+            'trash'         => [$this, 'trash_app'],
+            'delete'        => [$this, 'trash_app'],
+            'purge'         => [$this, 'purge_app'],
+            'help'          => [$this, 'handle_help'],
+        ];
     }
 
     public static function help(): string {
@@ -144,25 +155,15 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
     |--------------------------------------------
     */
 
-    private function handle_help(): void {
-        $this->info( sprintf( '%s Command', \ucfirst( static::get_type() ) ) );
-        $this->newline();
-        $this->line( 'Usage:' );
-        $this->line( '  ' . static::synopsis() );
-        $this->newline();
-        $this->line( static::help() );
-    }
+    private function handle_help(): int {
+        $this->output->info( sprintf( '%s Command', \ucfirst( static::get_type() ) ) );
+        $this->output->newline();
+        $this->output->info( 'Usage:' );
+        $this->output->writeln( '  ' . static::synopsis() );
+        $this->output->newline();
+        $this->output->writeln( static::help() );
 
-    private function handle_default(): void {
-        $this->info( static::description() );
-        $this->newline();
-        $this->line( sprintf( 'Run `smliser %s help` to see available subcommands.', static::name()) );
-    }
-
-    private function handle_unknown( string $subcommand ): void {
-        $this->error( sprintf( 'Unknown subcommand: %s', $subcommand ) );
-        $this->newline();
-        $this->handle_help();
+        return 0;
     }
 
     /*
@@ -174,23 +175,32 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
     /**
      * Create new app.
      * 
-     * @param array $args Subcommand arguments (excluding the subcommand itself).
+     * @param CommandInput $input
      */
-    private function create_app( array $args ) {
+    private function create_app( CommandInput $input ) : int {
 
         if ( ! $this->require_auth() ) {
-            return;
+            return 1;
         }
 
-        $opts   = $this->parse_options( $args );
+        $opts   = $input->get_options();
         $type   = static::get_type();
-        $this->start_timer();
-        $this->info( sprintf( 'Creating %s "%s"...', static::get_type(), $opts['name'] ?? '' ) );
+        
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
+
+        $this->output->info( 
+            sprintf( 
+                'Creating %s "%s"...', 
+                static::get_type(), 
+                $input->get_option( 'name', '' )
+            )
+        );
 
         $request    = $this->buildRequest( $opts );
 
         if ( null === $request ) {
-            return;
+            return 1;
         }
         
         $response = HostingController::save_app( $request );
@@ -198,36 +208,48 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         if ( $response->ok() ) {
             $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? static::get_type();
 
-            $this->done( sprintf( '%s "%s" saved successfully.', ucfirst( $type ), $slug ) );
+            $this->output->success( 
+                sprintf( 
+                    '%s "%s" saved successfully. Completed in %ss', 
+                    ucfirst( $type ),
+                    $slug,
+                    $stopwatch->elapsed()
+                )
+            );
         } else {
-            $this->error( $response->get_error_message() ?: 'Save failed.' );
+            $this->output->error( $response->get_error_message() ?: 'Save failed.' );
         }
 
+        return 0;
     }
 
     /**
      * Update an app
      */
-    private function update_app( array $args ) {
+    private function update_app( CommandInput $input ) : int {
         if ( ! $this->require_auth() ) {
-            return;
+            return 1;
         }
 
-        $opts   = $this->parse_options( $args );
         $usage  = sprintf( 'smliser %s update --slug=<slug> [options]', static::get_type() );
 
-        if ( ! $this->require_options( $opts, [ 'slug' ], $usage ) ) {
-            return;
+        if ( ! $this->require_options( $input->get_options(), [ 'slug' ], $usage ) ) {
+            return 1;
         }
 
         $type   = static::get_type();
-        $this->start_timer();
-        $this->info( sprintf( 'Updating %s "%s"...', $type, $opts['name'] ?? '' ) );
+
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
+
+        $this->output->info(
+            sprintf( 'Updating %s "%s"...', $type, $input->get_option( 'name', '' ) ) );
         
         
-        $request    = $this->buildRequest( $opts );
+        $request    = $this->buildRequest( $input->get_options() );
+
         if ( null === $request ) {
-            return;
+            return 1;
         }
 
         $response = HostingController::save_app( $request );
@@ -235,87 +257,108 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         if ( $response->ok() ) {
             $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? static::get_type();
 
-            $this->done( sprintf( '%s "%s" updated successfully.', ucfirst( $type ), $slug ) );
+            $this->output->success(
+                sprintf( 
+                    '%s "%s" updated successfully. Completed in %ss',
+                    ucfirst( $type ),
+                    $slug,
+                    $stopwatch->elapsed()
+                )
+            );
         } else {
-            $this->error( $response->get_error_message() ?: 'Update failed.' );
+            $this->output->error( $response->get_error_message() ?: 'Update failed.' );
         }
 
+        return 0;
     }
 
     /**
      * Move an application to trash.
      * 
      * Note: Only system administrators can do this.
-     * 
-     * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function trash_app( array $args ): void {
-        $opts   = $this->parse_options( $args );
-        $slug   = $opts['slug'] ?? '';
+    private function trash_app( CommandInput $input ): int {
+
+        $slug   = $input->get_option( 'slug', '' );
         $usage  = sprintf( 'smliser %s trash --slug=<slug>', static::get_type() );
 
         if ( ! $this->require_args( [ 'slug' => $slug ], $usage ) ) {
-            return;
+            return 1;
         }
         if ( ! $this->require_auth() ) {
-            return;
+            return 1;
         }
 
-        $args   = array(
-            "--slug=$slug",
-            "--status=" . AbstractHostedApp::STATUS_TRASH,
-            "--yes"
+        return $this->change_status(
+            new CommandInput( ['yes'], [
+                'slug'  => $slug,
+                'status'    => AbstractHostedApp::STATUS_TRASH,
+            ])
         );
-
-        $this->change_status( $args );
     }
 
     /**
      * Permanently delete an application — bypasses trash.
      * 
      * Note: Only system administrators can do this.
-     * 
-     * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function purge_app( array $args ): void {
-        $opts   = $this->parse_options( $args );
-        $slug   = $opts['slug'] ?? '';
+    private function purge_app( CommandInput $input ): int {
+        $slug   = $input->get_option( 'slug', '' );
 
         if ( ! $this->require_args(
             [ 'slug' => $slug ],
             sprintf( 'smliser %s purge --slug=<slug>', static::get_type() )
         ) ) {
-            return;
+            return 1;
         }
 
         if ( ! $this->require_auth() ) {
-            return;
+            return 1;
         }
 
-        $this->warning( sprintf( 'This will permanently delete "%s". This cannot be undone.', $slug ) );
+        $this->output->warning( sprintf( 'This will permanently delete "%s". This cannot be undone.', $slug ) );
 
-        if ( ! $this->confirm( 'Are you sure?', false ) ) {
-            $this->line( 'Aborted.' );
-            return;
+        if ( ! $this->io->confirm( 'Are you sure?', false ) ) {
+            $this->output->writeln( 'Aborted.' );
+            return 0;
         }
 
-        $this->start_timer();
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
         
         $type   = static::get_type();
         $app    = HostedApplicationService::get_app_by_slug( $type, $slug );
 
         if ( ! $app ) {
-            $this->error( sprintf( '%s with slug "%s" not found.', ucfirst( $type ), $slug ) );
-            return;
+            $this->output->error(
+                sprintf( '%s with slug "%s" not found.',
+                    ucfirst( $type ), $slug
+                )
+            );
+            return 1;
         }
 
-        $prompt  = $this->prompt( sprintf( 'Type "yes" to confirm permanent deletion of "%s":', $app->get_name() ), '' );
+        $prompt  = $this->io->prompt(
+            sprintf( 'Type "yes" to confirm permanent deletion of "%s":', $app->get_name() ),
+            'no'
+        );
         if ( 'yes' !== strtolower( $prompt ) ) {
-            $this->line( 'Aborted.' );
-            return;
+            $this->output->writeln( 'Aborted.' );
+            return 0;
         }
 
-        $repo_class = HostedApplicationService::get_app_repository_class( $type );
+        $repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( $type );
+
+        if ( ! $repo_class ) {
+            $this->output->error(
+                sprintf(
+                    'There is no directlory class for %s',
+                    $type
+                ) 
+            );
+
+            return 1;
+        }
 
         try {
             $app_dir    = $repo_class->enter_slug( $slug );
@@ -328,40 +371,44 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         try {
             $repo_class->delete( $app_dir, true );
             $app->delete();
-            $this->done( sprintf( '"%s" permanently deleted.', $slug ) );
+            $this->output->success(
+                sprintf( '"%s" permanently deleted. Completed in %ss', $slug, $stopwatch->elapsed() )
+            );
+
+            return 0;
         } catch ( \Throwable $e ) {
-            $this->error( sprintf( 'Failed to delete "%s": %s', $slug, $e->getMessage() ) );
+            $this->output->error( sprintf( 'Failed to delete "%s": %s', $slug, $e->getMessage() ) );
+
+            return 1;
         }
     }
 
     /**
      * Change an application's status.
-     * 
-     * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function change_status( array $args ) : void {
-        $opts   = $this->parse_options( $args );
+    private function change_status( CommandInput $input ) : int {
         $usage  = sprintf( 'smliser %s change-status --slug=<slug> --status=<status>', static::get_type() );
         
-        if ( ! $this->require_options( $opts, [ 'slug', 'status' ], $usage ) ) {
-            return;
+        if ( ! $this->require_options( $input->get_options(), [ 'slug', 'status' ], $usage ) ) {
+            return 2;
         }
 
-        $slug   = $opts['slug'];
-        $status = $opts['status'];
+        $slug   = $input->get_option( 'slug', '' );
+        $status = $input->get_option( 'status', '' );
 
         if ( ! $this->require_auth() ) {
-            return;
+            return 1;
         }
 
         $confirmed  = $opts['y'] ?? $opts['yes'] ?? $opts['force'] ?? $opts['f'] ?? false;
 
-        if ( ! $confirmed && ! $this->confirm( sprintf( 'Change status of "%s" to "%s"?', $slug, $status ) ) ) {
-            $this->line( 'Aborted.' );
-            return;
+        if ( ! $confirmed && ! $this->io->confirm( sprintf( 'Change status of "%s" to "%s"?', $slug, $status ) ) ) {
+            $this->output->info( 'Aborted.' );
+            return 0;
         }
 
-        $this->start_timer();
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
 
         $request = new Request( [
             'app_slug'   => $slug,
@@ -372,31 +419,39 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         $response = HostingController::change_app_status( $request );
 
         if ( $response->ok() ) {
-            $this->done( sprintf( 'Status of "%s" changed to "%s".', $slug, $status ) );
-        } else {
-            $this->error( $response->get_error_message() );
+            $this->output->success(
+                sprintf(
+                    'Status of "%s" changed to "%s". Completed in %ss',
+                    $slug, $status, $stopwatch->elapsed()
+                )
+            );
+
+            return 0;
         }
+            
+        $this->output->error( $response->get_error_message() );
+        return 1;
     }
 
     /**
      * Upload app asset.
-     * 
-     * @param array $args Subcommand arguments (excluding the subcommand itself).
      */
-    private function upload_asset( array $args ) : void {
+    private function upload_asset( CommandInput $input ) : int {
 
-        $opts   = $this->parse_options( $args );
         $usage  = sprintf( 'smliser %s upload-asset --slug=<slug> --asset-type=<type> [--path=<path> | --url=<url>] [--asset-name=<name>]', static::get_type() );
 
-        if ( ! $this->require_options( $opts, [ 'slug', 'asset-type' ], $usage ) ) {
-            return;
+        if ( ! $this->require_options( $input->get_options(), [ 'slug', 'asset-type' ], $usage ) ) {
+            return 2;
         }
 
-        $request    = $this->buildAssetsRequest( $opts );
+        $request    = $this->buildAssetsRequest( $input->get_options() );
 
         if ( ! $request ) {
-            return;
+            return 1;
         }
+
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
 
         $response   = HostingController::app_asset_upload( $request );
 
@@ -407,8 +462,8 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             
 
             if ( $results instanceof Exception ) {
-                $this->error( $results->get_error_message() );
-                return;
+                $this->output->error( $results->get_error_message() );
+                return 1;
             }
 
             if ( $request->has( 'asset_name' ) ) {
@@ -421,25 +476,29 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
                     ]
                 ];
 
-                $this->table( $t_header, $t_row );
-                $this->done( 'Asset uploaded.', true );
-                return;
+                $this->output->table( $t_header, $t_row );
+                $this->output->success(
+                    'Asset uploaded.'
+                    
+                );
+
+                return 0;
             }
             
-            $this->line( 'Upload results:' );
+            $this->output->info( 'Upload results:' );
             
             $uploaded   = $results['uploaded'] ?? [];
             $failed     = $results['failed'] ?? [];
 
             if ( ! empty( $failed ) ) {
-                $this->table(
+                $this->output->table(
                     ['Error', 'Message'],
                     array_map( function( $er ) {
                         return [key( $er ), smliser_implode_deep( $er ) ];
                     }, $failed )
                 );                
             } else {
-                $this->line( 'All assets uploaded successfully.' );
+                $this->output->info( 'All assets uploaded successfully.' );
                 $t_header   = ['Asset Names', 'Asset URLs'];
                 $t_rows     = array_map( function( $asset ) {
                     return [
@@ -448,25 +507,30 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
                     ];
                 }, $uploaded );
 
-                $this->table( $t_header, $t_rows );
+                $this->output->table( $t_header, $t_rows );
 
                 $message = count( $uploaded ) === 1
                     ? 'Asset uploaded.'
                     : sprintf( '%d assets uploaded.', count( $uploaded ) );
-                $this->done( $message, true );
 
+                $message    = " Completed in {$stopwatch->elapsed()}s";
+                
+                $this->output->success( $message );
             }
 
+            return 0;
 
-        } else {
-            $this->error( $response->get_error_message() ?: 'Asset upload failed.' );
         }
+
+        $this->output->error( $response->get_error_message() ?: 'Asset upload failed.' );
+        
+        return 1;
     }
 
     /**
      * Build app request object.
      */
-    private function buildRequest( $opts ) {
+    private function buildRequest( array $opts ) : ?Request {
         // Resolve zip file — --app-zip-path takes precedence over --app-zip-url.
         $zip_file    = null;
         $zip_cleanup = null;
@@ -474,12 +538,12 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         if ( ! empty( $opts['app-zip-path'] ) ) {
             $zip_file = $this->resolve_local_file( (string) $opts['app-zip-path'] );
             if ( $zip_file === null ) {
-                return;
+                return null;
             }
         } elseif ( ! empty( $opts['app-zip-url'] ) ) {
             $zip_file = $this->download_to_tmp( (string) $opts['app-zip-url'] );
             if ( $zip_file === null ) {
-                return;
+                return null;
             }
         }
 
@@ -490,12 +554,12 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
         if ( ! empty( $opts['app-json-path'] ) ) {
             $json_file = $this->resolve_local_file( (string) $opts['app-json-path'] );
             if ( $json_file === null ) {
-                return;
+                return null;
             }
         } elseif ( ! empty( $opts['app-json-url'] ) ) {
             $json_file = $this->download_to_tmp( (string) $opts['app-json-url'] );
             if ( $json_file === null ) {
-                return;
+                return null;
             }
         }
 
@@ -524,7 +588,7 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             $request = $this->inject_uploaded_file( $request, $zip_file, 'app_zip_file' );
             if ( $request === null ) {
                 $this->cleanup( $zip_cleanup, $json_cleanup );
-                return;
+                return null;
             }
         }
 
@@ -533,7 +597,7 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
             $request = $this->inject_uploaded_file( $request, $json_file, 'app_json_file' );
             if ( $request === null ) {
                 $this->cleanup( $zip_cleanup, $json_cleanup );
-                return;
+                return null;
             }
         }
 
@@ -585,7 +649,7 @@ abstract class AbstractHostedAppCommand implements CommandInterface {
                 $asset_files[] = $asset_file;
             }
         } else {
-            $this->error( 'Either --path or --url must be provided for the asset.' );
+            $this->output->error( 'Either --path or --url must be provided for the asset.' );
             return null;
         }
 

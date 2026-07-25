@@ -11,16 +11,15 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
-use SmartLicenseServer\Console\Traits\CLIAwareTrait;
-use SmartLicenseServer\Console\Contracts\CommandInterface;
+use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Utils\Stopwatch;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
 
 /**
  * Installs default permission roles.
  */
-class InstallRolesCommand implements CommandInterface {
-    use CLIAwareTrait;
+class InstallRolesCommand extends AbstractCommand {
 
     public static function name(): string {
         return 'install:roles';
@@ -29,6 +28,7 @@ class InstallRolesCommand implements CommandInterface {
     public static function description(): string {
         return 'Install default permission roles.';
     }
+
     public static function synopsis(): string {
         return 'smliser install:roles';
     }
@@ -37,16 +37,26 @@ class InstallRolesCommand implements CommandInterface {
         return '';
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * No subcommands here, so get_subcommands()/definition() stay at
+     * AbstractCommand's defaults (both empty arrays) — no need to
+     * redeclare them just to return the same thing.
+     */
+    public function run( CommandInput $input ): int {
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
 
-    public function execute( array $args = [] ): void {
-        $this->start_timer();
-        $this->info( 'Installing default roles...' );
-        $this->newline();
+        $this->output->info( 'Installing default roles...' );
+        $this->output->newline();
 
         $this->install_default_roles();
 
-        $this->newline();
-        $this->done( 'All roles processed.' );
+        $this->output->newline();
+        $this->output->success( sprintf( 'All roles processed. Completed in %ss.', $stopwatch->elapsed() ) );
+
+        return 0;
     }
 
     /**
@@ -56,11 +66,10 @@ class InstallRolesCommand implements CommandInterface {
      */
     private function install_default_roles(): void {
         $default_roles = DefaultRoles::all();
-        $headers       = [ 'Role', 'Result' ];
         $rows          = [];
 
         foreach ( $default_roles as $slug => $roledata ) {
-            $role = new Role;
+            $role = new Role();
             $role->set_capabilities( $roledata['capabilities'] );
             $role->set_label( $roledata['label'] );
             $role->set_is_canonical( $roledata['is_canonical'] );
@@ -77,6 +86,6 @@ class InstallRolesCommand implements CommandInterface {
             }
         }
 
-        $this->table( $headers, $rows );
+        $this->output->table( [ 'Role', 'Result' ], $rows );
     }
 }

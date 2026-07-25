@@ -16,6 +16,11 @@ use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Runners\CLIRunner;
 use SmartLicenseServer\Console\Runners\InteractiveShell;
 use Callismart\DBPrism\DBConfigDTO;
+use SmartLicenseServer\Console\ConsoleInput;
+use SmartLicenseServer\Console\ConsoleOutput;
+use SmartLicenseServer\Console\HistoryAwareInput;
+use SmartLicenseServer\Console\Runners\RunnerInterface;
+use SmartLicenseServer\Console\TerminalCapabilities;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
@@ -156,16 +161,64 @@ class CLIEnvironment extends Environment {
     }
 
     /**
-     * Initialize the CLI envionment and hand over the request to the runner.
-     * 
+     * Initialize the CLI environment and hand over the request to the runner.
+     *
      * @return void
      */
     private function init() : void {
-        $registry   = CommandRegistry::instance();
-        $argv       = $GLOBALS['argv'] ?? [];
-        $runner     = isset( $argv[1] ) ? new CLIRunner( $registry, $argv ) : new InteractiveShell( $registry );
-        
-        $runner->register();
+        $argv   = $GLOBALS['argv'] ?? [];
+        $runner = $this->build_runner( $argv );
+
+        exit( $runner->init() );
+    }
+
+    /**
+     * Build the appropriate runner for this invocation.
+     *
+     * One-shot dispatch (`smliser <command> ...`) gets a CLIRunner.
+     * No command argument at all (`smliser`) gets the interactive shell.
+     *
+     * @param array<int, string> $argv
+     * @return RunnerInterface
+     */
+    private function build_runner( array $argv ) : RunnerInterface {
+        $registry = CommandRegistry::instance();
+        $terminal = new TerminalCapabilities();
+        $output   = new ConsoleOutput( $terminal );
+        $input    = new ConsoleInput( $terminal );
+
+        if ( isset( $argv[1] ) ) {
+            return new CLIRunner( $registry, $argv, $input, $output );
+        }
+
+        return new InteractiveShell(
+            $registry,
+            $this->build_shell_input( $input, $terminal ),
+            $output,
+            $terminal
+        );
+    }
+
+    /**
+     * Wrap the base ConsoleInput with history-aware (↑/↓) reading for
+     * the interactive shell. CLIRunner does not need this — a one-shot
+     * invocation has no session to navigate history within.
+     *
+     * @param ConsoleInput         $input
+     * @param TerminalCapabilities $terminal
+     * @return HistoryAwareInput
+     */
+    private function build_shell_input( ConsoleInput $input, TerminalCapabilities $terminal ) : HistoryAwareInput {
+        return new HistoryAwareInput( $input, $terminal, $this->shell_history_path() );
+    }
+
+    /**
+     * Absolute path to the interactive shell's persisted history file.
+     *
+     * @return string
+     */
+    private function shell_history_path() : string {
+        return SMLISER_ROOT . '.smliser.shell_history';
     }
 
     /*

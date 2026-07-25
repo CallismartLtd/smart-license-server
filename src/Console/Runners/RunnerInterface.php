@@ -12,22 +12,18 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Runners;
 
 /**
- * Defines the contract every environment-specific command runner must implement.
- *
- * A runner bridges the CommandRegistry and the host environment. It is
- * responsible for resolving commands from the registry and wiring them
- * into whatever dispatch mechanism the environment provides.
+ * Contract for a top-level CLI runner — the one-shot CLIRunner or the
+ * interactive shell — invoked once by CLIEnvironment with the full
+ * dispatch lifecycle handed off to it.
  */
 interface RunnerInterface {
 
     /**
-     * Register all commands from the registry with the host environment.
+     * Run the CLI session to completion.
      *
-     * For plain PHP CLI this runs the dispatch loop immediately.
-     * For WP-CLI this registers each command with WP_CLI::add_command().
-     * For Laravel this registers each command as an Artisan command.
-     *
-     * @return void
+     * @return int Process exit code — 0 for success, non-zero for
+     *             failure. CLIEnvironment is expected to call
+     *             `exit( $runner->init() )` with this value.
      */
-    public function register(): void;
+    public function init(): int;
 }

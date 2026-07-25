@@ -11,15 +11,16 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Traits\CLIAwareTrait;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
+use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Processes background jobs and runs due scheduled tasks in a single pass.
  * The most common command to wire into a system crontab or WP-CLI schedule.
  */
-class WorkScheduleCommand implements CommandInterface {
-    use CLIAwareTrait;
+class WorkScheduleCommand extends AbstractCommand {
 
     public static function name(): string {
         return 'work:schedule';
@@ -37,32 +38,31 @@ class WorkScheduleCommand implements CommandInterface {
     }
 
 
-    public function execute( array $args = [] ): void {
-        $this->start_timer();
+    public function run( CommandInput $input ): int {
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
 
         // Queue.
-        $this->info( 'Processing queue...' );
+        $this->output->info( 'Processing queue...' );
         $processed = smliser_queue_worker()->process_within_time_budget();
 
         if ( $processed === 0 ) {
-            $this->line( 'No jobs were waiting in the queue.', self::VERBOSITY_VERBOSE );
+            $this->output->writeln( 'No jobs were waiting in the queue.' );
         } else {
-            $this->line( sprintf( '%d job(s) processed.', $processed ), self::VERBOSITY_VERBOSE );
+            $this->output->writeln( sprintf( '%d job(s) processed.', $processed ) );
         }
 
-        $this->newline();
-
         // Scheduler.
-        $this->info( 'Running due scheduled tasks...' );
+        $this->output->info( 'Running due scheduled tasks...' );
         $results = smliser_scheduler()->run_due_tasks();
         $total   = count( $results );
         $failed  = count( array_filter( $results, fn( $r ) => $r === false ) );
 
         if ( $total === 0 ) {
-            $this->line( 'No tasks were due.', self::VERBOSITY_VERBOSE );
+            $this->output->writeln( 'No tasks were due.' );
         } else {
-            $this->newline();
-            $this->table(
+
+            $this->output->table(
                 [ 'Task', 'Result' ],
                 array_map(
                     fn( $id, $ok ) => [ $id, $ok ? '✔ Passed' : '✖ Failed' ],
@@ -72,17 +72,19 @@ class WorkScheduleCommand implements CommandInterface {
             );
 
             if ( $failed > 0 ) {
-                $this->newline();
-                $this->warning( sprintf( '%d task(s) failed.', $failed ) );
+                $this->output->warning( sprintf( '%d task(s) failed.', $failed ) );
             }
         }
 
-        $this->newline();
-        $this->done( sprintf(
-            'Queue: %d job(s) processed. Scheduler: %d task(s) ran, %d failed.',
+        $this->output->writeln( '' );
+        $this->output->success( sprintf(
+            'Queue: %d job(s) processed. Scheduler: %d task(s) ran, %d failed. Completed in %ss',
             $processed,
             $total,
-            $failed
+            $failed,
+            $stopwatch->elapsed()
         ) );
+
+        return 0;
     }
 }

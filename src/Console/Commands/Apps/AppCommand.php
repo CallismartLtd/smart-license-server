@@ -34,16 +34,18 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands\Apps;
 
+use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Console\Commands\AbstractCommand;
 use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
-use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Console\Traits\CLIFilesystemAwareTrait;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Manage hosted applications from the CLI.
  */
-class AppCommand implements CommandInterface {
+class AppCommand extends AbstractCommand {
     use CLIUtilsTrait, CLIFilesystemAwareTrait;
 
     /*
@@ -88,18 +90,22 @@ class AppCommand implements CommandInterface {
         ] );
     }
 
-    public function execute( array $args = [] ): void {
-        $subcommand = $args[0] ?? null;
+    public function run( CommandInput $input ): int {
+        $this->output->info( static::description() );
+        $this->output->newline();
+        $this->output->writeln( 'Run `smliser app help` to see available subcommands.' );
 
-        match ( $subcommand ) {
-            'list'          => $this->handle_list( array_slice( $args, 1 ) ),
-            'search'        => $this->handle_search( array_slice( $args, 1 ) ),
-            'get'           => $this->handle_get( $args[1] ?? '', $args[2] ?? '' ),
-            'count'         => $this->handle_count( array_slice( $args, 1 ) ),
-            'help'          => $this->handle_help(),
-            null            => $this->handle_default(),
-            default         => $this->handle_unknown( $subcommand ),
-        };
+        return 0;
+    }
+
+    public function get_subcommands() : array {
+        return [
+            'list'      => [$this, 'handle_list'],
+            'search'    => [$this, 'handle_search'],
+            'get'       => [$this, 'handle_get'],
+            'count'     => [$this, 'handle_count'],
+            'help'      => [$this, 'handle_help'],
+        ];
     }
 
     /*
@@ -111,15 +117,16 @@ class AppCommand implements CommandInterface {
     /**
      * List hosted applications with optional filters.
      */
-    private function handle_list( array $args ): void {
-        $opts   = $this->parse_options( $args );
-        $types  = isset( $opts['type'] ) ? (array) $opts['type'] : [ 'plugin', 'theme', 'software' ];
+    public function handle_list( CommandInput $input ): int {
+        $types  = $input->has_option( 'type' ) ? (array) $input->get_option( 'type' ) : [ 'plugin', 'theme', 'software' ];
         $status = $opts['status'] ?? AbstractHostedApp::STATUS_ACTIVE;
-        $page   = (int) ( $opts['page']  ?? 1 );
-        $limit  = (int) ( $opts['limit'] ?? 20 );
-
-        $this->start_timer();
-        $this->info( sprintf( 'Fetching apps — type: %s, status: %s, page: %d', implode( ', ', $types ), $status, $page ) );
+        $page   = (int) $input->get_option( 'page', 1 );
+        $limit  = (int) $input->get_option( 'limit', 20 );
+        
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
+        
+        $this->output->info( sprintf( 'Fetching apps — type: %s, status: %s, page: %d', implode( ', ', $types ), $status, $page ) );
 
         $result = HostedApplicationService::get_apps( compact( 'page', 'limit', 'status', 'types' ) );
 
@@ -127,8 +134,8 @@ class AppCommand implements CommandInterface {
         $pagination = $result['pagination'] ?? [];
 
         if ( empty( $items ) ) {
-            $this->warning( 'No applications found.' );
-            return;
+            $this->output->warning( 'No applications found.' );
+            return 0;
         }
 
         $rows = [];
@@ -144,12 +151,12 @@ class AppCommand implements CommandInterface {
             ];
         }
 
-        $this->newline();
-        $this->table( [ 'ID', 'Name', 'Slug', 'Type', 'Status', 'Created', 'Updated' ], $rows );
+        $this->output->newline();
+        $this->output->table( [ 'ID', 'Name', 'Slug', 'Type', 'Status', 'Created', 'Updated' ], $rows );
 
         if ( ! empty( $pagination ) ) {
-            $this->newline();
-            $this->line( sprintf(
+            $this->output->newline();
+            $this->output->writeln( sprintf(
                 'Page %d of %d  ·  %d total',
                 $pagination['page'],
                 $pagination['total_pages'],
@@ -157,27 +164,32 @@ class AppCommand implements CommandInterface {
             ) );
         }
 
-        $this->done( '', true );
+        $this->output->success(
+            sprintf( 'Completed in %ss', $stopwatch->elapsed() )
+        );
+
+        return 0;
     }
 
     /**
      * Search applications by term.
      */
-    private function handle_search( array $args ): void {
-        $term = $args[0] ?? null;
+    public function handle_search( CommandInput $input ): int {
+        $term = $input->get_option( 'term' );
 
         if ( empty( $term ) ) {
-            $this->error( 'Usage: smliser app search <term> [--type=...] [--limit=20]' );
-            return;
+            $this->output->error( 'Usage: smliser app search [--term...] [--type=...] [--limit=20]' );
+            return 1;
         }
 
-        $opts  = $this->parse_options( $args );
-        $types = isset( $opts['type'] ) ? (array) $opts['type'] : [ 'plugin', 'theme', 'software' ];
-        $limit = (int) ( $opts['limit'] ?? 20 );
-        $page  = (int) ( $opts['page']  ?? 1 );
+        $types = $input->has_option( 'type' ) ? (array) $input->get_option( 'type', [] ) : [ 'plugin', 'theme', 'software' ];
+        $limit = (int) $input->get_option( 'limit', 20 );
+        $page  = (int) $input->get_option( 'page', 1 );
 
-        $this->start_timer();
-        $this->info( sprintf( 'Searching for "%s"...', $term ) );
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
+
+        $this->output->info( sprintf( 'Searching for "%s"...', $term ) );
 
         $result = HostedApplicationService::search_apps( [
             'term'  => $term,
@@ -189,8 +201,8 @@ class AppCommand implements CommandInterface {
         $items = $result['items'] ?? [];
 
         if ( empty( $items ) ) {
-            $this->warning( sprintf( 'No results found for "%s".', $term ) );
-            return;
+            $this->output->warning( sprintf( 'No results found for "%s".', $term ) );
+            return 0;
         }
 
         $rows = [];
@@ -204,39 +216,43 @@ class AppCommand implements CommandInterface {
             ];
         }
 
-        $this->newline();
-        $this->table( [ 'ID', 'Name', 'Slug', 'Type', 'Status' ], $rows );
-        $this->newline();
-        $this->line( sprintf( '%d result(s) found.', count( $items ) ) );
-        $this->done( '', true );
+        $this->output->newline();
+        $this->output->table( [ 'ID', 'Name', 'Slug', 'Type', 'Status' ], $rows );
+        $this->output->newline();
+        $this->output->writeln( sprintf( '%d result(s) found.', count( $items ) ) );
+        $this->output->success( sprintf( 'Completed in %ss', $stopwatch->elapsed() ) );
+
+        return 0;
     }
 
     /**
      * Show full details for a single application.
-     * 
-     * @param string $type App type.
-     * @param string $slug App slug
      */
-    private function handle_get( string $type, string $slug ): void {
+    public function handle_get( CommandInput $input ): int {
+        $type   = $input->get_option( 'type' );
+        $slug   = $input->get_option( 'slug' );
+
         if ( ! $this->require_args( [ 'type' => $type, 'slug' => $slug ], 'smliser app get <type> <slug>' ) ) {
-            return;
+            return 2;
         }
 
-        $this->start_timer();
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
+
         $app = HostedApplicationService::get_app_by_slug( $type, $slug );
 
         if ( ! $app ) {
-            $this->error( sprintf( 'App "%s" of type "%s" not found.', $slug, $type ) );
-            return;
+            $this->output->error( sprintf( 'App "%s" of type "%s" not found.', $slug, $type ) );
+            return 1;
         }
 
         $data = $app->get_rest_response();
 
-        $this->newline();
-        $this->info( sprintf( '%s / %s', $app->get_type(), $app->get_name() ) );
-        $this->newline();
+        $this->output->newline();
+        $this->output->info( sprintf( '%s / %s', $app->get_type(), $app->get_name() ) );
+        $this->output->newline();
 
-        $this->table( [ 'Field', 'Value' ], [
+        $this->output->table( [ 'Field', 'Value' ], [
             [ 'ID',        $app->get_id() ],
             [ 'Name',      $app->get_name() ],
             [ 'Slug',      $app->get_slug() ],
@@ -246,30 +262,32 @@ class AppCommand implements CommandInterface {
             [ 'Author',    $app->get_author() ],
             [ 'Homepage',  $app->get_homepage() ],
             [ 'Download',  $app->get_download_url() ],
-            [ 'Monetized', $app->is_monetized() ? 'yes' : 'no' ],
-            [ 'Created',   $app->get_date_created() ],
-            [ 'Updated',   $app->get_last_updated() ],
+            [ 'Monetized', $app->is_monetized() ? 'YES' : 'NO' ],
+            [ 'Created',   $app->get_created_at()->format( \smliser_datetime_format() ) ],
+            [ 'Updated',   $app->get_updated_at()->format( \smliser_datetime_format() ) ],
         ] );
 
-        $this->done( '', true );
+        $this->output->success( \sprintf( 'Completed in %ss', $stopwatch->elapsed() ) );
+
+        return 0;
     }
 
     /**
      * Count applications with optional filters.
      */
-    private function handle_count( array $args ): void {
-        $opts   = $this->parse_options( $args );
-        $types  = isset( $opts['type'] ) ? (array) $opts['type'] : [ 'plugin', 'theme', 'software' ];
-        $status = $opts['status'] ?? AbstractHostedApp::STATUS_ACTIVE;
+    public function handle_count( CommandInput $input ): int {
+        $types  = $input->has_option( 'type' ) ? (array) $input->get_option( 'type', [] ) : [ 'plugin', 'theme', 'software' ];
+        $status = $input->get_option( 'status', AbstractHostedApp::STATUS_ACTIVE );
+        $count  = HostedApplicationService::count_apps( compact( 'types', 'status' ) );
 
-        $count = HostedApplicationService::count_apps( compact( 'types', 'status' ) );
-
-        $this->info( sprintf(
+        $this->output->info( sprintf(
             '%d application(s) — type: %s, status: %s',
             $count,
             implode( ', ', $types ),
             $status
         ) );
+
+        return 0;
     }
 
     /*
@@ -278,24 +296,13 @@ class AppCommand implements CommandInterface {
     |--------------------------------------------
     */
 
-    private function handle_help(): void {
-        $this->info( 'App Command' );
-        $this->newline();
-        $this->line( 'Usage:' );
-        $this->line( '  ' . static::synopsis() );
-        $this->newline();
-        $this->line( static::help() );
-    }
-
-    private function handle_default(): void {
-        $this->info( static::description() );
-        $this->newline();
-        $this->line( 'Run `smliser app help` to see available subcommands.' );
-    }
-
-    private function handle_unknown( string $subcommand ): void {
-        $this->error( sprintf( 'Unknown subcommand: %s', $subcommand ) );
-        $this->newline();
-        $this->handle_help();
+    public function handle_help(): int {
+        $this->output->info( 'App Command' );
+        $this->output->newline();
+        $this->output->writeln( 'Usage:' );
+        $this->output->writeln( '  ' . static::synopsis() );
+        $this->output->newline();
+        $this->output->writeln( static::help() );
+        return 0;
     }
 }

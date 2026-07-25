@@ -16,7 +16,7 @@
  * Inside the shell every registered command works exactly as on the
  * command line, minus the leading "smliser" token:
  *
- *   smliser > cache stats
+ *   smliser > license list
  *   smliser > app list --type=plugin
  *   smliser > help
  *   smliser > help cache
@@ -35,24 +35,36 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Runners;
 
-use SmartLicenseServer\Console\Traits\ShellHistoryTrait;
-use SmartLicenseServer\Console\Traits\CLIWelcomeTrait;
+use SmartLicenseServer\Console\AbstractCommandRouter;
+use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Console\Commands\SmliserCommand;
+use SmartLicenseServer\Console\ConsoleOutput;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\OptionParser;
+use SmartLicenseServer\Console\TerminalCapabilities;
+use SmartLicenseServer\Console\Traits\CLIWelcomeTrait;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Interactive REPL shell for the SmartLicenseServer CLI.
  *
- * Extends SmliserCommand so it inherits print_global_help(),
- * print_command_help(), print_info(), and print_error() without
- * duplication. Implements RunnerInterface so it is a proper runner
- * and can replace CLIRunner at the entry point transparently.
+ * Extends AbstractCommandRouter for print_global_help(),
+ * print_command_help(), print_info(), route_command(), and
+ * split_invocation() — none of which touch STDIN/STDOUT directly,
+ * since AbstractCommandRouter writes only through the injected
+ * OutputInterface.
+ *
+ * Reads go through the injected InputInterface's read_line() — in
+ * practice a HistoryAwareInput wrapping a ConsoleInput, wired up by
+ * CLIEnvironment — rather than this class touching STDIN or the old
+ * ShellHistoryTrait itself. That keeps the shell's own code ignorant
+ * of *how* history/raw-mode reading works, matching how CLIRunner
+ * doesn't know or care that ConsoleInput exists underneath its $io.
  */
-class InteractiveShell extends SmliserCommand implements RunnerInterface {
+class InteractiveShell extends AbstractCommandRouter implements RunnerInterface {
 
     use CLIWelcomeTrait;
-    use ShellHistoryTrait;
 
     /*
     |------------
@@ -72,17 +84,25 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     */
 
     /**
-     * @param CommandRegistry $registry The command registry singleton.
+     * @param CommandRegistry      $registry
+     * @param InputInterface       $io
+     * @param OutputInterface      $output
+     * @param TerminalCapabilities $terminal Needed here only to decide
+     *                                       whether to colorize the
+     *                                       prompt/banner — everything
+     *                                       else goes through $output.
      */
-    public function __construct( CommandRegistry $registry ) {
-        $this->registry = $registry;
-        // $argv is not used by the shell — initialise to an empty vector
-        // so the inherited SmliserCommand property is always defined.
-        $this->argv = [];
-
+    public function __construct(
+        CommandRegistry $registry,
+        InputInterface $io,
+        OutputInterface $output,
+        private TerminalCapabilities $terminal
+    ) {
         if ( ! defined( 'SMLISER_INTERACTIVE_SHELL' ) ) {
             define( 'SMLISER_INTERACTIVE_SHELL', true );
         }
+
+        parent::__construct( $registry, $io, $output );
     }
 
     /*
@@ -92,41 +112,41 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     */
 
     /**
-     * Start the interactive REPL loop.
+     * {@inheritdoc}
      *
      * Prints the welcome banner, then repeatedly reads a line of input,
-     * parses it into tokens, and dispatches the first token as a command
-     * name. Continues until the user types an exit token or sends EOF
-     * (Ctrl-D on POSIX / Ctrl-Z on Windows).
-     *
-     * @return void
+     * parses it into tokens, and dispatches it. Continues until the
+     * operator types an exit token or sends EOF (Ctrl-D on POSIX /
+     * Ctrl-Z on Windows).
      */
-    public function register(): void {
+    public function init(): int {
         $this->print_banner();
 
         while ( true ) {
-            $raw = $this->read_line();
+            $raw = $this->io->read_line( $this->prompt_string() );
 
-            // EOF — Ctrl-D / Ctrl-Z.
-            if ( $raw === null ) {
-                echo PHP_EOL;
+            // EOF — Ctrl-D / Ctrl-Z / closed stream.
+            if ( null === $raw ) {
+                $this->output->newline();
                 $this->print_goodbye();
                 break;
             }
 
             $raw = trim( $raw, " \t\n\r\0\x0B\v;" );
 
-            if ( $raw === '' ) {
+            if ( '' === $raw ) {
                 continue;
             }
 
-            if ( in_array( $raw, self::EXIT_TOKENS, true ) ) {
+            if ( in_array( $raw, static::EXIT_TOKENS, true ) ) {
                 $this->print_goodbye();
                 break;
             }
 
             $this->dispatch( $raw );
         }
+
+        return 0;
     }
 
     /*
@@ -136,26 +156,18 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     */
 
     /**
-     * Read one line of input from STDIN, with history support.
+     * Build the colored prompt string for the current session.
      *
-     * Delegates entirely to ShellHistoryTrait::history_read_line() which
-     * selects the best available strategy for the current platform:
-     *   - readline extension  → native history + editing (all platforms)
-     *   - pure-PHP raw input  → in-memory history with ↑/↓ navigation
-     *   - plain fgets()       → non-TTY / piped input fallback
-     *
-     * @return string|null The trimmed input line, or null on EOF.
+     * @return string
      */
-    private function read_line(): ?string {
+    private function prompt_string(): string {
         $principal      = Guard::get_principal();
         $prompt_symbol  = $principal?->is( 'system_admin' ) ? '#' : '>';
-        $version_string = smliser_debug_enabled() ? '-' . SMLISER_VER : '';
-        $prompt_slug    = \str_replace( ['_', ' '], '-', strtolower( SMLISER_APP_NAME ) );
+        $version_string = smliser_debug_enabled() ? '-' . \SMLISER_VER : '';
+        $prompt_slug    = str_replace( [ '_', ' ' ], '-', strtolower( \SMLISER_APP_NAME ) );
         $prompt         = sprintf( '[%s%s] %s ', $prompt_slug, $version_string, $prompt_symbol );
-        
-        return $this->history_read_line(
-            $this->colorize( static::ANSI_GREEN, $prompt )
-        );
+
+        return $this->colorize( ConsoleOutput::ANSI_GREEN, $prompt );
     }
 
     /*
@@ -167,70 +179,43 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     /**
      * Parse and execute one line of input.
      *
-     * The first token is treated as the command name; the remaining
-     * tokens are passed as $args to the command's execute() method,
-     * matching exactly what CLIRunner does for one-shot invocations.
-     *
-     * Built-in shell commands (help, version, clear) are handled before
-     * the registry lookup so they are always available even if a custom
-     * command happens to shadow one of their names.
-     *
      * @param string $line A non-empty, trimmed input line.
      * @return void
      */
     private function dispatch( string $line ): void {
-        $tokens  = $this->tokenize( $line );
-        $command = array_shift( $tokens ); // first token = command name
-        $args    = $tokens;
+        $tokens = $this->tokenize( $line );
 
-        if ( in_array( $command, [ 'version', '-v', '--version' ], true ) ) {
-            $this->print_info();
-            return;
-        }
-
-        if ( in_array( $command, [ 'help', '-h', '--help' ], true ) ) {
-            $target = $args[0] ?? null;
-
-            if ( null !== $target && $this->registry->has( $target ) ) {
-                $this->print_command_help( $this->registry->get( $target ) );
-            } else {
-                $this->print_shell_help();
-            }
-
-            return;
-        }
-
-        if ( in_array( $command, [ 'clear', 'cls' ], true ) ) {
+        if ( in_array( $tokens[0] ?? null, [ 'clear', 'cls' ], true ) ) {
             $this->clear_screen();
             return;
         }
 
-        $class = $this->registry->get( $command );
+        [ $command, $subcommand, $args ] = $this->split_invocation( $tokens );
 
-        if ( null === $class ) {
-            $this->error( sprintf( 'Unknown command "%s". Type "help" for a list.', $command ) );
-            return;
-        }
+        $option_parser = new OptionParser();
+        $parsed        = $option_parser->parse( $args );
 
-        // Per-command help flags anywhere in the args list.
-        if ( $this->args_request_help( $args ) ) {
-            $this->print_command_help( $class );
-            return;
-        }
+        $command_input = new CommandInput(
+            (array) ( $parsed['arguments'] ?? [] ),
+            (array) ( $parsed['options'] ?? [] )
+        );
 
-        // Execute — catch every Throwable so one 
-        // bad command cannot kill the session.
+        // Execute — catch every Throwable so one bad command cannot
+        // kill the session. The exit code isn't surfaced anywhere —
+        // an interactive session doesn't have a process exit code to
+        // report it to — but a failed command has already reported
+        // its own error via print_error()/$this->output->error()
+        // before returning it.
         try {
-            ( new $class() )->execute( $args );
+            $this->route_command( $command_input, $command, $subcommand );
         } catch ( \Throwable $e ) {
-            $message    = \sprintf(
-                '%s thrown in %s (%s)', 
-                $e->getMessage(), $e->getFile(), $e->getLine()
-            );
-
-            $this->print_error( $message );
+            $this->print_error( sprintf(
+                '%s thrown in %s (%s)',
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            ) );
         } finally {
-            // Drop connections to free up resources.
             $db = smliser_db();
 
             if ( $db->is_connected() ) {
@@ -253,19 +238,19 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      *   'app search "my plugin" --limit=5' → ['app', 'search', 'my plugin', '--limit=5']
      *   "cache get 'some key'"             → ['cache', 'get', 'some key']
      *
-     * @param  string   $line
+     * @param string $line
      * @return string[]
      */
     private function tokenize( string $line ): array {
-        $tokens     = [];
-        $current    = '';
-        $in_quote   = null; // null | '"' | "'"
-        $length     = strlen( $line );
+        $tokens   = [];
+        $current  = '';
+        $in_quote = null;
+        $length   = strlen( $line );
 
         for ( $i = 0; $i < $length; $i++ ) {
             $char = $line[ $i ];
 
-            if ( $in_quote !== null ) {
+            if ( null !== $in_quote ) {
                 if ( $char === $in_quote ) {
                     $in_quote = null;
                 } else {
@@ -274,15 +259,15 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
                 continue;
             }
 
-            if ( $char === '"' || $char === "'" ) {
+            if ( '"' === $char || "'" === $char ) {
                 $in_quote = $char;
                 continue;
             }
 
-            if ( $char === ' ' || $char === "\t" ) {
-                if ( $current !== '' ) {
-                    $tokens[]  = $current;
-                    $current   = '';
+            if ( ' ' === $char || "\t" === $char ) {
+                if ( '' !== $current ) {
+                    $tokens[] = $current;
+                    $current  = '';
                 }
                 continue;
             }
@@ -290,14 +275,12 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
             $current .= $char;
         }
 
-        if ( $current !== '' ) {
+        if ( '' !== $current ) {
             $tokens[] = $current;
         }
 
-        // Security Check: If we finished the loop but are still "in_quote", 
-        // the user provided a malformed string. You might want to warn them.
-        if ( $in_quote !== null ) {
-            $this->print_error( "Warning: Unclosed string quote detected." );
+        if ( null !== $in_quote ) {
+            $this->print_error( 'Warning: Unclosed string quote detected.' );
         }
 
         return $tokens;
@@ -317,10 +300,10 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
     private function print_banner(): void {
         $quit_tokens = implode( '", "', self::EXIT_TOKENS );
 
-        $this->line( static::ASCII_LOGO );
-        $this->line( $this->colorize( static::ANSI_BOLD, '  Smart License Server  v' . SMLISER_VER ) );
-        $this->info( sprintf( '  Type "help" to list commands. Type "%s" to quit.', $quit_tokens ) );
-        $this->newline();
+        $this->output->writeln( static::ASCII_LOGO );
+        $this->output->writeln( $this->colorize( ConsoleOutput::ANSI_BOLD, '  Smart License Server  v' . \SMLISER_VER ) );
+        $this->output->info( sprintf( '  Type "help" to list commands. Type "%s" to quit.', $quit_tokens ) );
+        $this->output->newline();
     }
 
     /**
@@ -329,25 +312,24 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * @return void
      */
     private function print_goodbye(): void {
-        $this->line( 'Goodbye.' );
+        $this->output->writeln( 'Goodbye.' );
     }
 
     /**
-     * Print the global help listing augmented with shell-specific
-     * built-in commands (clear, exit) that are not in the registry.
+     * {@inheritdoc}
      *
-     * @return void
+     * Augments the global help listing with shell-specific built-in
+     * commands (clear, exit) that are not in the registry.
      */
-    private function print_shell_help(): void {
+    protected function print_contextual_help(): void {
         $this->print_global_help();
 
-        $clear_token    = $this->is_windows() ? '"cls"' : '"clear"';
-        $exit_tokens    = implode( ', ', array_map( fn( $t ) => "\"$t\"", self::EXIT_TOKENS ) );
+        $clear_token = $this->terminal->is_windows() ? '"cls"' : '"clear"';
+        $exit_tokens = implode( ', ', array_map( fn( $t ) => "\"$t\"", self::EXIT_TOKENS ) );
 
-        echo 'Shell built-ins:' . PHP_EOL;
-        echo sprintf( '  %-30s  Clear the terminal screen.', $clear_token ) . PHP_EOL;
-        echo sprintf( '  %-30s  End the interactive session.', $exit_tokens ) . PHP_EOL;
-        echo PHP_EOL;
+        $this->output->writeln( 'Shell built-ins:' );
+        $this->output->writeln( sprintf( '  %-30s  Clear the terminal screen.', $clear_token ) );
+        $this->output->writeln( sprintf( '  %-30s  End the interactive session.', $exit_tokens ) );
     }
 
     /**
@@ -356,10 +338,32 @@ class InteractiveShell extends SmliserCommand implements RunnerInterface {
      * @return void
      */
     private function clear_screen(): void {
-        if ( $this->is_windows() ) {
+        if ( $this->terminal->is_windows() ) {
             @system( 'cls' );
-        } else {
-            echo "\033[2J\033[H";
+            return;
         }
+
+        $this->output->write( "\033[2J\033[H" );
+    }
+
+    /**
+     * Wrap a message in ANSI color codes if the terminal supports them.
+     *
+     * A small local helper rather than a call into ConsoleOutput — its
+     * colorize() is private by design (an internal detail of how it
+     * renders its own styled lines), so the shell's prompt/banner
+     * coloring goes through the same TerminalCapabilities check
+     * independently instead of reaching into ConsoleOutput's internals.
+     *
+     * @param string $code    ANSI escape code constant (see ConsoleOutput).
+     * @param string $message
+     * @return string
+     */
+    private function colorize( string $code, string $message ): string {
+        if ( ! $this->terminal->supports_ansi() ) {
+            return $message;
+        }
+
+        return $code . $message . ConsoleOutput::ANSI_RESET;
     }
 }

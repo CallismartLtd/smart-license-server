@@ -11,15 +11,13 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
-use SmartLicenseServer\Console\Traits\CLIAwareTrait;
-use SmartLicenseServer\Console\Contracts\CommandInterface;
+use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Evaluates all registered scheduled tasks and runs any that are due.
  */
-class ScheduleCommand implements CommandInterface {
-    use CLIAwareTrait;
-
+class ScheduleCommand extends AbstractCommand {
     public static function name(): string {
         return 'schedule';
     }
@@ -36,19 +34,20 @@ class ScheduleCommand implements CommandInterface {
     }
 
 
-    public function execute( array $args = [] ): void {
-        $this->start_timer();
-        $this->info( 'Running due scheduled tasks...' );
+    public function run( CommandInput $input ): int {
+        $stopwatch = new Stopwatch();
+        $stopwatch->start();
+
+        $this->output->info( 'Running due scheduled tasks...' );
 
         $results = smliser_scheduler()->run_due_tasks();
         $total   = count( $results );
         $failed  = count( array_filter( $results, fn( $r ) => $r === false ) );
 
         if ( $total === 0 ) {
-            $this->line( 'No tasks were due.', self::VERBOSITY_VERBOSE );
+            $this->output->writeln( 'No tasks were due.' );
         } else {
-            $this->newline();
-            $this->table(
+            $this->output->table(
                 [ 'Task', 'Result' ],
                 array_map(
                     fn( $id, $ok ) => [ $id, $ok ? '✔ Passed' : '✖ Failed' ],
@@ -58,12 +57,18 @@ class ScheduleCommand implements CommandInterface {
             );
 
             if ( $failed > 0 ) {
-                $this->newline();
-                $this->warning( sprintf( '%d task(s) failed.', $failed ) );
+                $this->output->warning( sprintf( '%d task(s) failed.', $failed ) );
             }
         }
 
-        $this->newline();
-        $this->done( sprintf( '%d task(s) ran, %d failed.', $total, $failed ) );
+        $this->output->success(
+            sprintf( '%d task(s) ran, %d failed. Completed in %ss', 
+                $total,
+                $failed,
+                $stopwatch->elapsed()
+            )
+        );
+
+        return 0;
     }
 }

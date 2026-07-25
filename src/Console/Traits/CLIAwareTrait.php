@@ -708,7 +708,7 @@ trait CLIAwareTrait {
      *
      * @return bool
      */
-    private function supports_ansi(): bool {
+    public function supports_ansi(): bool {
         if ( $this->cli_ansi !== null ) {
             return $this->cli_ansi;
         }
@@ -743,7 +743,7 @@ trait CLIAwareTrait {
      *
      * @return bool
      */
-    private function stty_available(): bool {
+    public function stty_available(): bool {
         if ( $this->is_windows() || ! $this->function_available( 'exec' ) ) {
             return false;
         }
@@ -764,7 +764,7 @@ trait CLIAwareTrait {
      *
      * @return bool
      */
-    private function is_tty(): bool {
+    public function is_tty(): bool {
         if ( function_exists( 'stream_isatty' ) ) {
             return (bool) @stream_isatty( STDIN );
         }
@@ -781,7 +781,7 @@ trait CLIAwareTrait {
      *
      * @return bool
      */
-    private function readline_available(): bool {
+    public function readline_available(): bool {
         return function_exists( 'readline_callback_handler_install' );
     }
 
@@ -791,7 +791,7 @@ trait CLIAwareTrait {
      * @param string $function
      * @return bool
      */
-    private function function_available( string $function ): bool {
+    public function function_available( string $function ): bool {
         if ( ! function_exists( $function ) ) {
             return false;
         }
@@ -814,7 +814,7 @@ trait CLIAwareTrait {
      *
      * @return bool
      */
-    private function is_windows(): bool {
+    public function is_windows(): bool {
         return ( defined( 'PHP_OS_FAMILY' ) ? PHP_OS_FAMILY : PHP_OS ) === 'Windows'
             || DIRECTORY_SEPARATOR === '\\';
     }

@@ -11,36 +11,40 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Runners;
 
+use SmartLicenseServer\Console\AbstractCommandRouter;
+use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Console\Commands\SmliserCommand;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\OptionParser;
 
 /**
- * Plain PHP CLI runner.
- *
- * Reads the command name from $argv, resolves it from the registry,
- * and calls execute(). Handles global and per-command help output.
+ * Plain PHP CLI runner — one-shot dispatch for `smliser <command>
+ * [<subcommand>] [args...]`.
  *
  * Supported help patterns:
  *   smliser help              → global command listing
  *   smliser help <command>    → per-command synopsis + help
- *   smliser <command> --help  → same as above
+ *   smliser <command> --help  → same as above (via args_request_help())
  *   smliser <command> -h      → same as above
  */
-class CLIRunner extends SmliserCommand implements RunnerInterface {
-
-    /*
-    |----------------------
-    | CONSTRUCTOR
-    |----------------------
-    */
+class CLIRunner extends AbstractCommandRouter implements RunnerInterface {
 
     /**
-     * @param CommandRegistry    $registry The command registry.
-     * @param array<int, string> $argv     The raw $argv array from the CLI entry point.
+     * @param CommandRegistry $registry
+     * @param array<int, string> $argv The raw $argv array from the CLI
+     *                                 entry point, script name included
+     *                                 at index 0.
+     * @param InputInterface  $io
+     * @param OutputInterface $output
      */
-    public function __construct( CommandRegistry $registry, array $argv ) {
-        $this->registry = $registry;
-        $this->argv     = $argv;
+    public function __construct(
+        CommandRegistry $registry,
+        private array $argv,
+        InputInterface $io,
+        OutputInterface $output
+    ) {
+        parent::__construct( $registry, $io, $output );
     }
 
     /*
@@ -51,69 +55,28 @@ class CLIRunner extends SmliserCommand implements RunnerInterface {
 
     /**
      * {@inheritdoc}
-     *
-     * Resolution order:
-     *   1. No command            → global help
-     *   2. `help`                → global help
-     *   3. `help <command>`      → per-command help
-     *   4. `--help` / `-h`       → global help
-     *   5. `<command> --help`    → per-command help
-     *   6. `<command> -h`        → per-command help
-     *   7. `<command> [args...]` → execute command
-     *   8. Unknown command       → error + global help
      */
-    public function register(): void {
-        $name = $this->argv[1] ?? null;
-        $args = array_slice( $this->argv, 2 );
+    public function init(): int {
+        // Strip the script name (argv[0]) before splitting — everything
+        // AbstractCommandRouter deals with is relative to the command
+        // name, not the invoking script.
+        [ $command, $subcommand, $args ] = $this->split_invocation( array_slice( $this->argv, 1 ) );
 
-        // No command given.
-        if ( $name === null ) {
-            $this->print_global_help();
-            return;
-        }
+        $option_parser = new OptionParser();
+        $parsed        = $option_parser->parse( $args );
 
-        if ( str_starts_with( $name, '-' ) || in_array( $name, ['help', 'version'], true ) ) {
-            $print_info = in_array( $name, [ 'version', '-v', '--version' ] );
+        $command_input = new CommandInput(
+            (array) ( $parsed['arguments'] ?? [] ),
+            (array) ( $parsed['options'] ?? [] )
+        );
 
-            if ( $print_info ) {
-                $this->print_info();
-                return;
-            }
-
-            $print_help = in_array( $name, [ 'help', '-h', '--help' ], true );
-            
-            // Global help flags.
-            if ( $print_help ) {
-                // `smliser help <command>` — per-command help.
-                $target = $args[0] ?? null;
-
-                if ( $target && $this->registry->has( $target ) ) {
-                    $this->print_command_help( $this->registry->get( $target ) );
-                    return;
-                }
-
-                $this->print_global_help();
-                return;
-            }
-        }
-
-        // Resolve the command class.
-        $class = $this->registry->get( $name );
-
-        if ( $class === null ) {
-            $this->print_error( sprintf( 'Unknown command "%s".', $name ) );
-            echo PHP_EOL;
-            $this->print_global_help();
-            return;
-        }
-
-        // Per-command help flags anywhere in args.
-        if ( $this->args_request_help( $args ) ) {
-            $this->print_command_help( $class );
-            return;
-        }
-
-        ( new $class() )->execute( $args );
+        return $this->route_command( $command_input, $command, $subcommand );
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    protected function print_contextual_help(): void {
+        $this->print_global_help();
+    }
 }
