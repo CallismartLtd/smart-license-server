@@ -46,8 +46,9 @@ class TestCommand extends AbstractCommand {
      * {@inheritDoc}
      */
     public static function help() : string {
+        $app_name   = \SMLISER_APP_NAME;
         return <<<HELP
-        Run PHPUnit directly through the Smart License Server CLI.
+        Run PHPUnit directly through the $app_name CLI.
 
         Examples:
         smliser test

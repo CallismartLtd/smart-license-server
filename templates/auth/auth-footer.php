@@ -19,7 +19,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 
         </div> <!-- .smliser-auth-content -->
         <footer class="smliser-auth-footer">
-            <p>&copy;<?php echo escHtml( get_bloginfo( 'name' ) );?> <?php echo escHtml( date( 'Y' ) ); ?> powered by <?php esc_html_e( 'Smart License Server', 'smliser' ); ?></p>
+            <p>&copy;<?php echo escHtml( get_bloginfo( 'name' ) );?> <?php echo escHtml( date( 'Y' ) ); ?> powered by <?php escHtml( SMLISER_APP_NAME ); ?></p>
         </footer>
     </body>
 </html>

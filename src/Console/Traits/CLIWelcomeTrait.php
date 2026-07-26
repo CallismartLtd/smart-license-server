@@ -16,7 +16,7 @@ trait CLIWelcomeTrait {
     use CLIAwareTrait;
 
     /**
-     * ASCII logo for Smart License Server
+     * ASCII logo
      */
     public const ASCII_LOGO = <<<ASCII
    _____                      _     _      _                            _____                          

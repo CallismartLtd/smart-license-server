@@ -31,7 +31,10 @@ namespace SmartLicenseServer\Console;
 /**
  * Detects terminal/environment capabilities: TTY status, ANSI/color
  * support (including NO_COLOR / FORCE_COLOR overrides and color depth),
- * platform, and availability of external tools (stty, readline).
+ * platform, and availability of external tools (stty, readline) — and
+ * owns the actual stty mode-switching (raw mode, echo suppression) so
+ * that logic exists in exactly one place instead of being duplicated
+ * across ConsoleInput and HistoryAwareInput.
  *
  * Detection results that are expensive or invariant for the life of the
  * process (ANSI support) are cached after first use. Detection results
@@ -87,63 +90,41 @@ class TerminalCapabilities {
     |--------------------------------------------
     */
 
-    /**
-     * Whether the current terminal supports ANSI escape codes.
-     *
-     * Detected once per instance and cached. Resolution order:
-     *
-     *  1. NO_COLOR set (any value)       → false, unconditionally.
-     *     Honors https://no-color.org/ — an explicit opt-out always wins.
-     *  2. FORCE_COLOR / CLICOLOR_FORCE   → true, unconditionally.
-     *     Lets users force color through pipes/redirects (e.g. `| less -R`)
-     *     where the TTY check below would otherwise disable it.
-     *  3. STDOUT is not a real TTY       → false.
-     *     Plain piped/redirected output with no override gets no colors.
-     *  4. Platform-specific check:
-     *       - Windows:       one of ANSICON, ConEmu, Windows Terminal
-     *                        (WT_SESSION), or VS Code's integrated
-     *                        terminal (TERM_PROGRAM=vscode).
-     *       - Linux / macOS: a non-empty, non-"dumb" TERM variable.
-     *
-     * @return bool
-     */
     public function supports_ansi(): bool {
         if ( null !== $this->ansi ) {
             return $this->ansi;
         }
 
-        // Explicit opt-out always wins, regardless of TTY or platform.
+        // 1. Explicit opt-out always wins (https://no-color.org/)
         if ( false !== getenv( 'NO_COLOR' ) ) {
             return $this->ansi = false;
         }
 
-        // Explicit opt-in — lets colors survive a pipe/redirect on purpose.
+        // 2. Explicit opt-in
         if ( $this->truthy_env( 'FORCE_COLOR' ) || $this->truthy_env( 'CLICOLOR_FORCE' ) ) {
             return $this->ansi = true;
         }
 
-        // Not a real TTY and no override — piped / redirected output
-        // gets no colors.
-        if ( function_exists( 'stream_isatty' ) && ! stream_isatty( STDOUT ) ) {
+        // 3. Not a TTY -> no colors
+        if ( ! $this->is_tty( STDOUT ) ) {
             return $this->ansi = false;
         }
 
+        // 4. Windows specific environments
         if ( $this->is_windows() ) {
-            // Windows Terminal sets WT_SESSION; ConEmu sets ConEmuANSI.
-            // ANSICON is a popular wrapper that adds ANSI support.
-            $this->ansi = (
+            return $this->ansi = (
                 false !== getenv( 'ANSICON' )
                 || 'ON' === getenv( 'ConEmuANSI' )
                 || false !== getenv( 'WT_SESSION' )
-                || 'vscode' === getenv( 'TERM_PROGRAM' )
+                || $this->is_known_ansi_term_program()
             );
-        } else {
-            // Linux / macOS — require a non-empty, non-"dumb" TERM.
-            $term       = (string) getenv( 'TERM' );
-            $this->ansi = ( '' !== $term && 'dumb' !== $term );
         }
 
-        return $this->ansi;
+        // 5. POSIX (Linux/macOS): Whitelist OR Capability Probe
+        return $this->ansi = (
+            $this->is_known_ansi_term_program()
+            || $this->has_ansi_capabilities()
+        );
     }
 
     /**
@@ -205,6 +186,51 @@ class TerminalCapabilities {
         return false !== $value && '' !== $value && '0' !== $value;
     }
 
+    /**
+     * Check terminal capabilities without naming specific applications.
+     */
+    private function has_ansi_capabilities(): bool {
+        // 1. Check COLORTERM — standard across modern Linux/macOS emulators
+        $colorterm = strtolower( (string) getenv( 'COLORTERM' ) );
+        if ( '' !== $colorterm ) {
+            return true;
+        }
+
+        // 2. Check TERM against standard ANSI patterns
+        $term = strtolower( (string) getenv( 'TERM' ) );
+
+        if ( '' === $term || 'dumb' === $term ) {
+            return false;
+        }
+
+        // Standard terminal patterns known to support ANSI
+        return (bool) preg_match( '/(?:color|ansi|xterm|screen|tmux|vt100|rxvt|linux)/i', $term );
+    }
+
+    /**
+     * Known TERM_PROGRAM identifiers that natively support ANSI.
+     */
+    private const ANSI_TERM_PROGRAMS = [
+        'vscode',
+        'hyper',
+        'apple_terminal',
+        'iterm.app',
+        'terminus',
+        'ghostty',
+        'wezterm',
+        'rio',
+        'foot',
+        'warp',
+    ];
+
+    /**
+     * Check if TERM_PROGRAM matches a known terminal emulator.
+     */
+    private function is_known_ansi_term_program(): bool {
+        $program = strtolower( (string) getenv( 'TERM_PROGRAM' ) );
+
+        return '' !== $program && in_array( $program, self::ANSI_TERM_PROGRAMS, true );
+    }
     /*
     |--------------------------------------------
     | PLATFORM
@@ -233,20 +259,51 @@ class TerminalCapabilities {
     /**
      * Whether the `stty` command is available on this system.
      *
-     * Always returns false on Windows — stty is a POSIX utility not
-     * present on that platform.
-     *
      * @return bool
      */
     public function stty_available(): bool {
-        if ( $this->is_windows() || ! $this->function_available( 'exec' ) ) {
+        if ( $this->is_windows() ) {
             return false;
         }
+
+        return $this->command_available( 'stty' );
+    }
+
+    /**
+     * Whether the `clear` or `cls` screen utility is available.
+     *
+     * @return bool
+     */
+    public function clear_available(): bool {
+        $utility = $this->is_windows() ? 'cls' : 'clear';
+
+        return $this->command_available( $utility );
+    }
+
+    /**
+     * Whether an external shell command/binary is executable on the system.
+     *
+     * Uses `where` on Windows and `which` on POSIX systems (Linux/macOS).
+     *
+     * @param string $command The executable name (e.g., 'stty', 'clear', 'git', 'tput').
+     * @return bool
+     */
+    public function command_available( string $command ): bool {
+        if ( ! $this->function_available( 'exec' ) ) {
+            return false;
+        }
+
+        // Sanitize the input to prevent command injection risks.
+        $command = escapeshellarg( $command );
+
+        // Determine OS-specific system lookup utility.
+        $lookup  = $this->is_windows() ? 'where' : 'which';
+        $null    = $this->is_windows() ? 'NUL' : '/dev/null';
 
         $output = [];
         $exit   = 1;
 
-        @exec( 'stty -a 2>&1', $output, $exit );
+        @exec( sprintf( '%s %s 2>%s', $lookup, $command, $null ), $output, $exit );
 
         return 0 === $exit;
     }
@@ -283,5 +340,85 @@ class TerminalCapabilities {
         }
 
         return true;
+    }
+
+    /*
+    |--------------------------------------------
+    | RAW MODE / ECHO CONTROL
+    |--------------------------------------------
+    */
+
+    /**
+     * Switch STDIN into raw mode: no line buffering (-icanon), no
+     * local echo (-echo), and return each byte as soon as it arrives
+     * rather than waiting for a full line (min 1 time 0).
+     *
+     * This is what lets a caller (HistoryAwareInput's raw-mode line
+     * editor) read and react to individual keystrokes — arrows,
+     * Backspace, Ctrl-C — instead of only receiving a complete line
+     * from the kernel's own line-editing.
+     *
+     * Centralized here rather than duplicated per caller: this is the
+     * single place that knows how to talk to the terminal via stty,
+     * matching stty_available()/command_available() already living on
+     * this class.
+     *
+     * @return bool True if raw mode was actually engaged; false if
+     *              stty or system() are unavailable, in which case the
+     *              caller should not enter a raw-mode read loop at all.
+     */
+    public function enable_raw_mode(): bool {
+        if ( ! $this->stty_available() || ! $this->function_available( 'system' ) ) {
+            return false;
+        }
+
+        @system( 'stty -icanon -echo min 1 time 0' );
+
+        return true;
+    }
+
+    /**
+     * Restore STDIN to normal (cooked) line-buffered, echoing mode.
+     *
+     * Safe to call even if enable_raw_mode() was never successfully
+     * engaged — it just checks availability again and no-ops if stty
+     * isn't usable.
+     *
+     * @return void
+     */
+    public function restore_cooked_mode(): void {
+        if ( $this->stty_available() && $this->function_available( 'system' ) ) {
+            @system( 'stty icanon echo' );
+        }
+    }
+
+    /**
+     * Suppress terminal echo only, leaving line buffering (canonical
+     * mode) intact — used for hidden input (passwords/secrets), which
+     * still wants the kernel's own line editing (Backspace, etc.), just
+     * without the typed characters appearing on screen.
+     *
+     * @return bool True if echo was actually suppressed; false if stty
+     *              or system() are unavailable.
+     */
+    public function disable_echo(): bool {
+        if ( ! $this->stty_available() || ! $this->function_available( 'system' ) ) {
+            return false;
+        }
+
+        @system( 'stty -echo' );
+
+        return true;
+    }
+
+    /**
+     * Restore terminal echo after disable_echo().
+     *
+     * @return void
+     */
+    public function enable_echo(): void {
+        if ( $this->stty_available() && $this->function_available( 'system' ) ) {
+            @system( 'stty echo' );
+        }
     }
 }

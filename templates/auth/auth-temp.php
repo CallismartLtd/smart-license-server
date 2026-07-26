@@ -12,6 +12,7 @@
  *
  * @package Smliser\Templates\Auth
  * @version 0.2.0
+ * @var string[] $sanitized_params
  */
 
 defined( 'SMLISER_ROOT' ) || exit;

@@ -301,7 +301,13 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
         $quit_tokens = implode( '", "', self::EXIT_TOKENS );
 
         $this->output->writeln( static::ASCII_LOGO );
-        $this->output->writeln( $this->colorize( ConsoleOutput::ANSI_BOLD, '  Smart License Server  v' . \SMLISER_VER ) );
+        $this->output->writeln(
+            $this->colorize( 
+                ConsoleOutput::ANSI_BOLD, 
+                sprintf( '  %s  v%s', SMLISER_APP_NAME, SMLISER_VER )
+            )
+        );
+        
         $this->output->info( sprintf( '  Type "help" to list commands. Type "%s" to quit.', $quit_tokens ) );
         $this->output->newline();
     }
@@ -333,17 +339,33 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
     }
 
     /**
-     * Clear the visible terminal screen.
+     * Clears the visible terminal screen.
      *
      * @return void
      */
     private function clear_screen(): void {
-        if ( $this->terminal->is_windows() ) {
-            @system( 'cls' );
+        // Fast path: ANSI-capable terminals.
+        if ( $this->terminal->supports_ansi() ) {
+            $this->output->write( "\033[3J\033[2J\033[H" );
             return;
         }
 
-        $this->output->write( "\033[2J\033[H" );
+        // Windows fallback.
+        if (
+            $this->terminal->is_windows()
+            && $this->terminal->function_available( 'system' )
+        ) {
+            system( 'cls' );
+            return;
+        }
+
+        // POSIX fallback.
+        if (
+            $this->terminal->function_available( 'system' )
+            && $this->terminal->command_available( 'tput' )
+        ) {
+            system( 'tput clear' );
+        }
     }
 
     /**

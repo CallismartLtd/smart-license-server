@@ -26,12 +26,20 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
 class ConsoleInput implements InputInterface {
 
     /**
-     * @param TerminalCapabilities $terminal Shared capability detector.
+     * @param TerminalCapabilities $terminal Shared capability detector,
+     *                                        also owns the actual stty
+     *                                        echo-suppression toggling.
      * @param resource              $stdin    Stream to read from.
+     * @param resource              $stdout   Stream to write prompts to —
+     *                                        injected rather than hardcoding
+     *                                        the STDOUT constant, so this
+     *                                        class can be exercised against
+     *                                        a captured stream in tests.
      */
     public function __construct(
         private TerminalCapabilities $terminal,
-        private $stdin = STDIN
+        private $stdin  = STDIN,
+        private $stdout = STDOUT
     ) {}
 
     /*
@@ -43,14 +51,27 @@ class ConsoleInput implements InputInterface {
     /**
      * {@inheritdoc}
      */
-    public function read_line( string $prompt = '' ): string {
+    public function read_line( string $prompt = '' ): ?string {
         if ( '' !== $prompt ) {
-            fwrite( STDOUT, $prompt );
+            fwrite( $this->stdout, $prompt );
         }
 
         $line = fgets( $this->stdin );
 
-        return false === $line ? '' : trim( $line );
+        return false === $line ? null : trim( $line );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function prompt( string $question, string $default = '' ): string {
+        $prompt = '' !== $default
+            ? sprintf( '%s [%s] ', $question, $default )
+            : $question . ' ';
+
+        $line = $this->read_line( $prompt ) ?? '';
+
+        return '' !== $line ? $line : $default;
     }
 
     /**
@@ -58,7 +79,7 @@ class ConsoleInput implements InputInterface {
      */
     public function confirm( string $question, bool $default = false ): bool {
         $hint  = $default ? '[Y/n]' : '[y/N]';
-        $input = strtolower( $this->read_line( sprintf( '%s %s: ', $question, $hint ) ) );
+        $input = strtolower( (string) $this->read_line( sprintf( '%s %s: ', $question, $hint ) ) );
 
         if ( '' === $input ) {
             return $default;
@@ -68,31 +89,14 @@ class ConsoleInput implements InputInterface {
     }
 
     /**
-     * Prompt the user for freeform input.
-     *
-     * @param string $question The question to display.
-     * @param string $default  Default value if the user presses enter.
-     * @return string The user's input or the default.
-     */
-    public function prompt( string $question, string $default = '' ): string {
-        $prompt = $default !== ''
-            ? sprintf( '%s [%s] ', $question, $default )
-            : $question . ' ';
-
-        $input = $this->read_line( $prompt );
-
-        return $input ?: $default;
-    }
-
-    /**
      * {@inheritdoc}
      */
-    public function choice( string $question, array $choices, $default = null ) : mixed {
+    public function choice( string $question, array $choices, $default = null ) {
         foreach ( $choices as $key => $label ) {
-            fwrite( STDOUT, sprintf( '  [%s] %s' . PHP_EOL, $key, $label ) );
+            fwrite( $this->stdout, sprintf( '  [%s] %s' . PHP_EOL, $key, $label ) );
         }
 
-        $answer = $this->read_line( $question . ': ' );
+        $answer = (string) $this->read_line( $question . ': ' );
 
         return $choices[ $answer ] ?? $default;
     }
@@ -116,11 +120,11 @@ class ConsoleInput implements InputInterface {
      */
     public function secret( string $prompt = '' ): string {
         if ( '' !== $prompt ) {
-            fwrite( STDOUT, $prompt );
+            fwrite( $this->stdout, $prompt );
         }
 
         if ( ! $this->terminal->is_tty( $this->stdin ) ) {
-            return $this->read_line();
+            return (string) $this->read_line();
         }
 
         if ( $this->terminal->is_windows() ) {
@@ -129,22 +133,21 @@ class ConsoleInput implements InputInterface {
 
         if ( $this->terminal->readline_available() ) {
             $input = $this->readline_hidden();
-            fwrite( STDOUT, PHP_EOL );
+            fwrite( $this->stdout, PHP_EOL );
             return trim( $input );
         }
 
-        if ( $this->terminal->stty_available() && $this->terminal->function_available( 'system' ) ) {
-            @system( 'stty -echo' );
+        if ( $this->terminal->disable_echo() ) {
             $line = fgets( $this->stdin );
-            @system( 'stty echo' );
-            fwrite( STDOUT, PHP_EOL );
+            $this->terminal->enable_echo();
+            fwrite( $this->stdout, PHP_EOL );
 
             return false === $line ? '' : trim( $line );
         }
 
         // Nothing available to suppress echo — visible fallback rather
         // than failing the prompt outright.
-        return $this->read_line();
+        return (string) $this->read_line();
     }
 
     /**
@@ -158,7 +161,7 @@ class ConsoleInput implements InputInterface {
      */
     private function windows_secret(): string {
         if ( ! $this->terminal->function_available( 'proc_open' ) ) {
-            return $this->read_line();
+            return (string) $this->read_line();
         }
 
         $ps1 = '$s=Read-Host -AsSecureString;'
@@ -175,14 +178,14 @@ class ConsoleInput implements InputInterface {
         $process = @proc_open( $cmd, $descriptors, $pipes );
 
         if ( ! is_resource( $process ) ) {
-            return $this->read_line();
+            return (string) $this->read_line();
         }
 
         $input = stream_get_contents( $pipes[1] );
         fclose( $pipes[1] );
         proc_close( $process );
 
-        fwrite( STDOUT, PHP_EOL );
+        fwrite( $this->stdout, PHP_EOL );
 
         return trim( (string) $input );
     }

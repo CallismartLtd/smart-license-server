@@ -11,10 +11,12 @@ namespace SmartLicenseServer\Environments\WordPress;
 use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Console\Runners\WPCLIRunner;
 use SmartLicenseServer\Core\URL;
 use Callismart\DBPrism\Adapters\WPDBAdapter;
 use SmartLicenseServer\Autoloader;
+use SmartLicenseServer\Environments\WordPress\CLI\WPCLIInput;
+use SmartLicenseServer\Environments\WordPress\CLI\WPCLIOutput;
+use SmartLicenseServer\Environments\WordPress\CLI\WPCLIRunner;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
@@ -355,9 +357,14 @@ class WordPressEnvironment extends Environment {
 
     /**
      * Bootstraps in WP_CLI environment.
+     *
+     * This method runs on `cli_init` action.
      */
-    public function setup_cli() {        
-        ( new WPCLIRunner( CommandRegistry::instance() ) )
-        ->register();
+    public function setup_cli(): void {
+        ( new WPCLIRunner(
+            CommandRegistry::instance(),
+            new WPCLIInput(),
+            new WPCLIOutput()
+        ) )->init();
     }
 }

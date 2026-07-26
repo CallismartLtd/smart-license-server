@@ -29,7 +29,7 @@ use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 /**
  * CLI environment bootstrap.
  * 
- * Bootstraps Smart License Server to run from the commandline.
+ * Bootstraps Smart License Server to run from the command-line.
  */
 class CLIEnvironment extends Environment {
 

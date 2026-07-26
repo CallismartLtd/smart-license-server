@@ -86,3 +86,120 @@ if ( ! function_exists( 'is_interactive_shell' ) ) {
         return defined( 'SMLISER_INTERACTIVE_SHELL' ) && SMLISER_INTERACTIVE_SHELL;
     }
 }
+
+if ( ! function_exists( 'is_utf8' ) ) {
+	/**
+	 * Determines whether a string is valid UTF-8.
+	 *
+	 * This function prefers PHP's native UTF-8 validators when available and
+	 * falls back to a manual RFC 3629-compliant validator when necessary.
+	 *
+	 * @param string $value The string to validate.
+	 * @return bool True if the string is valid UTF-8, otherwise false.
+	 */
+	function is_utf8( string $value ): bool {
+		// Empty strings are valid UTF-8.
+		if ( '' === $value ) {
+			return true;
+		}
+
+		// Prefer mbstring when available.
+		if ( function_exists( 'mb_check_encoding' ) ) {
+			return mb_check_encoding( $value, 'UTF-8' );
+		}
+
+		// Fall back to PCRE's UTF-8 validator.
+		if ( function_exists( 'preg_match' ) ) {
+			return 1 === preg_match( '//u', $value );
+		}
+
+		// Manual validator.
+		$length = strlen( $value );
+
+		for ( $i = 0; $i < $length; $i++ ) {
+			$byte = ord( $value[ $i ] );
+
+			// ASCII.
+			if ( $byte <= 0x7F ) {
+				continue;
+			}
+
+			// Two-byte sequence.
+			if ( $byte >= 0xC2 && $byte <= 0xDF ) {
+				if (
+					++$i >= $length ||
+					( ord( $value[ $i ] ) & 0xC0 ) !== 0x80
+				) {
+					return false;
+				}
+
+				continue;
+			}
+
+			// Three-byte sequence.
+			if ( $byte >= 0xE0 && $byte <= 0xEF ) {
+				if ( $i + 2 >= $length ) {
+					return false;
+				}
+
+				$b1 = ord( $value[ ++$i ] );
+				$b2 = ord( $value[ ++$i ] );
+
+				if (
+					( $b1 & 0xC0 ) !== 0x80 ||
+					( $b2 & 0xC0 ) !== 0x80
+				) {
+					return false;
+				}
+
+				// Reject overlong sequences.
+				if ( 0xE0 === $byte && $b1 < 0xA0 ) {
+					return false;
+				}
+
+				// Reject UTF-16 surrogate pairs.
+				if ( 0xED === $byte && $b1 >= 0xA0 ) {
+					return false;
+				}
+
+				continue;
+			}
+
+			// Four-byte sequence.
+			if ( $byte >= 0xF0 && $byte <= 0xF4 ) {
+				if ( $i + 3 >= $length ) {
+					return false;
+				}
+
+				$b1 = ord( $value[ ++$i ] );
+				$b2 = ord( $value[ ++$i ] );
+				$b3 = ord( $value[ ++$i ] );
+
+				if (
+					( $b1 & 0xC0 ) !== 0x80 ||
+					( $b2 & 0xC0 ) !== 0x80 ||
+					( $b3 & 0xC0 ) !== 0x80
+				) {
+					return false;
+				}
+
+				// Reject overlong sequences.
+				if ( 0xF0 === $byte && $b1 < 0x90 ) {
+					return false;
+				}
+
+				// Reject code points above U+10FFFF.
+				if ( 0xF4 === $byte && $b1 > 0x8F ) {
+					return false;
+				}
+
+				continue;
+			}
+
+			// Invalid leading byte.
+			return false;
+		}
+
+		return true;
+	}
+}

@@ -11,7 +11,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console;
 
-use Override;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 
 /**
@@ -70,15 +69,23 @@ class HistoryAwareInput implements InputInterface {
      *                                             falls through to this in
      *                                             Tier 3; confirm()/choice()/
      *                                             secret() always delegate here.
-     * @param TerminalCapabilities  $terminal     Shared capability detector.
+     * @param TerminalCapabilities  $terminal     Shared capability detector,
+     *                                             also owns the actual stty
+     *                                             raw-mode/echo toggling.
      * @param string                $history_path Absolute path to the history file.
      * @param resource              $stdin        Stream to read raw-mode input from.
+     * @param resource              $stdout       Stream to echo keystrokes/redraws to —
+     *                                             injected rather than hardcoding the
+     *                                             STDOUT constant, so this class can be
+     *                                             exercised against a captured stream
+     *                                             the same way ConsoleOutput can.
      */
     public function __construct(
         private InputInterface $inner,
         private TerminalCapabilities $terminal,
         private string $history_path,
-        private $stdin = STDIN
+        private $stdin = STDIN,
+        private $stdout = STDOUT
     ) {}
 
     /*
@@ -93,15 +100,7 @@ class HistoryAwareInput implements InputInterface {
     public function read_line( string $prompt = '' ): ?string {
         $this->load_history();
 
-        if ( ! $this->terminal->is_windows()
-            && $this->terminal->is_tty( $this->stdin )
-            && $this->terminal->stty_available()
-            && $this->terminal->function_available( 'system' )
-        ) {
-            return $this->read_line_raw( $prompt );
-        }
-
-        $line = $this->inner->read_line( $prompt );
+        $line = $this->read_via_best_available_mode( $prompt );
 
         if ( null !== $line && '' !== $line ) {
             $this->history_push( $line );
@@ -111,11 +110,50 @@ class HistoryAwareInput implements InputInterface {
         return $line;
     }
 
+    /**
+     * Pick Tier 2 (raw mode, cursor/history navigation) when the
+     * terminal supports it, falling back to Tier 3 (the wrapped
+     * input's plain read_line()) otherwise — including when
+     * TerminalCapabilities::enable_raw_mode() itself reports it
+     * couldn't actually engage raw mode (stty/system unavailable),
+     * which is the one case the old is_windows()/is_tty()/
+     * stty_available()/function_available() checks here couldn't
+     * detect ahead of time without duplicating enable_raw_mode()'s
+     * own logic.
+     *
+     * @param string $prompt
+     * @return string|null
+     */
+    private function read_via_best_available_mode( string $prompt ): ?string {
+        if ( ! $this->terminal->is_windows() && $this->terminal->is_tty( $this->stdin ) ) {
+            if ( $this->terminal->enable_raw_mode() ) {
+                try {
+                    return $this->read_line_raw( $prompt );
+                } finally {
+                    $this->terminal->restore_cooked_mode();
+                }
+            }
+        }
+
+        return $this->inner->read_line( $prompt );
+    }
+
     /*
     |--------------------------------------------
     | InputInterface — delegated, no history
     |--------------------------------------------
     */
+
+    /**
+     * {@inheritdoc}
+     *
+     * Delegated, not history-aware — prompt() is a mid-execution
+     * question with a default, not a REPL command line; browsing
+     * history while answering one isn't a real use case.
+     */
+    public function prompt( string $question, string $default = '' ): string {
+        return $this->inner->prompt( $question, $default );
+    }
 
     /**
      * {@inheritdoc}
@@ -129,14 +167,6 @@ class HistoryAwareInput implements InputInterface {
      */
     public function choice( string $question, array $choices, $default = null ) {
         return $this->inner->choice( $question, $choices, $default );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    #[Override]
-    public function prompt(string $question, string $default = ''): string {
-        return $this->inner->prompt( $question, $default );
     }
 
     /**
@@ -157,113 +187,190 @@ class HistoryAwareInput implements InputInterface {
 
     /**
      * Read a line in stty raw mode, implementing ↑/↓ history
-     * navigation, printable character echo, and Backspace/Delete
-     * handling manually.
+     * navigation, ←/→ cursor movement, Home/End, printable character
+     * insertion at the cursor, and Backspace/Delete handling manually.
+     *
+     * Assumes raw mode is already active — read_via_best_available_mode()
+     * engages it via TerminalCapabilities::enable_raw_mode() before
+     * calling this, and restores cooked mode afterward regardless of
+     * how this method returns. This method has no stty knowledge of
+     * its own beyond that assumption.
+     *
+     * Redraws only use relative cursor moves (\033[{n}D / \033[{n}C)
+     * based on buffer length, never absolute column positions — the
+     * prompt may contain ANSI color codes whose byte length doesn't
+     * match its visible width, so jumping to a computed column would
+     * be wrong; a relative move measured purely in buffer characters
+     * is not affected by that.
      *
      * @param string $prompt
      * @return string|null The submitted line, or null on EOF.
      */
     private function read_line_raw( string $prompt ): ?string {
-        fwrite( STDOUT, $prompt );
-
-        @system( 'stty -icanon -echo min 1 time 0' );
+        fwrite( $this->stdout, $prompt );
 
         $buffer   = '';
+        $cursor   = 0; // Index into $buffer where the next edit happens.
         $hist_idx = null;
         $saved    = '';
         $result   = null;
         $eof      = false;
 
-        try {
-            while ( true ) {
-                $char = fgetc( $this->stdin );
+        while ( true ) {
+            $char = fgetc( $this->stdin );
 
-                if ( false === $char ) {
+            if ( false === $char ) {
+                $eof = true;
+                break;
+            }
+
+            $byte = ord( $char );
+
+            // Enter.
+            if ( 13 === $byte || 10 === $byte ) {
+                fwrite( $this->stdout, PHP_EOL );
+                $result = $buffer;
+                break;
+            }
+
+            // Ctrl-C — abandon the line.
+            if ( 3 === $byte ) {
+                fwrite( $this->stdout, PHP_EOL );
+                $result = '';
+                break;
+            }
+
+            // Ctrl-D — EOF when buffer empty, otherwise ignore.
+            if ( 4 === $byte ) {
+                if ( '' === $buffer ) {
+                    fwrite( $this->stdout, PHP_EOL );
                     $eof = true;
                     break;
                 }
+                continue;
+            }
 
-                $byte = ord( $char );
+            // Backspace — delete the character before the cursor,
+            // not necessarily the last character in the buffer.
+            if ( 127 === $byte || 8 === $byte ) {
+                if ( $cursor > 0 ) {
+                    $buffer = substr( $buffer, 0, $cursor - 1 ) . substr( $buffer, $cursor );
+                    --$cursor;
 
-                // Enter.
-                if ( 13 === $byte || 10 === $byte ) {
-                    fwrite( STDOUT, PHP_EOL );
-                    $result = $buffer;
-                    break;
+                    // Step left over the removed character, redraw
+                    // everything after it plus one trailing space
+                    // to erase the character that used to be there,
+                    // then step back to the (new) cursor position.
+                    $tail = substr( $buffer, $cursor ) . ' ';
+                    fwrite( $this->stdout, "\033[D" . $tail . "\033[" . strlen( $tail ) . 'D' );
+                }
+                continue;
+            }
+
+            // ESC sequence — arrows, Home/End, Delete.
+            if ( 27 === $byte ) {
+                $seq = $this->read_escape_sequence();
+
+                if ( '[A' === $seq ) {
+                    [ $buffer, $hist_idx, $saved ] = $this->history_older( $buffer, $hist_idx, $saved, $prompt );
+                    $cursor = strlen( $buffer );
+                    continue;
                 }
 
-                // Ctrl-C — abandon the line.
-                if ( 3 === $byte ) {
-                    fwrite( STDOUT, PHP_EOL );
-                    $result = '';
-                    break;
+                if ( '[B' === $seq ) {
+                    [ $buffer, $hist_idx ] = $this->history_newer( $hist_idx, $saved, $prompt );
+                    $cursor = strlen( $buffer );
+                    continue;
                 }
 
-                // Ctrl-D — EOF when buffer empty, otherwise ignore.
-                if ( 4 === $byte ) {
-                    if ( '' === $buffer ) {
-                        fwrite( STDOUT, PHP_EOL );
-                        $eof = true;
-                        break;
+                // Left arrow.
+                if ( '[D' === $seq ) {
+                    if ( $cursor > 0 ) {
+                        --$cursor;
+                        fwrite( $this->stdout, "\033[D" );
                     }
                     continue;
                 }
 
-                // Backspace.
-                if ( 127 === $byte || 8 === $byte ) {
-                    if ( '' !== $buffer ) {
-                        $buffer = substr( $buffer, 0, -1 );
-                        fwrite( STDOUT, "\x08 \x08" );
+                // Right arrow.
+                if ( '[C' === $seq ) {
+                    if ( $cursor < strlen( $buffer ) ) {
+                        fwrite( $this->stdout, "\033[C" );
+                        ++$cursor;
                     }
                     continue;
                 }
 
-                // ESC sequence — arrow keys.
-                if ( 27 === $byte ) {
-                    $seq = $this->read_escape_sequence();
-
-                    if ( '[A' === $seq ) {
-                        [ $buffer, $hist_idx, $saved ] = $this->history_older( $buffer, $hist_idx, $saved, $prompt );
-                        continue;
+                // Home — xterm sends "[H", some terminals send "[1~".
+                if ( '[H' === $seq || '[1~' === $seq ) {
+                    if ( $cursor > 0 ) {
+                        fwrite( $this->stdout, "\033[{$cursor}D" );
+                        $cursor = 0;
                     }
-
-                    if ( '[B' === $seq ) {
-                        [ $buffer, $hist_idx ] = $this->history_newer( $hist_idx, $saved, $prompt );
-                        continue;
-                    }
-
                     continue;
                 }
 
-                // Printable character.
-                if ( $byte >= 32 ) {
-                    $buffer .= $char;
-                    fwrite( STDOUT, $char );
+                // End — xterm sends "[F", some terminals send "[4~".
+                if ( '[F' === $seq || '[4~' === $seq ) {
+                    $remaining = strlen( $buffer ) - $cursor;
+                    if ( $remaining > 0 ) {
+                        fwrite( $this->stdout, "\033[{$remaining}C" );
+                        $cursor = strlen( $buffer );
+                    }
+                    continue;
+                }
+
+                // Forward Delete — removes the character AT the
+                // cursor, distinct from Backspace which removes
+                // the character before it.
+                if ( '[3~' === $seq ) {
+                    if ( $cursor < strlen( $buffer ) ) {
+                        $buffer = substr( $buffer, 0, $cursor ) . substr( $buffer, $cursor + 1 );
+                        $tail   = substr( $buffer, $cursor ) . ' ';
+                        fwrite( $this->stdout, $tail . "\033[" . strlen( $tail ) . 'D' );
+                    }
+                    continue;
+                }
+
+                // Any other escape sequence — silently ignore.
+                continue;
+            }
+
+            // Printable character — insert at the cursor, not
+            // necessarily append at the end.
+            if ( $byte >= 32 ) {
+                $buffer = substr( $buffer, 0, $cursor ) . $char . substr( $buffer, $cursor );
+                ++$cursor;
+
+                $tail = substr( $buffer, $cursor - 1 );
+                fwrite( $this->stdout, $tail );
+
+                $back = strlen( $tail ) - 1;
+                if ( $back > 0 ) {
+                    fwrite( $this->stdout, "\033[{$back}D" );
                 }
             }
-        } finally {
-            @system( 'stty icanon echo' );
         }
 
         if ( $eof ) {
             return null;
         }
 
-        $line = trim( $result ?? '' );
-
-        if ( '' !== $line ) {
-            $this->history_push( $line );
-            $this->save_history();
-        }
-
-        return $line;
+        return trim( $result ?? '' );
     }
 
     /**
      * Read the bytes following an ESC byte to complete an escape
-     * sequence (arrow keys send ESC [ A/B/C/D).
+     * sequence.
      *
-     * @return string The sequence characters after the ESC byte (e.g. '[A').
+     * Handles both CSI forms: a single final letter (arrows send
+     * "ESC [ A/B/C/D", Home/End on some terminals send "ESC [ H/F")
+     * and a multi-byte numeric form terminated by "~" (Delete sends
+     * "ESC [ 3 ~", Home/End on other terminals send "ESC [ 1 ~" /
+     * "ESC [ 4 ~"). Reads until either terminator is seen or the
+     * short read timeout elapses.
+     *
+     * @return string The sequence characters after the ESC byte (e.g. '[A', '[3~').
      */
     private function read_escape_sequence(): string {
         $r = [ $this->stdin ];
@@ -280,17 +387,33 @@ class HistoryAwareInput implements InputInterface {
             return (string) $next;
         }
 
-        $r = [ $this->stdin ];
-        $w = null;
-        $e = null;
+        $seq = '[';
 
-        if ( ! stream_select( $r, $w, $e, 0, 50000 ) ) {
-            return '[';
+        while ( true ) {
+            $r = [ $this->stdin ];
+            $w = null;
+            $e = null;
+
+            if ( ! stream_select( $r, $w, $e, 0, 50000 ) ) {
+                break;
+            }
+
+            $byte = fgetc( $this->stdin );
+
+            if ( false === $byte ) {
+                break;
+            }
+
+            $seq .= $byte;
+
+            // A letter or '~' terminates the sequence; digits in
+            // between (as in "[3~") keep the read going.
+            if ( ctype_alpha( $byte ) || '~' === $byte ) {
+                break;
+            }
         }
 
-        $final = fgetc( $this->stdin );
-
-        return false !== $final ? '[' . $final : '[';
+        return $seq;
     }
 
     /**
@@ -362,7 +485,7 @@ class HistoryAwareInput implements InputInterface {
             ? str_repeat( ' ', strlen( $old ) - strlen( $new ) )
             : '';
 
-        fwrite( STDOUT, "\r" . $prompt . $new . $erase . "\r" . $prompt . $new );
+        fwrite( $this->stdout, "\r" . $prompt . $new . $erase . "\r" . $prompt . $new );
     }
 
     /*
