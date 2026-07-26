@@ -2164,7 +2164,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     downloadBtn.addEventListener( 'click', () => {
                         const timestamp = new Date().toLocaleString();
                         const fileContent = [
-                            `Smart License Server - API Key Export`,
+                            `${smliser_var.app_name} - API Key Export`,
                             `------------------------------------`,
                             `Display Name : ${apiKeyData.display_name}`,
                             `Identifier   : ${apiKeyData.identifier}`,
