@@ -175,7 +175,7 @@ class AppCommand extends AbstractCommand {
      * Search applications by term.
      */
     public function handle_search( CommandInput $input ): int {
-        $term = $input->get_option( 'term' );
+        $term = $input->get_option( 'term' ) ?? $input->get_argument(0);
 
         if ( empty( $term ) ) {
             $this->output->error( 'Usage: smliser app search [--term...] [--type=...] [--limit=20]' );
@@ -281,7 +281,7 @@ class AppCommand extends AbstractCommand {
         $count  = HostedApplicationService::count_apps( compact( 'types', 'status' ) );
 
         $this->output->info( sprintf(
-            '%d application(s) — type: %s, status: %s',
+            '%d application(s) — type(s): %s. status: %s',
             $count,
             implode( ', ', $types ),
             $status

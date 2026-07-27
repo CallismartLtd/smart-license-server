@@ -18,16 +18,24 @@ trait CLIUtilsTrait {
     /**
      * Validate that required positional arguments are present.
      */
-    private function require_args( array $args, string $usage ): bool {
-        foreach ( $args as $name => $value ) {
+    private function require_args( array $req_args, string $usage ): bool {
+        $missing    = [];
+        foreach ( $req_args as $name => $value ) {
             if ( empty( $value ) ) {
-                $this->output->error( sprintf( 'Missing required argument: <%s>', $name ) );
-                $this->output->writeln( 'Usage: ' . $usage );
-                return false;
+                $missing[]  = "<$name>";
             }
         }
+        
+        if ( empty( $missing ) ) {
+            return true;
+        }
 
-        return true;
+        $args   = implode( ' ', $missing );
+        $this->output->error( sprintf( 'Missing required argument(s): %s', $args ) );
+        
+        $this->output->writeln( 'Usage: ' . $usage );
+
+        return false;
     }
 
     /**

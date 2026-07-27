@@ -18,12 +18,6 @@ use SmartLicenseServer\Console\Traits\CommandHelpTrait;
 
 /**
  * Routes a resolved command/subcommand pair to the appropriate handler.
- *
- * Deliberately does NOT use CLIAwareTrait — every write goes through
- * the injected OutputInterface, and nothing here reads STDIN directly.
- * That's the entire point of this abstraction: a runner subclass gets
- * routing behavior without re-acquiring raw echo/STDIN access as a
- * side effect of extending this class.
  */
 abstract class AbstractCommandRouter {
 
@@ -33,11 +27,16 @@ abstract class AbstractCommandRouter {
      * @param CommandRegistry $registry
      * @param InputInterface  $io
      * @param OutputInterface $output
+     * @param TerminalCapabilities $terminal Needed here only to decide
+     *                                       whether to colorize the
+     *                                       prompt/banner — everything
+     *                                       else goes through $output.
      */
     public function __construct(
         protected CommandRegistry $registry,
         protected InputInterface $io,
-        protected OutputInterface $output
+        protected OutputInterface $output,
+        protected TerminalCapabilities $terminal
     ) {}
 
     /*
@@ -103,7 +102,7 @@ abstract class AbstractCommandRouter {
         }
 
         if ( in_array( $command, [ 'version', '-v', '--version' ], true ) ) {
-            $this->print_info();
+            $this->print_version();
             return 0;
         }
 
@@ -124,6 +123,19 @@ abstract class AbstractCommandRouter {
             return 1;
         }
 
+        $has_command_help   = $this->args_request_help(
+            array_merge(
+                $command_input->get_arguments(),
+                $command_input->get_options()
+            )
+        );
+
+        if ( $has_command_help ) {
+            $this->print_command_help( $class );
+
+            return 0;
+        }
+
         /** @var CommandInterface $command_instance */
         $command_instance = new $class( $this->io, $this->output );
 
@@ -139,6 +151,27 @@ abstract class AbstractCommandRouter {
         }
 
         return $command_instance->run( $command_input );
+    }
+
+    /**
+     * Wrap a message in ANSI color codes if the terminal supports them.
+     *
+     * A small local helper rather than a call into ConsoleOutput — its
+     * colorize() is private by design (an internal detail of how it
+     * renders its own styled lines), so the shell's prompt/banner
+     * coloring goes through the same TerminalCapabilities check
+     * independently instead of reaching into ConsoleOutput's internals.
+     *
+     * @param string $code    ANSI escape code constant (see ConsoleOutput).
+     * @param string $message
+     * @return string
+     */
+    protected function colorize( string $code, string $message ): string {
+        if ( ! isset( $this->terminal ) || ! $this->terminal->supports_ansi() ) {
+            return $message;
+        }
+
+        return $code . $message . ConsoleOutput::ANSI_RESET;
     }
 
     /**

@@ -53,7 +53,7 @@ class ConsoleInput implements InputInterface {
      */
     public function read_line( string $prompt = '' ): ?string {
         if ( '' !== $prompt ) {
-            fwrite( $this->stdout, $prompt );
+            $this->write_out( $prompt );
         }
 
         $line = fgets( $this->stdin );
@@ -93,7 +93,7 @@ class ConsoleInput implements InputInterface {
      */
     public function choice( string $question, array $choices, $default = null ) {
         foreach ( $choices as $key => $label ) {
-            fwrite( $this->stdout, sprintf( '  [%s] %s' . PHP_EOL, $key, $label ) );
+            $this->write_out( sprintf( '  [%s] %s' . PHP_EOL, $key, $label ) );
         }
 
         $answer = (string) $this->read_line( $question . ': ' );
@@ -120,7 +120,7 @@ class ConsoleInput implements InputInterface {
      */
     public function secret( string $prompt = '' ): string {
         if ( '' !== $prompt ) {
-            fwrite( $this->stdout, $prompt );
+            $this->write_out( $prompt );
         }
 
         if ( ! $this->terminal->is_tty( $this->stdin ) ) {
@@ -131,18 +131,12 @@ class ConsoleInput implements InputInterface {
             return $this->windows_secret();
         }
 
-        if ( $this->terminal->readline_available() ) {
-            $input = $this->readline_hidden();
-            fwrite( $this->stdout, PHP_EOL );
-            return trim( $input );
-        }
-
         if ( $this->terminal->disable_echo() ) {
             $line = fgets( $this->stdin );
             $this->terminal->enable_echo();
-            fwrite( $this->stdout, PHP_EOL );
+            $this->write_out( PHP_EOL );
 
-            return false === $line ? '' : trim( $line );
+            return false === $line ? '' : rtrim( $line, "\r\n" );
         }
 
         // Nothing available to suppress echo — visible fallback rather
@@ -185,38 +179,18 @@ class ConsoleInput implements InputInterface {
         fclose( $pipes[1] );
         proc_close( $process );
 
-        fwrite( $this->stdout, PHP_EOL );
+        $this->write_out( PHP_EOL );
 
-        return trim( (string) $input );
+        return false === $input ? '' : rtrim( $input, "\r\n" );
     }
 
     /**
-     * Read a line without terminal echo using the readline extension's
-     * callback handler, installed with an empty prompt so readline
-     * itself never draws anything (we've already printed our own).
+     * Write prompt
      *
-     * @return string
+     * @param string $prompt
+     * @return bool
      */
-    private function readline_hidden(): string {
-        $input = '';
-
-        readline_callback_handler_install( '', function ( $line ) use ( &$input ) {
-            $input = $line;
-        } );
-
-        while ( true ) {
-            $r = [ $this->stdin ];
-            $w = null;
-            $e = null;
-
-            if ( stream_select( $r, $w, $e, null ) ) {
-                readline_callback_read_char();
-                break;
-            }
-        }
-
-        readline_callback_handler_remove();
-
-        return $input;
+    private function write_out( string $prompt ): bool {
+        return (bool) fwrite( $this->stdout, $prompt );
     }
 }

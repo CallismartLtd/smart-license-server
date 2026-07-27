@@ -42,7 +42,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
     }
 
     public static function description(): string {
-        return sprintf( 'Inspect and manage %s.', static::get_type() );
+        return sprintf( 'Inspect and manage a hosted %s.', static::get_type() );
     }
 
     public static function synopsis(): string {
@@ -155,7 +155,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
     |--------------------------------------------
     */
 
-    private function handle_help(): int {
+    public function handle_help(): int {
         $this->output->info( sprintf( '%s Command', \ucfirst( static::get_type() ) ) );
         $this->output->newline();
         $this->output->info( 'Usage:' );
@@ -177,18 +177,18 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
      * 
      * @param CommandInput $input
      */
-    private function create_app( CommandInput $input ) : int {
+    public function create_app( CommandInput $input ) : int {
 
         if ( ! $this->require_auth() ) {
             return 1;
         }
 
-        $opts   = $input->get_options();
-        $type   = static::get_type();
-        
         $stopwatch = new Stopwatch();
         $stopwatch->start();
 
+        $opts   = $input->get_options();
+        $type   = static::get_type();
+        
         $this->output->info( 
             sprintf( 
                 'Creating %s "%s"...', 
@@ -226,7 +226,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
     /**
      * Update an app
      */
-    private function update_app( CommandInput $input ) : int {
+    public function update_app( CommandInput $input ) : int {
         if ( ! $this->require_auth() ) {
             return 1;
         }
@@ -277,7 +277,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
      * 
      * Note: Only system administrators can do this.
      */
-    private function trash_app( CommandInput $input ): int {
+    public function trash_app( CommandInput $input ): int {
 
         $slug   = $input->get_option( 'slug', '' );
         $usage  = sprintf( 'smliser %s trash --slug=<slug>', static::get_type() );
@@ -302,7 +302,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
      * 
      * Note: Only system administrators can do this.
      */
-    private function purge_app( CommandInput $input ): int {
+    public function purge_app( CommandInput $input ): int {
         $slug   = $input->get_option( 'slug', '' );
 
         if ( ! $this->require_args(
@@ -386,7 +386,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
     /**
      * Change an application's status.
      */
-    private function change_status( CommandInput $input ) : int {
+    public function change_status( CommandInput $input ) : int {
         $usage  = sprintf( 'smliser %s change-status --slug=<slug> --status=<status>', static::get_type() );
         
         if ( ! $this->require_options( $input->get_options(), [ 'slug', 'status' ], $usage ) ) {
@@ -436,12 +436,15 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
     /**
      * Upload app asset.
      */
-    private function upload_asset( CommandInput $input ) : int {
+    public function upload_asset( CommandInput $input ) : int {
 
-        $usage  = sprintf( 'smliser %s upload-asset --slug=<slug> --asset-type=<type> [--path=<path> | --url=<url>] [--asset-name=<name>]', static::get_type() );
+        $usage  = sprintf(
+            'smliser %s upload-asset --slug=<slug> --asset-type=<type> [--path=<path> | --url=<url>] [--asset-name=<name>]', 
+            static::get_type()
+        );
 
         if ( ! $this->require_options( $input->get_options(), [ 'slug', 'asset-type' ], $usage ) ) {
-            return 2;
+            return 1;
         }
 
         $request    = $this->buildAssetsRequest( $input->get_options() );

@@ -36,6 +36,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Runners;
 
 use SmartLicenseServer\Console\AbstractCommandRouter;
+use SmartLicenseServer\Console\AsciiLogo;
 use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\ConsoleOutput;
@@ -45,26 +46,12 @@ use SmartLicenseServer\Console\OptionParser;
 use SmartLicenseServer\Console\TerminalCapabilities;
 use SmartLicenseServer\Console\Traits\CLIWelcomeTrait;
 use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\Utils\Format;
 
 /**
  * Interactive REPL shell for the SmartLicenseServer CLI.
- *
- * Extends AbstractCommandRouter for print_global_help(),
- * print_command_help(), print_info(), route_command(), and
- * split_invocation() — none of which touch STDIN/STDOUT directly,
- * since AbstractCommandRouter writes only through the injected
- * OutputInterface.
- *
- * Reads go through the injected InputInterface's read_line() — in
- * practice a HistoryAwareInput wrapping a ConsoleInput, wired up by
- * CLIEnvironment — rather than this class touching STDIN or the old
- * ShellHistoryTrait itself. That keeps the shell's own code ignorant
- * of *how* history/raw-mode reading works, matching how CLIRunner
- * doesn't know or care that ConsoleInput exists underneath its $io.
  */
 class InteractiveShell extends AbstractCommandRouter implements RunnerInterface {
-
-    use CLIWelcomeTrait;
 
     /*
     |------------
@@ -76,6 +63,13 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      * Input tokens that end the session.
      */
     private const EXIT_TOKENS = [ 'exit', 'quit', 'q' ];
+
+    /**
+     * Shell session start time (Unix timestamp).
+     *
+     * @var int
+     */
+    private int $started_at;
 
     /*
     |--------------------------------------------
@@ -96,13 +90,13 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
         CommandRegistry $registry,
         InputInterface $io,
         OutputInterface $output,
-        private TerminalCapabilities $terminal
+        TerminalCapabilities $terminal
     ) {
         if ( ! defined( 'SMLISER_INTERACTIVE_SHELL' ) ) {
             define( 'SMLISER_INTERACTIVE_SHELL', true );
         }
 
-        parent::__construct( $registry, $io, $output );
+        parent::__construct( $registry, $io, $output, $terminal );
     }
 
     /*
@@ -120,6 +114,9 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      * Ctrl-Z on Windows).
      */
     public function init(): int {
+        $this->started_at = time();
+
+        $this->register_signal_handlers();
         $this->print_banner();
 
         while ( true ) {
@@ -128,7 +125,7 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
             // EOF — Ctrl-D / Ctrl-Z / closed stream.
             if ( null === $raw ) {
                 $this->output->newline();
-                $this->print_goodbye();
+                $this->print_goodbye( 'closed' );
                 break;
             }
 
@@ -147,6 +144,70 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
         }
 
         return 0;
+    }
+
+    /**
+     * Catch SIGINT/SIGTERM/SIGHUP so exit() runs — and with it, every
+     * register_shutdown_function() callback registered so far,
+     * including HistoryAwareInput::flush_history() — instead of the
+     * process dying without any PHP-level cleanup at all.
+     *
+     * Does NOT cover SIGKILL: POSIX guarantees SIGKILL (and SIGSTOP)
+     * are delivered without giving the target process any chance to
+     * intercept them, specifically so a process can never make itself
+     * unkillable. No signal handler, in any language, changes that —
+     * it's a kernel guarantee, not a PHP limitation.
+     *
+     * Explicitly restores cooked terminal mode before calling exit()
+     * rather than relying on read_via_best_available_mode()'s
+     * finally block to do it — exit() does not unwind pending finally
+     * blocks the way a normal return or thrown exception would, it
+     * jumps straight to the shutdown sequence. Without this explicit
+     * call, Ctrl-C during raw-mode reading would flush history
+     * correctly but leave the real terminal stuck in -icanon -echo
+     * after the process exits.
+     *
+     * SIGTSTP (Ctrl-Z, suspend) is deliberately NOT caught here — that
+     * would break the normal suspend/resume (fg) workflow operators
+     * expect from any shell, catchable or not.
+     *
+     * No-op on Windows (pcntl doesn't exist there) or if the pcntl
+     * extension isn't compiled in/enabled — a common case even on
+     * POSIX systems, since pcntl is not part of most default PHP
+     * builds.
+     *
+     * @return void
+     */
+    private function register_signal_handlers(): void {
+        if ( $this->terminal->is_windows() || ! extension_loaded( 'pcntl' ) ) {
+            return;
+        }
+
+        pcntl_async_signals( true );
+
+        $handler = function ( int $signal ): void {
+            $reason = match ( $signal ) {
+                SIGINT  => 'interrupted',
+                SIGTERM => 'terminated',
+                SIGHUP  => 'disconnected',
+                default => 'ended',
+            };
+
+
+            $this->terminal->restore_cooked_mode();
+            $this->output->newline();
+            $this->print_goodbye( $reason );
+
+            // 128 + signal number is the conventional shell exit-code
+            // convention for "terminated by signal N" (e.g. 130 for
+            // SIGINT), so a wrapping script can distinguish this from
+            // a normal exit(0) if it cares to.
+            exit( 128 + $signal );
+        };
+
+        pcntl_signal( SIGINT, $handler );
+        pcntl_signal( SIGTERM, $handler );
+        pcntl_signal( SIGHUP, $handler );
     }
 
     /*
@@ -298,9 +359,18 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      * @return void
      */
     private function print_banner(): void {
+        $logo   = match( $this->output->get_verbosity() ) {
+            OutputInterface::VERBOSITY_NORMAL   => AsciiLogo::MONOSPACED,
+            OutputInterface::VERBOSITY_VERBOSE  => AsciiLogo::LARGE,
+            OutputInterface::VERBOSITY_QUIET    => '',
+            default                             => ''
+            
+        };
+
         $quit_tokens = implode( '", "', self::EXIT_TOKENS );
 
-        $this->output->writeln( static::ASCII_LOGO );
+        $this->output->newline();
+        $this->output->writeln( $logo );
         $this->output->writeln(
             $this->colorize( 
                 ConsoleOutput::ANSI_BOLD, 
@@ -315,10 +385,19 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
     /**
      * Print the goodbye line shown when the session ends.
      *
+     * @param string $reason
      * @return void
      */
-    private function print_goodbye(): void {
-        $this->output->writeln( 'Goodbye.' );
+    private function print_goodbye( string $reason = 'ended' ): void {
+        $duration = time() - $this->started_at;
+
+        $this->output->writeln(
+            sprintf(
+                'Session %s (%s).',
+                $reason,
+                Format::short_duration( $duration )
+            )
+        );
     }
 
     /**
@@ -366,26 +445,5 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
         ) {
             system( 'tput clear' );
         }
-    }
-
-    /**
-     * Wrap a message in ANSI color codes if the terminal supports them.
-     *
-     * A small local helper rather than a call into ConsoleOutput — its
-     * colorize() is private by design (an internal detail of how it
-     * renders its own styled lines), so the shell's prompt/banner
-     * coloring goes through the same TerminalCapabilities check
-     * independently instead of reaching into ConsoleOutput's internals.
-     *
-     * @param string $code    ANSI escape code constant (see ConsoleOutput).
-     * @param string $message
-     * @return string
-     */
-    private function colorize( string $code, string $message ): string {
-        if ( ! $this->terminal->supports_ansi() ) {
-            return $message;
-        }
-
-        return $code . $message . ConsoleOutput::ANSI_RESET;
     }
 }

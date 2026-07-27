@@ -417,9 +417,12 @@ class HostedApplicationService {
             $db = smliser_db();
     
             if ( 1 === count( $sql_parts ) ) {
-                $count_sql  = $sql_parts[0]->select( 'COUNT(*) as total_records' );
-                $result     = $db->get_row( $count_sql->build(), $count_sql->get_bindings() );
-                $count      = (int) $result['total_records'] ?? 0;
+                $count_sql  = static::query()
+                    ->select( 'COUNT(*) as total_records' )
+                    ->from( $sql_parts[0]->get_table_name() );
+        
+                $total = $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
+                $count  = (int) $total;
             } else {
                 $union_sql = static::build_union_query( $sql_parts );
                 $count_sql = ( clone $union_sql )->select( 'COUNT(*) as total_records' )->as( 'app_count' );

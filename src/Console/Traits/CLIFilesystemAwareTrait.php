@@ -10,14 +10,17 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Traits;
 
+use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\FileRequestException;
+use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 
 /**
  * CLI filesystem aware trait
  */
 trait CLIFilesystemAwareTrait {
+    protected OutputInterface $output;
     /**
      * Resolve a local file path and verify it exists and is readable.
      *
@@ -28,19 +31,17 @@ trait CLIFilesystemAwareTrait {
      * Returns the temp path on success, null on failure.
      *
      * @param string $path Absolute local path.
-     * @return string|null Temp path, or null on failure.
+     * @return string Temp path, or null on failure.
      */
-    private function resolve_local_file( string $path, bool $auto_clean = true ): ?string {
+    private function resolve_local_file( string $path, bool $auto_clean = true ): string {
         $fs = smliser_filesystem();
 
         if ( ! $fs->exists( $path ) ) {
-            $this->error( sprintf( 'File not found: %s', $path ) );
-            return null;
+            throw new FileSystemException( sprintf( 'File not found: %s', $path ) );
         }
 
         if ( ! $fs->is_readable( $path ) ) {
-            $this->error( sprintf( 'File is not readable: %s', $path ) );
-            return null;
+            throw new FileSystemException( sprintf( 'File is not readable: %s', $path ) );
         }
 
         $destination    = FileSystemHelper::join_path(
@@ -49,8 +50,7 @@ trait CLIFilesystemAwareTrait {
         );
 
         if ( ! $fs->copy( $path, $destination ) ) {
-            $this->error( sprintf( 'Failed to copy file to temp directory: %s', $path ) );
-            return null;
+            throw new FileSystemException( sprintf( 'Failed to copy file to temp directory: %s', $path ) );
         }
 
         if ( $auto_clean ) {
@@ -77,7 +77,7 @@ trait CLIFilesystemAwareTrait {
      * @return string|null
      */
     private function download_to_tmp( string $url, bool $auto_clean = true ): ?string {
-        $this->line( sprintf( 'Downloading %s...', $url ) );
+        $this->output->writeln( sprintf( 'Downloading %s...', $url ) );
 
         $temp_path = smliser_download_url( $url, timeout: 60, autoclean: $auto_clean  );
 
@@ -85,7 +85,7 @@ trait CLIFilesystemAwareTrait {
             $status  = $temp_path->get_error_data()['status'] ?? 0;
             $message = $temp_path->get_error_message() ?: 'Unknown download error.';
 
-            $this->error( $status
+            throw new FileSystemException( $status
                 ? sprintf( 'Download failed [HTTP %d]: %s', $status, $message )
                 : sprintf( 'Download failed: %s', $message )
             );
@@ -114,7 +114,7 @@ trait CLIFilesystemAwareTrait {
         $fs = smliser_filesystem();
 
         if ( ! $fs->exists( $tmp_path ) ) {
-            $this->error( sprintf( 'Temp file missing: %s', $tmp_path ) );
+            throw new FileSystemException( sprintf( 'Temp file missing: %s', $tmp_path ) );
             return null;
         }
 
@@ -149,7 +149,7 @@ trait CLIFilesystemAwareTrait {
         $file_entries = [];
         foreach ( $tmp_paths as $index => $tmp_path ) {
             if ( ! $fs->exists( $tmp_path ) ) {
-                $this->error( sprintf( 'Temp file missing: %s', $tmp_path ) );
+                throw new FileSystemException( sprintf( 'Temp file missing: %s', $tmp_path ) );
                 return null;
             }
 

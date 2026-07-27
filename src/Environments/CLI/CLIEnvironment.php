@@ -188,7 +188,7 @@ class CLIEnvironment extends Environment {
         $input    = new ConsoleInput( $terminal );
 
         if ( isset( $argv[1] ) ) {
-            return new CLIRunner( $registry, $argv, $input, $output );
+            return new CLIRunner( $registry, $argv, $input, $output, $terminal );
         }
 
         return new InteractiveShell(

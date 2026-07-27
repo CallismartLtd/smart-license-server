@@ -18,6 +18,7 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\OptionParser;
 use SmartLicenseServer\Console\Runners\RunnerInterface;
+use SmartLicenseServer\Console\TerminalCapabilities;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;
 use WP_CLI;
@@ -119,9 +120,10 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
         CommandRegistry $registry,
         InputInterface $io,
         OutputInterface $output,
-        private OptionParser $parser = new OptionParser()
+        TerminalCapabilities $terminal,
+        private OptionParser $parser
     ) {
-        parent::__construct( $registry, $io, $output );
+        parent::__construct( $registry, $io, $output, $terminal );
     }
 
     /*

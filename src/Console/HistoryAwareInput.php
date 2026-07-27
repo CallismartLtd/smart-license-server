@@ -23,18 +23,41 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
  * use case (and history should never retain what was typed into a
  * secret() prompt).
  *
+ * ## Persistence model
+ *
+ * History lives in memory for the life of the process. It is written
+ * to disk exactly once, via a shutdown function registered in the
+ * constructor, as a single block prefixed with one timestamp marker:
+ *
+ *   # smliser-session: 2026-07-26 14:32:07
+ *   license list
+ *   app list --type=plugin
+ *   cache clear
+ *
+ * The marker is filtered back out on load — see load_history() — so
+ * it never shows up in ↑/↓ recall as if it were a command. The file
+ * itself is append-only and never rewritten, the same shape as
+ * .bash_history.
+ *
+ * Trade-off worth knowing: because the write happens at shutdown
+ * rather than after each command, a hard kill (SIGKILL, a crash PHP's
+ * own shutdown sequence never runs for) loses that session's history.
+ * register_shutdown_function() DOES run on normal termination and on
+ * fatal errors, but not on signals PHP doesn't intercept — if that
+ * matters to you, it needs an explicit pcntl signal handler that
+ * calls exit() so the normal shutdown sequence (and this flush) runs.
+ *
  * Tiers, selected per call based on platform/terminal capability:
  *
  *  Tier 2 — POSIX with stty available: raw-mode key handler. ↑/↓
- *           navigate in-memory + persisted history; Backspace/Delete
- *           work; Enter submits. History persists to disk across
- *           sessions.
+ *           navigate the in-memory recall buffer; Backspace/Delete
+ *           work; Enter submits.
  *
  *  Tier 3 — Windows, or POSIX without stty (piped / minimal
  *           environments): falls through to the wrapped input's plain
- *           read_line(). History is still recorded and persisted, but
- *           ↑/↓ navigation is unavailable since input arrives a full
- *           line at a time.
+ *           read_line(). History is still recorded in memory and
+ *           flushed at shutdown the same way, but ↑/↓ navigation is
+ *           unavailable since input arrives a full line at a time.
  *
  * A readline-extension tier (native history ring) is intentionally
  * not wired in here — see read_line_readline() below, kept for
@@ -45,17 +68,35 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
 class HistoryAwareInput implements InputInterface {
 
     /**
-     * Maximum number of history entries kept in memory and on disk.
+     * Marker line prefix written once per session, immediately before
+     * that session's entries, so a later load can tell "this is a
+     * timestamp header" apart from "this is a command" by prefix
+     * alone — filtered out in load_history(), never treated as a
+     * recall entry.
      */
-    private const HISTORY_LIMIT = 1000;
+    private const SESSION_MARKER_PREFIX = '# smliser-session: ';
 
     /**
-     * In-memory history entries for the current session. Oldest
-     * entry at index 0, newest at the end.
+     * In-memory recall buffer for the current session — entries
+     * loaded from disk plus everything submitted so far this session.
+     * Oldest entry at index 0, newest at the end. No size cap —
+     * matching .bash_history, where the shell keeps everything a
+     * session has seen without trimming it for memory reasons.
      *
      * @var string[]
      */
     private array $history = [];
+
+    /**
+     * Entries submitted THIS session only, in submission order —
+     * distinct from $history, which also includes entries loaded from
+     * prior sessions' file content. Only these get written at
+     * shutdown; already-persisted content is never read back in and
+     * rewritten, so nothing on disk is ever touched twice.
+     *
+     * @var string[]
+     */
+    private array $pending_entries = [];
 
     /**
      * Whether history has been loaded from disk this session.
@@ -72,7 +113,11 @@ class HistoryAwareInput implements InputInterface {
      * @param TerminalCapabilities  $terminal     Shared capability detector,
      *                                             also owns the actual stty
      *                                             raw-mode/echo toggling.
-     * @param string                $history_path Absolute path to the history file.
+     * @param string                $history_path Absolute path to the single,
+     *                                             ever-growing history file —
+     *                                             the same shape as
+     *                                             .bash_history, not split by
+     *                                             day or otherwise rotated.
      * @param resource              $stdin        Stream to read raw-mode input from.
      * @param resource              $stdout       Stream to echo keystrokes/redraws to —
      *                                             injected rather than hardcoding the
@@ -86,7 +131,12 @@ class HistoryAwareInput implements InputInterface {
         private string $history_path,
         private $stdin = STDIN,
         private $stdout = STDOUT
-    ) {}
+    ) {
+        // Registered once, here, rather than lazily on first use —
+        // guarantees exactly one flush per instance regardless of how
+        // many times read_line() is called.
+        register_shutdown_function( [ $this, 'flush_history' ] );
+    }
 
     /*
     |--------------------------------------------
@@ -104,7 +154,6 @@ class HistoryAwareInput implements InputInterface {
 
         if ( null !== $line && '' !== $line ) {
             $this->history_push( $line );
-            $this->save_history();
         }
 
         return $line;
@@ -527,7 +576,6 @@ class HistoryAwareInput implements InputInterface {
         if ( '' !== $line ) {
             readline_add_history( $line );
             $this->history_push( $line );
-            $this->save_history();
         }
 
         return $line;
@@ -540,8 +588,11 @@ class HistoryAwareInput implements InputInterface {
     */
 
     /**
-     * Append an entry to the in-memory history, enforcing the cap and
-     * skipping consecutive duplicates.
+     * Append an entry to both the recall buffer and this session's
+     * pending-write queue, skipping consecutive duplicates (the same
+     * convention as bash's HISTCONTROL=ignoredups). No size cap on
+     * either — a CLI session's command count isn't a memory concern
+     * worth trading away unbounded ↑/↓ recall for.
      *
      * @param string $line
      * @return void
@@ -551,17 +602,16 @@ class HistoryAwareInput implements InputInterface {
             return;
         }
 
-        $this->history[] = $line;
-
-        if ( count( $this->history ) > self::HISTORY_LIMIT ) {
-            array_shift( $this->history );
-        }
+        $this->history[]         = $line;
+        $this->pending_entries[] = $line;
     }
 
     /**
-     * Load history from the persisted file into memory. Called once
-     * per session; silently does nothing if the file is missing or
-     * unreadable.
+     * Load the history file into the ↑/↓ recall buffer, filtering out
+     * session marker lines and sanitizing what's left. Called once
+     * per session; silently does nothing if the file doesn't exist
+     * yet or isn't readable — same as .bash_history behaves on a
+     * fresh shell profile with no prior history.
      *
      * @return void
      */
@@ -576,28 +626,100 @@ class HistoryAwareInput implements InputInterface {
             return;
         }
 
-        $lines = @file( $this->history_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
+        $lines = @file( $this->history_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES ) ?: [];
 
-        if ( ! is_array( $lines ) ) {
-            return;
+        foreach ( $lines as $line ) {
+            // Marker lines are timestamp headers, not commands —
+            // written once per session by flush_history() — so they
+            // never enter the recall buffer.
+            if ( str_starts_with( $line, self::SESSION_MARKER_PREFIX ) ) {
+                continue;
+            }
+
+            $this->history[] = $this->sanitize_for_recall( $line );
         }
-
-        $this->history = array_values( array_slice( $lines, -self::HISTORY_LIMIT ) );
     }
 
     /**
-     * Persist the current in-memory history to disk. Silently skips
-     * if the directory is not writable.
+     * Append this session's pending entries to the history file as a
+     * single block, prefixed with one timestamp marker line, so an
+     * auditor can tell which commands ran in which session and when.
+     *
+     * Registered via register_shutdown_function() in the constructor
+     * — runs on normal script termination and on fatal errors, but
+     * see the class docblock for the case it does NOT cover (a signal
+     * PHP's shutdown sequence never runs for). Public rather than
+     * private: register_shutdown_function() needs a valid callable,
+     * and there's no reason a caller couldn't force an early flush
+     * (e.g. before a long-running command) if that's ever useful.
+     *
+     * No-op if there's nothing pending, or if the containing
+     * directory isn't writable.
      *
      * @return void
      */
-    private function save_history(): void {
+    public function flush_history(): void {
+        if ( empty( $this->pending_entries ) ) {
+            return;
+        }
+
         $dir = dirname( $this->history_path );
 
         if ( ! is_dir( $dir ) || ! is_writable( $dir ) ) {
             return;
         }
 
-        file_put_contents( $this->history_path, implode( PHP_EOL, $this->history ) . PHP_EOL, LOCK_EX );
+        $sanitized = array_map( [ $this, 'sanitize_for_storage' ], $this->pending_entries );
+
+        $block = self::SESSION_MARKER_PREFIX . date( 'Y-m-d H:i:s' ) . PHP_EOL
+            . implode( PHP_EOL, $sanitized ) . PHP_EOL;
+
+        file_put_contents( $this->history_path, $block, FILE_APPEND | LOCK_EX );
+
+        $this->pending_entries = [];
+    }
+
+    /**
+     * Sanitize a command line before writing it to the history file.
+     *
+     * Two concerns, not one:
+     *   - Structural: an embedded newline/carriage-return in a single
+     *     command would split into extra "lines" on disk once
+     *     written, corrupting the one-entry-per-line format and
+     *     potentially letting a crafted command masquerade as a fake
+     *     session marker line of its own.
+     *   - Terminal safety: raw control/escape bytes stored as-is would
+     *     be replayed as real escape sequences the next time this
+     *     line is recalled and echoed back to the terminal — stripped
+     *     here too, on the write side, as defense in depth rather than
+     *     relying solely on sanitize_for_recall() at load time.
+     *
+     * @param string $line
+     * @return string
+     */
+    private function sanitize_for_storage( string $line ): string {
+        $line = str_replace( [ "\r", "\n" ], ' ', $line );
+
+        return preg_replace( '/[\x00-\x1F\x7F]/', '', $line );
+    }
+
+    /**
+     * Strip control and escape characters from a line loaded from the
+     * history file before it enters the recall buffer.
+     *
+     * A history file is effectively untrusted input once it's been
+     * sitting on disk — it could have been edited, corrupted, or (in
+     * a shared/compromised environment) tampered with. Loaded lines
+     * get echoed straight back to the terminal during ↑ navigation
+     * redraws, so raw control/escape bytes here — in particular ESC
+     * (0x1B), the byte that begins every ANSI escape sequence this
+     * class's own redraw logic interprets — could inject arbitrary
+     * terminal behavior when a tampered entry is replayed.
+     *
+     * @param string $line
+     * @return string
+     */
+    private function sanitize_for_recall( string $line ): string {
+        return preg_replace( '/[\x00-\x1F\x7F]/', '', $line );
     }
 }

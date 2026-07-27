@@ -12,7 +12,9 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Traits;
 
 use SmartLicenseServer\Console\CommandRegistry;
+use SmartLicenseServer\Console\ConsoleOutput;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Global and per-command help printing, shared by runners (CLIRunner,
@@ -94,13 +96,110 @@ trait CommandHelpTrait {
     }
 
     /**
-     * Print application info (name, version, author).
+     * Print application info (name, version, author)
+     */
+    protected function print_info(): void {
+        $app_name = \SMLISER_APP_NAME;
+        $version  = SMLISER_VER;
+        $author   = 'Callistus Nwachukwu';
+
+        $this->output->writeln( $this->colorize( ConsoleOutput::ANSI_BOLD, $app_name ) . ' v' . $version );
+        $this->output->writeln( 'Author: ' . $this->colorize( ConsoleOutput::ANSI_CYAN, $author ) );
+        $this->output->newline();
+        $this->print_system_info();
+    }
+
+    /**
+     * Print application version information.
      *
      * @return void
      */
-    protected function print_info(): void {
-        $this->output->writeln( sprintf( '%s v%s', \SMLISER_APP_NAME, \SMLISER_VER ) );
-        $this->output->writeln( 'Author: Callistus Nwachukwu' );
+    protected function print_version(): void {
+        $this->output->writeln( 
+            $this->colorize( ConsoleOutput::ANSI_BOLD, SMLISER_APP_NAME )
+        );
+
+        $this->output->writeln( sprintf( 'Version : %s', SMLISER_VER ) );
+        $this->output->writeln(
+            sprintf(
+                'Runtime : PHP %s (%s)',
+                PHP_VERSION,
+                PHP_ZTS ? 'ZTS' : 'NTS'
+            )
+        );
+        $this->output->writeln( sprintf( 'SAPI    : %s', PHP_SAPI ) );
+        $this->output->writeln(
+            sprintf(
+                'OS      : %s (%s)',
+                PHP_OS_FAMILY,
+                php_uname( 'm' )
+            )
+        );
+    }
+
+    /**
+     * Print stylized system info (hostname, OS, IP)
+     */
+    protected function print_system_info(): void {
+        $hostname = function_exists( 'gethostname' ) ? ( gethostname() ?: 'Unknown' ) : 'Unknown';
+
+        $os = 'Unknown OS';
+        if ( function_exists( 'php_uname' ) ) {
+            $os = trim( @php_uname( 's' ) . ' ' . @php_uname( 'r' ) ) ?: 'Unknown OS';
+        }
+
+        // gethostbyname() returns the input string UNCHANGED on failure
+        // rather than false/null — that's the actual signal to check for,
+        // not truthiness.
+        $ip = 'Not resolvable';
+        if ( function_exists( 'gethostbyname' ) && 'Unknown' !== $hostname ) {
+            $resolved = @gethostbyname( $hostname );
+            if ( $resolved && $resolved !== $hostname ) {
+                $ip = $resolved;
+            }
+        }
+
+        $current_user = 'Unknown';
+        if ( function_exists( 'posix_getpwuid' ) && function_exists( 'posix_geteuid' ) ) {
+            $pw           = @posix_getpwuid( posix_geteuid() );
+            $current_user = $pw['name'] ?? 'Unknown';
+        } elseif ( function_exists( 'get_current_user' ) ) {
+            $current_user = get_current_user() ?: 'Unknown';
+        }
+
+        $principal = Guard::get_principal();
+        $auth_status = null === $principal
+            ? 'Not authenticated'
+            : sprintf( 'Authenticated (%s)', $principal->get_role()->get_label() );
+
+        $info = [
+            [ 'Application',    sprintf( '%s v%s', \SMLISER_APP_NAME, \SMLISER_VER ) ],
+            [ 'Session',        $auth_status ],
+            [ 'Server Time',    date( 'Y-m-d H:i:s T' ) ],
+            [ 'PHP Version',    PHP_VERSION . ' (' . ( php_sapi_name() ?: 'Unknown' ) . ')' ],
+            [ 'OS',             $os ],
+            [ 'Hostname',       $hostname ],
+            [ 'IP Address',     $ip ],
+            [ 'Current User',   $current_user ],
+            [ 'Working Dir',    getcwd() ?: 'Unknown' ],
+        ];
+
+        $width       = 80;
+        $label_width = max( array_map( fn( $row ) => strlen( $row[0] ), $info ) );
+
+        $this->output->writeln( str_repeat( '=', $width ) );
+        $this->output->writeln( $this->colorize( ConsoleOutput::ANSI_BOLD, '  SYSTEM INFO' ) );
+        $this->output->writeln( str_repeat( '-', $width ) );
+
+        foreach ( $info as [ $label, $value ] ) {
+            $this->output->writeln( sprintf(
+                '  %s : %s',
+                $this->colorize( ConsoleOutput::ANSI_YELLOW, str_pad( $label, $label_width ) ),
+                $this->colorize( ConsoleOutput::ANSI_GREEN, $value )
+            ) );
+        }
+
+        $this->output->writeln( str_repeat( '=', $width ) );
         $this->output->newline();
     }
 
@@ -111,8 +210,14 @@ trait CommandHelpTrait {
      * @return bool
      */
     protected function args_request_help( array $args ): bool {
-        foreach ( $args as $arg ) {
-            if ( in_array( $arg, [ '--help', '-h' ], true ) ) {
+        $help_tokens    = [ '--help', '-h', 'help' ];
+        foreach ( $args as $key => $arg ) {
+
+            if ( in_array( $key, $help_tokens, true ) && (bool) $key ) {
+                return true;
+            }
+
+            if ( in_array( $arg, $help_tokens, true ) ) {
                 return true;
             }
         }
@@ -130,4 +235,6 @@ trait CommandHelpTrait {
     protected function print_error( string $message ): void {
         $this->output->error( $message );
     }
+
+    abstract protected function colorize( string $code, string $message ): string;
 }
