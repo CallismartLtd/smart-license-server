@@ -534,78 +534,83 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
      * Build app request object.
      */
     private function buildRequest( array $opts ) : ?Request {
-        // Resolve zip file — --app-zip-path takes precedence over --app-zip-url.
-        $zip_file    = null;
-        $zip_cleanup = null;
+        try {
+            // Resolve zip file — --app-zip-file takes precedence over --app-zip-url.
+            $zip_file    = null;
+            $zip_cleanup = null;
 
-        if ( ! empty( $opts['app-zip-path'] ) ) {
-            $zip_file = $this->resolve_local_file( (string) $opts['app-zip-path'] );
-            if ( $zip_file === null ) {
-                return null;
+            if ( ! empty( $opts['app-zip-file'] ) ) {
+                $zip_file = $this->resolve_local_file( (string) $opts['app-zip-file'] );
+                if ( $zip_file === null ) {
+                    return null;
+                }
+            } elseif ( ! empty( $opts['app-zip-url'] ) ) {
+                $zip_file = $this->download_to_tmp( (string) $opts['app-zip-url'] );
+                if ( $zip_file === null ) {
+                    return null;
+                }
             }
-        } elseif ( ! empty( $opts['app-zip-url'] ) ) {
-            $zip_file = $this->download_to_tmp( (string) $opts['app-zip-url'] );
-            if ( $zip_file === null ) {
-                return null;
+
+            // Resolve app.json — --app-json-path takes precedence over --app-json-url.
+            $json_file    = null;
+            $json_cleanup = null;
+
+            if ( ! empty( $opts['app-json-path'] ) ) {
+                $json_file = $this->resolve_local_file( (string) $opts['app-json-path'] );
+                if ( $json_file === null ) {
+                    return null;
+                }
+            } elseif ( ! empty( $opts['app-json-url'] ) ) {
+                $json_file = $this->download_to_tmp( (string) $opts['app-json-url'] );
+                if ( $json_file === null ) {
+                    return null;
+                }
             }
-        }
 
-        // Resolve app.json — --app-json-path takes precedence over --app-json-url.
-        $json_file    = null;
-        $json_cleanup = null;
+            // Build request params.
+            $params = [
+                'app_type'   => static::get_type(),
+                'app_name'   => $opts['name'] ?? '',
+                'app_author' => $opts['author'] ?? '',
+                'app_version'=> $opts['version']       ?? '',
+                'app_author_url'    => $opts['author-url']  ?? '',
+                'app_download_url'  => $opts['download-url'] ?? '',
+            ];
 
-        if ( ! empty( $opts['app-json-path'] ) ) {
-            $json_file = $this->resolve_local_file( (string) $opts['app-json-path'] );
-            if ( $json_file === null ) {
-                return null;
+            if ( ! empty( $opts['owner-id'] ) ) {
+                $params['app_owner_id'] = (int) $opts['owner-id'];
             }
-        } elseif ( ! empty( $opts['app-json-url'] ) ) {
-            $json_file = $this->download_to_tmp( (string) $opts['app-json-url'] );
-            if ( $json_file === null ) {
-                return null;
+
+            if ( ! empty( $opts['slug'] ) ) {
+                $params['app_slug'] = $opts['slug'];
             }
-        }
 
-        // Build request params.
-        $params = [
-            'app_type'   => static::get_type(),
-            'app_name'   => $opts['name'] ?? '',
-            'app_author' => $opts['author'] ?? '',
-            'app_version'=> $opts['version']       ?? '',
-            'app_author_url'    => $opts['author-url']  ?? '',
-            'app_download_url'  => $opts['download-url'] ?? '',
-        ];
+            $request = new Request( params: $params, method: 'POST' );
 
-        if ( ! empty( $opts['owner-id'] ) ) {
-            $params['app_owner_id'] = (int) $opts['owner-id'];
-        }
-
-        if ( ! empty( $opts['slug'] ) ) {
-            $params['app_slug'] = $opts['slug'];
-        }
-
-        $request = new Request( params: $params, method: 'POST' );
-
-        // Inject zip file into request if provided.
-        if ( $zip_file !== null ) {
-            $request = $this->inject_uploaded_file( $request, $zip_file, 'app_zip_file' );
-            if ( $request === null ) {
-                $this->cleanup( $zip_cleanup, $json_cleanup );
-                return null;
+            // Inject zip file into request if provided.
+            if ( $zip_file !== null ) {
+                $request = $this->inject_uploaded_file( $request, $zip_file, 'app_zip_file' );
+                if ( $request === null ) {
+                    $this->cleanup( $zip_cleanup, $json_cleanup );
+                    return null;
+                }
             }
-        }
 
-        // Inject app.json into request if provided.
-        if ( $json_file !== null ) {
-            $request = $this->inject_uploaded_file( $request, $json_file, 'app_json_file' );
-            if ( $request === null ) {
-                $this->cleanup( $zip_cleanup, $json_cleanup );
-                return null;
+            // Inject app.json into request if provided.
+            if ( $json_file !== null ) {
+                $request = $this->inject_uploaded_file( $request, $json_file, 'app_json_file' );
+                if ( $request === null ) {
+                    $this->cleanup( $zip_cleanup, $json_cleanup );
+                    return null;
+                }
             }
+
+            return $request;            
+        } catch ( FileSystemException $e ) {
+            $this->output->error( $e->get_error_message() );
+
+            return null;
         }
-
-        return $request;
-
     }
 
     /**
