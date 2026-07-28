@@ -24,7 +24,7 @@ trait CLIFilesystemAwareTrait {
     /**
      * Resolve a local file path and verify it exists and is readable.
      *
-     * Copies the file to the temp directory with SMLISER_UPLOAD_TMP_PREFIX
+     * Copies the file to the tmp directory with SMLISER_UPLOAD_TMP_PREFIX
      * so it passes UploadedFile::is_uploaded_file() via the custom parser
      * path (prefix check), without touching $_FILES.
      *
@@ -36,7 +36,7 @@ trait CLIFilesystemAwareTrait {
     private function resolve_local_file( string $path, bool $auto_clean = true ): string {
         $fs = smliser_filesystem();
 
-        if ( ! $fs->exists( $path ) ) {
+        if ( ! $fs->is_file( $path ) ) {
             throw new FileSystemException( sprintf( 'File not found: %s', $path ) );
         }
 
@@ -50,7 +50,7 @@ trait CLIFilesystemAwareTrait {
         );
 
         if ( ! $fs->copy( $path, $destination ) ) {
-            throw new FileSystemException( sprintf( 'Failed to copy file to temp directory: %s', $path ) );
+            throw new FileSystemException( sprintf( 'Failed to copy file to tmp directory: %s', $path ) );
         }
 
         if ( $auto_clean ) {
@@ -79,7 +79,7 @@ trait CLIFilesystemAwareTrait {
     private function download_to_tmp( string $url, bool $auto_clean = true ): ?string {
         $this->output->writeln( sprintf( 'Downloading %s...', $url ) );
 
-        $temp_path = smliser_download_url( $url, timeout: 60, autoclean: $auto_clean  );
+        $temp_path = smliser_download_url( url: $url, timeout: 60, autoclean: $auto_clean  );
 
         if ( $temp_path instanceof FileRequestException ) {
             $status  = $temp_path->get_error_data()['status'] ?? 0;
@@ -89,8 +89,6 @@ trait CLIFilesystemAwareTrait {
                 ? sprintf( 'Download failed [HTTP %d]: %s', $status, $message )
                 : sprintf( 'Download failed: %s', $message )
             );
-            
-            return null;
         }
 
         return $temp_path;
@@ -115,7 +113,6 @@ trait CLIFilesystemAwareTrait {
 
         if ( ! $fs->exists( $tmp_path ) ) {
             throw new FileSystemException( sprintf( 'Temp file missing: %s', $tmp_path ) );
-            return null;
         }
 
         $file_entry = [
@@ -150,7 +147,6 @@ trait CLIFilesystemAwareTrait {
         foreach ( $tmp_paths as $index => $tmp_path ) {
             if ( ! $fs->exists( $tmp_path ) ) {
                 throw new FileSystemException( sprintf( 'Temp file missing: %s', $tmp_path ) );
-                return null;
             }
 
             $file_entries[] = [
