@@ -392,7 +392,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string|URL|null $url
      */
     public function set_author_profile( string|URL|null $url ) : static {
-        $this->author_profile = ( $url instanceof URL ) ? $url->sanitize() : ( new URL( $url ) )->sanitize();
+        $this->author_profile = ( $url instanceof URL ) ? $url->sanitize() : ( new URL( (string) $url ) )->sanitize();
 
         return $this;
     }
@@ -1284,7 +1284,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * Get the download URL for the application.
      */
     public function get_download_url() : URL {
-        return $this->download_link;
+        return $this->download_link ? $this->download_link : new URL( (string) $this->download_link );
     }
 
     /**
