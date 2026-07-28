@@ -26,7 +26,7 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
 class ConsoleInput implements InputInterface {
 
     /**
-     * @param TerminalCapabilities $terminal Shared capability detector,
+     * @param Terminal $terminal Shared capability detector,
      *                                        also owns the actual stty
      *                                        echo-suppression toggling.
      * @param resource              $stdin    Stream to read from.
@@ -37,7 +37,7 @@ class ConsoleInput implements InputInterface {
      *                                        a captured stream in tests.
      */
     public function __construct(
-        private TerminalCapabilities $terminal,
+        private Terminal $terminal,
         private $stdin  = STDIN,
         private $stdout = STDOUT
     ) {}

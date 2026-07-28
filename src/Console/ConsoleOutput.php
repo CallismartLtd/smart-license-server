@@ -16,7 +16,7 @@ use SmartLicenseServer\Console\Contracts\OutputInterface;
 /**
  * Default OutputInterface implementation — writes to real STDOUT/STDERR
  * streams, with ANSI color, tables, and progress bars gated by an
- * injected TerminalCapabilities instance and the configured verbosity.
+ * injected Terminal instance and the configured verbosity.
  *
  * The stream and error-stream parameters exist so tests can pass in
  * `fopen( 'php://memory', 'w' )` handles instead of the real streams —
@@ -60,12 +60,12 @@ class ConsoleOutput implements OutputInterface {
     private ?array $progress = null;
 
     /**
-     * @param TerminalCapabilities $terminal Shared capability detector.
+     * @param Terminal $terminal Shared capability detector.
      * @param resource             $stdout   Stream for normal output.
      * @param resource             $stderr   Stream for error()  output.
      */
     public function __construct(
-        private TerminalCapabilities $terminal,
+        private Terminal $terminal,
         private $stdout = STDOUT,
         private $stderr = STDERR
     ) {}

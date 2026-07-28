@@ -20,7 +20,7 @@ use SmartLicenseServer\Console\ConsoleInput;
 use SmartLicenseServer\Console\ConsoleOutput;
 use SmartLicenseServer\Console\HistoryAwareInput;
 use SmartLicenseServer\Console\Runners\RunnerInterface;
-use SmartLicenseServer\Console\TerminalCapabilities;
+use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
@@ -183,7 +183,7 @@ class CLIEnvironment extends Environment {
      */
     private function build_runner( array $argv ) : RunnerInterface {
         $registry = CommandRegistry::instance();
-        $terminal = new TerminalCapabilities();
+        $terminal = new Terminal();
         $output   = new ConsoleOutput( $terminal );
         $input    = new ConsoleInput( $terminal );
 
@@ -205,10 +205,10 @@ class CLIEnvironment extends Environment {
      * invocation has no session to navigate history within.
      *
      * @param ConsoleInput         $input
-     * @param TerminalCapabilities $terminal
+     * @param Terminal $terminal
      * @return HistoryAwareInput
      */
-    private function build_shell_input( ConsoleInput $input, TerminalCapabilities $terminal ) : HistoryAwareInput {
+    private function build_shell_input( ConsoleInput $input, Terminal $terminal ) : HistoryAwareInput {
         return new HistoryAwareInput( $input, $terminal, $this->shell_history_path() );
     }
 

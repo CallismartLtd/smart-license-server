@@ -17,7 +17,7 @@ use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\OptionParser;
-use SmartLicenseServer\Console\TerminalCapabilities;
+use SmartLicenseServer\Console\Terminal;
 
 /**
  * Plain PHP CLI runner — one-shot dispatch for `smliser <command>
@@ -44,7 +44,7 @@ class CLIRunner extends AbstractCommandRouter implements RunnerInterface {
         private array $argv,
         InputInterface $io,
         OutputInterface $output,
-        ?TerminalCapabilities $terminal = null
+        ?Terminal $terminal = null
     ) {
         parent::__construct( $registry, $io, $output, $terminal );
     }

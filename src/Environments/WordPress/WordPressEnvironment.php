@@ -15,7 +15,7 @@ use SmartLicenseServer\Core\URL;
 use Callismart\DBPrism\Adapters\WPDBAdapter;
 use SmartLicenseServer\Autoloader;
 use SmartLicenseServer\Console\OptionParser;
-use SmartLicenseServer\Console\TerminalCapabilities;
+use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Environments\WordPress\CLI\WPCLIInput;
 use SmartLicenseServer\Environments\WordPress\CLI\WPCLIOutput;
 use SmartLicenseServer\Environments\WordPress\CLI\WPCLIRunner;
@@ -367,7 +367,7 @@ class WordPressEnvironment extends Environment {
             CommandRegistry::instance(),
             new WPCLIInput(),
             new WPCLIOutput(),
-            new TerminalCapabilities(),
+            new Terminal(),
             new OptionParser()
         ) )->init();
     }

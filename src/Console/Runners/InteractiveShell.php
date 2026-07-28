@@ -42,9 +42,10 @@ use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\ConsoleOutput;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\HistoryAwareInput;
 use SmartLicenseServer\Console\OptionParser;
-use SmartLicenseServer\Console\TerminalCapabilities;
-use SmartLicenseServer\Console\Traits\CLIWelcomeTrait;
+use SmartLicenseServer\Console\SignalManager;
+use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Utils\Format;
 
@@ -81,7 +82,7 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      * @param CommandRegistry      $registry
      * @param InputInterface       $io
      * @param OutputInterface      $output
-     * @param TerminalCapabilities $terminal Needed here only to decide
+     * @param Terminal $terminal Needed here only to decide
      *                                       whether to colorize the
      *                                       prompt/banner — everything
      *                                       else goes through $output.
@@ -90,7 +91,7 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
         CommandRegistry $registry,
         InputInterface $io,
         OutputInterface $output,
-        TerminalCapabilities $terminal
+        Terminal $terminal
     ) {
         if ( ! defined( 'SMLISER_INTERACTIVE_SHELL' ) ) {
             define( 'SMLISER_INTERACTIVE_SHELL', true );
@@ -178,36 +179,41 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      *
      * @return void
      */
-    private function register_signal_handlers(): void {
-        if ( $this->terminal->is_windows() || ! extension_loaded( 'pcntl' ) ) {
+    private function register_signal_handlers(): void {        
+        if ( ! $this->signal->register() ) {
             return;
         }
 
-        pcntl_async_signals( true );
+        if ( $this->io instanceof HistoryAwareInput ) {
+            $this->signal->on( SIGWINCH, [$this->io, 'reset_terminal_width'] );
+        }
 
-        $handler = function ( int $signal ): void {
-            $reason = match ( $signal ) {
-                SIGINT  => 'interrupted',
-                SIGTERM => 'terminated',
-                SIGHUP  => 'disconnected',
-                default => 'ended',
-            };
+        $this->signal->on( SIGINT, [$this, 'exit_handler'] )
+                ->on( SIGTERM, [$this, 'exit_handler'] )
+                ->on( SIGHUP, [$this, 'exit_handler'] );
+    }
 
-
-            $this->terminal->restore_cooked_mode();
-            $this->output->newline();
-            $this->print_goodbye( $reason );
-
-            // 128 + signal number is the conventional shell exit-code
-            // convention for "terminated by signal N" (e.g. 130 for
-            // SIGINT), so a wrapping script can distinguish this from
-            // a normal exit(0) if it cares to.
-            exit( 128 + $signal );
+    /**
+     * Graceful exit logging and cooked-mode restoration on process termination signals.
+     *
+     * @param int $signal
+     * @return never
+     */
+    public function exit_handler( int $signal ): never {
+        $reason = match ( $signal ) {
+            SIGINT  => 'interrupted',
+            SIGTERM => 'terminated',
+            SIGHUP  => 'disconnected',
+            default => 'ended',
         };
 
-        pcntl_signal( SIGINT, $handler );
-        pcntl_signal( SIGTERM, $handler );
-        pcntl_signal( SIGHUP, $handler );
+        $this->terminal->restore_cooked_mode();
+        $this->output->newline();
+        $this->print_goodbye( $reason );
+
+        // 128 + signal number is the conventional shell exit-code
+        // convention for "terminated by signal N" (e.g. 130 for SIGINT)
+        exit( 128 + $signal );
     }
 
     /*

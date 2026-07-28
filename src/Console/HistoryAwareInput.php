@@ -106,18 +106,26 @@ class HistoryAwareInput implements InputInterface {
     private bool $history_loaded = false;
 
     /**
+     * Cached terminal column width, used by move_cursor() to work out
+     * how a buffer offset maps to a (row, col) position so cursor
+     * moves wrap the same way the terminal itself wraps long lines.
+     *
+     * @var int|null
+     */
+    private ?int $term_width = null;
+
+    /**
      * @param InputInterface        $inner        Wrapped input — read_line()
      *                                             falls through to this in
      *                                             Tier 3; confirm()/choice()/
      *                                             secret() always delegate here.
-     * @param TerminalCapabilities  $terminal     Shared capability detector,
+     * @param Terminal  $terminal     Shared capability detector,
      *                                             also owns the actual stty
-     *                                             raw-mode/echo toggling.
+     *                                             raw-mode/echo toggling and
+     *                                             terminal size detection.
      * @param string                $history_path Absolute path to the single,
      *                                             ever-growing history file —
-     *                                             the same shape as
-     *                                             .bash_history, not split by
-     *                                             day or otherwise rotated.
+     *                                             the same shape as bash_history.
      * @param resource              $stdin        Stream to read raw-mode input from.
      * @param resource              $stdout       Stream to echo keystrokes/redraws to —
      *                                             injected rather than hardcoding the
@@ -127,9 +135,9 @@ class HistoryAwareInput implements InputInterface {
      */
     public function __construct(
         private InputInterface $inner,
-        private TerminalCapabilities $terminal,
+        private Terminal $terminal,
         private string $history_path,
-        private $stdin = STDIN,
+        private $stdin  = STDIN,
         private $stdout = STDOUT
     ) {
         // Registered once, here, rather than lazily on first use —
@@ -150,6 +158,8 @@ class HistoryAwareInput implements InputInterface {
     public function read_line( string $prompt = '' ): ?string {
         $this->load_history();
 
+        $this->reset_terminal_width();
+
         $line = $this->read_via_best_available_mode( $prompt );
 
         if ( null !== $line && '' !== $line ) {
@@ -163,7 +173,7 @@ class HistoryAwareInput implements InputInterface {
      * Pick Tier 2 (raw mode, cursor/history navigation) when the
      * terminal supports it, falling back to Tier 3 (the wrapped
      * input's plain read_line()) otherwise — including when
-     * TerminalCapabilities::enable_raw_mode() itself reports it
+     * Terminal::enable_raw_mode() itself reports it
      * couldn't actually engage raw mode (stty/system unavailable),
      * which is the one case the old is_windows()/is_tty()/
      * stty_available()/function_available() checks here couldn't
@@ -240,17 +250,21 @@ class HistoryAwareInput implements InputInterface {
      * insertion at the cursor, and Backspace/Delete handling manually.
      *
      * Assumes raw mode is already active — read_via_best_available_mode()
-     * engages it via TerminalCapabilities::enable_raw_mode() before
+     * engages it via Terminal::enable_raw_mode() before
      * calling this, and restores cooked mode afterward regardless of
      * how this method returns. This method has no stty knowledge of
      * its own beyond that assumption.
      *
-     * Redraws only use relative cursor moves (\033[{n}D / \033[{n}C)
-     * based on buffer length, never absolute column positions — the
-     * prompt may contain ANSI color codes whose byte length doesn't
-     * match its visible width, so jumping to a computed column would
-     * be wrong; a relative move measured purely in buffer characters
-     * is not affected by that.
+     * Redraws are wrap-aware: every cursor reposition goes through
+     * move_cursor(), which maps a buffer offset to a (row, col) pair
+     * using the terminal's column width and emits row moves
+     * (\033[nA / \033[nB) plus a column remainder (\033[nC / \033[nD)
+     * rather than a single relative column move. Plain \033[nD/\033[nC
+     * alone is not enough once the prompt + buffer is long enough to
+     * wrap a terminal row: those codes clamp at the row's own margins
+     * and never carry movement onto the row above or below, which is
+     * what previously caused long lines to stop scrolling/deleting
+     * correctly at a wrap boundary.
      *
      * @param string $prompt
      * @return string|null The submitted line, or null on EOF.
@@ -303,15 +317,16 @@ class HistoryAwareInput implements InputInterface {
             // not necessarily the last character in the buffer.
             if ( 127 === $byte || 8 === $byte ) {
                 if ( $cursor > 0 ) {
-                    $buffer = substr( $buffer, 0, $cursor - 1 ) . substr( $buffer, $cursor );
+                    $old_cursor = $cursor;
+                    $buffer     = substr( $buffer, 0, $cursor - 1 ) . substr( $buffer, $cursor );
                     --$cursor;
 
-                    // Step left over the removed character, redraw
-                    // everything after it plus one trailing space
-                    // to erase the character that used to be there,
-                    // then step back to the (new) cursor position.
+                    // Move cursor back to the edit position
+                    $this->move_cursor( $old_cursor, $cursor, $prompt );
+                    
+                    // Save position (\033[s), write tail + trailing space, restore position (\033[u)
                     $tail = substr( $buffer, $cursor ) . ' ';
-                    fwrite( $this->stdout, "\033[D" . $tail . "\033[" . strlen( $tail ) . 'D' );
+                    fwrite( $this->stdout, "\033[s" . $tail . "\033[u" );
                 }
                 continue;
             }
@@ -321,13 +336,13 @@ class HistoryAwareInput implements InputInterface {
                 $seq = $this->read_escape_sequence();
 
                 if ( '[A' === $seq ) {
-                    [ $buffer, $hist_idx, $saved ] = $this->history_older( $buffer, $hist_idx, $saved, $prompt );
+                    [ $buffer, $hist_idx, $saved ] = $this->history_older( $buffer, $hist_idx, $saved, $prompt, $cursor );
                     $cursor = strlen( $buffer );
                     continue;
                 }
 
                 if ( '[B' === $seq ) {
-                    [ $buffer, $hist_idx ] = $this->history_newer( $hist_idx, $saved, $prompt );
+                    [ $buffer, $hist_idx ] = $this->history_newer( $hist_idx, $saved, $prompt, $cursor );
                     $cursor = strlen( $buffer );
                     continue;
                 }
@@ -335,8 +350,8 @@ class HistoryAwareInput implements InputInterface {
                 // Left arrow.
                 if ( '[D' === $seq ) {
                     if ( $cursor > 0 ) {
+                        $this->move_cursor( $cursor, $cursor - 1, $prompt );
                         --$cursor;
-                        fwrite( $this->stdout, "\033[D" );
                     }
                     continue;
                 }
@@ -344,7 +359,7 @@ class HistoryAwareInput implements InputInterface {
                 // Right arrow.
                 if ( '[C' === $seq ) {
                     if ( $cursor < strlen( $buffer ) ) {
-                        fwrite( $this->stdout, "\033[C" );
+                        $this->move_cursor( $cursor, $cursor + 1, $prompt );
                         ++$cursor;
                     }
                     continue;
@@ -353,7 +368,7 @@ class HistoryAwareInput implements InputInterface {
                 // Home — xterm sends "[H", some terminals send "[1~".
                 if ( '[H' === $seq || '[1~' === $seq ) {
                     if ( $cursor > 0 ) {
-                        fwrite( $this->stdout, "\033[{$cursor}D" );
+                        $this->move_cursor( $cursor, 0, $prompt );
                         $cursor = 0;
                     }
                     continue;
@@ -361,9 +376,8 @@ class HistoryAwareInput implements InputInterface {
 
                 // End — xterm sends "[F", some terminals send "[4~".
                 if ( '[F' === $seq || '[4~' === $seq ) {
-                    $remaining = strlen( $buffer ) - $cursor;
-                    if ( $remaining > 0 ) {
-                        fwrite( $this->stdout, "\033[{$remaining}C" );
+                    if ( $cursor < strlen( $buffer ) ) {
+                        $this->move_cursor( $cursor, strlen( $buffer ), $prompt );
                         $cursor = strlen( $buffer );
                     }
                     continue;
@@ -375,8 +389,10 @@ class HistoryAwareInput implements InputInterface {
                 if ( '[3~' === $seq ) {
                     if ( $cursor < strlen( $buffer ) ) {
                         $buffer = substr( $buffer, 0, $cursor ) . substr( $buffer, $cursor + 1 );
+                        
+                        // Save position (\033[s), write tail + trailing space, restore position (\033[u)
                         $tail   = substr( $buffer, $cursor ) . ' ';
-                        fwrite( $this->stdout, $tail . "\033[" . strlen( $tail ) . 'D' );
+                        fwrite( $this->stdout, "\033[s" . $tail . "\033[u" );
                     }
                     continue;
                 }
@@ -388,16 +404,13 @@ class HistoryAwareInput implements InputInterface {
             // Printable character — insert at the cursor, not
             // necessarily append at the end.
             if ( $byte >= 32 ) {
-                $buffer = substr( $buffer, 0, $cursor ) . $char . substr( $buffer, $cursor );
+                $old_cursor = $cursor;
+                $buffer     = substr( $buffer, 0, $cursor ) . $char . substr( $buffer, $cursor );
                 ++$cursor;
 
-                $tail = substr( $buffer, $cursor - 1 );
+                $tail = substr( $buffer, $old_cursor );
                 fwrite( $this->stdout, $tail );
-
-                $back = strlen( $tail ) - 1;
-                if ( $back > 0 ) {
-                    fwrite( $this->stdout, "\033[{$back}D" );
-                }
+                $this->move_cursor( $old_cursor + strlen( $tail ), $cursor, $prompt );
             }
         }
 
@@ -443,11 +456,11 @@ class HistoryAwareInput implements InputInterface {
             $w = null;
             $e = null;
 
-            if ( ! stream_select( $r, $w, $e, 0, 50000 ) ) {
+            if ( ! @stream_select( $r, $w, $e, 0, 50000 ) ) {
                 break;
             }
 
-            $byte = fgetc( $this->stdin );
+            $byte = @fgetc( $this->stdin );
 
             if ( false === $byte ) {
                 break;
@@ -468,13 +481,14 @@ class HistoryAwareInput implements InputInterface {
     /**
      * Navigate to an older history entry and redraw the line.
      *
-     * @param string   $buffer   Current buffer contents.
-     * @param int|null $hist_idx Current history cursor (null = fresh line).
-     * @param string   $saved    Draft line saved before browsing started.
-     * @param string   $prompt   The full prompt string (ANSI codes are fine).
+     * @param string   $buffer     Current buffer contents.
+     * @param int|null $hist_idx   Current history cursor (null = fresh line).
+     * @param string   $saved      Draft line saved before browsing started.
+     * @param string   $prompt     The full prompt string (ANSI codes are fine).
+     * @param int      $old_cursor Buffer offset the terminal cursor currently sits at.
      * @return array{string, int, string} [$new_buffer, $new_hist_idx, $saved]
      */
-    private function history_older( string $buffer, ?int $hist_idx, string $saved, string $prompt ): array {
+    private function history_older( string $buffer, ?int $hist_idx, string $saved, string $prompt, int $old_cursor ): array {
         $count = count( $this->history );
 
         if ( 0 === $count ) {
@@ -489,7 +503,7 @@ class HistoryAwareInput implements InputInterface {
         }
 
         $entry = $this->history[ $hist_idx ];
-        $this->rewrite_line( $buffer, $entry, $prompt );
+        $this->rewrite_line( $entry, $prompt, $old_cursor );
 
         return [ $entry, $hist_idx, $saved ];
     }
@@ -497,12 +511,13 @@ class HistoryAwareInput implements InputInterface {
     /**
      * Navigate to a newer history entry, or restore the draft line.
      *
-     * @param int|null $hist_idx Current history cursor.
-     * @param string   $saved    The draft line saved before browsing.
-     * @param string   $prompt   The full prompt string (ANSI codes are fine).
+     * @param int|null $hist_idx   Current history cursor.
+     * @param string   $saved      The draft line saved before browsing.
+     * @param string   $prompt     The full prompt string (ANSI codes are fine).
+     * @param int      $old_cursor Buffer offset the terminal cursor currently sits at.
      * @return array{string, int|null} [$new_buffer, $new_hist_idx]
      */
-    private function history_newer( ?int $hist_idx, string $saved, string $prompt ): array {
+    private function history_newer( ?int $hist_idx, string $saved, string $prompt, int $old_cursor ): array {
         if ( null === $hist_idx ) {
             return [ '', null ];
         }
@@ -510,31 +525,110 @@ class HistoryAwareInput implements InputInterface {
         $count = count( $this->history );
 
         if ( $hist_idx >= $count - 1 ) {
-            $this->rewrite_line( $this->history[ $hist_idx ] ?? '', $saved, $prompt );
+            $this->rewrite_line( $saved, $prompt, $old_cursor );
             return [ $saved, null ];
         }
 
         ++$hist_idx;
         $entry = $this->history[ $hist_idx ];
-        $this->rewrite_line( $this->history[ $hist_idx - 1 ], $entry, $prompt );
+        $this->rewrite_line( $entry, $prompt, $old_cursor );
 
         return [ $entry, $hist_idx ];
     }
 
     /**
-     * Overwrite the buffer area of the current line with new content.
+     * Replace the currently-displayed line with new content, wrapping
+     * correctly across terminal rows regardless of how many rows the
+     * old or new content occupies.
      *
-     * @param string $old    Buffer currently displayed after the prompt.
-     * @param string $new    Replacement buffer content.
-     * @param string $prompt The full prompt string (ANSI codes are fine).
+     * Walks the cursor back to buffer offset 0 (which may mean moving
+     * up one or more rows if the old content wrapped), erases from
+     * there to the end of the screen with \033[J, then writes the new
+     * content. \033[J assumes nothing meaningful is on-screen below
+     * the input line — true for a REPL prompt sitting at the bottom of
+     * scrollback, which is the only context this class is used in.
+     *
+     * @param string $new        Replacement buffer content.
+     * @param string $prompt     The full prompt string (ANSI codes are fine).
+     * @param int    $old_cursor Buffer offset the terminal cursor currently sits at.
      * @return void
      */
-    private function rewrite_line( string $old, string $new, string $prompt ): void {
-        $erase = strlen( $old ) > strlen( $new )
-            ? str_repeat( ' ', strlen( $old ) - strlen( $new ) )
-            : '';
+    private function rewrite_line( string $new, string $prompt, int $old_cursor ): void {
+        $this->move_cursor( $old_cursor, 0, $prompt );
+        fwrite( $this->stdout, "\033[J" . $new );
+    }
 
-        fwrite( $this->stdout, "\r" . $prompt . $new . $erase . "\r" . $prompt . $new );
+    /**
+     * Move the terminal cursor from one buffer offset to another,
+     * wrapping across terminal rows the way plain ANSI CUB/CUF
+     * (\033[nD / \033[nC) alone cannot — those clamp at the current
+     * row's margins and never carry a move onto the row above or
+     * below. Offsets are character positions into the line buffer,
+     * not counting the prompt — the prompt's own visible length is
+     * added internally so prompt + buffer together determine wrapping.
+     *
+     * @param int    $from_pos Buffer offset the cursor currently sits at.
+     * @param int    $to_pos   Buffer offset to move the cursor to.
+     * @param string $prompt   The full prompt string (ANSI codes are fine).
+     * @return void
+     */
+    private function move_cursor( int $from_pos, int $to_pos, string $prompt ): void {
+        if ( $from_pos === $to_pos ) {
+            return;
+        }
+
+        $width      = $this->terminal_width();
+        $prompt_len = $this->visible_length( $prompt );
+
+        $from_col = ( $prompt_len + $from_pos ) % $width;
+        $from_row = intdiv( $prompt_len + $from_pos, $width );
+        $to_col   = ( $prompt_len + $to_pos ) % $width;
+        $to_row   = intdiv( $prompt_len + $to_pos, $width );
+
+        $seq = '';
+
+        // Handle vertical row changes first
+        if ( $to_row < $from_row ) {
+            $seq .= "\033[" . ( $from_row - $to_row ) . 'A';
+        } elseif ( $to_row > $from_row ) {
+            $seq .= "\033[" . ( $to_row - $from_row ) . 'B';
+        }
+
+        // Handle horizontal movement. 
+        // Absolute column positioning (\033[G or \033[nG) is safer across wrapped boundaries:
+        $seq .= "\033[" . ( $to_col + 1 ) . 'G';
+
+        fwrite( $this->stdout, $seq );
+    }
+
+    /**
+     * Visible length of a string, stripping ANSI escape sequences so
+     * a colored prompt's byte length doesn't get mistaken for its
+     * on-screen column width when computing wrap points.
+     *
+     * @param string $str
+     * @return int
+     */
+    private function visible_length( string $str ): int {
+        return strlen( preg_replace( '/\033\[[0-9;]*[a-zA-Z]/', '', $str ) );
+    }
+
+    /**
+     * Current terminal column width, cached per call to avoid a
+     * process spawn (Terminal::terminal_width() shells
+     * out to stty/tput) on every single keystroke.
+     *
+     * @return int
+     */
+    private function terminal_width(): int {
+        return $this->term_width ??= $this->terminal->terminal_width( $this->stdout );
+    }
+
+    /**
+     * Reset cached terminal width.
+     */
+    public function reset_terminal_width() : void {
+        $this->term_width = null;
     }
 
     /*

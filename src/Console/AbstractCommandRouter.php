@@ -27,7 +27,7 @@ abstract class AbstractCommandRouter {
      * @param CommandRegistry $registry
      * @param InputInterface  $io
      * @param OutputInterface $output
-     * @param TerminalCapabilities $terminal Needed here only to decide
+     * @param Terminal $terminal Needed here only to decide
      *                                       whether to colorize the
      *                                       prompt/banner — everything
      *                                       else goes through $output.
@@ -36,8 +36,14 @@ abstract class AbstractCommandRouter {
         protected CommandRegistry $registry,
         protected InputInterface $io,
         protected OutputInterface $output,
-        protected TerminalCapabilities $terminal
-    ) {}
+        protected Terminal $terminal,
+        protected ?SignalManager $signal = null
+
+    ) {
+        if ( ! isset( $this->signal ) ) {
+            $this->signal = new SignalManager( $this->terminal );
+        }
+    }
 
     /*
     |--------------------------------------------
@@ -159,7 +165,7 @@ abstract class AbstractCommandRouter {
      * A small local helper rather than a call into ConsoleOutput — its
      * colorize() is private by design (an internal detail of how it
      * renders its own styled lines), so the shell's prompt/banner
-     * coloring goes through the same TerminalCapabilities check
+     * coloring goes through the same Terminal check
      * independently instead of reaching into ConsoleOutput's internals.
      *
      * @param string $code    ANSI escape code constant (see ConsoleOutput).

@@ -1,23 +1,6 @@
 <?php
 /**
- * Terminal capabilities detection class file.
- *
- * Centralizes environment/terminal capability detection so both the
- * input side (ConsoleInput, HistoryAwareInput) and the output side
- * (ConsoleOutput) can share one detection strategy instead of each
- * re-implementing TTY, ANSI, and stty checks independently.
- *
- * ## Usage
- *
- *   $terminal = new TerminalCapabilities();
- *
- *   if ( $terminal->supports_ansi() ) {
- *       echo "\033[32mGreen text\033[0m";
- *   }
- *
- *   if ( $terminal->is_tty( STDIN ) && $terminal->stty_available() ) {
- *       // safe to enter stty raw mode
- *   }
+ * Terminal class file.
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Console
@@ -29,19 +12,37 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console;
 
 /**
- * Detects terminal/environment capabilities: TTY status, ANSI/color
- * support (including NO_COLOR / FORCE_COLOR overrides and color depth),
- * platform, and availability of external tools (stty, readline) — and
- * owns the actual stty mode-switching (raw mode, echo suppression) so
- * that logic exists in exactly one place instead of being duplicated
- * across ConsoleInput and HistoryAwareInput.
+ * Represents the terminal itself: detects its capabilities (TTY status,
+ * ANSI/color support including NO_COLOR / FORCE_COLOR overrides and
+ * color depth, platform, dimensions, availability of external tools
+ * like stty/readline) AND actively drives it — raw-mode switching,
+ * echo suppression — via real `stty` invocations. Centralized here,
+ * as a sibling to ConsoleInput/ConsoleOutput, so neither has to
+ * re-implement TTY/ANSI/stty checks independently, and so the one
+ * place that queries terminal state is also the one place that
+ * mutates it.
  *
- * Detection results that are expensive or invariant for the life of the
- * process (ANSI support) are cached after first use. Detection results
- * that depend on the stream being checked (TTY status) are not cached,
- * since the same instance may be asked about STDIN and STDOUT.
+ * ## Usage
+ *
+ *   $terminal = new Terminal();
+ *
+ *   if ( $terminal->supports_ansi() ) {
+ *       echo "\033[32mGreen text\033[0m";
+ *   }
+ *
+ *   if ( $terminal->is_tty( STDIN ) && $terminal->stty_available() ) {
+ *       // safe to enter stty raw mode
+ *   }
+ *
+ * Detection results that are expensive or invariant for the life of
+ * the process (ANSI support, command availability, disabled-function
+ * list) are cached after first use. Detection results that depend on
+ * the stream being checked (TTY status) are not cached, since the
+ * same instance may be asked about STDIN and STDOUT. Terminal size is
+ * deliberately NEVER cached here — see terminal_size() — since this
+ * class has no way to know when a caller's copy should be invalidated.
  */
-class TerminalCapabilities {
+class Terminal {
 
     /*
     |--------------------------------------------
@@ -55,7 +56,19 @@ class TerminalCapabilities {
      * @var bool|null
      */
     private ?bool $ansi = null;
-
+    
+    /**
+     * Cached command availability results.
+     * @var array<string, bool>
+     */
+    private array $command_cache = [];
+    
+    /**
+     * Cached list of disabled functions.
+     * @var array<string>|null
+     */
+    private ?array $disabled_functions = null;
+    
     /*
     |--------------------------------------------
     | TTY DETECTION
@@ -252,6 +265,64 @@ class TerminalCapabilities {
 
     /*
     |--------------------------------------------
+    | TERMINAL SIZE
+    |--------------------------------------------
+    */
+
+    /**
+     * Query the terminal's current size directly from the tty device.
+     *
+     * Always issues a fresh query — no caching here, deliberately: this
+     * class has no way of knowing when a caller's cached value should
+     * be invalidated (that's a resize-timing policy, not a capability-
+     * detection concern), so a caller reading this on every keystroke
+     * needs its own cache + invalidation strategy. See watch_resize().
+     *
+     * @param resource $stream Stream to query. Defaults to STDOUT.
+     * @return array{rows: int, cols: int}
+     */
+    public function terminal_size( $stream = STDOUT ): array {
+        if ( ! $this->is_windows() && $this->is_tty( $stream ) && $this->stty_available() ) {
+            $output = @exec( 'stty size 2>/dev/null' );
+
+            if ( is_string( $output ) && preg_match( '/^(\d+)\s+(\d+)$/', trim( $output ), $m ) ) {
+                return [ 'rows' => (int) $m[1], 'cols' => (int) $m[2] ];
+            }
+        }
+
+        if ( $this->command_available( 'tput' ) ) {
+            $cols  = @exec( 'tput cols 2>/dev/null' );
+            $lines = @exec( 'tput lines 2>/dev/null' );
+
+            if ( is_string( $cols ) && ctype_digit( trim( $cols ) )
+                && is_string( $lines ) && ctype_digit( trim( $lines ) )
+            ) {
+                return [ 'rows' => (int) trim( $lines ), 'cols' => (int) trim( $cols ) ];
+            }
+        }
+
+        $cols  = getenv( 'COLUMNS' );
+        $lines = getenv( 'LINES' );
+
+        return [
+            'rows' => ( false !== $lines && ctype_digit( $lines ) ) ? (int) $lines : 24,
+            'cols' => ( false !== $cols && ctype_digit( $cols ) ) ? (int) $cols : 80,
+        ];
+    }
+
+    /**
+     * Convenience wrapper around terminal_size() for the common case
+     * where only the column width is needed.
+     *
+     * @param resource $stream Stream to query. Defaults to STDOUT.
+     * @return int
+     */
+    public function terminal_width( $stream = STDOUT ): int {
+        return $this->terminal_size( $stream )['cols'];
+    }
+
+    /*
+    |--------------------------------------------
     | EXTERNAL TOOL AVAILABILITY
     |--------------------------------------------
     */
@@ -289,14 +360,18 @@ class TerminalCapabilities {
      * @return bool
      */
     public function command_available( string $command ): bool {
-        if ( ! $this->function_available( 'exec' ) ) {
-            return false;
+        if ( isset( $this->command_cache[ $command ] ) ) {
+            return $this->command_cache[ $command ];
         }
 
-        // Sanitize the input to prevent command injection risks.
-        $command = escapeshellarg( $command );
+        if ( ! $this->function_available( 'exec' ) ) {
+            return $this->command_cache[ $command ] = false;
+        }
 
-        // Determine OS-specific system lookup utility.
+        if ( ! preg_match( '/^[a-zA-Z0-9_\-]+$/', $command ) ) {
+            return $this->command_cache[ $command ] = false; // Reject commands with suspicious characters outright
+        }
+
         $lookup  = $this->is_windows() ? 'where' : 'which';
         $null    = $this->is_windows() ? 'NUL' : '/dev/null';
 
@@ -305,7 +380,7 @@ class TerminalCapabilities {
 
         @exec( sprintf( '%s %s 2>%s', $lookup, $command, $null ), $output, $exit );
 
-        return 0 === $exit;
+        return $this->command_cache[ $command ] = ( 0 === $exit );
     }
 
     /**
@@ -329,17 +404,15 @@ class TerminalCapabilities {
             return false;
         }
 
-        $disabled = ini_get( 'disable_functions' );
-
-        if ( ! empty( $disabled ) ) {
-            $disabled = array_map( 'trim', explode( ',', $disabled ) );
-
-            if ( in_array( $function, $disabled, true ) ) {
-                return false;
-            }
+        if ( null === $this->disabled_functions ) {
+            $disabled = (string) ini_get( 'disable_functions' );
+            $this->disabled_functions = array_map(
+                'strtolower',
+                array_filter( array_map( 'trim', explode( ',', $disabled ) ) )
+            );
         }
 
-        return true;
+        return ! in_array( strtolower( $function ), $this->disabled_functions, true );
     }
 
     /*
