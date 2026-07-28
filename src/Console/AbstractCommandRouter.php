@@ -54,7 +54,7 @@ abstract class AbstractCommandRouter {
     /**
      * Split a token list into [command, subcommand, remaining args].
      *
-     * Shared by CLIRunner (tokens = $argv with the script name already
+     * Shared by NonInteractiveRunner (tokens = $argv with the script name already
      * stripped) and InteractiveShell (tokens = one tokenized input line)
      * so the "is the second token a subcommand or the start of the
      * option/argument list" heuristic exists in exactly one place.

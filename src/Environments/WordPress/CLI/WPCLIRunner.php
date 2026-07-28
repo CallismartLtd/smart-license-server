@@ -111,7 +111,7 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
      * @param CommandRegistry $registry
      * @param InputInterface  $io
      * @param OutputInterface $output
-     * @param OptionParser    $parser Shared with CLIRunner/InteractiveShell —
+     * @param OptionParser    $parser Shared with NonInteractiveRunner/InteractiveShell —
      *                                the same instance/class either way, so
      *                                option normalization behaves identically
      *                                regardless of entry point.
@@ -172,7 +172,7 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
      * Manage Smart License Server from the command-line.
      *
      * Bare `wp smliser` or `wp smliser help [command]` print the same
-     * listing CLIRunner prints for a bare invocation. Anything else
+     * listing NonInteractiveRunner prints for a bare invocation. Anything else
      * resolves the first token against the command registry and
      * dispatches through the shared OptionParser -> CommandInput ->
      * CommandInterface::execute() pipeline.
@@ -221,7 +221,7 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
     /**
      * Reconstruct raw argv-style tokens from WP-CLI's pre-split arrays
      * so they can be run through the same OptionParser used by
-     * CLIRunner and InteractiveShell — one normalization
+     * NonInteractiveRunner and InteractiveShell — one normalization
      * implementation, not a second one reimplemented for WP-CLI.
      *
      * Lossy at the edges described in the class docblock: a repeated

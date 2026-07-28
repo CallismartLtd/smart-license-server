@@ -17,7 +17,7 @@ use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
- * Global and per-command help printing, shared by runners (CLIRunner,
+ * Global and per-command help printing, shared by runners (NonInteractiveRunner,
  * InteractiveShell) rather than by leaf commands — nothing in
  * CommandInterface requires a command to print help about itself or
  * about its siblings, only a runner dispatching between them does.

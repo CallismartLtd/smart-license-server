@@ -29,7 +29,7 @@ use SmartLicenseServer\Console\Terminal;
  *   smliser <command> --help  → same as above (via args_request_help())
  *   smliser <command> -h      → same as above
  */
-class CLIRunner extends AbstractCommandRouter implements RunnerInterface {
+class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterface {
 
     /**
      * @param CommandRegistry $registry
@@ -38,13 +38,14 @@ class CLIRunner extends AbstractCommandRouter implements RunnerInterface {
      *                                 at index 0.
      * @param InputInterface  $io
      * @param OutputInterface $output
+     * @param Terminal $terminal
      */
     public function __construct(
         CommandRegistry $registry,
         private array $argv,
         InputInterface $io,
         OutputInterface $output,
-        ?Terminal $terminal = null
+        Terminal $terminal
     ) {
         parent::__construct( $registry, $io, $output, $terminal );
     }

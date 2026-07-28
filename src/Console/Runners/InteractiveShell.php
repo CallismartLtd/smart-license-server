@@ -11,7 +11,7 @@
  * command argument is supplied:
  *
  *   smliser           → interactive shell
- *   smliser <command> → one-shot dispatch (CLIRunner, unchanged)
+ *   smliser <command> → one-shot dispatch (NonInteractiveRunner, unchanged)
  *
  * Inside the shell every registered command works exactly as on the
  * command line, minus the leading "smliser" token:
@@ -44,7 +44,6 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\HistoryAwareInput;
 use SmartLicenseServer\Console\OptionParser;
-use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Utils\Format;
@@ -63,7 +62,7 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
     /**
      * Input tokens that end the session.
      */
-    private const EXIT_TOKENS = [ 'exit', 'quit', 'q' ];
+    private const EXIT_TOKENS = [ 'exit', 'quit', '\q' ];
 
     /**
      * Shell session start time (Unix timestamp).

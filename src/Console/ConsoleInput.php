@@ -21,7 +21,7 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
  * This does not include history navigation (↑/↓) — see
  * HistoryAwareInput, which wraps an instance of this class to add
  * that behavior for the interactive shell without forcing one-shot
- * CLIRunner commands to carry the same complexity.
+ * NonInteractiveRunner commands to carry the same complexity.
  */
 class ConsoleInput implements InputInterface {
 

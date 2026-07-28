@@ -13,7 +13,7 @@ namespace SmartLicenseServer\Environments\CLI;
 
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Console\Runners\CLIRunner;
+use SmartLicenseServer\Console\Runners\NonInteractiveRunner;
 use SmartLicenseServer\Console\Runners\InteractiveShell;
 use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Console\ConsoleInput;
@@ -175,7 +175,7 @@ class CLIEnvironment extends Environment {
     /**
      * Build the appropriate runner for this invocation.
      *
-     * One-shot dispatch (`smliser <command> ...`) gets a CLIRunner.
+     * One-shot dispatch (`smliser <command> ...`) gets a NonInteractiveRunner.
      * No command argument at all (`smliser`) gets the interactive shell.
      *
      * @param array<int, string> $argv
@@ -188,7 +188,7 @@ class CLIEnvironment extends Environment {
         $input    = new ConsoleInput( $terminal );
 
         if ( isset( $argv[1] ) ) {
-            return new CLIRunner( $registry, $argv, $input, $output, $terminal );
+            return new NonInteractiveRunner( $registry, $argv, $input, $output, $terminal );
         }
 
         return new InteractiveShell(
@@ -201,7 +201,7 @@ class CLIEnvironment extends Environment {
 
     /**
      * Wrap the base ConsoleInput with history-aware (↑/↓) reading for
-     * the interactive shell. CLIRunner does not need this — a one-shot
+     * the interactive shell. NonInteractiveRunner does not need this — a one-shot
      * invocation has no session to navigate history within.
      *
      * @param ConsoleInput         $input

@@ -12,7 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Runners;
 
 /**
- * Contract for a top-level CLI runner — the one-shot CLIRunner or the
+ * Contract for a top-level CLI runner — the one-shot NonInteractiveRunner or the
  * interactive shell — invoked once by CLIEnvironment with the full
  * dispatch lifecycle handed off to it.
  */

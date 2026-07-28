@@ -256,7 +256,7 @@ class CLIBootstrapGenerator {
 		 *
 		 * Entry point for running Smart License Server in a command-line
 		 * environment. Boots the CLI environment adapter, loads the core
-		 * command registry, and delegates dispatch to CLIRunner.
+		 * command registry, and delegates dispatch to NonInteractiveRunner.
 		 *
 		 * Usage:
 		 *   smliser [command]
