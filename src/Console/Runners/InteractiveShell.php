@@ -43,6 +43,7 @@ use SmartLicenseServer\Console\ConsoleOutput;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\HistoryAwareInput;
+use SmartLicenseServer\Console\LogoMode;
 use SmartLicenseServer\Console\OptionParser;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Security\Context\Guard;
@@ -71,6 +72,15 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      */
     private int $started_at;
 
+    /**
+     * How the welcome-banner logo is chosen. Defaults to AUTO, which
+     * preserves the previous verbosity-only behavior; every other
+     * value is an explicit override. See {@see LogoMode}.
+     *
+     * @var LogoMode
+     */
+    private LogoMode $logo_mode;
+
     /*
     |--------------------------------------------
     | CONSTRUCTOR
@@ -78,23 +88,34 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
     */
 
     /**
-     * @param CommandRegistry      $registry
-     * @param InputInterface       $io
-     * @param OutputInterface      $output
-     * @param Terminal $terminal Needed here only to decide
-     *                                       whether to colorize the
-     *                                       prompt/banner — everything
-     *                                       else goes through $output.
+     * @param CommandRegistry $registry
+     * @param InputInterface  $io
+     * @param OutputInterface $output
+     * @param Terminal        $terminal  Needed here only to decide
+     *                                   whether to colorize the
+     *                                   prompt/banner — everything
+     *                                   else goes through $output.
+     * @param LogoMode|null   $logo_mode Explicit logo policy. Pass
+     *                                   null (the default) to fall
+     *                                   back to {@see LogoMode::from_env()},
+     *                                   so an operator can still
+     *                                   control it via the
+     *                                   `SMLISER_CLI_LOGO` env var
+     *                                   without every caller having
+     *                                   to wire a flag through.
      */
     public function __construct(
         CommandRegistry $registry,
         InputInterface $io,
         OutputInterface $output,
-        Terminal $terminal
+        Terminal $terminal,
+        ?LogoMode $logo_mode = null
     ) {
         if ( ! defined( 'SMLISER_INTERACTIVE_SHELL' ) ) {
             define( 'SMLISER_INTERACTIVE_SHELL', true );
         }
+
+        $this->logo_mode = $logo_mode ?? LogoMode::from_env();
 
         parent::__construct( $registry, $io, $output, $terminal );
     }
@@ -363,23 +384,47 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
     */
 
     /**
+     * Resolve which logo string (possibly empty) to print in the
+     * banner.
+     *
+     * `AUTO` reproduces the previous behavior of deriving the logo
+     * purely from output verbosity. Every other {@see LogoMode} case
+     * is an explicit override and short-circuits that lookup
+     * entirely — including `NONE`, which skips the logo outright
+     * regardless of verbosity.
+     *
+     * @return string
+     */
+    private function resolve_logo(): string {
+        return match ( $this->logo_mode ) {
+            LogoMode::LARGE      => AsciiLogo::LARGE,
+            LogoMode::MONOSPACED => AsciiLogo::MONOSPACED,
+            LogoMode::NONE       => '',
+            LogoMode::AUTO       => match ( $this->output->get_verbosity() ) {
+                OutputInterface::VERBOSITY_NORMAL  => AsciiLogo::MONOSPACED,
+                OutputInterface::VERBOSITY_VERBOSE => AsciiLogo::LARGE,
+                OutputInterface::VERBOSITY_QUIET   => '',
+                default                            => '',
+            },
+        };
+    }
+
+    /**
      * Print the welcome banner shown at the start of each session.
      *
      * @return void
      */
     private function print_banner(): void {
-        $logo   = match( $this->output->get_verbosity() ) {
-            OutputInterface::VERBOSITY_NORMAL   => AsciiLogo::MONOSPACED,
-            OutputInterface::VERBOSITY_VERBOSE  => AsciiLogo::LARGE,
-            OutputInterface::VERBOSITY_QUIET    => '',
-            default                             => ''
-            
-        };
+        $logo = $this->resolve_logo();
 
         $quit_tokens = implode( '", "', self::EXIT_TOKENS );
 
         $this->output->newline();
-        $this->output->writeln( $logo );
+
+        if ( '' !== $logo ) {
+            $this->output->writeln( $logo );
+        }
+
         $this->output->writeln(
             $this->colorize( 
                 ConsoleOutput::ANSI_BOLD, 
