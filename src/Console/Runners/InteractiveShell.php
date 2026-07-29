@@ -258,6 +258,10 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
 
         [ $command, $subcommand, $args ] = $this->split_invocation( $tokens );
 
+        $this->output->set_verbosity(
+            $this->resolve_verbosity( $args )
+        );
+
         $option_parser = new OptionParser();
         $parsed        = $option_parser->parse( $args );
 

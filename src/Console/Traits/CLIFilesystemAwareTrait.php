@@ -77,7 +77,7 @@ trait CLIFilesystemAwareTrait {
      * @return string|null
      */
     private function download_to_tmp( string $url, bool $auto_clean = true ): ?string {
-        $this->output->writeln( sprintf( 'Downloading %s...', $url ) );
+        $this->output->writeln( sprintf( 'Downloading from %s...', $url ) );
 
         $temp_path = smliser_download_url( url: $url, timeout: 60, autoclean: $auto_clean  );
 

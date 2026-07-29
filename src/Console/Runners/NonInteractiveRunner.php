@@ -65,6 +65,10 @@ class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterf
         // name, not the invoking script.
         [ $command, $subcommand, $args ] = $this->split_invocation( array_slice( $this->argv, 1 ) );
 
+        $this->output->set_verbosity(
+            $this->resolve_verbosity( $args )
+        );
+
         $option_parser = new OptionParser();
         $parsed        = $option_parser->parse( $args );
 

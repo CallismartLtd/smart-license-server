@@ -87,7 +87,7 @@ class ConsoleOutput implements OutputInterface {
      * {@inheritdoc}
      */
     public function writeln( string $message ): void {
-        $this->write_line( $message, self::VERBOSITY_NORMAL );
+        $this->write_line( $message, static::VERBOSITY_NORMAL );
     }
 
     /*
@@ -104,35 +104,35 @@ class ConsoleOutput implements OutputInterface {
      * mixed into $stdout so piped output stays clean.
      */
     public function error( string $message ): void {
-        fwrite( $this->stderr, $this->colorize( self::ANSI_RED, '✖ ' . $message ) . PHP_EOL );
+        fwrite( $this->stderr, $this->colorize( static::ANSI_RED, '✖ ' . $message ) . PHP_EOL );
     }
 
     /**
      * {@inheritdoc}
      */
     public function info( string $message ): void {
-        $this->write_line( $this->colorize( self::ANSI_CYAN, $message ), self::VERBOSITY_NORMAL );
+        $this->write_line( $this->colorize( static::ANSI_CYAN, $message ), static::VERBOSITY_NORMAL );
     }
 
     /**
      * {@inheritdoc}
      */
     public function success( string $message ): void {
-        $this->write_line( $this->colorize( self::ANSI_GREEN, '✔ ' . $message ), self::VERBOSITY_NORMAL );
+        $this->write_line( $this->colorize( static::ANSI_GREEN, '✔ ' . $message ), static::VERBOSITY_NORMAL );
     }
 
     /**
      * {@inheritdoc}
      */
     public function warning( string $message ): void {
-        $this->write_line( $this->colorize( self::ANSI_YELLOW, '⚠ ' . $message ), self::VERBOSITY_NORMAL );
+        $this->write_line( $this->colorize( static::ANSI_YELLOW, '⚠ ' . $message ), static::VERBOSITY_NORMAL );
     }
 
     /**
      * {@inheritdoc}
      */
     public function newline( int $count = 1 ): void {
-        if ( $this->verbosity < self::VERBOSITY_NORMAL ) {
+        if ( $this->verbosity < static::VERBOSITY_NORMAL ) {
             return;
         }
 
@@ -149,7 +149,7 @@ class ConsoleOutput implements OutputInterface {
      * {@inheritdoc}
      */
     public function table( array $headers, array $rows ): void {
-        if ( $this->verbosity < self::VERBOSITY_NORMAL ) {
+        if ( $this->verbosity < static::VERBOSITY_NORMAL ) {
             return;
         }
 
@@ -167,7 +167,7 @@ class ConsoleOutput implements OutputInterface {
 
         $this->write( '|' );
         foreach ( $headers as $i => $header ) {
-            $this->write( ' ' . $this->colorize( self::ANSI_BOLD, str_pad( $header, $widths[ $i ] ) ) . ' |' );
+            $this->write( ' ' . $this->colorize( static::ANSI_BOLD, str_pad( $header, $widths[ $i ] ) ) . ' |' );
         }
         $this->write( '', true );
 
@@ -259,7 +259,7 @@ class ConsoleOutput implements OutputInterface {
      * @return void
      */
     private function draw_progress(): void {
-        if ( null === $this->progress || $this->verbosity < self::VERBOSITY_NORMAL ) {
+        if ( null === $this->progress || $this->verbosity < static::VERBOSITY_NORMAL ) {
             return;
         }
 
@@ -272,8 +272,8 @@ class ConsoleOutput implements OutputInterface {
         $filled  = (int) ( ( $current / $total ) * $width );
         $empty   = $width - $filled;
 
-        $bar = $this->colorize( self::ANSI_GREEN, str_repeat( '█', $filled ) )
-             . $this->colorize( self::ANSI_DIM, str_repeat( '░', $empty ) );
+        $bar = $this->colorize( static::ANSI_GREEN, str_repeat( '█', $filled ) )
+             . $this->colorize( static::ANSI_DIM, str_repeat( '░', $empty ) );
 
         $prefix = '' !== $label ? $label . ' ' : '';
 
@@ -292,7 +292,10 @@ class ConsoleOutput implements OutputInterface {
      * {@inheritdoc}
      */
     public function set_verbosity( int $level ): void {
-        $this->verbosity = $level;
+        $this->verbosity = max(
+            static::VERBOSITY_QUIET,
+            min( $level, static::VERBOSITY_VERBOSE )
+        );
     }
 
     /**
@@ -335,6 +338,6 @@ class ConsoleOutput implements OutputInterface {
             return $message;
         }
 
-        return $code . $message . self::ANSI_RESET;
+        return $code . $message . static::ANSI_RESET;
     }
 }

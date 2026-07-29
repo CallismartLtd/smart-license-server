@@ -96,7 +96,10 @@ class BufferedOutput implements OutputInterface {
     }
 
     public function set_verbosity( int $level ): void {
-        $this->verbosity = $level;
+        $this->verbosity = max(
+            static::VERBOSITY_QUIET,
+            min( $level, static::VERBOSITY_VERBOSE )
+        );
     }
 
     public function get_verbosity(): int {

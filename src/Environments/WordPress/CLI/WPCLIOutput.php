@@ -198,7 +198,10 @@ class WPCLIOutput implements OutputInterface {
      * {@inheritdoc}
      */
     public function set_verbosity( int $level ): void {
-        $this->verbosity = $level;
+        $this->verbosity = max(
+            static::VERBOSITY_QUIET,
+            min( $level, static::VERBOSITY_VERBOSE )
+        );
     }
 
     /**

@@ -181,6 +181,52 @@ abstract class AbstractCommandRouter {
     }
 
     /**
+     * Resolve the requested output verbosity from raw CLI tokens.
+     *
+     * Supported forms:
+     *
+     * -q, --quiet
+     * -v, -vv, -vvv
+     * --verbose
+     * --verbose=N
+     *
+     * Repeated `-v` flags increase the requested verbosity, but the
+     * resulting level is capped at the highest supported level.
+     *
+     * Quiet mode takes precedence over verbosity flags.
+     *
+     * @param array<int, string> $tokens Raw CLI tokens.
+     * @return int One of the OutputInterface::VERBOSITY_* constants.
+     */
+    protected function resolve_verbosity( array $tokens ): int {
+        if (
+            in_array( '-q', $tokens, true ) ||
+            in_array( '--quiet', $tokens, true )
+        ) {
+            return OutputInterface::VERBOSITY_QUIET;
+        }
+
+        $level = OutputInterface::VERBOSITY_NORMAL;
+
+        foreach ( $tokens as $token ) {
+            if ( preg_match( '/^-(v+)$/', $token, $matches ) ) {
+                $level = max( $level, strlen( $matches[1] ) );
+                continue;
+            }
+
+            if ( preg_match( '/^--verbose(?:=(\d+))?$/', $token, $matches ) ) {
+                $verbose_level = isset( $matches[1] )
+                    ? (int) $matches[1]
+                    : OutputInterface::VERBOSITY_VERBOSE;
+
+                $level = max( $level, $verbose_level );
+            }
+        }
+
+        return min( $level, OutputInterface::VERBOSITY_VERBOSE );
+    }
+
+    /**
      * Write additional context-specific help (e.g. shell built-ins) to
      * the output stream, on top of print_global_help().
      *
