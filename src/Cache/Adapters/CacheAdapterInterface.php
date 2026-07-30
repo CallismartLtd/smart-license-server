@@ -95,7 +95,7 @@ interface CacheAdapterInterface extends ServiceProviderInterface {
     public function is_supported() : bool;
 
     /**
-     * Tells whether the cache is action.
+     * Tells whether the cache is active.
      */
     public function is_active() : bool;
 

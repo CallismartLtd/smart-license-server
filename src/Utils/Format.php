@@ -417,9 +417,10 @@ class Format {
     /**
      * Format label from snake_case to readable string.
      * 
+     * @param string $label
      * @return string
      */
-    public static function label( $label ) : string {
+    public static function label( string $label ) : string {
         return ucwords( str_replace( '_', ' ', $label ) );
     }
 
@@ -1034,4 +1035,44 @@ class Format {
     public static function is_encoded( mixed $value ): bool {
         return static::is_json_encoded( $value ) || static::is_php_serialized( $value );
     }
+
+/**
+	 * Format a single "extra" cache-stat value for display.
+	 *
+	 * The extra bag is untyped per-adapter, so this switches on PHP
+	 * type rather than key name — with one heuristic: numeric keys
+	 * that look byte-related (containing "bytes", "size", or "memory")
+	 * are rendered via self::bytes() instead of a plain number.
+	 *
+	 * @param string $key   The extra-bag key (used only for the byte heuristic).
+	 * @param mixed  $value The extra-bag value.
+	 * @return string Plain-text representation, safe to pass through escHtml().
+	 */
+	public static function extra_value( string $key, mixed $value ): string {
+		if ( is_bool( $value ) ) {
+			return static::yes_no( $value );
+		}
+
+		if ( is_array( $value ) ) {
+			if ( empty( $value ) ) {
+				return '—';
+			}
+
+			return array_is_list( $value )
+				? implode( ', ', array_map( 'strval', $value ) )
+				: static::smart_implode( $value, true );
+		}
+
+		if ( is_int( $value ) || is_float( $value ) ) {
+			$looks_like_bytes = (bool) preg_match( '/(bytes|size|memory)/i', $key );
+
+			return $looks_like_bytes ? static::bytes( (int) $value ) : static::number( $value );
+		}
+
+		if ( is_string( $value ) ) {
+			return '' === $value ? '—' : static::truncate( $value, 60 );
+		}
+
+		return (string) $value;
+	}
 }

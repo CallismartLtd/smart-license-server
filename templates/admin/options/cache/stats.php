@@ -7,26 +7,28 @@
  *   @var string                                 $adapter_id   — active adapter ID
  *   @var string                                 $adapter_name — active adapter display name
  *   @var bool                                   $is_supported — adapter is_supported()
- *
+ *   @var \SmartLicenseServer\Core\Request $request
  * @package SmartLicenseServer\templates
  * @since   0.2.0
  */
 
 use SmartLicenseServer\Admin\OptionsPage;
 use SmartLicenseServer\Cache\CacheProviderIcons;
+use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
 $menu_args = OptionsPage::get_menu_args( $request );
 
-$extra        = $stats->get( 'extra', [] );
-$hits         = (int) $stats->get( 'hits',         0 );
-$misses       = (int) $stats->get( 'misses',        0 );
-$entries      = (int) $stats->get( 'entries',       0 );
-$memory_used  = (int) $stats->get( 'memory_used',   0 );
-$memory_total = (int) $stats->get( 'memory_total',  0 );
-$uptime       = (int) $stats->get( 'uptime',        0 );
+$extra          = $stats->get( 'extra', [] );
+$hits           = (int) $stats->get( CacheStats::KEY_HITS, 0 );
+$misses         = (int) $stats->get( CacheStats::KEY_MISSES, 0 );
+$entries        = (int) $stats->get( CacheStats::KEY_ENTRIES, 0 );
+$memory_used    = (int) $stats->get( CacheStats::KEY_MEMORY_USED, 0 );
+$memory_total   = (int) $stats->get( CacheStats::KEY_MEMORY_TOTAL, 0 );
+$uptime         = (int) $stats->get( CacheStats::KEY_UPTIME, 0 );
+$is_active      = (bool) $stats->get( CacheStats::KEY_STATUS, false );
 
 $total_req    = $hits + $misses;
 $tracks_hits  = $total_req > 0;
@@ -45,7 +47,10 @@ $mem_grade = $mem_pct === null ? 'neutral'
     : ( $mem_pct >= 90 ? 'bad' : ( $mem_pct >= 70 ? 'warn' : 'good' ) );
 
 // Capability flags
-$supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], true ); ?>
+$supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], true ); 
+
+$shown_elsewhere = [ 'expired_entries' ];
+$extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
 
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
@@ -69,7 +74,16 @@ $supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], t
                     <span class="smlcd-badge smlcd-badge--error">
                         <i class="ti ti-alert-triangle"></i> Not Supported
                     </span>
+                <?php else: ?>
+                    <span class="smlcd-badge smlcd-badge--<?php echo $is_active ? 'active' : 'error' ?>">
+                        <?php if ( $is_active ) : ?>
+                            <i class="ti ti-check"></i> Connected
+                        <?php else: ?>
+                            <i class="ti ti-alert-triangle"></i> Not Connected
+                        <?php endif; ?>
+                    </span>
                 <?php endif; ?>
+
             </div>
 
             <div class="smlcd-header__actions">
@@ -191,7 +205,7 @@ $supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], t
 
             <div class="smlcd-card smlcd-card--neutral">
                 <div class="smlcd-card__label">Uptime</div>
-                <div class="smlcd-card__value">
+                <div class="smlcd-card__value last-seen">
                     <?php if ( $uptime > 0 ) : ?>
                         <?php echo escHtml( Format::duration( $uptime, 'short' ) ); ?>
                     <?php else : ?>
@@ -265,5 +279,22 @@ $supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], t
         </div>
         <?php endif; ?>
 
+        <!-- Backend-specific details -->
+        <?php if ( ! empty( $extra_display ) ) : ?>
+        <div class="smlcd-extra" id="smlcd-extra">
+            <div class="smlcd-extra__header">
+                <span class="smlcd-extra__title">Additional Details</span>
+                <span class="smlcd-extra__subtitle"><?php echo escHtml( $adapter_name ); ?>-specific metrics</span>
+            </div>
+            <dl class="smlcd-extra__list">
+                <?php foreach ( $extra_display as $key => $value ) : ?>
+                    <div class="smlcd-extra__item">
+                        <dt class="smlcd-extra__key"><?php echo escHtml( Format::label( (string) $key ) ); ?></dt>
+                        <dd class="smlcd-extra__value"><?php echo escHtml( Format::extra_value( (string) $key, $value ) ); ?></dd>
+                    </div>
+                <?php endforeach; ?>
+            </dl>
+        </div>
+        <?php endif; ?>
     </div><!-- /.smlcd-wrap -->
 </div><!-- /.smliser-admin-page -->

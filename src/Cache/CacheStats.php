@@ -40,6 +40,7 @@ final class CacheStats extends DTO {
     public const KEY_MEMORY_USED  = 'memory_used';
     public const KEY_MEMORY_TOTAL = 'memory_total';
     public const KEY_UPTIME       = 'uptime';
+    public const KEY_STATUS       = 'status';
     public const KEY_EXTRA        = 'extra';
 
     /*
@@ -58,12 +59,13 @@ final class CacheStats extends DTO {
      * @param array<string, mixed> $extra         Adapter-specific extras.
      */
     public function __construct(
-        int   $hits         = 0,
-        int   $misses       = 0,
-        int   $entries      = 0,
-        int   $memory_used  = 0,
-        int   $memory_total = 0,
-        int   $uptime       = 0,
+        int  $hits          = 0,
+        int  $misses        = 0,
+        int  $entries       = 0,
+        int  $memory_used   = 0,
+        int  $memory_total  = 0,
+        int  $uptime        = 0,
+        bool $status        = false,
         array $extra        = [],
     ) {
         parent::__construct( [
@@ -73,6 +75,7 @@ final class CacheStats extends DTO {
             self::KEY_MEMORY_USED  => $memory_used,
             self::KEY_MEMORY_TOTAL => $memory_total,
             self::KEY_UPTIME       => $uptime,
+            self::KEY_STATUS       => $status,
             self::KEY_EXTRA        => $extra,
         ] );
     }
@@ -97,6 +100,7 @@ final class CacheStats extends DTO {
             self::KEY_MEMORY_USED,
             self::KEY_MEMORY_TOTAL,
             self::KEY_UPTIME,
+            self::KEY_STATUS,
             self::KEY_EXTRA,
         ];
     }
@@ -117,6 +121,7 @@ final class CacheStats extends DTO {
             self::KEY_MEMORY_USED,
             self::KEY_MEMORY_TOTAL,
             self::KEY_UPTIME  => (int) $value,
+            self::KEY_STATUS  => (string) $value,
 
             self::KEY_EXTRA   => is_array( $value )
                 ? $value

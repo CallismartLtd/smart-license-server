@@ -8,7 +8,7 @@
  * @since   0.2.0
  */
 
-/* ── Tokens ─────────────────────────────────────────────────────────────── */
+/* Tokens */
 .smlcd-wrap {
     --smlcd-good:      #22c55e;
     --smlcd-good-bg:   #052e16;
@@ -37,7 +37,7 @@
     max-width: 90%;
 }
 
-/* ── Header ─────────────────────────────────────────────────────────────── */
+/* Header */
 .smlcd-header {
     display: flex;
     align-items: center;
@@ -104,7 +104,7 @@
     flex-wrap: wrap;
 }
 
-/* ── Badges ─────────────────────────────────────────────────────────────── */
+/* Badges */
 .smlcd-badge {
     display: inline-flex;
     align-items: center;
@@ -145,7 +145,7 @@
     50%       { opacity: 0.4; transform: scale(0.75); }
 }
 
-/* ── Buttons ─────────────────────────────────────────────────────────────── */
+/* Buttons */
 .smlcd-btn {
     display: inline-flex;
     align-items: center;
@@ -216,7 +216,7 @@
     display: inline-block;
 }
 
-/* ── Stat cards ──────────────────────────────────────────────────────────── */
+/* Stat cards */
 .smlcd-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -264,6 +264,10 @@
     margin: 4px 0 2px;
 }
 
+.smlcd-card__value.last-seen {
+    font-size: 1.2rem;
+}
+
 .smlcd-card__unit {
     font-size: 1rem;
     font-weight: 400;
@@ -286,7 +290,7 @@
     color: var(--smlcd-warn);
 }
 
-/* ── Performance breakdown ───────────────────────────────────────────────── */
+/* Performance breakdown */
 .smlcd-perf {
     background: var(--smlcd-surface-2);
     border: 1px solid var(--smlcd-border);
@@ -448,7 +452,74 @@
 .smlcd-perf__mem-pct--bad     { color: var(--smlcd-bad);  }
 .smlcd-perf__mem-pct--neutral { color: var(--smlcd-neutral); }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
+/* Extra / backend-specific details */
+.smlcd-extra {
+    background: var(--smlcd-surface-2);
+    border: 1px solid var(--smlcd-border);
+    border-radius: var(--smlcd-radius);
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: var(--smlcd-gap);
+}
+
+.smlcd-extra__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.smlcd-extra__title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--smlcd-text-muted);
+}
+
+.smlcd-extra__subtitle {
+    font-size: 0.72rem;
+    color: var(--smlcd-text-muted);
+    opacity: 0.8;
+}
+
+/* Reset default dl/dt/dd margins before laying out as a grid. */
+.smlcd-extra__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px 20px;
+    margin: 0;
+}
+
+.smlcd-extra__item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.smlcd-extra__key {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--smlcd-text-muted);
+    margin: 0;
+}
+
+.smlcd-extra__value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--smlcd-text);
+    font-variant-numeric: tabular-nums;
+    margin: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+/* Responsive */
 @media (max-width: 640px) {
     .smlcd-wrap {
         padding: 16px;
@@ -473,5 +544,12 @@
 
     .smlcd-perf__rating {
         margin-left: 0;
+    }
+    .smlcd-extra {
+        padding: 16px;
+    }
+
+    .smlcd-extra__list {
+        grid-template-columns: 1fr;
     }
 }

@@ -341,6 +341,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
             entries      : $entries,
             memory_used  : $memory_used,
             memory_total : $memory_total,
+            status       : $this->is_active(),
             uptime       : $uptime,
             extra        : [
                 'evictions'          => $evictions,

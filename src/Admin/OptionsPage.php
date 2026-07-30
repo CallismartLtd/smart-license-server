@@ -14,11 +14,10 @@ namespace SmartLicenseServer\Admin;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
-use SmartLicenseServer\Email\Providers\EmailProviderInterface;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 
-use function sprintf, smliser_settings, smliser_render_template, compact;
+use function smliser_settings, smliser_render_template, compact;
 
 class OptionsPage {
 

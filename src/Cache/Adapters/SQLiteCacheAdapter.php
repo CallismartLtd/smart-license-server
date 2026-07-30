@@ -474,13 +474,14 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         $misses = (int) ( $stats_row['misses']  ?? 0 ) + $this->pending_misses;
 
         return new CacheStats(
-            hits         : $hits,
-            misses       : $misses,
-            entries      : $entries,
-            memory_used  : $memory_used,
-            memory_total : $db_size,
-            uptime       : $uptime,
-            extra        : [
+            hits            : $hits,
+            misses          : $misses,
+            entries         : $entries,
+            memory_used     : $memory_used,
+            memory_total    : $db_size,
+            uptime          : $uptime,
+            status          : $this->is_active(),
+            extra           : [
                 'expired_entries' => $expired,
                 'db_file_size'    => $db_size,
                 'db_file'         => $db_file,
