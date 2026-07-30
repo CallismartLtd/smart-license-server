@@ -459,13 +459,7 @@ class Dispatcher implements RequestDispatcherInterface {
     public static function handle_save_email_template_toggle_request( Request $request ) : Response {
         static::guard( $request, 'super_admin' );
 
-        $response   = SettingsController::toggle_email_template( $request );
-
-        if ( $response->ok() ) {
-            \flush_rewrite_rules();
-        }
-
-        return $response;
+        return SettingsController::toggle_email_template( $request );
     }
 
     public static function handle_download_token_generation_request( Request $request ) : Response {

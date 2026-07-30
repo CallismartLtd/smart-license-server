@@ -182,7 +182,7 @@ $document_download_url  = \smliser_document_download_url( $license ? $license->g
                                                 readonly 
                                                 class="smliser-license-text" 
                                             />
-                                            <span class="dashicons dashicons-admin-page copy-key smliser-tooltip" title="Copy license key"></span>
+                                            <span class="ti ti-copy copy-key smliser-tooltip" title="Copy license key"></span>
                                         </span>
 
                                         <span class="smliser-obfuscated-license-text">

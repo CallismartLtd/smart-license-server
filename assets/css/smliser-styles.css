@@ -92,8 +92,9 @@ input.smliser-license-text[type="text"] {
     transition: max-height .5s ease-in-out;
 }
 
-.smliser-license-input span.dashicons-admin-page {
+.smliser-license-input .ti-copy.copy-key {
     cursor: pointer;
+    font-size: 16px;
 }
 
 input[type="checkbox"].smliser-licence-key-visibility-toggle {

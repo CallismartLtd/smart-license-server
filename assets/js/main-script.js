@@ -2480,9 +2480,9 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     row.style.display = ( group === 'all' || row.dataset.group === group )
                         ? ''
                         : 'none';
-                } );
+                });
             } );
-        } );
+        });
     }
 
     if ( emailTemplateToggle ) {
@@ -2502,7 +2502,6 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             payLoad.set( 'action',       'smliser_toggle_email_template' );
             payLoad.set( 'security',     smliser_var.csrf_token );
             payLoad.set( 'template_key', tempKey );
-            payLoad.set( 'new_state',    enabling ? '1' : '0' );
 
             btn.disabled = true;
 
@@ -2515,21 +2514,21 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     await SmliserModal.success( response?.data?.message || 'Success' );
 
                     // Update button data attribute to reflect new state.
-                    btn.dataset.enabled = enabling ? '1' : '0';
+                    btn.dataset.enabled = response.data.is_enable ? '1' : '0';
 
                     // Update button appearance.
                     if ( enabling ) {
                         btn.style.border     = '1px solid #fecaca';
                         btn.style.background = '#fef2f2';
                         btn.style.color      = '#991b1b';
-                        btn.querySelector( '.dashicons' ).classList.replace( 'dashicons-visibility', 'dashicons-hidden' );
+                        btn.querySelector( 'i.ti' ).classList.replace( 'ti-eye', 'ti-eye-off' );
                         btn.lastChild.textContent = 'Disable';
                         btn.title = 'Disable this template';
                     } else {
                         btn.style.border     = '1px solid #bbf7d0';
                         btn.style.background = '#f0fdf4';
                         btn.style.color      = '#166534';
-                        btn.querySelector( '.dashicons' ).classList.replace( 'dashicons-hidden', 'dashicons-visibility' );
+                        btn.querySelector( 'i.ti' ).classList.replace( 'ti-eye-off', 'ti-eye' );
                         btn.lastChild.textContent = 'Enable';
                         btn.title = 'Enable this template';
                     }

@@ -2,14 +2,12 @@
 /**
  * Email service providers list template file.
  *
- * Renders global email settings and the provider selection grid.
- * Variables available from OptionsPage::email_options():
- *   $providers        — array<string, EmailProviderInterface>
- *   $default_provider — string|null
- *   $email_fields     — array<int, array>
- *
  * @package SmartLicenseServer\templates
  * @since   0.2.0
+ * @var array<string, SmartLicenseServer\Email\Providers\EmailProviderInterface> $providers
+ * @var string|null $default_provider
+ * @var array<int, array> $email_fields
+ * @var SmartLicenseServer\Core\Request $request
  */
 
 use SmartLicenseServer\Admin\OptionsPage;

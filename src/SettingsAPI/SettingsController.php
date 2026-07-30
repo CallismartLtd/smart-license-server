@@ -132,7 +132,6 @@ class SettingsController {
             static::is_system_admin();
 
             $template_key = $request->get( 'template_key' );
-            $new_state    = $request->get( 'new_state' );
 
             if ( ! $template_key ) {
                 throw new RequestException(
@@ -148,16 +147,10 @@ class SettingsController {
                 );
             }
 
-            if ( ! in_array( $new_state, [ '0', '1' ], true ) ) {
-                throw new RequestException(
-                    'invalid_param',
-                    'Invalid state value provided.'
-                );
-            }
-
             $preview = EmailTemplateRegistry::preview( $template_key );
 
-            $success = $preview->is_enabled() ? $preview->disable() : $preview->enable();
+            $new_state  = $preview->is_enabled() ? false : true;
+            $success    = $preview->is_enabled() ? $preview->disable() : $preview->enable();
 
 
             if ( ! $success ) {
@@ -168,7 +161,7 @@ class SettingsController {
             }
 
             $label   = EmailTemplateRegistry::entry( $template_key )['label'];
-            $message = $new_state === '1'
+            $message = $new_state
                 ? sprintf( '%s email has been enabled.', $label )
                 : sprintf( '%s email has been disabled.', $label );
 
@@ -177,7 +170,7 @@ class SettingsController {
                 'data'    => [
                     'message'     => $message,
                     'template_key' => $template_key,
-                    'is_enabled'  => $new_state === '1',
+                    'is_enabled'  => $new_state,
                 ],
             ];
 

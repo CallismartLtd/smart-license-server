@@ -81,7 +81,7 @@ $args   = LicensePage::get_menu_args( $request );
                                     <div class="smliser-license-obfuscation_data">
                                         <span class="smliser-license-input">
                                             <input type="text" id="<?php echo escHtml( $license->get_id() ); ?>" value="<?php echo escHtml( $license->get_license_key()) ?>" readonly class="smliser-license-text" />
-                                            <span class="dashicons dashicons-admin-page copy-key smliser-tooltip" title="copy license key"></span>
+                                            <span class="ti ti-copy copy-key smliser-tooltip" title="copy license key"></span>
                                         </span>
 
                                         <span class="smliser-obfuscated-license-text">

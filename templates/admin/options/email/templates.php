@@ -7,6 +7,8 @@
  *
  * @package SmartLicenseServer\templates
  * @since   0.2.0
+ * @var array<string, array<string, mixed>> $templates
+ * @var SmartLicenseServer\Core\Request $request
  */
 
 use SmartLicenseServer\Admin\OptionsPage;
@@ -63,13 +65,13 @@ $group_colors = [
     <!-- Group filter -->
     <div class="smliser-template-filter" style="margin:16px 20px 0;">
         <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-            <span style="font-size:13px;font-weight:600;color:#64748b;margin-right:4px;">
+            <i style="font-size:13px;font-weight:600;color:#64748b;margin-right:4px;">
                 Filter:
-            </span>
+            </i>
             <button type="button"
                     class="smliser-filter-btn smliser-filter-btn--active"
                     data-group="all">
-                All <span class="smliser-filter-count"><?php echo count( $templates ); ?></span>
+                All <i class="smliser-filter-count"><?php echo count( $templates ); ?></i>
             </button>
             <?php
             $groups = array_unique( array_values( $group_map ) );
@@ -84,7 +86,7 @@ $group_colors = [
                         class="smliser-filter-btn"
                         data-group="<?php echo esc_attr( $group ); ?>">
                     <?php echo escHtml( $group ); ?>
-                    <span class="smliser-filter-count"><?php echo $count; ?></span>
+                    <i class="smliser-filter-count"><?php echo $count; ?></i>
                 </button>
             <?php endforeach; ?>
         </div>
@@ -117,22 +119,22 @@ $group_colors = [
 
                         <!-- Template name + group badge -->
                         <td>
-                            <span style="display:block;font-weight:600;color:#1a1a2e;font-size:13px;
+                            <i style="display:block;font-weight:600;color:#1a1a2e;font-size:13px;
                                          margin-bottom:4px;">
                                 <?php echo escHtml( $entry['label'] ); ?>
-                            </span>
-                            <span style="display:inline-block;font-size:11px;font-weight:700;
+                            </i>
+                            <i style="display:inline-block;font-size:11px;font-weight:700;
                                          padding:2px 8px;border-radius:9999px;
                                          background-color:<?php echo esc_attr( $colors['bg'] ); ?>;
                                          color:<?php echo esc_attr( $colors['color'] ); ?>;">
                                 <?php echo escHtml( $group ); ?>
-                            </span>
+                            </i>
                             <?php if ( $entry['has_custom'] ) : ?>
-                                <span style="display:inline-block;font-size:11px;font-weight:700;
+                                <i style="display:inline-block;font-size:11px;font-weight:700;
                                              padding:2px 8px;border-radius:9999px;margin-left:4px;
                                              background-color:#fdf4ff;color:#9333ea;">
                                     Custom
-                                </span>
+                                </i>
                             <?php endif; ?>
                         </td>
 
@@ -144,23 +146,23 @@ $group_colors = [
                         <!-- Enabled / Disabled status -->
                         <td>
                             <?php if ( $entry['is_enabled'] ) : ?>
-                                <span style="display:inline-flex;align-items:center;gap:5px;
+                                <i style="display:inline-flex;align-items:center;gap:5px;
                                              font-size:12px;font-weight:700;padding:3px 10px;
                                              border-radius:9999px;background:#f0fdf4;
                                              color:#16a34a;border:1px solid #bbf7d0;">
-                                    <span style="width:6px;height:6px;border-radius:50%;
-                                                 background:#16a34a;display:inline-block;"></span>
+                                    <i style="width:6px;height:6px;border-radius:50%;
+                                                 background:#16a34a;display:inline-block;"></i>
                                     Enabled
-                                </span>
+                                </i>
                             <?php else : ?>
-                                <span style="display:inline-flex;align-items:center;gap:5px;
+                                <i style="display:inline-flex;align-items:center;gap:5px;
                                              font-size:12px;font-weight:700;padding:3px 10px;
                                              border-radius:9999px;background:#f8fafc;
                                              color:#94a3b8;border:1px solid #e2e8f0;">
-                                    <span style="width:6px;height:6px;border-radius:50%;
-                                                 background:#94a3b8;display:inline-block;"></span>
+                                    <i style="width:6px;height:6px;border-radius:50%;
+                                                 background:#94a3b8;display:inline-block;"></i>
                                     Disabled
-                                </span>
+                                </i>
                             <?php endif; ?>
                         </td>
 
@@ -178,15 +180,15 @@ $group_colors = [
                                             border:1px solid <?php echo $entry['is_enabled'] ? '#fecaca' : '#bbf7d0'; ?>;
                                             background:<?php echo $entry['is_enabled'] ? '#fef2f2' : '#f0fdf4'; ?>;
                                             color:<?php echo $entry['is_enabled'] ? '#991b1b' : '#166534'; ?>;">
-                                    <span class="dashicons <?php echo $entry['is_enabled'] ? 'dashicons-hidden' : 'dashicons-visibility'; ?>"
-                                        style="font-size:14px;width:14px;height:14px;margin-top:2px;"></span>
+                                    <i class="ti <?php echo $entry['is_enabled'] ? 'ti-eye-off' : 'ti-eye'; ?>"
+                                        style="font-size:14px;width:14px;height:14px;margin-top:2px;"></i>
                                     <?php echo $entry['is_enabled'] ? 'Disable' : 'Enable'; ?>
                                 </button>
 
                                 <a href="<?php echo esc_url( $detail_url->add_query_param( 'noheader', true ) ); ?>"
                                 class="button smliser-nav-btn"
                                 title="Preview and configure this template">
-                                    <span class="dashicons dashicons-admin-generic"></span>
+                                    <i class="ti ti-settings"></i>
                                     Manage
                                 </a>
 
