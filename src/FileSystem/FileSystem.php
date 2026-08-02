@@ -31,15 +31,14 @@ use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
  * @method bool mkdir(string $path, int|false $chmod = false, bool $recursive = true) Makes directory.
  * @method bool mkdir_recursive( string $path, int|false $chmod = false ) Create directories recursively.
  * @method bool rmdir(string $path, bool $recursive = false) Removes directory.
- * @method bool copy(string $source, string $dest, bool $overwrite = false) Copy file
+ * @method bool copy(string $source, string $dest, bool $overwrite = false, int|false $mode = false ) Copy file
  * @method bool move(string $source, string $dest, bool $overwrite = false) Moves file
  * @method bool rename(string $source, string $dest) Renames a file or directory.
  * @method bool chmod(string $file, int|false $mode = false, bool $recursive = false) Changes file mode.
  * @method bool chown(string $file, string|int $owner, bool $recursive = false) Changes file owner.
- * @method array|false list(?string $path ) List files and directories at a path.
  * @method int|false filesize(string $path) Gets file size
  * @method int|false filemtime(string $path) Gets file modification time
- * @method array|false stat(string $path) Gives information about a file
+ * @method array stat(string $path) Gives information about a file
  * @method bool readfile(string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576) Efficiently outputs the contents of a file.
  */
 class FileSystem {
