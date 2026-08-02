@@ -9,8 +9,6 @@
 
 namespace SmartLicenseServer;
 
-use mysqli;
-use PDO;
 use SmartLicenseServer\Background\Queue\Adapters\DatabaseJobStorageAdapter;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Schedule\Scheduler;
@@ -48,7 +46,6 @@ use SmartLicenseServer\Events\EventServiceProvider;
 use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\Templates\TemplateDiscovery;
 use SmartLicenseServer\Templates\TemplateLocator;
-use SQLite3;
 
 /**
  * Abstract environment bootstrap class for Smart License Server.
@@ -1039,7 +1036,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function adminDashboardRegistry() : AdminDashboardRegistry {
         if ( ! isset( $this->adminDashboardRegistry ) ) {
-            $this->adminDashboardRegistry = new AdminDashboardRegistry;
+            $this->adminDashboardRegistry = new AdminDashboardRegistry();
         }
         
         return $this->adminDashboardRegistry;
