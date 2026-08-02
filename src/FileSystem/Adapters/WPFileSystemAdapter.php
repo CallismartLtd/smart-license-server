@@ -10,6 +10,7 @@
 
 namespace SmartLicenseServer\FileSystem\Adapters;
 
+use SmartLicenseServer\Exceptions\FileSystemException;
 use WP_Filesystem_Base;
 
 /**
@@ -205,8 +206,8 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             $path = $parts[1];
         }
 
-        $dir_seperator  = \DIRECTORY_SEPARATOR;
-        $path           = str_replace( [ '/', '\\' ], $dir_seperator, $path );
+        $sep    = \DIRECTORY_SEPARATOR;
+        $path   = str_replace( [ '/', '\\' ], $sep, $path );
 
         if ( $stream_wrapper !== null ) {
             $path = $stream_wrapper . '://' . $path;
@@ -214,11 +215,11 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
 
         $path = rtrim( $path, '/' );
         if ( empty( $path ) ) {
-            $path = $dir_seperator;
+            $path = $sep;
         }
 
         $dest_parent = dirname( $path );
-        while ( $dest_parent !== '.' && ! is_dir( $dest_parent ) && dirname( $dest_parent ) !== $dest_parent ) {
+        while ( $dest_parent !== '.' && ! $this->is_dir( $dest_parent ) && dirname( $dest_parent ) !== $dest_parent ) {
             $dest_parent = dirname( $dest_parent );
         }
 
@@ -227,11 +228,11 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             $chmod = $stats ? ( ( $stats['mode'] & 0777 ) | 0755 ) : 0755;           
         }
 
-        $relative_parts = explode( $dir_seperator, ltrim( substr( $path, strlen( $dest_parent ) ), $dir_seperator ) );
+        $relative_parts = explode( $sep, ltrim( substr( $path, strlen( $dest_parent ) ), $sep ) );
         $current = $dest_parent;
 
         foreach ( $relative_parts as $part ) {
-            $current .= $dir_seperator . $part;
+            $current .= $sep . $part;
             if ( ! $this->is_dir( $current ) ) {
                 if ( ! $this->fs->mkdir( $current, $chmod ) ) {
                     return false;
@@ -259,9 +260,10 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @param string $source    Source path.
      * @param string $dest      Destination path.
      * @param bool   $overwrite Optional. Overwrite if exists.
+     * @param int|false $mode   Optional. Permissions.
      * @return bool True on success, false on failure.
      */
-    public function copy( string $source, string $dest, bool $overwrite = false ): bool {
+    public function copy( string $source, string $dest, bool $overwrite = false, int|false $mode = false ): bool {
 
         if ( ! $this->exists( $source ) ) {
             return false;
@@ -278,12 +280,16 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             }
         }
 
+        if ( ! $mode ) {
+            $mode   = $this->is_file( $source ) ? SMLISER_FILE_PERMISSION : SMLISER_DIR_PERMISSION;
+        }
+
         if ( $this->is_file( $source ) ) {
             return $this->fs->copy(
                 $source,
                 $dest,
                 false,
-                SMLISER_FILE_PERMISSION
+                $mode
             );
         }
 
@@ -291,17 +297,17 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             return false;
         }
 
-        if ( ! $this->mkdir( $dest ) ) {
+        if ( ! $this->mkdir( $dest, $mode, true ) ) {
             return false;
         }
 
-        $entries = $this->list( $source );
+        $entries = $this->fs->dirlist( $source );
 
         if ( false === $entries ) {
             return false;
         }
 
-        foreach ( $entries as $name => $info ) {
+        foreach ( $entries as $name => $_ ) {
 
             if ( '.' === $name || '..' === $name ) {
                 continue;
@@ -310,13 +316,12 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             $from = $source . DIRECTORY_SEPARATOR . $name;
             $to   = $dest . DIRECTORY_SEPARATOR . $name;
 
-            if ( ! $this->copy( $from, $to, false ) ) {
+            if ( ! $this->copy( $from, $to, false, $mode ) ) {
                 return false;
             }
         }
 
         return true;
-
     }
 
     /**
@@ -407,16 +412,6 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
     }
 
     /**
-     * List files/directories in a path.
-     *
-     * @param string|null $path Optional path.
-     * @return array|false List of files or false on failure.
-     */
-    public function list( ?string $path = null ): array|false {
-        return $this->fs->dirlist( $path );
-    }
-
-    /**
      * Get file size.
      *
      * @param string $path Path.
@@ -440,21 +435,17 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * Get file/directory information (stat).
      *
      * @param string $path Path.
-     * @return array|false Information array or false on failure.
+     * @return array Information array or false on failure.
      */
-    public function stat( string $path ): array|false {
-        if ( ! $path || ! $this->exists( $path ) ) {
-            return false;
-        }
-
+    public function stat( string $path ): array {
         return [
             'path'    => $path,
-            'exists'  => true,
+            'exists'  => $this->exists( $path ),
             'is_dir'  => $this->is_dir( $path ),
             'is_file' => $this->is_file( $path ),
             'size'    => $this->fs->size( $path ),
             'mtime'   => $this->fs->mtime( $path ),
-            'perms'   => $this->fs->gethchmod( $path ),
+            'perms'   => $this->fs->getchmod( $path ),
         ];
     }
 

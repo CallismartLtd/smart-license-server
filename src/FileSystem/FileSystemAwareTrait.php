@@ -93,11 +93,6 @@ trait FileSystemAwareTrait {
         return $this->fs()->chown( $file, $owner, $recursive );
     }
 
-    // Directory / listing.
-    public function list( string|null $path = null ): array|false {
-        return $this->fs()->list( $path );
-    }
-
     // File information.
     public function filesize( string $path ): int|false {
         return $this->fs()->filesize( $path );

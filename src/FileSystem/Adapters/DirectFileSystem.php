@@ -9,6 +9,8 @@
 
 namespace SmartLicenseServer\FileSystem\Adapters;
 
+use SmartLicenseServer\Exceptions\FileSystemException;
+
 class DirectFileSystem implements FileSystemAdapterInterface {
 
     /**
@@ -246,9 +248,10 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * @param string $source Source path.
      * @param string $dest Destination path.
      * @param bool $overwrite Optional. Overwrite if true.
+     * @param int|false $mode   Optional. Permissions.
      * @return bool True on success, false on failure.
      */
-    public function copy( string $source, string $dest, bool $overwrite = false ): bool {
+    public function copy( string $source, string $dest, bool $overwrite = false, int|false $mode = false ): bool {
 
         if ( ! $this->exists( $source ) ) {
             return false;
@@ -258,11 +261,15 @@ class DirectFileSystem implements FileSystemAdapterInterface {
             return false;
         }
 
+        if ( ! $mode ) {
+            $mode   = $this->is_file( $source ) ? \SMLISER_FILE_PERMISSION : \SMLISER_DIR_PERMISSION;
+        }
+
         if ( $this->is_file( $source ) ) {
             return 
                 @copy( $source, $dest )
                 && $this->exists( $dest )
-                && $this->chmod( $dest, \SMLISER_FILE_PERMISSION );
+                && $this->chmod( $dest, $mode );
         }
 
         if ( $this->is_dir( $source ) ) {
@@ -276,7 +283,8 @@ class DirectFileSystem implements FileSystemAdapterInterface {
                 $this->copy(
                     $source . DIRECTORY_SEPARATOR . $item,
                     $dest . DIRECTORY_SEPARATOR . $item,
-                    $overwrite
+                    $overwrite,
+                    $mode
                 );
             }
 
@@ -404,41 +412,6 @@ class DirectFileSystem implements FileSystemAdapterInterface {
         return @chown( $file, $owner ) && $success;
     }
 
-    /**
-     * List files and directories at a path.
-     *
-     * @param string|null $path Optional path. Defaults to root.
-     * @return array|false Array of file info or false on failure.
-     */
-    public function list( string|null $path = null ): array|false {
-
-        $path = $path ?: getcwd();
-
-        if ( ! $this->is_dir( $path ) ) {
-            return false;
-        }
-
-        $items = scandir( $path );
-
-        if ( false === $items ) {
-            return false;
-        }
-
-        $results = [];
-
-        foreach ( $items as $item ) {
-            if ( '.' === $item || '..' === $item ) {
-                continue;
-            }
-
-            $full = $path . DIRECTORY_SEPARATOR . $item;
-
-            $results[] = $this->stat( $full );
-        }
-
-        return $results;
-    }
-
     public function filesize( string $path ): int|false {
         return @filesize( $path );
     }
@@ -448,14 +421,9 @@ class DirectFileSystem implements FileSystemAdapterInterface {
     }
 
     public function stat( string $path ): array|false {
-
-        if ( ! $this->exists( $path ) ) {
-            return false;
-        }
-
         return [
             'path'    => $path,
-            'exists'  => true,
+            'exists'  => $this->exists( $path ),
             'is_dir'  => $this->is_dir( $path ),
             'is_file' => $this->is_file( $path ),
             'size'    => $this->is_file( $path ) ? $this->filesize( $path ) : 0,

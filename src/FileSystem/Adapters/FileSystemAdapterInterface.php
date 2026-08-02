@@ -11,6 +11,8 @@
 
 namespace SmartLicenseServer\FileSystem\Adapters;
 
+use SmartLicenseServer\Exceptions\FileSystemException;
+
 interface FileSystemAdapterInterface {
 
     /**
@@ -124,8 +126,9 @@ interface FileSystemAdapterInterface {
      * @param string $dest Destination path.
      * @param bool $overwrite Optional. Overwrite if true.
      * @return bool True on success, false on failure.
+     * @param int|false $mode   Optional. Permissions.
      */
-    public function copy( string $source, string $dest, bool $overwrite = false ): bool;
+    public function copy( string $source, string $dest, bool $overwrite = false, int|false $mode = false ): bool;
 
     /**
      * Move or rename a file or directory.
@@ -165,14 +168,6 @@ interface FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function chown( string $file, string|int $owner, bool $recursive = false ): bool;
-
-    /**
-     * List files and directories at a path.
-     *
-     * @param string|null $path Optional path. Defaults to root.
-     * @return array|false Array of file info or false on failure.
-     */
-    public function list( string|null $path = null ): array|false;
 
     /**
      * Get file size.
