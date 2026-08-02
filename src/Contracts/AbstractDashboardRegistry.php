@@ -214,6 +214,14 @@ abstract class AbstractDashboardRegistry {
     abstract protected function boot() : void;
 
     /**
+     * Determine whether a key represents the root menu item.
+     *
+     * @param string $key.
+     * @return bool
+     */
+    abstract public function is_root_menu( string $key ) : bool;
+
+    /**
      * Ensure a menu exists before mutation.
      *
      * @param string $key
@@ -406,12 +414,4 @@ abstract class AbstractDashboardRegistry {
     protected function canonical_key( string $key ) : string {
         return str_replace( '-', '_', $key );
     }
-
-    /**
-     * Determine whether a key represents the root menu item.
-     *
-     * @param string $key.
-     * @return bool
-     */
-    abstract public function is_root_menu( string $key ) : bool;
 }
