@@ -11,37 +11,27 @@ namespace SmartLicenseServer\Environments\WordPress;
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Core\Request;
 
-use function add_submenu_page, add_menu_page, parse_args, is_bool, sprintf;
+use function add_submenu_page, add_menu_page, sprintf;
 
 /**
  * The admin menu class handles all admin menu registry and routing.
  */
 class AdminMenu {
     const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSBzY2FsZSgxLjQpIHRyYW5zbGF0ZSgtMTAsIC0xMCkiPgogICAgPHJlY3QgeD0iNC40IiB5PSI1LjYiIHdpZHRoPSIxMS4yIiBoZWlnaHQ9IjIiIHJ4PSIwLjYiIGZpbGw9IiNhN2FhYWQiLz4KICAgIDxyZWN0IHg9IjQuNCIgeT0iOC40IiB3aWR0aD0iMTEuMiIgaGVpZ2h0PSIyIiByeD0iMC42IiBmaWxsPSIjYTdhYWFkIi8+CiAgICA8cmVjdCB4PSI0LjQiIHk9IjExLjIiIHdpZHRoPSIxMS4yIiBoZWlnaHQ9IjIiIHJ4PSIwLjYiIGZpbGw9IiNhN2FhYWQiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjYuNiIgcj0iMC41IiBmaWxsPSIjMzMzIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjkuNCIgcj0iMC41IiBmaWxsPSIjMzMzIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjEyLjIiIHI9IjAuNSIgZmlsbD0iIzMzMyIgb3BhY2l0eT0iMC40Ii8+CiAgICA8cGF0aCBkPSJNMTAgNCBMMTMuNiA1LjYgVjkuMiBDMTMuNiAxMiAxMS42IDE0IDEwIDE0LjggQzguNCAxNCA2LjQgMTIgNi40IDkuMiBWNS42IFoiIGZpbGw9IiNhN2FhYWQiLz4KICAgIDxjaXJjbGUgY3g9IjEwIiBjeT0iOC44IiByPSIxIiBmaWxsPSIjMzMzIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxyZWN0IHg9IjkuNCIgeT0iOC44IiB3aWR0aD0iMS4yIiBoZWlnaHQ9IjIuNCIgcng9IjAuMyIgZmlsbD0iIzMzMyIgb3BhY2l0eT0iMC40Ii8+CiAgPC9nPgo8L3N2Zz4=';
-    
-    /**
-     * The current request object
-     * 
-     * @var Request $request
-     */
-    private Request $request;
 
     private string $prefix  = 'smliser';
 
-    /**
-     * 
-     */
-    private AdminDashboardRegistry $config;
 
     /**
      * Constructor
      * 
+     * @param AdminDashboardRegistry $registry
      * @param Request $request The  current request object.
      */
-    public function __construct( AdminDashboardRegistry $config, Request $request ) {
-        $this->config   = $config;
-        $this->request  = $request;
-    }
+    public function __construct(
+        private AdminDashboardRegistry $registry,
+        private Request $request 
+    ) {}
 
     /**
      * Register admin menus.
@@ -53,13 +43,13 @@ class AdminMenu {
             'handler'   => 'smliser_rest_documentation'
         );
 
-        $this->config->register( 'api_doc', $new_menu );
+        $this->registry->register( 'api_doc', $new_menu );
 
         $slug   = sprintf( '%s-overview', $this->prefix );
         add_menu_page( SMLISER_APP_NAME, SMLISER_APP_NAME, 'manage_options', $slug, array( $this, 'dispatch_request' ), self::MENU_ICON, 3.1 );
 
-        foreach ( $this->config->all() as $key => $menu ) {
-            if ( $this->config->is_root_menu( $key ) ) continue; // Already registered.
+        foreach ( $this->registry->all() as $key => $menu ) {
+            if ( $this->registry->is_root_menu( $key ) ) continue; // Already registered.
 
             $base_slug   = sprintf( '%s-%s', $this->prefix, $menu['slug'] );
             add_submenu_page( $slug, $menu['title'], $menu['title'], 'manage_options', $base_slug, [$this, 'dispatch_request'] );
@@ -92,10 +82,10 @@ class AdminMenu {
         if ( strpos( $page, $prefix ) === 0 ) {
 
             $slug = substr( $page, strlen( $prefix ) );
-            $menu = $this->config->get( $slug );
+            $menu = $this->registry->get( $slug );
             $handler = $menu['handler'] ?? null;
         } else {
-            $dashboard  = $this->config->get( 'overview' );
+            $dashboard  = $this->registry->get( 'overview' );
             $handler    = $dashboard['handler'];
         }
 
