@@ -287,7 +287,7 @@ class QueueWorker implements WorkerInterface {
 
         // 0 means unlimited — use a conservative default.
         if ( $max <= 0 ) {
-            return 25;
+            return 100;
         }
 
         // Apply 80% safety factor and floor at 5 seconds.
