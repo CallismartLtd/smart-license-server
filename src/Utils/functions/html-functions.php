@@ -345,7 +345,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
     <p class="smliser-table-count">
         <?php
         printf(
-            escHtml( '%1$d of %2$d %3$s', 'smliser' ),
+            escHtml( '%1$d of %2$d %3$s' ),
             intval( $displayed ),
             intval( $total ),
             escHtml( _n( 'item', 'items', $total, 'smliser' ) )
@@ -358,7 +358,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
             <span class="smliser-displaying-num">
                 <?php
                 printf(
-                    escHtml( 'Page %1$d of %2$d', 'smliser' ),
+                    escHtml( 'Page %1$d of %2$d' ),
                     intval( $page ),
                     intval( $total_pages )
                 );
