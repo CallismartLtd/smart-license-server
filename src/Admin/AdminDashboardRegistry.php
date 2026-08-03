@@ -16,7 +16,7 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
             return;
         }
 
-        $this->booted = true;
+        $this->booted   = true;
 
         $this->menu = [
             'overview' => [

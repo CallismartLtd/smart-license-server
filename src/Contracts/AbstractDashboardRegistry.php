@@ -10,6 +10,8 @@
 
 namespace SmartLicenseServer\Contracts;
 
+use ReflectionFunction;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
 abstract class AbstractDashboardRegistry {
@@ -20,11 +22,22 @@ abstract class AbstractDashboardRegistry {
      * @var array<string, array{
      *     title: string,
      *     slug: string,
-     *     handler: callable,
+     *     handler: callable(Request $request),
      *     icon: string
      * }>
      */
     protected array $menu = [];
+
+    /**
+     * Get the submenu.
+     * 
+     * @var array<string, array<int, array{
+     *  title: string,
+     *  slug: string,
+     *  handler: callable
+     * }>>
+     */
+    protected array $submenu = [];
 
     /**
      * Boot flag.
@@ -51,9 +64,10 @@ abstract class AbstractDashboardRegistry {
      * } $data
      * @param int|null $position Optional zero-based index to insert into.
      *
+     * @return static
      * @throws EnvironmentBootstrapException
      */
-    public function register( string $key, array $data, ?int $position = null ) : void {
+    public function register( string $key, array $data, ?int $position = null ) : static {
         $this->boot();
         $key = $this->canonical_key( $key );
 
@@ -87,6 +101,8 @@ abstract class AbstractDashboardRegistry {
             );
         }
 
+        $this->assert_accept_request_as_first_param( $data['handler'] );
+
         $menu = [
             'title'   => (string) $data['title'],
             'slug'    => trim( (string) $data['slug'], '/' ),
@@ -94,7 +110,49 @@ abstract class AbstractDashboardRegistry {
             'icon'    => isset( $data['icon'] ) ? (string) $data['icon'] : '',
         ];
 
-        $this->insert_menu_item( $key, $menu, $position );
+        return $this->insert_menu_item( $key, $menu, $position );
+    }
+
+    /**
+     * Add submenu.
+     * 
+     * @param string $parent_key
+     * @param array{
+     *  title: string,
+     *  slug: string,
+     *  handler: callable
+     * } $data
+     * 
+     * @param int|null $position Optional zero-based index to insert into.
+     */
+    public function add_submenu( string $parent_key, array $data, ?int $position = null ) : static {
+        $this->assert_menu_exists( $parent_key );
+
+        foreach ( [ 'title', 'slug', 'handler' ] as $field ) {
+            if ( empty( $data[ $field ] ) ) {
+                throw new EnvironmentBootstrapException(
+                    'submenu_error',
+                    sprintf( 'A submenu for "%s" is missing a required field "%s".', $parent_key, $field )
+                );
+            }
+        }
+
+        if ( ! is_callable( $data['handler'] ) ) {
+            throw new EnvironmentBootstrapException(
+                'submenu_error',
+                sprintf( 'Submenu "%s" handler must be callable.', $data['slug'] )
+            );
+        }
+
+        $this->assert_accept_request_as_first_param( $data['handler'], 'submenu' );
+
+        $submenu = [
+            'title'   => (string) $data['title'],
+            'slug'    => trim( (string) $data['slug'], '/' ),
+            'handler' => $data['handler'],
+        ];
+
+        return $this->insert_submenu( $parent_key, $submenu, $position );
     }
 
     /*
@@ -110,19 +168,52 @@ abstract class AbstractDashboardRegistry {
      * @param array    $menu
      * @param int|null $position
      */
-    protected function insert_menu_item( string $key, array $menu, ?int $position ) : void {
+    protected function insert_menu_item( string $key, array $menu, ?int $position ) : static {
         if ( $position !== null ) {
-            $position = max( 0, $position - 1 );
+            $position = (int) max( 0, $position - 1 );
         }
 
         if ( null === $position || $position >= count( $this->menu ) ) {
             $this->menu[ $key ] = $menu;
-            return;
+            return $this;
         }
 
         $before     = array_slice( $this->menu, 0, $position, true );
         $after      = array_slice( $this->menu, $position, null, true );
         $this->menu = $before + [ $key => $menu ] + $after;
+
+        return $this;
+    }
+
+    /**
+     * Insert a submenu
+     * 
+     * @param string $parent_key
+     * @param array{title: string, slug: string, handler: callable} $submenu
+     * @param int|null $position
+     * @return static
+     */
+    protected function insert_submenu( string $parent_key, array $submenu, ?int $position ) : static {
+        $all_subm   = $this->submenu[$parent_key] ?? [];
+
+        if ( null !== $position ) {
+            $position   = (int) max( 0, $position -1 );
+        }
+
+        if ( null === $position || empty( $all_subm ) ) {
+            $this->submenu[$parent_key][] = $submenu;
+
+            return $this;
+        }
+
+        $before = array_slice( $all_subm, 0, $position );
+        $after  = array_slice( $all_subm, $position, count( $all_subm ) );
+
+        $all_subm   = array_merge( $before, [$submenu], $after );
+        
+        $this->submenu[$parent_key] = $all_subm;
+        
+        return $this;
     }
 
     /*
@@ -142,6 +233,41 @@ abstract class AbstractDashboardRegistry {
     }
 
     /**
+     * Get a single menu item.
+     *
+     * @param string $key
+     * @return array{title: string, slug: string, handler: callable, icon: string}|null
+     */
+    public function get( string $key ) : ?array {
+        $this->boot();
+        return $this->menu[ $this->canonical_key( $key ) ] ?? null;
+    }
+
+    /**
+     * Get all submenu.
+     * 
+     * @return array<string, array<int, array{title: string, slug: string, handler: callable}>>
+     */
+    public function all_submenu() : array {
+        $this->boot();
+
+        return $this->submenu;
+    }
+
+    /**
+     * Get the submenu items associated with a given menu key.
+     *
+     * @param string $parent_key
+     * @return array<int, array{title: string, slug: string, handler: callable}>|null
+     */
+    public function get_submenu( string $parent_key ) : ?array {
+        $this->boot();
+        $key    = $this->canonical_key( $parent_key );
+
+        return $this->submenu[$key] ?? null;
+    }
+
+    /**
      * Get all registered menu slugs (ordered).
      *
      * @return string[]
@@ -151,21 +277,10 @@ abstract class AbstractDashboardRegistry {
 
         return array_values(
             array_map(
-                static fn( array $item ) : string => $item['slug'],
+                static fn( $item ) : string => $item['slug'],
                 $this->menu
             )
         );
-    }
-
-    /**
-     * Get a single menu item.
-     *
-     * @param string $key
-     * @return array{title: string, slug: string, handler: callable, icon: string}|null
-     */
-    public function get( string $key ) : ?array {
-        $this->boot();
-        return $this->menu[ $this->canonical_key( $key ) ] ?? null;
     }
 
     /**
@@ -195,6 +310,49 @@ abstract class AbstractDashboardRegistry {
 
         unset( $this->menu[ $key ] );
         return true;
+    }
+
+    /**
+     * Clears the submenu of a menu.
+     *
+     * @param string $parent_key
+     * @return bool
+     */
+    public function clear_submenu( string $parent_key ) : bool {
+        $this->boot();
+        $key = $this->canonical_key( $parent_key );
+
+        if ( ! $this->has( $key ) ) {
+            return false;
+        }
+
+        unset( $this->submenu[$key] );
+        return true;
+    }
+
+    /**
+     * Remove a submenu item using its slug.
+     * 
+     * @param string $parent_key
+     * @param string $slug
+     */
+    public function remove_submenu( string $parent_key, $slug ) : bool {
+        $this->boot();
+        $key = $this->canonical_key( $parent_key );
+
+        if ( ! $this->has( $key ) ) {
+            return false;
+        }
+
+        foreach( $this->submenu[$key] as $index => &$data ) {
+            if ( $slug === $data['slug'] ) {
+                unset( $this->submenu[$key][$index] );
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /*
@@ -238,6 +396,27 @@ abstract class AbstractDashboardRegistry {
         }
     }
 
+    /**
+     * Ensure a callback accepts the request object as first argument.
+     * @param callable $callback
+     */
+    protected function assert_accept_request_as_first_param( callable $callback, string $type = 'menu' ) : void {
+        $reflection = new ReflectionFunction( $callback );
+        $params     = $reflection->getParameters();
+
+        if ( empty( $params ) ) {
+            return;
+        }
+
+        if ( $params[0]->getType()?->getName() !== Request::class ) {
+            throw new EnvironmentBootstrapException(
+                'invalid_menu_callback',
+                sprintf( '%s callback must accept %s as first argument', ucfirst( $type ), Request::class )
+            );
+        }
+
+    }
+
     /*
     |---------
     | SETTERS
@@ -249,8 +428,9 @@ abstract class AbstractDashboardRegistry {
      *
      * @param string $key
      * @param string $title
+     * @return static
      */
-    public function set_title( string $key, string $title ) : void {
+    public function set_title( string $key, string $title ) : static {
         $key = $this->canonical_key( $key );
         $this->assert_menu_exists( $key );
 
@@ -262,6 +442,8 @@ abstract class AbstractDashboardRegistry {
         }
 
         $this->menu[ $key ]['title'] = $title;
+
+        return $this;
     }
 
     /**
@@ -269,8 +451,9 @@ abstract class AbstractDashboardRegistry {
      *
      * @param string $key
      * @param string $slug
+     * @return static
      */
-    public function set_slug( string $key, string $slug ) : void {
+    public function set_slug( string $key, string $slug ) : static {
         $key  = $this->canonical_key( $key );
         $slug = trim( $slug, '/' );
         $this->assert_menu_exists( $key );
@@ -283,6 +466,8 @@ abstract class AbstractDashboardRegistry {
         }
 
         $this->menu[ $key ]['slug'] = $slug;
+
+        return $this;
     }
 
     /**
@@ -290,12 +475,15 @@ abstract class AbstractDashboardRegistry {
      *
      * @param string   $key
      * @param callable $handler
+     * @return static
      */
-    public function set_handler( string $key, callable $handler ) : void {
+    public function set_handler( string $key, callable $handler ) : static {
         $key = $this->canonical_key( $key );
         $this->assert_menu_exists( $key );
 
         $this->menu[ $key ]['handler'] = $handler;
+
+        return $this;
     }
 
     /**
@@ -303,12 +491,15 @@ abstract class AbstractDashboardRegistry {
      *
      * @param string $key
      * @param string $icon
+     * @return static
      */
-    public function set_icon( string $key, string $icon ) : void {
+    public function set_icon( string $key, string $icon ) : static {
         $key = $this->canonical_key( $key );
         $this->assert_menu_exists( $key );
 
         $this->menu[ $key ]['icon'] = $icon;
+
+        return $this;
     }
 
     /*
@@ -334,7 +525,7 @@ abstract class AbstractDashboardRegistry {
             );
         }
 
-        return $index;
+        return (int) $index;
     }
 
     /**
@@ -342,8 +533,9 @@ abstract class AbstractDashboardRegistry {
      *
      * @param string $key
      * @param int    $new_index
+     * @return static
      */
-    protected function move_to_index( string $key, int $new_index ) : void {
+    protected function move_to_index( string $key, int $new_index ) : static {
         $index = array_search( $key, array_keys( $this->menu ), true );
 
         if ( false === $index ) {
@@ -360,43 +552,60 @@ abstract class AbstractDashboardRegistry {
         $before     = array_slice( $this->menu, 0, $new_index, true );
         $after      = array_slice( $this->menu, $new_index, null, true );
         $this->menu = $before + [ $key => $item ] + $after;
+
+        return $this;
     }
 
-    public function move_up( string $key ) : void {
+    public function move_up( string $key ) : static {
         $key   = $this->canonical_key( $key );
         $index = $this->get_index( $key );
-        if ( $index === 0 ) return;
+        if ( $index === 0 ) return $this;
         $this->move_to_index( $key, $index - 1 );
+
+        return $this;
     }
 
-    public function move_down( string $key ) : void {
+    public function move_down( string $key ) : static {
         $key   = $this->canonical_key( $key );
         $index = $this->get_index( $key );
-        if ( $index === count( $this->menu ) - 1 ) return;
+        if ( $index === count( $this->menu ) - 1 ) return $this;
+
         $this->move_to_index( $key, $index + 1 );
+
+        return $this;
     }
 
-    public function move_to( string $key, int $position ) : void {
+    public function move_to( string $key, int $position ) : static {
         $this->move_to_index( $this->canonical_key( $key ), $position );
+
+        return $this;
     }
 
-    public function move_after( string $key, string $target ) : void {
+    public function move_after( string $key, string $target ) : static {
         $key = $this->canonical_key( $key );
         $this->move_to_index( $key, $this->get_index( $this->canonical_key( $target ) ) + 1 );
+
+        return $this;
     }
 
-    public function move_before( string $key, string $target ) : void {
+    public function move_before( string $key, string $target ) : static {
         $key = $this->canonical_key( $key );
         $this->move_to_index( $key, $this->get_index( $this->canonical_key( $target ) ) );
+
+        return $this;
     }
 
-    public function move_to_top( string $key ) : void {
+    public function move_to_top( string $key ) : static {
         $this->move_to_index( $this->canonical_key( $key ), 0 );
+
+        return $this;
     }
 
-    public function move_to_bottom( string $key ) : void {
+    public function move_to_bottom( string $key ) : static {
         $key = $this->canonical_key( $key );
         $this->move_to_index( $key, count( $this->menu ) );
+
+        return $this;
     }
 
     /*

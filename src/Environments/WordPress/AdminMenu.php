@@ -20,6 +20,7 @@ class AdminMenu {
     const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSBzY2FsZSgxLjQpIHRyYW5zbGF0ZSgtMTAsIC0xMCkiPgogICAgPHJlY3QgeD0iNC40IiB5PSI1LjYiIHdpZHRoPSIxMS4yIiBoZWlnaHQ9IjIiIHJ4PSIwLjYiIGZpbGw9IiNhN2FhYWQiLz4KICAgIDxyZWN0IHg9IjQuNCIgeT0iOC40IiB3aWR0aD0iMTEuMiIgaGVpZ2h0PSIyIiByeD0iMC42IiBmaWxsPSIjYTdhYWFkIi8+CiAgICA8cmVjdCB4PSI0LjQiIHk9IjExLjIiIHdpZHRoPSIxMS4yIiBoZWlnaHQ9IjIiIHJ4PSIwLjYiIGZpbGw9IiNhN2FhYWQiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjYuNiIgcj0iMC41IiBmaWxsPSIjMzMzIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjkuNCIgcj0iMC41IiBmaWxsPSIjMzMzIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxjaXJjbGUgY3g9IjUuNiIgY3k9IjEyLjIiIHI9IjAuNSIgZmlsbD0iIzMzMyIgb3BhY2l0eT0iMC40Ii8+CiAgICA8cGF0aCBkPSJNMTAgNCBMMTMuNiA1LjYgVjkuMiBDMTMuNiAxMiAxMS42IDE0IDEwIDE0LjggQzguNCAxNCA2LjQgMTIgNi40IDkuMiBWNS42IFoiIGZpbGw9IiNhN2FhYWQiLz4KICAgIDxjaXJjbGUgY3g9IjEwIiBjeT0iOC44IiByPSIxIiBmaWxsPSIjMzMzIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxyZWN0IHg9IjkuNCIgeT0iOC44IiB3aWR0aD0iMS4yIiBoZWlnaHQ9IjIuNCIgcng9IjAuMyIgZmlsbD0iIzMzMyIgb3BhY2l0eT0iMC40Ii8+CiAgPC9nPgo8L3N2Zz4=';
 
     private string $prefix  = 'smliser';
+    private array $wp_submenu;
 
 
     /**
@@ -30,7 +31,7 @@ class AdminMenu {
      */
     public function __construct(
         private AdminDashboardRegistry $registry,
-        private Request $request 
+        private Request $request,
     ) {}
 
     /**
@@ -60,12 +61,15 @@ class AdminMenu {
      * Rename First menu item to Dashboard.
      */
     public function submenu_index_name() {
-        global $submenu;
-        
-        $slug   = sprintf( '%s-overview', $this->prefix );
-        if ( isset( $submenu[$slug] ) ) {
-            $submenu[$slug][0][0] = 'Overview';
+        $this->ensure_wpsubmenu();
+
+        $slug   = "{$this->prefix}-overview";
+
+        if ( ! isset( $this->wp_submenu[$slug] ) ) {
+            return;
         }
+
+        $this->wp_submenu[$slug][0][0] = 'Overview';
     }
 
     /**
@@ -80,18 +84,22 @@ class AdminMenu {
         $prefix = "{$this->prefix}-";
 
         if ( strpos( $page, $prefix ) === 0 ) {
-
-            $slug = substr( $page, strlen( $prefix ) );
-            $menu = $this->registry->get( $slug );
-            $handler = $menu['handler'] ?? null;
+            $key            = substr( $page, strlen( $prefix ) );
+            $target_menu    = $this->registry->get( $key );
         } else {
-            $dashboard  = $this->registry->get( 'overview' );
-            $handler    = $dashboard['handler'];
+            $target_menu    = $this->registry->get( 'overview' );
         }
 
+        $handler    = $target_menu['handler'];
 
-        if ( is_callable( $handler ) ) {
-            $handler( $this->request );
+        $handler( $this->request );
+    }
+
+    protected function ensure_wpsubmenu() : void {
+        if ( isset( $this->wp_submenu ) ) {
+            return;
         }
+
+        $this->wp_submenu   = &$GLOBALS['submenu'] ?? [];
     }
 }
