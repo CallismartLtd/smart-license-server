@@ -9,7 +9,6 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Messaging\BulkMessage;
 use SmartLicenseServer\Messaging\BulkMessageService;
 
 use function compact, smliser_render_template;
