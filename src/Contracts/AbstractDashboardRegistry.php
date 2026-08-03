@@ -11,6 +11,8 @@
 namespace SmartLicenseServer\Contracts;
 
 use ReflectionFunction;
+use ReflectionMethod;
+use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
@@ -22,7 +24,7 @@ abstract class AbstractDashboardRegistry {
      * @var array<string, array{
      *     title: string,
      *     slug: string,
-     *     handler: callable(Request $request),
+     *     handler: AdminPageInterface,
      *     icon: string
      * }>
      */
@@ -34,7 +36,7 @@ abstract class AbstractDashboardRegistry {
      * @var array<string, array<int, array{
      *  title: string,
      *  slug: string,
-     *  handler: callable
+     *  callback: callable
      * }>>
      */
     protected array $submenu = [];
@@ -59,7 +61,7 @@ abstract class AbstractDashboardRegistry {
      * @param array{
      *     title: string,
      *     slug: string,
-     *     handler: callable,
+     *     handler: class-string<AdminPageInterface>,
      *     icon?: string
      * } $data
      * @param int|null $position Optional zero-based index to insert into.
@@ -94,14 +96,16 @@ abstract class AbstractDashboardRegistry {
             }
         }
 
-        if ( ! is_callable( $data['handler'] ) ) {
+        $this->assert_menu_handler_implements_admin_page( $data['handler'], $key );
+
+        if ( ! is_callable( $data['handler']::index_page_handler() ) ) {
             throw new EnvironmentBootstrapException(
-                'menu_error',
-                sprintf( 'Menu "%s" handler must be callable.', $key )
+                'submenu_error',
+                sprintf( 'Menu "%s" callback must be callable.', $key )
             );
         }
 
-        $this->assert_accept_request_as_first_param( $data['handler'] );
+        $this->assert_request_is_first_arg( $data['handler']::index_page_handler(), 'menu', $data['slug'] );
 
         $menu = [
             'title'   => (string) $data['title'],
@@ -120,15 +124,17 @@ abstract class AbstractDashboardRegistry {
      * @param array{
      *  title: string,
      *  slug: string,
-     *  handler: callable
+     *  callback: callable
      * } $data
      * 
      * @param int|null $position Optional zero-based index to insert into.
      */
     public function add_submenu( string $parent_key, array $data, ?int $position = null ) : static {
+        $parent_key = $this->canonical_key( $parent_key );
+
         $this->assert_menu_exists( $parent_key );
 
-        foreach ( [ 'title', 'slug', 'handler' ] as $field ) {
+        foreach ( [ 'title', 'slug', 'callback' ] as $field ) {
             if ( empty( $data[ $field ] ) ) {
                 throw new EnvironmentBootstrapException(
                     'submenu_error',
@@ -137,19 +143,19 @@ abstract class AbstractDashboardRegistry {
             }
         }
 
-        if ( ! is_callable( $data['handler'] ) ) {
+        if ( ! is_callable( $data['callback'] ) ) {
             throw new EnvironmentBootstrapException(
                 'submenu_error',
-                sprintf( 'Submenu "%s" handler must be callable.', $data['slug'] )
+                sprintf( 'Submenu "%s" callback must be callable.', $data['slug'] )
             );
         }
 
-        $this->assert_accept_request_as_first_param( $data['handler'], 'submenu' );
+        $this->assert_request_is_first_arg( $data['callback'], 'submenu', "{$parent_key} -> {$data['slug']}" );
 
         $submenu = [
-            'title'   => (string) $data['title'],
-            'slug'    => trim( (string) $data['slug'], '/' ),
-            'handler' => $data['handler'],
+            'title'     => (string) $data['title'],
+            'slug'      => trim( (string) $data['slug'], '/' ),
+            'callback'  => $data['callback'],
         ];
 
         return $this->insert_submenu( $parent_key, $submenu, $position );
@@ -225,7 +231,7 @@ abstract class AbstractDashboardRegistry {
     /**
      * Get all menu items.
      *
-     * @return array<string, array{title: string, slug: string, handler: callable, icon: string}>
+     * @return array<string, array{title: string, slug: string, handler: AdminPageInterface, icon: string}>
      */
     public function all() : array {
         $this->boot();
@@ -236,7 +242,7 @@ abstract class AbstractDashboardRegistry {
      * Get a single menu item.
      *
      * @param string $key
-     * @return array{title: string, slug: string, handler: callable, icon: string}|null
+     * @return array{title: string, slug: string, handler: AdminPageInterface, icon: string}|null
      */
     public function get( string $key ) : ?array {
         $this->boot();
@@ -246,7 +252,7 @@ abstract class AbstractDashboardRegistry {
     /**
      * Get all submenu.
      * 
-     * @return array<string, array<int, array{title: string, slug: string, handler: callable}>>
+     * @return array<string, array<int, array{title: string, slug: string, callback: callable}>>
      */
     public function all_submenu() : array {
         $this->boot();
@@ -400,9 +406,14 @@ abstract class AbstractDashboardRegistry {
      * Ensure a callback accepts the request object as first argument.
      * @param callable $callback
      */
-    protected function assert_accept_request_as_first_param( callable $callback, string $type = 'menu' ) : void {
-        $reflection = new ReflectionFunction( $callback );
-        $params     = $reflection->getParameters();
+    protected function assert_request_is_first_arg( callable $callback, string $type = 'menu', string $desc = '' ) : void {
+        if ( is_array( $callback ) ) {
+            $callback = new ReflectionMethod( $callback[0], $callback[1] );
+        } else {
+            $callback = new ReflectionFunction( $callback );
+        }
+        
+        $params = $callback->getParameters();
 
         if ( empty( $params ) ) {
             return;
@@ -411,10 +422,22 @@ abstract class AbstractDashboardRegistry {
         if ( $params[0]->getType()?->getName() !== Request::class ) {
             throw new EnvironmentBootstrapException(
                 'invalid_menu_callback',
-                sprintf( '%s callback must accept %s as first argument', ucfirst( $type ), Request::class )
+                sprintf( '%s callback for "%s" must accept %s as first argument', ucfirst( $type ), $desc, Request::class )
             );
         }
 
+    }
+
+    protected function assert_menu_handler_implements_admin_page( string $handler, string $key ) {
+        
+        if ( in_array( AdminPageInterface::class, @\class_implements( $handler ) ?: [], true ) ) {
+            return;
+        }
+
+        throw new EnvironmentBootstrapException(
+            'menu_error',
+            sprintf( 'Menu "%s" handler must implement %s.', $key, AdminPageInterface::class )
+        );
     }
 
     /*

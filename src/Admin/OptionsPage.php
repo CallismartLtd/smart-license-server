@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
@@ -19,37 +20,7 @@ use SmartLicenseServer\Monetization\MonetizationRegistry;
 
 use function smliser_settings, smliser_render_template, compact;
 
-class OptionsPage {
-
-    /**
-     * Page router.
-     * 
-     * @param Request $request
-     */
-    public static function router( Request $request ): void {
-        $tab = $request->get( 'tab' );
-
-        switch ( $tab ) {
-            case 'routes':
-                self::routes_setting( $request );
-                break;
-
-            case 'monetization':
-                self::monetization_options( $request );
-                break;
-
-            case 'email':
-                self::email_options( $request );
-                break;
-
-            case 'cache':
-                self::cache_options( $request );
-                break;
-
-            default:
-                self::general_settings( $request );
-        }
-    }
+class OptionsPage implements AdminPageInterface {
 
     /*
     |---------
@@ -60,7 +31,7 @@ class OptionsPage {
     /**
      * General settings page.
      */
-    private static function general_settings( Request $request ): void {
+    public static function general_settings( Request $request ): void {
         
         smliser_render_template( 'admin.options.index', compact( 'request' ) );
     }
@@ -68,21 +39,21 @@ class OptionsPage {
     /**
      * Permalink/routes settings page.
      */
-    private static function routes_setting( Request $request ): void {
+    public static function routes_setting( Request $request ): void {
         smliser_render_template( 'admin.options.routing', compact( 'request' ) );
     }
 
     /**
      * Monetization providers settings page.
      */
-    private static function monetization_options( Request $request ): void {
+    public static function monetization_options( Request $request ): void {
         if ( $request->has( 'provider' ) ) {
             self::monetization_provider_settings( $request );
             return;
         } 
         
         $providers = smliser_monetization_registry()->all();
-        smliser_render_template( 'admin.options.monetization-providers', compact( 'request', 'providers' ) );   
+        smliser_render_template( 'admin.options.monetization.monetization-providers', compact( 'request', 'providers' ) );   
     }
 
     /**
@@ -109,7 +80,7 @@ class OptionsPage {
         }
 
         $vars   = compact( 'request', 'provider', 'name', 'settings', 'id' );
-        smliser_render_template( 'admin.options.monetizations', $vars );
+        smliser_render_template( 'admin.options.monetization.monetizations', $vars );
     }
 
     /**
@@ -120,7 +91,7 @@ class OptionsPage {
      * individual template when section=templates&template=key,
      * otherwise renders the provider list with global email settings.
      */
-    private static function email_options( Request $request ): void {
+    public static function email_options( Request $request ): void {
         if ( $request->has( 'provider' ) ) {
             self::email_provider_settings( $request );
             return;
@@ -214,7 +185,7 @@ class OptionsPage {
      *   - adapter=<id>   → individual adapter settings
      *   - (default)      → adapter selection grid
      */
-    private static function cache_options( Request $request ): void {
+    public static function cache_options( Request $request ): void {
         if ( $request->get( 'section' ) === 'stats' ) {
             self::cache_stats( $request );
             return;
@@ -291,8 +262,6 @@ class OptionsPage {
      * @return array<int, array<string, mixed>>
      */
     protected static function email_settings_fields(): array {
-        $settings = smliser_settings();
-
         return [
             [
                 'label' => 'Default Email Provider',
@@ -640,6 +609,61 @@ class OptionsPage {
                     'active' => 'routes' === $tab,
                 ],
             ],
+        ];
+    }
+
+    /*
+    |---------------------------
+    | INTERFACE IMPLEMENTATION
+    |---------------------------
+    */
+
+    public static function index_page_handler() : callable {
+        return [static::class, 'general_settings'];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function get_submenu() : array {
+        return [
+            [
+                'title'     => 'Routes',
+                'slug'      => 'routes',
+                'callback'  => [static::class, 'routes_setting']
+            ],
+            [
+                'title'     => 'Monetization',
+                'slug'      => 'monetization',
+                'callback'  => [static::class, 'monetization_options']
+            ],
+            [
+                'title'         => 'Email',
+                'slug'          => 'email',
+                'callback'      => [static::class, 'email_options'],
+            ],
+            [
+                'title'         => 'Cache',
+                'slug'          => 'cache',
+                'callback'      => [static::class, 'cache_options'],
+            ]
+        ];
+    }
+
+    public static function routing_var() : string {
+        return 'tab';
+    }
+    
+    public static function get_menu_key() : string {
+        return 'settings';
+    }
+
+    public static function get_menu_data() : array {
+        return [
+            'title'   => 'Settings',
+            'slug'    => 'settings',
+            'handler' => static::class,
+            'icon'    => 'ti ti-license',
         ];
     }
 }

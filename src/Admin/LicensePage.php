@@ -8,40 +8,30 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\License;
-use SmartLicenseServer\RESTAPI\Versions\V1;
 
 use function compact, smliser_render_template;
 
 /**
  * The admin license page class
  */
-class LicensePage {
+class LicensePage implements AdminPageInterface {
     /**
-     * Page router.
+     * Page sub-router.
      * 
      * @param Request $request
      */
-    public static function router( Request $request ) {
+    public static function sub_router( Request $request ) {
         $tab = $request->get( 'tab' );
         switch ( $tab ) {
-            case 'add-new':
-                self::add_license_page( $request );
-                break;
             case 'edit':
                 self::edit_license_page( $request );
                 break;
             case 'view':
                 self::view_license_page( $request );
-                break;
-            case 'logs':
-                self::license_logs_page( $request );
-                break;
-            case 'search':
-                self::search_page( $request );
                 break;    
             default:
             self::dashboard( $request );
@@ -54,7 +44,7 @@ class LicensePage {
      * 
      * @param Request $request
      */
-    private static function dashboard( Request $request ) : void {
+    public static function dashboard( Request $request ) : void {
         $current_url    = smliser_get_current_url();
         $limit          = $request->get( 'limit', 20 );
         $page           = $request->get( 'paged', 1 );
@@ -82,7 +72,7 @@ class LicensePage {
      * 
      * @param Request $request
      */
-    private static function search_page( Request $request ) : void {
+    public static function search_page( Request $request ) : void {
         $current_url    = smliser_get_current_url();
         $limit          = $request->get( 'limit', 20 );
         $page           = $request->get( 'paged', 1 );
@@ -105,7 +95,7 @@ class LicensePage {
     /**
      * Add license page
      */
-    private static function add_license_page( Request $request ) : void {
+    public static function add_license_page( Request $request ) : void {
         $form_fields    = static::get_form_fields();
         $tab            = $request->get( 'tab' );
 
@@ -116,7 +106,7 @@ class LicensePage {
     /**
      * License edit page
      */
-    private static function edit_license_page( Request $request ) : void {
+    public static function edit_license_page( Request $request ) : void {
 
         $license_id     = $request->get( 'license_id' );        
         $license        = License::get_by_id( $license_id );
@@ -131,7 +121,7 @@ class LicensePage {
     /**
      * License view page
      */
-    private static function view_license_page( Request $request ) : void {
+    public static function view_license_page( Request $request ) : void {
         $license_id     = $request->get( 'license_id' );
         $license        = License::get_by_id( $license_id );
         $licensed_app   = $license?->get_app();
@@ -156,7 +146,7 @@ class LicensePage {
     /**
      * License activation log page.
      */
-    private static function license_logs_page( Request $request ) : void {
+    public static function license_logs_page( Request $request ) : void {
         $logs  = RepositoryAnalytics::get_license_activity_logs();
 
         if ( $request->has( 'filterBy') ) {
@@ -176,7 +166,6 @@ class LicensePage {
      */
     public static function get_menu_args( Request $request ) : array {
         $tab        = $request->get( 'tab' );
-        $license_id = $request->get( 'license_id' );
         $title  = match ( $tab ) {
             'logs'      => 'License Activity Logs',
             'add-new'   => 'Add new license',
@@ -213,7 +202,7 @@ class LicensePage {
     /**
      * Get license form fields.
      * 
-     * @param License|null
+     * @param License|null $license
      * @return array
      */
     protected static function get_form_fields( ?License $license = null ) : array {
@@ -321,4 +310,53 @@ class LicensePage {
         );
     }
     
+    /*
+    |---------------------------
+    | INTERFACE IMPLEMENTATION
+    |---------------------------
+    */
+
+    public static function index_page_handler() : callable {
+        return [static::class, 'sub_router'];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function get_submenu() : array {
+        return [
+            [
+                'title'     => 'Add New',
+                'slug'      => 'add-new',
+                'callback'  => [ static::class, 'add_license_page']
+            ],
+            [
+                'title'     => 'Activity Logs',
+                'slug'      => 'logs',
+                'callback'  => [static::class, 'license_logs_page']
+            ],
+            [
+                'title'     => 'Search Licenses',
+                'slug'      => 'search',
+                'callback'  => [static::class, 'search_page']
+            ]
+        ];
+    }
+
+    public static function routing_var() : string {
+        return 'tab';
+    }
+    
+    public static function get_menu_key() : string {
+        return 'licenses';
+    }
+
+    public static function get_menu_data() : array {
+        return [
+            'title'   => 'Licenses',
+            'slug'    => 'licenses',
+            'handler' => static::class,
+            'icon'    => 'ti ti-license',
+        ];
+    }
 }

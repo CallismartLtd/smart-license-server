@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
@@ -15,26 +16,12 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 /**
  * The admin dashboard page handler.
  */
-class DashboardPage {
-
-    /**
-     * Page router
-     * 
-     * @param Request $request
-     */
-    public static function router( Request $request ) {
-        $tab = $request->get( 'tab' );
-
-        switch( $tab ) {
-            default :
-            self::dashboard( $request );
-        }
-    }
+class DashboardPage implements AdminPageInterface {
 
     /**
      * Dashboard Callback method
      */
-    private static function dashboard() {
+    public static function dashboard() {
         $totals = [
             'apps'      => RepositoryAnalytics::get_total_apps(),
             'plugins'   => RepositoryAnalytics::get_total_apps( 'plugin' ),
@@ -594,5 +581,36 @@ class DashboardPage {
                 ]
             ]
         ];
+    }
+
+    /*
+    |---------------------------
+    | INTERFACE IMPLEMENTATION
+    |---------------------------
+    */
+
+    public static function index_page_handler() : callable {
+        return [static::class, 'dashboard'];
+    }
+
+    public static function get_menu_data(): array {
+        return [
+            'title'     => 'Overview',
+            'handler'   => static::class,
+            'slug'      => 'overview',
+            'icon'      => 'ti ti-home'
+        ];
+    }
+
+    public static function get_menu_key(): string {
+        return 'overview';
+    }
+
+    public static function get_submenu() : array {
+        return [];
+    }
+
+    public static function routing_var(): ?string {
+        return null;
     }
 }

@@ -23,15 +23,35 @@ interface AdminPageInterface {
     public static function index_page_handler() : callable;
 
     /**
+     * Get top menu key
+     * 
+     * @return string
+     */
+    public static function get_menu_key() : string;
+
+    /**
+     * Get top menu data
+     * 
+     * @return array{
+     *     title: string,
+     *     slug: string,
+     *     handler: callable(Request $request),
+     *     icon: string
+     * }
+     */
+    public static function get_menu_data() : array;
+
+    /**
      * Get the submenu.
      * 
-     * @return array<string, array{
+     * @return array{
      *  title: string,
      *  slug: string,
-     *  handler: callable(Request $request)
-     * }>
+     *  callback: callable(Request $request): void,
+     *  visibility: bool|callable():bool
+     * }[]
      */
-    public static function get_submenus() : array;
+    public static function get_submenu() : array;
 
     /**
      * Get the routing variable name for the submenu if applicable.

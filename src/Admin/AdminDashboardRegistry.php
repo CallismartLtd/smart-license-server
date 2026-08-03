@@ -7,6 +7,7 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 
 final class AdminDashboardRegistry extends AbstractDashboardRegistry {
@@ -19,43 +20,34 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
         $this->booted   = true;
 
         $this->menu = [
-            'overview' => [
-                'title'   => 'Overview',
-                'slug'    => '',
-                'handler' => [ DashboardPage::class, 'router' ],
-                'icon'    => 'ti ti-home',
-            ],
-            'repository' => [
-                'title'   => 'Repository',
-                'slug'    => 'repository',
-                'handler' => [ RepositoryPage::class, 'router' ],
-                'icon'    => 'ti ti-folder',
-            ],
-            'licenses' => [
-                'title'   => 'Licenses',
-                'slug'    => 'licenses',
-                'handler' => [ LicensePage::class, 'router' ],
-                'icon'    => 'ti ti-license',
-            ],
-            'bulk_messages' => [
-                'title'   => 'Bulk Messages',
-                'slug'    => 'bulk-messages',
-                'handler' => [ BulkMessagePage::class, 'router' ],
-                'icon'    => 'ti ti-envelop',
-            ],
-            'accounts' => [
-                'title'   => 'Accounts',
-                'slug'    => 'accounts',
-                'handler' => [ AccessControlPage::class, 'router' ],
-                'icon'    => 'ti ti-users-group',
-            ],
-            'settings' => [
-                'title'   => 'Settings',
-                'slug'    => 'settings',
-                'handler' => [ OptionsPage::class, 'router' ],
-                'icon'    => 'ti ti-generic',
-            ],
+
+        //     'settings' => [
+        //         'title'   => 'Settings',
+        //         'slug'    => 'settings',
+        //         'handler' => [ OptionsPage::class, 'router' ],
+        //         'icon'    => 'ti ti-generic',
+        //     ],
         ];
+
+        
+        $core_menu  = [
+            DashboardPage::class,
+            RepositoryPage::class,
+            LicensePage::class,
+            BulkMessagePage::class,
+            AccessControlPage::class,
+            OptionsPage::class
+        ];
+        
+        /** @var class-string<AdminPageInterface>[] $core_menu */
+
+        foreach( $core_menu as $class ) {
+            $this->register( $class::get_menu_key(), $class::get_menu_data() );
+            
+            foreach( $class::get_submenu() as $value ) {
+                $this->add_submenu( $class::get_menu_key(), $value );
+            }
+        }
     }
 
     /**

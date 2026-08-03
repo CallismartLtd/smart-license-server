@@ -2,12 +2,14 @@
 /**
  * Individual email provider settings form.
  *
- * Variables available from OptionsPage::email_provider_settings():
- *   $provider_name  — string
- *   $provider_id    — string
- *   $schema         — array<string, array>   field schema from get_settings_schema()
- *   $saved_settings — array<string, mixed>   persisted values keyed by field name
- *   $is_default     — bool
+ * @var bool $is_default
+ * @var string $provider_id
+ * @var string $provider_name
+ * @var string $provider_key
+ * @var \SmartLicenseServer\Core\Request $request
+ * @var array $schema
+ * @var array $saved_settings
+ * @var class-string<\SmartLicenseServer\Email\Providers\EmailProviderInterface>|null $provider
  *
  * @package SmartLicenseServer\templates
  * @since   0.2.0

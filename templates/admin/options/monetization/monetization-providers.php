@@ -4,6 +4,8 @@
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\templates
+ * @var \SmartLicenseServer\Core\Request $request
+ * @var array<int|string, \SmartLicenseServer\Contracts\ServiceProviderInterface> $providers
  */
 
 use SmartLicenseServer\Admin\OptionsPage;
@@ -25,7 +27,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                     <tr>
                         <td><?php echo escHtml( $id ); ?></td>
                         <td><?php echo escHtml( $provider::get_name() ); ?></td>
-                        <td><a href="<?php echo esc_url( smliser_options_url()->add_query_params( ['tab' => 'monetization',  'provider' => $provider::get_id() ] ) ); ?>" class="button smliser-nav-btn"> <span class="dashicons dashicons-admin-generic"></span> Manage</a></td>
+                        <td><a href="<?php echo esc_url( smliser_options_url()->add_query_params( ['tab' => 'monetization',  'provider' => $provider::get_id() ] ) ); ?>" class="button smliser-nav-btn"> <i class="ti ti-settings"></i> Configure</a></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

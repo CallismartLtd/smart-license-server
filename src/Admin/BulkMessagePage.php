@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Messaging\BulkMessageService;
 
@@ -16,7 +17,7 @@ use function compact, smliser_render_template;
 /**
  * The admin bulk message page class
  */
-class BulkMessagePage {
+class BulkMessagePage implements AdminPageInterface{
     /**
      * Page router
      * 
@@ -43,7 +44,7 @@ class BulkMessagePage {
      * 
      * @param Request $request
      */
-    private static function dashboard( Request $request ) : void {
+    public static function dashboard( Request $request ) : void {
         $msg_data       = BulkMessageService::raw()->get_all();
         $messages       = $msg_data['items'] ?? [];
         $pagination     = $msg_data['pagination'] ?? [];
@@ -59,7 +60,7 @@ class BulkMessagePage {
      * 
      * @param Request $request
      */
-    private static function message_editor( Request $request ) : void {
+    public static function message_editor( Request $request ) : void {
         $message_id = $request->get( 'msg_id' );
         $menu_args  = static::get_menu_args( $request );
         $message    = BulkMessageService::raw()->get_message( $message_id );
@@ -69,24 +70,11 @@ class BulkMessagePage {
     }
 
     /**
-     * Edit message page.
-     * 
-     * @param Request $request
-     */
-    private static function edit_message_page( Request $request ) : void {
-        $message_id = $request->get( 'msg_id' );
-        $menu_args  = static::get_menu_args( $request );
-        $message    = BulkMessageService::raw()->get_message( $message_id );
-        $vars   = compact( 'menu_args', 'message', 'request',  );
-        smliser_render_template( 'admin.bulk-messages.compose', $vars );
-    }
-
-    /**
      * Search messages page.
      * 
      * @param Request $request
      */
-    private static function search_page( Request $request ) : void {
+    public static function search_page( Request $request ) : void {
         $current_url    = smliser_get_current_url();
         $menu_args      = static::get_menu_args( $request );
         $search         = $request->get( 'msg_search' );
@@ -145,6 +133,57 @@ class BulkMessagePage {
                     'icon'  => 'dashicons dashicons-admin-generic'
                 )
             )
+        ];
+    }
+
+    /*
+    |---------------------------
+    | INTERFACE IMPLEMENTATION
+    |---------------------------
+    */
+
+    public static function index_page_handler() : callable {
+        return [static::class, 'dashboard'];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function get_submenu() : array {
+        return [
+            [
+                'title'     => 'Compose New',
+                'slug'      => 'compose-new',
+                'callback'  => [ static::class, 'message_editor']
+            ],
+            [
+                'title'     => 'Search Messages',
+                'slug'      => 'search',
+                'callback'  => [static::class, 'search_page']
+            ],
+            [
+                'title'         => 'Edit Message',
+                'slug'          => 'edit',
+                'callback'      => [static::class, 'message_editor'],
+                'visibility'    => false,
+            ],
+        ];
+    }
+
+    public static function routing_var() : string {
+        return 'tab';
+    }
+    
+    public static function get_menu_key() : string {
+        return 'bulk_messages';
+    }
+
+    public static function get_menu_data() : array {
+        return [
+            'title'   => 'Bulk Messages',
+            'slug'    => 'bulk-messages',
+            'handler' => static::class,
+            'icon'    => 'ti ti-license',
         ];
     }
 }

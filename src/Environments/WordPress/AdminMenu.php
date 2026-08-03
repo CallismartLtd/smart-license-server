@@ -44,7 +44,7 @@ class AdminMenu {
             'handler'   => 'smliser_rest_documentation'
         );
 
-        $this->registry->register( 'api_doc', $new_menu );
+        // $this->registry->register( 'api_doc', $new_menu );
 
         $slug   = sprintf( '%s-overview', $this->prefix );
         add_menu_page( SMLISER_APP_NAME, SMLISER_APP_NAME, 'manage_options', $slug, array( $this, 'dispatch_request' ), self::MENU_ICON, 3.1 );
@@ -90,7 +90,22 @@ class AdminMenu {
             $target_menu    = $this->registry->get( 'overview' );
         }
 
-        $handler    = $target_menu['handler'];
+        $routing_var    = $target_menu['handler']::routing_var();
+
+        if ( $routing_var && $this->request->hasValue( $routing_var ) ) {
+            $submenu    = $target_menu['handler']::get_submenu();
+
+            foreach( $submenu as $subm ) {
+                if ( $this->request->get( $routing_var ) === $subm['slug'] ) {
+                    $handler    = $subm['callback'];
+                }
+            }
+            
+        }
+
+        if ( ! isset( $handler ) ) {
+            $handler    = $target_menu['handler']::index_page_handler();
+        }
 
         $handler( $this->request );
     }

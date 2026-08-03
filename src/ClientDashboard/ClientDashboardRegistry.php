@@ -77,9 +77,9 @@ class ClientDashboardRegistry extends AbstractDashboardRegistry {
      *
      * @throws EnvironmentBootstrapException
      */
-    public function register( string $key, array $data, ?int $position = null ) : void {
+    public function register( string $key, array $data, ?int $position = null ) : static {
         $this->assert_handler_contract( $data['handler'] ?? null );
-        parent::register( $key, $data, $position );
+        return parent::register( $key, $data, $position );
     }
 
     /*

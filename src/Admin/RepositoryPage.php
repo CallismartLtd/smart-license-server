@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
@@ -23,44 +24,14 @@ use function compact, smliser_render_template;
 /**
  * The Admin repository page handler
  */
-class RepositoryPage {
-    /**
-     * Page router
-     * @param Request $request
-     */
-    public static function router( Request $request ) : void {
-        $tab    = $request->get( 'tab' );
-        
-        switch( $tab ) {
-            case 'add-new':
-                self::upload_page( $request );
-                break;
-            case 'edit':
-                self::edit_page( $request );
-                break;
-            case 'view':
-                self::view_page( $request );
-                break;
-            case 'monetization':
-                self::monetization_page( $request );
-                break;
-            case 'search':
-                self::search_page( $request );
-                break;
-            case 'edit-artifacts':
-                self::edit_app_artifacts( $request );
-                break;
-            default:
-            self::dashboard( $request );
-        }
-    }
+class RepositoryPage implements AdminPageInterface {
 
     /**
      * The repository dashboard page
      * 
      * @param Request $request
      */
-    private static function dashboard( Request $request ) : void {
+    public static function dashboard( Request $request ) : void {
         $args = array(
             'page'      => $request->get( 'paged', 1 ),
             'limit'     => $request->get( 'limit', 10 ),
@@ -103,7 +74,7 @@ class RepositoryPage {
     /**
      * Page to search the entire repository.
      */
-    private static function search_page( Request $request ) : void {
+    public static function search_page( Request $request ) : void {
         $illigal        = ['app_search', 'tab', 'search_status', 's', 'app_types', 'message', 'type', 'status'];
         $current_url    = smliser_get_current_url()->remove_query_param( ...$illigal );
         $add_url        = $current_url
@@ -194,7 +165,7 @@ class RepositoryPage {
     /**
      * The upload page
      */
-    private static function upload_page( Request $request ) {
+    public static function upload_page( Request $request ) {
         $type = $request->get( 'type', null );
 
         $slug       = $type ? 'uploader' : 'upload';
@@ -217,7 +188,7 @@ class RepositoryPage {
     /**
      * The edit page
      */
-    private static function edit_page( Request $request ) {
+    public static function edit_page( Request $request ) {
         $registry   = HostedAppsRegistry::instance();
         $id         = $request->get( 'app_id' );
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
@@ -256,7 +227,7 @@ class RepositoryPage {
     /**
      * The edit page
      */
-    private static function edit_app_artifacts( Request $request ) {
+    public static function edit_app_artifacts( Request $request ) {
         $registry   = HostedAppsRegistry::instance();
         $id         = $request->getTyped( 'app_id', 'int', 0 );
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
@@ -297,7 +268,7 @@ class RepositoryPage {
     /**
      * View hosted application page
      */
-    private static function view_page( Request $request ) {
+    public static function view_page( Request $request ) {
         $id     = $request->get( 'app_id' );
         $type   = $request->get( 'type' );
         
@@ -423,7 +394,7 @@ class RepositoryPage {
     /**
      * Manage plugin monetization page
      */
-    private static function monetization_page( Request $request ) {
+    public static function monetization_page( Request $request ) {
         $url    = \smliser_repository_url( 'admin' );
         $id         = smliser_get_query_param( 'app_id' );
         $app_type   = smliser_get_query_param( 'type' );
@@ -948,5 +919,74 @@ class RepositoryPage {
         $html .= '</div>'; // Close footer
 
         return $html;
+    }
+
+    /*
+    |---------------------------
+    | INTERFACE IMPLEMENTATION
+    |---------------------------
+    */
+
+    public static function index_page_handler() : callable {
+        return [static::class, 'dashboard'];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function get_submenu() : array {
+        return [
+            [
+                'title'     => 'Add New',
+                'slug'      => 'add-new',
+                'callback'  => [ static::class, 'upload_page']
+            ],
+            [
+                'title'     => 'Search Repository',
+                'slug'      => 'search',
+                'callback'  => [static::class, 'search_page']
+            ],
+            [
+                'title'         => 'Edit App',
+                'slug'          => 'edit',
+                'callback'      => [static::class, 'edit_page'],
+                'visibility'    => false,
+            ],
+            [
+                'title'         => 'View App',
+                'slug'          => 'view',
+                'callback'      => [static::class, 'view_page'],
+                'visibility'    => false,
+            ],
+            [
+                'title'         => 'Monetize App',
+                'slug'          => 'monetization',
+                'callback'      => [static::class, 'monetization_page'],
+                'visibility'    => false,
+            ],
+            [
+                'title'         => 'Edit App Artifacts',
+                'slug'          => 'edit-artifacts',
+                'callback'      => [static::class, 'edit_app_artifacts'],
+                'visibility'    => false,
+            ],
+        ];
+    }
+
+    public static function routing_var() : string {
+        return 'tab';
+    }
+    
+    public static function get_menu_key() : string {
+        return 'repository';
+    }
+
+    public static function get_menu_data() : array {
+        return [
+            'title'   => 'Repository',
+            'slug'    => 'repository',
+            'handler' => static::class,
+            'icon'    => 'ti ti-license',
+        ];
     }
 }

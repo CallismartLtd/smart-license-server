@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Admin;
 
+use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
@@ -17,51 +18,49 @@ use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
 
-use function defined, array_unshift, sprintf, smliser_json_encode_attr, smliser_render_template, compact;
+use function array_unshift, sprintf, smliser_json_encode_attr, smliser_render_template, compact;
 
 /**
  * The admin bulk message page class
  */
-class AccessControlPage {
+class AccessControlPage implements AdminPageInterface {
     /**
-     * Page router.
+     * Section router.
+     * 
+     * @return bool
      */
-    public static function router( Request $request ) : void {
+    private static function sub_router( Request $request ) : bool {
         $tab     = $request->get( 'tab' );
         $section = $request->get( 'section' );
 
         $routes = [
             'users' => [
-                'default'   => [__CLASS__, 'users_page'],
                 'add-new'   => [__CLASS__, 'users_form_page'],
                 'edit'      => [__CLASS__, 'users_form_page'],
             ],
             'organizations' => [
-                'default'           => [__CLASS__, 'organizations_page'],
                 'add-new'           => [__CLASS__, 'organizations_form_page'],
                 'edit'              => [__CLASS__, 'organizations_form_page'],
                 'add-new-member'    => [__CLASS__, 'organizations_members_form_page'],
                 'edit-member'       => [__CLASS__, 'organizations_members_form_page'],
             ],
             'owners'    => [
-                'default'   => [__CLASS__, 'owners_page'],
                 'add-new'   => [__CLASS__, 'owners_form_page'],
                 'edit'      => [__CLASS__, 'owners_form_page'],
             ],
             'service-account'  => [
-                'default'   => [__CLASS__, 'rest_api_page'],
                 'add-new'   => [__CLASS__, 'rest_api_form_page'],
                 'edit'      => [__CLASS__, 'rest_api_form_page'],
             ],
         ];
 
-        if ( isset( $routes[ $tab ] ) ) {
-            $handler = $routes[ $tab ][ $section ] ?? $routes[ $tab ]['default'];
+        if ( isset( $routes[ $tab ][ $section ] ) ) {
+            $handler = $routes[ $tab ][ $section ];
             $handler( $request );
-            return;
+            return true;
         }
 
-        self::dashboard( $request );
+        return false;
     }
 
 
@@ -82,7 +81,11 @@ class AccessControlPage {
      * 
      * @param Request $request
      */
-    private static function users_page( $request ) : void {
+    public static function users_page( Request $request ) : void {
+        if ( static::sub_router( $request ) ) {
+            return;
+        }
+
         $page           = (int) $request->get( 'paged', 1 );
         $limit          = (int) $request->get( 'limit', 25 );
         $all            = User::get_all( $page, $limit );
@@ -99,7 +102,7 @@ class AccessControlPage {
      * 
      * @param Request $request
      */
-    private static function users_form_page( $request ) {
+    public static function users_form_page( $request ) {
         $user_id        = $request->get( 'id' );
         $user           = User::get_by_id( (int) $user_id );
 
@@ -255,7 +258,11 @@ class AccessControlPage {
      * 
      * @param Request $request
      */
-    private static function organizations_page( Request $request ) {
+    public static function organizations_page( Request $request ) {
+        if ( static::sub_router( $request ) ) {
+            return;
+        }
+
         $page           = (int) $request->get( 'paged', 1 );
         $limit          = (int) $request->get( 'limit', 25 );
         $all            = Organization::get_all( $page, $limit );
@@ -505,7 +512,11 @@ class AccessControlPage {
      * 
      * @param Request $request
      */
-    private static function owners_page( Request $request ) {
+    public static function owners_page( Request $request ) {
+        if ( static::sub_router( $request ) ) {
+            return;
+        }
+
         $page   = (int) $request->get( 'paged', 1 );
         $limit  = (int) $request->get( 'limit', 25 );
         $owners = Owner::get_all( $page, $limit );
@@ -647,7 +658,11 @@ class AccessControlPage {
      * 
      * @param Request $request
      */
-    private static function rest_api_page( Request $request ) {
+    public static function rest_api_page( Request $request ) {
+        if ( static::sub_router( $request ) ) {
+            return;
+        }
+
         $page           = (int) $request->get( 'paged', 1 );
         $limit          = (int) $request->get( 'limit', 25 );
         $all            = ServiceAccount::get_all( $page, $limit );
@@ -874,5 +889,60 @@ class AccessControlPage {
         }
 
         smliser_print_admin_content_header( $args );
+    }
+
+    /*
+    |---------------------------
+    | INTERFACE IMPLEMENTATION
+    |---------------------------
+    */
+
+    public static function index_page_handler() : callable {
+        return [static::class, 'dashboard'];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function get_submenu() : array {
+        return [
+            [
+                'title'     => 'Users',
+                'slug'      => 'users',
+                'callback'  => [static::class, 'users_page']
+            ],
+            [
+                'title'     => 'Organizations',
+                'slug'      => 'organizations',
+                'callback'  => [static::class, 'organizations_page']
+            ],
+            [
+                'title'         => 'Resource Owners',
+                'slug'          => 'owners',
+                'callback'      => [static::class, 'owners_page'],
+            ],
+            [
+                'title'         => 'Service Accounts',
+                'slug'          => 'service-account',
+                'callback'      => [static::class, 'rest_api_page'],
+            ]
+        ];
+    }
+
+    public static function routing_var() : string {
+        return 'tab';
+    }
+    
+    public static function get_menu_key() : string {
+        return 'accounts';
+    }
+
+    public static function get_menu_data() : array {
+        return [
+            'title'   => 'Accounts',
+            'slug'    => 'accounts',
+            'handler' => static::class,
+            'icon'    => 'ti ti-license',
+        ];
     }
 }
