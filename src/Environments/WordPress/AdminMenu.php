@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
+use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Request;
 
 use function add_submenu_page, add_menu_page, sprintf;
@@ -38,23 +39,18 @@ class AdminMenu {
      * Register admin menus.
      */
     public function register_menus() {
-        $new_menu   = array(
-            'slug'      => 'api-doc',
-            'title'     => 'API Doc',
-            'handler'   => 'smliser_rest_documentation'
-        );
-
-        // $this->registry->register( 'api_doc', $new_menu );
-
         $slug   = sprintf( '%s-overview', $this->prefix );
+        
         add_menu_page( SMLISER_APP_NAME, SMLISER_APP_NAME, 'manage_options', $slug, array( $this, 'dispatch_request' ), self::MENU_ICON, 3.1 );
 
         foreach ( $this->registry->all() as $key => $menu ) {
             if ( $this->registry->is_root_menu( $key ) ) continue; // Already registered.
 
-            $base_slug   = sprintf( '%s-%s', $this->prefix, $menu['slug'] );
+            $base_slug   = "{$this->prefix}-{$menu['slug']}";
             add_submenu_page( $slug, $menu['title'], $menu['title'], 'manage_options', $base_slug, [$this, 'dispatch_request'] );
         }
+
+        add_submenu_page( $slug, 'API Doc', 'API Doc', 'manage_options', "{$this->prefix}-api-doc", 'smliser_rest_documentation' );
     }
 
     /**

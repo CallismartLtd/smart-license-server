@@ -589,7 +589,7 @@ function smliser_rest_documentation() {
                 <code><?php echo esc_url( restAPIUrl() ); ?></code>
             </div>
             
-            <?php foreach ( $rest::describe_routes() as $path => $html ) : 
+            <?php foreach ( $rest::describe_routes() as $_ => $html ) :
                 echo $html;
             endforeach; ?>
         </div>

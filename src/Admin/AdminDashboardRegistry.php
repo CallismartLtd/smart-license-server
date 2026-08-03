@@ -18,18 +18,7 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
         }
 
         $this->booted   = true;
-
-        $this->menu = [
-
-        //     'settings' => [
-        //         'title'   => 'Settings',
-        //         'slug'    => 'settings',
-        //         'handler' => [ OptionsPage::class, 'router' ],
-        //         'icon'    => 'ti ti-generic',
-        //     ],
-        ];
-
-        
+   
         $core_menu  = [
             DashboardPage::class,
             RepositoryPage::class,
