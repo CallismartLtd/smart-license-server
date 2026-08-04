@@ -27,7 +27,7 @@ class DatabaseException extends Exception {
      *
      * Each key represents a shorthand error code used across the DB layer.
      */
-    protected static $error_map = [
+    protected $error_map = [
 
         /*
         |-----------------------
@@ -161,11 +161,11 @@ class DatabaseException extends Exception {
      */
     public function __construct( string $error_slug, ?string $custom_message = null, $custom_data = [] ) {
 
-        $has_map = isset( static::$error_map[ $error_slug ] );
+        $has_map = isset( $this->error_map[ $error_slug ] );
 
         $default_data = $has_map
-            ? static::$error_map[ $error_slug ]
-            : static::$error_map['unknown_db_error'];
+            ? $this->error_map[ $error_slug ]
+            : $this->error_map['unknown_db_error'];
 
         $resolved_slug = $error_slug;
 
