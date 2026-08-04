@@ -129,7 +129,7 @@ class SmliserAuth {
 
         this.setLoading( true );
 
-        // Update URL fragment unless explicitly suppressed    .
+        // Update URL fragment unless explicitly suppressed.
         if ( addSlug ) this.setFormHash( slug );
 
         try {
@@ -318,8 +318,14 @@ class SmliserAuth {
         } else if ( ['forgot-password', 'reset-password'].includes( formType ) ) {
             const defaultMessage   = 'forgot-password' === formType ?
             'Check your email for password reset link.' : 'Successful.' ;
-            // Show success message
-            this.replaceFormWithSuccess( response.message || defaultMessage );
+            this.currentURL.hash    = '#login';
+
+            this.currentURL.searchParams.delete( 'key' );
+            // Show success message.
+            this.replaceFormWithSuccess(
+                response.message || defaultMessage,
+                {href: this.currentURL.toString(), text: 'Login'}
+            );
         }
     }
 

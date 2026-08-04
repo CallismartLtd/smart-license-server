@@ -10,9 +10,10 @@
  *
  * @var string $rest_base
  *     Full REST base URL for dashboard content requests.
- *     e.g. https://example.com/wp-json/smliser/v1/dashboard/
+ *     e.g. https://example.com/smliser/v1/dashboard/
  *
  * @var string $active_slug
+ * @var string $repo_name
  *     The slug of the initially active menu section.
  * @var \SmartLicenseServer\Security\Context\Principal|null $principal
  * @var array $styles

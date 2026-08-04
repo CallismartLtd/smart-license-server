@@ -24,9 +24,18 @@ class UserSettings {
     const LOCALE                            = 'locale';
 
     /**
+     * Cached user settings, invalidated on delete.
+     * 
      * @var array<string, mixed>
      */
     protected array $settings_cache = [];
+
+    /**
+     * Holds reference to the current data to be inserted or updated.
+     * 
+     * @var array{name: string, value: mixed}
+     */
+    protected array $current_data   = [];
 
     public function __construct(
         private User $user,
@@ -45,9 +54,8 @@ class UserSettings {
             return $this->settings_cache;
         }
 
-        $table  = SMLISER_USER_OPTIONS_TABLE;
         $sql    = smliserQueryBuilder()
-            ->select( 'option_key', 'option_value' )->from( $table )
+            ->select( 'option_key', 'option_value' )->from( SMLISER_USER_OPTIONS_TABLE )
             ->where( 'user_id', '=', $this->user->get_id() );
 
         $results = $this->database->get_results( $sql->build(), $sql->get_bindings() );
@@ -78,40 +86,10 @@ class UserSettings {
      * Set (insert or update) a user option.
      */
     public function set( string $name, mixed $value ) : bool {
-        $table   = SMLISER_USER_OPTIONS_TABLE;
-        $user_id = $this->user->get_id();
-        $encoded = Format::encode( $value );
+        $this->current_data['name']     = $name;
+        $this->current_data['value']    = $value;
 
-        $inserted = $this->database->insert( $table, [
-            'user_id'      => $user_id,
-            'option_key'   => $name,
-            'option_value' => $encoded,
-        ]);
-
-        if ( $inserted !== false ) {
-            $this->settings_cache[$name] = $value;
-            return true;
-        }
-
-        $error = $this->database->get_last_error();
-
-        if ( $error !== null ) {
-            $updated = $this->database->update(
-                $table,
-                [ 'option_value' => $encoded ],
-                [
-                    'user_id'    => $user_id,
-                    'option_key' => $name,
-                ]
-            );
-
-            if ( $updated !== false ) {
-                $this->settings_cache[$name] = $value;
-                return true;
-            }
-        }
-
-        return false;
+        return (bool) $this->database->transactional( [$this, 'insert_or_update'] );
     }
 
     /**
@@ -149,5 +127,64 @@ class UserSettings {
         }
 
         return (bool) $deleted;
+    }
+    
+    /**
+     * Transaction callback for inserting current user data.
+     * 
+     * @access private
+     * @return bool
+     */
+    public function insert_or_update( Database $db ) : bool {
+        $table      = SMLISER_USER_OPTIONS_TABLE;
+        $user_id    = $this->user->get_id();
+
+        $name       = $this->current_data['name'];
+        $value      = $this->current_data['value'];
+
+        $this->reset_current_data();
+
+        $encoded    = Format::encode( $value );
+
+        $exists_sql = smliserQueryBuilder()
+            ->select( 'id' )->from( $table )
+            ->where( 'user_id', '=', $user_id )
+            ->where( 'option_key', '=', $name )
+            ->lock_for_update();
+
+        $id = $db->get_var( $exists_sql->build(), $exists_sql->get_bindings() );
+
+        if ( ! $id ) {
+            $inserted   = $db->insert( $table, [
+                'user_id'      => $user_id,
+                'option_key'   => $name,
+                'option_value' => $encoded,
+            ]);
+
+            if ( $inserted !== false ) {
+                $this->settings_cache[$name] = $value;
+                return true;
+            }
+
+            return false;
+        }
+
+        
+        $updated = $this->database->update(
+            $table,
+            [ 'option_value' => $encoded ],
+            [ 'id'  => $id ]
+        );
+
+        if ( $updated !== false ) {
+            $this->settings_cache[$name] = $value;
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function reset_current_data() : void {
+        $this->current_data = [];
     }
 }

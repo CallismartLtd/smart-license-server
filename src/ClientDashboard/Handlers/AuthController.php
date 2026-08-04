@@ -128,8 +128,9 @@ class AuthController {
         $principal = \identityProvider()->signup( $request );
         
         if ( $principal instanceof RequestException ) {
+            $status_code    = (int) ( $principal->get_error_data()['status'] ?? 400 );
             return static::error_response(
-                400,
+                $status_code,
                 $principal->get_error_code(),
                 $principal->get_error_message()
             );
@@ -275,7 +276,7 @@ class AuthController {
             );
         }
 
-        static::cache_delete( $cache_key );
+        // static::cache_delete( $cache_key );
         
         return static::success_response(
             200,

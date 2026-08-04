@@ -342,18 +342,28 @@ final class IdentityService extends AbstractIdentityProvider {
             if ( 'invalid_user' !== $login->get_error_code() ) {
                 return $login;
             }
-
+            
             $login = $this->smliser_user_logon( $email, $pwd, $remember );
 
             if ( $login instanceof RequestException ) {
+                
                 return $login;
             }
+        }
+
+        if ( \is_user_logged_in() && ! Guard::has_principal() ) {
+            $current_user   = \wp_get_current_user();
+            if ( ! User::email_exists( $current_user->user_email ) ) {
+                return new RequestException( 'authentication_error', 'Signup to access this portal.' );
+            }
+
+            return new RequestException( 'authentication_error', 'Please use the password reset option to recover your account.' );
         }
 
         $principal = Guard::get_principal();
 
         if ( ! $principal ) {
-            return new RequestException( 'authentication_error', 'Unable to set current user.' );
+            return new RequestException( 'authentication_error', 'Login failed, contact us if you need further assistance.' );
         }
 
         return $principal;
@@ -522,11 +532,17 @@ final class IdentityService extends AbstractIdentityProvider {
             ]);
 
             if ( $wp_user instanceof RequestException ) {
+                if ( \is_user_logged_in() ) {
+                    $wp_user    = \wp_get_current_user();
+                }
+            }
+
+            if ( $wp_user instanceof RequestException ) {
                 throw $wp_user;
             }
 
             if ( ! User::email_exists( $email ) ) {
-                $user = new User;
+                $user   = new User();
                 $password_hash = password_hash( $password_1, PASSWORD_ARGON2ID );
                 $user->set_display_name( $display_name ?: $wp_user->display_name )
                     ->set_password_hash( $password_hash )
@@ -568,7 +584,7 @@ final class IdentityService extends AbstractIdentityProvider {
             if ( ! Guard::has_principal() ) {
                 throw new RequestException(
                     'authentication_error',
-                    'Unable to set current user.'
+                    'Login failed, contact us if you need further assistance.'
                 );
             }
 
@@ -622,8 +638,15 @@ final class IdentityService extends AbstractIdentityProvider {
 
         $wp_user_id = $this->find_external_id( $this->issuer(), $user->get_id() );
 
+        if ( ! $wp_user_id && User::email_exists( $user->get_email() ) ) {
+            $wp_user    = \get_user_by( 'email', $user->get_email() );
+            $wp_user_id = $wp_user ? $wp_user->ID : null;
+        }
+
         if ( $wp_user_id ) {
             wp_set_password( $new_pwd, (int) $wp_user_id );
+
+            $this->sync_user( $wp_user_id, $user );
         }
 
         return true;
