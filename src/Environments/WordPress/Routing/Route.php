@@ -22,8 +22,7 @@ namespace SmartLicenseServer\Environments\WordPress\Routing;
  *     and query string are derived from a CompiledPattern.
  *   - Route::raw()       — an escape hatch, used by Router::raw(), for the
  *     rare rule the placeholder DSL genuinely cannot express (see Router::raw()
- *     docblock for when that's the case). The regex and query string are
- *     taken verbatim, exactly as if add_rewrite_rule() had been called directly.
+ *     docblock for when that's the case). 
  */
 final class Route {
 
@@ -98,7 +97,7 @@ final class Route {
 	}
 
 	/**
-	 * Builds the anchored regex and target query string for add_rewrite_rule().
+	 * Builds the anchored regex and target query string for wp's add_rewrite_rule().
 	 *
 	 * @return array{regex: string, query: string, priority: string}
 	 */

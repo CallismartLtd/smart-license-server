@@ -26,6 +26,7 @@ use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use WP_HTTP_Response;
 
 use function is_smliser_error, defined, add_action, add_filter, method_exists;
 
@@ -56,7 +57,7 @@ class RESTAPI implements RESTProviderInterface {
     /**
      * Class constructor
      *
-     * @param RESTInterface $rest
+     * @param RESTInterface $restAPIVersion
      */
     public function __construct( private RESTInterface $restAPIVersion ) {        
         add_filter( 'rest_request_before_callbacks', [$this, 'rest_request_before_callbacks'], -1, 3 );
@@ -108,6 +109,9 @@ class RESTAPI implements RESTProviderInterface {
      * 
      * This method runs early in the REST lifecycle via the `rest_exposed_cors_headers`
      * filter — after WP_REST_Request is instantiated.
+     * 
+     * @param string[] $result
+     * @param WP_REST_Request $wp_request
      */
     public function set_current_route( $result, $wp_request ) {
         $this->current_route = $wp_request->get_route();
@@ -191,7 +195,7 @@ class RESTAPI implements RESTProviderInterface {
      * @return mixed WP_Error object if HTTPS/TLS requirement is not met, mixed 
      * depending on what other callbacks might return.
      */
-    public function enforce_https( ...$params ) : mixed {
+    public function enforce_https( mixed ...$params ) : mixed {
         $total_args = count( $params );
 
         if ( $total_args < 3 ) {
@@ -212,6 +216,11 @@ class RESTAPI implements RESTProviderInterface {
             );
         }
 
+        /** 
+         * @var array|WP_Error $result
+         * @var WP_REST_Server $server
+         * @var WP_REST_Request $request 
+         */
         [$result, $server, $request] = $params;
 
         if ( ! $this->in_namespace( $request->get_route() ) ) {
@@ -313,7 +322,6 @@ class RESTAPI implements RESTProviderInterface {
      * compatibility in WordPress environment.
      * 
      * @param WP_REST_Request $wp_request
-     * @param callable $callback
      */
     public function convert_wp_request( WP_REST_Request $wp_request ) : Request {
         $headers    = $wp_request->get_headers();

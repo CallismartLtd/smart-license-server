@@ -14,10 +14,7 @@ use SmartLicenseServer\Environments\WordPress\Routing\Router;
 /**
  * Registers every SmartLicenseServer rewrite rule and query var.
  *
- * All route definitions live in define_routes(); route_register() and
- * query_vars() keep the same names and signatures the plugin's existing
- * `init` / `query_vars` hooks already call, so wiring this in is a drop-in
- * swap for whatever previously called add_rewrite_rule() by hand.
+ * All route definitions live in define_routes(); route_register().
  */
 class RoutesManager {
 
@@ -113,48 +110,16 @@ class RoutesManager {
 				$router->add( '{download_type}', 'smliser-downloads' );
 
 				// License document download rule (specific): numeric license ID.
-				$router->group( '{download_type}', function( Router $r ){
-					$r->add(
-						'{license_id:int}',
-						'smliser-downloads'
-					);
+				$router->add(
+					'{download_type}/license-document-{license_id:int}.txt',
+					'smliser-downloads'
+				);
 
-					$r->add(
-						'license-document-{license_id:int}.txt',
-						'smliser-downloads'
-					);					
-				});
-
-
-				// siteurl/$download_slug/{download_type}/app-slug|app-slug.zip
-				//
-				// Two explicit rules instead of one regex with an optional,
-				// uncaptured ".zip" suffix (which the placeholder DSL can't express
-				// — see Router::raw()'s docblock). Both constraints below matter:
-				//
-				//   - (?![0-9]+$)   excludes pure-numeric values, which would
-				//                   otherwise collide with {license_id:int} above —
-				//                   both are a bare second segment under {download_type},
-				//                   and [^/]+ matches digits just as happily as letters.
-				//   - (?!.*\.zip$)  excludes anything ending in ".zip", so this rule
-				//                   and the ".zip"-specific one below can never both
-				//                   match the same URL. Without it, both match
-				//                   "my-plugin.zip" and only WordPress' internal
-				//                   registration-order tie-break decides which wins —
-				//                   fragile, and not something to depend on.
-				$router->group(
-					'{download_type}',
-					function ( Router $r ): void {
-						$r->add(
-							'{app_slug_filename:path}',
-							'smliser-downloads'
-						);
-
-						$r->add(
-							'{app_slug_filename.ext:zip}',
-							'smliser-downloads'
-						);
-					}
+				// App download rule.
+				// siteurl/$download_slug/{download_type}/app-slug.zip
+				$router->add(
+					'{download_type}/{app_slug_filename.ext:zip}',
+					'smliser-downloads'
 				);
 
 				// Artifact download URI.
@@ -170,10 +135,6 @@ class RoutesManager {
 		| OAuth authorization endpoint
 		|--------------------------------------------------------------------
 		*/
-		// NOTE: the original rule referenced $matches[1] in a pattern with no
-		// capturing group ('^smliser-auth/v1/authorize$'), so smliser_auth would
-		// silently resolve empty. This fixes that by passing a fixed value
-		// through $extraVars instead of a nonexistent match.
 		$this->router->add(
 			'smliser-auth/v1/authorize',
 			'',

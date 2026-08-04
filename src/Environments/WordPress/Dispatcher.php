@@ -199,15 +199,19 @@ class Dispatcher implements RequestDispatcherInterface {
 
     public static function handle_public_package_download_request( Request $request ) : Response {
         $app_type           = $request->get( 'download_type' );
-        $app_slug_filename  = smliser_sanitize_path( $request->get( 'app_slug_filename', '', false ) );
 
-        if ( $app_slug_filename instanceof Exception ) {
+        if ( ! $request->hasValue( 'app_slug_filename' ) ) {
             smliser_abort_request(
-                $app_slug_filename->get_error_message(),
-                'Bad Request',
-                [ 'response' => 400 ]
+                sprintf(
+                    '%s file not found.',
+                    $app_type
+                ),
+                'File Not Found',
+                [ 'response' => 404 ]
             );
         }
+
+        $app_slug_filename  = FileSystemHelper::sanitize_filename( $request->get( 'app_slug_filename', '', false ) );
 
         $ext    = FileSystemHelper::get_extension( $app_slug_filename );
 

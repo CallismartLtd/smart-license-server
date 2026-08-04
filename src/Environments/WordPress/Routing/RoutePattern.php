@@ -98,7 +98,7 @@ final class RoutePattern {
 	public static function compile( string $pattern, array $customConstraints = array() ): CompiledPattern {
 		$pattern     = trim( $pattern, '/' );
 		$constraints = $customConstraints + self::DEFAULT_CONSTRAINTS;
-		$rawSegments = '' === $pattern ? array() : explode( '/', $pattern );
+		$rawSegments = self::splitSegments( $pattern );
 
 		$segments    = array();
 		$seenParams  = array();
@@ -131,6 +131,48 @@ final class RoutePattern {
 	}
 
 	/**
+	 * Splits a pattern on '/' the way a naive explode() can't safely do: a
+	 * constraint regex is free to contain a literal '/' itself — `[^/]+` is
+	 * the single most common constraint fragment there is — so splitting
+	 * on every '/' regardless of context fractures a placeholder token in
+	 * two the moment its constraint contains one. This tracks brace depth
+	 * and only treats '/' as a segment boundary while depth is zero.
+	 *
+	 * @return string[]
+	 */
+	private static function splitSegments( string $pattern ): array {
+		if ( '' === $pattern ) {
+			return [];
+		}
+
+		$segments = [];
+		$current  = '';
+		$depth    = 0;
+
+		for ( $i = 0, $len = strlen( $pattern ); $i < $len; $i++ ) {
+			$char = $pattern[ $i ];
+
+			if ( '{' === $char ) {
+				++$depth;
+			} elseif ( '}' === $char ) {
+				$depth = max( 0, $depth - 1 );
+			}
+
+			if ( '/' === $char && 0 === $depth ) {
+				$segments[] = $current;
+				$current    = '';
+				continue;
+			}
+
+			$current .= $char;
+		}
+
+		$segments[] = $current;
+
+		return $segments;
+	}
+
+	/**
 	 * Compiles a single "/"-delimited segment into its regex fragment.
 	 *
 	 * @param array<string,string> $constraints
@@ -145,62 +187,76 @@ final class RoutePattern {
 			);
 		}
 
-		$matchCount = preg_match_all( self::PLACEHOLDER_REGEX, $rawSegment, $matches, PREG_SET_ORDER );
+		$matchCount = preg_match_all( self::PLACEHOLDER_REGEX, $rawSegment, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
 
 		if ( 0 === $matchCount ) {
 			// Pure literal segment — no placeholders, nothing to capture.
 			return new RouteSegment( preg_quote( $rawSegment, '#' ), false, array() );
 		}
 
-		$isSoleToken = 1 === $matchCount && $matches[0][0] === $rawSegment;
+		$isSoleToken = 1 === $matchCount && $matches[0][0][0] === $rawSegment;
 		$optional    = false;
-		$paramNames  = array();
+		$paramNames  = [];
+		$regex       = '';
+		$cursor      = 0;
 
-		$regex = preg_replace_callback(
-			self::PLACEHOLDER_REGEX,
-			function ( array $match ) use ( $constraints, $rawSegment, $isSoleToken, &$optional, &$paramNames, &$seenParams ) {
-				$name       = $match[1];
-				$isExt      = '' !== ( $match[2] ?? '' );
-				$isOptional = '' !== ( $match[3] ?? '' );
-				$constraint = ( $match[4] ?? '' );
-				$constraint = '' === $constraint ? null : $constraint;
+		// Walked manually (rather than preg_replace_callback over the whole
+		// segment) so literal text surrounding a placeholder — e.g. the
+		// "license-document-" and ".txt" around "{license_id:int}" — gets
+		// preg_quote()'d instead of being passed through unescaped. A bare
+		// preg_replace_callback() only ever touches its own matches; every
+		// other character in the segment reaches the compiled regex exactly
+		// as written, so a literal "." there means "any character," not "a
+		// dot" — silently widening the match.
+		foreach ( $matches as $match ) {
+			[ $fullMatchText, $fullOffset ] = $match[0];
 
-				self::assertValidParamName( $name, $seenParams );
+			$literalBefore = substr( $rawSegment, $cursor, $fullOffset - $cursor );
+			$regex        .= preg_quote( $literalBefore, '#' );
 
-				if ( $isOptional && ! $isSoleToken ) {
-					throw new InvalidRouteException(
-						sprintf(
-							'Optional parameter "%s" must occupy its entire path segment (found alongside other content in "%s").',
-							$name,
-							$rawSegment
-						)
-					);
-				}
+			$name       = $match[1][0];
+			$isExt      = isset( $match[2] ) && '' !== $match[2][0];
+			$isOptional = isset( $match[3] ) && '' !== $match[3][0];
+			$constraint = isset( $match[4] ) && '' !== $match[4][0] ? $match[4][0] : null;
 
-				$optional = $optional || $isOptional;
+			self::assertValidParamName( $name, $seenParams );
 
-				if ( $isExt ) {
-					$extRegex = null !== $constraint ? self::resolveConstraint( $constraint, $constraints, $name ) : '[a-zA-Z0-9]+';
+			if ( $isOptional && ! $isSoleToken ) {
+				throw new InvalidRouteException(
+					sprintf(
+						'Optional parameter "%s" must occupy its entire path segment (found alongside other content in "%s").',
+						$name,
+						$rawSegment
+					)
+				);
+			}
 
-					$paramNames[] = $name;
-					$paramNames[] = $name . '_ext';
-					$seenParams[] = $name;
-					$seenParams[] = $name . '_ext';
+			$optional = $optional || $isOptional;
 
-					// Non-greedy filename so the final dot before the extension binds correctly
-					// even when the filename itself legitimately contains dots.
-					return '([^/]+?)\.(' . $extRegex . ')';
-				}
+			if ( $isExt ) {
+				$extRegex = null !== $constraint ? self::resolveConstraint( $constraint, $constraints, $name ) : '[a-zA-Z0-9]+';
 
+				$paramNames[] = $name;
+				$paramNames[] = $name . '_ext';
+				$seenParams[] = $name;
+				$seenParams[] = $name . '_ext';
+
+				// Non-greedy filename so the final dot before the extension binds correctly
+				// even when the filename itself legitimately contains dots.
+				$regex .= '([^/]+?)\.(' . $extRegex . ')';
+			} else {
 				$captureRegex = null !== $constraint ? self::resolveConstraint( $constraint, $constraints, $name ) : '[^/]+';
 
 				$paramNames[] = $name;
 				$seenParams[] = $name;
 
-				return '(' . $captureRegex . ')';
-			},
-			$rawSegment
-		);
+				$regex .= '(' . $captureRegex . ')';
+			}
+
+			$cursor = $fullOffset + strlen( $fullMatchText );
+		}
+
+		$regex .= preg_quote( substr( $rawSegment, $cursor ), '#' );
 
 		return new RouteSegment( $regex, $optional, $paramNames );
 	}
