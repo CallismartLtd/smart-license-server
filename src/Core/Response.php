@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Core;
 use SmartLicenseServer\Exceptions\Exception;
 use Callismart\Http\HttpStatusAwareTrait;
 
-use function smliser_safe_json_encode, defined, is_array, array_push, preg_replace, sprintf;
+use function is_array, array_push, preg_replace, sprintf;
 
 /**
  * The core HTTP response class used to deliver responses to client.
@@ -82,9 +82,9 @@ class Response {
 	/**
 	 * Error instance
 	 * 
-	 * @param Exception $error
+	 * @var Exception $error
 	 */
-	protected $error;
+	protected  $error;
 
 	/*--------------------------------------------------------------
 	# Constructor
@@ -508,7 +508,7 @@ class Response {
      *
      * Useful when converting external errors (e.g., WP_Error) into the response's error state.
      *
-     * @param SmartLicenseServer\Exception $exception The new exception object.
+     * @param Exception $exception The new exception object.
      * @return static
      */
     public function set_exception( Exception $exception ): static {
@@ -561,7 +561,6 @@ class Response {
 	 * @return bool
 	 */
 	public function ok() : bool {
-
 		return ! $this->has_errors() && ( $this->status_code >= 200 && $this->status_code < 300 );
 	}
 

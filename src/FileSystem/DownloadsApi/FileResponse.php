@@ -14,7 +14,6 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\FileSystem\Repository;
-use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 
 /**
