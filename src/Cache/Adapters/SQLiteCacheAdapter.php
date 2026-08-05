@@ -761,7 +761,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             $this->db->exec( 'PRAGMA journal_mode = WAL;' );
 
         } catch ( Exception $e ) {
-            \trigger_error( $e->getMessage() );
+            \trigger_error( $e->getMessage(), \E_USER_NOTICE );
             return;
         }
 
