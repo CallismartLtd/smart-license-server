@@ -217,4 +217,7 @@ if ( ! isset( $app ) ) {
             </div><!-- /.app-asset-uploader-body -->
         </div><!-- /.smliser-admin-modal_content -->
     </div><!-- /.smliser-admin-modal -->
+    <script>
+        document.querySelector( 'select#app_status option[value="trash"]' ).disabled = true;
+    </script>
 <?php endif;

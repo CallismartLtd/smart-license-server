@@ -438,8 +438,6 @@ class RepositoryPage implements AdminPageInterface {
             ];
         }
 
-        $statuses   = array_filter( AbstractHostedApp::STATUSES, fn( $v ) => $v !== AbstractHostedApp::STATUS_TRASH );
-
         return array(
             array(
                 'label' => __( 'Name', 'smliser' ),
@@ -472,7 +470,7 @@ class RepositoryPage implements AdminPageInterface {
                 )
             ),
             array(
-                'label' => __( 'Author Name'),
+                'label' => __( 'Author Name', 'smliser' ),
                 'help'  => sprintf( 'Enter the name of the %s author.', $type ),
                 'input' => array(
                     'type'  => 'text',
@@ -526,7 +524,7 @@ class RepositoryPage implements AdminPageInterface {
                         'autocomplete'  => 'off',
                         'spellcheck'    => 'off'
                     ),
-                    'options'   => array_map( 'ucfirst', $statuses )
+                    'options'   => array_map( 'ucfirst', AbstractHostedApp::STATUSES )
                 )
             ),
         );

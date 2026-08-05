@@ -40,16 +40,13 @@ class SendAppUpdatedEmailJob implements JobHandlerInterface {
     }
 
     /**
-     * @param array $payload {
-     *     @type string $app_type App type e.g. 'plugin'.
-     *     @type string $app_slug App slug.
-     * }
+     * @param array{app_type?: string, app_slug?: string, old_version?: string} $payload
      * @return array{sent: int, skipped: int}
      */
     public function handle( array $payload = [] ): mixed {
-        $app_type       = (string) $payload['app_type'] ?? '';
-        $app_slug       = (string) $payload['app_slug'] ?? '';
-        $old_version    = (string) $payload['old_version'] ?? '';
+        $app_type       = (string) ( $payload['app_type'] ?? '' );
+        $app_slug       = (string) ( $payload['app_slug'] ?? '' );
+        $old_version    = (string) ( $payload['old_version'] ?? '' );
 
         $sent    = 0;
         $skipped = 0;

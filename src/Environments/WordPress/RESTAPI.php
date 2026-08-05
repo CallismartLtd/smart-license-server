@@ -9,7 +9,6 @@
 namespace SmartLicenseServer\Environments\WordPress;
 
 use ArgumentCountError;
-use SmartLicenseServer\Core\MultipartRequestParser;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
@@ -28,7 +27,7 @@ use WP_REST_Response;
 use WP_REST_Server;
 use WP_HTTP_Response;
 
-use function is_smliser_error, defined, add_action, add_filter, method_exists;
+use function add_action, add_filter, method_exists;
 
 class RESTAPI implements RESTProviderInterface {
     use SanitizeAwareTrait;
@@ -289,12 +288,9 @@ class RESTAPI implements RESTProviderInterface {
      * @param WP_REST_Request $wp_request
      */
     public function convert_wp_request( WP_REST_Request $wp_request ) : Request {
-        $headers    = $wp_request->get_headers();
-        $params     = $wp_request->get_params();
-
         return $this->get_request()
-            ->merge( $params )
-        ->set_headers( $headers );    
+            ->merge( $wp_request->get_params() )
+            ->set_headers( $wp_request->get_headers() );    
     }
 
     /**
