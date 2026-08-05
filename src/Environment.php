@@ -433,7 +433,7 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         if ( ! isset( $this->request ) ) {
-            $this->request = new Request;
+            $this->request = Request::createFromGlobals();
         }
 
         if ( ! isset( $this->job_queue ) || ! isset( $this->queue_worker ) ) {

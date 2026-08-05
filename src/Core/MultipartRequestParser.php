@@ -87,20 +87,6 @@ class MultipartRequestParser {
     private bool $parsed = false;
 
     /**
-     * Request method.
-     *
-     * @var string
-     */
-    private string $method;
-
-    /**
-     * Content-Type header.
-     *
-     * @var string
-     */
-    private string $content_type;
-
-    /**
      * PHP.INI limits.
      *
      * @var array
@@ -131,13 +117,11 @@ class MultipartRequestParser {
     /**
      * Constructor.
      *
-     * @param string|null $method       HTTP method
-     * @param string|null $content_type Content-Type header
+     * @param string $method       HTTP method
+     * @param string $content_type Content-Type header
      */
-    public function __construct( ?string $method = null, ?string $content_type = null ) {
-        $this->method       = $method ?? ( $_SERVER['REQUEST_METHOD'] ?? 'GET' );
-        $this->content_type = $content_type ?? ( $_SERVER['CONTENT_TYPE'] ?? '' );
-        $this->limits       = $this->parse_php_ini_limits();
+    public function __construct( protected string $method, protected string $content_type, protected bool $debug = false ) {
+        $this->limits   = $this->parse_php_ini_limits();
 
         register_shutdown_function( [ $this, 'cleanup' ] );
     }
@@ -192,13 +176,13 @@ class MultipartRequestParser {
      *
      * @return bool
      */
-    public function should_parse(): bool {
+    public function should_parse() {
         if ( php_sapi_name() === 'cli' ) {
             return false;
         }
 
         if ( ! in_array( $this->method, self::SUPPORTED_METHODS, true ) ) {
-            return false;
+            return $this->method;
         }
 
         if ( stripos( $this->content_type, 'multipart/form-data' ) === false ) {
@@ -437,8 +421,7 @@ class MultipartRequestParser {
         }
 
         try {
-            $debug = defined( 'SMLISER_DEBUG_MULTIPART' ) && constant( 'SMLISER_DEBUG_MULTIPART' );
-            $parser = new MultipartStreamParser( $stream, $boundary, $this->limits, $this, $debug );
+            $parser = new MultipartStreamParser( $stream, $boundary, $this->limits, $this, $this->debug );
             $parser->parse();
 
             $this->post_data = $parser->get_post_data();
@@ -448,7 +431,7 @@ class MultipartRequestParser {
             $this->files_count = $parser->get_files_count();
 
             // Store debug log if debugging
-            if ( $debug ) {
+            if ( $this->debug ) {
                 $this->debug_log = $parser->get_debug_log();
             }
 
@@ -742,7 +725,7 @@ class MultipartStreamParser {
         $this->boundary_close  = "--{$this->boundary}--";
         $this->limits          = $limits;
         $this->parent          = $parent;
-        $this->debug           = $debug || defined( 'SMLISER_DEBUG_MULTIPART' );
+        $this->debug           = $debug;
     }
 
     /**
@@ -766,15 +749,14 @@ class MultipartStreamParser {
 
         $this->debug_log[] = $entry;
 
-        if ( defined( 'SMLISER_DEBUG_MULTIPART' ) && constant( 'SMLISER_DEBUG_MULTIPART' ) ) {
-            error_log( sprintf(
-                '[MultipartParser] [%s] %s (buffer: %d, read: %d)',
-                $this->get_state_name(),
-                $message,
-                strlen( $this->buffer ),
-                $this->bytes_read
-            ) );
-        }
+        error_log( sprintf(
+            '[MultipartParser] [%s] %s (buffer: %d, read: %d)',
+            $this->get_state_name(),
+            $message,
+            strlen( $this->buffer ),
+            $this->bytes_read
+        ) );
+        
     }
 
     /**

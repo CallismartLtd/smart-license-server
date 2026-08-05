@@ -45,6 +45,7 @@ final class Route {
 		public readonly RoutePriority $priority,
 		public readonly bool $optionalTrailingSlash,
 		public readonly ?CompiledPattern $compiled,
+		public readonly mixed $handler = null,
 		private readonly ?string $rawRegex = null,
 		private readonly ?string $rawQuery = null,
 		private readonly array $rawQueryVarNames = array()
@@ -60,17 +61,18 @@ final class Route {
 		array $extraVars,
 		RoutePriority $priority,
 		bool $optionalTrailingSlash,
-		CompiledPattern $compiled
+		CompiledPattern $compiled,
+		mixed $handler = null
 	): self {
-		return new self( $pattern, $pagename, $extraVars, $priority, $optionalTrailingSlash, $compiled );
+		return new self( $pattern, $pagename, $extraVars, $priority, $optionalTrailingSlash, $compiled, $handler );
 	}
 
 	/**
 	 * @param string[] $queryVarNames Query var names this raw rule populates, so
 	 *                                query_vars() still knows to register them.
 	 */
-	public static function raw( string $regex, string $query, RoutePriority $priority, array $queryVarNames = array() ): self {
-		return new self( null, '', array(), $priority, false, null, $regex, $query, $queryVarNames );
+	public static function raw( string $regex, string $query, RoutePriority $priority, array $queryVarNames = array(), mixed $handler = null ): self {
+		return new self( null, '', array(), $priority, false, null, $handler, $regex, $query, $queryVarNames );
 	}
 
 	/**
@@ -150,5 +152,39 @@ final class Route {
 		}
 
 		return array_merge( $this->compiled->paramNames, array_keys( $this->extraVars ) );
+	}
+
+	/**
+	 * Tests a request path against this route's own compiled regex — the same
+	 * one used for add_rewrite_rule() — and returns the named params if it
+	 * matches. This is what lets Router::match() dispatch directly by pattern
+	 * instead of a handler having to re-inspect query vars at runtime to
+	 * figure out which of several routes sharing one pagename actually fired.
+	 *
+	 * Not supported on raw() routes (no CompiledPattern to derive named
+	 * groups from) — always returns null for those.
+	 *
+	 * @return array<string,string>|null Named params, or null if this route doesn't match.
+	 */
+	public function match( string $path ): ?array {
+		if ( null === $this->compiled ) {
+			return null;
+		}
+
+		$regex = $this->compiled->namedRegex() . ( $this->optionalTrailingSlash ? '/?' : '' );
+
+		if ( ! preg_match( '#^' . $regex . '$#', trim( $path, '/' ), $matches ) ) {
+			return null;
+		}
+
+		$params = array();
+
+		foreach ( $this->compiled->paramNames as $name ) {
+			if ( isset( $matches[ $name ] ) ) {
+				$params[ $name ] = $matches[ $name ];
+			}
+		}
+
+		return $params;
 	}
 }

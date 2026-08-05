@@ -26,14 +26,14 @@ class RoutesManager {
 	}
 
 	/**
-	 * Registers all rewrite rules with WordPress. Hook to `init`.
+	 * Registers all rewrite rules with WordPress. Hooks to `init` action.
 	 */
 	public function route_register(): void {
 		$this->router->register();
 	}
 
 	/**
-	 * Registers all query vars this plugin uses. Hook to the `query_vars` filter.
+	 * Registers all query vars this plugin uses. Hooks to the `query_vars` filter.
 	 *
 	 * @param string[] $vars
 	 * @return string[]
@@ -70,8 +70,9 @@ class RoutesManager {
 
 				// siteurl/repository/{app_type}/{app_slug}/assets/{filename}
 				$router->add(
-					'{app_type}/{app_slug}/assets/{asset_name:.+}',
-					'smliser-repository-assets'
+					pattern: '{app_type}/{app_slug}/assets/{asset_name:.+}',
+					pagename: 'smliser-repository-assets',
+					handler: [Dispatcher::class, 'handle_app_asset_request']
 				);
 			}
 		);
@@ -84,8 +85,9 @@ class RoutesManager {
 
 		// siteurl/smliser-uploads/{path_to_file}
 		$this->router->add(
-			'smliser-uploads/{smliser_upload_path:path}',
-			'smliser-uploads'
+			pattern: 'smliser-uploads/{smliser_upload_path:path}',
+			pagename: 'smliser-uploads-directory',
+			handler: [Dispatcher::class, 'handle_uploads_dir_request']
 		);
 
 		/*
@@ -93,7 +95,11 @@ class RoutesManager {
 		| Client dashboard
 		|------------------
 		*/
-		$this->router->add( $dashboard_slug, 'smliser-client-dashboard' );
+		$this->router->add(
+			pattern: $dashboard_slug,
+			pagename: 'smliser-client-dashboard',
+			handler: [ Dispatcher::class, 'render_client_dashboard' ]	
+		);
 
 		/*
 		|-------------------------
@@ -103,29 +109,28 @@ class RoutesManager {
 		$this->router->group(
 			$download_slug,
 			function ( Router $router ): void {
-				// The base downloads page.
-				$router->add( '', 'smliser-downloads' );
-
-				// Downloads category page.
-				$router->add( '{download_type}', 'smliser-downloads' );
-
+				
 				// License document download rule (specific): numeric license ID.
+				// siteurl/$download_slug/document/license-document-1.txt
 				$router->add(
-					'{download_type}/license-document-{license_id:int}.txt',
-					'smliser-downloads'
+					pattern: 'document/license-document-{license_id:int}.txt',
+					pagename: 'smliser-downloads',
+					handler: [Dispatcher::class, 'handle_license_document_download_request']
 				);
 
 				// App download rule.
 				// siteurl/$download_slug/{download_type}/app-slug.zip
 				$router->add(
-					'{download_type}/{app_slug_filename.ext:zip}',
-					'smliser-downloads'
+					pattern: '{download_type}/{app_slug_filename.ext:zip}',
+					pagename: 'smliser-downloads',
+					handler: [Dispatcher::class, 'handle_public_package_download_request']
 				);
 
 				// Artifact download URI.
 				$router->add(
-					'{app_type}/{app_slug}/{download_type}/{filename:.+}',
-					'smliser-downloads'
+					pattern: '{app_type}/{app_slug}/{download_type}/{filename:.+}',
+					pagename: 'smliser-downloads',
+					handler: [Dispatcher::class, 'handle_public_artifact_download_request']
 				);
 			}
 		);
@@ -149,5 +154,14 @@ class RoutesManager {
 	 */
 	public function getCompiledRoutes() {
 		return $this->router->getCompiledRules();
+	}
+
+	/**
+	 * Get the underlying Router instance.
+	 * 
+	 * @return Router
+	 */
+	public function get_router(): Router {
+		return $this->router;
 	}
 }

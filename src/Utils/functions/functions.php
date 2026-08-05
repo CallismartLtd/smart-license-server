@@ -83,6 +83,7 @@ function smliser_get_client_ip() : string {
 
         // In case of multiple IPs, we take the first one (usually the client IP).
         $ip_list = explode( ',', Sanitizer::sanitize_text( unslash( $_SERVER[ $key ] ) ) );
+        
         foreach ( $ip_list as $ip ) {
             $ip = trim( $ip );
             // Validate both IPv4 and IPv6 addresses.
@@ -250,8 +251,13 @@ function smliser_parse_user_agent( $user_agent_string ) {
  * @param bool $raw Whether to get the raw user agent string.
  * @return string
  */
-function smliser_get_user_agent( bool $raw = false ) {
-    $user_agent_string = smliser_get_param( 'HTTP_USER_AGENT', '', $_SERVER );
+function smliser_get_user_agent( bool $raw = false ): string {
+    $user_agent_string = smliser_request()->userAgent();
+    
+    if ( ! $user_agent_string ) {
+        return '';
+    }
+
     if ( $raw ) {
         return $user_agent_string;
     }

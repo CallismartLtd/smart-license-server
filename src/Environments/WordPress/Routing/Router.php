@@ -9,8 +9,12 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
 
-use SmartLicenseServer\Routing\InvalidRouteException;
-use SmartLicenseServer\Routing\RoutePattern;
+use SmartLicenseServer\Routing\{
+	RoutePattern, InvalidRouteException
+};
+use SmartLicenseServer\Core\{
+	Request, Response
+};
 
 /**
  * Fluent façade over WordPress' rewrite API.
@@ -120,6 +124,10 @@ final class Router {
 	 * @param string               $priority              'top' or 'bottom'.
 	 * @param bool                 $optionalTrailingSlash Whether the URL may end in an optional '/'.
 	 *                                                     Default true; pass false for an exact match.
+	 * @param callable( Request $request ): Response                $handler               Optional handler for this specific route —
+	 *                                                     see Router::match()'s docblock for why this
+	 *                                                     matters even though pagename still does the
+	 *                                                     actual WordPress-level rewrite-rule registration.
 	 * @return Route The registered route — chain ->name() on it if you'll need Router::url() later.
 	 * @throws InvalidRouteException On a malformed pattern or invariant violation.
 	 */
@@ -128,7 +136,8 @@ final class Router {
 		string $pagename = '',
 		array $extraVars = array(),
 		string $priority = 'top',
-		bool $optionalTrailingSlash = true
+		bool $optionalTrailingSlash = true,
+		?callable $handler = null
 	): Route {
 		$this->assertNoReservedCollision( $extraVars );
 
@@ -141,12 +150,84 @@ final class Router {
 			$extraVars,
 			RoutePriority::fromString( $priority ),
 			$optionalTrailingSlash,
-			$compiled
+			$compiled,
+			$handler
 		);
 
 		$this->routes->add( $route );
 
 		return $route;
+	}
+
+	/**
+	 * Resolves a live request path directly to whichever registered route
+	 * actually matches it, with named params — without going through
+	 * WordPress' query vars at all.
+	 *
+	 * Multiple routes commonly share one `pagename` on purpose (several URL
+	 * shapes rendering "the same page," refined further by which query vars
+	 * happen to be present) — that's a legitimate WordPress convention and
+	 * this doesn't change it. But when routes registered under one pagename
+	 * are actually *distinct cases* — a license-document download, a zip
+	 * download, an artifact download — the pagename alone can't tell them
+	 * apart, so something ends up re-inspecting query vars at runtime to
+	 * figure out which case fired. match() skips that: it re-runs each
+	 * route's own compiled regex — the same one used to build its rewrite
+	 * rule — directly against the path, so the route that matches IS the
+	 * answer to "which case is this," with its $handler (if one was given
+	 * to add()) and named params returned together. No downstream
+	 * re-inspection needed for routes that were given a distinct handler.
+	 *
+	 * SAFETY: do not call this as your first/only check for "does this
+	 * request belong to me." It re-parses the raw path against whatever
+	 * patterns *this PHP request* currently has compiled — not against
+	 * WordPress' actual live rewrite rules, which can legitimately lag
+	 * behind (stale rewrite cache after a prefix change, permalinks not yet
+	 * flushed, another plugin's rule winning first). get_query_var('pagename')
+	 * reflects what WordPress itself actually resolved with its actual
+	 * active rules, inheriting all of WordPress' own collision handling
+	 * against real pages/posts; match() has none of that. Always confirm
+	 * `pagename` first — see matchForPagename(), which enforces this by
+	 * construction rather than relying on the caller to remember it.
+	 *
+	 * @return array{route: Route, handler: callable( Request $request ): Response, params: array<string,string>}|null
+	 */
+	public function match( string $path ): ?array {
+		foreach ( $this->routes->all() as $route ) {
+			$params = $route->match( $path );
+
+			if ( null !== $params ) {
+				return array( 'route' => $route, 'handler' => $route->handler, 'params' => $params );
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The safe way to call match(): only ever searches routes registered
+	 * under the given pagename, so it can only be used to disambiguate
+	 * *among* routes WordPress already agreed belong to you — never to
+	 * decide, on its own, whether a request belongs to you at all. Call
+	 * this only after confirming get_query_var('pagename') already equals
+	 * $pagename; see match()'s docblock for why that order matters.
+	 *
+	 * @return array{route: Route, handler: mixed, params: array<string,string>}|null
+	 */
+	public function matchForPagename( string $pagename, string $path ): ?array {
+		foreach ( $this->routes->all() as $route ) {
+			if ( $route->pagename !== $pagename ) {
+				continue;
+			}
+
+			$params = $route->match( $path );
+
+			if ( null !== $params ) {
+				return array( 'route' => $route, 'handler' => $route->handler, 'params' => $params );
+			}
+		}
+
+		return null;
 	}
 
 	/**

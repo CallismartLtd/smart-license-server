@@ -10,81 +10,129 @@ namespace SmartLicenseServer\Core;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
- * The classical representation a request object that is understood by all core models.
+ * The classical representation of a request object that is understood by all core models.
  * 
  * An object of this class should be prepared by the environment adapter and passed to the core controller.
  */
 class Request {
     use SanitizeAwareTrait;
-    
+
     /**
      * HTTP DELETE method.
-     *
+     * 
      * @var string
      */
-    const DELETE = 'DELETE';
+    public const DELETE = 'DELETE';
 
     /**
      * HTTP GET method.
-     *
+     * 
      * @var string
      */
-    const GET = 'GET';
+    public const GET = 'GET';
 
     /**
      * HTTP HEAD method.
-     *
+     * 
      * @var string
      */
-    const HEAD = 'HEAD';
+    public const HEAD = 'HEAD';
 
     /**
      * HTTP OPTIONS method.
-     *
+     * 
      * @var string
      */
-    const OPTIONS = 'OPTIONS';
+    public const OPTIONS = 'OPTIONS';
 
     /**
      * HTTP PATCH method.
-     *
+     * 
      * @var string
      */
-    const PATCH = 'PATCH';
+    public const PATCH = 'PATCH';
 
     /**
      * HTTP POST method.
-     *
+     * 
      * @var string
      */
-    const POST = 'POST';
+    public const POST = 'POST';
 
     /**
      * HTTP PUT method.
-     *
+     * 
      * @var string
      */
-    const PUT = 'PUT';
-
+    public const PUT = 'PUT';
 
     /**
      * Internal storage for all parameters.
      * 
-     * Please note: Both Json, GET and POST data are merged by default.
-     *
+     * Both JSON, GET, and POST data are merged by default for backward compatibility.
+     * 
      * @var array
      */
     private array $params = [];
 
     /**
-     * Stores sanitized parameters
+     * Dedicated storage for query parameters ($_GET).
      * 
      * @var array
      */
-    private $sanitized_params   = [];
+    protected array $query = [];
 
     /**
-     * Holds the files uploaded
+     * Dedicated storage for POST form parameters ($_POST).
+     * 
+     * @var array
+     */
+    protected array $post = [];
+
+    /**
+     * Dedicated storage for parsed JSON payload.
+     * 
+     * @var array
+     */
+    protected array $json = [];
+
+    /**
+     * Dedicated storage for cookie parameters ($_COOKIE).
+     * 
+     * @var array
+     */
+    protected array $cookies = [];
+
+    /**
+     * Dedicated storage for server environment variables ($_SERVER).
+     * 
+     * @var array
+     */
+    protected array $server = [];
+
+    /**
+     * Flag to track if raw JSON payload has been evaluated and cached.
+     * 
+     * @var bool
+     */
+    private bool $json_parsed = false;
+
+    /**
+     * Raw HTTP request body contents cache.
+     * 
+     * @var string|null
+     */
+    private ?string $raw_content = null;
+
+    /**
+     * Stores sanitized parameters.
+     * 
+     * @var array
+     */
+    private array $sanitized_params = [];
+
+    /**
+     * Holds the files uploaded.
      * 
      * @var array<string, UploadedFileCollection>
      */
@@ -107,14 +155,14 @@ class Request {
     private array $original_header_names = [];
 
     /**
-     * The HTTP method (GET, POST, PUT, DELETE, etc.)
+     * The HTTP method (GET, POST, PUT, DELETE, etc.).
      * 
      * @var string
      */
     private string $method;
 
     /**
-     * The request URI
+     * The request URI.
      * 
      * @var string
      */
@@ -123,60 +171,183 @@ class Request {
     /**
      * Tracks when the request object was instantiated.
      * 
-     * @var float $startTime
+     * @var float
      */
     private float $startTime = 0.0;
 
     /**
+     * Flag to track multipart request parsing.
+     * 
+     * @var bool
+     */
+    protected bool $parsed_multipart = false;
+
+    /**
+     * Application debug state.
+     * 
+     * @var bool
+     */
+    protected bool $debug = APP_DEBUG;
+
+    /**
      * Constructor.
      *
-     * @param array  $params  The request params, defaults to $_REQUEST array.
-     * @param array  $headers The request headers, defaults to all headers.
+     * @param array  $params  The request params, defaults to merged superglobals.
+     * @param array  $headers The request headers, defaults to all parsed headers.
      * @param string $method  The HTTP method, defaults to $_SERVER['REQUEST_METHOD'].
      * @param string $uri     The request URI, defaults to $_SERVER['REQUEST_URI'].
      */
     public function __construct( array $params = [], array $headers = [], string $method = '', string $uri = '' ) {
-        $this->startTime    = microtime( true );
+        $this->startTime = microtime( true );
+        $this->parse_server();
+        $this->parse_cookies();
 
-        if ( class_exists( MultipartRequestParser::class, true ) ) {
-            $parser = new MultipartRequestParser();
+        $this->method = ! empty( $method ) ? strtoupper( $method ) : ( $this->server['REQUEST_METHOD'] ?? 'GET' );
+        $this->uri    = ! empty( $uri ) ? $uri : ( $this->server['REQUEST_URI'] ?? '/' );
+        
+        $this->set_headers( empty( $headers ) ? $this->parse_default_headers() : $headers );
+
+        if ( ! $this->parsed_multipart ) {
+            $this->parsed_multipart = true;
+
+            $parser = new MultipartRequestParser( $this->method, $this->contentType(), $this->debug );
             try {
                 $parser->populate_globals();
-            } catch( \Exception $e ) {}
+            } catch ( \Exception ) {}
         }
 
-        $this->method   = ! empty( $method ) ? strtoupper( $method ) : ( $_SERVER['REQUEST_METHOD'] ?? 'GET' );
-        $this->uri      = ! empty( $uri ) ? $uri : ( $_SERVER['REQUEST_URI'] ?? '/' );
-        
-        $raw_headers    = empty( $headers ) ? $this->parse_default_headers() : $headers;
-        $this->set_headers( $raw_headers );
+        $this->parse_query();
+        $this->parse_post();
 
-        $params = empty( $params ) ? $this->parse_params() : $params;
-        $this->set_params( $params );
-        
+        if ( ! empty( $params ) ) {
+            $this->set_params( $params );
+        } else {
+            $this->build_merged_params();
+        }
+
         $this->parse_uploaded_files();
     }
 
     /**
+     * Create request instance using global environment arrays.
+     *
+     * @return static
+     */
+    public static function createFromGlobals(): static {
+        return new static();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DEDICATED PARAMETER BAG APIS
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Access query ($_GET) parameters.
+     *
+     * @param string|null $key     Parameter key or null to get all query parameters.
+     * @param mixed       $default Default value if parameter key is missing.
+     * @return mixed
+     */
+    public function query( ?string $key = null, mixed $default = null ): mixed {
+        if ( null === $key ) {
+            return $this->query;
+        }
+
+        return $this->query[ $key ] ?? $default;
+    }
+
+    /**
+     * Access form post ($_POST) parameters.
+     *
+     * @param string|null $key     Parameter key or null to get all post parameters.
+     * @param mixed       $default Default value if parameter key is missing.
+     * @return mixed
+     */
+    public function post( ?string $key = null, mixed $default = null ): mixed {
+        if ( null === $key ) {
+            return $this->post;
+        }
+
+        return $this->post[ $key ] ?? $default;
+    }
+
+    /**
+     * Access decoded JSON payload parameters.
+     *
+     * @param string|null $key     Parameter key or null to get all decoded JSON.
+     * @param mixed       $default Default value if parameter key is missing.
+     * @return mixed
+     */
+    public function json( ?string $key = null, mixed $default = null ): mixed {
+        if ( ! $this->json_parsed ) {
+            $this->parse_json();
+        }
+
+        if ( null === $key ) {
+            return $this->json;
+        }
+
+        return $this->json[ $key ] ?? $default;
+    }
+
+    /**
+     * Access cookie ($_COOKIE) parameters.
+     *
+     * @param string|null $key     Parameter key or null to get all cookies.
+     * @param mixed       $default Default value if parameter key is missing.
+     * @return mixed
+     */
+    public function cookie( ?string $key = null, mixed $default = null ): mixed {
+        if ( null === $key ) {
+            return $this->cookies;
+        }
+
+        return $this->cookies[ $key ] ?? $default;
+    }
+
+    /**
+     * Access server ($_SERVER) variables.
+     *
+     * @param string|null $key     Variable key or null to get all server variables.
+     * @param mixed       $default Default value if variable key is missing.
+     * @return mixed
+     */
+    public function server( ?string $key = null, mixed $default = null ): mixed {
+        if ( null === $key ) {
+            return $this->server;
+        }
+
+        return $this->server[ strtoupper( $key ) ] ?? $default;
+    }
+
+    /*
+    |----------------------------------
+    | LEGACY MERGED PARAMETER API
+    |----------------------------------
+    */
+
+    /**
      * Set a parameter value.
      *
-     * @param string $parameter
-     * @param mixed  $value
-     * @return static For method chaining
+     * @param string $parameter Parameter name.
+     * @param mixed  $value     Parameter value.
+     * @return static For method chaining.
      */
-    public function set( string $parameter, $value ): static {
+    public function set( string $parameter, mixed $value ): static {
         $this->params[ $parameter ] = $value;
-        $this->sanitized_params[ $parameter ] = null;
+        unset( $this->sanitized_params[ $parameter ] );
         return $this;
     }
 
     /**
-     * Set multiple parameters
+     * Set multiple parameters.
      * 
-     * @param array $parameters
+     * @param array $parameters Key-value parameter pairs.
      * @return static
      */
-    public function set_params( array $parameters ) : static {
+    public function set_params( array $parameters ): static {
         foreach ( $parameters as $key => $value ) {
             $this->set( $key, $value );
         }
@@ -185,24 +356,24 @@ class Request {
     }
 
     /**
-     * Get a parameter value.
+     * Get a parameter value from the merged input pool.
      *
-     * @param string $parameter
-     * @param mixed  $default Optional default value if parameter is not set.
-     * @param bool   $sanitize Whether to automatically sanitize the value of the param.
+     * @param string $parameter Parameter name.
+     * @param mixed  $default   Optional default value if parameter is not set.
+     * @param bool   $sanitize  Whether to automatically sanitize the value.
      * @return mixed
      */
-    public function get( string $parameter, $default = null, bool $sanitize = true ) : mixed {
+    public function get( string $parameter, mixed $default = null, bool $sanitize = true ): mixed {
         if ( ! $sanitize ) {
             return $this->params[ $parameter ] ?? $default;
         }
 
-        if ( isset( $this->sanitized_params[$parameter] ) ) {
-            return $this->sanitized_params[$parameter];
+        if ( array_key_exists( $parameter, $this->sanitized_params ) && null !== $this->sanitized_params[ $parameter ] ) {
+            return $this->sanitized_params[ $parameter ];
         }
 
-        if ( isset( $this->params[$parameter] ) ) {
-            $this->sanitized_params[$parameter] = static::sanitize_auto( $this->params[ $parameter ] );
+        if ( isset( $this->params[ $parameter ] ) ) {
+            $this->sanitized_params[ $parameter ] = static::sanitize_auto( $this->params[ $parameter ] );
         }
 
         return $this->sanitized_params[ $parameter ] ?? $default;
@@ -211,12 +382,12 @@ class Request {
     /**
      * Get a parameter value as a specific type.
      * 
-     * @param string $parameter
-     * @param string $type      Type to cast to (string, int, float, bool, array)
+     * @param string $parameter Parameter name.
+     * @param string $type      Type to cast to (string, int, float, bool, array).
      * @param mixed  $default   Optional default value if parameter is not set.
      * @return mixed
      */
-    public function getTyped( string $parameter, string $type = 'string', $default = null ) {
+    public function getTyped( string $parameter, string $type = 'string', mixed $default = null ): mixed {
         $value = $this->get( $parameter, $default, false );
         
         if ( $value === $default ) {
@@ -224,24 +395,24 @@ class Request {
         }
 
         return match ( $type ) {
-            'int', 'integer'    => (int) $value,
-            'float', 'double'   => (float) $value,
-            'bool', 'boolean'   => (bool) $value,
-            'array'             => (array) $value,
-            'string'            => (string) $value,
-            default             => $value,
+            'int', 'integer'   => (int) $value,
+            'float', 'double'  => (float) $value,
+            'bool', 'boolean'  => (bool) $value,
+            'array'            => (array) $value,
+            'string'           => (string) $value,
+            default            => $value,
         };
     }
 
     /**
      * Get multiple parameters at once.
      * 
-     * @param array $parameters Array of parameter names
-     * @param mixed $default    Default value for missing parameters
-     * @param bool   $sanitize Whether to automatically sanitize the value of the param.
+     * @param array $parameters Array of parameter names.
+     * @param mixed $default    Default value for missing parameters.
+     * @param bool  $sanitize   Whether to automatically sanitize parameter values.
      * @return array
      */
-    public function getMany( array $parameters, $default = null, bool $sanitize = true ): array {
+    public function getMany( array $parameters, mixed $default = null, bool $sanitize = true ): array {
         $result = [];
         foreach ( $parameters as $param ) {
             $result[ $param ] = $this->get( $param, $default, $sanitize );
@@ -252,7 +423,7 @@ class Request {
     /**
      * Get only the specified parameters.
      * 
-     * @param array $parameters Array of parameter names to include
+     * @param array $parameters Array of parameter names to include.
      * @return array
      */
     public function only( array $parameters ): array {
@@ -262,7 +433,7 @@ class Request {
     /**
      * Get all parameters except the specified ones.
      * 
-     * @param array $parameters Array of parameter names to exclude
+     * @param array $parameters Array of parameter names to exclude.
      * @return array
      */
     public function except( array $parameters ): array {
@@ -271,6 +442,9 @@ class Request {
 
     /**
      * Magic getter.
+     * 
+     * @param string $name Parameter name.
+     * @return mixed
      */
     public function __get( string $name ) {
         return $this->get( $name, null, false );
@@ -278,6 +452,9 @@ class Request {
 
     /**
      * Magic setter.
+     * 
+     * @param string $name  Parameter name.
+     * @param mixed  $value Parameter value.
      */
     public function __set( string $name, mixed $value ) {
         $this->set( $name, $value );
@@ -286,7 +463,7 @@ class Request {
     /**
      * Check if a parameter exists.
      *
-     * @param string $parameter
+     * @param string $parameter Parameter name.
      * @return bool
      */
     public function has( string $parameter ): bool {
@@ -294,9 +471,9 @@ class Request {
     }
 
     /**
-     * Tells whether the specified parameter exists and is not empty.
+     * Tells whether the specified parameter exists and is empty.
      * 
-     * @param string $parameter The parameter name.
+     * @param string $parameter Parameter name.
      * @return bool
      */
     public function isEmpty( string $parameter ): bool {
@@ -305,9 +482,8 @@ class Request {
 
     /**
      * Tells whether the specified parameter exists and is not empty.
-     * Alias for !isEmpty() for better readability.
      * 
-     * @param string $parameter The parameter name.
+     * @param string $parameter Parameter name.
      * @return bool
      */
     public function hasValue( string $parameter ): bool {
@@ -317,7 +493,7 @@ class Request {
     /**
      * Tells whether the specified properties are all present and not empty.
      * 
-     * @param array $properties The parameter names.
+     * @param array $properties Parameter names.
      * @return bool
      */
     public function hasAll( array $properties ): bool {
@@ -333,7 +509,7 @@ class Request {
     /**
      * Check if any of the specified parameters are present and not empty.
      * 
-     * @param array $properties The parameter names.
+     * @param array $properties Parameter names.
      * @return bool
      */
     public function hasAny( array $properties ): bool {
@@ -349,16 +525,16 @@ class Request {
     /**
      * Tells whether the value of a parameter matches expected value.
      * 
-     * @param string $param The parameter key.
-     * @param mixed  $expected  The expected value.
+     * @param string $param    Parameter key.
+     * @param mixed  $expected Expected value.
      * @return bool
      */
-    public function param_matches( string $param, mixed $expected ) : bool {
+    public function param_matches( string $param, mixed $expected ): bool {
         return $this->get( $param ) === $expected;
     }
 
     /**
-     * Return all parameters as array.
+     * Return all merged parameters as array.
      *
      * @return array
      */
@@ -367,51 +543,49 @@ class Request {
     }
 
     /**
-     * Get all parameters as array (alias for get_params).
-     * 
-     * @return array
-     */
-    public function all(): array {
-        return $this->params;
-    }
-
-    /**
      * Merge additional parameters into the request.
      * 
-     * @param array $params
+     * @param array $params Key-value parameter array to merge.
      * @return static
      */
     public function merge( array $params ): static {
-        $this->params = array_merge( $this->params, $params );
+        $this->params           = array_merge( $this->params, $params );
+        $this->sanitized_params = [];
         return $this;
     }
 
     /**
      * Remove a parameter.
      * 
-     * @param string $parameter
+     * @param string $parameter Parameter key.
      * @return static
      */
     public function remove( string $parameter ): static {
-        unset( $this->params[ $parameter ], $this->sanitized_params[ $parameter] );
+        unset( $this->params[ $parameter ], $this->sanitized_params[ $parameter ] );
         return $this;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HEADER MANAGEMENT
+    |--------------------------------------------------------------------------
+    */
 
     /**
      * Get a header value.
      * 
-     * @param string $header  Header name (case-insensitive)
-     * @param mixed  $default Default value if header not found
-     * @return mixed
+     * @param string $header  Header name (case-insensitive).
+     * @param string $default Default value if header not found.
+     * @return string
      */
-    public function get_header( string $header, $default = null ) {
+    public function get_header( string $header, string $default = '' ): string {
         $canonical = $this->header_canonical( $header );
         
         if ( ! $this->has_header( $canonical ) ) {
             return $default;
         }
 
-        return implode( ',', (array) $this->headers[$canonical] );
+        return implode( ',', (array) $this->headers[ $canonical ] );
     }
 
     /**
@@ -430,21 +604,21 @@ class Request {
      * @param mixed  $value  Header value.
      * @return static
      */
-    public function set_header( string $header, $value ): static {
-        $canonical                                  = $this->header_canonical( $header );
-        $this->headers[ $canonical ]                = $value;
-        $this->original_header_names[ $canonical ]  = $header;
+    public function set_header( string $header, mixed $value ): static {
+        $canonical                                 = $this->header_canonical( $header );
+        $this->headers[ $canonical ]               = $value;
+        $this->original_header_names[ $canonical ] = $header;
         return $this;
     }
 
     /**
-     * Set headers
+     * Set headers.
      * 
-     * @param array $headers
+     * @param array $headers Key-value array of headers.
      * @return static
      */
-    public function set_headers( array $headers ) : static {
-        foreach( $headers as $key => $value ) {
+    public function set_headers( array $headers ): static {
+        foreach ( $headers as $key => $value ) {
             $this->set_header( $key, $value );
         }
 
@@ -454,13 +628,29 @@ class Request {
     /**
      * Check if a header exists.
      * 
-     * @param string $header Header name (case-insensitive)
+     * @param string $header Header name (case-insensitive).
      * @return bool
      */
     public function has_header( string $header ): bool {
         $canonical = $this->header_canonical( $header );
         return array_key_exists( $canonical, $this->headers );
     }
+
+    /**
+     * Standardize header keys internally.
+     *
+     * @param string $key Header key.
+     * @return string Canonicalized key.
+     */
+    private function header_canonical( string $key ): string {
+        return str_replace( '-', '_', strtolower( $key ) );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HTTP METADATA & CONVENIENCE HELPERS
+    |--------------------------------------------------------------------------
+    */
 
     /**
      * Get the HTTP method.
@@ -474,7 +664,7 @@ class Request {
     /**
      * Check if the request method matches.
      * 
-     * @param string $method
+     * @param string $method Method name to compare.
      * @return bool
      */
     public function is_method( string $method ): bool {
@@ -554,13 +744,32 @@ class Request {
     }
 
     /**
-     * Check if request expects JSON response.
+     * Check if request accepts JSON response.
      * 
      * @return bool
      */
     public function wantsJson(): bool {
+        return $this->accepts( 'application/json' );
+    }
+
+    /**
+     * Check if request expects a JSON response or sends JSON content.
+     * 
+     * @return bool
+     */
+    public function expectsJson(): bool {
+        return $this->wantsJson() || $this->isJson();
+    }
+
+    /**
+     * Check if client accepts a specific MIME type.
+     * 
+     * @param string $mimeType MIME type to check.
+     * @return bool
+     */
+    public function accepts( string $mimeType ): bool {
         $accept = $this->get_header( 'Accept', '' );
-        return str_contains( strtolower( $accept ), 'application/json' );
+        return str_contains( strtolower( $accept ), strtolower( $mimeType ) ) || str_contains( $accept, '*/*' );
     }
 
     /**
@@ -573,6 +782,15 @@ class Request {
     }
 
     /**
+     * Get request Content-Length.
+     * 
+     * @return int
+     */
+    public function contentLength(): int {
+        return (int) ( $this->get_header( 'Content-Length', '0' ) ?: $this->server( 'CONTENT_LENGTH', 0 ) );
+    }
+
+    /**
      * Check if request content type is JSON.
      * 
      * @return bool
@@ -582,38 +800,188 @@ class Request {
     }
 
     /**
-     * Get the authorization token from header.
+     * Get the authorization bearer token from header.
      * 
      * @return string|null
      */
     public function bearerToken(): ?string {
         $header = $this->get_header( 'Authorization', '' );
 
-        if ( is_array( $header ) ) {
-            foreach ( $header as $value ) {
-                if ( preg_match( '/Bearer\s+(.*)$/i', $value, $matches ) ) {
-                    return $matches[1];
-                }
-            }
-        } else if ( preg_match( '/Bearer\s+(.*)$/i', $header, $matches ) ) {
-            return $matches[1];
+        if ( preg_match( '/Bearer\s+(.*)$/i', $header, $matches ) ) {
+            return trim( $matches[1] );
         }
         
         return null;
     }
 
     /**
-     * Ensures that header names are always treated the same regardless of
-     * source. Header names are always case-insensitive.
-     *
-     * @param string $key Header name.
-     * @return string Canonicalized name.
+     * Get scheme (http or https).
+     * 
+     * @return string
      */
-    private function header_canonical( string $key ): string {
-        $key = strtolower( $key );
-        $key = str_replace( '-', '_', $key );
+    public function scheme(): string {
+        return $this->isSecure() ? 'https' : 'http';
+    }
 
-        return $key;
+    /**
+     * Get host name.
+     * 
+     * @return string
+     */
+    public function host(): string {
+        if ( $host = $this->get_header( 'Host' ) ) {
+            return strtolower( trim( explode( ':', $host )[0] ) );
+        }
+        return (string) $this->server( 'SERVER_NAME', '' );
+    }
+
+    /**
+     * Get port number.
+     * 
+     * @return int
+     */
+    public function port(): int {
+        if ( $host = $this->get_header( 'Host' ) ) {
+            $parts = explode( ':', $host );
+            if ( isset( $parts[1] ) ) {
+                return (int) $parts[1];
+            }
+        }
+        return (int) $this->server( 'SERVER_PORT', $this->isSecure() ? 443 : 80 );
+    }
+
+    /**
+     * Get base URL (scheme + host + optional port).
+     * 
+     * @return string
+     */
+    public function baseUrl(): string {
+        $scheme      = $this->scheme();
+        $host        = $this->host();
+        $port        = $this->port();
+        $defaultPort = ( 'https' === $scheme && 443 === $port ) || ( 'http' === $scheme && 80 === $port );
+
+        return $scheme . '://' . $host . ( $defaultPort ? '' : ':' . $port );
+    }
+
+    /**
+     * Get full URL including path and query string.
+     * 
+     * @return string
+     */
+    public function fullUrl(): string {
+        return $this->baseUrl() . $this->uri();
+    }
+
+    /**
+     * Get client IP address.
+     * 
+     * @param bool $ignore_private Whether to ignore private and reserved IP ranges.
+     * @return string
+     */
+    public function ip( bool $ignore_private = false ): string {
+        // Check standard headers first via internal header handler, then fall back to $_SERVER keys.
+        $header_keys = [
+            'X-Real-IP',
+            'HTTP-Client-IP',
+            'X-Forwarded-For',
+            'X-Forwarded',
+            'X-Cluster-Client-IP',
+            'Forwarded-For',
+            'Forwarded',
+        ];
+
+        // 1. Try resolving through headers
+        foreach ( $header_keys as $key ) {
+            if ( $this->has_header( $key ) ) {
+                $resolved = $this->extract_valid_ip( $this->get_header( $key ), $ignore_private );
+                if ( null !== $resolved ) {
+                    return $resolved;
+                }
+            }
+        }
+
+        // 2. Fall back to standard direct remote address
+        $remote_addr = (string) $this->server( 'REMOTE_ADDR', '' );
+        if ( ! empty( $remote_addr ) ) {
+            $resolved = $this->extract_valid_ip( $remote_addr, $ignore_private );
+            if ( null !== $resolved ) {
+                return $resolved;
+            }
+        }
+
+        return 'unresolved_ip';
+    }
+
+    /**
+     * Extract the first valid IP address from a comma-separated list.
+     * 
+     * @param string $ips            Raw IP string.
+     * @param bool   $ignore_private Ignore private/reserved ranges.
+     * @return string|null
+     */
+    private function extract_valid_ip( string $ips, bool $ignore_private = false ): ?string {
+        $ip_list = explode( ',', $ips );
+
+        $flags = FILTER_FLAG_NONE;
+        if ( $ignore_private ) {
+            $flags = FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE;
+        }
+
+        foreach ( $ip_list as $ip ) {
+            $ip = static::sanitize_text( trim( $ip ) );
+            if ( filter_var( $ip, FILTER_VALIDATE_IP, $flags ) !== false ) {
+                return $ip;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get user agent string.
+     * 
+     * @return string|null
+     */
+    public function userAgent(): ?string {
+        $agent = $this->get_header( 'User-Agent' );
+        return ! empty( $agent ) ? $agent : null;
+    }
+
+    /**
+     * Get referer string.
+     * 
+     * @return string|null
+     */
+    public function referer(): ?string {
+        $referer = $this->get_header( 'Referer' );
+        return ! empty( $referer ) ? $referer : null;
+    }
+
+    /**
+     * Check if request is secure (HTTPS).
+     * 
+     * @return bool
+     */
+    public function isSecure(): bool {
+        $https = $this->server( 'HTTPS' );
+        if ( null !== $https && 'off' !== strtolower( (string) $https ) ) {
+            return true;
+        }
+
+        return strtolower( $this->get_header( 'X-Forwarded-Proto' ) ) === 'https';
+    }
+
+    /**
+     * Get raw request body contents.
+     * 
+     * @return string
+     */
+    public function getContent(): string {
+        if ( null === $this->raw_content ) {
+            $this->raw_content = (string) file_get_contents( 'php://input' );
+        }
+        return $this->raw_content;
     }
 
     /**
@@ -623,31 +991,30 @@ class Request {
      */
     public function toArray(): array {
         return [
-            'files'     => $this->files,
-            'params'    => $this->params,
-            'headers'   => $this->headers,
-            'method'    => $this->method,
-            'uri'       => $this->uri,
+            'files'   => $this->files,
+            'params'  => $this->params,
+            'headers' => $this->headers,
+            'method'  => $this->method,
+            'uri'     => $this->uri,
         ];
     }
 
     /**
-     * Get the request start time
+     * Get the request start time.
      * 
      * @return float
      */
-    public function startTime() : float {
+    public function startTime(): float {
         return $this->startTime;
     }
 
     /**
      * Get first file for key (backward compatible).
      *
-     * @param string $key
+     * @param string $key File input key.
      * @return UploadedFile|null
      */
-    public function get_file( string $key ) : ?UploadedFile {
-
+    public function get_file( string $key ): ?UploadedFile {
         $collection = $this->files[ $key ] ?? null;
 
         if ( ! $collection instanceof UploadedFileCollection ) {
@@ -660,36 +1027,128 @@ class Request {
     /**
      * Get file collection.
      *
-     * @param string $key
+     * @param string $key File input key.
      * @return UploadedFileCollection|null
      */
-    public function get_files( string $key ) : ?UploadedFileCollection {
+    public function get_files( string $key ): ?UploadedFileCollection {
         return $this->files[ $key ] ?? null;
     }
 
     /*
-    |-----------------------
-    | DEFAULT PARSERS
-    |-----------------------
+    |--------------------------------------------------------------------------
+    | DEFAULT PARSERS & INTERNAL PIPELINE
+    |--------------------------------------------------------------------------
     */
 
     /**
-     * Parse default HTTP headers.
+     * Populate query parameters from superglobals.
+     */
+    protected function parse_query(): void {
+        $this->query = $_GET;
+    }
+
+    /**
+     * Populate post parameters from superglobals.
+     */
+    protected function parse_post(): void {
+        $this->post = $_POST;
+    }
+
+    /**
+     * Populate cookie parameters from superglobals.
+     */
+    protected function parse_cookies(): void {
+        $this->cookies = $_COOKIE;
+    }
+
+    /**
+     * Populate server variables from superglobals.
+     */
+    protected function parse_server(): void {
+        $this->server = $_SERVER;
+    }
+
+    /**
+     * Parse and cache JSON request body.
+     */
+    protected function parse_json(): void {
+        $this->json_parsed = true;
+
+        if ( ! $this->isJson() ) {
+            return;
+        }
+
+        $raw_data = $this->getContent();
+        if ( '' === trim( $raw_data ) ) {
+            return;
+        }
+
+        $data = json_decode( $raw_data, true );
+
+        if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $data ) ) {
+            $data = [];
+        }
+
+        $this->json = $data;
+    }
+
+    /**
+     * Parse parameters from isolated input bags maintaining precedence.
      * 
      * @return array
      */
+    public function parse_params(): array {
+        if ( ! $this->json_parsed && $this->isJson() ) {
+            $this->parse_json();
+        }
+
+        return array_merge( $this->query, $this->post, $this->json );
+    }
+
+    /**
+     * Build legacy merged parameter storage pool.
+     */
+    protected function build_merged_params(): void {
+        $this->params = $this->parse_params();
+    }
+
+    /**
+     * Parse default HTTP request headers.
+     *
+     * @return array<string, string>
+     */
     public static function parse_default_headers(): array {
+        if ( function_exists( 'getallheaders' ) ) {
+            $headers = getallheaders();
+            if ( false !== $headers ) {
+                return $headers;
+            }
+        }
+
         $headers = [];
 
-        if ( function_exists( 'getallheaders' ) ) {
-            $headers = (array) getallheaders();
-        } else {
-            // Fallback for environments where getallheaders() is not available.
-            foreach ( $_SERVER as $key => $value ) {
-                if ( str_starts_with( $key, 'HTTP_' ) ) {
-                    $header = str_replace( '_', '-', substr( $key, 5 ) );
-                    $headers[ $header ] = $value;
-                }
+        foreach ( $_SERVER as $key => $value ) {
+            if ( str_starts_with( $key, 'HTTP_' ) ) {
+                $name = substr( $key, 5 );
+                $name = str_replace( ' ', '-', ucwords( strtolower( str_replace( '_', ' ', $name ) ) ) );
+                $headers[ $name ] = $value;
+                continue;
+            }
+
+            if ( in_array( $key, [ 'CONTENT_TYPE', 'CONTENT_LENGTH', 'CONTENT_MD5' ], true ) ) {
+                $name = str_replace( ' ', '-', ucwords( strtolower( str_replace( '_', ' ', $key ) ) ) );
+                $headers[ $name ] = $value;
+            }
+        }
+
+        if ( ! isset( $headers['Authorization'] ) ) {
+            if ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ) {
+                $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+            } elseif ( isset( $_SERVER['PHP_AUTH_USER'] ) ) {
+                $basic_pass = $_SERVER['PHP_AUTH_PW'] ?? '';
+                $headers['Authorization'] = 'Basic ' . base64_encode( $_SERVER['PHP_AUTH_USER'] . ':' . $basic_pass );
+            } elseif ( isset( $_SERVER['PHP_AUTH_DIGEST'] ) ) {
+                $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
             }
         }
 
@@ -699,39 +1158,9 @@ class Request {
     /**
      * Parse and normalize uploaded files into collections.
      */
-    public function parse_uploaded_files() : void {
-
+    public function parse_uploaded_files(): void {
         foreach ( $_FILES as $key => $_ ) {
             $this->files[ $key ] = UploadedFileCollection::from_files( $key );
         }
-    }
-
-    /**
-     * Parse parameters
-     * 
-     * @return array
-     */
-    public function parse_params() : array {
-        if ( $this->isJson() ) {
-            $raw_data   = \file_get_contents( 'php://input' );
-            $data       = \json_decode( $raw_data, true );
-
-            if ( ! \is_array( $data ) ) {
-
-                if ( \json_last_error() !== \JSON_ERROR_NONE ) {
-                    $data   = [];
-                } else {
-                    $data   = (array)  $data;
-                }
-                
-            }
-
-            $data   = \array_merge( $_REQUEST, $data );
-            
-        } else {
-            $data   = $_REQUEST;
-        }
-
-        return $data;
     }
 }

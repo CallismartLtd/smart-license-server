@@ -174,6 +174,15 @@ class WordPressEnvironment extends Environment {
     }
 
     /**
+     * Get the routes manager instance.
+     * 
+     * @return RoutesManager
+     */
+    public function get_routes_manager() : RoutesManager {
+        return $this->routes_manager;
+    }
+
+    /**
      * {@inheritdoc}
      * 
      * Check key filesystem directories for read/write access and print admin notice if not writable.

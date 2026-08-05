@@ -42,12 +42,7 @@ class Dispatcher implements RequestDispatcherInterface {
      * 
      * @var array<string, callable(Request):Response> $registered_handlers
      */
-    public static array $registered_handlers = [
-        'smliser-client-dashboard'                      => [ __CLASS__, 'render_client_dashboard' ],
-        'smliser-downloads'                             => [ __CLASS__, 'handle_public_downloads' ],
-        'smliser-repository-assets'                     => [ __CLASS__, 'handle_app_asset_request' ],
-        'smliser-uploads'                               => [ __CLASS__, 'handle_uploads_dir_request' ],
-        
+    public static array $registered_handlers = [        
         'smliser_admin_download'                        => [ __CLASS__, 'handle_admin_download_request' ],
         'smliser_download_image'                        => [ __CLASS__, 'handle_proxy_image_request' ],
         'smliser_save_plugin'                           => [ __CLASS__, 'handle_save_app_request' ],
@@ -100,21 +95,35 @@ class Dispatcher implements RequestDispatcherInterface {
      * terminate the request.
      */
     public static function init_request() : void {
-        // Single Request instance — all handlers read from this.
+        /** 
+         * Single Request instance — all handlers read from this.
+         * 
+         * The values of query parameters in this object never ran through `wp_magic_quotes`
+         */
         $request    = \smliser_request();
-        $trigger    = get_query_var( 'pagename' );
+        
+        /**
+         * @disregard 
+         * @var \SmartLicenseServer\Environments\WordPress\RoutesManager $routes_manager
+         */
+        $routes_manager = \smliser_envProvider()->get_routes_manager();
+        $found_page     = $routes_manager->get_router()->match( $request->uri() );
 
-        if ( $trigger ) {
-            $request->set_params(
-                $GLOBALS['wp']->query_vars
-            );
+        if ( $found_page ) {
+            $request->set_params( $found_page['params'] );
+            $response   = $found_page['handler']( $request );
+
+            $response->send();
+            $response->stop();
         }
 
-        if ( ! $trigger && $request->hasValue( 'action' ) ) {
-            $trigger = $request->get( 'action' );
+        if ( ! $request->hasValue( 'action' ) ) {
+            return;
         }
 
-        if ( empty( $trigger ) || ! is_string( $trigger ) ) {
+        $trigger = $request->get( 'action' );
+
+        if ( ! is_string( $trigger ) || '' === $trigger ) {
             return;
         }
 
@@ -307,10 +316,12 @@ class Dispatcher implements RequestDispatcherInterface {
     }
 
     public static function handle_license_document_download_request( Request $request ) : Response {
-        $file_request = new FileRequest( [
-            'license_id'     => get_query_var( 'license_id', 0 ),
-            'download_token' => $request->get( 'download_token' ),
-        ], $request->get_headers(), $request->method(), $request->uri() );
+        $file_request = new FileRequest( 
+            $request->get_params(), 
+            $request->get_headers(), 
+            $request->method(), 
+            $request->uri() 
+        );
 
         return FileRequestController::get_license_document( $file_request );
     }
@@ -733,42 +744,6 @@ class Dispatcher implements RequestDispatcherInterface {
         }
 
         return $normalized;
-    }
-
-    /**
-     * Resolve the correct download request handler based on app type.
-     *
-     * @param Request $request The current request object.
-     * @return null|callable(Request):Response
-     */
-    protected static function resolve_download_request_handler( Request $request ): ?callable {
-        return match( $request->get( 'download_type' ) ) {
-            'plugin', 'plugins', 'theme', 
-            'themes', 'software'    => [ __CLASS__, 'handle_public_package_download_request' ],
-            'document', 'documents' => [ __CLASS__, 'handle_license_document_download_request' ],
-            'artifact', 'artifacts' => [__CLASS__, 'handle_public_artifact_download_request'],
-            default                 => null
-        };
-    }
-
-    /**
-     * Handle public downloads.
-     * 
-     * @param Request $request
-     * @return Response
-     */
-    protected static function handle_public_downloads( Request $request ) : Response {
-        $resolved_callback  = static::resolve_download_request_handler( $request );
-
-        if ( ! $resolved_callback ) {
-            return new FileResponse( new FileRequestException(
-                'file_not_found',
-                'Download type was not found.',
-                [ 'status' => 404 ]
-            ));
-        }
-
-        return $resolved_callback( $request );
     }
 
     /**
