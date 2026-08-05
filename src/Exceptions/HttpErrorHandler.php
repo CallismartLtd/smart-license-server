@@ -3,7 +3,8 @@
  * HTTP Error Handler Class for Smart License Server.
  *
  * Specializes in rendering errors for web/HTTP environments.
- * Handles HTML output, HTTP headers, CSS styling, and web-specific features.
+ * Handles HTML and JSON content negotiation, HTTP headers, CSS styling,
+ * and security-focused error output.
  *
  * @package SmartLicenseServer\Exceptions
  * @author Callistus Nwachukwu
@@ -14,17 +15,102 @@ namespace SmartLicenseServer\Exceptions;
 class HttpErrorHandler extends AbstractErrorHandler {
 
     /*
-    |------------------------------------------
-    | HTML HEAD CUSTOMIZATION
-    |------------------------------------------
+    |-------------------------------------
+    | INTERNAL STATE & CONFIGURATION
+    |-------------------------------------
     */
 
     /**
-     * HTML head content.
+     * Cache for detected response format.
+     *
+     * @var string|null
+     */
+    private ?string $detected_format = null;
+
+    /**
+     * HTML head content elements.
      *
      * @var array
      */
     private array $head_content = [];
+
+    /**
+     * Custom CSS styles.
+     *
+     * @var array
+     */
+    private array $styles = [];
+
+    /**
+     * Custom attributes for html tag.
+     *
+     * @var array
+     */
+    private array $html_attributes = [];
+
+    /**
+     * Custom attributes for body tag.
+     *
+     * @var array
+     */
+    private array $body_attributes = [];
+
+    /*
+    |------------------------------------------
+    | CONTENT NEGOTIATION & FORMATTING
+    |------------------------------------------
+    */
+
+    /**
+     * Determine preferred response format (json vs html).
+     *
+     * Checks explicitly set configuration first, then inspects HTTP request headers.
+     *
+     * @return string 'json' or 'html'
+     */
+    public function getPreferredFormat() : string {
+        if ( null !== $this->detected_format ) {
+            return $this->detected_format;
+        }
+
+        // 1. Check explicit override in configuration
+        if ( ! empty( $this->config['format'] ) ) {
+            return $this->detected_format = strtolower( $this->config['format'] );
+        }
+
+        // 2. Check HTTP Accept header
+        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        if ( str_contains( $accept, 'application/json' ) || str_contains( $accept, '+json' ) ) {
+            return $this->detected_format = 'json';
+        }
+
+        // 3. Check Request Content-Type header (e.g., API requests sending JSON payloads)
+        $content_type = $_SERVER['CONTENT_TYPE'] ?? '';
+        if ( str_contains( $content_type, 'application/json' ) ) {
+            return $this->detected_format = 'json';
+        }
+
+        // 4. Default to HTML for standard web browsers
+        return $this->detected_format = 'html';
+    }
+
+    /**
+     * Explicitly set the output response format ('json' or 'html').
+     *
+     * @param string $format Target format.
+     * @return static
+     */
+    public function setFormat( string $format ) : static {
+        $this->config['format'] = $format;
+        $this->detected_format  = strtolower( $format );
+        return $this;
+    }
+
+    /*
+    |------------------------------------------
+    | HTML HEAD & STYLING CUSTOMIZATION
+    |------------------------------------------
+    */
 
     /**
      * Add meta tag to HTML head.
@@ -44,7 +130,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
     }
 
     /**
-     * Add link to HTML head.
+     * Add link tag to HTML head.
      *
      * @param string $rel Relationship type.
      * @param string $href URL.
@@ -60,21 +146,8 @@ class HttpErrorHandler extends AbstractErrorHandler {
         return $this;
     }
 
-    /*
-    |------------------------------------------
-    | CSS STYLING
-    |------------------------------------------
-    */
-
     /**
-     * CSS styles.
-     *
-     * @var array
-     */
-    private array $styles = [];
-
-    /**
-     * Add custom style.
+     * Add custom style rules.
      *
      * @param string $selector CSS selector.
      * @param array $properties CSS properties as key-value pairs.
@@ -86,7 +159,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
     }
 
     /**
-     * Set multiple styles at once.
+     * Set multiple style rules at once.
      *
      * @param array $styles Styles array (selector => properties).
      * @return static
@@ -96,28 +169,8 @@ class HttpErrorHandler extends AbstractErrorHandler {
         return $this;
     }
 
-    /*
-    |------------------------------------------
-    | HTML ATTRIBUTES
-    |------------------------------------------
-    */
-
     /**
-     * Custom attributes for HTML tag.
-     *
-     * @var array
-     */
-    private array $html_attributes = [];
-
-    /**
-     * Custom attributes for body tag.
-     *
-     * @var array
-     */
-    private array $body_attributes = [];
-
-    /**
-     * Set custom HTML attributes.
+     * Set custom HTML tag attributes.
      *
      * @param array $attributes Attributes for html tag.
      * @return static
@@ -128,7 +181,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
     }
 
     /**
-     * Set custom body attributes.
+     * Set custom body tag attributes.
      *
      * @param array $attributes Attributes for body tag.
      * @return static
@@ -152,7 +205,65 @@ class HttpErrorHandler extends AbstractErrorHandler {
 
     /*
     |------------------------------------------
-    | PRIVATE RENDERING METHODS
+    | JSON RENDERING METHODS
+    |------------------------------------------
+    */
+
+    /**
+     * Build structured error payload array for JSON output.
+     *
+     * @return array
+     */
+    private function buildJsonPayload() : array {
+        $payload = [
+            'success' => false,
+            'error'   => [
+                'code'    => $this->getCode(),
+                'title'   => $this->getTitle(),
+                'message' => $this->getMessage(),
+                'status'  => $this->getResponseCode(),
+            ],
+        ];
+
+        if ( $this->isDebug() && $this->error_object instanceof \Throwable ) {
+            $payload['error']['debug'] = [
+                'type'  => get_class( $this->error_object ),
+                'file'  => $this->error_object->getFile(),
+                'line'  => $this->error_object->getLine(),
+                'trace' => explode( "\n", $this->error_object->getTraceAsString() ),
+            ];
+
+            if ( $previous = $this->error_object->getPrevious() ) {
+                $payload['error']['debug']['previous'] = [
+                    'type'    => get_class( $previous ),
+                    'message' => $previous->getMessage(),
+                    'file'    => $previous->getFile(),
+                    'line'    => $previous->getLine(),
+                ];
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Render error payload as a JSON string.
+     *
+     * @return string
+     */
+    private function renderJson() : string {
+        $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+
+        if ( $this->isDebug() ) {
+            $flags |= JSON_PRETTY_PRINT;
+        }
+
+        return json_encode( $this->buildJsonPayload(), $flags );
+    }
+
+    /*
+    |------------------------------------------
+    | PRIVATE HTML RENDERING HELPER METHODS
     |------------------------------------------
     */
 
@@ -162,7 +273,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
      * @return string
      */
     private function renderHead() : string {
-        $html = '';
+        $html    = '';
         $charset = $this->getCharset();
 
         $html .= "\n\t<meta charset=\"" . htmlspecialchars( $charset, ENT_QUOTES, 'UTF-8' ) . '">' . "\n";
@@ -195,48 +306,56 @@ class HttpErrorHandler extends AbstractErrorHandler {
     }
 
     /**
-     * Render CSS styles.
+     * Render default and customized CSS styles.
      *
      * @return string
      */
     private function renderStyles() : string {
         $default_styles = [
             'body' => [
-                'font-family' => 'Arial, sans-serif',
-                'background' => '#f4f4f4',
-                'margin' => '0',
+                'font-family' => '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif',
+                'background'  => '#f8f9fa',
+                'color'       => '#212529',
+                'margin'      => '0',
+                'padding'     => '0',
             ],
             '.error-container' => [
-                'max-width' => '80%',
-                'margin' => '50px auto',
-                'background' => '#ffffff',
-                'padding' => '30px',
+                'max-width'     => '720px',
+                'margin'        => '60px auto',
+                'background'    => '#ffffff',
+                'padding'       => '32px',
                 'border-radius' => '8px',
-                'box-shadow' => '0px 4px 15px rgba(0, 0, 0, 0.1)',
+                'border'        => '1px solid #e9ecef',
+                'box-shadow'    => '0 4px 12px rgba(0, 0, 0, 0.05)',
                 'overflow-wrap' => 'anywhere',
             ],
             'h1' => [
-                'color' => '#e74c3c',
-                'margin-top' => '0',
-                'font-size' => '24px',
+                'color'       => '#d9534f',
+                'margin-top'  => '0',
+                'font-size'   => '22px',
+                'font-weight' => '600',
             ],
             'p' => [
-                'font-size' => '16px',
-                'color' => '#333',
+                'font-size'   => '15px',
+                'line-height' => '1.6',
+                'color'       => '#495057',
             ],
             'a' => [
-                'color' => '#3498db',
+                'color'           => '#0d6efd',
                 'text-decoration' => 'none',
             ],
             'a:hover' => [
                 'text-decoration' => 'underline',
             ],
             'pre' => [
-                'max-width' => '100%',
-                'background-color' => '#f1f1f1',
-                'overflow-x' => 'auto',
-                'padding' => '10px',
-                'border-radius' => '4px',
+                'max-width'        => '100%',
+                'background-color' => '#212529',
+                'color'            => '#f8f9fa',
+                'overflow-x'       => 'auto',
+                'padding'          => '16px',
+                'border-radius'    => '6px',
+                'font-size'        => '13px',
+                'line-height'      => '1.5',
             ],
         ];
 
@@ -256,7 +375,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
     }
 
     /**
-     * Render HTML attributes.
+     * Render HTML attributes key-value list into string.
      *
      * @param array $attributes Attributes array.
      * @return string
@@ -273,7 +392,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
     }
 
     /**
-     * Render link HTML.
+     * Render HTML action links safely without CSP violations.
      *
      * @return string
      */
@@ -286,24 +405,27 @@ class HttpErrorHandler extends AbstractErrorHandler {
             $html .= '</a></p>' . "\n";
         }
 
-        if ( $this->config['back_link'] ) {
-            $html .= '<p><a href="javascript:history.back()">Go Back</a></p>' . "\n";
+        if ( $this->config['back_link'] && isset( $_SERVER['HTTP_REFERER'] ) ) {
+            $referer = filter_var( $_SERVER['HTTP_REFERER'], FILTER_SANITIZE_URL );
+            if ( $referer ) {
+                $html .= '<p><a href="' . htmlspecialchars( $referer, ENT_QUOTES, 'UTF-8' ) . '">&larr; Go Back</a></p>' . "\n";
+            }
         }
 
         return $html;
     }
 
     /**
-     * Wrap text content in HTML template.
+     * Wrap content string in full HTML layout document.
      *
-     * @param string $content The content to wrap.
+     * @param string $content Inner HTML snippet.
      * @return string
      */
     private function wrapInHtml( string $content ) : string {
         $html_attrs = $this->renderAttributes( $this->html_attributes );
         $body_attrs = $this->renderAttributes( $this->body_attributes );
 
-        $html = "<!DOCTYPE html>\n";
+        $html  = "<!DOCTYPE html>\n";
         $html .= "<html" . $html_attrs . ">\n";
         $html .= "<head>\n";
         $html .= $this->renderHead();
@@ -335,100 +457,113 @@ class HttpErrorHandler extends AbstractErrorHandler {
      * @return string
      */
     private function renderThrowableInHtml() : string {
-        $nl = \PHP_EOL;
-        $class = $this->isDebug() ? get_class( $this->error_object ) : '';
-        $file = $this->error_object->getFile();
-        $line = $this->error_object->getLine();
-        $message = $this->error_object->getMessage() ?: $this->getMessage();
+        $nl      = \PHP_EOL;
+        $message = $this->getMessage();
 
-        $out = '';
-        $out .= htmlspecialchars( $class, ENT_QUOTES, 'UTF-8' ) . $nl;
-        $out .= htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' ) . $nl . $nl;
-
-        if ( $this->isDebug() ) {
-            $out .= 'File: ' . htmlspecialchars( $file, ENT_QUOTES, 'UTF-8' ) . $nl;
-            $out .= 'Line: ' . $line . $nl;
-            $out .= $nl . 'Stack Trace:' . $nl;
-            $out .= htmlspecialchars( $this->error_object->getTraceAsString(), ENT_QUOTES, 'UTF-8' ) . $nl;
-
-            $previous = $this->error_object->getPrevious();
-            if ( $previous ) {
-                $out .= $nl . 'Caused by: ' . get_class( $previous ) . $nl;
-                $out .= htmlspecialchars( $previous->getMessage(), ENT_QUOTES, 'UTF-8' ) . $nl;
-                $out .= htmlspecialchars( $previous->getTraceAsString(), ENT_QUOTES, 'UTF-8' ) . $nl;
-            }
+        if ( ! $this->isDebug() ) {
+            return $this->wrapInHtml( '<p>' . htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' ) . '</p>' );
         }
 
-        $out = '<pre>' . $out . '</pre>';
-        return $this->wrapInHtml( $out );
+        $class = get_class( $this->error_object );
+        $file  = $this->error_object->getFile();
+        $line  = $this->error_object->getLine();
+
+        $out  = htmlspecialchars( $class, ENT_QUOTES, 'UTF-8' ) . ': ';
+        $out .= htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' ) . $nl . $nl;
+        $out .= 'File: ' . htmlspecialchars( $file, ENT_QUOTES, 'UTF-8' ) . $nl;
+        $out .= 'Line: ' . $line . $nl;
+        $out .= $nl . 'Stack Trace:' . $nl;
+        $out .= htmlspecialchars( $this->error_object->getTraceAsString(), ENT_QUOTES, 'UTF-8' ) . $nl;
+
+        $previous = $this->error_object->getPrevious();
+        if ( $previous ) {
+            $out .= $nl . 'Caused by: ' . get_class( $previous ) . $nl;
+            $out .= htmlspecialchars( $previous->getMessage(), ENT_QUOTES, 'UTF-8' ) . $nl;
+            $out .= htmlspecialchars( $previous->getTraceAsString(), ENT_QUOTES, 'UTF-8' ) . $nl;
+        }
+
+        return $this->wrapInHtml( '<pre>' . $out . '</pre>' );
     }
 
     /*
     |------------------------------------------
-    | ABSTRACT METHODS
+    | ABSTRACT METHOD IMPLEMENTATIONS
     |------------------------------------------
     */
 
     /**
-     * Render error HTML.
+     * Render complete error response in appropriate format (JSON or HTML).
      *
      * @return string
      */
     public function render() : string {
+        if ( $this->getPreferredFormat() === 'json' ) {
+            return $this->renderJson();
+        }
+
         if ( $this->error_object instanceof \Throwable ) {
             return $this->renderThrowableInHtml();
         }
 
-        return $this->wrapInHtml( htmlspecialchars( $this->getMessage(), ENT_QUOTES, 'UTF-8' ) );
+        return $this->wrapInHtml( '<p>' . htmlspecialchars( $this->getMessage(), ENT_QUOTES, 'UTF-8' ) . '</p>' );
     }
 
     /**
-     * Render warning/minor error as inline notice.
-     *
-     * Lightweight output without full page wrapper.
-     * Used for non-fatal errors in debug mode.
+     * Render warning or non-fatal minor error.
      *
      * @return string
      */
     public function renderWarning() : string {
-        $html = '<div style="background:#fff3cd;border:1px solid #ffc107;color:#664d03;padding:12px;margin:10px 0;border-radius:4px;">' . PHP_EOL;
+        if ( $this->getPreferredFormat() === 'json' ) {
+            return $this->renderJson();
+        }
+
+        $html  = '<div style="background:#fff3cd;border:1px solid #ffc107;color:#664d03;padding:12px 16px;margin:12px 0;border-radius:4px;font-family:sans-serif;font-size:14px;">' . PHP_EOL;
         $html .= '<strong>' . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . ':</strong> ';
         $html .= htmlspecialchars( $this->getMessage(), ENT_QUOTES, 'UTF-8' );
-        
-        if ( $this->error_object instanceof \Throwable ) {
-            $html .= '<br><small style="opacity:0.7;">';
+
+        if ( $this->isDebug() && $this->error_object instanceof \Throwable ) {
+            $html .= '<br><small style="opacity:0.8;font-family:monospace;">';
             $html .= htmlspecialchars( $this->error_object->getFile(), ENT_QUOTES, 'UTF-8' );
             $html .= ':' . $this->error_object->getLine();
             $html .= '</small>';
         }
-        
+
         $html .= PHP_EOL . '</div>' . PHP_EOL;
         return $html;
     }
 
     /**
-     * Send HTTP headers.
+     * Send HTTP response headers configured for target response format.
      *
      * @return static
      */
     public function sendHeaders() : static {
-        if ( ! headers_sent() ) {
-            http_response_code( $this->getResponseCode() );
-            header( 'Content-Type: text/html; charset=' . $this->getCharset() );
-            header( 'X-Content-Type-Options: nosniff' );
-            header( 'X-Frame-Options: DENY' );
-            header( 'X-XSS-Protection: 1; mode=block' );
-
-            header(
-                "Content-Security-Policy: " .
-                "default-src 'static'; " .
-                "style-src 'static' 'unsafe-inline'; " .
-                "script-src 'static'; " .
-                "img-src 'static' data:; " .
-                "font-src 'static';"
-            );
+        if ( headers_sent() ) {
+            return $this;
         }
-        
+
+        http_response_code( $this->getResponseCode() );
+
+        if ( $this->getPreferredFormat() === 'json' ) {
+            header( 'Content-Type: application/json; charset=' . $this->getCharset() );
+            header( 'X-Content-Type-Options: nosniff' );
+            return $this;
+        }
+
+        // HTML Response Security Headers
+        header( 'Content-Type: text/html; charset=' . $this->getCharset() );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'X-Frame-Options: DENY' );
+        header( 'X-XSS-Protection: 1; mode=block' );
+        header(
+            sprintf(
+                "Content-Security-Policy: default-src %1\$s; style-src %1\$s %2\$s; script-src %1\$s; img-src %1\$s data:; font-src %1\$s;",
+                "'self'",
+                "'unsafe-inline'"
+            )
+        );
+
         return $this;
     }
 }

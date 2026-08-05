@@ -191,11 +191,15 @@ abstract class AbstractErrorHandler {
     }
 
     /**
-     * Get error message.
+     * Get error message based on current environment settings.
      *
      * @return string
      */
     public function getMessage() : string {
+        if ( ! $this->isDebug() && $this->isFatalOrInternal() ) {
+            return 'An unexpected internal error occurred. Please contact us if the issue persists.';
+        }
+
         return $this->message ?: 'An unknown fatal error occurred.';
     }
 
@@ -462,6 +466,7 @@ abstract class AbstractErrorHandler {
      */
     public function display() : void {
         $this->sendHeaders();
+        
         echo $this->render();
 
         if ( $this->shouldExit() ) {
@@ -481,23 +486,23 @@ abstract class AbstractErrorHandler {
         echo $this->renderWarning();
     }
 
-    /**
-     * Log error - human and machine-readable format.
-     *
-     * Outputs structured data: timestamp, class, message, file, line, trace (debug only).
-     * Parses correctly by both humans and log aggregators.
-     *
-     * @param \Throwable $throwable Throwable to log.
+/**
+     * Log error in both human-readable and structured formats.
+     * 
+     * Formats error data as a multi-line visual block for terminal tailing and standard log files, 
+     * while delegating array structures directly to custom log handlers when available.
+     * 
+     * @param \Throwable $throwable The caught throwable instance to log.
      * @return void
      */
-    public function logError( \Throwable $throwable ) : void {
-        $errline    = $throwable->getLine();
+    public function logError( \Throwable $throwable ): void {
         $log_data = [
-            'timestamp'  => date( 'Y-m-d H:i:s' ),
-            'type'       => get_class( $throwable ),
-            'message'    => $throwable->getMessage(),
-            'file'       => $throwable->getFile() . ' (' . $errline . ')',
-            'line'       => $errline,
+            'timestamp' => date( 'Y-m-d H:i:s' ),
+            'type'      => get_class( $throwable ),
+            'message'   => $throwable->getMessage(),
+            'file'      => $throwable->getFile(),
+            'line'      => $throwable->getLine(),
+            'code'      => $throwable->getCode(),
         ];
 
         if ( $this->isDebug() ) {
@@ -506,10 +511,40 @@ abstract class AbstractErrorHandler {
 
         if ( $this->log_handler ) {
             ( $this->log_handler )( $log_data );
-        } else {
-            $json = json_encode( $log_data, \JSON_UNESCAPED_SLASHES | \JSON_PARTIAL_OUTPUT_ON_ERROR );
-            error_log( $json );
+            return;
         }
+
+        error_log( $this->format_human_readable_log( $log_data ) );
+    }
+
+    /**
+     * Format log payload into a clean, human-readable text block.
+     * 
+     * @param array $data Structured log data.
+     * @return string
+     */
+    private function format_human_readable_log( array $data ): string {
+        $divider = str_repeat( '-', 80 );
+        
+        $output  = "\n" . $divider . "\n";
+        $output .= sprintf( "[%s] %s: %s\n", $data['timestamp'], $data['type'], $data['message'] );
+        $output .= sprintf( "Location : %s on line %d\n", $data['file'], $data['line'] );
+
+        if ( ! empty( $data['code'] ) ) {
+            $output .= sprintf( "Code     : %s\n", $data['code'] );
+        }
+
+        if ( ! empty( $data['trace'] ) ) {
+            $output .= "Stack Trace:\n";
+            // Indent each line of the stack trace for clean visual hierarchy
+            $lines   = explode( "\n", $data['trace'] );
+            $indented = array_map( static fn( string $line ): string => '  ' . $line, $lines );
+            $output .= implode( "\n", $indented ) . "\n";
+        }
+
+        $output .= $divider;
+
+        return $output;
     }
 
     /*
@@ -521,53 +556,40 @@ abstract class AbstractErrorHandler {
     /**
      * Handle fatal errors as callback for set_error_handler().
      *
-     * Converts PHP errors to ErrorException for structured handling.
-     * Non-fatal errors are logged and optionally displayed. Fatal errors are displayed.
-     *
-     * Usage:
-     *   set_error_handler( [ HttpErrorHandler::class, 'handleError' ] );
-     *
-     * @param int $errno Error number.
-     * @param string $errstr Error message.
+     * @param int    $errno   Error number.
+     * @param string $errstr  Error message.
      * @param string $errfile Error file.
-     * @param int $errline Error line.
-     * @return bool Return true to stop PHP's internal error handler.
+     * @param int    $errline Error line.
+     * @return bool
      */
     public function handleError( int $errno, string $errstr, string $errfile, int $errline ) : bool {
-        if ( ! $this->isDebug() || ! ( error_reporting() & $errno ) ) {
-            return true; // Ignore non-debug or non-reported errors
-        }
-        
-        $exception = new \ErrorException( $errstr, 0, $errno, $errfile, $errline );
-
-        if ( $this->isFatalError( $errno ) ) {
-            // Handle our canonical fatal errors with full display and logging.
-            $this->handleException( $exception );
-            $this->handled  = true;
+        // Always log regardless of debug mode if reported by PHP error_reporting
+        if ( ! ( error_reporting() & $errno ) ) {
             return true;
         }
 
+        $exception = new \ErrorException( $errstr, 0, $errno, $errfile, $errline );
+
+        if ( $this->isFatalError( $errno ) ) {
+            $this->handleException( $exception );
+            return true;
+        }
+
+        // Non-fatal errors are logged in production, displayed only in debug mode
         $this->logError( $exception );
 
-        // Display as warning in debug + display_errors mode
         if ( $this->isDebug() && $this->displaysError() ) {
             $this->error_object = $exception;
-            $this->title        = $this->getErrorTitle( $errno );
+            $this->title        = static::getErrorTitle( $errno );
             $this->message      = $errstr;
             $this->displayWarning();
         }
 
         return true;
-        
     }
 
     /**
      * Handle exceptions as callback for set_exception_handler().
-     *
-     * Accepts any Throwable - no wrapping, preserves full trace.
-     *
-     * Usage:
-     *   set_exception_handler( [ HttpErrorHandler::class, 'handleException' ] );
      *
      * @param \Throwable $throwable The uncaught exception.
      * @return void
@@ -576,22 +598,23 @@ abstract class AbstractErrorHandler {
         if ( $this->handled ) {
             return;
         }
-        
+
         $this->error_object = $throwable;
-        $this->message      = $throwable->getMessage();
-        $this->code         = (string) $throwable->getCode();
-
-        if ( $throwable instanceof ErrorException ) {
-            $errno  = $throwable->getSeverity();
-        } else {
-            $errno  = \E_ERROR;
-        }
-
-        $this->title        = $this->getErrorTitle( $errno );
-
         $this->logError( $throwable );
 
-        $this->handled  = true;
+        $errno       = ( $throwable instanceof ErrorException ) ? $throwable->getSeverity() : \E_ERROR;
+        $this->title = static::getErrorTitle( $errno );
+
+        // Mask raw message in production if it's an internal server error
+        if ( ! $this->isDebug() && $this->isFatalOrInternal() ) {
+            $this->message = 'An unexpected internal error occurred. Please contact system support if the issue persists.';
+        } else {
+            $this->message = $throwable->getMessage();
+        }
+
+        $this->code    = (string) $throwable->getCode();
+        $this->handled = true;
+        
         $this->display();
     }
 
@@ -694,6 +717,29 @@ abstract class AbstractErrorHandler {
         ];
 
         return in_array( $error_type, $fatal, true );
+    }
+
+    /**
+     * Determine if current error context represents an internal or fatal failure.
+     *
+     * @return bool
+     */
+    protected function isFatalOrInternal() : bool {
+        if ( null === $this->error_object ) {
+            return $this->getResponseCode() >= 500;
+        }
+
+        if ( $this->error_object instanceof ErrorException ) {
+            return static::isFatalError( $this->error_object->getSeverity() );
+        }
+
+        // Custom application domain exceptions can implement an interface or property 
+        // to declare themselves safe for public display when non-fatal.
+        // if ( method_exists( $this->error_object, 'isPublic' ) ) {
+        //     return ! $this->error_object->isPublic();
+        // }
+
+        return true;
     }
 
     /**
