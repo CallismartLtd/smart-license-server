@@ -117,10 +117,17 @@ class MultipartRequestParser {
     /**
      * Constructor.
      *
-     * @param string $method       HTTP method
-     * @param string $content_type Content-Type header
+     * @param string $method            HTTP method
+     * @param string $content_type      Content-Type header.
+     * @param bool   $debug             Enable debugging.
+     * @param bool   $verbose Whether to log stream errors.
      */
-    public function __construct( protected string $method, protected string $content_type, protected bool $debug = false ) {
+    public function __construct(
+        protected string $method,
+        protected string $content_type, 
+        protected bool $debug               = false,
+        protected bool $verbose   = false
+    ) {
         $this->limits   = $this->parse_php_ini_limits();
 
         register_shutdown_function( [ $this, 'cleanup' ] );
@@ -421,7 +428,7 @@ class MultipartRequestParser {
         }
 
         try {
-            $parser = new MultipartStreamParser( $stream, $boundary, $this->limits, $this, $this->debug );
+            $parser = new MultipartStreamParser( $stream, $boundary, $this->limits, $this, $this->debug, $this->verbose );
             $parser->parse();
 
             $this->post_data = $parser->get_post_data();
@@ -710,6 +717,13 @@ class MultipartStreamParser {
     private array $debug_log = [];
 
     /**
+     * Verbosity flag.
+     *
+     * @var bool
+     */
+    private bool $verbose = false;
+
+    /**
      * Constructor.
      *
      * @param resource                $stream
@@ -718,14 +732,15 @@ class MultipartStreamParser {
      * @param MultipartRequestParser  $parent
      * @param bool                    $debug Enable debug logging
      */
-    public function __construct( $stream, string $boundary, array $limits, MultipartRequestParser $parent, bool $debug = false ) {
-        $this->stream          = $stream;
-        $this->boundary        = $boundary;
-        $this->boundary_marker = "--{$this->boundary}";
-        $this->boundary_close  = "--{$this->boundary}--";
-        $this->limits          = $limits;
-        $this->parent          = $parent;
-        $this->debug           = $debug;
+    public function __construct( $stream, string $boundary, array $limits, MultipartRequestParser $parent, bool $debug = false, bool $verbose = false ) {
+        $this->stream           = $stream;
+        $this->boundary         = $boundary;
+        $this->boundary_marker  = "--{$this->boundary}";
+        $this->boundary_close   = "--{$this->boundary}--";
+        $this->limits           = $limits;
+        $this->parent           = $parent;
+        $this->debug            = $debug;
+        $this->verbose          = $verbose;
     }
 
     /**
@@ -749,14 +764,16 @@ class MultipartStreamParser {
 
         $this->debug_log[] = $entry;
 
-        error_log( sprintf(
-            '[MultipartParser] [%s] %s (buffer: %d, read: %d)',
-            $this->get_state_name(),
-            $message,
-            strlen( $this->buffer ),
-            $this->bytes_read
-        ) );
-        
+        if ( $this->verbose ) {
+            error_log( sprintf(
+                '[MultipartParser] [%s] %s (buffer: %d, read: %d)',
+                $this->get_state_name(),
+                $message,
+                strlen( $this->buffer ),
+                $this->bytes_read
+            ));            
+        }
+
     }
 
     /**

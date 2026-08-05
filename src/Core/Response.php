@@ -624,10 +624,9 @@ class Response {
                     $callback_name = $callback;
                 }
 
-				$class_name	= get_class( $this );
-                error_log( sprintf(
+                smliser_log_error( sprintf(
                     '[%ss] Post-serve callback failed (%s): %s in %s:%d',
-					$class_name,
+					get_class( $this ),
                     $callback_name,
                     $e->getMessage(),
                     $e->getFile(),

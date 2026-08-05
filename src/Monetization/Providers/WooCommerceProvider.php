@@ -122,11 +122,6 @@ class WooCommerceProvider implements MonetizationProviderInterface {
         $product = $response->json();
 
         if ( ! is_array( $product ) ) {
-            error_log( sprintf(
-                'WooCommerceProvider::get_product() - Failed to decode JSON for product %d',
-                $product_id
-            ) );
-
             static::cache_set( $cache_key, null, $cache_expiry );
             return null;
         }

@@ -18,6 +18,7 @@ use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use Callismart\Http\Exceptions\HttpRequestException;
 use Callismart\Http\HttpClient;
+use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
@@ -65,36 +66,7 @@ function smliser_form_message( mixed $messages ) : string {
  * @return string
  */
 function smliser_get_client_ip() : string {
-    $ip_keys = array(
-        'HTTP_X_REAL_IP',
-        'HTTP_CLIENT_IP',
-        'HTTP_X_FORWARDED_FOR',
-        'HTTP_X_FORWARDED',
-        'HTTP_X_CLUSTER_CLIENT_IP',
-        'HTTP_FORWARDED_FOR',
-        'HTTP_FORWARDED',
-        'REMOTE_ADDR'
-    );
-
-    foreach ( $ip_keys as $key ) {
-        if ( empty( $_SERVER[ $key ] ) ) {
-            continue;
-        }
-
-        // In case of multiple IPs, we take the first one (usually the client IP).
-        $ip_list = explode( ',', Sanitizer::sanitize_text( unslash( $_SERVER[ $key ] ) ) );
-        
-        foreach ( $ip_list as $ip ) {
-            $ip = trim( $ip );
-            // Validate both IPv4 and IPv6 addresses.
-            if ( filter_var( $ip, FILTER_VALIDATE_IP, array( FILTER_FLAG_NO_RES_RANGE, FILTER_FLAG_IPV4, FILTER_FLAG_IPV6 ) ) ) {
-                return $ip;
-            }
-        }
-        
-    }
-
-    return 'unresoved_ip';
+    return smliser_request()->ip();
 }
 
 /**
@@ -852,4 +824,13 @@ function smliser_is_scalar_array( mixed $array ): bool {
  */
 function smliser__( string $text, string $domain = 'default' ): string {
     return $text; //@TODO: Build a translation engine.
+}
+
+/**
+ * Log error messages to the error log.
+ * 
+ * @param Throwable|string $error
+ */
+function smliser_log_error( Throwable|string $error ) : void {
+    GlobalErrorHandler::instance()->log( $error );
 }
