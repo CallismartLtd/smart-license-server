@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
 
+use SmartLicenseServer\Routing\InvalidRouteException;
+
 /**
  * Priority for add_rewrite_rule(). Mirrors WordPress' own 'top' | 'bottom' values,
  * as an enum instead of an unvalidated string.

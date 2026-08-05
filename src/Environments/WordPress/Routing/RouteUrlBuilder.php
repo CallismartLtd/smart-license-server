@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
 
+use SmartLicenseServer\Routing\RoutePattern;
+use SmartLicenseServer\Routing\InvalidRouteException;
+
 /**
  * Renders a route's original pattern template back into a concrete URL path
  * given parameter values. Used by Router::url().

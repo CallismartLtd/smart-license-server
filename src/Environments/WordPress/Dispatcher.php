@@ -43,10 +43,11 @@ class Dispatcher implements RequestDispatcherInterface {
      * @var array<string, callable(Request):Response> $registered_handlers
      */
     public static array $registered_handlers = [
-        'smliser-dashboard'                             => [ __CLASS__, 'render_client_dashboard' ],
+        'smliser-client-dashboard'                      => [ __CLASS__, 'render_client_dashboard' ],
         'smliser-downloads'                             => [ __CLASS__, 'handle_public_downloads' ],
         'smliser-repository-assets'                     => [ __CLASS__, 'handle_app_asset_request' ],
         'smliser-uploads'                               => [ __CLASS__, 'handle_uploads_dir_request' ],
+        
         'smliser_admin_download'                        => [ __CLASS__, 'handle_admin_download_request' ],
         'smliser_download_image'                        => [ __CLASS__, 'handle_proxy_image_request' ],
         'smliser_save_plugin'                           => [ __CLASS__, 'handle_save_app_request' ],
@@ -88,9 +89,7 @@ class Dispatcher implements RequestDispatcherInterface {
         'smliser_test_cache_adapter_settings'           => [ __CLASS__, 'handle_test_cache_adapter_settings_request' ],
         'smliser_cache_get_stats'                       => [ __CLASS__, 'handle_get_cache_stats_request' ],
         'smliser_cache_clear_all'                       => [ __CLASS__, 'handle_clear_all_cache_request' ],
-        'smliser_cache_delete_by_prefix'                => [ __CLASS__, 'handle_delete_cache_by_prefix_request' ],
         'smliser_cache_flush_expired'                   => [ __CLASS__, 'handle_flush_expired_cache_request' ],
-        'smliser_cache_get_top_keys'                    => [ __CLASS__, 'handle_get_top_cache_keys_request' ],
     ];
 
     /**
@@ -692,25 +691,13 @@ class Dispatcher implements RequestDispatcherInterface {
 
     }
 
-    public static function handle_delete_cache_by_prefix_request( Request $request ) : Response {
-        static::guard( $request, 'manage_options' );
-
-        return CacheRequestController::delete_cache_by_prefix( $request );
-
-    }
-
     public static function handle_flush_expired_cache_request( Request $request ) : Response {
         static::guard( $request, 'manage_options' );
 
-        return CacheRequestController::flush_expired_cache( $request );
+        return CacheRequestController::flush_expired_cache();
 
     }
 
-    public static function handle_get_top_cache_keys_request( Request $request ) : Response {
-        static::guard( $request, 'manage_options' );
-
-        return CacheRequestController::get_top_cache_keys( $request );
-    }
 
     public static function render_client_dashboard( Request $request ) : Response {
         $registry       = smliserFrontendTemplate();

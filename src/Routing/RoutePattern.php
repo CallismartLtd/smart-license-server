@@ -2,12 +2,12 @@
 /**
  * RoutePattern class file.
  *
- * @package SmartLicenseServer\Environments\WordPress\Routing
+ * @package SmartLicenseServer\Routing
  */
 
 declare(strict_types=1);
 
-namespace SmartLicenseServer\Environments\WordPress\Routing;
+namespace SmartLicenseServer\Routing;
 
 /**
  * Compiles a placeholder pattern string into a CompiledPattern.
@@ -142,10 +142,10 @@ final class RoutePattern {
 	 */
 	private static function splitSegments( string $pattern ): array {
 		if ( '' === $pattern ) {
-			return [];
+			return array();
 		}
 
-		$segments = [];
+		$segments = array();
 		$current  = '';
 		$depth    = 0;
 
@@ -196,7 +196,7 @@ final class RoutePattern {
 
 		$isSoleToken = 1 === $matchCount && $matches[0][0][0] === $rawSegment;
 		$optional    = false;
-		$paramNames  = [];
+		$paramNames  = array();
 		$regex       = '';
 		$cursor      = 0;
 

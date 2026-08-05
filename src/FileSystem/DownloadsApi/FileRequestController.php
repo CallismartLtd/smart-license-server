@@ -57,8 +57,8 @@ class FileRequestController {
             
             $response = new FileResponse( $file_path, ['type' => $app->get_type()] );
 
-            $response->register_after_serve_callback( [AppsAnalytics::class,'log_download'], [$app] );
-            $response->register_after_serve_callback( [AppsAnalytics::class,'log_client_access'], [$app, 'download'] );
+            $response->post_response_action( [AppsAnalytics::class,'log_download'], $app );
+            $response->post_response_action( [AppsAnalytics::class,'log_client_access'], $app, 'download' );
             
             return $response;
 
@@ -117,8 +117,8 @@ class FileRequestController {
             
             $response = new FileResponse( $file_path, ['type' => $app->get_type()] );
 
-            $response->register_after_serve_callback( [AppsAnalytics::class,'log_download'], [$app] );
-            $response->register_after_serve_callback( [AppsAnalytics::class,'log_client_access'], [$app, 'download'] );
+            $response->post_response_action( [AppsAnalytics::class,'log_download'], $app );
+            $response->post_response_action( [AppsAnalytics::class,'log_client_access'], $app, 'download' );
             
             return $response;
 
@@ -147,7 +147,7 @@ class FileRequestController {
             $file_path  = $app->get_zip_file();
             $response   = new FileResponse( $file_path, ['type' => $app->get_type()] );
             
-            $response->register_after_serve_callback( [AppsAnalytics::class,'log_download'], [$app] );
+            $response->post_response_action( [AppsAnalytics::class,'log_download'], $app );
             
             return $response;
             

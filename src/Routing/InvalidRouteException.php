@@ -2,12 +2,12 @@
 /**
  * InvalidRouteException class file.
  *
- * @package SmartLicenseServer\Environments\WordPress\Routing
+ * @package SmartLicenseServer\Routing
  */
 
 declare(strict_types=1);
 
-namespace SmartLicenseServer\Environments\WordPress\Routing;
+namespace SmartLicenseServer\Routing;
 
 /**
  * Thrown when a route pattern is malformed, or violates a routing invariant:

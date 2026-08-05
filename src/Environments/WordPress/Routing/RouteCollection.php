@@ -23,7 +23,7 @@ namespace SmartLicenseServer\Environments\WordPress\Routing;
 final class RouteCollection {
 
 	/** @var Route[] */
-	private array $routes = [];
+	private array $routes = array();
 
 	public function add( Route $route ): void {
 		$this->routes[] = $route;

@@ -93,7 +93,7 @@ class RoutesManager {
 		| Client dashboard
 		|------------------
 		*/
-		$this->router->add( $dashboard_slug, 'smliser-dashboard' );
+		$this->router->add( $dashboard_slug, 'smliser-client-dashboard' );
 
 		/*
 		|-------------------------

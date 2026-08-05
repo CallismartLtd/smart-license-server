@@ -2,12 +2,12 @@
 /**
  * RouteSegment class file.
  *
- * @package SmartLicenseServer\Environments\WordPress\Routing
+ * @package SmartLicenseServer\Routing
  */
 
 declare(strict_types=1);
 
-namespace SmartLicenseServer\Environments\WordPress\Routing;
+namespace SmartLicenseServer\Routing;
 
 /**
  * Immutable compiled representation of a single "/"-delimited path segment.

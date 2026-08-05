@@ -2,12 +2,15 @@
 /**
  * Router class file.
  *
- * @package SmartLicenseServer\Routing
+ * @package SmartLicenseServer\Environments\WordPress\Routing
  */
 
 declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
+
+use SmartLicenseServer\Routing\InvalidRouteException;
+use SmartLicenseServer\Routing\RoutePattern;
 
 /**
  * Fluent façade over WordPress' rewrite API.
@@ -196,7 +199,7 @@ final class Router {
 	 * @param string[] $vars
 	 * @return string[]
 	 */
-	public function query_vars( array $vars = [] ): array {
+	public function query_vars( array $vars ): array {
 		foreach ( $this->routes->all() as $route ) {
 			$vars = array_merge( $vars, $route->queryVarNames() );
 		}

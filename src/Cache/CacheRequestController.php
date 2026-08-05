@@ -218,107 +218,14 @@ class CacheRequestController {
     }
 
     /**
-     * Delete all cache keys that begin with the supplied prefix.
-     *
-     * Delegates to Cache::delete_by_prefix() which proxies to the active
-     * adapter. Adapters that cannot enumerate keys should return 0.
-     *
-     * @param Request $request  Expects: { "value": "prefix_string", "security": "nonce" }
-     * @return Response
-     */
-    public static function delete_cache_by_prefix( Request $request ): Response {
-        try {
-            static::is_system_admin();
-
-            $prefix = static::sanitize_text( $request->get( 'value', '' ) );
-
-            if ( $prefix === '' ) {
-                throw new RequestException( 'required_param', 'A key prefix is required.' );
-            }
-
-            $cache   = \smliser_cache();
-            $deleted = $cache->delete_by_prefix( $prefix );
-
-            return ( new Response( 200, [], [
-                'success' => true,
-                'data'    => [
-                    'message' => sprintf(
-                        'Deleted %d key%s matching prefix "%s".',
-                        $deleted,
-                        $deleted !== 1 ? 's' : '',
-                        $prefix
-                    ),
-                ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-
-        } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-        }
-    }
-
-    /**
-     * Delete all cache keys matching the supplied regex pattern.
-     *
-     * The pattern must be a valid PHP regex including delimiters, e.g.
-     * /^smliser_user_\d+/. Validated server-side before reaching the adapter.
-     *
-     * @param Request $request  Expects: { "value": "/pattern/", "security": "nonce" }
-     * @return Response
-     */
-    public static function delete_cache_by_pattern( Request $request ): Response {
-        try {
-            static::is_system_admin();
-
-            $pattern = static::sanitize_text( $request->get( 'value', '' ) );
-
-            if ( $pattern === '' ) {
-                throw new RequestException( 'required_param', 'A regex pattern is required.' );
-            }
-
-            if ( @preg_match( $pattern, '' ) === false ) {
-                throw new RequestException(
-                    'validation_failed',
-                    sprintf(
-                        '"%s" is not a valid regex pattern. Include delimiters, e.g. /^your_key_\d+/.',
-                        $pattern
-                    )
-                );
-            }
-
-            $cache   = \smliser_cache();
-            $deleted = $cache->delete_by_pattern( $pattern );
-
-            return ( new Response( 200, [], [
-                'success' => true,
-                'data'    => [
-                    'message' => sprintf(
-                        'Deleted %d key%s matching pattern "%s".',
-                        $deleted,
-                        $deleted !== 1 ? 's' : '',
-                        $pattern
-                    ),
-                ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-
-        } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-        }
-    }
-
-    /**
      * Flush expired (TTL-elapsed) entries from the active cache adapter.
      *
      * Meaningful only for adapters that accumulate expired rows without
      * immediate eviction (SQLite, Runtime). Others return 0 without error.
      *
-     * @param Request $request
      * @return Response
      */
-    public static function flush_expired_cache( Request $request ): Response {
+    public static function flush_expired_cache(): Response {
         try {
             static::is_system_admin();
 
@@ -330,6 +237,8 @@ class CacheRequestController {
                     'Manual cache expiry flush is not supported by this driver.'
                 );
             }
+
+            /** @var \SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter $cache */
             $pruned = $cache->prune_expired();
 
             return ( new Response( 200, [], [
@@ -339,78 +248,6 @@ class CacheRequestController {
                         ? sprintf( 'Flushed %d expired entr%s.', $pruned, $pruned !== 1 ? 'ies' : 'y' )
                         : 'No expired entries found.',
                 ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-
-        } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-        }
-    }
-
-    /**
-     * Return the top N APCu cache keys sorted by hit count descending.
-     *
-     * Only available when the active adapter is APCu. Reads directly from
-     * apcu_cache_info() since per-key hit data is not part of CacheStats.
-     *
-     * Response data shape per key:
-     *   { key: string, hits: int, ttl: int|null, size: int }
-     *
-     * ttl is null when the entry has no expiry (APCu ttl=0), otherwise
-     * the remaining seconds until expiry.
-     *
-     * @param Request $request  Expects query param: limit (int, default 10, max 100).
-     * @return Response
-     */
-    public static function get_top_cache_keys( Request $request ): Response {
-        try {
-            static::is_system_admin();
-
-            $cache = \smliser_cache();
-
-            if ( $cache->get_id() !== 'apcu' ) {
-                throw new RequestException(
-                    'not_supported',
-                    sprintf(
-                        'Key-level browsing is only available for APCu. The active adapter is %s.',
-                        $cache->get_name()
-                    )
-                );
-            }
-
-            if ( ! \function_exists( 'apcu_cache_info' ) ) {
-                throw new RequestException( 'not_supported', 'The APCu extension is not available.' );
-            }
-
-            $limit = min( 100, max( 1, (int) $request->get( 'limit', 10 ) ) );
-            $info  = \apcu_cache_info( false );
-            $raw   = $info['cache_list'] ?? [];
-
-            \usort( $raw, static fn( $a, $b ) => ( $b['num_hits'] ?? 0 ) <=> ( $a['num_hits'] ?? 0 ) );
-
-            $now  = \time();
-            $keys = [];
-
-            foreach ( \array_slice( $raw, 0, $limit ) as $entry ) {
-                $creation_time = (int) ( $entry['creation_time'] ?? 0 );
-                $ttl_raw       = (int) ( $entry['ttl']           ?? 0 );
-
-                $ttl_remaining = $ttl_raw === 0
-                    ? null
-                    : max( 0, ( $creation_time + $ttl_raw ) - $now );
-
-                $keys[] = [
-                    'key'  => (string) ( $entry['info']    ?? '' ),
-                    'hits' => (int)    ( $entry['num_hits'] ?? 0 ),
-                    'ttl'  => $ttl_remaining,
-                    'size' => (int)    ( $entry['mem_size'] ?? 0 ),
-                ];
-            }
-
-            return ( new Response( 200, [], [
-                'success' => true,
-                'data'    => [ 'keys' => $keys ],
             ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
         } catch ( RequestException $e ) {

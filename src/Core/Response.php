@@ -381,7 +381,7 @@ class Response {
 		$method	= $_SERVER['REQUEST_METHOD'] ?? '';
 
 		if ( 'OPTIONS' === $method || static::is_redirect() ) {
-			exit;
+			$this->stop();
 		}
 	}
 
@@ -423,7 +423,7 @@ class Response {
 		$this->trigger_after_serve_callbacks();
 
 		if ( $this->is_json_response() ) {
-			exit;
+			$this->stop();
 		}
 	}
 
@@ -574,16 +574,24 @@ class Response {
 		return $this;
 	}
 
+	/**
+	 * Ends response.
+	 * 
+	 * @return never
+	 */
+	public function stop() : never {
+		exit;
+	}
 
     /**
-     * Register a callback to run after serving the file.
+     * Register a callback to be executed after the response is sent.
      *
      * @param callable $callback   The function or method to call.
-     * @param array    $args       Optional. Arguments to pass to the callback.
+     * @param mixed   ...$args       Optional. Arguments to pass to the callback.
      *
      * @return void
      */
-    public function register_after_serve_callback( callable $callback, array $args = array() ) {
+    public function post_response_action( callable $callback, mixed ...$args ) {
         $this->after_serve_callbacks[] = array(
             'callback' => $callback,
             'args'     => $args,

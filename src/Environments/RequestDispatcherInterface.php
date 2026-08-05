@@ -358,28 +358,12 @@ interface RequestDispatcherInterface {
     public static function handle_clear_all_cache_request( Request $request ) : Response;
     
     /**
-     * Parse request to delete cache by prefix.
-     * 
-     * @param Request $request
-     * @return Response
-     */
-    public static function handle_delete_cache_by_prefix_request( Request $request ) : Response;
-
-    /**
      * Parse request to flush expired cache data.
      * 
      * @param Request $request
      * @return Response
      */
     public static function handle_flush_expired_cache_request( Request $request ) : Response;
-
-    /**
-     * Parse request to get top cache keys.
-     * 
-     * @param Request $request
-     * @return Response
-     */
-    public static function handle_get_top_cache_keys_request( Request $request ) : Response;
 
     /**
      * Render the client dashboard shell.

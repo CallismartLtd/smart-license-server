@@ -2,12 +2,15 @@
 /**
  * Route class file.
  *
- * @package SmartLicenseServer\Routing
+ * @package SmartLicenseServer\Environments\WordPress\Routing
  */
 
 declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
+
+use SmartLicenseServer\Routing\CompiledPattern;
+use SmartLicenseServer\Routing\InvalidRouteException;
 
 /**
  * A single registered route definition.
@@ -22,7 +25,8 @@ namespace SmartLicenseServer\Environments\WordPress\Routing;
  *     and query string are derived from a CompiledPattern.
  *   - Route::raw()       — an escape hatch, used by Router::raw(), for the
  *     rare rule the placeholder DSL genuinely cannot express (see Router::raw()
- *     docblock for when that's the case). 
+ *     docblock for when that's the case). The regex and query string are
+ *     taken verbatim, exactly as if add_rewrite_rule() had been called directly.
  */
 final class Route {
 
@@ -44,7 +48,8 @@ final class Route {
 		private readonly ?string $rawRegex = null,
 		private readonly ?string $rawQuery = null,
 		private readonly array $rawQueryVarNames = array()
-	) {}
+	) {
+	}
 
 	/**
 	 * @param array<string,string> $extraVars
@@ -97,7 +102,7 @@ final class Route {
 	}
 
 	/**
-	 * Builds the anchored regex and target query string for wp's add_rewrite_rule().
+	 * Builds the anchored regex and target query string for add_rewrite_rule().
 	 *
 	 * @return array{regex: string, query: string, priority: string}
 	 */
