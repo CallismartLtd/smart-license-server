@@ -281,7 +281,6 @@ class WordPressBootstrapGenerator {
 			'app_root'			=> ABSPATH,
 			'runtime_dir'		=> __DIR__,
 			'storage_dir'		=> trailingslashit( WP_CONTENT_DIR ) . 'smliser-storage',
-			'base_dir_url'		=> plugin_dir_url( __FILE__ ),
 			'index_file'		=> __FILE__,
 			'debug_mode'		=> defined( 'WP_DEBUG' ) && WP_DEBUG,
 			'display_errors'	=> defined( 'WP_DEBUG_DISPLAY' ) && WP_DEBUG_DISPLAY,

@@ -17,15 +17,12 @@ $defaults   = [
     'debug_mode'        => false,
     'display_errors'    => false,
     'log_errors'        => false,
-    
-    'base_dir_url'  => '',
-    
+
 ];
 
 $config = array_intersect_key( array_merge( $defaults, $config ?? [] ), $defaults );
 
 require_once 'constants.php';
-
 require_once 'Autoloader.php';
 
 \SmartLicenseServer\Exceptions\GlobalErrorHandler::instance()

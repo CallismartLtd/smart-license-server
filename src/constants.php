@@ -3,7 +3,6 @@
  * @var array{
  *  app_root: string,
  *  runtime_dir: string,
- *  base_dir_url: string,
  *  src_dir: string,
  *  index_file: string} $config 
  */
@@ -131,15 +130,6 @@ define( 'SMLISER_FILE', rtrim( $config['index_file'], '/' ) . '/' );
  * @var string
  */
 define( 'SMLISER_SRC_DIR', rtrim( $config['src_dir'], '/' ) . '/' );
-
-/**
- * The base directory URL.
- * 
- * Used to locate core assets and files within the base directory.
- *
- * @var string
- */
-define( 'SMLISER_URL', $config['base_dir_url'] );
 
 /**
  * Debug mode flag.

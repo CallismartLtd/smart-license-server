@@ -157,7 +157,7 @@ class WordPressEnvironment extends Environment {
     
     public static function assetsUrl( string $path = '', array $qv = [] ) : URL {
         $path   = FileSystemHelper::join_path( '/assets/', $path );
-        return ( new URL( SMLISER_URL ) )
+        return ( new URL( plugin_dir_url( SMLISER_FILE ) ) )
             ->append_path( $path )
             ->add_query_params( $qv );
     }
