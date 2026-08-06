@@ -413,7 +413,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     }
 
     /**
-     * Declare global constants.
+     * Declare db constants.
      */
     private function declareDBConstants() : void {
         
