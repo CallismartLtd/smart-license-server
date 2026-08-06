@@ -40,11 +40,11 @@ class FileSystemHelper {
      */
     protected static function init_maps(): void {
         if ( ! isset( static::$ext_mime_type_map ) ) {
-            static::$ext_mime_type_map = include_once \SMLISER_SRC_DIR . 'FileSystem/bundles/ext-2-mime-type-map.php';
+            static::$ext_mime_type_map = include_once __DIR__ . '/bundles/ext-2-mime-type-map.php';
         }
 
         if ( ! isset( static::$mimes_to_ext_map  ) ) {
-            static::$mimes_to_ext_map  = include_once \SMLISER_SRC_DIR . 'FileSystem/bundles/mime-type-2-ext-map.php';
+            static::$mimes_to_ext_map  = include_once __DIR__ . '/bundles/mime-type-2-ext-map.php';
 
         }
     }

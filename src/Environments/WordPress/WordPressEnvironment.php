@@ -14,16 +14,19 @@ use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Core\URL;
 use Callismart\DBPrism\Adapters\WPDBAdapter;
 use SmartLicenseServer\Autoloader;
+use SmartLicenseServer\Cache\CacheAdapterRegistry;
+use SmartLicenseServer\Cache\CacheProviderIcons;
 use SmartLicenseServer\Console\OptionParser;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Environments\WordPress\CLI\WPCLIInput;
 use SmartLicenseServer\Environments\WordPress\CLI\WPCLIOutput;
 use SmartLicenseServer\Environments\WordPress\CLI\WPCLIRunner;
-use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
+
+use function SmartLicenseServer\Admin\smliser_get_event_icon;
 
 /**
  * WordPress Environment setup class
@@ -55,26 +58,10 @@ class WordPressEnvironment extends Environment {
     private function setProps() : void {
         static::$envProvider = $this;
         
-        $debug_mode = defined( 'WP_DEBUG' ) && (bool) constant( 'WP_DEBUG' );
-
-        GlobalErrorHandler::instance()
-            ->bootstrap([
-                'debug'             => $debug_mode,
-                'environment'       => 'http',
-                'display_errors'    => defined( 'WP_DEBUG_DISPLAY' ) && constant( 'WP_DEBUG_DISPLAY' ),
-                'log_errors'        => $debug_mode,
-                'log_path'          => \SMLISER_ROOT . 'error.log',
-            ])
-            ->registerHandlers();
-
         /** @var \wpdb $wpdb */
         $wpdb               = $GLOBALS['wpdb'] ?? null;
-        $repo_path          = WP_CONTENT_DIR;
-        $absolute_path      = ABSPATH;
-        $uploads_dir        = wp_upload_dir()['basedir'];
         $db_prefix          = $wpdb->prefix . 'smliser_';
         $filesystem_adapter = new WPFileSystemAdapter;
-        $cache_adapter      = wp_using_ext_object_cache() ? new WPCacheAdapter : null;
         $settings_provider  = new WPSettingsProvider;
         $database_adapter   = new WPDBAdapter( $wpdb );
         $rest_api_provider  = new RESTAPI( new V1 );
@@ -82,15 +69,17 @@ class WordPressEnvironment extends Environment {
         $salt               = SECURE_AUTH_SALT;
         $identity_provider  = new IdentityService();        
 
-        $env    = compact( 'absolute_path', 'db_prefix', 'repo_path', 'uploads_dir',
-            'filesystem_adapter', 'cache_adapter', 'settings_provider', 'rest_api_provider',
-            'secret', 'identity_provider', 'database_adapter', 'debug_mode', 'salt'
+        $env    = compact( 'db_prefix','filesystem_adapter', 
+            'settings_provider', 'rest_api_provider', 'secret', 'identity_provider',
+            'database_adapter', 'salt'
         );
         
         $this->setup( $env );
         
         $this->script_manager   = new ScriptManager( $this->request );
         $this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request );
+
+        CacheAdapterRegistry::instance( $this->settings() )->add( WPCacheAdapter::class );
     }
 
     /**
@@ -121,7 +110,7 @@ class WordPressEnvironment extends Environment {
         add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
         add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
 
-        add_action( 'smliser_process_queue', [$this->queue_worker, 'process_within_time_budget'] );
+        add_action( 'smliser_process_queue', [$this->queue_worker(), 'process_within_time_budget'] );
         add_action( 'smliser_run_scheduler', [$this->scheduler(), 'run_due_tasks'] );
 
         add_action( 'cli_init', [$this, 'setup_cli'] );
@@ -204,7 +193,7 @@ class WordPressEnvironment extends Environment {
                 \SMLISER_SOFTWARE_REPO_DIR,
             ];
 
-            $cached_results = $this->filesystem->test_dirs_read_write( $dirs_to_check );
+            $cached_results = $this->filesystem()->test_dirs_read_write( $dirs_to_check );
             set_transient( $transient_key, $cached_results, HOUR_IN_SECONDS );
         }
 

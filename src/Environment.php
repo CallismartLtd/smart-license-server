@@ -41,6 +41,7 @@ use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use Callismart\DBPrism\Adapters\PostgresAdapter;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
+use SmartLicenseServer\Events\Bootstrap\EnvironmentBooting;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
 use SmartLicenseServer\Events\EventServiceProvider;
 use SmartLicenseServer\Security\Context\IdentityProviderInterface;
@@ -126,19 +127,15 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     protected array $env = [
         'db_prefix'             => '',
-        'absolute_path'         => '',
         'secret'                => null,
         'salt'                  => null,
-        'repo_path'             => '',
         'uploads_dir'           => '',
         'filesystem_adapter'    => null,
-        'cache_adapter'         => null,
         'settings_provider'     => null,
         'database_adapter'      => null,
         'rest_api_provider'     => null,
         'admin_menu_config'     => null,
         'identity_provider'     => null,
-        'debug_mode'            => false
     ];
 
     /**
@@ -253,19 +250,15 @@ abstract class Environment implements EnvironmentProviderInterface {
      * 
      * @param array{
      *      db_prefix: string,
-     *      absolute_path: string,
      *      secret: string,
      *      salt: string,
-     *      repo_path: string, 
      *      uploads_dir: string, 
      *      filesystem_adapter?: FileSystemAdapterInterface, 
-     *      cache_adapter?: CacheAdapterInterface,
      *      settings_provider?: SettingsStorageInterface,
      *      database_adapter?: DatabaseAdapterInterface,
      *      rest_api_provider: RESTProviderInterface,
      *      admin_menu_config?: AdminDashboardRegistry, 
      *      identity_provider: IdentityProviderInterface,
-     *      debug_mode: bool
      * } $config The environment configuration options.
      * @throws EnvironmentBootstrapException If required configuration is missing or invalid.
      */
@@ -294,9 +287,7 @@ abstract class Environment implements EnvironmentProviderInterface {
         $parsed_config  = array_intersect_key( array_merge( $default_config, $env_config ), $default_config );
         $missing_config = [];
 
-        $required_keys = ['db_prefix','absolute_path','secret', 'salt','repo_path',
-            'uploads_dir', 'identity_provider'
-        ];
+        $required_keys = ['db_prefix','secret', 'salt', 'identity_provider'];
 
         foreach ( $parsed_config as $key => $value ) {
             if ( in_array( $key, $required_keys, true ) && $value === null ) {
@@ -380,7 +371,6 @@ abstract class Environment implements EnvironmentProviderInterface {
     private function setProps() : void {
         $prop_map   = [
             'filesystem_adapter'    => 'filesystemAdapter',
-            'cache_adapter'         => 'cacheAdapter',
             'settings_provider'     => 'settingsStorage',
             'database_adapter'      => 'dbadapter',
             'rest_api_provider'     => 'restProvider',
@@ -410,34 +400,13 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         EventServiceProvider::instance()->boot();
-        smliser_dispatch_event( new \SmartLicenseServer\Events\Bootstrap\EnvironmentBooting() );
+        smliser_dispatch_event( new EnvironmentBooting() );
 
-        if ( ! isset( $this->database ) ) {
-            $this->setGlobalDBAdapter();
-
-            if ( ! $this->database()->is_connected() && \smliser_debug_enabled() ) {
-                throw new EnvironmentBootstrapException( 'database_connect_error', $this->database()->get_last_error() );
-            }
-        }
-
-        if ( ! isset( $this->filesystem ) ) {
-            $this->setGlobalFileSystemAdapter();
-        }
-
-        if ( ! isset( $this->settings ) ) {
-            $this->setGlobalSettingsAdapter();
-        }
-
-        if ( ! isset( $this->cache ) ) {
-            $this->setGlobalCacheAdapter();
-        }
+        // instanciate the cache registry.
+        CacheAdapterRegistry::instance( $this->settings() );
 
         if ( ! isset( $this->request ) ) {
             $this->request = Request::createFromGlobals();
-        }
-
-        if ( ! isset( $this->job_queue ) || ! isset( $this->queue_worker ) ) {
-            $this->setGlobalQueueAdapter();
         }
 
         smliser_dispatch_event( new EnvironmentReady );
@@ -675,64 +644,6 @@ abstract class Environment implements EnvironmentProviderInterface {
         define( 'SMLISER_FAILED_JOBS_TABLE', $this->db_prefix() . 'failed_jobs' );
 
         /**
-         * Absolute path to the Smart License Server repository root directory.
-         *
-         * This is the base directory where all hosted application files are stored.
-         *
-         * @var string
-         */
-        define( 'SMLISER_REPO_DIR', $this->env['repo_path'] . '/smliser-repo' );
-
-        /**
-         * Absolute path to the plugin repository directory.
-         *
-         * @var string
-         */
-        define( 'SMLISER_PLUGINS_REPO_DIR', SMLISER_REPO_DIR . '/plugins' );
-
-        /**
-         * Absolute path to the theme repository directory.
-         *
-         * @var string
-         */
-        define( 'SMLISER_THEMES_REPO_DIR', SMLISER_REPO_DIR . '/themes' );
-
-        /**
-         * Absolute path to the software repository directory.
-         *
-         * @var string
-         */
-        define( 'SMLISER_SOFTWARE_REPO_DIR', SMLISER_REPO_DIR . '/software' );
-
-        /**
-         * Absolute path to the cache directory.
-         * 
-         * @var string
-         */
-        define( 'SMLISER_CACHE_DIR', SMLISER_REPO_DIR . '/.cache' );
-
-        /**
-         * Absolute path to the trash directory.
-         * 
-         * @var string
-         */
-        define( 'SMLISER_TRASH_DIR', SMLISER_REPO_DIR . '/.trash' );
-
-        /**
-         * Absolute path to the tmp directory.
-         * 
-         * @var string
-         */
-        define( 'SMLISER_TMP_DIR', SMLISER_REPO_DIR . '/tmp' );
-
-        /**
-         * Absolute path to the uploads directory.
-         * 
-         * @var string
-         */
-        define( 'SMLISER_UPLOADS_DIR', $this->env['uploads_dir'] . '/smliser-uploads' );
-
-        /**
          * Temporary file prefix
          */
         define( 'SMLISER_UPLOAD_TMP_PREFIX', 'smliser_tmp_' );
@@ -750,15 +661,6 @@ abstract class Environment implements EnvironmentProviderInterface {
          * @var int
          */
         define( 'SMLISER_DIR_PERMISSION', ( fileperms( SMLISER_ROOT ) & 0777 | 0755 ) );
-
-        if ( ! defined( 'APP_DEBUG' ) ) {
-            /**
-             * Debug mode flag.
-             * 
-             * @var bool
-             */
-            define( 'APP_DEBUG', (bool) $this->env['debug_mode'] );
-        }
 
     }
 
@@ -798,7 +700,6 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Sets up the global filesystem adapter
      */
     public function setGlobalFileSystemAdapter() : void {
-
         if ( ! isset( $this->filesystemAdapter ) ) {
             $this->filesystemAdapter = new DirectFileSystem;
         }
@@ -814,11 +715,11 @@ abstract class Environment implements EnvironmentProviderInterface {
     public function setGlobalCacheAdapter( bool $force = false ) : void {
 
         if ( $force ) {
-            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings )->get_adapter();
+            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings() )->get_adapter();
         }
 
         if ( ! isset( $this->cacheAdapter ) ) {
-            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings )->get_adapter();
+            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings() )->get_adapter();
         }
 
         $this->cache    = new Cache( $this->cacheAdapter );
@@ -830,7 +731,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function setGlobalSettingsAdapter() : void {
         if ( ! isset( $this->settingsStorage ) ) {
-            $this->settingsStorage = new Options( $this->database );
+            $this->settingsStorage = new Options( $this->database() );
         }
 
         $this->settings = new Settings( $this->settingsStorage );
@@ -858,7 +759,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function setGlobalQueueAdapter(): void {
         if ( ! isset( $this->job_queue ) ) {
-            $this->job_queue = new JobQueue( new DatabaseJobStorageAdapter( $this->database ) );
+            $this->job_queue = new JobQueue( new DatabaseJobStorageAdapter( $this->database() ) );
         }
  
         if ( ! isset( $this->queue_worker ) ) {
@@ -902,6 +803,14 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Get the database instance.
      */
     public function database() : Database {
+        if ( ! isset( $this->database ) ) {
+            $this->setGlobalDBAdapter();
+
+            if ( ! $this->database->is_connected() && \smliser_debug_enabled() ) {
+                throw new EnvironmentBootstrapException( 'database_connect_error', $this->database->get_last_error() );
+            }
+        }
+
         return $this->database;
     }
 
@@ -909,6 +818,10 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Get the filesystem abstraction instance.
      */
     public function filesystem() : FileSystem {
+        if ( ! isset( $this->filesystem ) ) {
+            $this->setGlobalFileSystemAdapter();
+        }
+
         return $this->filesystem;
     }
 
@@ -916,6 +829,10 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Get the cache instance
      */
     public function cache() : Cache {
+        if ( ! isset( $this->cache ) ) {
+            $this->setGlobalCacheAdapter();
+        }
+
         return $this->cache;
     }
 
@@ -923,6 +840,10 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Get the settings API instance.
      */
     public function settings() : Settings {
+        if ( ! isset( $this->settings ) ) {
+            $this->setGlobalSettingsAdapter();
+        }
+
         return $this->settings;
     }
 
@@ -944,6 +865,10 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Get the job queue instance.
      */
     public function job_queue(): JobQueue {
+        if ( ! isset( $this->job_queue ) ) {
+            $this->setGlobalQueueAdapter();
+        }
+
         return $this->job_queue;
     }
 
@@ -951,6 +876,10 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Get the background job worker instance.
      */
     public function queue_worker(): QueueWorker {
+        if ( ! isset( $this->queue_worker ) ) {
+            $this->setGlobalQueueAdapter();
+        }
+
         return $this->queue_worker;
     }
 
@@ -967,7 +896,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Intentionally lazy loaded.
      */
     public function scheduler(): Scheduler {
-        return Scheduler::instance( $this->settings );
+        return Scheduler::instance( $this->settings() );
     }
 
     /**
@@ -999,7 +928,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     */
     public function monetizationRegistry() : MonetizationRegistry {
         if ( ! isset( $this->monetizationRegistry ) ) {
-            $this->monetizationRegistry = MonetizationRegistry::instance( $this->settings );
+            $this->monetizationRegistry = MonetizationRegistry::instance( $this->settings() );
         }
 
         return $this->monetizationRegistry;
@@ -1010,7 +939,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function emailProviders() : EmailProvidersRegistry {
         if ( ! isset( $this->emailProviders ) ) {
-            $this->emailProviders = EmailProvidersRegistry::instance( $this->settings );
+            $this->emailProviders = EmailProvidersRegistry::instance( $this->settings() );
         }
 
         return $this->emailProviders;

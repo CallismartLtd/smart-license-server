@@ -104,6 +104,7 @@ class CacheProviderIcons {
                 'memcached'     => 'images/cache-adapters/memcached.svg',
                 'sqlitecache'   => 'images/cache-adapters/sqlite-cache.svg',
                 'runtime'       => 'images/cache-adapters/runtime-cache.svg',
+                'wpcache'       => 'images/cache-adapters/wp-cache.svg',
             ];
         }
 

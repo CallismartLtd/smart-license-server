@@ -157,7 +157,8 @@ class GlobalErrorHandler {
      * @param array{
      *     debug?: bool,
      *     environment?: 'auto'|'http'|'cli',
-     *     logger?: \Closure
+     *     logger?: \Closure,
+     *     log_errors: bool
      * } $config Handler context configuration.
      *
      * @return static
@@ -188,6 +189,7 @@ class GlobalErrorHandler {
         
         $this->handler_class->setDebug( $this->debug_mode );
         $this->handler_class->setDisplayErrors( $this->display_errors );
+        $this->handler_class->errorLogStatus( $config['log_errors'] ?? false );
 
         if ( $this->log_handler ) {
             $this->handler_class->setLogHandler( $this->log_handler );
@@ -284,6 +286,15 @@ class GlobalErrorHandler {
     }
 
     /**
+     * Check if error loging is enabled.
+     *
+     * @return bool
+     */
+    public function isLoggingErrors() : bool {
+        return (bool) $this->getConfiguration()['log_errors'];
+    }
+
+    /**
      * Enable development mode (show all errors).
      *
      * @return static
@@ -375,12 +386,7 @@ class GlobalErrorHandler {
         ], $config);
 
         // Bind error handler context.
-        $this->bindContext([
-            'debug'             => $config['debug'],
-            'environment'       => $config['environment'],
-            'logger'            => $config['logger'],
-            'display_errors'    => $config['display_errors'],
-        ]);
+        $this->bindContext( $config );
 
         // ONLY place runtime mutation happens.
         error_reporting( $config['error_reporting'] );

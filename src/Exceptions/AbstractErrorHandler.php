@@ -36,7 +36,8 @@ abstract class AbstractErrorHandler {
         'code'              => 'smliser_error',
         'exit'              => true,
         'debug'             => null,
-        'display_errors'    => false
+        'display_errors'    => false,
+        'log_errors'        => false
     ];
 
     /*
@@ -328,6 +329,24 @@ abstract class AbstractErrorHandler {
     }
 
     /**
+     * Get, enable/disable error logging for current instance.
+     *
+     * @param bool|null $status Whether to enable error log.
+     * @return bool|static
+     */
+    public function errorLogStatus( ?bool $status = null ) : bool|static {
+
+        if ( null === $status ) {
+            return (bool) ( $this->config['log_errors'] ?? false );
+        }
+        
+        $this->config['log_errors'] = $status;
+
+        return $this;
+        
+    }
+
+    /**
      * Check if error display is enabled.
      *
      * @return bool
@@ -486,7 +505,7 @@ abstract class AbstractErrorHandler {
         echo $this->renderWarning();
     }
 
-/**
+    /**
      * Log error in both human-readable and structured formats.
      * 
      * Formats error data as a multi-line visual block for terminal tailing and standard log files, 
@@ -496,6 +515,11 @@ abstract class AbstractErrorHandler {
      * @return void
      */
     public function logError( \Throwable $throwable ): void {
+
+        if ( ! $this->errorLogStatus() ) {
+            return;
+        }
+        
         $log_data = [
             'timestamp' => date( 'Y-m-d H:i:s' ),
             'type'      => get_class( $throwable ),
@@ -614,7 +638,6 @@ abstract class AbstractErrorHandler {
 
         $this->code    = (string) $throwable->getCode();
         $this->handled = true;
-        
         $this->display();
     }
 

@@ -238,6 +238,7 @@ class WordPressBootstrapGenerator {
 	 * @return bool True if WordPress is found, false otherwise.
 	 */
 	private function is_wordpress_root( string $path ): bool {
+		$path	= $this->normalize_path( $path );
 		return $this->is_valid_directory( $path ) && file_exists( $path . 'wp-load.php' );
 	}
 
@@ -259,36 +260,39 @@ class WordPressBootstrapGenerator {
 	private function generate_plugin_content(): string {
 
 		$php_template = <<<'PHP'
-        <?php
-        /*
-        * Plugin Name:         Smart License Server
-        * Plugin URI:          https://callismart.com.ng/smart-license-server
-        * Description:         Private plugin, themes and software repository with licensing and monetization feature.
-        * Author:              Callistus Nwachukwu
-        * Author URI:          https://callismart.com.ng/callistus
-        * Version:             %s
-        * Requires at least:   6.8
-        * Requires PHP:        8.4
-        */
+		<?php
+		/*
+		* Plugin Name:         Smart License Server
+		* Plugin URI:          https://callismart.com.ng/smart-license-server
+		* Description:         Private plugin, themes and software repository with licensing and monetization feature.
+		* Author:              Callistus Nwachukwu
+		* Author URI:          https://callismart.com.ng/callistus
+		* Version:             %s
+		* Requires at least:   6.8
+		* Requires PHP:        8.4
+		*/
 
-        use SmartLicenseServer\Environments\WordPress\WordPressEnvironment;
+		use SmartLicenseServer\Environments\WordPress\WordPressEnvironment;
 
-        defined( 'ABSPATH' ) || exit;
-        if ( defined( 'SMLISER_ROOT' ) ) return;
+		defined( 'ABSPATH' ) || exit;
+		if ( defined( 'SMLISER_ROOT' ) ) return;
 
-        $config = [
-            'app_root'      => ABSPATH,
-            'base_dir'      => __DIR__,
-            'base_dir_url'  => plugin_dir_url( __FILE__ ),
-            'src_dir'       => __DIR__ . '/src/',
-            'index_file'    => __FILE__
-        ];
+		$config = [
+			'app_root'			=> ABSPATH,
+			'runtime_dir'		=> __DIR__,
+			'storage_dir'		=> trailingslashit( WP_CONTENT_DIR ) . 'smliser-storage',
+			'base_dir_url'		=> plugin_dir_url( __FILE__ ),
+			'index_file'		=> __FILE__,
+			'debug_mode'		=> defined( 'WP_DEBUG' ) && WP_DEBUG,
+			'display_errors'	=> defined( 'WP_DEBUG_DISPLAY' ) && WP_DEBUG_DISPLAY,
+			'log_errors'		=> defined( 'WP_DEBUG' ) && WP_DEBUG
+		];
 
-        require_once $config['src_dir'] . 'bootstrap.php';
+		require_once __DIR__ . '/src/bootstrap.php';
 
-        WordPressEnvironment::boot();
-        PHP;
-
+		WordPressEnvironment::boot();
+		PHP;
+		
 		return sprintf( $php_template, self::VERSION );
 	}
 
@@ -314,12 +318,14 @@ class WordPressBootstrapGenerator {
 			"Enter the absolute path to your WordPress installation:" . PHP_EOL . "➜ ",
 			[ $this, 'is_wordpress_root' ]
 		);
+
 		$wp_root = $this->normalize_path( $wp_root );
 
 		// Prompt for plugin directory name.
 		$plugin_dir_name = $this->prompt_user(
 			PHP_EOL . "Enter the plugin directory name (e.g., smart-license-server):" . PHP_EOL . "➜ "
 		);
+
 		$plugin_dir_name = $this->sanitize_dirname( $plugin_dir_name );
 
 		// Derive plugin base directory.

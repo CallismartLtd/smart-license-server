@@ -108,7 +108,7 @@ class WPCacheAdapter implements CacheAdapterInterface {
     }
 
     public static function get_name(): string {
-        return 'WordPress Cache API';
+        return 'WP Cache';
     }
 
     public function get_settings_schema(): array {
@@ -167,7 +167,7 @@ class WPCacheAdapter implements CacheAdapterInterface {
         $entries      = 0;
         $memory_used  = 0;
 
-        if ( is_object( $wp_object_cache ) ) {
+        if (  $wp_object_cache instanceof \WP_Object_Cache ) {
             // Standard WP_Object_Cache properties — present on core and many plugins.
             $hits   = (int) ( $wp_object_cache->cache_hits   ?? 0 );
             $misses = (int) ( $wp_object_cache->cache_misses ?? 0 );
@@ -193,6 +193,7 @@ class WPCacheAdapter implements CacheAdapterInterface {
             memory_used  : $memory_used,
             memory_total : 0,   // No fixed ceiling exposed by the WP cache API.
             uptime       : 0,   // No server process — request-scoped for non-persistent cache.
+            status       : $this->is_active(),
             extra        : [
                 'persistent_cache'    => $has_persistent,
                 'group_flush_support' => $has_group_flush,

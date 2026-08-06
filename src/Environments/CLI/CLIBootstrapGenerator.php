@@ -241,11 +241,11 @@ class CLIBootstrapGenerator {
 	/**
 	 * Generates the CLI bootstrap file content.
 	 *
-	 * @param array $config Configuration array with base_dir and src_dir.
+	 * @param array $config Configuration array with run$runtime_dir and src_dir.
 	 * @return string The PHP file content.
 	 */
 	private function generate_bootstrap_content( array $config ): string {
-		$base_dir	= $config['base_dir'];
+		$runtime_dir	= $config['runtime_dir'];
 		$src_dir	= $config['src_dir'];
 
 		$php_template = <<<'PHP'
@@ -277,7 +277,7 @@ class CLIBootstrapGenerator {
 
 		$config = [
 			'app_root'      => __DIR__,
-			'base_dir'      => '%s',
+			'runtime_dir'	=> '%s',
 			'src_dir'       => '%s',
 			'index_file'    => __FILE__
 		];
@@ -290,7 +290,7 @@ class CLIBootstrapGenerator {
 		return sprintf(
 			$php_template,
 			self::VERSION,
-			$base_dir,
+			$runtime_dir,
 			$src_dir
 		);
 	}
@@ -309,34 +309,34 @@ class CLIBootstrapGenerator {
 	/**
 	 * Prompts for application and base directories.
 	 *
-	 * @return array Configuration array with app_root and base_dir.
+	 * @return array Configuration array with app_root and runtime directory.
 	 */
 	private function gather_paths(): array {
 		// Prompt for application root directory.
 		$app_root = $this->prompt_user(
-			"Enter the absolute path to the application root directory:" . PHP_EOL . "➜ ",
+			"Enter the absolute path to the root directory:" . PHP_EOL . "➜ ",
 			[ $this, 'is_valid_directory' ]
 		);
 		$app_root = $this->normalize_path( $app_root );
 
 		// Prompt for base directory.
-		$base_dir = $this->prompt_user(
-			PHP_EOL . "Enter the absolute path to the SmartLicenseServer base directory:" . PHP_EOL . "➜ ",
+		$runtime_dir = $this->prompt_user(
+			PHP_EOL . "Enter the absolute path to the runtime directory:" . PHP_EOL . "➜ ",
 			[ $this, 'is_valid_directory' ]
 		);
-		$base_dir = $this->normalize_path( $base_dir );
+		$runtime_dir = $this->normalize_path( $runtime_dir );
 
-		// Validate that base_dir is under app_root.
-		if ( strpos( $base_dir, $app_root ) !== 0 ) {
-			$this->print_warning( 'base_dir does not appear to be under app_root.' );
+		// Validate that run$runtime_dir is under app_root.
+		if ( strpos( $runtime_dir, $app_root ) !== 0 ) {
+			$this->print_warning( 'runtime_dir does not appear to be under app_root.' );
 			if ( ! $this->confirm( 'Continue anyway?', false ) ) {
 				echo "Aborted." . PHP_EOL;
 				exit( 1 );
 			}
 		}
 
-		// Derive src_dir from base_dir.
-		$src_dir = $base_dir . 'src/';
+		// Derive src_dir from run$runtime_dir.
+		$src_dir = $runtime_dir . 'src/';
 		if ( ! $this->is_valid_directory( $src_dir ) ) {
 			$this->print_line();
 			$this->print_error( "src directory not found at: $src_dir" );
@@ -344,9 +344,9 @@ class CLIBootstrapGenerator {
 		}
 
 		return [
-			'app_root' => $app_root,
-			'base_dir' => $base_dir,
-			'src_dir'  => $src_dir,
+			'app_root'		=> $app_root,
+			'runtime_dir'	=> $runtime_dir,
+			'src_dir'		=> $src_dir,
 		];
 	}
 
@@ -359,7 +359,7 @@ class CLIBootstrapGenerator {
 	private function display_config_summary( array $config ): void {
 		$this->print_section( 'Configuration Summary' );
 		$this->print_info( "Application Root:  " . $config['app_root'] );
-		$this->print_info( "Base Directory:    " . $config['base_dir'] );
+		$this->print_info( "Base Directory:    " . $config['run$runtime_dir'] );
 		$this->print_info( "Source Directory:  " . $config['src_dir'] );
 		$this->print_line();
 	}
