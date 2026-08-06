@@ -101,7 +101,7 @@ class CLIEnvironment extends Environment {
         $db_adapter = $_ENV['SMLISER_DB_DRIVER'] ?? 'mysql';
 
         $app_url     = rtrim( $_ENV['SMLISER_APP_URL']    ?? '', '/' );
-        $repo_path   = rtrim( $_ENV['SMLISER_REPO_PATH']  ?? dirname( SMLISER_PATH ), '/' );
+        $repo_path   = rtrim( $_ENV['SMLISER_REPO_PATH']  ?? dirname( SMLISER_RUNTIME_DIR ), '/' );
         $uploads_dir = rtrim( $_ENV['SMLISER_UPLOADS_DIR'] ?? $repo_path . '/uploads', '/' );
 
         if ( empty( $db_name ) || empty( $db_user ) ) {

@@ -63,7 +63,7 @@ class TestCommand extends AbstractCommand {
      */
     public function run( CommandInput $input ) : int {
 
-        $binary = SMLISER_PATH . 'vendor/bin/phpunit';
+        $binary = SMLISER_RUNTIME_DIR . 'vendor/bin/phpunit';
 
         if ( ! file_exists( $binary ) ) {
             $this->output->error( 'PHPUnit binary not found.' );

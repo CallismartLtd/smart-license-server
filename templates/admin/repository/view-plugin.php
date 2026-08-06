@@ -38,4 +38,4 @@ $images   = [
     'Screenshots'   => array_filter( $screenshots ),
 ];
 
-include_once SMLISER_PATH . 'templates/admin/repository/preview.php';
+include_once __DIR__ . '/preview.php';

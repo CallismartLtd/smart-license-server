@@ -132,4 +132,4 @@ $assets = array(
     ),
 );
 
-include SMLISER_PATH . 'templates/admin/repository/uploader.php';
+include __DIR__ . '/uploader.php';

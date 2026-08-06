@@ -48,12 +48,12 @@ if ( 'read_write' === $sanitized_params['scope'] ) {
 
 
 if ( ! is_user_logged_in() ) {
-    $login_form             = SMLISER_PATH . 'templates/auth/auth-login.php';
+    $login_form             = smliser_resolve_template( 'templates.auth.auth-login.php' );
     $theme_login_template   = get_template_directory() . '/smliser/auth/auth-login.php';
 
     require_once file_exists( $theme_login_template ) ? $theme_login_template : $login_form;
 } else {
-    $auth_template          = SMLISER_PATH . 'templates/auth/auth-temp.php';
+    $auth_template          = smliser_resolve_template( 'auth.auth-temp.php' );
     $theme_auth_template    = get_template_directory() . '/smliser/auth/auth-temp.php';
     require_once file_exists( $theme_auth_template ) ? $theme_auth_template : $auth_template;
 }

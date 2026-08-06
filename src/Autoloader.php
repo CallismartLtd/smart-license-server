@@ -128,7 +128,7 @@ class Autoloader {
      * Require composer autoloader
      */
     private static function require_vendor() : void {
-        require_once SMLISER_PATH . 'vendor/autoload.php';
+        require_once SMLISER_RUNTIME_DIR . 'vendor/autoload.php';
     }
 
     /**
