@@ -262,7 +262,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     final protected function setup( array $config ) {
         $this->parse_config( $config );
-        $this->declareGlobalConstants();        
+        $this->declareDBConstants();        
         $this->setProps();
         
         smliser_dispatch_event( new EnvironmentBooted );
@@ -415,7 +415,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Declare global constants.
      */
-    private function declareGlobalConstants() : void {
+    private function declareDBConstants() : void {
         
         /**
          * Licenses database table name.
