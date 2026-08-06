@@ -18,6 +18,9 @@ $defaults   = [
     'display_errors'    => false,
     'log_errors'        => false,
 
+    'secret'    => '',
+    'salt'      => ''
+
 ];
 
 $config = array_intersect_key( array_merge( $defaults, $config ?? [] ), $defaults );

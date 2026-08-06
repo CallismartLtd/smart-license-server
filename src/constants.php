@@ -2,9 +2,16 @@
 /**
  * @var array{
  *  app_root: string,
- *  runtime_dir: string,
+ *  storage_dir: string,
+ * runtime_dir: string,
  *  src_dir: string,
- *  index_file: string} $config 
+ *  index_file: string,
+ *  debug_mode: bool,
+ *  display_errors: bool,
+ *  log_errors: bool,
+ *  secret: string,
+ *  salt: string
+ * } $config 
  */
 
 /**
@@ -127,9 +134,24 @@ define( 'SMLISER_FILE', rtrim( $config['index_file'], '/' ) . '/' );
  * 
  * Points to the `src` directory where all source codes reside.
  *
+ * @deprecated
  * @var string
  */
 define( 'SMLISER_SRC_DIR', rtrim( $config['src_dir'], '/' ) . '/' );
+
+/**
+ * The secret key used for encryption.
+ * 
+ * @var string
+ */
+define( 'SMLISER_SECRET', $config['secret'] );
+
+/**
+ * The salt used for encryption.
+ * 
+ * @var string
+ */
+define( 'SMLISER_SALT', $config['salt'] );
 
 /**
  * Debug mode flag.
@@ -137,3 +159,22 @@ define( 'SMLISER_SRC_DIR', rtrim( $config['src_dir'], '/' ) . '/' );
  * @var bool
  */
 define( 'APP_DEBUG', (bool) $config['debug_mode'] );
+
+/**
+ * Temporary file prefix
+ */
+define( 'SMLISER_UPLOAD_TMP_PREFIX', 'smliser_tmp_' );
+
+/**
+ * Default file permission.
+ * 
+ * @var int
+ */
+define( 'SMLISER_FILE_PERMISSION', ( fileperms( SMLISER_ROOT . 'index.php' ) & 0777 | 0644 ) );
+
+/**
+ * Default directory permission.
+ * 
+ * @var int
+ */
+define( 'SMLISER_DIR_PERMISSION', ( fileperms( SMLISER_ROOT ) & 0777 | 0755 ) );

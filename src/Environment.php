@@ -129,7 +129,6 @@ abstract class Environment implements EnvironmentProviderInterface {
         'db_prefix'             => '',
         'secret'                => null,
         'salt'                  => null,
-        'uploads_dir'           => '',
         'filesystem_adapter'    => null,
         'settings_provider'     => null,
         'database_adapter'      => null,
@@ -252,7 +251,6 @@ abstract class Environment implements EnvironmentProviderInterface {
      *      db_prefix: string,
      *      secret: string,
      *      salt: string,
-     *      uploads_dir: string, 
      *      filesystem_adapter?: FileSystemAdapterInterface, 
      *      settings_provider?: SettingsStorageInterface,
      *      database_adapter?: DatabaseAdapterInterface,
@@ -282,9 +280,11 @@ abstract class Environment implements EnvironmentProviderInterface {
      * @param array $env_config The configuration options from the environment adapter.
      */
     private function parse_config( $env_config ) : void {
-        $default_config = $this->env;
+        $parsed_config  = array_intersect_key( 
+            array_merge( $this->env, $env_config ),
+            $this->env
+        );
 
-        $parsed_config  = array_intersect_key( array_merge( $default_config, $env_config ), $default_config );
         $missing_config = [];
 
         $required_keys = ['db_prefix','secret', 'salt', 'identity_provider'];
@@ -416,19 +416,6 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Declare global constants.
      */
     private function declareGlobalConstants() : void {
-        /**
-         * The application secret key.
-         * 
-         * @var string
-         */
-        define( 'SMLISER_SECRET', $this->env['secret'] );
-
-        /**
-         * The application salt used for encryption.
-         * 
-         * @var string
-         */
-        define( 'SMLISER_SALT', $this->env['salt'] );
         
         /**
          * Licenses database table name.
@@ -642,26 +629,6 @@ abstract class Environment implements EnvironmentProviderInterface {
          * @var string `smliser_failed_jobs`
          */
         define( 'SMLISER_FAILED_JOBS_TABLE', $this->db_prefix() . 'failed_jobs' );
-
-        /**
-         * Temporary file prefix
-         */
-        define( 'SMLISER_UPLOAD_TMP_PREFIX', 'smliser_tmp_' );
-
-        /**
-         * Default file permission.
-         * 
-         * @var int
-         */
-        define( 'SMLISER_FILE_PERMISSION', ( fileperms( SMLISER_ROOT . 'index.php' ) & 0777 | 0644 ) );
-
-        /**
-         * Default directory permission.
-         * 
-         * @var int
-         */
-        define( 'SMLISER_DIR_PERMISSION', ( fileperms( SMLISER_ROOT ) & 0777 | 0755 ) );
-
     }
 
     /**
@@ -681,16 +648,15 @@ abstract class Environment implements EnvironmentProviderInterface {
 
             };
 
-            $this->dbadapter    = new $adapter( $this->dbConfig );
-            
-
-            if ( ! isset( $this->dbadapter ) ) {
+            if ( PdoAdapter::class === $adapter && ! in_array( $this->dbConfig->driver, \PDO::getAvailableDrivers() ) ) {
                 throw new EnvironmentBootstrapException(
                     'no_db_adapter_found',
                     sprintf( 'No supported database adapter for "%s" driver.', $this->dbConfig->driver )
                     
                 ); 
-            }          
+            }
+
+            $this->dbadapter    = new $adapter( $this->dbConfig );         
         }
         
         $this->database = new Database( $this->dbadapter );

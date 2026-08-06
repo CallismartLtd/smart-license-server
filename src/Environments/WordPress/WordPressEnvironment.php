@@ -59,8 +59,8 @@ class WordPressEnvironment extends Environment {
         static::$envProvider = $this;
         
         /** @var \wpdb $wpdb */
-        $wpdb               = $GLOBALS['wpdb'] ?? null;
-        $db_prefix          = $wpdb->prefix . 'smliser_';
+        $wpdb               = $GLOBALS['wpdb'];
+        $db_prefix          = rtrim( $wpdb->prefix, '_' ) . '_smliser_';
         $filesystem_adapter = new WPFileSystemAdapter;
         $settings_provider  = new WPSettingsProvider;
         $database_adapter   = new WPDBAdapter( $wpdb );
@@ -69,9 +69,8 @@ class WordPressEnvironment extends Environment {
         $salt               = SECURE_AUTH_SALT;
         $identity_provider  = new IdentityService();        
 
-        $env    = compact( 'db_prefix','filesystem_adapter', 
-            'settings_provider', 'rest_api_provider', 'secret', 'identity_provider',
-            'database_adapter', 'salt'
+        $env    = compact( 'db_prefix','filesystem_adapter', 'settings_provider', 'salt', 
+            'secret', 'rest_api_provider', 'identity_provider', 'database_adapter', 
         );
         
         $this->setup( $env );
