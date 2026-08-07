@@ -287,7 +287,8 @@ class WordPressBootstrapGenerator {
 			'log_errors'		=> defined( 'WP_DEBUG' ) && WP_DEBUG,
 			'secret'			=> SECURE_AUTH_KEY,
 			'salt'				=> SECURE_AUTH_SALT,
-			'db_table_prefix'	=> rtrim( $GLOBALS['wpdb']->prefix, '_' ) . '_smliser_'
+			'db_table_prefix'	=> rtrim( $GLOBALS['wpdb']->prefix, '_' ) . '_smliser_',
+			'error_log_path'	=> defined( 'WP_DEBUG' ) && WP_DEBUG ? trailingslashit( WP_CONTENT_DIR ) . 'smliser-storage/logs/error.log' : '',
 		];
 
 		require_once __DIR__ . '/src/bootstrap.php';
