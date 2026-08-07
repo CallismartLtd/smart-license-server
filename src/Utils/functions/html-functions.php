@@ -4,7 +4,6 @@
  */
 
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 use SmartLicenseServer\Exceptions\RequestException;

@@ -98,10 +98,15 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                 <?php endforeach; ?>
 
                 <div class="smliser-form-label-row">
-                    <span>Set as Default Provider</span>
+                    <strong id="set-as-default-label">Make Default <?php 
+                        smliser_render_field_help_icon(
+                            'Set this cache adapter as the default provider for all caching operations.',
+                            'set-as-default-label'
+                        ) ?>
+                    </strong>
                     <?php smliser_render_toggle_switch([
                         'name'  => 'set_as_default',
-                        'value' => $is_default
+                        'value' => $is_default,
                     ]); ?>
                     
                 </div>
@@ -109,8 +114,11 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                 <div class="smliser-form-label-row submit-row">
                     <button type="submit" class="smliser-submit-button">Save</button>
                     <button type="button" class="smliser-btn test-cache-btn">Test</button>
-                    <button type="button" class="smliser-btn reset-cache-btn">Reset</button>
                     
+                    <?php if ( ! empty( $saved_settings ) ) : ?>
+                        <button type="button" class="smliser-btn reset-cache-btn">Reset</button>
+                    <?php endif; ?>
+
                 </div>
                 <span class="smliser-spinner"></span>
             </div>

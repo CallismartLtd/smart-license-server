@@ -80,27 +80,22 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     <?php smliser_render_input_field( $field ); ?>
                 <?php endforeach; ?>
 
-                <?php if ( ! $is_default ) : ?>
-                    <div class="smliser-form-label-row">
-                        <span>Set as Default Provider</span>
-                        <label class="smliser-toggle">
-                            <input type="checkbox"
-                                    name="set_as_default"
-                                    value="1" />
-                            <span class="smliser-toggle__slider"></span>
-                        </label>
-                    </div>
-                <?php else : ?>
-                    <div class="smliser-notice smliser-notice--info">
-                        This is the currently active email provider.
-                    </div>
-                <?php endif; ?>
+                <div class="smliser-form-label-row">
+                    <strong id="set-as-default-label">Make Default <?php 
+                        smliser_render_field_help_icon(
+                            'Set this email provider as the default provider for all mailing operations.',
+                            'set-as-default-label'
+                        ) ?>
+                    </strong>
+                    <?php smliser_render_toggle_switch([
+                        'name'  => 'set_as_default',
+                        'value' => $is_default,
+                    ]); ?>
+                    
+                </div>
 
                 <div class="smliser-form-label-row submit-row">
-                    <div>
-                        <button type="submit" class="smliser-submit-button">Save</button>
-                    </div>
-                    
+                    <button type="submit" class="smliser-submit-button">Save</button>                    
                 </div>
                 <span class="smliser-spinner"></span>
             </div>
