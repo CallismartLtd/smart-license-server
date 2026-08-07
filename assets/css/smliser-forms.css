@@ -618,10 +618,10 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 
 .smliser-form-label-row.submit-row {
     flex-direction: row;
-    align-items: flex-start;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     padding: 5px 10px;
+    width: 100%;
 }
 
 .smliser-form-label-row input[type="text"],
