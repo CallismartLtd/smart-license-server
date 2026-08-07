@@ -476,14 +476,6 @@ abstract class Environment implements EnvironmentProviderInterface {
         define( 'SMLISER_SOFTWARE_META_TABLE', $this->db_prefix() . 'software_meta' );
 
         /**
-         * API credentials database table name.
-         * 
-         * @deprecated 0.2.0
-         * @var string `smliser_api_creds.`
-         */
-        define( 'SMLISER_API_CRED_TABLE', $this->db_prefix() . 'api_creds' );
-
-        /**
          * Item download token database table name.
          *
          * @var string `smliser_item_download_token.`
@@ -632,9 +624,9 @@ abstract class Environment implements EnvironmentProviderInterface {
     }
 
     /**
-     * Sets up the global database adapter
+     * Sets up the database adapter
      */
-    public function setGlobalDBAdapter() : void {
+    public function setDBAdapter() : void {
         if ( ! isset( $this->dbadapter ) ) {
             if ( ! isset( $this->dbConfig ) ) {
                 throw new EnvironmentBootstrapException( 'missing_db_config' );
@@ -665,7 +657,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Sets up the global filesystem adapter
      */
-    public function setGlobalFileSystemAdapter() : void {
+    public function setFileSystemAdapter() : void {
         if ( ! isset( $this->filesystemAdapter ) ) {
             $this->filesystemAdapter = new DirectFileSystem;
         }
@@ -678,7 +670,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      * 
      * @param bool $force Whether to force reloading the cache provider.
      */
-    public function setGlobalCacheAdapter( bool $force = false ) : void {
+    public function setCacheAdapter( bool $force = false ) : void {
 
         if ( $force ) {
             $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings() )->get_adapter();
@@ -695,7 +687,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Sets up the global settings adapter
      */
-    public function setGlobalSettingsAdapter() : void {
+    public function initSettingsAdapter() : void {
         if ( ! isset( $this->settingsStorage ) ) {
             $this->settingsStorage = new Options( $this->database() );
         }
@@ -706,7 +698,7 @@ abstract class Environment implements EnvironmentProviderInterface {
     /**
      * Sets up the global mailing service to use the default provider.
      */
-    public function setGlobalMailingAdapter() : void {
+    public function setMailingAdapter() : void {
         // Instantiate the email registry with storage.
         $registry       = $this->emailProviders();
         $this->mailer   = new Mailer( $registry->get_provider() );
@@ -723,7 +715,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Does not override adapter or worker instances already set by the
      * environment (e.g. a test environment injecting a mock worker).
      */
-    public function setGlobalQueueAdapter(): void {
+    public function setQueueAdapter(): void {
         if ( ! isset( $this->job_queue ) ) {
             $this->job_queue = new JobQueue( new DatabaseJobStorageAdapter( $this->database() ) );
         }
@@ -770,7 +762,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function database() : Database {
         if ( ! isset( $this->database ) ) {
-            $this->setGlobalDBAdapter();
+            $this->setDBAdapter();
 
             if ( ! $this->database->is_connected() && \smliser_debug_enabled() ) {
                 throw new EnvironmentBootstrapException( 'database_connect_error', $this->database->get_last_error() );
@@ -785,7 +777,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function filesystem() : FileSystem {
         if ( ! isset( $this->filesystem ) ) {
-            $this->setGlobalFileSystemAdapter();
+            $this->setFileSystemAdapter();
         }
 
         return $this->filesystem;
@@ -796,7 +788,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function cache() : Cache {
         if ( ! isset( $this->cache ) ) {
-            $this->setGlobalCacheAdapter();
+            $this->setCacheAdapter();
         }
 
         return $this->cache;
@@ -807,7 +799,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function settings() : Settings {
         if ( ! isset( $this->settings ) ) {
-            $this->setGlobalSettingsAdapter();
+            $this->initSettingsAdapter();
         }
 
         return $this->settings;
@@ -821,7 +813,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function mailer() : Mailer {
         if ( ! isset( $this->mailer ) ) {
-            $this->setGlobalMailingAdapter();
+            $this->setMailingAdapter();
         }
 
         return $this->mailer;
@@ -832,7 +824,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function job_queue(): JobQueue {
         if ( ! isset( $this->job_queue ) ) {
-            $this->setGlobalQueueAdapter();
+            $this->setQueueAdapter();
         }
 
         return $this->job_queue;
@@ -843,7 +835,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function queue_worker(): QueueWorker {
         if ( ! isset( $this->queue_worker ) ) {
-            $this->setGlobalQueueAdapter();
+            $this->setQueueAdapter();
         }
 
         return $this->queue_worker;

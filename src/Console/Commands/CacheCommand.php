@@ -250,7 +250,7 @@ class CacheCommand extends AbstractCommand {
             return 1;
         }
 
-        smliser_envProvider()->setGlobalCacheAdapter( true );
+        smliser_envProvider()->setCacheAdapter( true );
 
         $adapter_class = CacheAdapterRegistry::instance()->get( $adapter_id );
         $adapter_name  = $adapter_class ? $adapter_class::get_name() : $adapter_id;
