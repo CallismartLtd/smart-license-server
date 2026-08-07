@@ -286,7 +286,8 @@ class WordPressBootstrapGenerator {
 			'display_errors'	=> defined( 'WP_DEBUG_DISPLAY' ) && WP_DEBUG_DISPLAY,
 			'log_errors'		=> defined( 'WP_DEBUG' ) && WP_DEBUG,
 			'secret'			=> SECURE_AUTH_KEY,
-			'salt'				=> SECURE_AUTH_SALT
+			'salt'				=> SECURE_AUTH_SALT,
+			'db_table_prefix'	=> rtrim( $GLOBALS['wpdb']->prefix, '_' ) . '_smliser_'
 		];
 
 		require_once __DIR__ . '/src/bootstrap.php';

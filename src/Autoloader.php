@@ -18,7 +18,7 @@ class Autoloader {
      * @var array
      */
     private static array $namespaces = array(
-        'SmartLicenseServer\\' => SMLISER_SRC_DIR,
+        'SmartLicenseServer\\' => __DIR__ . DIRECTORY_SEPARATOR,
     );
 
     /**
@@ -27,7 +27,7 @@ class Autoloader {
      * @var array
      */
     private static array $function_dirs = array(
-        SMLISER_SRC_DIR . 'Utils/functions/',
+        __DIR__ . DIRECTORY_SEPARATOR . 'Utils/functions/',
     );
 
     /**
@@ -128,7 +128,7 @@ class Autoloader {
      * Require composer autoloader
      */
     private static function require_vendor() : void {
-        require_once SMLISER_RUNTIME_DIR . 'vendor/autoload.php';
+        require_once __DIR__ . '/../vendor/autoload.php';
     }
 
     /**

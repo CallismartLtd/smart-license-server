@@ -5,34 +5,25 @@
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Environments
  * @since   0.2.0
+ * @var array $config Array of runtime configuration data @see RuntimeConfig::class for structure.
  */
 
-$defaults   = [
-    'app_root'      => $_SERVER['DOCUMENT_ROOT'] ?? '',
-    'storage_dir'   => '',
-    'runtime_dir'   => '',
-    'src_dir'       => dirname( __FILE__ ),
-    'index_file'    => __FILE__,
-    
-    'debug_mode'        => false,
-    'display_errors'    => false,
-    'log_errors'        => false,
+use SmartLicenseServer\RuntimeConfig;
 
-    'secret'    => '',
-    'salt'      => ''
+require_once 'Autoloader.php';
 
-];
+$smliser_runtime   = RuntimeConfig::defaults();
+$smliser_runtime->merge( $config ?? [] );
 
-$config = array_intersect_key( array_merge( $defaults, $config ?? [] ), $defaults );
+unset( $config );
 
 require_once 'constants.php';
-require_once 'Autoloader.php';
 
 \SmartLicenseServer\Exceptions\GlobalErrorHandler::instance()
     ->bootstrap([
-        'debug'             => $config['debug_mode'],
-        'display_errors'    => $config['display_errors'],
-        'log_errors'        => $config['log_errors'],
+        'debug'             => $smliser_runtime['debug_mode'],
+        'display_errors'    => $smliser_runtime['display_errors'],
+        'log_errors'        => $smliser_runtime['log_errors'],
         'log_path'          => \SMLISER_ROOT . 'error.log',
     ])
 ->registerHandlers();

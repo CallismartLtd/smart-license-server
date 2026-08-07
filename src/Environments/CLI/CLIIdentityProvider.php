@@ -31,7 +31,6 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Environments\CLI;
 
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Actors\User;

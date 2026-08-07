@@ -57,21 +57,14 @@ class WordPressEnvironment extends Environment {
      */
     private function setProps() : void {
         static::$envProvider = $this;
-        
-        /** @var \wpdb $wpdb */
-        $wpdb               = $GLOBALS['wpdb'];
-        $db_prefix          = rtrim( $wpdb->prefix, '_' ) . '_smliser_';
-        $filesystem_adapter = new WPFileSystemAdapter;
-        $settings_provider  = new WPSettingsProvider;
-        $database_adapter   = new WPDBAdapter( $wpdb );
-        $rest_api_provider  = new RESTAPI( new V1 );
-        $identity_provider  = new IdentityService();        
-
-        $env    = compact( 'db_prefix','filesystem_adapter', 'settings_provider',
-            'rest_api_provider', 'identity_provider', 'database_adapter',
-        );
-        
-        $this->setup( $env );
+           
+        $this->setup([
+            'filesystem_adapter'   => new WPFileSystemAdapter(),
+            'settings_provider'    => new WPSettingsProvider(),
+            'database_adapter'     => new WPDBAdapter( $GLOBALS['wpdb'] ),
+            'rest_api_provider'    => new RESTAPI( new V1 ),
+            'identity_provider'    => new IdentityService()
+        ]);
         
         $this->script_manager   = new ScriptManager( $this->request );
         $this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request );
