@@ -65,12 +65,10 @@ class WordPressEnvironment extends Environment {
         $settings_provider  = new WPSettingsProvider;
         $database_adapter   = new WPDBAdapter( $wpdb );
         $rest_api_provider  = new RESTAPI( new V1 );
-        $secret             = SECURE_AUTH_KEY;
-        $salt               = SECURE_AUTH_SALT;
         $identity_provider  = new IdentityService();        
 
-        $env    = compact( 'db_prefix','filesystem_adapter', 'settings_provider', 'salt', 
-            'secret', 'rest_api_provider', 'identity_provider', 'database_adapter', 
+        $env    = compact( 'db_prefix','filesystem_adapter', 'settings_provider',
+            'rest_api_provider', 'identity_provider', 'database_adapter',
         );
         
         $this->setup( $env );

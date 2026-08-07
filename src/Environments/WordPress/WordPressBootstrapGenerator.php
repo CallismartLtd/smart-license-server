@@ -284,7 +284,9 @@ class WordPressBootstrapGenerator {
 			'index_file'		=> __FILE__,
 			'debug_mode'		=> defined( 'WP_DEBUG' ) && WP_DEBUG,
 			'display_errors'	=> defined( 'WP_DEBUG_DISPLAY' ) && WP_DEBUG_DISPLAY,
-			'log_errors'		=> defined( 'WP_DEBUG' ) && WP_DEBUG
+			'log_errors'		=> defined( 'WP_DEBUG' ) && WP_DEBUG,
+			'secret'			=> SECURE_AUTH_KEY,
+			'salt'				=> SECURE_AUTH_SALT
 		];
 
 		require_once __DIR__ . '/src/bootstrap.php';

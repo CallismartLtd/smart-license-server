@@ -515,7 +515,12 @@ class HttpErrorHandler extends AbstractErrorHandler {
      */
     public function renderWarning() : string {
         if ( $this->getPreferredFormat() === 'json' ) {
-            return $this->renderJson();
+            if ( ! headers_sent() ) {
+                $clean_msg = str_replace( [ "\r", "\n" ], ' ', $this->getMessage() );
+                $header_val = sprintf( '%s: %s', $this->getTitle(), $clean_msg );
+                header( 'X-Server-Warning: ' . ( $header_val ), false );
+            }
+            return ''; // Return empty string so echoing it doesn't corrupt stdout/JSON streams.
         }
 
         $html  = '<div style="background:#fff3cd;border:1px solid #ffc107;color:#664d03;padding:12px 16px;margin:12px 0;border-radius:4px;font-family:sans-serif;font-size:14px;">' . PHP_EOL;

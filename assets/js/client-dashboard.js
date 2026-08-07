@@ -105,7 +105,8 @@ class SmliserClientDashboard {
             await smliserFetchJSON( url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify( {
                     key,
@@ -132,7 +133,10 @@ class SmliserClientDashboard {
         }
 
         const response = await smliserFetchJSON( url, {
-            method: 'GET'
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
         } );
 
         if ( ! response.success ) {
@@ -150,7 +154,8 @@ class SmliserClientDashboard {
         const response = await smliserFetchJSON( url, {
             method: 'POST',
             headers: {
-                'credentials': 'same-origin'
+                'credentials': 'same-origin',
+                'Accept': 'application/json'
             },
             body: payload,
         } );

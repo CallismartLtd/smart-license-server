@@ -127,8 +127,6 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     protected array $env = [
         'db_prefix'             => '',
-        'secret'                => null,
-        'salt'                  => null,
         'filesystem_adapter'    => null,
         'settings_provider'     => null,
         'database_adapter'      => null,
@@ -249,8 +247,6 @@ abstract class Environment implements EnvironmentProviderInterface {
      * 
      * @param array{
      *      db_prefix: string,
-     *      secret: string,
-     *      salt: string,
      *      filesystem_adapter?: FileSystemAdapterInterface, 
      *      settings_provider?: SettingsStorageInterface,
      *      database_adapter?: DatabaseAdapterInterface,
@@ -287,7 +283,7 @@ abstract class Environment implements EnvironmentProviderInterface {
 
         $missing_config = [];
 
-        $required_keys = ['db_prefix','secret', 'salt', 'identity_provider'];
+        $required_keys = ['db_prefix', 'identity_provider'];
 
         foreach ( $parsed_config as $key => $value ) {
             if ( in_array( $key, $required_keys, true ) && $value === null ) {
