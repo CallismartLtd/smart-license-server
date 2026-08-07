@@ -1408,7 +1408,6 @@ class AppUploader {
                 method: 'DELETE',
                 credentials: 'same-origin',
                 headers: {
-                    'accept': 'application/json',
                     'Content-Type': 'application/json'
                 },
                 body: StringUtils.JSONstringify( requestBody )

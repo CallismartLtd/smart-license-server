@@ -342,6 +342,14 @@ interface RequestDispatcherInterface {
     public static function handle_test_cache_adapter_settings_request( Request $request ) : Response;
     
     /**
+     * Handle admin request to reset cache adapter settings.
+     * 
+     * @param Request $request
+     * @return Response 
+     */
+    public static function handle_reset_cache_adapter_settings_request( Request $request ) : Response;
+
+    /**
      * Parse request to get cache stats.
      * 
      * @param Request $request

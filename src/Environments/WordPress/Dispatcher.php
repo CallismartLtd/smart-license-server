@@ -20,7 +20,6 @@ use SmartLicenseServer\FileSystem\DownloadsApi\FileRequest;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\Environments\WordPress\Installer;
-use SmartLicenseServer\FileSystem\DownloadsApi\FileResponse;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Messaging\MessageController;
 use SmartLicenseServer\Monetization\Controller;
@@ -85,6 +84,7 @@ class Dispatcher implements RequestDispatcherInterface {
         'smliser_cache_get_stats'                       => [ __CLASS__, 'handle_get_cache_stats_request' ],
         'smliser_cache_clear_all'                       => [ __CLASS__, 'handle_clear_all_cache_request' ],
         'smliser_cache_flush_expired'                   => [ __CLASS__, 'handle_flush_expired_cache_request' ],
+        'smliser_reset_cache_adapter_settings'          => [ __CLASS__, 'handle_reset_cache_adapter_settings_request' ],
     ];
 
     /**
@@ -709,6 +709,12 @@ class Dispatcher implements RequestDispatcherInterface {
 
     }
 
+    public static function handle_reset_cache_adapter_settings_request( Request $request ) : Response {
+        static::guard( $request, 'manage_options' );
+
+        return CacheRequestController::reset_cache_adapter_settings( $request );
+
+    }
 
     public static function render_client_dashboard( Request $request ) : Response {
         $registry       = smliserFrontendTemplate();

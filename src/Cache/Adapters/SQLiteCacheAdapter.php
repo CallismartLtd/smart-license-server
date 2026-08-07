@@ -523,13 +523,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         $storage_limit  = (int) ( $settings['storage_limit'] ?? $this->storage_limit );
         $db_filename    = (string) ( $settings['db_filename'] ?? $this->db_filename );
 
-        if ( ! $cache_dir || ! str_starts_with( $cache_dir, SMLISER_REPO_DIR ) ) {
-            throw new LogicException(
-                'Cache directory must be valid and within the writable repository path.'
-            );
-        }
-
-        $this->base_dir = rtrim( $cache_dir, '/' );
+        $this->base_dir = rtrim( $cache_dir, '/' ) . '/';
 
         // Validate cache_memory within sensible bounds
         if ( $cache_memory !== $this->cache_memory && ( $cache_memory < 1 || $cache_memory > 1024 ) ) {
@@ -735,7 +729,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             }
 
             $file   = $this->db_file();
-            $dir    = dirname( $file );
+            $dir    = rtrim( dirname( $file ), '/' ) . '/';
 
             if ( ! is_dir( $dir ) ) {
                 mkdir( $dir, 0775, true );

@@ -209,6 +209,30 @@ class CacheAdapterRegistry extends AbstractRegistry {
     }
 
     /**
+     * Reset all persisted options for a adapter and bust the cache.
+     * 
+     * @param string $adapter_id
+     * @return bool
+     */
+    public static function reset_adapter_settings( string $adapter_id ): bool {
+        $settings       = static::instance()->settings;
+        $all_options    = $settings->get( static::SETTINGS_KEY, [], true );
+
+        if ( isset( $all_options[ $adapter_id ] ) ) {
+            unset( $all_options[ $adapter_id ] );
+        }
+
+        $saved = $settings->set( static::SETTINGS_KEY, $all_options, true );
+
+        if ( $saved ) {
+            // Bust the cache for this adapter so the next get_option() reads fresh data.
+            unset( static::$settings_store[ $adapter_id ] );
+        }
+
+        return $saved;
+    }
+
+    /**
      * Persist all settings for a adapter at once and bust the cache.
      *
      * More efficient than calling update_option() per key when saving

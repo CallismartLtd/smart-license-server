@@ -106,7 +106,6 @@ class SmliserClientDashboard {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
                 },
                 body: JSON.stringify( {
                     key,
@@ -132,12 +131,7 @@ class SmliserClientDashboard {
             return this.cache.get( url );
         }
 
-        const response = await smliserFetchJSON( url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            }
-        } );
+        const response = await smliserFetchJSON( url, { method: 'GET' } );
 
         if ( ! response.success ) {
             throw new Error( response.html || 'Request failed' );
@@ -155,7 +149,6 @@ class SmliserClientDashboard {
             method: 'POST',
             headers: {
                 'credentials': 'same-origin',
-                'Accept': 'application/json'
             },
             body: payload,
         } );

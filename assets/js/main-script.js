@@ -192,6 +192,12 @@ async function smliserFetch( url, options = { responseType: 'json' } ) {
  * Helper: Fetch and expect JSON
  */
 async function smliserFetchJSON( url, options = {} ) {
+    const headers = {
+        'Accept': 'application/json',
+    };
+
+    options.headers = { ...headers, ...( options.headers || {} ) };
+
     return await smliserFetch( url, { ...options, responseType: 'json' } );
 }
 
@@ -199,6 +205,12 @@ async function smliserFetchJSON( url, options = {} ) {
  * Helper: Fetch and expect HTML
  */
 async function smliserFetchHTML( url, options = {} ) {
+    const headers = {
+        'Accept': 'text/html',
+    };
+
+    options.headers = { ...headers, ...( options.headers || {} ) };
+
     return await smliserFetch( url, { ...options, responseType: 'html' } );
 }
 
@@ -206,6 +218,12 @@ async function smliserFetchHTML( url, options = {} ) {
  * Helper: Fetch and expect text
  */
 async function smliserFetchText( url, options = {} ) {
+    const headers = {
+        'Accept': 'text/plain',
+    };
+
+    options.headers = { ...headers, ...( options.headers || {} ) };
+
     return await smliserFetch( url, { ...options, responseType: 'text' } );
 }
 
@@ -213,6 +231,12 @@ async function smliserFetchText( url, options = {} ) {
  * Helper: Fetch and expect blob (for files/images)
  */
 async function smliserFetchBlob( url, options = {} ) {
+    const headers = {
+        'Accept': 'application/octet-stream',
+    };
+
+    options.headers = { ...headers, ...( options.headers || {} ) };
+
     return await smliserFetch( url, { ...options, responseType: 'blob' } );
 }
 
@@ -747,6 +771,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     const emailTemplatesPage    = document.querySelector( '#smliser-email-templates-table' );
     const emailTemplateToggle   = document.querySelectorAll( '.smliser-template-toggle' );
     const testCacheAdapterBtn   = document.querySelector( '.test-cache-btn' );
+    const resetCacheAdapterBtn  = document.querySelector( '.reset-cache-btn' );
 
     jQuery( '.smliser-auto-select2 select' ).select2( { width: '100%' } );
 
@@ -2591,6 +2616,46 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 testCacheAdapterBtn.disabled    = false;
             }
         })
+    }
+
+    if ( resetCacheAdapterBtn ) {
+        let originalBtnText   = resetCacheAdapterBtn.innerHTML;
+        resetCacheAdapterBtn.addEventListener( 'click', async e => {
+            e.preventDefault();
+            const confirmed = await SmliserModal.confirm( 'Are you sure you want to reset the cache adapter to default settings?' );
+
+            if ( ! confirmed ) return;
+
+            resetCacheAdapterBtn.innerHTML   = '<i class="ti ti-loader rotate">';
+            resetCacheAdapterBtn.disabled    = true;
+
+            const payLoad   = new FormData();
+            payLoad.set( 'action', 'smliser_reset_cache_adapter_settings' );
+            payLoad.set( 'security', smliser_var.csrf_token );
+            payLoad.set( 'adapter_id', queryParam.get( 'adapter' ) );
+
+            try {
+                const resetResult    = await smliserFetchJSON( smliser_var.ajaxURL, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: payLoad
+                });
+
+                if ( ! resetResult.success ) {
+                    throw {
+                        message: resetResult.data?.message || 'Something went wrong!',
+                    };
+                }
+
+                await SmliserModal.success( resetResult.data?.message || 'Reset successful' );
+                window.location.reload();
+            } catch ( error ) {
+                await SmliserModal.error( error.message, 'Reset Failed' );
+            } finally {
+                resetCacheAdapterBtn.innerHTML   = originalBtnText;
+                resetCacheAdapterBtn.disabled    = false;
+            }
+        });
     }
 
 });

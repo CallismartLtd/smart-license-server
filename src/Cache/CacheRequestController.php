@@ -79,7 +79,7 @@ class CacheRequestController {
         }
     }
 
-/**
+    /**
      * Handle a request to test settings for a specific cache adapter.
      *
      * Validates the submitted fields through the same pipeline as
@@ -124,6 +124,38 @@ class CacheRequestController {
                 'success' => false,
                 'data'    => [
                     'message' => $e->getMessage(),
+                ],
+            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+
+        } catch ( RequestException $e ) {
+            return ( new Response() )
+                ->set_exception( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
+    }
+
+    /**
+     * Handle a request to reset settings for a specific cache adapter.
+     * 
+     * @param Request $request
+     * @return Response
+     */
+    public static function reset_cache_adapter_settings( Request $request ): Response {
+        try {
+            static::is_system_admin();
+
+            $adapter_id = static::sanitize_key( $request->get( 'adapter_id', '' ) );
+
+            if ( ! $adapter_id ) {
+                throw new RequestException( 'required_param', 'Adapter ID is required.' );
+            }
+
+            CacheAdapterRegistry::reset_adapter_settings( $adapter_id );
+
+            return ( new Response( 200, [], [
+                'success' => true,
+                'data'    => [
+                    'message' => sprintf( '%s settings reset successfully.', $adapter_id ),
                 ],
             ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 

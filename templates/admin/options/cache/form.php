@@ -109,6 +109,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                 <div class="smliser-form-label-row submit-row">
                     <button type="submit" class="smliser-submit-button">Save</button>
                     <button type="button" class="smliser-btn test-cache-btn">Test</button>
+                    <button type="button" class="smliser-btn reset-cache-btn">Reset</button>
                     
                 </div>
                 <span class="smliser-spinner"></span>
