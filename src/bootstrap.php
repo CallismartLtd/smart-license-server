@@ -9,21 +9,31 @@
  */
 
 use SmartLicenseServer\RuntimeConfig;
+use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 
 require_once 'Autoloader.php';
 
 $smliser_runtime   = RuntimeConfig::defaults();
-$smliser_runtime->merge( $config ?? [] );
 
-unset( $config );
+GlobalErrorHandler::instance()->enableProduction()->registerHandlers();
+
+try {
+    $smliser_runtime->merge( $config ?? [] );
+} catch ( \Throwable $e ) {
+    GlobalErrorHandler::instance()
+        ->abort( $e, 'Configuration Error.' );
+} finally {
+    unset( $config );
+    GlobalErrorHandler::reset();
+}
+
+GlobalErrorHandler::instance()->bootstrap([
+    'debug'             => $smliser_runtime->debug_mode,
+    'display_errors'    => $smliser_runtime->display_errors,
+    'log_errors'        => $smliser_runtime->log_errors,
+    'log_path'          => $smliser_runtime->error_log_path,
+]);
 
 require_once 'constants.php';
 
-\SmartLicenseServer\Exceptions\GlobalErrorHandler::instance()
-    ->bootstrap([
-        'debug'             => $smliser_runtime['debug_mode'],
-        'display_errors'    => $smliser_runtime['display_errors'],
-        'log_errors'        => $smliser_runtime['log_errors'],
-        'log_path'          => \SMLISER_ROOT . 'error.log',
-    ])
-->registerHandlers();
+unset( $smliser_runtime );

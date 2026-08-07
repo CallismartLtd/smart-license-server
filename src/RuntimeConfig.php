@@ -29,6 +29,7 @@ use Callismart\DTO\DTO;
  * @property-read string $secret Application secret key.
  * @property-read string $salt Application salt key.
  * @property-read string $db_table_prefix Database table prefix.
+ * @property-read string $error_log_path Absolute path to the error log file.
  */
 class RuntimeConfig extends DTO {
     /**
@@ -45,7 +46,8 @@ class RuntimeConfig extends DTO {
             'log_errors',
             'secret',
             'salt',
-            'db_table_prefix'
+            'db_table_prefix',
+            'error_log_path'
         ];
     }
 
@@ -82,7 +84,8 @@ class RuntimeConfig extends DTO {
             'log_errors'        => false,
             'secret'    => '',
             'salt'      => '',
-            'db_table_prefix'   => 'smliser_'
+            'db_table_prefix'   => 'smliser_',
+            'error_log_path'    => ''
 
         ]);
     }
