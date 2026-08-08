@@ -213,7 +213,7 @@ class FileRequestController {
                 throw new FileRequestException( 'missing_parameter', 'Asset URL is required.', ['status' => 400] );
             }
 
-            $url    = new URL( $asset_url );
+            $url    = URL::from( $asset_url );
 
             if ( ! $url->is_valid() ) {
                 throw new FileRequestException( 'malformed_request', 'The provided URL is not valid.' );

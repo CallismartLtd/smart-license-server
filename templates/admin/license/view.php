@@ -244,7 +244,7 @@ function format_active_domains( License $license ) {
     } else {
         foreach ( $all_origins as $origin ) {
 
-            $url    = new URL( $origin );
+            $url    = URL::from( $origin );
            
             $html .= sprintf(
                 '<div class="smliser-all-license-domains_domain" data-domain-value="%1$s">

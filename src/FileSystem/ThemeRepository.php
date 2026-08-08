@@ -231,13 +231,13 @@ class ThemeRepository extends Repository {
         try {
             $base_dir = $this->enter_slug( $slug );
         } catch ( FileSystemException $e ) {
-            return ( 'screenshot' === $type ) ? new URL( '' ) : [];
+            return ( 'screenshot' === $type ) ? URL::from( '' ) : [];
         }
 
         $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
         if ( ! $this->is_dir( $assets_dir ) ) {
-            return ( 'screenshot' === $type ) ? new URL( '' ) : [];
+            return ( 'screenshot' === $type ) ? URL::from( '' ) : [];
         }
 
         switch ( $type ) {
@@ -253,7 +253,7 @@ class ThemeRepository extends Repository {
                     }
                 }
                 
-                return new URL( '' );
+                return URL::from( '' );
 
             case 'screenshots':
                 // screenshot-{index}.{ext}.

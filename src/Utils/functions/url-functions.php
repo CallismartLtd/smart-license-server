@@ -16,7 +16,7 @@ use SmartLicenseServer\FileSystem\FileSystemHelper;
  * @return URL
  */
 function url( string $path = '', array $params = [] ) : URL {
-    return smliser_envProvider()->url( $path, $params );
+    return smliser_envProvider()::url( $path, $params );
 }
 
 /**
@@ -160,8 +160,7 @@ function smliser_access_control_page_url() : URL {
  * @return string The base website address.
  */
 function smliser_url_origin( string $url ) {
-    $url    = new URL( $url );
-    return $url->get_origin();
+    return URL::from( $url )->get_origin();
 }
 
 /**
@@ -256,7 +255,7 @@ function smliser_avatar_url( string $filename_hash, string $type ) : URL {
     $abs_path   = FileSystemHelper::join_path( SMLISER_UPLOADS_DIR, $path );
 
     if ( ! FileSystemHelper::is_valid_file( $abs_path ) ) {
-        return new URL( '' );
+        return URL::from( '' );
     }
 
     $avatar_url = smliser_uploads_url( $path );
@@ -290,9 +289,7 @@ function smliser_get_current_url() : URL {
  * @param string $url
  */
 function smliser_sanitize_url( $url ) : string {
-    return ( new URL( $url ) )
-    ->sanitize()
-    ->url();
+    return URL::from( $url )->sanitize()->url();
 }
 
 /**
@@ -353,7 +350,7 @@ function smliser_get_app_artifact_url( string $app_type, string $app_slug, strin
  */
 function smliser_download_url( string|URL $url, int $timeout = 30, bool $autoclean = true ) : string|FileRequestException {
     try {
-        $url  = is_string( $url ) ? new URL( $url ) : $url;
+        $url  = is_string( $url ) ? URL::from( $url ) : $url;
         // Validate URL.
         if ( ! $url->is_valid() ) {
             throw new FileRequestException( 'invalid_url', 'Invalid URL provided.' );

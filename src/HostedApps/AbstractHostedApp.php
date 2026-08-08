@@ -359,7 +359,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string $url
      */
     public function set_homepage( ?string $url ) : static {
-        $this->homepage = ( new URL( $url ?? '' ) )->sanitize();
+        $this->homepage = URL::from( $url ?? '' )->sanitize();
 
         return $this;
     }
@@ -392,7 +392,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string|URL|null $url
      */
     public function set_author_profile( string|URL|null $url ) : static {
-        $this->author_profile = ( $url instanceof URL ) ? $url->sanitize() : ( new URL( (string) $url ) )->sanitize();
+        $this->author_profile = ( $url instanceof URL ) ? $url->sanitize() : URL::from( (string) $url )->sanitize();
 
         return $this;
     }
@@ -518,7 +518,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @return static
      */
     public function set_support_url( string|URL $url ) : static {
-        $this->support_url = ( $url instanceof URL ) ? $url : new URL( $url );
+        $this->support_url = ( $url instanceof URL ) ? $url : URL::from( $url );
 
         return $this;
     }
@@ -1268,7 +1268,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * @param string|URL $url The download url.
      */
     public function set_download_url( string|URL $url = '' ) : static {
-        $url    = ( $url instanceof URL ) ? $url : new URL( $url );
+        $url    = ( $url instanceof URL ) ? $url : URL::from( $url );
         
         if ( $url->is_valid() ) {
             $this->download_link = $url->sanitize();
@@ -1284,7 +1284,7 @@ abstract class AbstractHostedApp implements HostedAppsInterface {
      * Get the download URL for the application.
      */
     public function get_download_url() : URL {
-        return $this->download_link ? $this->download_link : new URL( (string) $this->download_link );
+        return $this->download_link ? $this->download_link : URL::from( (string) $this->download_link );
     }
 
     /**

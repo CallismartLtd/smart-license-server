@@ -98,7 +98,7 @@ class TestEnvironment extends Environment {
     */
 
     public static function url( string $path = '', array $qv = [] ): URL {
-        return ( new URL( '' ) )
+        return URL::from( '' )
             ->append_path( $path )
             ->add_query_params( $qv );
     }

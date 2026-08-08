@@ -475,7 +475,7 @@ class RESTAPI implements RESTProviderInterface {
      * @return string Sanitized URL.
      */
     public static function sanitize_url( $url ) : string {
-        $url = ( new URL( $url ) )
+        $url = URL::from( $url )
             ->sanitize();
         
         return $url->url();
@@ -506,7 +506,7 @@ class RESTAPI implements RESTProviderInterface {
             return new WP_Error( 'rest_invalid_param', __( 'The domain parameter is required.', 'smliser' ), array( 'status' => 400 ) );
         }
 
-        $url    = new URL( $url );
+        $url    = URL::from( $url );
 
         if ( ! $url->has_scheme() ) {
             return new WP_Error( 'rest_invalid_param', __( 'Invalid URL format.', 'smliser' ), array( 'status' => 400 ) );

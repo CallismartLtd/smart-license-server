@@ -1096,13 +1096,13 @@ class License {
             if ( ! $url->has_scheme() ) {
                 // Malformed url, rebuild it.
                 $url    = $url->set_scheme( 'https' );
-                $url    = new URL( $url->__toString() );
+                $url    = URL::from( $url->url() );
             }
 
             return $url;
         }
 
-        $url    = new URL( $domain );
+        $url    = URL::from( $domain );
         return $this->ensure_domain( $url );
     }
 

@@ -787,6 +787,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
         e.target.setCustomValidity( '' );
         e.target.removeEventListener( 'input', resetValidity );
     };
+    
     if ( usersSearch ) {
         const options = {
             entityType: 'owner_subjects',
@@ -2589,7 +2590,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
             if ( hasError ) return;
 
-            testCacheAdapterBtn.innerHTML   = originalBtnText + '<i class="ti ti-loader rotate">';
+            testCacheAdapterBtn.innerHTML   = '<i class="ti ti-loader rotate">';
             testCacheAdapterBtn.disabled    = true;
             const payLoad   = new FormData( form );
             payLoad.set( 'action', 'smliser_test_cache_adapter_settings' );

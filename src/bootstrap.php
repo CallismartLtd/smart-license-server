@@ -32,7 +32,7 @@ GlobalErrorHandler::instance()->bootstrap([
     'display_errors'    => $smliser_runtime->display_errors,
     'log_errors'        => $smliser_runtime->log_errors,
     'log_path'          => $smliser_runtime->error_log_path,
-]);
+])->registerHandlers();
 
 require_once 'constants.php';
 

@@ -27,9 +27,9 @@ use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 
 /**
- * CLI environment bootstrap.
+ * Smart License Server running as a CLI Application.
  * 
- * Bootstraps Smart License Server to run from the command-line.
+ * This class bootstraps and setup the application to run one-time or interactive CLI shell.
  */
 class CLIEnvironment extends Environment {
 
@@ -234,7 +234,7 @@ class CLIEnvironment extends Environment {
      */
     public static function url( string $path = '', array $qv = [] ): URL {
         $base = static::$envProvider->app_url ?? '';
-        return ( new URL( $base ) )
+        return URL::from( $base )
             ->append_path( $path )
             ->add_query_params( $qv );
     }

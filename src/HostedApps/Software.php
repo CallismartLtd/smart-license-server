@@ -123,7 +123,7 @@ class Software extends AbstractHostedApp {
      * @return URL|null
      */
     public function get_author_profile() : ?URL {
-        return new URL( $this->author );
+        return URL::from( $this->author );
     }
 
     /*

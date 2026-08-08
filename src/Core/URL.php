@@ -756,6 +756,16 @@ class URL implements JsonSerializable{
         ];
     }
 
+    /**
+     * Static factory.
+     * 
+     * @param string $url
+     * @return static
+     */
+    public static function from( string $url = '' ) : static {
+        return new static( $url );
+    }
+
     public function jsonSerialize() : mixed {
         return $this->sanitize()->get_href();
     }
@@ -763,7 +773,7 @@ class URL implements JsonSerializable{
     public function __serialize() : array {
         return $this->components;
     }
-    public function __unserialize( $data ) : void {
+    public function __unserialize( mixed $data ) : void {
         $this->components = (array) $data;
     }
 }

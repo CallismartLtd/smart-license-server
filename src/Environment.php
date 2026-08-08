@@ -55,7 +55,6 @@ use SmartLicenseServer\Templates\TemplateLocator;
  * in a runtime-agnostic way. It is responsible for:
  * 
  * - Parsing and validating configuration provided by the environment provider.
- * - Declaring global constants (paths, table names, keys, etc.).
  * - Instantiating and wiring core services and adapters, including:
  *   - Database, Cache, Filesystem, and Settings APIs
  *   - REST API provider

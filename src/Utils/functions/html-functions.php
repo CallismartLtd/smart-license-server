@@ -331,7 +331,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
     $end    = min( $total_pages, $page + $window );
     
 
-    $base_url   = $base_url ? new URL( $base_url ) : smliser_get_current_url();
+    $base_url   = $base_url ? URL::from( $base_url ) : smliser_get_current_url();
     $base_url   = $base_url->remove_query_param( $page_param, 'limit' );
     $prev_page  = max( 1, $page - 1 );
     $next_page  = min( $total_pages, $page + 1 );
@@ -426,7 +426,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
  * @param string $url
  */
 function smliser_dump_url( $url ) : void {
-    $dump   = ( new URL( $url ) )->dump();
+    $dump   = URL::from( $url )->dump();
     // Pretty print for debugging
     echo '<pre style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; font-family: \'Courier New\', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto;">';
     echo '<strong style="color: #4ec9b0; font-size: 16px;">🔍 URL DEBUG DUMP</strong>' . "\n";

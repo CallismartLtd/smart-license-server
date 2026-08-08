@@ -230,7 +230,7 @@ class AccessControlPage implements AdminPageInterface {
         $avatar_url     = 
             $user && $user->get_avatar()->is_valid() 
             ? $user->get_avatar()->add_query_param( 'ver', time() )
-            : new URL( smliser_get_placeholder_icon( 'avatar' ) );
+            : URL::from( smliser_get_placeholder_icon( 'avatar' ) );
 
         $avatar_name    = $user ? 'View image' : $avatar_url->basename();
         
@@ -366,7 +366,7 @@ class AccessControlPage implements AdminPageInterface {
         $avatar_url     = 
             $organization && $organization->get_avatar()->is_valid() 
             ? $organization->get_avatar()->add_query_param( 'ver', time() )
-            : new URL( smliser_get_placeholder_icon( 'organization' ) );
+            : URL::from( smliser_get_placeholder_icon( 'organization' ) );
 
         $avatar_name    = $organization ? 'View image' : $avatar_url->basename();
 
@@ -497,7 +497,7 @@ class AccessControlPage implements AdminPageInterface {
         $avatar_url     = 
             $member && $member->get_avatar()->is_valid() 
             ? $member->get_avatar()->add_query_param( 'ver', time() )
-            : new URL( smliser_get_placeholder_icon( 'avatar' ) );
+            : URL::from( smliser_get_placeholder_icon( 'avatar' ) );
 
         $avatar_name    = $member ? 'View image' : $avatar_url->basename();
 
@@ -811,7 +811,7 @@ class AccessControlPage implements AdminPageInterface {
         $avatar_url     = 
             $sa_acc && $sa_acc->get_avatar()->is_valid() 
             ? $sa_acc->get_avatar()->add_query_param( 'ver', time() )
-            : new URL( smliser_get_placeholder_icon( 'api-key' ) );
+            : URL::from( smliser_get_placeholder_icon( 'api-key' ) );
 
         $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
 

@@ -201,13 +201,13 @@ class SoftwareRepository extends Repository {
         try {
             $base_dir = $this->enter_slug( $slug );
         } catch ( FileSystemException ) {
-            return ( 'cover' === $type ) ? new URL( '' ) : [];
+            return ( 'cover' === $type ) ? URL::from( '' ) : [];
         }
 
         $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
         if ( ! $this->is_dir( $assets_dir ) ) {
-            return ( 'cover' === $type ) ? new URL( '' ) : [];
+            return ( 'cover' === $type ) ? URL::from( '' ) : [];
         }
 
         $possible_exts  = static::ALLOWED_IMAGE_EXTENSIONS;
@@ -234,7 +234,7 @@ class SoftwareRepository extends Repository {
                 $pattern        = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
                 $cover_files    = glob( $pattern, GLOB_BRACE );
                 if ( empty( $cover_files ) ) {
-                    return new URL( '' );
+                    return URL::from( '' );
                 }
                 
                 foreach ( $cover_files as $cover ) {
@@ -243,7 +243,7 @@ class SoftwareRepository extends Repository {
                     }
                 }
 
-                return new URL( '' );
+                return URL::from( '' );
                 
             case 'screenshots':
                 $path           = FileSystemHelper::join_path( $assets_dir, 'screenshot' );

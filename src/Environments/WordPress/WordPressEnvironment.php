@@ -15,7 +15,6 @@ use SmartLicenseServer\Core\URL;
 use Callismart\DBPrism\Adapters\WPDBAdapter;
 use SmartLicenseServer\Autoloader;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
-use SmartLicenseServer\Cache\CacheProviderIcons;
 use SmartLicenseServer\Console\OptionParser;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Environments\WordPress\CLI\WPCLIInput;
@@ -26,10 +25,12 @@ use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
 
-use function SmartLicenseServer\Admin\smliser_get_event_icon;
-
 /**
- * WordPress Environment setup class
+ * Smart License Server running as a plugin in WordPress environment.
+ * 
+ * This class is responsible for bootstrapping the application in a WordPress environment,
+ * including setting up the filesystem, database, REST API, and other core services. 
+ * It also registers action hooks and filters specific to WordPress.
  */
 class WordPressEnvironment extends Environment {
 
@@ -126,28 +127,28 @@ class WordPressEnvironment extends Environment {
     }
 
     public static function url( string $path = '', array $qv = [] ) : URL {
-        return ( new URL( site_url() ) )
-        ->append_path( $path )
-        ->add_query_params( $qv );
+        return URL::from( site_url() )
+            ->append_path( $path )
+            ->add_query_params( $qv );
     }
     
     public static function adminUrl( string $path = '', array $qv = [] ) : URL {
-        return ( new URL( admin_url() ) )
-        ->append_path( $path )
-        ->add_query_params( $qv );
+        return URL::from( admin_url() )
+            ->append_path( $path )
+            ->add_query_params( $qv );
     }
 
     public static function restAPIUrl( string $path = '', array $qv = [] ) : URL {
         $namespace = static::$envProvider->restProvider()->namespace();
 
-        return ( new URL( rest_url( $namespace ) ) )
-        ->append_path( $path )
-        ->add_query_params( $qv );
+        return URL::from( rest_url( $namespace ) )
+            ->append_path( $path )
+            ->add_query_params( $qv );
     }
     
     public static function assetsUrl( string $path = '', array $qv = [] ) : URL {
         $path   = FileSystemHelper::join_path( '/assets/', $path );
-        return ( new URL( plugin_dir_url( SMLISER_FILE ) ) )
+        return URL::from( plugin_dir_url( SMLISER_FILE ) )
             ->append_path( $path )
             ->add_query_params( $qv );
     }
