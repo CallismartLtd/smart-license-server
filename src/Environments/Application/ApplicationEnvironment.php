@@ -15,9 +15,7 @@ use SmartLicenseServer\Environment;
  * Smart License Server running as a standalone PHP application.
  */
 class ApplicationEnvironment extends Environment {
-    /**
-     * Private constructor
-    */
+
     private function __construct() {
         $this->bind_instance();
         $this->prepare_db_config();

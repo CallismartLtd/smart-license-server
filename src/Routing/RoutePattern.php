@@ -45,6 +45,15 @@ namespace SmartLicenseServer\Routing;
  * (`{slug?}` is fine; `prefix-{slug?}` is rejected) — this keeps the optional
  * nesting logic in buildRegex() a per-segment concern instead of a
  * sub-segment one.
+ *
+ * This class is environment-agnostic by design: it only knows how to turn a
+ * pattern string into a regex, param names, and a template for URL building.
+ * It does not validate param names against any particular host environment's
+ * reserved words (e.g. WordPress' own query vars) — that validation belongs
+ * to whichever environment adapter calls this, since "reserved" is only ever
+ * true relative to a specific environment. See
+ * SmartLicenseServer\Environments\WordPress\Routing\Router for where that
+ * WordPress-specific check now lives.
  */
 final class RoutePattern {
 
@@ -64,27 +73,6 @@ final class RoutePattern {
 		'slug' => '[A-Za-z0-9_-]+',
 		'uuid' => '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
 		'path' => '.+',
-	);
-
-	/**
-	 * WordPress core / router-reserved query variables that a route parameter
-	 * must not shadow.
-	 *
-	 * @var string[]
-	 */
-	private const RESERVED_QUERY_VARS = array(
-		'page',
-		'paged',
-		'p',
-		'name',
-		'author',
-		'category_name',
-		'tag',
-		'feed',
-		'attachment_id',
-		'preview',
-		's',
-		'pagename',
 	);
 
 	/**
@@ -262,18 +250,17 @@ final class RoutePattern {
 	}
 
 	/**
+	 * Environment-agnostic name validation only: duplicate params within one
+	 * pattern are a routing bug in any environment. Anything environment-
+	 * specific (e.g. WordPress' reserved query vars) does not belong here —
+	 * see this class' docblock.
+	 *
 	 * @param string[] $seenParams
 	 * @throws InvalidRouteException
 	 */
 	private static function assertValidParamName( string $name, array $seenParams ): void {
 		if ( in_array( $name, $seenParams, true ) ) {
 			throw new InvalidRouteException( sprintf( 'Duplicate route parameter "%s".', $name ) );
-		}
-
-		if ( in_array( $name, self::RESERVED_QUERY_VARS, true ) ) {
-			throw new InvalidRouteException(
-				sprintf( 'Route parameter "%s" collides with a reserved WordPress query variable.', $name )
-			);
 		}
 	}
 
@@ -322,14 +309,5 @@ final class RoutePattern {
 		}
 
 		return ( $isFirst ? '' : '/' ) . $piece;
-	}
-
-	/**
-	 * Exposed so Router can validate `$extraVars` keys against the same list.
-	 *
-	 * @return string[]
-	 */
-	public static function reservedQueryVars(): array {
-		return self::RESERVED_QUERY_VARS;
 	}
 }

@@ -15,5 +15,4 @@ namespace SmartLicenseServer\Routing;
  * segment following an optional one, a reserved query variable name, an
  * unknown route name passed to Router::url(), etc.
  */
-final class InvalidRouteException extends \InvalidArgumentException {
-}
+final class InvalidRouteException extends \InvalidArgumentException {}

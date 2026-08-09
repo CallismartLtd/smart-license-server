@@ -9,12 +9,9 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
 
-use SmartLicenseServer\Routing\{
-	RoutePattern, InvalidRouteException
-};
-use SmartLicenseServer\Core\{
-	Request, Response
-};
+use SmartLicenseServer\Routing\CompiledPattern;
+use SmartLicenseServer\Routing\InvalidRouteException;
+use SmartLicenseServer\Routing\RoutePattern;
 
 /**
  * Fluent façade over WordPress' rewrite API.
@@ -124,7 +121,7 @@ final class Router {
 	 * @param string               $priority              'top' or 'bottom'.
 	 * @param bool                 $optionalTrailingSlash Whether the URL may end in an optional '/'.
 	 *                                                     Default true; pass false for an exact match.
-	 * @param callable( Request $request ): Response                $handler               Optional handler for this specific route —
+	 * @param mixed                $handler               Optional handler for this specific route —
 	 *                                                     see Router::match()'s docblock for why this
 	 *                                                     matters even though pagename still does the
 	 *                                                     actual WordPress-level rewrite-rule registration.
@@ -137,12 +134,12 @@ final class Router {
 		array $extraVars = array(),
 		string $priority = 'top',
 		bool $optionalTrailingSlash = true,
-		?callable $handler = null
+		mixed $handler = null
 	): Route {
-		$this->assertNoReservedCollision( $extraVars );
-
 		$fullPattern = $this->applyGroupPrefix( $pattern );
 		$compiled    = RoutePattern::compile( $fullPattern, $this->constraints );
+
+		$this->assertNoReservedCollision( $extraVars, $compiled );
 
 		$route = Route::compiled(
 			$fullPattern,
@@ -190,7 +187,7 @@ final class Router {
 	 * `pagename` first — see matchForPagename(), which enforces this by
 	 * construction rather than relying on the caller to remember it.
 	 *
-	 * @return array{route: Route, handler: callable( Request $request ): Response, params: array<string,string>}|null
+	 * @return array{route: Route, handler: mixed, params: array<string,string>}|null
 	 */
 	public function match( string $path ): ?array {
 		foreach ( $this->routes->all() as $route ) {
@@ -329,14 +326,41 @@ final class Router {
 	}
 
 	/**
+	 * WordPress core query variables a route parameter or extra var must not
+	 * shadow. This lived inside the core RoutePattern compiler before — moved
+	 * here because "reserved" is only true relative to WordPress specifically;
+	 * a standalone environment has no reason to reject a param literally named
+	 * `page`, and forcing that restriction into the environment-agnostic
+	 * compiler meant every environment paid for a WordPress-only concern.
+	 *
+	 * @var string[]
+	 */
+	private const RESERVED_QUERY_VARS = array(
+		'page',
+		'paged',
+		'p',
+		'name',
+		'author',
+		'category_name',
+		'tag',
+		'feed',
+		'attachment_id',
+		'preview',
+		's',
+		'pagename',
+	);
+
+	/**
 	 * @param array<string,string> $extraVars
 	 * @throws InvalidRouteException
 	 */
-	private function assertNoReservedCollision( array $extraVars ): void {
-		foreach ( array_keys( $extraVars ) as $name ) {
-			if ( in_array( $name, RoutePattern::reservedQueryVars(), true ) ) {
+	private function assertNoReservedCollision( array $extraVars, CompiledPattern $compiled ): void {
+		$candidates = array_merge( array_keys( $extraVars ), $compiled->paramNames );
+
+		foreach ( $candidates as $name ) {
+			if ( in_array( $name, self::RESERVED_QUERY_VARS, true ) ) {
 				throw new InvalidRouteException(
-					sprintf( '"%s" is a reserved query variable and cannot be set via $extraVars.', $name )
+					sprintf( '"%s" is a reserved WordPress query variable and cannot be used as a route parameter or extra var.', $name )
 				);
 			}
 		}
