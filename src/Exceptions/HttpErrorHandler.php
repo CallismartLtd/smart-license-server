@@ -320,14 +320,15 @@ class HttpErrorHandler extends AbstractErrorHandler {
                 'padding'     => '0',
             ],
             '.error-container' => [
-                'max-width'     => '720px',
-                'margin'        => '60px auto',
+                'width'         => '960px',
+                'margin'        => '20px auto',
                 'background'    => '#ffffff',
-                'padding'       => '32px',
+                'padding'       => '20px',
                 'border-radius' => '8px',
                 'border'        => '1px solid #e9ecef',
                 'box-shadow'    => '0 4px 12px rgba(0, 0, 0, 0.05)',
                 'overflow-wrap' => 'anywhere',
+                'max-width'         => '90%'
             ],
             'h1' => [
                 'color'       => '#d9534f',

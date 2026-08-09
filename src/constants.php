@@ -116,7 +116,7 @@ define( 'SMLISER_UPLOADS_DIR', SMLISER_STORAGE_DIR . 'uploads/' );
  *
  * @var string
  */
-define( 'SMLISER_FILE', rtrim( $smliser_runtime->index_file, '/' ) . '/' );
+define( 'SMLISER_FILE', $smliser_runtime->index_file );
 
 /**
  * The secret key used for encryption.
@@ -149,7 +149,7 @@ define( 'SMLISER_UPLOAD_TMP_PREFIX', 'smliser_tmp_' );
  * 
  * @var int
  */
-define( 'SMLISER_FILE_PERMISSION', ( fileperms( SMLISER_ROOT . 'index.php' ) & 0777 | 0644 ) );
+define( 'SMLISER_FILE_PERMISSION', ( fileperms( SMLISER_FILE  ) & 0777 | 0644 ) );
 
 /**
  * Default directory permission.

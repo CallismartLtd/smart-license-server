@@ -43,6 +43,7 @@ class CLIEnvironment extends Environment {
      * Private constructor — use instance().
      */
     private function __construct() {
+        $this->bind_instance();
         $this->loadDotEnv();
         $this->setProps();
         $this->setPrincipal();
@@ -52,8 +53,15 @@ class CLIEnvironment extends Environment {
     /**
      * {@inheritdoc}
      */
-    public static function boot(): void {
-        new static();
+    protected function bind_instance() : void {
+        static::$envProvider = $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function boot(): static {
+        return new static();
     }
 
     /*
@@ -89,8 +97,6 @@ class CLIEnvironment extends Environment {
             ])
             ->registerHandlers();
         
-        static::$envProvider = $this;
-
         $db_host    = $_ENV['SMLISER_DB_HOST']     ?? '127.0.0.1';
         $db_port    = (int) ( $_ENV['SMLISER_DB_PORT'] ?? 3306 );
         $db_name    = $_ENV['SMLISER_DB_NAME']     ?? '';

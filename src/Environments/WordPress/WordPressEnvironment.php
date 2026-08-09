@@ -42,6 +42,8 @@ class WordPressEnvironment extends Environment {
      * Class constructor
      */
     private function __construct() {
+        $this->bind_instance();
+
         Autoloader::add_function_dir( __DIR__ . '/functions' );
         
         $this->setProps();
@@ -54,11 +56,16 @@ class WordPressEnvironment extends Environment {
     }
 
     /**
+     * {@inheritdoc}
+     */
+    protected function bind_instance() : void {
+        static::$envProvider = $this;
+    }
+
+    /**
      * Bootstrap the class properties.
      */
     private function setProps() : void {
-        static::$envProvider = $this;
-           
         $this->setup([
             'filesystem_adapter'   => new WPFileSystemAdapter(),
             'settings_provider'    => new WPSettingsProvider(),
@@ -120,10 +127,13 @@ class WordPressEnvironment extends Environment {
     /**
      * {@inheritdoc}
      */
-    public static function boot() : void {
+    public static function boot() : static {
+        
         if ( ! isset( static::$envProvider ) ) {
             new static();
         }
+
+        return static::$envProvider;
     }
 
     public static function url( string $path = '', array $qv = [] ) : URL {

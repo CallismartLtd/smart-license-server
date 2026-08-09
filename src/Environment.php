@@ -534,8 +534,12 @@ abstract class Environment implements EnvironmentProviderInterface {
         if ( ! isset( $this->database ) ) {
             $this->setDBAdapter();
 
-            if ( ! $this->database->is_connected() && \smliser_debug_enabled() ) {
-                throw new EnvironmentBootstrapException( 'database_connect_error', $this->database->get_last_error() );
+            if ( ! $this->database->is_connected() ) {
+                $error_message = \smliser_debug_enabled() 
+                ? $this->database->get_last_error()
+                : '';
+                
+                throw new EnvironmentBootstrapException( 'database_connect_error', $error_message );
             }
         }
 
@@ -727,5 +731,14 @@ abstract class Environment implements EnvironmentProviderInterface {
     public function identityProvider() : IdentityProviderInterface {
         return $this->identityProvider;
     }
+
+    /**
+     * Explicitly set the value of static::$envProvider to the current
+     * provider instance. This ensure that both the current instance calling global functions
+     * and the bootstrap instantiating the environment provider references the same object.
+     * 
+     * @example static::$envProvider = $this;
+     */
+    abstract protected function bind_instance() : void;
 }
 

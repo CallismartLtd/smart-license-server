@@ -27,7 +27,10 @@ use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
- * Defines the contracts every environment adapter most follow to fully load this application.
+ * Provides the contract that all environment providers must implement.
+ * 
+ * Environment providers must extend the abstract SmartLicenseServer\Environment::class to implement other
+ * abstract contracts.
  */
 interface EnvironmentProviderInterface {
 
@@ -84,9 +87,9 @@ interface EnvironmentProviderInterface {
     /**
      * Bootstrap the environment.
      * 
-     * @return void
+     * @return static
      */
-    public static function boot() : void;
+    public static function boot() : static;
 
     /**
      * Get the DBAL instance.

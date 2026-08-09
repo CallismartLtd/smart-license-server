@@ -13,8 +13,6 @@ use SmartLicenseServer\Security\Actors\User;
 
 use const SMLISER_IDENTITY_FEDERATION_TABLE;
 
-use function smliser_db, sprintf;
-
 /**
  * Provides abstract implementation and shared method for identity provision.
  * 

@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "58fc3758692e2889b0d12a5fd55d0eea",
+    "content-hash": "5c1cd4b56c2e3bb3d8f91ca9c09535c3",
     "packages": [
         {
             "name": "callismart/dbprism",
-            "version": "v0.1.37",
+            "version": "v0.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CallismartLtd/DBPrism.git",
-                "reference": "10505aa61845ed1d74ba5974309a6567317696aa"
+                "reference": "1a4c38884315f34b85730728e367e656204a8b38"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CallismartLtd/DBPrism/zipball/10505aa61845ed1d74ba5974309a6567317696aa",
-                "reference": "10505aa61845ed1d74ba5974309a6567317696aa",
+                "url": "https://api.github.com/repos/CallismartLtd/DBPrism/zipball/1a4c38884315f34b85730728e367e656204a8b38",
+                "reference": "1a4c38884315f34b85730728e367e656204a8b38",
                 "shasum": ""
             },
             "require": {
@@ -61,9 +61,9 @@
             ],
             "support": {
                 "issues": "https://github.com/CallismartLtd/DBPrism/issues",
-                "source": "https://github.com/CallismartLtd/DBPrism/tree/v0.1.37"
+                "source": "https://github.com/CallismartLtd/DBPrism/tree/v0.2.0"
             },
-            "time": "2026-06-12T15:39:12+00:00"
+            "time": "2026-08-08T18:48:24+00:00"
         },
         {
             "name": "callismart/dto",

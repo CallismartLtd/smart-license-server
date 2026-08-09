@@ -26,13 +26,21 @@ use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 class TestEnvironment extends Environment {
 
     private function __construct() {
+        $this->bind_instance();
         $this->loadDotEnv();
         $this->setProps();
         $this->setPrincipal();
     }
 
-    public static function boot(): void {
-        new static();
+    /**
+     * {@inheritdoc}
+     */
+    protected function bind_instance() : void {
+        static::$envProvider = $this;
+    }
+
+    public static function boot(): static {
+        return new static();
     }
 
     /*
@@ -56,8 +64,6 @@ class TestEnvironment extends Environment {
                 'log_path'       => SMLISER_ROOT . 'error.log',
             ])
             ->registerHandlers();
-
-        static::$envProvider = $this;
 
         /**
          * Read DB config from .env (same pattern as CLI)

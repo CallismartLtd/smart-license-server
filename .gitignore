@@ -5,6 +5,7 @@ vendor/
 smart-license-server.php
 smliser_var.js
 .env
+.env.local
 *.log
 .phpunit.result.cache
 
