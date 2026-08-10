@@ -54,17 +54,17 @@ defined( 'SMLISER_ROOT' ) || exit;
                 /* Translators: %s display name. */
                 printf( esc_html__( 'Logged in as %s', 'smliser' ), escHtml( wp_get_current_user()->display_name ) );
                 ?>
-                <a href="<?php echo esc_url( wp_logout_url( url( 'smliser-auth/v1/authorize/' )->add_query_params( $_GET ) ) ) ?>">Logout</a>
+                <a href="<?php echo escUrl( wp_logout_url( url( 'smliser-auth/v1/authorize/' )->add_query_params( $_GET ) ) ) ?>">Logout</a>
             </p>
         </div>
 
-        <form method="post" action="<?php echo esc_url( adminUrl( 'admin-post.php' ) );?>">
+        <form method="post" action="<?php echo escUrl( adminUrl( 'admin-post.php' ) );?>">
             <?php wp_nonce_field( 'smliser_consent_nonce', 'smliser_consent_nonce' ); ?>
             <input type="hidden" name="action" value="smliser_authorize_app">
-            <input type="hidden" name="app_name" value="<?php echo esc_attr( $sanitized_params['app_name'] ); ?>">
-            <input type="hidden" name="scope" value="<?php echo esc_attr( $sanitized_params['scope'] ); ?>">
-            <input type="hidden" name="return_url" value="<?php echo esc_url( $sanitized_params['return_url'] ); ?>">
-            <input type="hidden" name="callback_url" value="<?php echo esc_url( $sanitized_params['callback_url'] ); ?>">
+            <input type="hidden" name="app_name" value="<?php echo escAttr( $sanitized_params['app_name'] ); ?>">
+            <input type="hidden" name="scope" value="<?php echo escAttr( $sanitized_params['scope'] ); ?>">
+            <input type="hidden" name="return_url" value="<?php echo escUrl( $sanitized_params['return_url'] ); ?>">
+            <input type="hidden" name="callback_url" value="<?php echo escUrl( $sanitized_params['callback_url'] ); ?>">
             <input type="hidden" name="user_id" value="<?php echo intval( get_current_user_id() ); ?>">
             <p class="smliser-auth-consent_btn-container">
                 <button style="background-color: red;" type="submit" name="deny" value="true" class="smliser-auth-consent_btn"><?php esc_html_e( 'Deny', 'smliser' ); ?></button>

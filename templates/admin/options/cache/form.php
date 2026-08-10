@@ -43,9 +43,9 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
     <?php else: ?>
         <form action="" class="smliser-options-form">
-            <span> <a href="<?php echo esc_url( $current_url->get_href() ) ?>" class="smliser-btn"> <i class="ti ti-arrow-back"></i></a></span>
+            <span> <a href="<?php echo escUrl( $current_url->get_href() ) ?>" class="smliser-btn"> <i class="ti ti-arrow-back"></i></a></span>
             <input type="hidden" name="action"      value="smliser_save_cache_adapter_settings" />
-            <input type="hidden" name="adapter_id" value="<?php echo esc_attr( $adapter_id ); ?>" />
+            <input type="hidden" name="adapter_id" value="<?php echo escAttr( $adapter_id ); ?>" />
 
             <div class="smliser-options-form_body">
                 <?php smliser_render_input_field([

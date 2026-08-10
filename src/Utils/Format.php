@@ -720,7 +720,7 @@ class Format {
         }
 
         $type  = in_array( $type, [ 'ul', 'ol' ], true ) ? $type : 'ul';
-        $class = ! empty( $options['class'] ) ? ' class="' . esc_attr( $options['class'] ) . '"' : '';
+        $class = ! empty( $options['class'] ) ? ' class="' . escAttr( $options['class'] ) . '"' : '';
 
         $html = "<{$type}{$class}>";
 

@@ -41,7 +41,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                 <?php foreach( $totals as $app_type => $value ) : ?>
                     <div class="smliser-dashboard-hero_down-item">
                         <div class="smliser-dashboard-hero_down-item-icon">
-                            <img src="<?php echo esc_url( smliser_get_placeholder_icon( $app_type ) ); ?>" alt="">
+                            <img src="<?php echo escUrl( smliser_get_placeholder_icon( $app_type ) ); ?>" alt="">
                         </div>
                         <div class="smliser-dashboard-hero_down-item-content">
                             <span><?php echo escHtml( $value ); ?></span>
@@ -65,10 +65,10 @@ defined( 'SMLISER_ROOT' ) || exit;
                 $domain_id = sanitize_title( $domain_name );
                 ?>
 
-                <div class="smliser-dashboard-content_item" data-domain="<?php echo esc_attr( $domain_id ); ?>">
+                <div class="smliser-dashboard-content_item" data-domain="<?php echo escAttr( $domain_id ); ?>">
                     <div class="smliser-domain-header">
                         <h3>
-                            <i class="ti <?php echo esc_attr( get_domain_icon( $domain_name ) ); ?>"></i>
+                            <i class="ti <?php echo escAttr( get_domain_icon( $domain_name ) ); ?>"></i>
                             <?php echo escHtml( $domain_name ); ?>
                         </h3>
                     </div>
@@ -81,7 +81,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                                     <?php if ( ! is_array( $value ) ) : ?>
                                         <div class="smliser-summary-card">
                                             <div class="smliser-summary-card-icon">
-                                                <i class="ti <?php echo esc_attr( get_metric_icon( $key ) ); ?>"></i>
+                                                <i class="ti <?php echo escAttr( get_metric_icon( $key ) ); ?>"></i>
                                             </div>
                                             <div class="smliser-summary-card-content">
                                                 <span class="value"><?php echo escHtml( number_format( $value ) ); ?></span>
@@ -111,8 +111,8 @@ defined( 'SMLISER_ROOT' ) || exit;
                                 <?php foreach ( $chart_data as $chart_key => $chart_config ) : ?>
                                     <div class="smliser-chart-wrapper">
                                         <canvas 
-                                            id="chart-<?php echo esc_attr( $domain_id . '-' . $chart_key ); ?>"
-                                            data-chart-json="<?php echo esc_attr( smliser_json_encode_attr( $chart_config ) ); ?>">
+                                            id="chart-<?php echo escAttr( $domain_id . '-' . $chart_key ); ?>"
+                                            data-chart-json="<?php echo escAttr( smliser_json_encode_attr( $chart_config ) ); ?>">
                                         </canvas>
                                     </div>
                                 <?php endforeach; ?>
@@ -130,7 +130,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                 <?php if ( ! empty( $apps ) ) : ?>
                                                     <div class="smliser-ranking-type">
                                                         <h5>
-                                                            <i class="ti <?php echo esc_attr( smliser_get_type_icon( $type ) ); ?>"></i>
+                                                            <i class="ti <?php echo escAttr( smliser_get_type_icon( $type ) ); ?>"></i>
                                                             <?php echo escHtml( ucfirst( $type ) ); ?>
                                                         </h5>
                                                         <ol class="smliser-ranking-list">
@@ -144,7 +144,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                                     <span class="rank">#<?php echo escHtml( $index + 1 ); ?></span>
                                                                     <?php if ( $app_obj ) : ?>
                                                                         <span class="name">
-                                                                            <a href="<?php echo \esc_url( \smliser_admin_repo_tab( 'view', array( 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ) ) ); ?>" target="_blank" >
+                                                                            <a href="<?php echo \escUrl( \smliser_admin_repo_tab( 'view', array( 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ) ) ); ?>" target="_blank" >
                                                                                 <?php echo escHtml( $app_obj->get_name() ); ?>
                                                                             </a>
                                                                         </span>
@@ -188,13 +188,13 @@ defined( 'SMLISER_ROOT' ) || exit;
                                             ?>
                                                 <tr>
                                                     <td>
-                                                        <span class="timestamp" title="<?php echo esc_attr( $date->format( \smliser_datetime_format() ) ); ?>">
+                                                        <span class="timestamp" title="<?php echo escAttr( $date->format( \smliser_datetime_format() ) ); ?>">
                                                             <?php echo escHtml( $date->format( \smliser_datetime_format() ) ); ?>
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <span class="event-badge event-<?php echo esc_attr( $log['event_type'] ?? 'unknown' ); ?>">
-                                                            <i class="ti <?php echo esc_attr( smliser_get_event_icon( $log['event_type'] ?? 'unknown' ) ); ?>"></i>
+                                                        <span class="event-badge event-<?php echo escAttr( $log['event_type'] ?? 'unknown' ); ?>">
+                                                            <i class="ti <?php echo escAttr( smliser_get_event_icon( $log['event_type'] ?? 'unknown' ) ); ?>"></i>
                                                             <?php echo escHtml( ucfirst( $log['event_type'] ?? 'unknown' ) ); ?>
                                                         </span>
                                                     </td>
@@ -203,7 +203,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                     </td>
                                                     <td>
                                                         <?php if ( ! empty( $log['website'] ) && $log['website'] !== 'N/A' ) : ?>
-                                                            <a href="<?php echo esc_url( $log['website'] ); ?>" target="_blank" rel="noopener">
+                                                            <a href="<?php echo escUrl( $log['website'] ); ?>" target="_blank" rel="noopener">
                                                                 <?php echo escHtml( parse_url( $log['website'], PHP_URL_HOST ) ?? $log['website'] ); ?>
                                                                 <i class="ti ti-external-link"></i>
                                                             </a>

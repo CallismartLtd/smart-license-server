@@ -183,20 +183,20 @@ class CSRF {
         $token = $this->get();
 
         $id_attr = ! empty( $id )
-            ? sprintf( ' id="%s"', esc_attr( $id ) )
+            ? sprintf( ' id="%s"', escAttr( $id ) )
             : '';
 
         $extra_attrs = '';
         if ( ! empty( $attrs ) ) {
             foreach ( $attrs as $key => $value ) {
-                $extra_attrs .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $value ) );
+                $extra_attrs .= sprintf( ' %s="%s"', escAttr( $key ), escAttr( $value ) );
             }
         }
 
         return sprintf(
             '<input type="hidden" name="%s" value="%s"%s%s />',
-            esc_attr( $this->field_name ),
-            esc_attr( $token ),
+            escAttr( $this->field_name ),
+            escAttr( $token ),
             $id_attr,
             $extra_attrs
         );
@@ -238,8 +238,8 @@ class CSRF {
     public function meta( $meta_name = 'csrf-token' ) {
         return sprintf(
             '<meta name="%s" content="%s" />',
-            esc_attr( $meta_name ),
-            esc_attr( $this->get() )
+            escAttr( $meta_name ),
+            escAttr( $this->get() )
         );
     }
 

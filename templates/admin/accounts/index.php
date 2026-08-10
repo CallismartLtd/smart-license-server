@@ -87,7 +87,7 @@ function smliser_get_status_class( $has_issues ) {
                             <?php foreach ( $account_summaries['summary'] as $label => $value ) : ?>
                                 <div class="smliser-account-metric-card">
                                     <div class="smliser-account-metric-icon">
-                                        <span class="dashicons <?php echo esc_attr( smliser_get_metric_icon( $label ) ); ?>"></span>
+                                        <span class="dashicons <?php echo escAttr( smliser_get_metric_icon( $label ) ); ?>"></span>
                                     </div>
                                     <div class="smliser-account-metric-content">
                                         <h3 class="smliser-account-metric-label">
@@ -106,7 +106,7 @@ function smliser_get_status_class( $has_issues ) {
 
             <!-- Integrity Section -->
             <?php if ( isset( $account_summaries['integrity'] ) ) : ?>
-                <section class="smliser-account-domain-section <?php echo esc_attr( smliser_get_status_class( $account_summaries['integrity']['has_issues'] ?? false ) ); ?>">
+                <section class="smliser-account-domain-section <?php echo escAttr( smliser_get_status_class( $account_summaries['integrity']['has_issues'] ?? false ) ); ?>">
                     <div class="smliser-account-domain-header">
                         <h2 class="smliser-account-domain-title">
                             <span class="dashicons dashicons-shield"></span>
@@ -120,7 +120,7 @@ function smliser_get_status_class( $has_issues ) {
                                 <?php if ( $label === 'has_issues' ) continue; ?>
                                 <div class="smliser-account-metric-card">
                                     <div class="smliser-account-metric-icon">
-                                        <span class="dashicons <?php echo esc_attr( smliser_get_metric_icon( $label ) ); ?>"></span>
+                                        <span class="dashicons <?php echo escAttr( smliser_get_metric_icon( $label ) ); ?>"></span>
                                     </div>
                                     <div class="smliser-account-metric-content">
                                         <h3 class="smliser-account-metric-label">
@@ -160,7 +160,7 @@ function smliser_get_status_class( $has_issues ) {
                             <?php foreach ( $account_summaries['usage']['service_accounts'] as $label => $value ) : ?>
                                 <div class="smliser-account-metric-card">
                                     <div class="smliser-account-metric-icon">
-                                        <span class="dashicons <?php echo esc_attr( smliser_get_metric_icon( $label ) ); ?>"></span>
+                                        <span class="dashicons <?php echo escAttr( smliser_get_metric_icon( $label ) ); ?>"></span>
                                     </div>
                                     <div class="smliser-account-metric-content">
                                         <h3 class="smliser-account-metric-label">

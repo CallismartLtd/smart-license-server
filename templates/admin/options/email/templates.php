@@ -84,7 +84,7 @@ $group_colors = [
             ?>
                 <button type="button"
                         class="smliser-filter-btn"
-                        data-group="<?php echo esc_attr( $group ); ?>">
+                        data-group="<?php echo escAttr( $group ); ?>">
                     <?php echo escHtml( $group ); ?>
                     <i class="smliser-filter-count"><?php echo $count; ?></i>
                 </button>
@@ -115,7 +115,7 @@ $group_colors = [
                         ->add_query_param( 'template', $key )
                         ->add_query_param( 'action', $entry['is_enabled'] ? 'disable' : 'enable' );
                 ?>
-                    <tr data-group="<?php echo esc_attr( $group ); ?>">
+                    <tr data-group="<?php echo escAttr( $group ); ?>">
 
                         <!-- Template name + group badge -->
                         <td>
@@ -125,8 +125,8 @@ $group_colors = [
                             </i>
                             <i style="display:inline-block;font-size:11px;font-weight:700;
                                          padding:2px 8px;border-radius:9999px;
-                                         background-color:<?php echo esc_attr( $colors['bg'] ); ?>;
-                                         color:<?php echo esc_attr( $colors['color'] ); ?>;">
+                                         background-color:<?php echo escAttr( $colors['bg'] ); ?>;
+                                         color:<?php echo escAttr( $colors['color'] ); ?>;">
                                 <?php echo escHtml( $group ); ?>
                             </i>
                             <?php if ( $entry['has_custom'] ) : ?>
@@ -172,7 +172,7 @@ $group_colors = [
 
                                 <button type="button"
                                         class="smliser-template-toggle"
-                                        data-key="<?php echo esc_attr( $key ); ?>"
+                                        data-key="<?php echo escAttr( $key ); ?>"
                                         data-enabled="<?php echo $entry['is_enabled'] ? '1' : '0'; ?>"
                                         title="<?php echo $entry['is_enabled'] ? 'Disable this template' : 'Enable this template'; ?>"
                                         style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
@@ -185,7 +185,7 @@ $group_colors = [
                                     <?php echo $entry['is_enabled'] ? 'Disable' : 'Enable'; ?>
                                 </button>
 
-                                <a href="<?php echo esc_url( $detail_url->add_query_param( 'noheader', true ) ); ?>"
+                                <a href="<?php echo escUrl( $detail_url->add_query_param( 'noheader', true ) ); ?>"
                                 class="button smliser-nav-btn"
                                 title="Preview and configure this template">
                                     <i class="ti ti-settings"></i>

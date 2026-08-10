@@ -25,7 +25,7 @@ $active_slug = $active_slug ?? '';
 <aside class="smlcd-sidebar" id="smlcd-sidebar" role="navigation" aria-label="Dashboard navigation">
 
     <div class="smlcd-sidebar-header">
-        <span class="smlcd-sidebar-brand" title="<?php echo esc_attr( $repo_name ); ?>"><?php echo escHtml( $repo_name ); ?></span>
+        <span class="smlcd-sidebar-brand" title="<?php echo escAttr( $repo_name ); ?>"><?php echo escHtml( $repo_name ); ?></span>
     </div>
 
     <?php if ( ! empty( $menu ) ) : ?>
@@ -39,12 +39,12 @@ $active_slug = $active_slug ?? '';
             <button
                 type="button"
                 class="smlcd-nav-item<?php echo $is_active ? ' smlcd-nav-item--active' : ''; ?>"
-                data-slug="<?php echo esc_attr( $slug ); ?>"
+                data-slug="<?php echo escAttr( $slug ); ?>"
                 aria-current="<?php echo $is_active ? 'page' : 'false'; ?>"
                 role="listitem"
             >
                 <?php if ( $icon ) : ?>
-                    <span class="smlcd-nav-icon <?php echo esc_attr( $icon ); ?>" aria-hidden="true"></span>
+                    <span class="smlcd-nav-icon <?php echo escAttr( $icon ); ?>" aria-hidden="true"></span>
                 <?php endif; ?>
                 <span class="smlcd-nav-label"><?php echo escHtml( $title ); ?></span>
             </button>

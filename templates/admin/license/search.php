@@ -40,9 +40,9 @@ $args   = LicensePage::get_menu_args( $request );
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $args ); ?>
     <div class="smliser-app-search-page smliser-table-wrapper">
-            <form class="smliser-admin-search" method="GET" action="<?php echo esc_url( $current_url->get_href() ) ?>">
-                <input type="hidden" name="page" value="<?php echo esc_attr( $request->get( 'page' ) ) ?>">
-                <input type="hidden" name="tab" value="<?php echo esc_attr( $request->get( 'tab' ) ) ?>">
+            <form class="smliser-admin-search" method="GET" action="<?php echo escUrl( $current_url->get_href() ) ?>">
+                <input type="hidden" name="page" value="<?php echo escAttr( $request->get( 'page' ) ) ?>">
+                <input type="hidden" name="tab" value="<?php echo escAttr( $request->get( 'tab' ) ) ?>">
                 
                 <input type="search" name="search_term" value="<?php echo escHtml( $request->get( 'search_term', '' ) ) ?>" id="smliser-license-search-input" placeholder="Search licenses...">
                 <button type="submit" class="button smliser-btn">Search</button>
@@ -71,7 +71,7 @@ $args   = LicensePage::get_menu_args( $request );
                             <td class="smliser-edit-row">
                                 <?php echo escHtml( $license->get_id() ); ?>
                                 <p class="smliser-edit-link">
-                                    <a href="<?php echo esc_url( smliser_license_admin_action_page( 'edit', $license->get_id() ) ); ?>">edit</a> | <a href="<?php echo esc_url( smliser_license_admin_action_page( 'view', $license->get_id() ) ); ?>">view</a>
+                                    <a href="<?php echo escUrl( smliser_license_admin_action_page( 'edit', $license->get_id() ) ); ?>">edit</a> | <a href="<?php echo escUrl( smliser_license_admin_action_page( 'view', $license->get_id() ) ); ?>">view</a>
                                 </p>
                             </td>
                         

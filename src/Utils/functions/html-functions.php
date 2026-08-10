@@ -43,9 +43,9 @@ function smliser_render_toggle_switch( $attrs = array() ) {
     $attr_str = '';
     foreach ( $attrs as $key => $val ) {
         if ( is_bool( $val ) ) {
-            $attr_str .= $val ? sprintf( ' %s', esc_attr( $key ) ) : '';
+            $attr_str .= $val ? sprintf( ' %s', escAttr( $key ) ) : '';
         } else {
-            $attr_str .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $val ) );
+            $attr_str .= sprintf( ' %s="%s"', escAttr( $key ), escAttr( $val ) );
         }
     }
 
@@ -58,7 +58,7 @@ function smliser_render_toggle_switch( $attrs = array() ) {
         </div>',
         $attr_str,
         checked( $value, 1, false ),
-        esc_attr( $attrs['id'] )
+        escAttr( $attrs['id'] )
     );
 }
 
@@ -122,7 +122,7 @@ function smliser_render_input_field( array $args = [] ): void {
     $attr_str = '';
     if ( ! empty( $input['attr'] ) && is_array( $input['attr'] ) ) {
         foreach ( $input['attr'] as $key => $val ) {
-            $attr_str .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $val ) );
+            $attr_str .= sprintf( ' %s="%s"', escAttr( $key ), escAttr( $val ) );
         }
     }
 
@@ -132,10 +132,10 @@ function smliser_render_input_field( array $args = [] ): void {
     if ( 'hidden' === $type ) {
         printf(
             '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
-            esc_attr( $type ),
-            esc_attr( $input['name'] ),
-            esc_attr( $id ),
-            esc_attr( $input['value'] ),
+            escAttr( $type ),
+            escAttr( $input['name'] ),
+            escAttr( $id ),
+            escAttr( $input['value'] ),
             $attr_str
         );
         return;
@@ -144,8 +144,8 @@ function smliser_render_input_field( array $args = [] ): void {
     // Open label.
     printf(
         '<label for="%1$s" class="%2$s">',
-        esc_attr( $id ),
-        esc_attr( $input['class'] )
+        escAttr( $id ),
+        escAttr( $input['class'] )
     );
 
     // Label text + optional help icon, grouped so they sit inline.
@@ -163,8 +163,8 @@ function smliser_render_input_field( array $args = [] ): void {
         case 'textarea':
             printf(
                 '<textarea name="%1$s" id="%2$s"%3$s>%4$s</textarea>',
-                esc_attr( $input['name'] ),
-                esc_attr( $id ),
+                escAttr( $input['name'] ),
+                escAttr( $id ),
                 $attr_str,
                 esc_textarea( $input['value'] )
             );
@@ -173,14 +173,14 @@ function smliser_render_input_field( array $args = [] ): void {
         case 'select':
             printf(
                 '<select name="%1$s" id="%2$s"%3$s>',
-                esc_attr( $input['name'] ),
-                esc_attr( $id ),
+                escAttr( $input['name'] ),
+                escAttr( $id ),
                 $attr_str
             );
             foreach ( $input['options'] as $val => $label ) {
                 printf(
                     '<option value="%1$s" %2$s>%3$s</option>',
-                    esc_attr( $val ),
+                    escAttr( $val ),
                     selected( $input['value'], $val, false ),
                     escHtml( $label )
                 );
@@ -192,10 +192,10 @@ function smliser_render_input_field( array $args = [] ): void {
         case 'radio':
             printf(
                 '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s" %5$s%6$s>',
-                esc_attr( $type ),
-                esc_attr( $input['name'] ),
-                esc_attr( $id ),
-                esc_attr( $input['value'] ),
+                escAttr( $type ),
+                escAttr( $input['name'] ),
+                escAttr( $id ),
+                escAttr( $input['value'] ),
                 checked( $input['value'], true, false ),
                 $attr_str
             );
@@ -205,9 +205,9 @@ function smliser_render_input_field( array $args = [] ): void {
             echo '<div class="smliser-password-field-wrapper">';
             printf(
                 '<input type="password" name="%1$s" id="%2$s" value="%3$s" class="smliser-password-input"%4$s>',
-                esc_attr( $input['name'] ),
-                esc_attr( $id ),
-                esc_attr( $input['value'] ),
+                escAttr( $input['name'] ),
+                escAttr( $id ),
+                escAttr( $input['value'] ),
                 $attr_str
             );
             printf(
@@ -221,8 +221,8 @@ function smliser_render_input_field( array $args = [] ): void {
                         <line x1="1" y1="1" x2="23" y2="23"></line>
                     </svg>
                 </button>',
-                esc_attr( $id ),
-                esc_attr__( 'Toggle password visibility', 'smliser' )
+                escAttr( $id ),
+                escAttr( 'Toggle password visibility' )
             );
             echo '</div>';
             break;
@@ -230,10 +230,10 @@ function smliser_render_input_field( array $args = [] ): void {
         default:
             printf(
                 '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
-                esc_attr( $type ),
-                esc_attr( $input['name'] ),
-                esc_attr( $id ),
-                esc_attr( $input['value'] ),
+                escAttr( $type ),
+                escAttr( $input['name'] ),
+                escAttr( $id ),
+                escAttr( $input['value'] ),
                 $attr_str
             );
             break;
@@ -262,7 +262,7 @@ function smliser_render_input_field( array $args = [] ): void {
  *                           used to generate a unique tooltip ID.
  */
 function smliser_render_field_help_icon( string $help_text, string $field_id ): void {
-    $tooltip_id = esc_attr( $field_id ) . '-help-tooltip';
+    $tooltip_id = escAttr( $field_id ) . '-help-tooltip';
 
     printf(
         '<span class="smliser-help-icon-wrap">
@@ -280,8 +280,8 @@ function smliser_render_field_help_icon( string $help_text, string $field_id ): 
             </button>
             <span id="%2$s" class="smliser-help-tooltip" role="tooltip">%3$s</span>
         </span>',
-        esc_attr( $help_text ),
-        esc_attr( $tooltip_id ),
+        escAttr( $help_text ),
+        escAttr( $tooltip_id ),
         escHtml( $help_text )
     );
 }
@@ -367,7 +367,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
             <span class="smliser-pagination-links">
 
                 <?php if ( $page > 1 ) : ?>
-                    <a class="prev-page button" href="<?php echo esc_url( $base_url->add_query_params( array( $page_param => $prev_page, 'limit' => $limit ) ) ); ?>">&laquo;</a>
+                    <a class="prev-page button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $prev_page, 'limit' => $limit ) ) ); ?>">&laquo;</a>
                 <?php else : ?>
                     <span class="smliser-navspan button disabled">&laquo;</span>
                 <?php endif; ?>
@@ -376,7 +376,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                 // First page.
                 if ( $start > 1 ) :
                     ?>
-                    <a class="button" href="<?php echo esc_url( $base_url->add_query_params( array( $page_param => 1, 'limit' => $limit ) ) ); ?>">1</a>
+                    <a class="button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => 1, 'limit' => $limit ) ) ); ?>">1</a>
                     <?php if ( $start > 2 ) : ?>
                         <span class="smliser-navspan button disabled">…</span>
                     <?php endif; ?>
@@ -387,8 +387,8 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                 for ( $i = $start; $i <= $end; $i++ ) :
                     $class = ( $i === $page ) ? 'button current' : 'button';
                     ?>
-                    <a class="<?php echo esc_attr( $class ); ?>"
-                       href="<?php echo esc_url( $base_url->add_query_params( array( $page_param => $i, 'limit' => $limit ) ) ); ?>">
+                    <a class="<?php echo escAttr( $class ); ?>"
+                       href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $i, 'limit' => $limit ) ) ); ?>">
                         <?php echo intval( $i ); ?>
                     </a>
                 <?php endfor; ?>
@@ -403,13 +403,13 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                     endif;
                     ?>
                     <a class="button"
-                       href="<?php echo esc_url( $base_url->add_query_params( array( $page_param => $total_pages, 'limit' => $limit ) ) ); ?>">
+                       href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $total_pages, 'limit' => $limit ) ) ); ?>">
                         <?php echo intval( $total_pages ); ?>
                     </a>
                 <?php endif; ?>
 
                 <?php if ( $page < $total_pages ) : ?>
-                    <a class="next-page button" href="<?php echo esc_url( $base_url->add_query_params( array( $page_param => $next_page, 'limit' => $limit ) ) ); ?>">&raquo;</a>
+                    <a class="next-page button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $next_page, 'limit' => $limit ) ) ); ?>">&raquo;</a>
                 <?php else : ?>
                     <span class="smliser-navspan button disabled">&raquo;</span>
                 <?php endif; ?>
@@ -586,7 +586,7 @@ function smliser_rest_documentation() {
             <h2 class="heading">REST API Documentation</h2>
             <div class="smliser-api-base-url">
                 <strong>Base URL:</strong>
-                <code><?php echo esc_url( restAPIUrl() ); ?></code>
+                <code><?php echo escUrl( restAPIUrl() ); ?></code>
             </div>
             
             <?php foreach ( $rest::describe_routes() as $_ => $html ) :
@@ -636,15 +636,15 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
 
             if ( is_bool( $value ) ) {
                 if ( $value ) {
-                    $html .= ' ' . esc_attr( $key );
+                    $html .= ' ' . escAttr( $key );
                 }
                 continue;
             }
 
             $html .= sprintf(
                 ' %s="%s"',
-                esc_attr( $key ),
-                esc_attr( $value )
+                escAttr( $key ),
+                escAttr( $value )
             );
         }
 
@@ -655,10 +655,10 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
     ?>
 
     <nav
-        class="smliser-top-nav <?php echo esc_attr( $args['nav_class'] ); ?>"
+        class="smliser-top-nav <?php echo escAttr( $args['nav_class'] ); ?>"
         <?php echo $render_attributes( $args['attributes'] ); // phpcs:ignore ?>
     >
-        <div class="smliser-top-nav-content <?php echo esc_attr( $args['content_class'] ); ?>">
+        <div class="smliser-top-nav-content <?php echo escAttr( $args['content_class'] ); ?>">
 
             <?php if ( ! empty( $args['breadcrumbs'] ) ) : ?>
                 <div class="smliser-breadcrumb">
@@ -686,15 +686,15 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
                         ?>
 
                         <<?php echo escHtml( $tag ); ?>
-                            class="<?php echo esc_attr( $breadcrumb['class'] ); ?>"
+                            class="<?php echo escAttr( $breadcrumb['class'] ); ?>"
                             <?php if ( 'a' === $tag ) : ?>
-                                href="<?php echo esc_url( $breadcrumb['url'] ); ?>"
+                                href="<?php echo escUrl( $breadcrumb['url'] ); ?>"
                             <?php endif; ?>
                             <?php echo $render_attributes( $breadcrumb['attributes'] ); // phpcs:ignore ?>
                         >
 
                             <?php if ( ! empty( $breadcrumb['icon'] ) ) : ?>
-                                <i class="<?php echo esc_attr( $breadcrumb['icon'] ); ?>"></i>
+                                <i class="<?php echo escAttr( $breadcrumb['icon'] ); ?>"></i>
                             <?php endif; ?>
 
                             <?php echo escHtml( $breadcrumb['label'] ); ?>
@@ -742,20 +742,20 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
                         ?>
 
                         <a
-                            class="smliser-menu-link<?php echo esc_attr( $print_active( (bool) $action['active'] ) ); ?> <?php echo esc_attr( $action['class'] ); ?>"
-                            href="<?php echo esc_url( $action['url'] ); ?>"
-                            title="<?php echo esc_attr( $action['title'] ); ?>"
+                            class="smliser-menu-link<?php echo escAttr( $print_active( (bool) $action['active'] ) ); ?> <?php echo escAttr( $action['class'] ); ?>"
+                            href="<?php echo escUrl( $action['url'] ); ?>"
+                            title="<?php echo escAttr( $action['title'] ); ?>"
                             <?php if ( ! empty( $action['target'] ) ) : ?>
-                                target="<?php echo esc_attr( $action['target'] ); ?>"
+                                target="<?php echo escAttr( $action['target'] ); ?>"
                             <?php endif; ?>
                             <?php if ( ! empty( $action['rel'] ) ) : ?>
-                                rel="<?php echo esc_attr( $action['rel'] ); ?>"
+                                rel="<?php echo escAttr( $action['rel'] ); ?>"
                             <?php endif; ?>
                             <?php echo $render_attributes( $action['attributes'] ); // phpcs:ignore ?>
                         >
 
                             <?php if ( ! empty( $action['icon'] ) ) : ?>
-                                <i class="<?php echo esc_attr( $action['icon'] ); ?>"></i>
+                                <i class="<?php echo escAttr( $action['icon'] ); ?>"></i>
                             <?php endif; ?>
 
                             <?php echo escHtml( $action['label'] ); ?>

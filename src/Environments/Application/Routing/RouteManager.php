@@ -117,9 +117,7 @@ final class RouteManager {
      * @return void
      */
     public function registerCoreRoutes() : void {
-        $this->router->any( '/', fn() => \smliser_dump_url() );
-
-        
+        $this->router->any( '/', 'SmartLicenseServer\Admin\AccessControlPage::rest_api_page' );
     }
 
 	/**

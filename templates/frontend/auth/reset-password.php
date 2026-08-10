@@ -37,7 +37,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 <!-- Form -->
 <form class="smlag-form" method="post" id="smlag-reset-password-form">
 
-    <input type="hidden" id="smlag-reset-token" name="token" value="<?php echo esc_attr( $token ); ?>" />
+    <input type="hidden" id="smlag-reset-token" name="token" value="<?php echo escAttr( $token ); ?>" />
 
     <!-- New password field -->
     <div class="smlag-form-group">

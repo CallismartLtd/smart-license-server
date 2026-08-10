@@ -39,12 +39,12 @@ defined( 'SMLISER_ROOT' ) || exit;
 
     <?php AssetsManager::print_styles( ...$styles ); ?>
 
-    <meta name="smliser-rest-base" content="<?php echo esc_attr( $rest_base ); ?>">
-    <meta name="smliser-active-slug" content="<?php echo esc_attr( $active_slug ); ?>">
-    <meta name="smliser-allowed-slugs" content="<?php echo esc_attr( implode( '|', $allowed_slugs ) ); ?>">
-    <meta name="smliser-repo-name" content="<?php echo esc_attr( $repo_name ); ?>">
+    <meta name="smliser-rest-base" content="<?php echo escAttr( $rest_base ); ?>">
+    <meta name="smliser-active-slug" content="<?php echo escAttr( $active_slug ); ?>">
+    <meta name="smliser-allowed-slugs" content="<?php echo escAttr( implode( '|', $allowed_slugs ) ); ?>">
+    <meta name="smliser-repo-name" content="<?php echo escAttr( $repo_name ); ?>">
 
 </head>
 <body class="smlcd-body">
 
-<div class="smlcd-layout<?php echo $collapsed ? ' smlcd-layout--collapsed' : '' ?>" id="smlcd-layout" data-theme="<?php echo esc_attr( $theme ); ?>">
+<div class="smlcd-layout<?php echo $collapsed ? ' smlcd-layout--collapsed' : '' ?>" id="smlcd-layout" data-theme="<?php echo escAttr( $theme ); ?>">

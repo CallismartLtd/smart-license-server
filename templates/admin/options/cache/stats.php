@@ -55,7 +55,7 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
 
-    <div class="smlcd-wrap" data-adapter="<?php echo esc_attr( $adapter_id ); ?>">
+    <div class="smlcd-wrap" data-adapter="<?php echo escAttr( $adapter_id ); ?>">
 
         <!-- ── Header ────────────────────────────────────────────────────── -->
         <div class="smlcd-header">
@@ -96,7 +96,7 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <?php if ( $supports_flush_expired ) : ?>
                 <button type="button"
                         class="smlcd-btn smlcd-btn--ghost smliser-action-button"
-                        data-args='<?php echo esc_attr( smliser_safe_json_encode( [
+                        data-args='<?php echo escAttr( smliser_safe_json_encode( [
                             'action'  => 'smliser_cache_flush_expired',
                         ] ) ); ?>'>
                     <i class="ti ti-clock-off"></i> Flush Stale
@@ -105,20 +105,20 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
 
                 <button type="button"
                         class="smlcd-btn smlcd-btn--danger smliser-action-button smlcd-confirm-btn"
-                        data-confirm="This will clear ALL cached data for <?php echo esc_attr( $adapter_name ); ?>. Are you sure?"
-                        data-args='<?php echo esc_attr( smliser_safe_json_encode( [
+                        data-confirm="This will clear ALL cached data for <?php echo escAttr( $adapter_name ); ?>. Are you sure?"
+                        data-args='<?php echo escAttr( smliser_safe_json_encode( [
                             'action'  => 'smliser_cache_clear_all',
                         ] ) ); ?>'>
                     <i class="ti ti-trash"></i> Flush Cache
                 </button>
 
-                <a href="<?php echo esc_url( smliser_get_current_url()->remove_query_param( 'section' ) ); ?>"
+                <a href="<?php echo escUrl( smliser_get_current_url()->remove_query_param( 'section' ) ); ?>"
                    class="smlcd-btn smlcd-btn--secondary">
                     <i class="ti ti-database-search"></i> Adapters
                 </a>
 
                 <a href="<?php 
-                    echo esc_url( smliser_get_current_url()
+                    echo escUrl( smliser_get_current_url()
                         ->remove_query_param( 'section' )
                         ->add_query_param( 'adapter', $adapter_id )
                      ); ?>"

@@ -153,8 +153,8 @@ final class AssetsManager {
 
         $html = sprintf(
             '<link rel="stylesheet" id="%s-css" href="%s" />',
-            esc_attr( $handle ),
-            esc_url( $src )
+            escAttr( $handle ),
+            escUrl( $src )
         );
 
         if ( $echo ) {
@@ -181,8 +181,8 @@ final class AssetsManager {
 
         $html = sprintf(
             '<script id="%s-js" src="%s"></script>',
-            esc_attr( $handle ),
-            esc_url( $src )
+            escAttr( $handle ),
+            escUrl( $src )
         );
 
         if ( $echo ) {

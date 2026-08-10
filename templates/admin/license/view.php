@@ -148,7 +148,7 @@ $document_download_url  = \smliser_document_download_url( $license ? $license->g
                             <th>App Info</th>
                             <td>
                                 <?php if ( $license->is_issued() ) : ?>
-                                    <a href="<?php echo esc_url( smliser_admin_repo_tab( 'view', ['app_id' => $licensed_app->get_id(), 'type' => $licensed_app->get_type()] ) ); ?>">
+                                    <a href="<?php echo escUrl( smliser_admin_repo_tab( 'view', ['app_id' => $licensed_app->get_id(), 'type' => $licensed_app->get_type()] ) ); ?>">
                                         <?php echo escHtml( $licensed_app->get_name() ); ?> » <?php printf( '%s/%s', escHtml( $licensed_app->get_type() ), escHtml( $licensed_app->get_slug() ) ) ?>
                                     </a>
                                 <?php else : ?>
@@ -161,13 +161,13 @@ $document_download_url  = \smliser_document_download_url( $license ? $license->g
                             <th>Document Download URL</th>
                             <td>
                                 <span><?php echo escHtml( $document_download_url ); ?></span>
-                                <i class="ti ti-copy smliser-click-to-copy" title="Copy" data-copy-value="<?php echo esc_attr( $document_download_url ); ?>"></i>
+                                <i class="ti ti-copy smliser-click-to-copy" title="Copy" data-copy-value="<?php echo escAttr( $document_download_url ); ?>"></i>
                             </td>
                         </tr>
 
                         <tr>
                             <th>Service ID</th>
-                            <td><span class="smliser-click-to-copy" title="Copy" data-copy-value="<?php echo esc_attr( $license->get_service_id() ); ?>"><?php echo escHtml( $license->get_service_id() ); ?></span></td>
+                            <td><span class="smliser-click-to-copy" title="Copy" data-copy-value="<?php echo escAttr( $license->get_service_id() ); ?>"><?php echo escHtml( $license->get_service_id() ); ?></span></td>
                         </tr>
                         
                         <tr>
@@ -317,7 +317,7 @@ function print_license_alert( License $license ) : void {
                 static function ( array $item ) {
                     return sprintf(
                         '<div class="smliser-alert smliser-alert-%1$s"><span class="smliser-alert-message">%2$s</span></div>',
-                        esc_attr( $item['type'] ),
+                        escAttr( $item['type'] ),
                         escHtml( $item['message'] )
                     );
                 },

@@ -28,6 +28,16 @@ function escHtml( mixed $input ) : string {
 }
 
 /**
+ * Escape the value of html attribute.
+ * 
+ * @param mixed $value
+ * @return string 
+ */
+function escAttr( mixed $value ) : string {
+    return Sanitizer::esc_attr( $value );
+}
+
+/**
  * Escape a url for safe HTML output.
  * 
  * @param string $url

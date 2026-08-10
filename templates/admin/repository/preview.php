@@ -24,7 +24,7 @@ defined( 'SMLISER_ROOT' ) || exit;
             <div class="smliser-app-header-row">
                 <div class="smliser-app-icon-large">
                     <?php if ( ! empty( $template_header['icon'] ) ) : ?>
-                        <img src="<?php echo esc_url( $template_header['icon'] ); ?>" alt="<?php echo esc_attr( $template_header['name'] ); ?>">
+                        <img src="<?php echo escUrl( $template_header['icon'] ); ?>" alt="<?php echo escAttr( $template_header['name'] ); ?>">
                     <?php else : ?>
                         <i class="dashicons dashicons-admin-plugins"></i>
                     <?php endif; ?>
@@ -35,7 +35,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                     
                     <div class="smliser-badge-row">
                         <?php foreach ( $template_header['badges'] as $badge ) : ?>
-                            <span class="smliser-badge smliser-badge-<?php echo esc_attr( strtolower( str_replace( ' ', '-', $badge ) ) ); ?>">
+                            <span class="smliser-badge smliser-badge-<?php echo escAttr( strtolower( str_replace( ' ', '-', $badge ) ) ); ?>">
                                 <?php echo escHtml( $badge ); ?>
                             </span>
                         <?php endforeach; ?>
@@ -51,17 +51,17 @@ defined( 'SMLISER_ROOT' ) || exit;
             
             <div class="smliser-action-bar">
                 <?php foreach ( $template_header['buttons'] as $button ) : ?>
-                    <a href="<?php echo esc_url( $button['url'] ); ?>" 
+                    <a href="<?php echo escUrl( $button['url'] ); ?>" 
                        class="<?php echo implode( ' ', $button['class'] ); ?>"
                        <?php 
                        if ( ! empty( $button['attr'] ) ) {
                            foreach ( $button['attr'] as $attr_key => $attr_value ) {
-                               echo sprintf( '%s="%s" ', esc_attr( $attr_key ), esc_attr( $attr_value ) );
+                               echo sprintf( '%s="%s" ', escAttr( $attr_key ), escAttr( $attr_value ) );
                            }
                        }
                        ?>>
                         <?php if ( ! empty( $button['icon'] ) ) : ?>
-                            <i class="<?php echo esc_attr( $button['icon'] ); ?>"></i>
+                            <i class="<?php echo escAttr( $button['icon'] ); ?>"></i>
                         <?php endif; ?>
                         <?php echo escHtml( $button['text'] ); ?>
                     </a>
@@ -93,7 +93,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                             ?>
                             <h3 class="smliser-gallery-preview_title"><?php echo escHtml( $first_title ); ?></h3>
                             <div class="smliser-gallery-preview_image">
-                                <img class="smliser-request-fullscreen" src="<?php echo esc_url( current( $first_image )?: assetsUrl( 'images/no-image.svg' ) ); ?>" alt="image" title="Double click for fullscreen">
+                                <img class="smliser-request-fullscreen" src="<?php echo escUrl( current( $first_image )?: assetsUrl( 'images/no-image.svg' ) ); ?>" alt="image" title="Double click for fullscreen">
                             </div>
                         </div>
                         
@@ -102,7 +102,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                                 <h3><?php echo escHtml( $title ); ?></h3>
                                 <?php foreach( $data as $image_url ) : ?>
                                     <ul class="smliser-gallery-list-container_ul">
-                                        <li><img class="repo-image-preview" src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( $title ); ?>" data-repo-image-title="<?php echo escHtml( $title ); ?>" title="Preview"></li>
+                                        <li><img class="repo-image-preview" src="<?php echo escUrl( $image_url ); ?>" alt="<?php echo escAttr( $title ); ?>" data-repo-image-title="<?php echo escHtml( $title ); ?>" title="Preview"></li>
                                     </ul>
                                 <?php endforeach; ?>                            
                             <?php endforeach; ?>                            
@@ -149,7 +149,7 @@ defined( 'SMLISER_ROOT' ) || exit;
             <?php foreach( $template_sidebar as $heading => $data ) : ?>
                 <div class="smliser-sidebar-card">
                     <h3>
-                        <i class="<?php echo esc_attr( $data['icon'] ?? 'dashicons dashicons-chart-bar' ) ?>"></i>
+                        <i class="<?php echo escAttr( $data['icon'] ?? 'dashicons dashicons-chart-bar' ) ?>"></i>
                         <?php echo escHtml( $heading ); ?>
                     </h3>
                     <div class="smliser-sidebar-content">

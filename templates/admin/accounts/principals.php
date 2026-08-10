@@ -18,7 +18,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
     <div class="smliser-admin-table-body">
 
         <div>
-            <a href="<?php echo esc_url( smliser_get_current_url()->add_query_param( 'section', 'add-new' ) ); ?>" class="button action smliser-nav-btn"><?php printf( 'Add %s', escHtml( $type ) ); ?></a>
+            <a href="<?php echo escUrl( smliser_get_current_url()->add_query_param( 'section', 'add-new' ) ); ?>" class="button action smliser-nav-btn"><?php printf( 'Add %s', escHtml( $type ) ); ?></a>
 
             <?php if ( $message = $request->get( 'message' ) ) : ?>
                 <div class="notice notice-info is-dismissible"><p><?php echo escHtml( $message ); ?></p></div>
@@ -29,7 +29,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             <?php foreach ( $entity_class::get_allowed_statuses() as $k => $v ) : $st_v = $entity_class::count_status( $v ); ?>
                 <?php if ( $st_v > 0 ) : ?>
                     <a href="
-                        <?php echo esc_url(
+                        <?php echo escUrl(
                             smliser_get_current_url()->add_query_param( 'status', $v )
                         );?>" class="smliser-status-link">
                         <?php echo escHtml( ucfirst( $v ) ); ?> (<?php echo intval( $st_v ); ?>)
@@ -66,7 +66,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                 <?php echo escHtml( $entity->get_id() ); ?>
                                 <span class="smliser-edit-link">
                                     <a href="<?php
-                                        echo esc_url( 
+                                        echo escUrl( 
                                             smliser_get_current_url()
                                             ->add_query_params(
                                                 ['section' => 'edit', 'id' => $entity->get_id()]
@@ -74,7 +74,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                     ?>">edit</a>
                                     <a href="#" role="button" class="smliser-delete-entity"
                                         data-args="
-                                            <?php echo esc_attr(
+                                            <?php echo escAttr(
                                                 smliser_json_encode_attr( ['id' => $entity->get_id(), 'entity_type' => $entity->get_type()] ) );
                                             ?>"
                                         >
@@ -85,7 +85,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             <td>
                                 <img 
                                     src="<?php 
-                                        echo esc_url( $entity->get_avatar()->is_valid() ? $entity->get_avatar() : smliser_get_placeholder_icon( 'avatar' ) ); 
+                                        echo escUrl( $entity->get_avatar()->is_valid() ? $entity->get_avatar() : smliser_get_placeholder_icon( 'avatar' ) ); 
                                         
                                     ?>"
                                     alt="<?php printf( '%s avatar', $entity->get_display_name() ) ?>" 

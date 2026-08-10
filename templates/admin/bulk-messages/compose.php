@@ -23,7 +23,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             <div class="smliser-compose-message-container_left">
                 <div class="smliser-compose-message-form-row">
                     <label for="subject"><?php esc_html_e( 'Subject', 'smliser' ); ?></label>
-                    <input type="text" name="subject" value="<?php echo esc_attr( $message?->get_subject()?: '' ); ?>" id="subject" class="smliser-form-input">
+                    <input type="text" name="subject" value="<?php echo escAttr( $message?->get_subject()?: '' ); ?>" id="subject" class="smliser-form-input">
                 </div>
 
                 <div class="smliser-compose-message-form-row">
@@ -42,10 +42,10 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                 <optgroup label="<?php echo escHtml( ucfirst( $type ) ); ?>">
                                     <?php if ( is_array( $slugs ) ) : ?>
                                         <?php foreach ( $slugs as $slug ) : ?>
-                                            <option value="<?php printf( '%s:%s', esc_attr( $type ), esc_attr( $slug ) ); ?>" selected><?php echo escHtml( $slug ) ?></option>
+                                            <option value="<?php printf( '%s:%s', escAttr( $type ), escAttr( $slug ) ); ?>" selected><?php echo escHtml( $slug ) ?></option>
                                         <?php endforeach; ?>
                                     <?php else: ?>
-                                        <option value="<?php printf( '%s:%s', esc_attr( $type ), esc_attr( $slugs ) ); ?>" selected><?php echo escHtml( $slugs ) ?></option>
+                                        <option value="<?php printf( '%s:%s', escAttr( $type ), escAttr( $slugs ) ); ?>" selected><?php echo escHtml( $slugs ) ?></option>
                                     <?php endif; ?>
                                 </optgroup>
 
@@ -53,7 +53,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <?php endif; ?>
                     </select>
                 </div>
-                <input type="hidden" name="message_id" value="<?php echo esc_attr( $message?->get_id() ?: 0 ); ?>">
+                <input type="hidden" name="message_id" value="<?php echo escAttr( $message?->get_id() ?: 0 ); ?>">
                 <button type="submit" class="button" title="<?php esc_html_e( 'Update this message', 'smliser' ); ?>"><?php printf( '%s', $message ? 'Update' : 'Publish' ); ?></button>
             </div>
         </form>

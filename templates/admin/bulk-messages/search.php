@@ -20,7 +20,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
         <?php endif; ?>
 
         <div class="smliser-app-search-page smliser-table-wrapper">
-            <form class="smliser-admin-search" method="GET" action="<?php echo esc_url( $current_url->get_href() ) ?>">
+            <form class="smliser-admin-search" method="GET" action="<?php echo escUrl( $current_url->get_href() ) ?>">
                 <input type="hidden" name="page" value="smliser-bulk-messages">
                 <input type="hidden" name="tab" value="search">
                 
@@ -49,7 +49,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                 <td class="smliser-edit-row">
                                     <?php echo escHtml( $message->get_id() ); ?>
                                     <p class="smliser-edit-link">
-                                        <a href="<?php echo esc_url( $current_url->add_query_params( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ) ) ); ?>">Edit</a>
+                                        <a href="<?php echo escUrl( $current_url->add_query_params( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ) ) ); ?>">Edit</a>
                                     </p>
                                 </td>
                             

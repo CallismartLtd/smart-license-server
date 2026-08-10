@@ -58,7 +58,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                     <td><?php echo escHtml( $task_data['comment'] ?? 'N/A' );?></td>
                     <td><?php echo escHtml( smliser_readable_duration( $task_data['duration'] ?? 0 ) );?></td>
                     <td><?php echo escHtml( smliser_url_origin( $task_data['website']?? 'N/A' ) );?></td>
-                    <td><a href="<?php echo esc_url( smliser_license_admin_action_page( 'view', $task_data['license_id'] ?? 0 ) ) ?>">View License</a></td>
+                    <td><a href="<?php echo escUrl( smliser_license_admin_action_page( 'view', $task_data['license_id'] ?? 0 ) ) ?>">View License</a></td>
                 </tr>
                 <?php endforeach; endif;?>
             </table>

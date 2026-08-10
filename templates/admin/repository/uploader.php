@@ -95,7 +95,7 @@ if ( ! isset( $app ) ) {
                                         ]);  
                                     ?>
                                         <div class="app-uploader-image-preview">
-                                            <img src="<?php echo esc_url( $url ); ?>" id="<?php echo esc_attr( explode( '.', $asset_name )[0] ); ?>" alt="<?php echo esc_attr( $asset_name ) ?>" loading="lazy" title="<?php echo esc_attr( $asset_name ) ?>">
+                                            <img src="<?php echo escUrl( $url ); ?>" id="<?php echo escAttr( explode( '.', $asset_name )[0] ); ?>" alt="<?php echo escAttr( $asset_name ) ?>" loading="lazy" title="<?php echo escAttr( $asset_name ) ?>">
                                             <div class="app-uploader-image-preview_edit">
                                                 <span class="ti ti-edit edit-image" data-config="<?php echo urlencode( $json_data ) ?>" data-action="openModal" title="Edit"></span>
                                                 <span class="ti ti-trash delete-image" data-config="<?php echo urlencode( $json_data ) ?>" data-action="deleteImage" title="Delete"></span>

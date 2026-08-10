@@ -194,14 +194,14 @@ class RepositoryPage implements AdminPageInterface {
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', escUrl( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
@@ -233,14 +233,14 @@ class RepositoryPage implements AdminPageInterface {
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', esc_url( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', escUrl( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
@@ -273,14 +273,14 @@ class RepositoryPage implements AdminPageInterface {
         $type   = $request->get( 'type' );
         
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
 
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', escHtml( $type ), esc_url( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' ) ) ) );
             return;
         }
 
@@ -759,7 +759,7 @@ class RepositoryPage implements AdminPageInterface {
         $html .= '<div class="smliser-chart-container">';
         $html .= sprintf(
             '<canvas class="smliser-app-mini-analytics" data-analytics="%s"></canvas>',
-            esc_attr( $json )
+            escAttr( $json )
         );
         $html .= '</div>';
 

@@ -39,7 +39,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                 $is_default   = $default_provider === $provider_id;
                 $provider_url = $current_url->add_query_param( 'adapter', $provider_id );
             ?>
-                <div class="smliser-provider-card <?php echo esc_attr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
+                <div class="smliser-provider-card <?php echo escAttr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
 
                     <div class="smliser-provider-card__icon-wrap">
                         <?php echo CacheProviderIcons::render( $provider_id, $provider::get_name() ); ?>
@@ -57,12 +57,12 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
                     <div class="smliser-provider-card__actions">
                         <?php if ( empty( $provider->get_settings_schema() ) && $provider->is_supported() ) : ?>
-                            <a href="<?php echo esc_url( $provider_url ); ?>"
+                            <a href="<?php echo escUrl( $provider_url ); ?>"
                                 class="smliser-button smliser-button--secondary">
                                 Check
                             </a>
                         <?php elseif( ! empty( $provider->get_settings_schema() ) && $provider->is_supported() ): ?>
-                            <a href="<?php echo esc_url( $provider_url ); ?>"
+                            <a href="<?php echo escUrl( $provider_url ); ?>"
                                 class="smliser-button smliser-button--secondary">
                                 Configure</a>
                         <?php endif; ?>

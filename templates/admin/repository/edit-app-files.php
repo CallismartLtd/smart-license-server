@@ -65,10 +65,10 @@ $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null )
                             <?php if ( 'main' === $file_data['slug'] ) : ?>
                                 <span class="smliser-provider-card__badge"><?php printf( 'Main %s file', $app->get_type() ) ?></span>
                             <?php else: ?>     
-                                <button title="Edit artifact" class="smliser-edit-artifact" data-config="<?php echo esc_attr( $config ); ?>"> <i class="ti ti-edit"></i></button>
-                                <button title="Delete artifact" class="smliser-delete-artifact" data-config="<?php echo esc_attr( $config ); ?>"> <i class="ti ti-trash"></i></button>
+                                <button title="Edit artifact" class="smliser-edit-artifact" data-config="<?php echo escAttr( $config ); ?>"> <i class="ti ti-edit"></i></button>
+                                <button title="Delete artifact" class="smliser-delete-artifact" data-config="<?php echo escAttr( $config ); ?>"> <i class="ti ti-trash"></i></button>
                             <?php endif; ?>
-                            <button title="Download artifact" class="smliser-download-artifact" data-config="<?php echo esc_attr( $config ); ?>"> <i class="ti ti-download"></i></button>
+                            <button title="Download artifact" class="smliser-download-artifact" data-config="<?php echo escAttr( $config ); ?>"> <i class="ti ti-download"></i></button>
                         </div>
                     </div>
                     
@@ -86,10 +86,10 @@ $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null )
                                 <tr>
                                     <th>Download URL:</th>
                                     <td>
-                                        <span title="<?php echo esc_attr( $download_url ) ?>">
+                                        <span title="<?php echo escAttr( $download_url ) ?>">
                                             <?php echo escHtml( Format::truncate( $download_url->url(), 40 ) ) ?>    
                                         </span>
-                                        <i class="ti ti-copy smliser-click-to-copy" title="Click to copy" data-copy-value="<?php echo esc_url( $download_url ) ?>"></i>
+                                        <i class="ti ti-copy smliser-click-to-copy" title="Click to copy" data-copy-value="<?php echo escUrl( $download_url ) ?>"></i>
                                     </td>
                                 </tr>
                                 <tr>
@@ -105,7 +105,7 @@ $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null )
         
         <button 
             class="smliser-nav-btn button smliser-add-new-artifact"
-            title="Add new artifact" data-config="<?php echo esc_attr( $new_upload_config ); ?>"
+            title="Add new artifact" data-config="<?php echo escAttr( $new_upload_config ); ?>"
             >
             <i class="ti ti-add"></i> Add Artifact
         </button>

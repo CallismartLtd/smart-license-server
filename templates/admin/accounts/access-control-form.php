@@ -60,9 +60,9 @@ if ( $render_image_only ) {
                         <div class="smliser-avatar-upload_image-holder">
                             <img 
                                 class="smliser-avatar-upload_image-preview"
-                                src="<?php echo esc_url( $avatar_url ); ?>"
-                                title="<?php echo esc_attr( $avatar_url->basename() ); ?>"
-                                alt="<?php echo esc_attr__( 'User avatar preview', 'smart-license-server' ); ?>"
+                                src="<?php echo escUrl( $avatar_url ); ?>"
+                                title="<?php echo escAttr( $avatar_url->basename() ); ?>"
+                                alt="<?php echo escAttr( 'User avatar preview' ); ?>"
                             >
                         </div>
 
@@ -122,8 +122,8 @@ if ( $render_image_only ) {
                         <div class="smliser-avatar-upload_image-holder">
                             <img
                                 class="smliser-avatar-upload_image-preview avatar-only"
-                                src="<?php echo esc_url( $avatar_url ); ?>"
-                                alt="<?php echo esc_attr__( 'Current avatar image', 'smart-license-server' ); ?>"
+                                src="<?php echo escUrl( $avatar_url ); ?>"
+                                alt="<?php echo escAttr( 'Current avatar image'  ); ?>"
                             >
                         </div>
                     </div>
@@ -158,8 +158,8 @@ if ( $render_image_only ) {
 
                             <div class="smliser-org-member_header">
                                 <img 
-                                    src="<?php echo esc_url( $member->get_avatar()->is_valid() ? $member->get_avatar() : smliser_get_placeholder_icon( 'avatar' ) ); ?>" 
-                                    alt="<?php echo esc_attr__( 'Member avatar', 'smart-license-server' ); ?>" 
+                                    src="<?php echo escUrl( $member->get_avatar()->is_valid() ? $member->get_avatar() : smliser_get_placeholder_icon( 'avatar' ) ); ?>" 
+                                    alt="<?php echo escAttr( 'Member avatar' ); ?>" 
                                     width="38" 
                                     height="38"
                                 >
@@ -194,7 +194,7 @@ if ( $render_image_only ) {
                             <div 
                                 class="smliser-org-member_actions"
                                 role="group"
-                                aria-label="Actions for <?php echo esc_attr( $member->get_display_name() ); ?>"
+                                aria-label="Actions for <?php echo escAttr( $member->get_display_name() ); ?>"
                             >
                                 <button
                                     type="button"
@@ -249,7 +249,7 @@ if ( $render_image_only ) {
                 id="smliser-role-builder"
                 role="region"
                 aria-labelledby="smliser-roles-title"
-                data-roles="<?php echo esc_attr( smliser_json_encode_attr( isset( $role ) ? $role : [] ) ); ?>"
+                data-roles="<?php echo escAttr( smliser_json_encode_attr( isset( $role ) ? $role : [] ) ); ?>"
             ></div>
 
         <?php endif; ?>

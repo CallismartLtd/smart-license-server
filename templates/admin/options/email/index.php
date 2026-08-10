@@ -55,7 +55,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                 $is_default   = $default_provider === $provider_id;
                 $provider_url = $current_url->add_query_param( 'provider', $provider_id );
             ?>
-                <div class="smliser-provider-card <?php echo esc_attr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
+                <div class="smliser-provider-card <?php echo escAttr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
 
                     <div class="smliser-provider-card__icon-wrap">
                         <?php echo EmailProviderIcons::render( $provider_id, $provider->get_name() ); ?>
@@ -72,7 +72,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     </div>
 
                     <div class="smliser-provider-card__actions">
-                        <a href="<?php echo esc_url( $provider_url ); ?>"
+                        <a href="<?php echo escUrl( $provider_url ); ?>"
                         class="smliser-button smliser-button--secondary">
                             Configure
                         </a>

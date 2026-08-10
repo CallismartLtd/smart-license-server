@@ -94,7 +94,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                 <tr>
                                     <th><?php echo escHtml( $tier->get_name() ); ?></th>
                                     <td>
-                                        <div class="smliser-pricing-tier-info" data-json='<?php echo esc_attr( $tier_json ); ?>'>
+                                        <div class="smliser-pricing-tier-info" data-json='<?php echo escAttr( $tier_json ); ?>'>
                                             <p><strong>Provider:</strong> <?php echo escHtml( $tier->get_provider_id() ); ?></p>
                                             <p><strong>Product ID:</strong> <?php echo escHtml( $tier->get_product_id() ); ?></p>
                                             <p><strong>Billing Cycle:</strong> <?php echo escHtml( $tier->get_billing_cycle() ); ?></p>
@@ -154,7 +154,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <input type="hidden" name="action" value="">
                         <input type="hidden" name="monetization_id" value="<?php echo intval( $monetization->get_id() ); ?>">
                         <input type="hidden" name="app_id" value="<?php echo intval( $app->get_id() ); ?>">
-                        <input type="hidden" name="app_type" value="<?php echo esc_attr( $monetization->get_app_type() ); ?>">
+                        <input type="hidden" name="app_type" value="<?php echo escAttr( $monetization->get_app_type() ); ?>">
                         <input type="hidden" name="tier_id">
                         <label for="tier_name">Tier Name:
                             <input type="text" name="tier_name" id="tier_name" field-name="Tier Name">
@@ -169,7 +169,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             <select name="provider_id" id="provider_id" field-name="Monetization Provider">
                                 <option value="">--Choose Provider--</option>
                                 <?php foreach( $providers as $provider ) : ?>
-                                    <option value="<?php echo esc_attr( $provider::get_id() ) ?>"><?php echo escHtml( $provider::get_name() ); ?></option>
+                                    <option value="<?php echo escAttr( $provider::get_id() ) ?>"><?php echo escHtml( $provider::get_name() ); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </label>

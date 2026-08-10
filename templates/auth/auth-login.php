@@ -30,7 +30,7 @@ defined( 'SMLISER_ROOT' ) || exit;
         printf( esc_html__( 'You must be logged in to approved "%1s" for the "%2s" permission requested.', 'smliser' ), escHtml( ucwords( $sanitized_params['app_name'] ) ), escHtml( $permission ) ); ?>
     </p>
 
-    <form action="<?php echo esc_url( adminUrl( 'admin-post.php' ) ); ?>" method="post" class="smliser-oauth-login-form">
+    <form action="<?php echo escUrl( adminUrl( 'admin-post.php' ) ); ?>" method="post" class="smliser-oauth-login-form">
     <?php if ( $message = smliser_get_query_param( 'message' ) ) :?>
         <?php echo wp_kses_post( smliser_form_message( $message ) ) ;?>
     <?php endif;?>
