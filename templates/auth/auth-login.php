@@ -22,12 +22,12 @@ defined( 'SMLISER_ROOT' ) || exit;
 
     <h2><?php 
         /* Translators: %s App name. */
-        printf( esc_html__( '%s would like to connect to your plugin repository', 'smliser' ), escHtml( ucwords( $sanitized_params['app_name'] ) ) );
+        printf( escHtml( '%s would like to connect to your plugin repository' ), escHtml( ucwords( $sanitized_params['app_name'] ) ) );
     ?></h2>
 
     <p><?php 
         /* Translators: %1$s App name, %2$s scope. */
-        printf( esc_html__( 'You must be logged in to approved "%1s" for the "%2s" permission requested.', 'smliser' ), escHtml( ucwords( $sanitized_params['app_name'] ) ), escHtml( $permission ) ); ?>
+        printf( escHtml( 'You must be logged in to approved "%1s" for the "%2s" permission requested.' ), escHtml( ucwords( $sanitized_params['app_name'] ) ), escHtml( $permission ) ); ?>
     </p>
 
     <form action="<?php echo escUrl( adminUrl( 'admin-post.php' ) ); ?>" method="post" class="smliser-oauth-login-form">

@@ -53,14 +53,14 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
                 <div class="smliser-actions-wrapper">
                     <div class="smliser-bulk-actions">
                         <select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>
-                            <option value=""><?php echo esc_html__( 'Bulk Actions', 'smliser' ); ?></option>
-                            <option value=""><?php echo esc_html__( 'Auto Calc', 'smliser' ); ?></option>
-                            <option value="Deactivated"><?php echo esc_html__( 'Deactivate', 'smliser' ); ?></option>
-                            <option value="Suspended"><?php echo esc_html__( 'Suspend', 'smliser' ); ?></option>
-                            <option value="Revoked"><?php echo esc_html__( 'Revoke', 'smliser' ); ?></option>
-                            <option value="delete"><?php echo esc_html__( 'Delete', 'smliser' ); ?></option>
+                            <option value=""><?php echo escHtml( 'Bulk Actions' ); ?></option>
+                            <option value=""><?php echo escHtml( 'Auto Calc' ); ?></option>
+                            <option value="Deactivated"><?php echo escHtml( 'Deactivate' ); ?></option>
+                            <option value="Suspended"><?php echo escHtml( 'Suspend' ); ?></option>
+                            <option value="Revoked"><?php echo escHtml( 'Revoke' ); ?></option>
+                            <option value="delete"><?php echo escHtml( 'Delete' ); ?></option>
                         </select>
-                        <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
+                        <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
                     <a href="<?php echo escUrl( $current_url->add_query_param( 'tab', 'search' ) ); ?>" class="smliser-btn smliser-btn-white">Search Licenses</a>
                 </div>
@@ -72,12 +72,12 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
                     <thead>
                     <tr>
                         <th><input type="checkbox" id="smliser-select-all"></th>
-                        <th><?php echo esc_html__( 'License ID', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Licensee Name', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'License Key', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Service ID', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Licensed App', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Status', 'smliser' ); ?></th>
+                        <th><?php echo escHtml( 'License ID' ); ?></th>
+                        <th><?php echo escHtml( 'Licensee Name' ); ?></th>
+                        <th><?php echo escHtml( 'License Key' ); ?></th>
+                        <th><?php echo escHtml( 'Service ID' ); ?></th>
+                        <th><?php echo escHtml( 'Licensed App' ); ?></th>
+                        <th><?php echo escHtml( 'Status' ); ?></th>
                     </tr>
                     </thead>
                     <tbody>

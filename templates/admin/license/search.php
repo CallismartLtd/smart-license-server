@@ -51,12 +51,12 @@ $args   = LicensePage::get_menu_args( $request );
         <table class="smliser-table widefat striped">
             <thead class="<?php printf( '%s', empty( $licenses ) ? 'smliser-hide' : '' ) ?>">
                 <tr>
-                    <th><?php echo esc_html__( 'License ID', 'smliser' ); ?></th>
-                    <th><?php echo esc_html__( 'Licensee Name', 'smliser' ); ?></th>
-                    <th><?php echo esc_html__( 'License Key', 'smliser' ); ?></th>
-                    <th><?php echo esc_html__( 'Service ID', 'smliser' ); ?></th>
-                    <th><?php echo esc_html__( 'Licensed App', 'smliser' ); ?></th>
-                    <th><?php echo esc_html__( 'Status', 'smliser' ); ?></th>
+                    <th><?php echo escHtml( 'License ID' ); ?></th>
+                    <th><?php echo escHtml( 'Licensee Name' ); ?></th>
+                    <th><?php echo escHtml( 'License Key' ); ?></th>
+                    <th><?php echo escHtml( 'Service ID' ); ?></th>
+                    <th><?php echo escHtml( 'Licensed App' ); ?></th>
+                    <th><?php echo escHtml( 'Status' ); ?></th>
                 </tr>
             </thead>
             <tbody>

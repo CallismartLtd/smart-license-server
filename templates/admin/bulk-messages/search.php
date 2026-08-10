@@ -31,17 +31,17 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             <table class="smliser-table widefat striped">
                 <thead class="<?php printf( '%s', empty( $messages ) ? 'smliser-hide' : '' ) ?>">
                     <tr>
-                        <th><?php echo esc_html__( 'ID', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Message ID', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Subject', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Body', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Apps', 'smliser' ); ?></th>
+                        <th><?php echo escHtml( 'ID' ); ?></th>
+                        <th><?php echo escHtml( 'Message ID' ); ?></th>
+                        <th><?php echo escHtml( 'Subject' ); ?></th>
+                        <th><?php echo escHtml( 'Body' ); ?></th>
+                        <th><?php echo escHtml( 'Apps' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
 
                     <?php if ( empty( $messages ) ) : ?>
-                        <tr><td colspan="6" class="align-center bg-white"><?php echo esc_html__( 'No messages found.', 'smliser' ); ?></td></tr>
+                        <tr><td colspan="6" class="align-center bg-white"><?php echo escHtml( 'No messages found.' ); ?></td></tr>
                     <?php else: ?>
                     
                         <?php foreach ( $messages as $message ) : ?>        

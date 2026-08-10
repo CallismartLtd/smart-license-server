@@ -42,14 +42,14 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <thead class="<?php printf( '%s', empty( $apps ) ? ' smliser-hide' : '' ) ?>">
                     <tr>
                         <th><input type="checkbox" id="smliser-select-all"></th>
-                        <th><?php echo esc_html__( 'APP ID', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'App Name', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'App Author', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'App Type', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Version', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Slug', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Status', 'smliser' ); ?></th>
-                        <th><?php echo esc_html__( 'Last Updated', 'smliser' ); ?></th>
+                        <th><?php echo escHtml( 'APP ID' ); ?></th>
+                        <th><?php echo escHtml( 'App Name' ); ?></th>
+                        <th><?php echo escHtml( 'App Author' ); ?></th>
+                        <th><?php echo escHtml( 'App Type' ); ?></th>
+                        <th><?php echo escHtml( 'Version' ); ?></th>
+                        <th><?php echo escHtml( 'Slug' ); ?></th>
+                        <th><?php echo escHtml( 'Status' ); ?></th>
+                        <th><?php echo escHtml( 'Last Updated' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>

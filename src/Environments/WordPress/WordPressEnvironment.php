@@ -278,7 +278,7 @@ class WordPressEnvironment extends Environment {
             <p>
                 <?php printf(
                     /* translators: %s: plugin name */
-                    esc_html__( '%s requires an update.', 'smliser' ) . ' <a id="smliser-update-btn" style="cursor:pointer;">' . esc_html__( 'Click here to update now.', 'smliser' ) . '</a>',
+                    escHtml( '%s requires an update.' ) . ' <a id="smliser-update-btn" style="cursor:pointer;">' . escHtml( 'Click here to update now.' ) . '</a>',
                     esc_html( SMLISER_APP_NAME )
                 );?>              
                 

@@ -23,10 +23,10 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <div class="smliser-actions-wrapper">
                     <div class="smliser-bulk-actions">
                         <select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>
-                            <option value=""><?php echo esc_html__( 'Bulk action', 'smliser' ); ?></option>
-                            <option value="delete"><?php echo esc_html__( 'Delete', 'smliser' ); ?></option>
+                            <option value=""><?php echo escHtml( 'Bulk action' ); ?></option>
+                            <option value="delete"><?php echo escHtml( 'Delete' ); ?></option>
                         </select>
-                        <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
+                        <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
                     <a href="<?php echo escUrl( $current_url->add_query_param( 'tab', 'search' ) ); ?>" class="smliser-btn smliser-btn-white">Search Messages</a>
                 </div>
@@ -38,11 +38,11 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                     <thead>
                         <tr>
                             <th><input type="checkbox" id="smliser-select-all"></th>
-                            <th><?php echo esc_html__( 'ID', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'Message ID', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'Subject', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'Body', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'Apps', 'smliser' ); ?></th>
+                            <th><?php echo escHtml( 'ID' ); ?></th>
+                            <th><?php echo escHtml( 'Message ID' ); ?></th>
+                            <th><?php echo escHtml( 'Subject' ); ?></th>
+                            <th><?php echo escHtml( 'Body' ); ?></th>
+                            <th><?php echo escHtml( 'Apps' ); ?></th>
                         </tr>
                     </thead>
                     <tbody>

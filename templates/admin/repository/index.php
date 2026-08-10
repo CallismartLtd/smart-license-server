@@ -141,13 +141,13 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                 <div class="smliser-actions-wrapper">
                     <div class="smliser-bulk-actions">
                         <select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>
-                            <option value=""><?php echo esc_html__( 'Bulk Actions', 'smliser' ); ?></option>
+                            <option value=""><?php echo escHtml( 'Bulk Actions' ); ?></option>
                             <?php foreach ( AbstractHostedApp::get_statuses() as $status_key => $status_label ) : ?>
                                 <?php if ( $status === $status_key) : continue; endif; ?>
                                 <option value="<?php echo escAttr( $status_key ); ?>"><?php echo escHtml( $status_label ); ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <button type="submit" class="button action smliser-bulk-action-button"><?php echo esc_html__( 'Apply', 'smliser' ); ?></button>
+                        <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
                     <a href="<?php echo escUrl( $current_url->remove_query_param( 'type', 'status' )->add_query_param( 'tab', 'search' ) ); ?>" class="smliser-btn smliser-btn-white">Search Repository</a>
                 </div>
@@ -160,14 +160,14 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                     <thead>
                         <tr>
                             <th><input type="checkbox" id="smliser-select-all"></th>
-                            <th><?php echo esc_html__( 'APP ID', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'App Name', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'App Author', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'App Type', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'Version', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'Slug', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'Status', 'smliser' ); ?></th>
-                            <th><?php echo esc_html__( 'Last Updated', 'smliser' ); ?></th>
+                            <th><?php echo escHtml( 'APP ID' ); ?></th>
+                            <th><?php echo escHtml( 'App Name' ); ?></th>
+                            <th><?php echo escHtml( 'App Author' ); ?></th>
+                            <th><?php echo escHtml( 'App Type' ); ?></th>
+                            <th><?php echo escHtml( 'Version' ); ?></th>
+                            <th><?php echo escHtml( 'Slug' ); ?></th>
+                            <th><?php echo escHtml( 'Status' ); ?></th>
+                            <th><?php echo escHtml( 'Last Updated' ); ?></th>
                         </tr>
                     </thead>
                     <tbody>
