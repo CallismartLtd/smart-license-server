@@ -124,7 +124,4 @@ class TestEnvironment extends Environment {
         return static::url( 'assets', $params )
             ->append_path( $path );
     }
-
-    public function check_filesystem_errors(): void {}
-    public function route_register(): void {}
 }

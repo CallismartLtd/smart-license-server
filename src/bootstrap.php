@@ -1,6 +1,6 @@
 <?php
 /**
- * Core environment bootstrap file.
+ * Core environment runtime bootstrap file.
  *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Environments

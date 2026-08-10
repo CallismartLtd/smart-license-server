@@ -423,9 +423,10 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
 /**
  * Prints an indepth analysis of the given URL.
  * 
- * @param string $url
+ * @param string|null $url
  */
-function smliser_dump_url( $url ) : void {
+function smliser_dump_url( ?string $url = null ) : void {
+    $url    = $url ?? smliser_get_current_url();
     $dump   = URL::from( $url )->dump();
     // Pretty print for debugging
     echo '<pre style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; font-family: \'Courier New\', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto;">';

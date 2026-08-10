@@ -14,7 +14,7 @@ namespace SmartLicenseServer\Routing;
  * produced any given instance — check ->status to know which fields are
  * meaningful:
  *
- *   Found            -> ->route, ->handler, ->params are set.
+ *   Found            -> ->route, ->handler, ->params, ->middleware are set.
  *   NotFound         -> nothing else is set.
  *   MethodNotAllowed -> ->allowedMethods is set (for an HTTP 405 Allow header).
  */
@@ -22,6 +22,8 @@ final class DispatchResult {
 
 	/**
 	 * @param array<string,string> $params
+	 * @param array<int,mixed>      $middleware     Resolved stack, outer group to route-specific,
+	 *                                              in call order. Data only — Router never invokes these.
 	 * @param string[]              $allowedMethods
 	 */
 	private function __construct(
@@ -29,6 +31,7 @@ final class DispatchResult {
 		public readonly ?Route $route = null,
 		public readonly mixed $handler = null,
 		public readonly array $params = array(),
+		public readonly array $middleware = array(),
 		public readonly array $allowedMethods = array()
 	) {
 	}
@@ -37,7 +40,7 @@ final class DispatchResult {
 	 * @param array<string,string> $params
 	 */
 	public static function found( Route $route, array $params ): self {
-		return new self( DispatchStatus::Found, $route, $route->handler, $params );
+		return new self( DispatchStatus::Found, $route, $route->handler, $params, $route->middleware );
 	}
 
 	public static function notFound(): self {

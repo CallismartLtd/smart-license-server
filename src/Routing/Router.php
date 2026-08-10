@@ -47,11 +47,28 @@ final class Router {
 
 	private RouteCollection $routes;
 
-	/** @var array<string,string> */
+	/** 
+	 * Route parameter constraints, keyed by alias. Built-in aliases are:
+	 * 
+	 * @var array<string,string> 
+	 */
 	private array $constraints = array();
 
-	/** @var string[] */
+	/** 
+	 * Temporary stack of group prefixes, outer to inner,
+	 * for the current add()/group() call chain.
+	 * 
+	 * @var string[] 
+	 */
 	private array $groupStack = array();
+
+	/** 
+	 * Temporary stack of group middleware, outer to inner,
+	 * for the current add()/group() call chain.
+	 * 
+	 * @var array<int,array<int,mixed>> 
+	 */
+	private array $middlewareStack = array();
 
 	public function __construct() {
 		$this->routes = new RouteCollection();
@@ -68,17 +85,25 @@ final class Router {
 	}
 
 	/**
-	 * Groups routes under a shared path prefix. Nestable.
+	 * Groups routes under a shared path prefix, and optionally a shared
+	 * middleware stack applied to every route registered inside — nestable
+	 * on both. Nested group middleware accumulates outer-to-inner; a route's
+	 * own middleware (passed to add()/get()/post()/etc.) is appended after
+	 * all of it, so it always runs closest to the handler.
 	 *
 	 * @param callable(self): void $callback
+	 * @param array<int,mixed>      $middleware Data only — never invoked here or anywhere
+	 *                                          in this class. See Route::$middleware's docblock.
 	 */
-	public function group( string $prefix, callable $callback ): void {
-		$this->groupStack[] = trim( $prefix, '/' );
+	public function group( string $prefix, callable $callback, array $middleware = array() ): void {
+		$this->groupStack[]      = trim( $prefix, '/' );
+		$this->middlewareStack[] = $middleware;
 
 		try {
 			$callback( $this );
 		} finally {
 			array_pop( $this->groupStack );
+			array_pop( $this->middlewareStack );
 		}
 	}
 
@@ -90,6 +115,9 @@ final class Router {
 	 * @param mixed           $handler                Whatever the caller wants to invoke on a match —
 	 *                                                this router doesn't call it, just returns it.
 	 * @param bool            $optionalTrailingSlash Whether the path may end in an optional '/'.
+	 * @param array<int,mixed> $middleware            Route-specific middleware, appended after every
+	 *                                                enclosing group's middleware. Data only — see
+	 *                                                Route::$middleware's docblock.
 	 * @return Route The registered route — chain ->name() on it if you'll need Router::url() later.
 	 * @throws InvalidRouteException On a malformed pattern or invariant violation.
 	 */
@@ -97,37 +125,112 @@ final class Router {
 		string $pattern,
 		string|array $methods,
 		mixed $handler,
-		bool $optionalTrailingSlash = true
+		bool $optionalTrailingSlash = true,
+		array $middleware = array()
 	): Route {
-		$fullPattern = $this->applyGroupPrefix( $pattern );
-		$compiled    = RoutePattern::compile( $fullPattern, $this->constraints );
-		$methods     = array_map( 'strtoupper', (array) $methods );
+		$fullPattern     = $this->applyGroupPrefix( $pattern );
+		$compiled        = RoutePattern::compile( $fullPattern, $this->constraints );
+		$methods         = array_map( 'strtoupper', (array) $methods );
+		$middlewareStack   = $this->middlewareStack;
+		$middlewareStack[] = $middleware;
+		$resolved          = array_merge( ...$middlewareStack );
 
-		$route = new Route( $fullPattern, $methods, $handler, $optionalTrailingSlash, $compiled );
+		$route = new Route( $fullPattern, $methods, $handler, $optionalTrailingSlash, $compiled, $resolved );
 
 		$this->routes->add( $route );
 
 		return $route;
 	}
 
-	public function get( string $pattern, mixed $handler, bool $optionalTrailingSlash = true ): Route {
-		return $this->add( $pattern, array( 'GET', 'HEAD' ), $handler, $optionalTrailingSlash );
+	/**
+	 * Registers a GET route. HEAD is automatically added as well, since
+	 * 
+	 * @param string $pattern			   Pattern, relative to any enclosing group(s).
+	 * @param mixed  $handler			   Whatever the caller wants to invoke on a match — this router doesn't call it, just returns it.
+	 * @param bool   $optionalTrailingSlash Whether the path may end in an optional '/'.
+	 * @param array<int,mixed> $middleware  Route-specific middleware, appended after every
+	 *                                      enclosing group's middleware. Data only — see
+	 *                                      Route::$middleware's docblock.
+	 * @return Route The registered route — chain ->name() on it if you'll need Router::url() later.
+	 * @throws InvalidRouteException On a malformed pattern or invariant violation.
+	 */
+	public function get( string $pattern, mixed $handler, bool $optionalTrailingSlash = true, array $middleware = array() ): Route {
+		return $this->add( $pattern, array( 'GET', 'HEAD' ), $handler, $optionalTrailingSlash, $middleware );
 	}
 
-	public function post( string $pattern, mixed $handler, bool $optionalTrailingSlash = true ): Route {
-		return $this->add( $pattern, 'POST', $handler, $optionalTrailingSlash );
+	/**
+	 * Registers a POST route.
+	 * 
+	 * @param string $pattern               Pattern, relative to any enclosing group(s).
+	 * @param mixed  $handler               Whatever the caller wants to invoke on a match — this router doesn't call it, just returns it.
+	 * @param bool   $optionalTrailingSlash Whether the path may end in an optional '/'.
+	 * @param array<int,mixed> $middleware  Route-specific middleware, appended after every
+	 *                                      enclosing group's middleware. Data only — see Route::$middleware's docblock.
+	 * @return Route The registered route — chain ->name() on it if you'll need Router::url() later.
+	 * @throws InvalidRouteException On a malformed pattern or invariant violation.
+	 */
+	public function post( string $pattern, mixed $handler, bool $optionalTrailingSlash = true, array $middleware = array() ): Route {
+		return $this->add( $pattern, 'POST', $handler, $optionalTrailingSlash, $middleware );
 	}
 
-	public function put( string $pattern, mixed $handler, bool $optionalTrailingSlash = true ): Route {
-		return $this->add( $pattern, 'PUT', $handler, $optionalTrailingSlash );
+	/**
+	 * Registers a PUT route.
+	 * 
+	 * @param string $pattern               Pattern, relative to any enclosing group(s).
+	 * @param mixed  $handler               Whatever the caller wants to invoke on a match — this router doesn't call it, just returns it.
+	 * @param bool   $optionalTrailingSlash Whether the path may end in an optional '/'.
+	 * @param array<int,mixed> $middleware  Route-specific middleware, appended after every
+	 *                                      enclosing group's middleware. Data only — see Route::$middleware's docblock.
+	 * @return Route The registered route — chain ->name() on it if you'll need Router::url() later.
+	 * @throws InvalidRouteException On a malformed pattern or invariant violation.
+	 */
+	public function put( string $pattern, mixed $handler, bool $optionalTrailingSlash = true, array $middleware = array() ): Route {
+		return $this->add( $pattern, 'PUT', $handler, $optionalTrailingSlash, $middleware );
 	}
 
-	public function patch( string $pattern, mixed $handler, bool $optionalTrailingSlash = true ): Route {
-		return $this->add( $pattern, 'PATCH', $handler, $optionalTrailingSlash );
+	/**
+	 * Registers a PATCH route.
+	 *
+	 * @param string $pattern               Pattern, relative to any enclosing group(s).
+	 * @param mixed  $handler               Whatever the caller wants to invoke on a match — this router doesn't call it, just returns it.
+	 * @param bool   $optionalTrailingSlash Whether the path may end in an optional '/'.
+	 * @param array<int,mixed> $middleware  Route-specific middleware, appended after every
+	 *                                      enclosing group's middleware. Data only — see Route::$middleware's docblock.
+	 * @return Route The registered route — chain ->name() on it if you'll need Router::url() later.
+	 * @throws InvalidRouteException On a malformed pattern or invariant violation.
+	 */
+	public function patch( string $pattern, mixed $handler, bool $optionalTrailingSlash = true, array $middleware = array() ): Route {
+		return $this->add( $pattern, 'PATCH', $handler, $optionalTrailingSlash, $middleware );
 	}
 
-	public function delete( string $pattern, mixed $handler, bool $optionalTrailingSlash = true ): Route {
-		return $this->add( $pattern, 'DELETE', $handler, $optionalTrailingSlash );
+	/**
+	 * Registers a DELETE route.
+	 *
+	 * @param string $pattern               Pattern, relative to any enclosing group(s).
+	 * @param mixed  $handler               Whatever the caller wants to invoke on a match — this router doesn't call it, just returns it.
+	 * @param bool   $optionalTrailingSlash Whether the path may end in an optional '/'.
+	 * @param array<int,mixed> $middleware  Route-specific middleware, appended after every
+	 *                                      enclosing group's middleware. Data only — see Route::$middleware's docblock.
+	 * @return Route The registered route — chain ->name() on it if you'll need Router::url() later.
+	 * @throws InvalidRouteException On a malformed pattern or invariant violation.
+	 */
+	public function delete( string $pattern, mixed $handler, bool $optionalTrailingSlash = true, array $middleware = array() ): Route {
+		return $this->add( $pattern, 'DELETE', $handler, $optionalTrailingSlash, $middleware );
+	}
+
+	/**
+	 * Registers any other HTTP method route.
+	 * 
+	 * @param string $pattern               Pattern, relative to any enclosing group(s).
+	 * @param mixed  $handler               Whatever the caller wants to invoke on a match — this router doesn't call it, just returns it.
+	 * @param bool   $optionalTrailingSlash Whether the path may end in an optional '/'.
+	 * @param array<int,mixed> $middleware  Route-specific middleware, appended after every
+	 *                                      enclosing group's middleware. Data only — see Route::$middleware's docblock.
+	 * @return Route The registered route — chain ->name() on it if you'll need Router::url() later.
+	 * @throws InvalidRouteException On a malformed pattern or invariant violation.
+	 */
+	public function any( string $pattern, mixed $handler, bool $optionalTrailingSlash = true, array $middleware = array() ): Route {
+		return $this->add( $pattern, array( 'GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS' ), $handler, $optionalTrailingSlash, $middleware );
 	}
 
 	/**

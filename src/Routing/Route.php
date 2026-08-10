@@ -24,14 +24,20 @@ final class Route {
 	private ?string $name = null;
 
 	/**
-	 * @param string[] $methods Uppercase HTTP methods this route responds to.
+	 * @param string[] $methods    Uppercase HTTP methods this route responds to.
+	 * @param array<int,mixed> $middleware Resolved middleware stack for this route —
+	 *                          group middleware (outer to inner) followed by any
+	 *                          route-specific middleware, in the order they should run.
+	 *                          Data only: Router never calls these, just carries them
+	 *                          through to DispatchResult for the environment to execute.
 	 */
 	public function __construct(
 		public readonly string $pattern,
 		public readonly array $methods,
 		public readonly mixed $handler,
 		public readonly bool $optionalTrailingSlash,
-		public readonly CompiledPattern $compiled
+		public readonly CompiledPattern $compiled,
+		public readonly array $middleware = array()
 	) {
 	}
 

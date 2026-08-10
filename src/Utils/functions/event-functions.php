@@ -24,52 +24,48 @@
 use SmartLicenseServer\Events\AbstractEvent;
 use SmartLicenseServer\Events\EventDispatcher;
 
-if ( ! function_exists( 'smliser_events' ) ) {
-    /**
-     * Return the EventDispatcher singleton.
-     *
-     * Use this to register listeners at runtime, inspect registered
-     * listeners, or dispatch events directly.
-     *
-     * @return EventDispatcher
-     */
-    function smliser_events(): EventDispatcher {
-        return EventDispatcher::instance();
-    }
+
+/**
+ * Return the EventDispatcher singleton.
+ *
+ * Use this to register listeners at runtime, inspect registered
+ * listeners, or dispatch events directly.
+ *
+ * @return EventDispatcher
+ */
+function smliser_events(): EventDispatcher {
+    return EventDispatcher::instance();
 }
 
-if ( ! function_exists( 'smliser_dispatch_event' ) ) {
-    /**
-     * Dispatch an event synchronously.
-     *
-     * Calls all registered listeners in priority order within the
-     * current request/process. Returns the event after dispatch so
-     * callers can inspect whether propagation was stopped.
-     *
-     * @param  AbstractEvent $event
-     * @return AbstractEvent
-     */
-    function smliser_dispatch_event( AbstractEvent $event ): AbstractEvent {
-        return EventDispatcher::instance()->dispatch( $event );
-    }
+/**
+ * Dispatch an event synchronously.
+ *
+ * Calls all registered listeners in priority order within the
+ * current request/process. Returns the event after dispatch so
+ * callers can inspect whether propagation was stopped.
+ *
+ * @param  AbstractEvent $event
+ * @return AbstractEvent
+ */
+function smliser_dispatch_event( AbstractEvent $event ): AbstractEvent {
+    return EventDispatcher::instance()->dispatch( $event );
 }
 
-if ( ! function_exists( 'smliser_dispatch_event_async' ) ) {
-    /**
-     * Dispatch an event asynchronously via the background job queue.
-     *
-     * The event is serialised and pushed onto the queue. Listeners
-     * will be called when the worker next processes jobs — not
-     * immediately. Use this for side-effects that should not block
-     * the current request (emails, webhooks, analytics).
-     *
-     * The event class must implement a static from_array() factory
-     * to support re-hydration in the worker process.
-     *
-     * @param  AbstractEvent $event
-     * @return void
-     */
-    function smliser_dispatch_event_async( AbstractEvent $event ): void {
-        EventDispatcher::instance()->dispatch_async( $event );
-    }
+
+/**
+ * Dispatch an event asynchronously via the background job queue.
+ *
+ * The event is serialised and pushed onto the queue. Listeners
+ * will be called when the worker next processes jobs — not
+ * immediately. Use this for side-effects that should not block
+ * the current request (emails, webhooks, analytics).
+ *
+ * The event class must implement a static from_array() factory
+ * to support re-hydration in the worker process.
+ *
+ * @param  AbstractEvent $event
+ * @return void
+ */
+function smliser_dispatch_event_async( AbstractEvent $event ): void {
+    EventDispatcher::instance()->dispatch_async( $event );
 }

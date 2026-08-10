@@ -80,11 +80,6 @@ interface EnvironmentProviderInterface {
     public function check_filesystem_errors(): void;
 
     /**
-     * Sets up custom routes.
-     */
-    public function route_register() : void;
-
-    /**
      * Bootstrap the environment.
      * 
      * @return static

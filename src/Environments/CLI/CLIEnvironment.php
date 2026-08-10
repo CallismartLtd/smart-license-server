@@ -275,21 +275,6 @@ class CLIEnvironment extends Environment {
             ->append_path( $path );
     }
 
-    /**
-     * {@inheritdoc}
-     *
-     * No-op in CLI — filesystem errors are not printed to a browser.
-     * Errors will surface naturally as exceptions during job execution.
-     */
-    public function check_filesystem_errors(): void {}
-
-    /**
-     * {@inheritdoc}
-     *
-     * No-op in CLI — URL rewriting is a web server concern.
-     */
-    public function route_register(): void {}
-
     /*
     |--------------------------------------------
     | INTERNAL STATE

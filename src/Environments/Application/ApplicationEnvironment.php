@@ -20,10 +20,7 @@ class ApplicationEnvironment extends Environment {
         $this->bind_instance();
         $this->prepare_db_config();
 
-        $this->setup([
-            'identity_provider' => new IdentityProvider()
-        ]);
-        
+        $this->setup( ['identity_provider' => new IdentityProvider()] );
     }
 
     /**
@@ -98,13 +95,4 @@ class ApplicationEnvironment extends Environment {
         ->append_path( $path );
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function route_register() : void {}
-
-    /**
-     * {@inheritdoc}
-     */
-    public function check_filesystem_errors(): void {}
 }

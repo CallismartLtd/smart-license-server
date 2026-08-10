@@ -10,13 +10,9 @@
 
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Exceptions\FileRequestException;
-use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use Callismart\Http\Exceptions\HttpRequestException;
 use Callismart\Http\HttpClient;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
@@ -24,6 +20,7 @@ use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Security\Context\IdentityProviderInterface;
+use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\MDParser;
 use SmartLicenseServer\Utils\Sanitizer;
 
@@ -833,4 +830,31 @@ function smliser__( string $text, string $domain = 'default' ): string {
  */
 function smliser_log_error( Throwable|string $error ) : void {
     GlobalErrorHandler::instance()->log( $error );
+}
+
+/**
+ * Compute a safe worker memory ceiling in megabytes.
+ *
+ * Reads memory_limit from the PHP ini, converts to MB, then applies
+ * an 80% safety factor so the worker exits before PHP itself runs out
+ * of memory. Falls back to 64MB when the ini value is unparseable or
+ * unlimited (-1) to keep the worker conservative on unknown environments.
+ *
+ * @return int Memory limit in MB to pass to QueueWorker.
+ */
+function safe_worker_memory_limit_mb(): int {
+    $raw = ini_get( 'memory_limit' );
+
+    // Parse shorthand notation (128M, 256M, 1G etc.) to bytes.
+    $bytes = Format::parse_bytes( (string) $raw );
+
+    // -1 means unlimited — be conservative on unknown environments.
+    if ( $bytes <= 0 ) {
+        return 64;
+    }
+
+    $mb = (int) ( $bytes / 1024 / 1024 );
+
+    // Apply 80% safety factor and floor at 32MB.
+    return max( 32, (int) ( $mb * 0.8 ) );
 }

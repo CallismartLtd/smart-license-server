@@ -49,19 +49,15 @@ use SmartLicenseServer\Templates\TemplateDiscovery;
 use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
- * Abstract environment bootstrap class for Smart License Server.
+ * The abstract application environment and service bootstrap layer. 
+ * It provides the environment-independent foundation through which host-specific environments
+ * integrate their implementations with the Smart License Server core.
  * 
  * This class serves as the foundation for initializing the application environment
  * in a runtime-agnostic way. It is responsible for:
  * 
  * - Parsing and validating configuration provided by the environment provider.
- * - Instantiating and wiring core services and adapters, including:
- *   - Database, Cache, Filesystem, and Settings APIs
- *   - REST API provider
- *   - Mailing service
- *   - Job queue and background worker
- *   - HTTP client
- *   - Scheduler (lazy-loaded)
+ * - Instantiating and wiring core services and adapters.
  * - Providing accessors for all core components.
  * 
  * Note: This class does not handle request/response lifecycles; that responsibility
@@ -131,6 +127,15 @@ abstract class Environment implements EnvironmentProviderInterface {
         'rest_api_provider'     => null,
         'admin_menu_config'     => null,
         'identity_provider'     => null,
+    ];
+
+    /**
+     * The required configuration keys for the environment.
+     * 
+     * @var string[] $required_config
+     */
+    protected array $required_config = [
+        'identity_provider',
     ];
 
     /**
@@ -249,10 +254,13 @@ abstract class Environment implements EnvironmentProviderInterface {
      *      database_adapter?: DatabaseAdapterInterface,
      *      rest_api_provider: RESTProviderInterface,
      *      identity_provider: IdentityProviderInterface,
-     * } $config The environment configuration options.
+     * } $config The overridable environment configuration options.
      * @throws EnvironmentBootstrapException If required configuration is missing or invalid.
      */
     final protected function setup( array $config ) {
+        EventServiceProvider::instance()->boot();
+        smliser_dispatch_event( new EnvironmentBooting() );
+
         $this->parse_config( $config );
         $this->setProps();
         
@@ -278,10 +286,8 @@ abstract class Environment implements EnvironmentProviderInterface {
 
         $missing_config = [];
 
-        $required_config = ['identity_provider'];
-
         foreach ( $parsed_config as $key => $value ) {
-            if ( in_array( $key, $required_config, true ) && $value === null ) {
+            if ( in_array( $key, $this->required_config, true ) && $value === null ) {
                 $missing_config[] = $key;
             }
         }
@@ -296,64 +302,6 @@ abstract class Environment implements EnvironmentProviderInterface {
         }
 
         $this->env  = $parsed_config;
-    }
-
-    /**
-     * Compute a safe worker memory ceiling in megabytes.
-     *
-     * Reads memory_limit from the PHP ini, converts to MB, then applies
-     * an 80% safety factor so the worker exits before PHP itself runs out
-     * of memory. Falls back to 64MB when the ini value is unparseable or
-     * unlimited (-1) to keep the worker conservative on unknown environments.
-     *
-     * @return int Memory limit in MB to pass to QueueWorker.
-     */
-    private function safe_worker_memory_limit_mb(): int {
-        $raw = ini_get( 'memory_limit' );
- 
-        // Parse shorthand notation (128M, 256M, 1G etc.) to bytes.
-        $bytes = $this->parse_ini_bytes( (string) $raw );
- 
-        // -1 means unlimited — be conservative on unknown environments.
-        if ( $bytes <= 0 ) {
-            return 64;
-        }
- 
-        $mb = (int) ( $bytes / 1024 / 1024 );
- 
-        // Apply 80% safety factor and floor at 32MB.
-        return max( 32, (int) ( $mb * 0.8 ) );
-    }
-
-    /**
-     * Convert a PHP ini memory string to bytes.
-     *
-     * Handles shorthand suffixes: K (kilobytes), M (megabytes), G (gigabytes).
-     * Returns -1 for unlimited (-1), 0 for unparseable values.
-     *
-     * @param string $val Raw ini value e.g. '128M', '1G', '-1'.
-     * @return int Byte equivalent, or -1 for unlimited, or 0 on failure.
-     */
-    private function parse_ini_bytes( string $val ): int {
-        $val = trim( $val );
- 
-        if ( $val === '-1' ) {
-            return -1;
-        }
- 
-        if ( ! is_numeric( $val[0] ?? '' ) ) {
-            return 0;
-        }
- 
-        $suffix = strtolower( substr( $val, -1 ) );
-        $num    = (int) $val;
- 
-        return match ( $suffix ) {
-            'g'     => $num * 1024 * 1024 * 1024,
-            'm'     => $num * 1024 * 1024,
-            'k'     => $num * 1024,
-            default => $num,
-        };
     }
 
     /**
@@ -388,9 +336,6 @@ abstract class Environment implements EnvironmentProviderInterface {
             
             $this->{$prop_k}    = $this->env[$env_k];
         }
-
-        EventServiceProvider::instance()->boot();
-        smliser_dispatch_event( new EnvironmentBooting() );
 
         // instanciate the cache registry.
         CacheAdapterRegistry::instance( $this->settings() );
@@ -502,7 +447,7 @@ abstract class Environment implements EnvironmentProviderInterface {
         if ( ! isset( $this->queue_worker ) ) {
             $this->queue_worker = new QueueWorker(
                 $this->job_queue,
-                memory_limit_mb: $this->safe_worker_memory_limit_mb(),
+                memory_limit_mb: safe_worker_memory_limit_mb(),
             );
         }
     }
@@ -741,4 +686,3 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     abstract protected function bind_instance() : void;
 }
-
