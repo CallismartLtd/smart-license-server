@@ -111,6 +111,13 @@ class Request {
     protected array $server = [];
 
     /**
+     * Dedicated storage for resolved routes parameters.
+     * 
+     * @var array
+     */
+    protected array $route_params = [];
+
+    /**
      * Flag to track if raw JSON payload has been evaluated and cached.
      * 
      * @var bool
@@ -290,6 +297,37 @@ class Request {
         }
 
         return $this->json[ $key ] ?? $default;
+    }
+
+    /**
+     * Get resolved route parameter(s).
+     * 
+     * @param string|null $key     Parameter key or null to get all route parameters.
+     * @param mixed  $default Default value if parameter key is missing.
+     */
+    public function route_param( ?string $key = null, mixed $default = null ): mixed {
+        if ( null === $key ) {
+            return $this->route_params;
+        }
+
+        return $this->route_params[ $key ] ?? $default;
+    }
+
+    /**
+     * Set resolved route parameter(s).
+     * 
+     * @param string|array $key   Parameter key or associative array of parameters.
+     */
+    public function set_route_param( string|array $key, mixed $value = null ): static {
+        if ( is_array( $key ) ) {
+            foreach ( $key as $k => $v ) {
+                $this->route_params[ $k ] = $v;
+            }
+        } else {
+            $this->route_params[ $key ] = $value;
+        }
+
+        return $this;
     }
 
     /**

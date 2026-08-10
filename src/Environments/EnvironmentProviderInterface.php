@@ -73,13 +73,6 @@ interface EnvironmentProviderInterface {
     public static function assetsUrl( string $path = '', array $params = [] ) : URL;
 
     /**
-     * Check key filesystem directories for read/write access.
-     *
-     * @return void
-     */
-    public function check_filesystem_errors(): void;
-
-    /**
      * Bootstrap the environment.
      * 
      * @return static

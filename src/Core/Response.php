@@ -676,4 +676,15 @@ class Response {
 
 		return $key;
 	}
+
+	/**
+	 * Make an instance of response object.
+	 * 
+	 * @param string $body
+	 * @param int $status_code
+	 * @return static
+	 */
+	public static function make( string $body, int $status_code = 200, array $headers = [] ) : static {
+		return new static( $status_code, $headers, $body );
+	}
 }

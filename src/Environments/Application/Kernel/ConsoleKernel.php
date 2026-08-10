@@ -6,7 +6,7 @@
  * @package SmartLicenseServer
  */
 
-namespace SmartLicenseServer\Environments\Kernel\Application;
+namespace SmartLicenseServer\Environments\Application\Kernel;
 
 /**
  * Console kernel class coordinates console command lifecycle.
@@ -15,14 +15,17 @@ class ConsoleKernel extends Kernel {
     /**
      * {@inheritdoc}
      */
-    public function boot() : void {}
+    public function boot() : static {
+
+        return $this;
+    }
 
     /**
      * {@inheritdoc}
      */
-    public function run() : int {
+    public function run() : static {
 
 
-        return 0;
+        return $this;
     }
 }

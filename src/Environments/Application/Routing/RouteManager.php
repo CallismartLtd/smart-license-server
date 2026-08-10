@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\Application\Routing;
 
+use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\RESTAPI\RESTInterface;
@@ -115,7 +117,7 @@ final class RouteManager {
      * @return void
      */
     public function registerCoreRoutes() : void {
-        $this->router->any( '/', 'smliser_dump_url' );
+        $this->router->any( '/', fn() => \smliser_dump_url() );
 
         
     }
@@ -142,6 +144,9 @@ final class RouteManager {
 	/**
 	 * Sets the callback invoked when no route matches the path at all.
 	 * Receives `($request)`.
+     * 
+     * @param callable( Request ): Response $handler The callback to invoke when no route matches.
+     * @return self
 	 */
 	public function notFound( callable $handler ): self {
 		$this->notFoundHandler = $handler;
@@ -152,6 +157,9 @@ final class RouteManager {
 	/**
 	 * Sets the callback invoked when a route matches the path but not the
 	 * method. Receives `($request, string[] $allowedMethods)`.
+     * 
+     * @param callable( Request, string[] ): Response $handler The callback to invoke when a route matches the path but not the method.
+     * @return self
 	 */
 	public function methodNotAllowed( callable $handler ): self {
 		$this->methodNotAllowedHandler = $handler;
@@ -169,15 +177,16 @@ final class RouteManager {
 	 * no assumption about what that is (a Response object, void, anything),
 	 * since that's the handler's decision, not the router's.
 	 */
-	public function dispatch( string $method, string $path, mixed $request = null ): mixed {
+	public function dispatch( string $method, string $path, ?Request $request = null ): Response {
 		$result = $this->router->dispatch( $method, $path );
 
-		return match ( $result->status ) {
+        $request->set_route_param( $result->params );
+
+		$response = match ( $result->status ) {
 			DispatchStatus::Found            => MiddlewarePipeline::run(
 				$result->middleware,
 				$result->handler,
 				$request,
-				$result->params
 			),
 			DispatchStatus::NotFound         => null !== $this->notFoundHandler
 				? ( $this->notFoundHandler )( $request )
@@ -186,6 +195,8 @@ final class RouteManager {
 				? ( $this->methodNotAllowedHandler )( $request, $result->allowedMethods )
 				: null,
 		};
+
+        return $this->ensure_response( $response );
 	}
 
 	/**
@@ -199,4 +210,122 @@ final class RouteManager {
 
 		return trim( (string) ( $path ?? '/' ), '/' );
 	}
+
+    /**
+     * Normalizes arbitrary route handler return values into a unified Response object.
+     *
+     * @param mixed $data Raw value returned from a route handler.
+     * @return Response Fully populated framework Response object.
+     * @throws \RuntimeException If the data type cannot be safely converted to a response.
+     */
+    private function ensure_response( mixed $data ) : Response {
+        // Direct pass-through if it's already a Response instance.
+        if ( $data instanceof Response ) {
+            return $data;
+        }
+
+        // Handle empty/null returns (e.g., HTTP 204 No Content).
+        if ( null === $data ) {
+            return Response::make( '', 204 );
+        }
+
+        // Handle arrays and JsonSerializable objects as JSON responses.
+        if ( is_array( $data ) || $data instanceof \JsonSerializable ) {
+            $encoded = \smliser_safe_json_encode( $data );
+            
+            if ( false === $encoded ) {
+                throw new \RuntimeException( 'Failed to encode route response data to JSON.' );
+            }
+
+            return Response::make( $encoded )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+        }
+
+        // Handle standard strings.
+        if ( is_string( $data ) ) {
+            return Response::make( $data )
+                ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+        }
+
+        // Handle Stringable objects (PHP 8.0+ or custom __toString implementers).
+        if ( is_object( $data ) && ( $data instanceof \Stringable || method_exists( $data, '__toString' ) ) ) {
+            return Response::make( (string) $data )
+                ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+        }
+
+        // Handle scalar values (booleans, integers, floats).
+        if ( is_scalar( $data ) ) {
+            $content = is_bool( $data ) ? ( $data ? 'true' : 'false' ) : (string) $data;
+
+            return Response::make( $content )
+                ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+        }
+
+        // Handle invokable objects/callables (e.g., dynamic response generators).
+        if ( is_callable( $data ) ) {
+            if ( $this->returns_response( $data ) ) {
+                return $this->ensure_response( $data() );
+            }
+
+            return Response::make( $this->capture( $data ) )
+                ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+        }
+
+        // Unsupported type safety check.
+        $type = is_object( $data ) ? $data::class : gettype( $data );
+        throw new \RuntimeException( sprintf( 'Route handler returned unsupported response type: %s', $type ) );
+    }
+
+    private function returns_response( callable $callable ) : bool {
+        try {
+            if ( is_array( $callable ) ) {
+                $reflection = new \ReflectionMethod( $callable[0], $callable[1] );
+            } elseif ( is_string( $callable ) && str_contains( $callable, '::' ) ) {
+                $reflection = new \ReflectionMethod( $callable );
+            } else {
+                $reflection = new \ReflectionFunction( $callable );
+            }
+
+            $returnType = $reflection->getReturnType();
+
+            if ( $returnType instanceof \ReflectionNamedType ) {
+                return $returnType->getName() === Response::class;
+            }
+
+            if ( $returnType instanceof \ReflectionUnionType ) {
+                foreach ( $returnType->getTypes() as $type ) {
+                    if ( $type instanceof \ReflectionNamedType && $type->getName() === Response::class ) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        } catch ( \ReflectionException ) {
+            return false;
+        }
+    }
+
+    private function capture( callable $callable ) : string {
+        ob_start();
+        try {
+            $callable();
+
+            // Check if the callback itself forced a header flush or called flush() during execution
+            if ( headers_sent( $file, $line ) ) {
+                ob_end_clean();
+                throw new \LogicException(
+                    sprintf( 'Route callback flushed output prematurely at %s on line %d.', $file, $line )
+                );
+            }
+
+            return (string) ob_get_clean();
+        } catch ( \Throwable $e ) {
+            if ( ob_get_level() > 0 ) {
+                ob_end_clean();
+            }
+            throw $e;
+        }
+    }
+
 }

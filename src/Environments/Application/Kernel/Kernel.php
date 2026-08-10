@@ -9,7 +9,7 @@
 
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Environments\Kernel\Application;
+namespace SmartLicenseServer\Environments\Application\Kernel;
 
 use SmartLicenseServer\Environments\EnvironmentProviderInterface;
 
@@ -38,14 +38,14 @@ abstract class Kernel {
     /**
      * Bootstrap the application.
      *
-     * @return void
+     * @return static The kernel instance.
      */
-    abstract public function boot(): void;
+    abstract public function boot(): static;
 
     /**
      * Execute the application lifecycle.
      *
-     * @return int Process exit status.
+     * @return static The kernel instance.
      */
-    abstract public function run(): int;
+    abstract public function run(): static;
 }
