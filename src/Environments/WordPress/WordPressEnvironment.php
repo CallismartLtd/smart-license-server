@@ -23,6 +23,7 @@ use SmartLicenseServer\Environments\WordPress\CLI\WPCLIRunner;
 use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\RESTAPI\Versions\V1;
+use SmartLicenseServer\RuntimeConfig;
 use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
 
 /**
@@ -127,7 +128,7 @@ class WordPressEnvironment extends Environment {
     /**
      * {@inheritdoc}
      */
-    public static function boot() : static {
+    public static function boot( RuntimeConfig $runtime_config ) : static {
         
         if ( ! isset( static::$envProvider ) ) {
             new static();

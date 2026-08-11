@@ -367,7 +367,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
             <span class="smliser-pagination-links">
 
                 <?php if ( $page > 1 ) : ?>
-                    <a class="prev-page button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $prev_page, 'limit' => $limit ) ) ); ?>">&laquo;</a>
+                    <a class="prev-page button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $prev_page, 'limit' => $limit ) )->url() ); ?>">&laquo;</a>
                 <?php else : ?>
                     <span class="smliser-navspan button disabled">&laquo;</span>
                 <?php endif; ?>
@@ -376,7 +376,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                 // First page.
                 if ( $start > 1 ) :
                     ?>
-                    <a class="button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => 1, 'limit' => $limit ) ) ); ?>">1</a>
+                    <a class="button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => 1, 'limit' => $limit ) )->url() ); ?>">1</a>
                     <?php if ( $start > 2 ) : ?>
                         <span class="smliser-navspan button disabled">…</span>
                     <?php endif; ?>
@@ -388,7 +388,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                     $class = ( $i === $page ) ? 'button current' : 'button';
                     ?>
                     <a class="<?php echo escAttr( $class ); ?>"
-                       href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $i, 'limit' => $limit ) ) ); ?>">
+                       href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $i, 'limit' => $limit ) )->url() ); ?>">
                         <?php echo intval( $i ); ?>
                     </a>
                 <?php endfor; ?>
@@ -403,13 +403,13 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                     endif;
                     ?>
                     <a class="button"
-                       href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $total_pages, 'limit' => $limit ) ) ); ?>">
+                       href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $total_pages, 'limit' => $limit ) )->url() ); ?>">
                         <?php echo intval( $total_pages ); ?>
                     </a>
                 <?php endif; ?>
 
                 <?php if ( $page < $total_pages ) : ?>
-                    <a class="next-page button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $next_page, 'limit' => $limit ) ) ); ?>">&raquo;</a>
+                    <a class="next-page button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $next_page, 'limit' => $limit ) )->url() ); ?>">&raquo;</a>
                 <?php else : ?>
                     <span class="smliser-navspan button disabled">&raquo;</span>
                 <?php endif; ?>
@@ -586,7 +586,7 @@ function smliser_rest_documentation() {
             <h2 class="heading">REST API Documentation</h2>
             <div class="smliser-api-base-url">
                 <strong>Base URL:</strong>
-                <code><?php echo escUrl( restAPIUrl() ); ?></code>
+                <code><?php echo escUrl( restAPIUrl()->url() ); ?></code>
             </div>
             
             <?php foreach ( $rest::describe_routes() as $_ => $html ) :
@@ -779,4 +779,46 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
     }
 
     return $output;
+}
+
+/**
+ * Dump variables and terminate script execution safely.
+ *
+ * Captures var_dump output to HTML-escape special characters, preventing string values 
+ * containing tags (<, >, &) from being parsed or hidden by the browser.
+ *
+ * @param mixed ...$vars One or more variables to inspect and dump.
+ * @return never
+ */
+function dd( mixed ...$vars ): never {
+	$is_cli = 'cli' === \PHP_SAPI || 'phpdbg' === \PHP_SAPI;
+
+	if ( ! $is_cli && ! headers_sent() ) {
+		http_response_code( 500 );
+	}
+
+	if ( ! $is_cli ) {
+		echo '<pre style="background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 13px; line-height: 1.5; overflow-x: auto; margin: 10px 0; z-index: 999999; position: relative;">';
+	}
+
+	foreach ( $vars as $var ) {
+		ob_start();
+		var_dump( $var );
+		$output = ob_get_clean();
+
+		if ( $is_cli ) {
+			echo $output;
+			if ( count( $vars ) > 1 ) {
+				echo \PHP_EOL . str_repeat( '-', 40 ) . \PHP_EOL;
+			}
+		} else {
+			echo htmlspecialchars( $output, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
+		}
+	}
+
+	if ( ! $is_cli ) {
+		echo '</pre>';
+	}
+
+	exit( 1 );
 }

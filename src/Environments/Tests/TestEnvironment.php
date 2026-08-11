@@ -17,6 +17,7 @@ use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
+use SmartLicenseServer\RuntimeConfig;
 
 /**
  * PHPUnit testing environment bootstrap.
@@ -39,7 +40,7 @@ class TestEnvironment extends Environment {
         static::$envProvider = $this;
     }
 
-    public static function boot(): static {
+    public static function boot( RuntimeConfig $runtime_config ): static {
         return new static();
     }
 

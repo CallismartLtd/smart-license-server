@@ -22,6 +22,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
 use Callismart\Http\HttpClient;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
+use SmartLicenseServer\RuntimeConfig;
 use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateLocator;
@@ -77,7 +78,7 @@ interface EnvironmentProviderInterface {
      * 
      * @return static
      */
-    public static function boot() : static;
+    public static function boot( RuntimeConfig $runtime_config ) : static;
 
     /**
      * Get the DBAL instance.

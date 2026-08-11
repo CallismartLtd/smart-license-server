@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Environments\Application;
 use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environment;
+use SmartLicenseServer\RuntimeConfig;
 
 /**
  * Smart License Server running as a standalone PHP application.
@@ -52,7 +53,7 @@ class ApplicationEnvironment extends Environment {
     /**
      * {@inheritdoc}
      */
-    public static function boot() : static {
+    public static function boot( RuntimeConfig $runtime_config ) : static {
         if ( ! isset( static::$envProvider ) ) {
             new static();
         }

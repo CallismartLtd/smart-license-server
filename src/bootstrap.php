@@ -36,4 +36,4 @@ GlobalErrorHandler::instance()->bootstrap([
 
 require_once 'constants.php';
 
-unset( $smliser_runtime );
+return $smliser_runtime;
