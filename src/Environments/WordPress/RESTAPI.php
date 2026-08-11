@@ -14,7 +14,7 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\RESTAPI\RESTInterface;
+use SmartLicenseServer\RESTAPI\RESTVersionInterface;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
@@ -56,9 +56,9 @@ class RESTAPI implements RESTProviderInterface {
     /**
      * Class constructor
      *
-     * @param RESTInterface $restAPIVersion
+     * @param RESTVersionInterface $restAPIVersion
      */
-    public function __construct( private RESTInterface $restAPIVersion ) {        
+    public function __construct( private RESTVersionInterface $restAPIVersion ) {        
         add_filter( 'rest_request_before_callbacks', [$this, 'rest_request_before_callbacks'], -1, 3 );
         add_filter( 'rest_post_dispatch', [$this, 'filter_response'], 10, 3 );
         add_filter( 'rest_pre_dispatch', [$this, 'enforce_https'], 10, 3 );
@@ -626,11 +626,9 @@ class RESTAPI implements RESTProviderInterface {
     }
 
     /**
-     * Get the underlying REST API version instance.
-     * 
-     * @return RESTInterface
+     * {@inheritdoc}
      */
-    public function restAPIVersion() : RESTInterface {
+    public function version_instance() : RESTVersionInterface {
         return $this->restAPIVersion;
     }
 

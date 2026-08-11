@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\RESTAPI
  */
 
-namespace SmartLicenseServer\RESTAPI;
+namespace SmartLicenseServer\RESTAPI\Handlers;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Cache\CacheAwareTrait;

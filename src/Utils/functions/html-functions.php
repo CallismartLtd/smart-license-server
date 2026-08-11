@@ -580,7 +580,7 @@ function smliser_not_found_container( $text ) {
  * Rest API documentation page
  */
 function smliser_rest_documentation() {
-    $rest = smliser_envProvider()->restProvider()->restAPIVersion();
+    $rest = smliser_envProvider()->restProvider()->version_instance();
     ?>
         <div class="smliser-admin-api-description-section">
             <h2 class="heading">REST API Documentation</h2>

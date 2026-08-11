@@ -2,8 +2,8 @@
 /**
  * Http kernel class file.
  * 
- * @author Callistus Nwachukwu.
- * @package SmartLicenseServer
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Environments\Application\Kernel
  */
 
 namespace SmartLicenseServer\Environments\Application\Kernel;
@@ -16,14 +16,13 @@ use SmartLicenseServer\Environments\Application\Routing\RouteManager;
  */
 class HTTPKernel extends Kernel {
     protected RouteManager $routeManager;
-    protected Response $response;
+    protected ?Response $response = null;
     
     /**
      * {@inheritdoc}
      */
     public function boot() : static {
         $this->routeManager = new RouteManager();
-
         $this->routeManager->registerCoreRoutes();
         
         return $this;
@@ -39,15 +38,21 @@ class HTTPKernel extends Kernel {
             $this->environment->request() 
         );
 
+        $this->response->send();
+
         return $this;
     }
 
     /**
-     * Terminite the request.
+     * Terminate the request.
      * 
      * @return never
      */
     public function terminate() : never {
-        $this->response->stop();
+        if ( isset( $this->response ) ) {
+            $this->response->stop();
+        }
+
+        exit( 0 );
     }
 }

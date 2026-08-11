@@ -11,9 +11,10 @@ namespace SmartLicenseServer\Environments\Application\Routing;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\Routing\DispatchStatus;
-use SmartLicenseServer\RESTAPI\RESTInterface;
+use SmartLicenseServer\RESTAPI\RESTVersionInterface;
 
 /**
  * The application environment's route manager, which wraps the core Router and 
@@ -31,7 +32,7 @@ use SmartLicenseServer\RESTAPI\RESTInterface;
  *
  *          $manager->router()->get( 'health', $healthHandler );
  *
- *   2. From a provider shaped like RESTInterface (route/methods/handler/
+ *   2. From a provider shaped like RESTVersionInterface (route/methods/handler/
  *      guard/args) — the exact shape SmartLicenseServer\RESTAPI\Versions\V1
  *      already returns, `guard`, if present, becomes middleware — run before anything else on
  *      that route, since a guard's whole job is "reject before work starts."
@@ -63,8 +64,15 @@ final class RouteManager {
 	/** @var callable|null */
 	private $methodNotAllowedHandler;
 
+    /** @var callable|null */
+    private $defaultHomeHandler;
+
 	public function __construct( ?CoreRouter $router = null ) {
 		$this->router = $router ?? new CoreRouter();
+
+        $this->notFound( [DefaultPage::class, 'not_found'] );
+        $this->methodNotAllowed( [DefaultPage::class, 'method_not_allowed'] );
+        $this->homeHandler( [DefaultPage::class, 'home'] );
 	}
 
 	/**
@@ -76,11 +84,11 @@ final class RouteManager {
 	}
 
 	/**
-	 * Registers a RESTInterface provider's routes onto the underlying core Router.
+	 * Registers a RESTVersionInterface provider's routes onto the underlying core Router.
      * 
      * @return void
 	 */
-	public function registerProvider( RESTInterface $provider ): void {
+	public function registerProvider( RESTVersionInterface $provider ): void {
 		$config    = $provider->get_routes();
 		$namespace = $config['namespace'] ?? '';
 		$routes    = $config['routes'] ?? array();
@@ -117,7 +125,11 @@ final class RouteManager {
      * @return void
      */
     public function registerCoreRoutes() : void {
-        $this->router->any( '/', 'escHtml' );
+        $admin_url_prefix   = smliser_get_admin_url_prefix();
+
+        $this->router->any( '/', $this->defaultHomeHandler );
+        $this->router->get( "/$admin_url_prefix", [DefaultPage::class, 'serve_content'] );
+        $this->router->get( "/documentation", [DefaultPage::class, 'doc_page'] );
     }
 
 	/**
@@ -151,6 +163,17 @@ final class RouteManager {
 
 		return $this;
 	}
+
+    /**
+     * Sets the callback handler for the homepage.
+     * 
+     * @param callable( Request ) : Response $callback
+     */
+    public function homeHandler( callable $callback ) : self {
+        $this->defaultHomeHandler = $callback;
+
+        return $this;
+    }
 
 	/**
 	 * Sets the callback invoked when a route matches the path but not the

@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Environments\Application;
 use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environment;
+use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\RuntimeConfig;
 
 /**
@@ -21,7 +22,11 @@ class ApplicationEnvironment extends Environment {
         $this->bind_instance();
         $this->prepare_db_config();
 
-        $this->setup( ['identity_provider' => new IdentityProvider()] );
+        $this->setup(
+            ['identity_provider' => new IdentityProvider(),
+            'rest_api_provider'     => new RestAPIProvider( new V1() )
+            ]
+        );
     }
 
     /**

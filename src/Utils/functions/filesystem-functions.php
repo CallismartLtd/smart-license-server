@@ -130,3 +130,37 @@ function smliser_get_windows_reserved_names() : array {
         'lpt6', 'lpt7', 'lpt8', 'lpt9',
     ];
 }
+
+/**
+ * Intercept stray /favicon.ico requests early to prevent unnecessary app booting.
+ *
+ * @return void
+ */
+function intercept_stray_favicon_request(): void {
+    if ( ! isset( $_SERVER['REQUEST_URI'] ) ) {
+        return;
+    }
+
+    $requestPath = \strtok( $_SERVER['REQUEST_URI'], '?' );
+
+    if ( '/favicon.ico' === $requestPath ) {
+        $favicon = \SMLISER_RUNTIME_DIR . 'assets/images/smart-license-server.svg';
+
+        if ( \file_exists( $favicon ) ) {
+            // Clean any preceding output buffers to avoid file corruption
+            while ( \ob_get_level() > 0 ) {
+                \ob_end_clean();
+            }
+
+            \header( 'Content-Type: image/svg+xml' );
+            \header( 'Content-Length: ' . \filesize( $favicon ) );
+            \header( 'Cache-Control: public, max-age=604800, immutable' );
+            \readfile( $favicon );
+        } else {
+            \http_response_code( 204 );
+            \header( 'Cache-Control: public, max-age=604800' );
+        }
+
+        exit( 0 );
+    }
+}

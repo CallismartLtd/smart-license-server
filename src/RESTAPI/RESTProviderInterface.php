@@ -15,14 +15,10 @@ interface RESTProviderInterface {
     /**
      * Enforce secure HTTPS/TLS connection.
      * 
+     * @param mixed ...$params
      * @return mixed
      */
     public function enforce_https( ...$params ) : mixed;
-
-    /**
-     * Register REST API routes
-     */
-    public function register_rest_routes() : void;
 
     /**
      * Authenticate the current principal/actor
@@ -38,6 +34,8 @@ interface RESTProviderInterface {
 
     /**
      * Get the current REST API version.
+     * 
+     * @return RESTVersionInterface
      */
-    public function restAPIVersion() : RESTInterface;
+    public function version_instance() : RESTVersionInterface;
 }

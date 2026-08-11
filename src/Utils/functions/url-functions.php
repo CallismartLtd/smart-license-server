@@ -171,6 +171,13 @@ function smliser_get_download_url_prefix() : string {
 }
 
 /**
+ * Get the base admin url prefix.
+ */
+function smliser_get_admin_url_prefix() : string {
+    return (string) smliser_settings()->get( 'admin_url_prefix', 'smliser-admin', true );
+}
+
+/**
  * Get the the base repository slug.
  * 
  * @return string

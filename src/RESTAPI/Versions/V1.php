@@ -10,7 +10,12 @@
 namespace SmartLicenseServer\RESTAPI\Versions;
 
 use SmartLicenseServer\ClientDashboard\ClientDashboardRouter;
-use SmartLicenseServer\RESTAPI\RESTInterface;
+use SmartLicenseServer\RESTAPI\Handlers\BulkMessages;
+use SmartLicenseServer\RESTAPI\Handlers\HostedApps;
+use SmartLicenseServer\RESTAPI\Handlers\Licenses;
+use SmartLicenseServer\RESTAPI\Handlers\Plugins;
+use SmartLicenseServer\RESTAPI\RESTVersionInterface;
+use SmartLicenseServer\RESTAPI\Themes;
 
 /**
  * API version 1
@@ -20,7 +25,7 @@ use SmartLicenseServer\RESTAPI\RESTInterface;
  * 
  * @version 1.0
  */
-class V1 implements RESTInterface {
+class V1 implements RESTVersionInterface {
     /**
      * App route regex.
      * 
@@ -251,8 +256,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::LICENSE_ACTIVATION,
                     'methods'       => ['POST'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'activation_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'activation_permission_callback' ),
+                    'handler'       => array( Licenses::class, 'activation_response' ),
+                    'guard'         => array( Licenses::class, 'activation_permission_callback' ),
                     'args'          => self::get_license_activation_args(),
                     'category'      => 'license',
                     'name'          => 'License Activation',
@@ -262,8 +267,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::LICENSE_DEACTIVATION,
                     'methods'       => array( 'POST' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'deactivation_permission' ),
+                    'handler'       => array( Licenses::class, 'deactivation_response' ),
+                    'guard'         => array( Licenses::class, 'deactivation_permission' ),
                     'args'          => self::get_license_deactivation_args(),
                     'category'      => 'license',
                     'name'          => 'License Deactivation',
@@ -273,8 +278,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::LICENSE_UNINSTALL,
                     'methods'       => array( 'POST' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'uninstallation_permission' ),
+                    'handler'       => array( Licenses::class, 'uninstallation_response' ),
+                    'guard'         => array( Licenses::class, 'uninstallation_permission' ),
                     'args'          => self::get_license_uninstallation_args(),
                     'category'      => 'license',
                     'name'          => 'License Uninstallation',
@@ -284,8 +289,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::LICENSE_VALIDITY,
                     'methods'       => ['POST'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'validity_test_permission' ),
+                    'handler'       => array( Licenses::class, 'validity_test_response' ),
+                    'guard'         => array( Licenses::class, 'validity_test_permission' ),
                     'args'          => self::get_license_validity_args(),
                     'category'      => 'license',
                     'name'          => 'License Validity Test',
@@ -295,8 +300,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::PLUGIN_INFO,
                     'methods'       => ['GET'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'plugin_info_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\Plugins::class, 'info_permission_callback' ),
+                    'handler'       => array( Plugins::class, 'plugin_info_response' ),
+                    'guard'         => array( Plugins::class, 'info_permission_callback' ),
                     'args'          => self::get_app_info_args( 'plugin' ),
                     'category'      => 'repository',
                     'name'          => 'Plugin Information',
@@ -306,8 +311,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::THEME_INFO,
                     'methods'       => ['GET'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\Themes::class, 'theme_info_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\Themes::class, 'info_permission_callback' ),
+                    'handler'       => array( Themes::class, 'theme_info_response' ),
+                    'guard'         => array( Themes::class, 'info_permission_callback' ),
                     'args'          => self::get_app_info_args( 'theme' ),
                     'category'      => 'repository',
                     'name'          => 'Theme Information',
@@ -317,8 +322,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_ROUTE,
                     'methods'       => ['GET'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_get_guard' ),
+                    'handler'       => array( HostedApps::class, 'repository_response' ),
+                    'guard'         => array( HostedApps::class, 'repository_get_guard' ),
                     'args'          => self::get_repository_args(),
                     'category'      => 'repository',
                     'name'          => 'Repository Query',
@@ -328,8 +333,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_APP_ROUTE,
                     'methods'       => ['GET'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'single_app_get' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_get_guard' ),
+                    'handler'       => array( HostedApps::class, 'single_app_get' ),
+                    'guard'         => array( HostedApps::class, 'repository_get_guard' ),
                     'args'          => self::get_repository_app_args(),
                     'category'      => 'repository',
                     'name'          => 'Get Single Application',
@@ -338,8 +343,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_APP_TYPE_ROUTE,
                     'methods'       => ['POST'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'create_app' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_unsafe_method_guard' ),
+                    'handler'       => array( HostedApps::class, 'create_app' ),
+                    'guard'         => array( HostedApps::class, 'repository_unsafe_method_guard' ),
                     'args'          => self::get_app_write_args( 'POST' ),
                     'category'      => 'repository',
                     'name'          => 'Create a New Application',
@@ -348,8 +353,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_APP_ROUTE,
                     'methods'       => array( 'PUT', 'PATCH' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'update_app' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_unsafe_method_guard' ),
+                    'handler'       => array( HostedApps::class, 'update_app' ),
+                    'guard'         => array( HostedApps::class, 'repository_unsafe_method_guard' ),
                     'args'          => self::get_app_write_args( 'PUT', 'PATCH' ),
                     'category'      => 'repository',
                     'name'          => 'Update an Existing Application',
@@ -358,8 +363,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::REPOSITORY_APP_ROUTE,
                     'methods'       => array( 'DELETE' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'delete_app' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'repository_unsafe_method_guard' ),
+                    'handler'       => array( HostedApps::class, 'delete_app' ),
+                    'guard'         => array( HostedApps::class, 'repository_unsafe_method_guard' ),
                     'args'          => self::get_app_delete_args(),
                     'category'      => 'repository',
                     'name'          => 'Delete Existing Application'
@@ -369,8 +374,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::APP_ASSETS_TYPE_ROUTE,
                     'methods'       => array( 'POST' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'upload_app_assets' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'assets_management_guard' ),
+                    'handler'       => array( HostedApps::class, 'upload_app_assets' ),
+                    'guard'         => array( HostedApps::class, 'assets_management_guard' ),
                     'args'          => [],
                     'category'      => 'repository',
                     'name'          => 'App Asset Bulk Upload'
@@ -379,8 +384,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::APP_ASSET_TYPE_ROUTE,
                     'methods'       => array( 'PUT' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'update_app_asset' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'assets_management_guard' ),
+                    'handler'       => array( HostedApps::class, 'update_app_asset' ),
+                    'guard'         => array( HostedApps::class, 'assets_management_guard' ),
                     'args'          => [],
                     'category'      => 'repository',
                     'name'          => 'Create or Replace a Single App Asset'
@@ -389,8 +394,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::APP_ASSETS_ROUTE_BASE . self::ASSET_NAME_REGEX,
                     'methods'       => array( 'DELETE' ),
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'delete_app_asset' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\HostedApps::class, 'assets_management_guard' ),
+                    'handler'       => array( HostedApps::class, 'delete_app_asset' ),
+                    'guard'         => array( HostedApps::class, 'assets_management_guard' ),
                     'args'          => [],
                     'category'      => 'repository',
                     'name'          => 'Create or Replace App Asset'
@@ -400,8 +405,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::DOWNLOAD_TOKEN_REAUTH,
                     'methods'       => ['POST'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'app_download_reauth' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\Licenses::class, 'download_reauth_permission' ),
+                    'handler'       => array( Licenses::class, 'app_download_reauth' ),
+                    'guard'         => array( Licenses::class, 'download_reauth_permission' ),
                     'args'          => self::get_download_reauth_args(),
                     'category'      => 'license',
                     'name'          => 'Download Token Reauthentication',
@@ -411,7 +416,7 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => '/mock-inbox',
                     'methods'       => ['GET'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\BulkMessages::class, 'mock_dispatch' ),
+                    'handler'       => array( BulkMessages::class, 'mock_dispatch' ),
                     'guard'         => [__CLASS__, 'return_true'],
                     'args'          => array(),
                     'category'      => 'testing',
@@ -422,8 +427,8 @@ class V1 implements RESTInterface {
                 array(
                     'route'         => self::BULK_MESSAGES_ROUTE,
                     'methods'       => ['GET'],
-                    'handler'       => array( \SmartLicenseServer\RESTAPI\BulkMessages::class, 'dispatch_response' ),
-                    'guard'         => array( \SmartLicenseServer\RESTAPI\BulkMessages::class, 'permission_callback' ),
+                    'handler'       => array( BulkMessages::class, 'dispatch_response' ),
+                    'guard'         => array( BulkMessages::class, 'permission_callback' ),
                     'args'          => self::get_bulk_messages_args(),
                     'category'      => 'bulk-messages',
                     'name'          => 'Bulk Messages',

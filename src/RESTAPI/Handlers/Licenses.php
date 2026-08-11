@@ -7,7 +7,7 @@
  * @since 0.2.0
  */
 
-namespace SmartLicenseServer\RESTAPI;
+namespace SmartLicenseServer\RESTAPI\Handlers;
 
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\Request;

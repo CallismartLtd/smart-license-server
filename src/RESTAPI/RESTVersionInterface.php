@@ -10,7 +10,7 @@ namespace SmartLicenseServer\RESTAPI;
 /**
  * Defines all methods that REST API versions must implement.
  */
-interface RESTInterface {
+interface RESTVersionInterface {
 
     /**
      * Get all route definitions for the API.

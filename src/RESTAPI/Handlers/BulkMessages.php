@@ -6,16 +6,13 @@
  * @package SmartLicenseServer\classes
  */
 
-namespace SmartLicenseServer\RESTAPI;
+namespace SmartLicenseServer\RESTAPI\Handlers;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\Messaging\BulkMessage as MessageModel;
 use SmartLicenseServer\Messaging\BulkMessageService;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
-
-use function defined;
 /**
  * The REST API bulk messages class.
  */
