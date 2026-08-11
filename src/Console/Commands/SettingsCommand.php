@@ -39,10 +39,19 @@ class SettingsCommand extends AbstractCommand {
     public static function help(): string {
         return implode( PHP_EOL, [
             'Subcommands:',
-            '  set              Set the value of the gieven settings key.',
-            '  get  <key>       Get the value of the given settings key',
-            '  delete <key>     Remove a specific key from the settings.',
-            '  help             Show this help message.',
+            '   set                 Insert or update the value of an option name.',
+            '   get  <name>         Get the entry of an option name.',
+            '   delete <name>       Remove a specific option entry from the table.',
+            '   help                Show this help message.',
+            '   list                List entries in options table.',
+            '   search              Search the options table with a specific term.',
+            'Options:',
+            '--name     The option name.',
+            '--value    The option value.',
+            '--query    The term used to search the option table.',
+            '--page     The current pagination number.',
+            '--limit    The maximum number of results to return for listing and search results.',
+            '',
             '',
             'Examples:',
             '  smliser settings set --name="option_name" --value="option_value"',
@@ -82,8 +91,8 @@ class SettingsCommand extends AbstractCommand {
      * @param CommandInput $input.
      */
     public function handle_set( CommandInput $input ) : int {
-        $name   = $input->get_argument( 'name', null );
-        $value  = $input->get_argument( 'value', null );
+        $name   = $input->get_option( 'name', null );
+        $value  = $input->get_option( 'value', null );
 
         if ( empty( $name ) ) {
             $this->output->error( 'Usage: smliser settings set --name=option_name --value=option_value' );
@@ -111,22 +120,22 @@ class SettingsCommand extends AbstractCommand {
      * @param CommandInput $input
      */
     public function handle_get( CommandInput $input  ): int {
-        $key = $input->get_argument( 0, null );
+        $name = $input->get_argument( 0, $input->get_option( 'name', null ) );
 
-        if ( empty( $key ) || is_array( $key ) || str_starts_with( $key, '--' ) ) {
-            $this->output->error( 'Usage: smliser settings get <key>' );
+        if ( empty( $name ) || is_array( $name ) || str_starts_with( $name, '--' ) ) {
+            $this->output->error( 'Usage: smliser settings get <name>' );
             return 1;
         }
 
-        $key        = (string) $key;
-        $value      = smliser_settings()->get( $key, null, true );
+        $name       = (string) $name;
+        $value      = smliser_settings()->get( $name, null, true );
         $formatted  = $this->format_option_value( $value );
 
-        $this->output->info( "Settings value for [{$key}]:" );
+        $this->output->info( "Settings value for [{$name}]:" );
         $this->output->table(
             ['Option Name', 'Option Value'],
             [
-                [Format::truncate( $key, 35 ), $formatted]
+                [Format::truncate( $name, 35 ), $formatted]
             ]
         );
 
@@ -136,24 +145,30 @@ class SettingsCommand extends AbstractCommand {
     /**
      * Delete a specific settings key.
      *
-     * @param array $args Subcommand arguments (excluding the subcommand itself).
+     * @param CommandInput $input).
+     * @return int
      */
-    public function handle_delete( array $args ): void {
-        $key = $args[0] ?? null;
+    public function handle_delete( CommandInput $input ): int {
+        $key = $input->get_argument( 0, $input->get_option( 'name', null ) );
 
         if ( empty( $key ) || is_array( $key ) || str_starts_with( $key, '--' ) ) {
             $this->output->error( 'Usage: smliser settings delete <key>' );
-            return;
+            return 1;
         }
 
         if ( ! $this->io->confirm( "Delete settings key [{$key}]?" ) ) {
             $this->output->writeln( 'Aborted.' );
-            return;
+            return 0;
         }
 
-        smliser_settings()->delete( $key )
-            ? $this->output->success( "Key [{$key}] deleted from settings." )
-            : $this->output->error( "Failed to delete key [{$key}]. It may not exist." );
+        if ( smliser_settings()->delete( $key ) ) {
+            $this->output->success( "Key [{$key}] deleted from settings." );
+            return 0;
+        }
+        
+        $this->output->error( "Failed to delete key [{$key}]. It may not exist." );
+
+        return 1;
     }
 
     /**
@@ -164,8 +179,8 @@ class SettingsCommand extends AbstractCommand {
      */
     public function handle_list( CommandInput $input ): int {
 
-        $page  = (int) $input->get_argument( 'page', 1 );
-        $limit = (int) $input->get_argument( 'limit', 30 );
+        $page  = (int) $input->get_option( 'page', 1 );
+        $limit = (int) $input->get_option( 'limit', 30 );
 
         $stopwatch = new Stopwatch();
         $stopwatch->start();
@@ -200,10 +215,10 @@ class SettingsCommand extends AbstractCommand {
      *   smliser settings search --query="license" --page=1 --limit=20
      */
     public function handle_search( CommandInput $input ): int {
-        $query  = $input->get_argument( 'query', null );
+        $query  = $input->get_option( 'query', null );
 
-        $page  = (int) $input->get_argument( 'page', 1 );
-        $limit = (int) $input->get_argument( 'limit', 30 );
+        $page  = (int) $input->get_option( 'page', 1 );
+        $limit = (int) $input->get_option( 'limit', 30 );
 
         if ( empty( $query ) ) {
             $this->output->error( 'Usage: smliser settings search --query="keyword" [--page=1 --limit=20]' );
@@ -241,7 +256,7 @@ class SettingsCommand extends AbstractCommand {
     /**
      * Print help for the settings command.
      */
-    protected function handle_help(): int {
+    public function handle_help(): int {
         $this->output->info( 'Settings Command' );
         $this->output->newline();
         $this->output->info( 'Usage:' );

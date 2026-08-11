@@ -57,7 +57,7 @@ use SmartLicenseServer\Contracts\AbstractRegistry;
  * Central console command registry.
  * 
  * @method array<string, class-string<CommandInterface>> all() Get all registered coomands.
- * @method class-string<CommandInterface>|null get( string $coomand ) Get a command from registry.
+ * @method class-string<CommandInterface>|null get( string $command ) Get a command from registry.
  * @method bool has( string $coomand ) Tells whether a command exists in the registry.
  */
 class CommandRegistry extends AbstractRegistry {

@@ -37,13 +37,10 @@ abstract class AbstractCommandRouter {
         protected InputInterface $io,
         protected OutputInterface $output,
         protected Terminal $terminal,
-        protected ?SignalManager $signal = null
+        protected readonly string $script_name,
+        protected SignalManager $signal
 
-    ) {
-        if ( ! isset( $this->signal ) ) {
-            $this->signal = new SignalManager( $this->terminal );
-        }
-    }
+    ) {}
 
     /*
     |--------------------------------------------
@@ -143,7 +140,7 @@ abstract class AbstractCommandRouter {
         }
 
         /** @var CommandInterface $command_instance */
-        $command_instance = new $class( $this->io, $this->output );
+        $command_instance = $class::make( $this->io, $this->output, $this->script_name );
 
         if ( null !== $subcommand ) {
             $subcommands = $command_instance->get_subcommands();
@@ -198,7 +195,7 @@ abstract class AbstractCommandRouter {
      * @param array<int, string> $tokens Raw CLI tokens.
      * @return int One of the OutputInterface::VERBOSITY_* constants.
      */
-    protected function resolve_verbosity( array $tokens ): int {
+    public function resolve_verbosity( array $tokens ): int {
         if (
             in_array( '-q', $tokens, true ) ||
             in_array( '--quiet', $tokens, true )

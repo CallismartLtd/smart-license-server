@@ -37,8 +37,25 @@ abstract class AbstractCommand implements CommandInterface {
      */
     public function __construct(
         protected InputInterface $io,
-        protected OutputInterface $output
+        protected OutputInterface $output,
+        protected string $script_name
     ) {}
+
+    /**
+	 * Default factory implementation.
+	 *
+	 * @param InputInterface  $io
+	 * @param OutputInterface $output
+	 * @param string          $script_name
+	 * @return static
+	 */
+	public static function make(
+		InputInterface $io,
+		OutputInterface $output,
+		string $script_name
+	): static {
+		return new static( $io, $output, $script_name );
+	}
 
     /**
      * {@inheritdoc}

@@ -293,7 +293,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
             new CommandInput( ['yes'], [
                 'slug'  => $slug,
                 'status'    => AbstractHostedApp::STATUS_TRASH,
-            ])
+            ], $input->script_name )
         );
     }
 

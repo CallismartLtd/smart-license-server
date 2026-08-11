@@ -40,8 +40,9 @@ final class CommandInput {
      *                                             the leading "--").
      */
     public function __construct(
-        private array $arguments = [],
-        private array $options = []
+        private array $arguments            = [],
+        private array $options              = [],
+        public readonly string $script_name = 'smliser'
     ) {}
 
     /*
