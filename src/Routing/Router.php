@@ -234,6 +234,37 @@ final class Router {
 	}
 
 	/**
+	 * Groups routes under a shared middleware stack without requiring a path prefix.
+	 *
+	 * @param array<int,mixed>     $middleware Middleware data applied to every route inside.
+	 * @param callable(self): void $callback   Callback receiving the router instance.
+	 */
+	public function middleware( array $middleware, callable $callback ): void {
+		$this->group( '', $callback, $middleware );
+	}
+
+	/**
+	 * Convenience helper to register a route with explicit middleware attached directly.
+	 *
+	 * @param string|string[]  $methods    One or more HTTP methods.
+	 * @param string           $pattern    Pattern, relative to any enclosing group(s).
+	 * @param mixed            $handler    Whatever the caller wants to invoke on a match.
+	 * @param array<int,mixed> $middleware Route-specific middleware stack.
+	 * @param bool             $optionalTrailingSlash Whether the path may end in an optional '/'.
+	 * @return Route
+	 * @throws InvalidRouteException On a malformed pattern or invariant violation.
+	 */
+	public function withMiddleware(
+		string|array $methods,
+		string $pattern,
+		mixed $handler,
+		array $middleware,
+		bool $optionalTrailingSlash = true
+	): Route {
+		return $this->add( $pattern, $methods, $handler, $optionalTrailingSlash, $middleware );
+	}
+
+	/**
 	 * Matches a live (method, path) request against the route table.
 	 *
 	 * Distinguishes "no route matches this path at all" from "a route

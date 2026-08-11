@@ -45,6 +45,7 @@ use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\HistoryAwareInput;
 use SmartLicenseServer\Console\LogoMode;
 use SmartLicenseServer\Console\OptionParser;
+use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Utils\Format;
@@ -109,7 +110,9 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
         InputInterface $io,
         OutputInterface $output,
         Terminal $terminal,
-        ?LogoMode $logo_mode = null
+        SignalManager $signal,
+        string $script_name,
+        ?LogoMode $logo_mode    = null
     ) {
         if ( ! defined( 'SMLISER_INTERACTIVE_SHELL' ) ) {
             define( 'SMLISER_INTERACTIVE_SHELL', true );
@@ -117,7 +120,14 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
 
         $this->logo_mode = $logo_mode ?? LogoMode::from_env();
 
-        parent::__construct( $registry, $io, $output, $terminal );
+        parent::__construct(
+            registry: $registry,
+            io: $io,
+            output: $output, 
+            terminal: $terminal, 
+            script_name: $script_name, 
+            signal: $signal
+        );
     }
 
     /*

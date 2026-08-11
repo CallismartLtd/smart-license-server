@@ -48,4 +48,11 @@ abstract class Kernel {
      * @return static The kernel instance.
      */
     abstract public function run(): static;
+
+    /**
+     * Terminate the current request.
+     * 
+     * @return never
+     */
+    abstract public function terminate() : never;
 }

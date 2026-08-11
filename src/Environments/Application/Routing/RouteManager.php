@@ -117,7 +117,7 @@ final class RouteManager {
      * @return void
      */
     public function registerCoreRoutes() : void {
-        $this->router->any( '/', 'SmartLicenseServer\Admin\AccessControlPage::rest_api_page' );
+        $this->router->any( '/', 'escHtml' );
     }
 
 	/**

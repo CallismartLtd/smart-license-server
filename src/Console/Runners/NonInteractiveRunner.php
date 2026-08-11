@@ -17,6 +17,7 @@ use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\OptionParser;
+use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
 
 /**
@@ -45,9 +46,18 @@ class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterf
         private array $argv,
         InputInterface $io,
         OutputInterface $output,
-        Terminal $terminal
+        Terminal $terminal,
+        SignalManager $signal,
+        string $script_name,
     ) {
-        parent::__construct( $registry, $io, $output, $terminal );
+        parent::__construct(
+            registry: $registry,
+            io: $io,
+            output: $output, 
+            terminal: $terminal, 
+            script_name: $script_name, 
+            signal: $signal
+        );
     }
 
     /*
@@ -64,10 +74,6 @@ class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterf
         // AbstractCommandRouter deals with is relative to the command
         // name, not the invoking script.
         [ $command, $subcommand, $args ] = $this->split_invocation( array_slice( $this->argv, 1 ) );
-
-        $this->output->set_verbosity(
-            $this->resolve_verbosity( $args )
-        );
 
         $option_parser = new OptionParser();
         $parsed        = $option_parser->parse( $args );

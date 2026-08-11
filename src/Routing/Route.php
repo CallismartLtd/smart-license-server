@@ -42,6 +42,18 @@ final class Route {
 	}
 
 	/**
+	 * Appends one or more middleware items directly to this route instance.
+	 *
+	 * @param mixed ...$middleware Middleware items to append.
+	 * @return self
+	 */
+	public function middleware( mixed ...$middleware ): self {
+		$this->middleware = array_merge( $this->middleware, $middleware );
+
+		return $this;
+	}
+
+	/**
 	 * Attaches a name to this route for later lookup via Router::url().
 	 *
 	 * @throws InvalidRouteException If the route is already named.
