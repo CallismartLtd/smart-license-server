@@ -91,7 +91,7 @@ class ConsoleKernel extends Kernel {
     protected mixed $stderr = \STDERR;
 
     /**
-     * Raw $argv input tokens
+     * Tokenized `Argument Vector($argv)` array.
      * 
      * @var string[]
      */
@@ -150,8 +150,8 @@ class ConsoleKernel extends Kernel {
      */
     public function with_streams( mixed $stdin, mixed $stdout, mixed $stderr ) : static {
         return $this->with_stdin( $stdin )
-                    ->with_stdout( $stdout )
-                    ->with_stderr( $stderr );
+            ->with_stdout( $stdout )
+            ->with_stderr( $stderr );
     }
 
     /**
@@ -163,9 +163,9 @@ class ConsoleKernel extends Kernel {
         $this->signal   = new SignalManager( $this->terminal );
         $this->output   = new ConsoleOutput( $this->terminal, $this->stdout, $this->stderr );
         $this->input    = new ConsoleInput( $this->terminal, $this->stdin, $this->stdout );
-        $this->tokens   = $GLOBALS['argv'] ?? [];
+        $this->tokens   = $this->environment->request()->server()['argv'];
 
-        $this->runner = $this->build_runner( $this->tokens );
+        $this->runner = $this->build_runner();
 
         if ( is_subclass_of( $this->runner, AbstractCommandRouter::class ) ) {
             $this->output->set_verbosity(
@@ -226,16 +226,15 @@ class ConsoleKernel extends Kernel {
      * One-shot dispatch (`smliser <command> ...`) gets a NonInteractiveRunner.
      * No command argument at all (`smliser`) gets the interactive shell.
      *
-     * @param array<int, string> $argv
      * @return RunnerInterface
      */
-    private function build_runner( array $argv ) : RunnerInterface {
-        $script_name = $argv[0] ?? 'smliser';
+    private function build_runner() : RunnerInterface {
+        $script_name = $this->tokens[0] ?? 'smliser';
 
-        if ( isset( $argv[1] ) ) {
+        if ( isset( $this->tokens[1] ) ) {
             return new NonInteractiveRunner( 
                 registry: $this->registry,
-                argv: $argv, 
+                tokens: $this->tokens, 
                 io: $this->input,
                 output: $this->output,
                 terminal: $this->terminal,

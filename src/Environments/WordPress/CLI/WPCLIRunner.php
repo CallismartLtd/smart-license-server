@@ -18,6 +18,7 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\OptionParser;
 use SmartLicenseServer\Console\Runners\RunnerInterface;
+use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;
@@ -26,9 +27,9 @@ use WP_CLI;
 /**
  * WP-CLI runner.
  *
- * Registers a single top-level `smliser` command with WP-CLI and
- * self-manages dispatch from there — WP-CLI is a transport for argv-
- * shaped data, not a second parser. This keeps every invocation, from
+ * Registers a single top-level `smliser` command with WP-CLI.
+ * 
+ * This class keeps every invocation, from
  * `bin/smliser`, the interactive shell, or `wp smliser ...`, running
  * through the exact same OptionParser -> CommandInput ->
  * CommandInterface::execute() pipeline.
@@ -123,7 +124,14 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
         Terminal $terminal,
         private OptionParser $parser
     ) {
-        parent::__construct( $registry, $io, $output, $terminal );
+        parent::__construct(
+            registry: $registry,
+            io: $io,
+            output: $output,
+            terminal: $terminal,
+            script_name: $this->get_script_name(),
+            signal: new SignalManager( $terminal )
+        );
     }
 
     /*
@@ -202,7 +210,7 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
 
         [ $command, $subcommand, $args ] = $this->split_invocation( $args );
 
-        $parsed  = $this->parser->parse( $this->to_raw_tokens( $args, $assoc_args ) );
+        $parsed  = $this->parser->parse( $this->tokenize( $args, $assoc_args ) );
 
         $input   = new CommandInput( $parsed['arguments'], $parsed['options'] );
         $exit    = $this->route_command( $input, $command, $subcommand );
@@ -233,7 +241,7 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
      * @param array<string, mixed> $assoc_args      WP-CLI's $assoc_args.
      * @return array<int, string> Raw tokens, ready for OptionParser::parse().
      */
-    private function to_raw_tokens( array $positional_args, array $assoc_args ): array {
+    private function tokenize( array $positional_args, array $assoc_args ): array {
         $tokens = $positional_args;
 
         foreach ( $assoc_args as $key => $value ) {
@@ -279,5 +287,13 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
 
     protected function print_contextual_help(): void {
         $this->print_global_help();
+    }
+
+    protected function get_script_name() : string {
+        $tokens     = smliser_request()->server()['argv'];
+        $base       = basename( $tokens[0]  ?? 'wp' );
+        $command    = $tokens[1];
+        
+        return "{$base} {$command}";
     }
 }

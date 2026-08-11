@@ -51,11 +51,6 @@ abstract class AbstractCommandRouter {
     /**
      * Split a token list into [command, subcommand, remaining args].
      *
-     * Shared by NonInteractiveRunner (tokens = $argv with the script name already
-     * stripped) and InteractiveShell (tokens = one tokenized input line)
-     * so the "is the second token a subcommand or the start of the
-     * option/argument list" heuristic exists in exactly one place.
-     *
      * A second token is treated as a subcommand unless it starts with
      * "-", in which case it's assumed to be an option and left in the
      * remaining args instead (e.g. `license --force` should not treat

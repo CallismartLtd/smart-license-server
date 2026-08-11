@@ -34,7 +34,7 @@ class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterf
 
     /**
      * @param CommandRegistry $registry
-     * @param array<int, string> $argv The raw $argv array from the CLI
+     * @param array<int, string> $tokens The raw argument vector array from the CLI
      *                                 entry point, script name included
      *                                 at index 0.
      * @param InputInterface  $io
@@ -43,7 +43,7 @@ class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterf
      */
     public function __construct(
         CommandRegistry $registry,
-        private array $argv,
+        private array $tokens,
         InputInterface $io,
         OutputInterface $output,
         Terminal $terminal,
@@ -70,10 +70,10 @@ class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterf
      * {@inheritdoc}
      */
     public function init(): int {
-        // Strip the script name (argv[0]) before splitting — everything
+        // Strip the script name (token[0]) before splitting — everything
         // AbstractCommandRouter deals with is relative to the command
         // name, not the invoking script.
-        [ $command, $subcommand, $args ] = $this->split_invocation( array_slice( $this->argv, 1 ) );
+        [ $command, $subcommand, $args ] = $this->split_invocation( array_slice( $this->tokens, 1 ) );
 
         $option_parser = new OptionParser();
         $parsed        = $option_parser->parse( $args );
