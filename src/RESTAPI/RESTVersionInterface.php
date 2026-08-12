@@ -85,20 +85,6 @@ interface RESTVersionInterface {
     public static function get_routes() : array;
 
     /**
-     * Get REST API categories
-     * 
-     * @return array
-     */
-    public static function get_categories() : array;
-
-    /**
-     * Describe routes by category or all routes.
-     * 
-     * @return array<string, string>
-     */
-    public static function describe_routes( ?string $category = null ) : array;
-
-    /**
      * REST API namespace
      * 
      * @return string

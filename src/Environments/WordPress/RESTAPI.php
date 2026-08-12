@@ -16,6 +16,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
+use SmartLicenseServer\Routing\RoutePattern;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Principal;
@@ -63,7 +64,7 @@ class RESTAPI implements RESTProviderInterface {
         add_filter( 'rest_post_dispatch', [$this, 'filter_response'], 10, 3 );
         add_filter( 'rest_pre_dispatch', [$this, 'enforce_https'], 10, 3 );
         add_filter( 'rest_exposed_cors_headers', [$this, 'set_current_route'], 10, 2 );
-        add_action( 'rest_api_init', [$this, 'register_rest_routes'], 30 );
+        add_action( 'rest_api_init', [$this, 'register'], 30 );
         add_action( 'rest_authentication_errors', [$this, 'authenticate'], 5 );
     }
 
@@ -207,7 +208,7 @@ class RESTAPI implements RESTProviderInterface {
      *
      * @return void
      */
-    public function register_rest_routes() : void {
+    public function register() : void {
         $api_config = $this->restAPIVersion->get_routes();
         $namespace  = $api_config['namespace'];
         $routes     = $api_config['routes'];
@@ -241,10 +242,12 @@ class RESTAPI implements RESTProviderInterface {
                     ),
                 ];
             }
+            $compiled   = RoutePattern::compile( $route_config['route'] );
+            $wp_route   = '/' . $compiled->namedRegex() . '/?';
 
             register_rest_route(
                 $namespace,
-                $route_config['route'],
+                $wp_route,
                 $handlers
             );
         }
@@ -255,7 +258,7 @@ class RESTAPI implements RESTProviderInterface {
      * sanitization and validation callbacks.
      *
      * @param array $args Raw route arguments.
-     * @return array Prepared arguments ready for register_rest_route().
+     * @return array
      */
     private function prepare_rest_args( array $args ) : array {
         foreach ( $args as $key => &$arg ) {

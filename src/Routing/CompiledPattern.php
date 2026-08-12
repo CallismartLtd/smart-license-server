@@ -71,6 +71,7 @@ final class CompiledPattern {
 				}
 
 				$name = $this->paramNames[ $paramIndex ] ?? null;
+				++$paramIndex;
 
 				if ( null === $name ) {
 					// Shouldn't happen if paramNames stayed aligned with capture groups,
@@ -80,7 +81,6 @@ final class CompiledPattern {
 				}
 
 				$result .= '(?P<' . $name . '>';
-				++$paramIndex;
 				continue;
 			}
 

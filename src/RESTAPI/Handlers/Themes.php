@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\RESTAPI
  */
 
-namespace SmartLicenseServer\RESTAPI;
+namespace SmartLicenseServer\RESTAPI\Handlers;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Cache\CacheAwareTrait;
@@ -14,7 +14,6 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-use SmartLicenseServer\HostedApps\Theme;
 
 /**
  * Handles REST API Requests for hosted themes.
