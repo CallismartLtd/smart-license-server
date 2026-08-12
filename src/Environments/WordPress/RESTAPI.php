@@ -242,14 +242,11 @@ class RESTAPI implements RESTProviderInterface {
                     ),
                 ];
             }
+            
             $compiled   = RoutePattern::compile( $route_config['route'] );
             $wp_route   = '/' . $compiled->namedRegex() . '/?';
 
-            register_rest_route(
-                $namespace,
-                $wp_route,
-                $handlers
-            );
+            register_rest_route( $namespace, $wp_route, $handlers );
         }
     }
 

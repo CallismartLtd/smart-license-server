@@ -91,7 +91,7 @@ final class Route {
 			return null;
 		}
 
-		$params = array();
+		$params = [];
 
 		foreach ( $this->compiled->paramNames as $paramName ) {
 			if ( isset( $matches[ $paramName ] ) ) {
