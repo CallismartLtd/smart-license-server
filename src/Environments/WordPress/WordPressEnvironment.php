@@ -71,7 +71,7 @@ class WordPressEnvironment extends Environment {
             'filesystem_adapter'   => new WPFileSystemAdapter(),
             'settings_provider'    => new WPSettingsProvider(),
             'database_adapter'     => new WPDBAdapter( $GLOBALS['wpdb'] ),
-            'rest_api_provider'    => new RESTAPI( new V1 ),
+            'rest_api_provider'    => RESTAPI::init( new V1 ),
             'identity_provider'    => new IdentityService()
         ]);
         
@@ -150,7 +150,7 @@ class WordPressEnvironment extends Environment {
     }
 
     public static function restAPIUrl( string $path = '', array $qv = [] ) : URL {
-        $namespace = static::$envProvider->restProvider()->namespace();
+        $namespace = 'smliser/v1'; // WordPress uses only the V1 REST.
 
         return URL::from( rest_url( $namespace ) )
             ->append_path( $path )

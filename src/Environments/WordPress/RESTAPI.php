@@ -57,9 +57,9 @@ class RESTAPI implements RESTProviderInterface {
     /**
      * Class constructor
      *
-     * @param RESTVersionInterface $restAPIVersion
+     * @param RESTVersionInterface[] $versions Available REST API versions.
      */
-    public function __construct( private RESTVersionInterface $restAPIVersion ) {        
+    private function __construct( private array $versions ) {        
         add_filter( 'rest_request_before_callbacks', [$this, 'rest_request_before_callbacks'], -1, 3 );
         add_filter( 'rest_post_dispatch', [$this, 'filter_response'], 10, 3 );
         add_filter( 'rest_pre_dispatch', [$this, 'enforce_https'], 10, 3 );
@@ -209,44 +209,47 @@ class RESTAPI implements RESTProviderInterface {
      * @return void
      */
     public function register() : void {
-        $api_config = $this->restAPIVersion->get_routes();
-        $namespace  = $api_config['namespace'];
-        $routes     = $api_config['routes'];
+        foreach ( $this->versions as $version ) {
+            $api_config = $version->get_routes();
+            $namespace  = $api_config['namespace'];
+            $routes     = $api_config['routes'];
 
-        foreach ( $routes as $route_config ) {
-            $methods =  $route_config['methods'];
+            foreach ( $routes as $route_config ) {
+                $methods =  $route_config['methods'];
 
-            $handlers = [];
+                $handlers = [];
 
-            foreach ( $methods as $method ) {
-                $handlers[] = [
-                    'methods'  => $method,
+                foreach ( $methods as $method ) {
+                    $handlers[] = [
+                        'methods'  => $method,
 
-                    'callback' => function( WP_REST_Request $wp_request ) use ( $route_config ) {
-                        return $this->main_dispatcher(
-                            $wp_request,
-                            $route_config['handler']
-                        );
-                    },
+                        'callback' => function( WP_REST_Request $wp_request ) use ( $route_config ) {
+                            return $this->main_dispatcher(
+                                $wp_request,
+                                $route_config['handler']
+                            );
+                        },
 
-                    'permission_callback' => function( WP_REST_Request $wp_request ) use ( $route_config ) {
-                        
-                        return $this->permission_dispatcher(
-                            $wp_request,
-                            $route_config['guard']
-                        );
-                    },
+                        'permission_callback' => function( WP_REST_Request $wp_request ) use ( $route_config ) {
+                            
+                            return $this->permission_dispatcher(
+                                $wp_request,
+                                $route_config['guard']
+                            );
+                        },
 
-                    'args' => $this->prepare_rest_args(
-                        $route_config['args'] ?? []
-                    ),
-                ];
+                        'args' => $this->prepare_rest_args(
+                            $route_config['args'] ?? []
+                        ),
+                    ];
+                }
+                
+                $compiled   = RoutePattern::compile( $route_config['route'] );
+                $wp_route   = '/' . $compiled->namedRegex() . '/?';
+                $prefixed   = smliser_envProvider()->apply_rest_prefix( $namespace );
+
+                register_rest_route( $prefixed, $wp_route, $handlers );
             }
-            
-            $compiled   = RoutePattern::compile( $route_config['route'] );
-            $wp_route   = '/' . $compiled->namedRegex() . '/?';
-
-            register_rest_route( $namespace, $wp_route, $handlers );
         }
     }
 
@@ -412,7 +415,6 @@ class RESTAPI implements RESTProviderInterface {
      * @return WP_Error|bool Result of the permission callback.
      */
     public function permission_dispatcher( WP_REST_Request $wp_request, callable $callback ) : WP_Error|bool {
-
         $request    = $this->convert_wp_request( $wp_request );
 
         /** @var RequestException|bool $result */ 
@@ -444,7 +446,6 @@ class RESTAPI implements RESTProviderInterface {
     public function main_dispatcher( WP_REST_Request $wp_request, callable $callback ) : mixed {
         $request    = $this->convert_wp_request( $wp_request );
         $result     = call_user_func( $callback, $request );
-        
         return $result;
     }
 
@@ -475,10 +476,7 @@ class RESTAPI implements RESTProviderInterface {
      * @return string Sanitized URL.
      */
     public static function sanitize_url( $url ) : string {
-        $url = URL::from( $url )
-            ->sanitize();
-        
-        return $url->url();
+        return URL::from( $url )->sanitize()->url();
     }
 
     /**
@@ -545,11 +543,17 @@ class RESTAPI implements RESTProviderInterface {
      * @return bool True when the route name starts with our namespace.
      */
     public function in_namespace( string $route_name ) : bool {
-        $route     = ltrim( $route_name, '/' );
-        $namespace = trim( $this->restAPIVersion->namespace(), '/' );
-        $namespace = preg_quote( $namespace, '#' );
+        foreach ( $this->versions as $v ) {
+            $route     = ltrim( $route_name, '/' );
+            $namespace = \smliser_envProvider()->apply_rest_prefix( $v->namespace() );
+            $namespace = preg_quote( $namespace, '#' );
 
-        return (bool) preg_match( "#^{$namespace}(/|$)#", $route );
+            if ( (bool) preg_match( "#^{$namespace}(/|$)#", $route ) ) {
+                return true;
+            }          
+        }
+
+        return false;
     }
 
     /**
@@ -617,25 +621,42 @@ class RESTAPI implements RESTProviderInterface {
     }
 
     /**
-     * Get the REST API namespace
-     * 
-     * @return string
+     * {@inheritdoc}
      */
-    public function namespace() : string {
-        return $this->restAPIVersion->namespace();
+    public function namespaces() : array {
+        static $namespaces;
+
+        if ( ! isset( $namespaces ) ) {
+            $namespaces = array_map(
+                static fn( $ver ) => $ver->namespace(),
+                $this->versions
+            );
+        }
+
+        return $namespaces;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function version_instance() : RESTVersionInterface {
-        return $this->restAPIVersion;
+    public function version_instances() : array {
+        return $this->versions;
     }
 
     private function route_matches( string $pattern ) : bool {
-        $namespace = preg_quote( trim( $this->namespace(), '/' ), '#' );
-        $route     = ltrim( $this->current_route, '/' );
+        foreach( $this->namespaces() as $namespace ) {
+            $namespace = preg_quote( trim( $namespace, '/' ), '#' );
+            $route     = ltrim( $this->current_route, '/' );
 
-        return (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $route );
+            if ( (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $route ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static function init( RESTVersionInterface ...$versions ) : static {
+        return new static( $versions );
     }
 }

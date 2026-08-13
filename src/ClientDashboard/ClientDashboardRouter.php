@@ -185,23 +185,27 @@ class ClientDashboardRouter {
     }
 
     private static function uri_end_matches( string $pattern, string $uri ) : bool {
-        $namespace = trim( \smliser_envProvider()->rest_namespace(), '/' );
+        foreach( smliser_envProvider()->rest_namespaces() as $namespace ) {
+            $namespace = trim( $namespace, '/' );
 
-        // Normalize URI
-        $uri = ltrim( $uri, '/' );
+            // Normalize URI
+            $uri = ltrim( $uri, '/' );
 
-        // Find namespace position
-        $pos = strpos( $uri, $namespace );
+            // Find namespace position
+            $pos = strpos( $uri, $namespace );
 
-        if ( $pos === false ) {
-            return false;
+            if ( $pos === false ) {
+                return false;
+            }
+
+            // Slice from namespace onward
+            $uri = substr( $uri, $pos );
+
+            $namespace = preg_quote( $namespace, '#' );
+
+            return (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $uri );
         }
-
-        // Slice from namespace onward
-        $uri = substr( $uri, $pos );
-
-        $namespace = preg_quote( $namespace, '#' );
-
-        return (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $uri );
+        
+        return false;
     }
 }

@@ -12,9 +12,12 @@ use SmartLicenseServer\RESTAPI\RESTVersionInterface;
 
 class RestAPIProvider implements RESTProviderInterface {
     
-    public function __construct( protected RESTVersionInterface $version ) {
-
-    }
+    /**
+     * Class constructor.
+     * 
+     * @param RESTVersionInterface[] $versions
+     */
+    private function __construct( protected array $versions ) {}
 
     /**
      * {@inheritdoc}
@@ -28,8 +31,17 @@ class RestAPIProvider implements RESTProviderInterface {
     /**
      * {@inheritdoc}
      */
-    public function namespace() : string {
-        return 'smliser';
+    public function namespaces() : array {
+       static $namespaces;
+
+        if ( ! isset( $namespaces ) ) {
+            $namespaces = array_map(
+                static fn( $ver ) => $ver->namespace(),
+                $this->versions
+            );
+        }
+
+        return $namespaces;
     }
 
     /**
@@ -42,9 +54,12 @@ class RestAPIProvider implements RESTProviderInterface {
     /**
      * {@inheritdoc}
      */
-    public function version_instance() : RESTVersionInterface {
-        return $this->version;  
+    public function version_instances() : array {
+        return $this->versions;  
     }
 
 
+    public static function init( RESTVersionInterface ...$versions ) : static {
+        return new static( $versions );
+    }
 }

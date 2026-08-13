@@ -26,16 +26,25 @@ interface RESTProviderInterface {
     public function authenticate();
 
     /**
-     * Get the REST namespace.
+     * Get available rest API namespaces.
      * 
-     * @return string
+     * @return string[]
      */
-    public function namespace() : string;
+    public function namespaces() : array;
 
     /**
-     * Get the current REST API version.
+     * Get all available REST versions
      * 
-     * @return RESTVersionInterface
+     * @return RESTVersionInterface[]
      */
-    public function version_instance() : RESTVersionInterface;
+    public function version_instances() : array;
+
+    /**
+     * Initialize the provider.
+     * 
+     * @param RESTVersionInterface ...$versions
+     * @return static
+     */
+    public static function init( RESTVersionInterface ...$versions ) : static;
+    
 }

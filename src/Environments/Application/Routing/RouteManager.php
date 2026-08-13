@@ -134,6 +134,7 @@ final class RouteManager {
             $this->router->get( '', [DefaultPage::class, 'doc_page'] );
             $this->router->get( '{category:slug}', [DefaultPage::class, 'doc_page'] );
         });
+        
         $this->router->get( "/documentation", [DefaultPage::class, 'doc_page'] );
     }
 

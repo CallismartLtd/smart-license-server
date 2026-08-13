@@ -67,7 +67,7 @@ class V1 implements RESTVersionInterface {
 	 * 
 	 * @var string
 	 */
-	private const NAMESPACE = 'smliser/v1';
+	private const NAMESPACE = 'v1';
 
 	/** 
 	 * Plugin info REST API route.

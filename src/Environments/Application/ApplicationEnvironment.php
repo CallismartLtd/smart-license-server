@@ -22,11 +22,10 @@ class ApplicationEnvironment extends Environment {
         $this->bind_instance();
         $this->prepare_db_config();
 
-        $this->setup(
-            ['identity_provider' => new IdentityProvider(),
-            'rest_api_provider'     => new RestAPIProvider( new V1() )
-            ]
-        );
+        $this->setup([
+            'identity_provider' => new IdentityProvider(),
+            'rest_api_provider' => RestAPIProvider::init( new V1() )
+        ]);
     }
 
     /**

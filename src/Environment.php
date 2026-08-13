@@ -459,10 +459,21 @@ abstract class Environment implements EnvironmentProviderInterface {
     */
 
     /**
-     * Get the namespace
+     * Get the namespace.
+     * 
+     * @return string[]
      */
-    public function rest_namespace() {
-        return $this->restProvider->namespace();
+    public function rest_namespaces() : array {
+        return array_map( [$this, 'apply_rest_prefix'], $this->restProvider->namespaces() );
+    }
+
+    /**
+     * Apply REST API prefix.
+     * 
+     * @return string
+     */
+    public function apply_rest_prefix( string $value ) : string {
+        return "smliser/$value";
     }
 
     /**
