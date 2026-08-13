@@ -4,6 +4,9 @@
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\templates
+ * 
+ * @var SmartLicenseServer\Core\URL $current_url
+ * @var array $pagination
  */
 
 unset( $menu_args['breadcrumbs'][0] ); 
@@ -18,7 +21,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
         <?php if ( empty( $messages ) ) : ?>
             <?php echo wp_kses_post( smliser_not_found_container( '<span class="dashicons dashicons-email-alt"></span> All bulk messages with be listed here' ) ); ?>
         <?php else : ?>
-            <form id="smliser-bulk-action-form" method="post" action="<?php echo escUrl( adminUrl( 'admin-post.php' ) ); ?>">
+            <form id="smliser-bulk-action-form" method="post">
             
                 <div class="smliser-actions-wrapper">
                     <div class="smliser-bulk-actions">
@@ -28,7 +31,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
-                    <a href="<?php echo escUrl( $current_url->add_query_param( 'tab', 'search' ) ); ?>" class="smliser-btn smliser-btn-white">Search Messages</a>
+                    <a href="<?php echo escUrl( $current_url->add_query_param( 'tab', 'search' )->url() ); ?>" class="smliser-btn smliser-btn-white">Search Messages</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">
@@ -53,7 +56,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                 <td class="smliser-edit-row">
                                     <?php echo escHtml( $message->get_id() ); ?>
                                     <p class="smliser-edit-link">
-                                        <a href="<?php echo escUrl( $current_url->add_query_params( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ) ) ); ?>">Edit</a>
+                                        <a href="<?php echo escUrl( $current_url->add_query_params( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ) )->url() ); ?>">Edit</a>
                                     </p>
                                 </td>
                             

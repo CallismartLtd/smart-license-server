@@ -10,7 +10,7 @@
  * @var \SmartlicenseServer\Core\Request $request
  */
 
-use SmartLicenseServer\Admin\RepositoryPage;
+use SmartLicenseServer\Admin\Handlers\RepositoryPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 ?>

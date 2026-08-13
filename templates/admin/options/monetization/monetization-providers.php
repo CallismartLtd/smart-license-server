@@ -8,7 +8,7 @@
  * @var array<int|string, \SmartLicenseServer\Contracts\ServiceProviderInterface> $providers
  */
 
-use SmartLicenseServer\Admin\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smliser-admin-page">

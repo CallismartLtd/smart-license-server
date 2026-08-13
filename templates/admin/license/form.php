@@ -7,7 +7,7 @@
  * @var array $form_fields
  */
 
-use SmartLicenseServer\Admin\LicensePage;
+use SmartLicenseServer\Admin\Handlers\LicensePage;
 
 defined( 'SMLISER_ROOT' ) ||  exit; 
 

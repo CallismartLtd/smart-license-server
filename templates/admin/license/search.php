@@ -12,7 +12,7 @@
  * @var array $pagination
  */
 
-use SmartLicenseServer\Admin\LicensePage;
+use SmartLicenseServer\Admin\Handlers\LicensePage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 

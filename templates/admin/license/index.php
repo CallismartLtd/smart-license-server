@@ -11,7 +11,7 @@
  * @var array $pagination
  */
 
-use SmartLicenseServer\Admin\LicensePage;
+use SmartLicenseServer\Admin\Handlers\LicensePage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
@@ -48,7 +48,7 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
         <?php if ( empty( $licenses ) ) : ?>
             <?php echo wp_kses_post( smliser_not_found_container( 'All licenses will appear here' ) ); ?>
         <?php else : ?>
-            <form id="smliser-bulk-action-form" method="post" action="<?php echo escUrl( adminUrl( 'admin-post.php' ) ); ?>">
+            <form id="smliser-bulk-action-form" method="post">
             
                 <div class="smliser-actions-wrapper">
                     <div class="smliser-bulk-actions">
@@ -62,7 +62,7 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
-                    <a href="<?php echo escUrl( $current_url->add_query_param( 'tab', 'search' ) ); ?>" class="smliser-btn smliser-btn-white">Search Licenses</a>
+                    <a href="<?php echo escUrl( $current_url->add_query_param( 'tab', 'search' )->url() ); ?>" class="smliser-btn smliser-btn-white">Search Licenses</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">
@@ -89,7 +89,7 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
                                 <td class="smliser-edit-row">
                                     <?php echo escHtml( $license->get_id() ); ?>
                                     <p class="smliser-edit-link">
-                                        <a href="<?php echo escUrl( smliser_license_admin_action_page( 'edit', $license->get_id() ) ); ?>">edit</a> | <a href="<?php echo escUrl( smliser_license_admin_action_page( 'view', $license->get_id() ) ); ?>">view</a>
+                                        <a href="<?php echo escUrl( smliser_license_admin_action_page( 'edit', $license->get_id() )->url() ); ?>">edit</a> | <a href="<?php echo escUrl( smliser_license_admin_action_page( 'view', $license->get_id() )->url() ); ?>">view</a>
                                     </p>
                                 </td>
                             

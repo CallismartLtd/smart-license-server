@@ -11,7 +11,7 @@
  * @var SmartLicenseServer\Core\Request $request
  */
 
-use SmartLicenseServer\Admin\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 

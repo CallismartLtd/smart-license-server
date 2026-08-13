@@ -7,10 +7,11 @@
  * standalone HTML document so the editor can occupy the full viewport.
  *
  * Variables available from OptionsPage::email_template_detail():
- *   $entry        — array   from EmailTemplateRegistry::entry()
- *   $preview      — EmailTemplate instance
+ * @var array $entry        — array   from EmailTemplateRegistry::entry()
+ * @var SmartLicenseServer\Email\Templates\EmailTemplate  $preview      — EmailTemplate instance
  *   $preview_html — string  rendered HTML of the system default template
  * @var \SmartLicenseServer\Core\URL $current_url
+ * @var string $preview_html
  *
  * @package SmartLicenseServer\templates
  * @since   0.2.0
@@ -60,7 +61,7 @@ $assets = AssetsManager::get_email_editor_assets();
             styles:     <?php echo smliser_safe_json_encode( $preview->resolve_styles() ); ?>,
             isEnabled:  <?php echo smliser_safe_json_encode( $is_enabled ); ?>,
             hasCustom:  <?php echo smliser_safe_json_encode( $has_custom ); ?>,
-            backURL:    <?php echo smliser_safe_json_encode( $back_url ); ?>,
+            backURL:    <?php echo smliser_safe_json_encode( $back_url->url() ); ?>,
             previewHTML:<?php echo smliser_safe_json_encode( $preview_html ); ?>,
             ajaxURL:    <?php echo smliser_safe_json_encode( adminUrl( 'admin-ajax.php' ) ); ?>,
             nonce:      <?php echo smliser_safe_json_encode( wp_create_nonce( 'smliser_nonce' ) ); ?>,

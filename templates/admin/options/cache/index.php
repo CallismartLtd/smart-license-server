@@ -13,7 +13,7 @@
  * @var \SmartLicenseServer\Core\Request $request
  */
 
-use SmartLicenseServer\Admin\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
 use SmartLicenseServer\Cache\CacheProviderIcons;
 
 defined( 'SMLISER_ROOT' ) || exit;
@@ -57,12 +57,12 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
                     <div class="smliser-provider-card__actions">
                         <?php if ( empty( $provider->get_settings_schema() ) && $provider->is_supported() ) : ?>
-                            <a href="<?php echo escUrl( $provider_url ); ?>"
+                            <a href="<?php echo escUrl( $provider_url->url() ); ?>"
                                 class="smliser-button smliser-button--secondary">
                                 Check
                             </a>
                         <?php elseif( ! empty( $provider->get_settings_schema() ) && $provider->is_supported() ): ?>
-                            <a href="<?php echo escUrl( $provider_url ); ?>"
+                            <a href="<?php echo escUrl( $provider_url->url() ); ?>"
                                 class="smliser-button smliser-button--secondary">
                                 Configure</a>
                         <?php endif; ?>

@@ -9,7 +9,7 @@
 
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Admin;
+namespace SmartLicenseServer\Admin\Handlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;

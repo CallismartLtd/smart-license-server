@@ -11,7 +11,7 @@
  * @var string $licensee
  * @var \SmartLicenseServer\Core\Request $request
  */
-namespace SmartLicenseServer\Admin;
+namespace SmartLicenseServer\Admin\Handlers;
 
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\URL;
@@ -148,7 +148,7 @@ $document_download_url  = \smliser_document_download_url( $license ? $license->g
                             <th>App Info</th>
                             <td>
                                 <?php if ( $license->is_issued() ) : ?>
-                                    <a href="<?php echo escUrl( smliser_admin_repo_tab( 'view', ['app_id' => $licensed_app->get_id(), 'type' => $licensed_app->get_type()] ) ); ?>">
+                                    <a href="<?php echo escUrl( smliser_admin_repo_tab( 'view', ['app_id' => $licensed_app->get_id(), 'type' => $licensed_app->get_type()] )->url() ); ?>">
                                         <?php echo escHtml( $licensed_app->get_name() ); ?> » <?php printf( '%s/%s', escHtml( $licensed_app->get_type() ), escHtml( $licensed_app->get_slug() ) ) ?>
                                     </a>
                                 <?php else : ?>

@@ -8,6 +8,12 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
+use SmartLicenseServer\Admin\Handlers\AccessControlPage;
+use SmartLicenseServer\Admin\Handlers\BulkMessagePage;
+use SmartLicenseServer\Admin\Handlers\DashboardPage;
+use SmartLicenseServer\Admin\Handlers\LicensePage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\RepositoryPage;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 
 final class AdminDashboardRegistry extends AbstractDashboardRegistry {

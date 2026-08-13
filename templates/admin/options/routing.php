@@ -7,7 +7,7 @@
  * @since 0.2.0
  */
 
-use SmartLicenseServer\Admin\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 

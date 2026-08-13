@@ -15,7 +15,7 @@
  * @var string $adapter_key
  */
 
-use SmartLicenseServer\Admin\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 

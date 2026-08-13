@@ -3,13 +3,14 @@
  * Access control dashboard template.
  *
  * @author Callistus Nwachukwu
- * @see \SmartLicenseServer\Admin\AccessControlPage
+ * @see \SmartLicenseServer\Admin\Handlers\AccessControlPage
  * @var \SmartLicenseServer\Security\Actors\ActorInterface $entity_class
  * @var \SmartLicenseServer\Security\Actors\ActorInterface[] $all
  * @var \SmartLicenseServer\Core\Request $request
+ * @var string $type
  */
 
-use SmartLicenseServer\Admin\AccessControlPage;
+use SmartLicenseServer\Admin\Handlers\AccessControlPage;
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smliser-admin-repository-template">
@@ -18,7 +19,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
     <div class="smliser-admin-table-body">
 
         <div>
-            <a href="<?php echo escUrl( smliser_get_current_url()->add_query_param( 'section', 'add-new' ) ); ?>" class="button action smliser-nav-btn"><?php printf( 'Add %s', escHtml( $type ) ); ?></a>
+            <a href="<?php echo escUrl( smliser_get_current_url()->add_query_param( 'section', 'add-new' )->url() ); ?>" class="button action smliser-nav-btn"><?php printf( 'Add %s', escHtml( $type ) ); ?></a>
 
             <?php if ( $message = $request->get( 'message' ) ) : ?>
                 <div class="notice notice-info is-dismissible"><p><?php echo escHtml( $message ); ?></p></div>
@@ -30,7 +31,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <?php if ( $st_v > 0 ) : ?>
                     <a href="
                         <?php echo escUrl(
-                            smliser_get_current_url()->add_query_param( 'status', $v )
+                            smliser_get_current_url()->add_query_param( 'status', $v )->url()
                         );?>" class="smliser-status-link">
                         <?php echo escHtml( ucfirst( $v ) ); ?> (<?php echo intval( $st_v ); ?>)
                     </a>
@@ -70,7 +71,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                             smliser_get_current_url()
                                             ->add_query_params(
                                                 ['section' => 'edit', 'id' => $entity->get_id()]
-                                            ) ); 
+                                            )->url() ); 
                                     ?>">edit</a>
                                     <a href="#" role="button" class="smliser-delete-entity"
                                         data-args="

@@ -10,7 +10,7 @@
 declare( strict_types=1 );
 namespace SmartLicenseServer\SettingsAPI;
 
-use SmartLicenseServer\Admin\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;

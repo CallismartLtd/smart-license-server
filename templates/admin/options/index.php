@@ -5,9 +5,10 @@
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\templates
  * @since 0.2.0
+ * @var SmartLicenseServer\Core\Request $request
  */
 
-use SmartLicenseServer\Admin\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 

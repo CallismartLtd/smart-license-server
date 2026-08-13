@@ -12,7 +12,7 @@
  * @since   0.2.0
  */
 
-use SmartLicenseServer\Admin\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
 use SmartLicenseServer\Cache\CacheProviderIcons;
 use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Utils\Format;
@@ -112,7 +112,7 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                     <i class="ti ti-trash"></i> Flush Cache
                 </button>
 
-                <a href="<?php echo escUrl( smliser_get_current_url()->remove_query_param( 'section' ) ); ?>"
+                <a href="<?php echo escUrl( smliser_get_current_url()->remove_query_param( 'section' )->url() ); ?>"
                    class="smlcd-btn smlcd-btn--secondary">
                     <i class="ti ti-database-search"></i> Adapters
                 </a>
@@ -120,7 +120,7 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <a href="<?php 
                     echo escUrl( smliser_get_current_url()
                         ->remove_query_param( 'section' )
-                        ->add_query_param( 'adapter', $adapter_id )
+                        ->add_query_param( 'adapter', $adapter_id )->url()
                      ); ?>"
                    class="smlcd-btn smlcd-btn--secondary">
                     <i class="ti ti-settings"></i> Configuration

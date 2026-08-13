@@ -6,11 +6,10 @@
  * @package SmartLicenseServer\Admin
  */
 
-namespace SmartLicenseServer\Admin;
+namespace SmartLicenseServer\Admin\Handlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
-use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 /**

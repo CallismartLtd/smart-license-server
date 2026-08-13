@@ -5,19 +5,20 @@
  * Renders a complete summary of accounts & access data.
  *
  * @author Callistus Nwachukwu
- * @see \SmartLicenseServer\Admin\AccessControlPage
+ * @see \SmartLicenseServer\Admin\Handlers\AccessControlPage
  * @var array $account_summaries Array result of
+ * @var SmartLicenseServer\Core\Request $request
  * @see SmartLicenseServer\Security\Context\ContextServiceProvider::get_accounts_summary_report()
  */
 
-use SmartLicenseServer\Admin\AccessControlPage;
+use SmartLicenseServer\Admin\Handlers\AccessControlPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
 /**
  * Helper: Render icon based on metric type
  */
-function smliser_get_metric_icon( $label ) {
+function smliser_get_metric_icon( string $label ) {
     $icons = array(
         'users'                  => 'dashicons-groups',
         'organizations'          => 'dashicons-building',
@@ -60,7 +61,7 @@ function smliser_format_metric_value( $value ) {
 /**
  * Helper: Get status class for integrity issues
  */
-function smliser_get_status_class( $has_issues ) {
+function smliser_get_status_class( bool $has_issues ) {
     return $has_issues ? 'smliser-status-warning' : 'smliser-status-success';
 }
 ?>

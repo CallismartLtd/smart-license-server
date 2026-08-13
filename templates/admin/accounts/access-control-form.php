@@ -3,7 +3,7 @@
  * Access control form page template.
  *
  * @author Callistus Nwachukwu
- * @see \SmartLicenseServer\Admin\AccessControlPage
+ * @see \SmartLicenseServer\Admin\Handlers\AccessControlPage
  * @var string $title
  * @var string $roles_title
  * @var array $form_fields
@@ -14,7 +14,7 @@
  * @var \SmartLicenseServer\Core\Request $request
  */
 
-use SmartLicenseServer\Admin\AccessControlPage;
+use SmartLicenseServer\Admin\Handlers\AccessControlPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
@@ -60,7 +60,7 @@ if ( $render_image_only ) {
                         <div class="smliser-avatar-upload_image-holder">
                             <img 
                                 class="smliser-avatar-upload_image-preview"
-                                src="<?php echo escUrl( $avatar_url ); ?>"
+                                src="<?php echo escUrl( $avatar_url->url() ); ?>"
                                 title="<?php echo escAttr( $avatar_url->basename() ); ?>"
                                 alt="<?php echo escAttr( 'User avatar preview' ); ?>"
                             >
@@ -122,7 +122,7 @@ if ( $render_image_only ) {
                         <div class="smliser-avatar-upload_image-holder">
                             <img
                                 class="smliser-avatar-upload_image-preview avatar-only"
-                                src="<?php echo escUrl( $avatar_url ); ?>"
+                                src="<?php echo escUrl( $avatar_url->url() ); ?>"
                                 alt="<?php echo escAttr( 'Current avatar image'  ); ?>"
                             >
                         </div>

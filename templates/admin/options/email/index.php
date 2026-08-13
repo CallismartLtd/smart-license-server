@@ -10,7 +10,7 @@
  * @var SmartLicenseServer\Core\Request $request
  */
 
-use SmartLicenseServer\Admin\OptionsPage;
+use SmartLicenseServer\Admin\Handlers\OptionsPage;
 use SmartLicenseServer\Email\EmailProviderIcons;
 
 defined( 'SMLISER_ROOT' ) || exit;
@@ -72,7 +72,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     </div>
 
                     <div class="smliser-provider-card__actions">
-                        <a href="<?php echo escUrl( $provider_url ); ?>"
+                        <a href="<?php echo escUrl( $provider_url->url() ); ?>"
                         class="smliser-button smliser-button--secondary">
                             Configure
                         </a>

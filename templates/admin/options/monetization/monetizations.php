@@ -4,9 +4,9 @@
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicensseServer\templates
- * @see \SmartLicenseServer\Admin\OptionsPage::provider_settings()
+ * @see \SmartLicenseServer\Admin\Handlers\OptionsPage::provider_settings()
  * 
- * @var \SmartLicenseServer\Admin\OptionsPage $this
+ * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $this
  * @var string $id The provider id.
  * @var SmartLicenseServer\Core\Request $request The current request instance.
  * @var array $settings The provider settings fields.

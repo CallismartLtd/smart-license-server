@@ -3,8 +3,8 @@
  * Application upload page.
  * 
  * @author Callistus Nwachukwu
- * @see \SmartLicenseServer\Admin\RepositoryPage::upload_page()
- * @see \SmartLicenseServer\Admin\RepositoryPage::edit_page()
+ * @see \SmartLicenseServer\Admin\Handlers\RepositoryPage::upload_page()
+ * @see \SmartLicenseServer\Admin\Handlers\RepositoryPage::edit_page()
  * @var \SmartLicenseServer\Core\Request $request
  * @var array $essential_fields
  * @var string $type
@@ -12,7 +12,7 @@
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|unset $app
  */
 
-use SmartLicenseServer\Admin\RepositoryPage;
+use SmartLicenseServer\Admin\Handlers\RepositoryPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
