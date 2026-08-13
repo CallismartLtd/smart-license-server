@@ -53,8 +53,6 @@ class AdminMenu {
             $base_slug   = "{$this->prefix}-{$menu['slug']}";
             add_submenu_page( $slug, $menu['title'], $menu['title'], 'manage_options', $base_slug, [$this, 'dispatch_request'] );
         }
-
-        add_submenu_page( $slug, 'API Doc', 'API Doc', 'manage_options', "{$this->prefix}-api-doc", 'smliser_rest_documentation' );
     }
 
     /**
