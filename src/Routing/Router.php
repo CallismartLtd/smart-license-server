@@ -91,7 +91,7 @@ final class Router {
 	 * own middleware (passed to add()/get()/post()/etc.) is appended after
 	 * all of it, so it always runs closest to the handler.
 	 *
-	 * @param callable(self): void $callback
+	 * @param callable(self $r ): void $callback
 	 * @param array<int,mixed>      $middleware Data only — never invoked here or anywhere
 	 *                                          in this class. See Route::$middleware's docblock.
 	 */

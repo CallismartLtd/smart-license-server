@@ -129,6 +129,11 @@ final class RouteManager {
 
         $this->router->any( '/', $this->defaultHomeHandler );
         $this->router->get( "/$admin_url_prefix", [DefaultPage::class, 'serve_content'] );
+        
+        $this->router->group( 'documentation', function () {
+            $this->router->get( '', [DefaultPage::class, 'doc_page'] );
+            $this->router->get( '{category:slug}', [DefaultPage::class, 'doc_page'] );
+        });
         $this->router->get( "/documentation", [DefaultPage::class, 'doc_page'] );
     }
 
