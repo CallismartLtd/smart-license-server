@@ -356,6 +356,58 @@ final class DefaultPage {
 
 					/* Documentation page */
 
+					.api-breadcrumb {
+						display: flex;
+						align-items: center;
+						gap: 0.5rem;
+						color: var(--text-muted);
+						font-size: 0.85rem;
+						margin-bottom: 1.25rem;
+					}
+
+					.api-breadcrumb a {
+						color: var(--text-muted);
+						text-decoration: none;
+					}
+
+					.api-breadcrumb a:hover {
+						color: var(--text-main);
+					}
+
+					.api-breadcrumb-sep {
+						color: var(--border);
+					}
+
+					.api-category-nav {
+						display: flex;
+						flex-wrap: wrap;
+						gap: 0.5rem;
+						margin-bottom: 2.5rem;
+						padding-bottom: 1.5rem;
+						border-bottom: 1px solid var(--border);
+					}
+
+					.api-category-nav a {
+						color: var(--text-muted);
+						text-decoration: none;
+						font-size: 0.85rem;
+						padding: 0.35rem 0.85rem;
+						border-radius: 9999px;
+						border: 1px solid var(--border);
+						transition: all 0.2s ease;
+					}
+
+					.api-category-nav a:hover {
+						color: var(--text-main);
+						border-color: rgba(99, 102, 241, 0.4);
+					}
+
+					.api-category-nav a.active {
+						color: #a5b4fc;
+						background: rgba(99, 102, 241, 0.12);
+						border-color: rgba(99, 102, 241, 0.3);
+					}
+
 					.api-version-section {
 						margin-bottom: 3.5rem;
 					}
@@ -772,29 +824,34 @@ final class DefaultPage {
 	 * Render the REST API documentation page.
 	 *
 	 * The router calls this with only the current Request — no catalog is
-	 * handed in, so the active API version is resolved here via the
-	 * environment provider, and a RouteCatalog is built from it on the fly.
-	 * This is the first page method that actually needs the Request, to
-	 * read the resolved `category` route param (e.g. a route registered as
-	 * `documentation/{category}`, matching URLs like
-	 * `/documentation/repository/`) and, when present, narrow the page down
-	 * to just that category instead of listing everything.
+	 * handed in, so every registered API version is resolved here via the
+	 * environment provider, and one RouteCatalog is built per version on
+	 * the fly. The optional `category` route param (e.g. a route registered
+	 * as `documentation/{category}`, matching URLs like
+	 * `/documentation/repository/`) narrows the page down to just that
+	 * category, across every version, instead of listing everything.
 	 *
 	 * @param Request $request Current request, used to read the optional
 	 *                         `category` route param.
 	 * @return Response
 	 */
 	public static function doc_page( Request $request ): Response {
-		$version = \smliser_envProvider()->restProvider()->version_instance();
-		$catalog = new RouteCatalog( $version );
+		$versions = \smliser_envProvider()->restProvider()->version_instances();
+
+		$catalogs = [];
+		foreach ( $versions as $version ) {
+			$catalogs[ $version->namespace() ] = new RouteCatalog( $version );
+		}
 
 		$category = $request->route_param( 'category' );
 		$category = is_string( $category ) && '' !== $category ? $category : null;
 
-		$content = self::render_catalog( $version->namespace(), $catalog, $category );
+		$content = self::render_breadcrumb( $category )
+			. self::render_category_nav( $catalogs, $category )
+			. self::render_catalogs( $catalogs, $category );
 
 		$heading     = 'API Documentation';
-		$description = 'Available REST API routes, grouped by category.';
+		$description = 'Available REST API routes, grouped by version and category.';
 
 		if ( null !== $category ) {
 			$label       = self::humanize_category( $category );
@@ -813,14 +870,109 @@ final class DefaultPage {
 
 
 	/**
-	 * Render a version's route catalog, optionally narrowed to a single category.
+	 * Render the "Documentation / Category" breadcrumb trail.
 	 *
-	 * @param string       $namespace Version namespace, used as the section heading.
-	 * @param RouteCatalog $catalog   Catalog describing the version's routes.
-	 * @param string|null  $category  Category key to filter by, or null for all.
+	 * @param string|null $category Active category key, or null on the unfiltered index.
 	 * @return string
 	 */
-	private static function render_catalog( string $namespace, RouteCatalog $catalog, ?string $category ): string {
+	private static function render_breadcrumb( ?string $category ): string {
+		if ( null === $category ) {
+			return '<nav class="api-breadcrumb"><span>Documentation</span></nav>';
+		}
+
+		return sprintf(
+			'<nav class="api-breadcrumb"><a href="/documentation/">Documentation</a><span class="api-breadcrumb-sep">/</span><span>%s</span></nav>',
+			htmlspecialchars( self::humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
+		);
+	}
+
+
+	/**
+	 * Render the category navigation strip: an "All" link back to the
+	 * unfiltered index plus one link per distinct category found across
+	 * every version's catalog, so a reader can jump straight to a category
+	 * without knowing its URL in advance.
+	 *
+	 * @param array<string, RouteCatalog> $catalogs Route catalogs keyed by version namespace.
+	 * @param string|null                 $active   Currently active category key, if any.
+	 * @return string
+	 */
+	private static function render_category_nav( array $catalogs, ?string $active ): string {
+		$categories = [];
+
+		foreach ( $catalogs as $catalog ) {
+			foreach ( $catalog->categories() as $category ) {
+				$categories[ $category ] = true;
+			}
+		}
+
+		$categories = array_keys( $categories );
+
+		if ( empty( $categories ) ) {
+			return '';
+		}
+
+		sort( $categories );
+
+		$links = sprintf(
+			'<a href="/documentation/"%s>All</a>',
+			null === $active ? ' class="active"' : ''
+		);
+
+		foreach ( $categories as $category ) {
+			$links .= sprintf(
+				'<a href="/documentation/%s/"%s>%s</a>',
+				rawurlencode( $category ),
+				$category === $active ? ' class="active"' : '',
+				htmlspecialchars( self::humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
+			);
+		}
+
+		return sprintf( '<nav class="api-category-nav">%s</nav>', $links );
+	}
+
+
+	/**
+	 * Render every version's section, optionally narrowed to a single category.
+	 *
+	 * @param array<string, RouteCatalog> $catalogs Route catalogs keyed by version namespace.
+	 * @param string|null                 $category Category key to filter by, or null for all.
+	 * @return string
+	 */
+	private static function render_catalogs( array $catalogs, ?string $category ): string {
+		$sections = '';
+
+		foreach ( $catalogs as $namespace => $catalog ) {
+			$sections .= self::render_version_section( (string) $namespace, $catalog, $category );
+		}
+
+		$sections = trim( $sections );
+
+		if ( '' !== $sections ) {
+			return $sections;
+		}
+
+		return null !== $category
+			? sprintf(
+				'<div class="api-empty-state">No routes found in category "%s".</div>',
+				htmlspecialchars( self::humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
+			)
+			: '<div class="api-empty-state">No routes are currently registered.</div>';
+	}
+
+
+	/**
+	 * Render one version's section: its category groups, each holding
+	 * that category's route cards.
+	 *
+	 * @param string       $namespace Version namespace, used as the section heading.
+	 * @param RouteCatalog $catalog   Catalog describing that version's routes.
+	 * @param string|null  $category  When given, render only this category
+	 *                                (and only if the version has routes in it)
+	 *                                instead of every category the version has.
+	 * @return string
+	 */
+	private static function render_version_section( string $namespace, RouteCatalog $catalog, ?string $category ): string {
 		$categories = null !== $category ? [ $category ] : $catalog->categories();
 
 		$category_sections = '';
@@ -836,22 +988,15 @@ final class DefaultPage {
 		}
 
 		if ( '' === $category_sections ) {
-			return null !== $category
-				? sprintf(
-					'<div class="api-empty-state">No routes found in category "%s".</div>',
-					htmlspecialchars( self::humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
-				)
-				: '<div class="api-empty-state">No routes are currently registered.</div>';
+			return '';
 		}
 
 		return sprintf(
 			'<section class="api-version-section">
 				<h2>%s</h2>
-				<h3>%s</h3>
 				%s
 			</section>',
-			htmlspecialchars( $namespace, ENT_QUOTES, 'UTF-8' ),
-			url( $namespace )->sanitize(),
+			htmlspecialchars( strtoupper( $namespace ), ENT_QUOTES, 'UTF-8' ),
 			$category_sections
 		);
 	}

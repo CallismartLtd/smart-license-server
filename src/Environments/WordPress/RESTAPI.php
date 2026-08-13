@@ -645,8 +645,9 @@ class RESTAPI implements RESTProviderInterface {
 
     private function route_matches( string $pattern ) : bool {
         foreach( $this->namespaces() as $namespace ) {
-            $namespace = preg_quote( trim( $namespace, '/' ), '#' );
-            $route     = ltrim( $this->current_route, '/' );
+            $namespace  = \smliser_envProvider()->apply_rest_prefix( $namespace );
+            $namespace  = preg_quote( trim( $namespace, '/' ), '#' );
+            $route      = ltrim( $this->current_route, '/' );
 
             if ( (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $route ) ) {
                 return true;

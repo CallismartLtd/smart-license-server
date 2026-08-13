@@ -35,7 +35,7 @@ class HTTPKernel extends Kernel {
         $this->response = $this->routeManager->dispatch(
             $this->environment->request()->method(),
             $this->environment->request()->path(),
-            $this->environment->request() 
+            $this->environment->request()
         );
 
         $this->response->send();

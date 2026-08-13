@@ -46,5 +46,4 @@ interface RESTProviderInterface {
      * @return static
      */
     public static function init( RESTVersionInterface ...$versions ) : static;
-    
 }
