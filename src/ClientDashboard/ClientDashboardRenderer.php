@@ -9,7 +9,7 @@
  * via the REST API and injected into the content area by the client JS.
  *
  * Template slugs (auto-discovered from templates/frontend/):
- *   frontend.shell    — orchestrator, calls the four partials in order
+ *   frontend.index    — orchestrator, calls the four partials in order
  *   frontend.header   — auth guard, <head>, <body>, open layout wrapper
  *   frontend.menu     — left sidebar navigation
  *   frontend.content  — main column, topbar, content area, JS
@@ -32,7 +32,7 @@ class ClientDashboardRenderer {
     |--------------------
     */
 
-    public const SHELL_TEMPLATE             = 'frontend.shell';
+    public const SHELL_TEMPLATE             = 'frontend.index';
     public const HEADER_TEMPLATE            = 'frontend.header';
     public const MENU_TEMPLATE              = 'frontend.menu';
     public const CONTENT_TEMPLATE           = 'frontend.content';
@@ -62,7 +62,7 @@ class ClientDashboardRenderer {
     /**
      * Render the full dashboard shell.
      *
-     * Delegates to frontend.shell which orchestrates header → menu →
+     * Delegates to frontend.index which orchestrates header → menu →
      * content → footer in order.
      *
      * @param string $rest_base   Full REST base URL for content requests.
