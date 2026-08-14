@@ -1,0 +1,321 @@
+/* ==========================================================
+   Dashboard Shell — Base Styles & Theme Variables
+========================================================== */
+
+:root {
+	--dashboard-sidebar-width: 260px;
+	--dashboard-sidebar-collapsed-width: 64px;
+	--dashboard-topbar-height: 56px;
+	--dashboard-transition: 0.2s ease;
+
+	--dashboard-bg: #f4f5f7;
+	--dashboard-surface: #ffffff;
+	--dashboard-border: #e2e4e9;
+	--dashboard-text: #1f2430;
+	--dashboard-text-muted: #6b7280;
+	--dashboard-accent: #3b6ef6;
+	--dashboard-accent-contrast: #ffffff;
+	--dashboard-hover-bg: #eef1f6;
+	--dashboard-shadow: 0 1px 3px rgba( 0, 0, 0, 0.08 );
+}
+
+html[data-theme="dark"] {
+	--dashboard-bg: #14161c;
+	--dashboard-surface: #1b1e27;
+	--dashboard-border: #2a2e3a;
+	--dashboard-text: #e6e8ee;
+	--dashboard-text-muted: #9aa0ae;
+	--dashboard-accent: #6d93ff;
+	--dashboard-accent-contrast: #0f1117;
+	--dashboard-hover-bg: #232733;
+	--dashboard-shadow: 0 1px 3px rgba( 0, 0, 0, 0.4 );
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	background: var( --dashboard-bg );
+	color: var( --dashboard-text );
+}
+
+/* ==========================================================
+   Layout
+========================================================== */
+
+.dashboard-wrapper {
+	display: flex;
+	min-height: 100vh;
+}
+
+.dashboard-main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	margin-left: var( --dashboard-sidebar-width );
+	transition: margin-left var( --dashboard-transition );
+}
+
+.dashboard-wrapper.is-collapsed .dashboard-main {
+	margin-left: var( --dashboard-sidebar-collapsed-width );
+}
+
+/* ==========================================================
+   Left Menu
+========================================================== */
+
+.dashboard-left-menu {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: var( --dashboard-sidebar-width );
+	background: var( --dashboard-surface );
+	border-right: 1px solid var( --dashboard-border );
+	overflow-x: hidden;
+	overflow-y: auto;
+	z-index: 100;
+	transition: width var( --dashboard-transition ), transform var( --dashboard-transition );
+}
+
+.dashboard-wrapper.is-collapsed .dashboard-left-menu {
+	width: var( --dashboard-sidebar-collapsed-width );
+}
+
+.dashboard-wrapper.is-collapsed .dashboard-menu-text,
+.dashboard-wrapper.is-collapsed .dashboard-menu-arrow,
+.dashboard-wrapper.is-collapsed .dashboard-submenu {
+	display: none;
+}
+
+.dashboard-menu-list {
+	list-style: none;
+	margin: 0;
+	padding: 8px 0;
+}
+
+.dashboard-menu-item {
+	position: relative;
+}
+
+.dashboard-menu-link {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 18px;
+	color: var( --dashboard-text );
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.dashboard-menu-link:hover {
+	background: var( --dashboard-hover-bg );
+}
+
+.dashboard-menu-icon {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	display: inline-block;
+	background: currentColor;
+	opacity: 0.75;
+	-webkit-mask-size: contain;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	mask-position: center;
+}
+
+.dashboard-menu-text {
+	flex: 1 1 auto;
+	font-size: 14px;
+}
+
+.dashboard-menu-arrow {
+	flex: 0 0 auto;
+	width: 8px;
+	height: 8px;
+	border-right: 2px solid var( --dashboard-text-muted );
+	border-bottom: 2px solid var( --dashboard-text-muted );
+	transform: rotate( 45deg );
+	transition: transform var( --dashboard-transition );
+}
+
+.dashboard-menu-item.is-open > .dashboard-menu-link .dashboard-menu-arrow {
+	transform: rotate( -135deg );
+}
+
+.dashboard-submenu {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-height: 0;
+	overflow: hidden;
+	background: var( --dashboard-bg );
+	transition: max-height var( --dashboard-transition );
+}
+
+.dashboard-menu-item.is-open > .dashboard-submenu {
+	max-height: 400px;
+}
+
+.dashboard-submenu-link {
+	display: block;
+	padding: 8px 18px 8px 50px;
+	font-size: 13px;
+	color: var( --dashboard-text-muted );
+	text-decoration: none;
+}
+
+.dashboard-submenu-link:hover {
+	color: var( --dashboard-text );
+	background: var( --dashboard-hover-bg );
+}
+
+/* ==========================================================
+   Top Menu
+========================================================== */
+
+.dashboard-top-menu {
+	position: sticky;
+	top: 0;
+	z-index: 90;
+	height: var( --dashboard-topbar-height );
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 16px;
+	background: var( --dashboard-surface );
+	border-bottom: 1px solid var( --dashboard-border );
+	box-shadow: var( --dashboard-shadow );
+}
+
+.dashboard-top-menu-left,
+.dashboard-top-menu-right {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.dashboard-menu-toggle,
+.dashboard-mobile-menu-toggle,
+.dashboard-theme-toggle {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: 4px;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	cursor: pointer;
+}
+
+.dashboard-menu-toggle:hover,
+.dashboard-mobile-menu-toggle:hover,
+.dashboard-theme-toggle:hover {
+	background: var( --dashboard-hover-bg );
+}
+
+.dashboard-menu-toggle span,
+.dashboard-mobile-menu-toggle span {
+	display: block;
+	width: 18px;
+	height: 2px;
+	background: var( --dashboard-text );
+	border-radius: 1px;
+}
+
+.dashboard-mobile-menu-toggle {
+	display: none;
+}
+
+.dashboard-theme-icon-dark {
+	display: none;
+}
+
+html[data-theme="dark"] .dashboard-theme-icon-light {
+	display: none;
+}
+
+html[data-theme="dark"] .dashboard-theme-icon-dark {
+	display: inline;
+}
+
+/* ==========================================================
+   Content Area
+========================================================== */
+
+.dashboard-content {
+	flex: 1;
+	padding: 20px;
+}
+
+/* ==========================================================
+   Mobile Overlay
+========================================================== */
+
+.dashboard-overlay {
+	display: none;
+	position: fixed;
+	inset: 0;
+	background: rgba( 0, 0, 0, 0.4 );
+	z-index: 99;
+}
+
+.dashboard-wrapper.mobile-menu-open .dashboard-overlay {
+	display: block;
+}
+
+/* ==========================================================
+   Mobile Breakpoint
+========================================================== */
+
+@media ( max-width: 782px ) {
+
+	.dashboard-menu-toggle {
+		display: none;
+	}
+
+	.dashboard-mobile-menu-toggle {
+		display: flex;
+	}
+
+	.dashboard-main {
+		margin-left: 0;
+	}
+
+	.dashboard-wrapper.is-collapsed .dashboard-main {
+		margin-left: 0;
+	}
+
+	.dashboard-left-menu {
+		transform: translateX( -100% );
+		width: var( --dashboard-sidebar-width );
+		box-shadow: var( --dashboard-shadow );
+	}
+
+	.dashboard-wrapper.is-collapsed .dashboard-left-menu {
+		width: var( --dashboard-sidebar-width );
+	}
+
+	.dashboard-wrapper.is-collapsed .dashboard-menu-text,
+	.dashboard-wrapper.is-collapsed .dashboard-menu-arrow,
+	.dashboard-wrapper.is-collapsed .dashboard-submenu {
+		display: initial;
+	}
+
+	.dashboard-wrapper.mobile-menu-open .dashboard-left-menu {
+		transform: translateX( 0 );
+	}
+
+}

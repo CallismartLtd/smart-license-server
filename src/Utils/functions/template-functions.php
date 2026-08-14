@@ -7,6 +7,7 @@
  * @package SmartLicenseServer\Utils\Functions
  */
 
+use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -96,6 +97,14 @@ function smliser_list_templates() : array {
 }
 
 /**
+ * Get the admin dashboard registry
+ * 
+ * @return AdminDashboardRegistry
+ */
+function smliserAdminDashboardRegistry() : AdminDashboardRegistry {
+    return smliser_envProvider()->adminDashboardRegistry();
+}
+/**
  * Get the client dashboard template registry.
  */
 function clientDashboardRegistry() : \SmartLicenseServer\ClientDashboard\ClientDashboardRegistry {
@@ -114,4 +123,11 @@ function authTemplateRegistry() : \SmartLicenseServer\ClientDashboard\AuthTempla
  */
 function smliserFrontendTemplate() {
     return Guard::has_principal() ? clientDashboardRegistry() : authTemplateRegistry();
+}
+
+/**
+ * Automatically return an admin template registry based on the current user auth status.
+ */
+function smliserAdminTemplate() {
+    return Guard::has_principal() ? smliserAdminDashboardRegistry() : authTemplateRegistry();
 }

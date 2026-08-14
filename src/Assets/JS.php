@@ -27,15 +27,14 @@ final class JS {
             'smliser-script' => [
                 'src'    => assetsUrl( sprintf( 'js/main-script%s.js', $suffix ) ),
                 'deps'   => [
-                    'string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker', 
-                    'smliser-modal',
-                    'smliser-toast'
+                    'string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker',
+                    'smliser-modal','smliser-toast'
                 ],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'smliser-apps-uploader' => [
-                'src'    => assetsUrl( sprintf( 'js/apps-uploader%s.js', $suffix ) ),
+                'src'    => assetsUrl( sprintf( 'js/admin/apps-uploader%s.js', $suffix ) ),
                 'deps'   => ['smliser-jquery', 'smliser-script'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
@@ -53,13 +52,13 @@ final class JS {
                 'footer' => true
             ],
             'smliser-admin-repository' => [
-                'src'    => assetsUrl( sprintf( 'js/admin-repository%s.js', $suffix ) ),
+                'src'    => assetsUrl( sprintf( 'js/admin/admin-repository%s.js', $suffix ) ),
                 'deps'   => ['jquery', 'smliser-script'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'smliser-role-builder' => [
-                'src'    => assetsUrl( sprintf( 'js/role-builder%s.js', $suffix ) ),
+                'src'    => assetsUrl( sprintf( 'js/admin/role-builder%s.js', $suffix ) ),
                 'deps'   => ['smliser-jquery'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
@@ -77,7 +76,7 @@ final class JS {
                 'footer' => true
             ],
             'smliser-json-editor' => [
-                'src'    => assetsUrl( sprintf( 'js/smliser-json-editor%s.js', $suffix ) ),
+                'src'    => assetsUrl( sprintf( 'js/admin/json-editor%s.js', $suffix ) ),
                 'deps'   => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
@@ -89,13 +88,13 @@ final class JS {
                 'footer' => true
             ],
             'smliser-email-editor' => [
-                'src'    => assetsUrl( sprintf( 'js/email-editor%s.js', $suffix ) ),
+                'src'    => assetsUrl( sprintf( 'js/admin/email-editor%s.js', $suffix ) ),
                 'deps'   => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true
             ],
             'smliser-cache-stats' => [
-                'src'    => assetsUrl( sprintf( 'js/cache-stats%s.js', $suffix ) ),
+                'src'    => assetsUrl( sprintf( 'js/admin/cache-stats%s.js', $suffix ) ),
                 'deps'   => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
                 'ver'    => SMLISER_VER,
                 'footer' => true

@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Assets;
 
+use function assetsUrl;
 final class CSS {
 
     /**
@@ -18,14 +19,26 @@ final class CSS {
      */
     public static function all( string $suffix = '' ) : array {
         return [
+            'smliser-admin-styles'  => [
+                'src'   => assetsUrl( sprintf( 'css/admin/dashboard%s.css', $suffix ) ),
+                'deps'  => ['smliser-styles'],
+                'ver'   => SMLISER_VER,
+                'media' => 'all'
+            ],
             'smliser-styles'    => [
                 'src'   => assetsUrl( sprintf( 'css/smliser-styles%s.css', $suffix ) ),
-                'deps'  => ['smliser-toast'],
+                'deps'  => [
+                    'smliser-toast',
+                    'smliser-modal',
+                    'smliser-datetime-picker',
+                    'smliser-role-builder',
+                    'smliser-apps-uploader'
+                ],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ],
             'smliser-apps-uploader' => [
-                'src'   => assetsUrl( sprintf( 'css/apps-uploader%s.css', $suffix ) ),
+                'src'   => assetsUrl( sprintf( 'css/admin/apps-uploader%s.css', $suffix ) ),
                 'deps'  => [],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
@@ -49,7 +62,7 @@ final class CSS {
                 'media' => 'all'
             ],
             'smliser-role-builder' => [
-                'src'   => assetsUrl( sprintf( 'css/role-builder%s.css', $suffix ) ),
+                'src'   => assetsUrl( sprintf( 'css/admin/role-builder%s.css', $suffix ) ),
                 'deps'  => [],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
@@ -61,8 +74,8 @@ final class CSS {
                 'media' => 'all'
             ],
             'smliser-json-editor' => [
-                'src'   => assetsUrl( sprintf( 'css/smliser-json-editor%s.css', $suffix ) ),
-                'deps'  => ['smliser-styles', 'smliser-modal'],
+                'src'   => assetsUrl( sprintf( 'css/admin/json-editor%s.css', $suffix ) ),
+                'deps'  => ['smliser-styles'],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ],
@@ -73,14 +86,14 @@ final class CSS {
                 'media' => 'all'
             ],
             'smliser-email-editor' => [
-                'src'   => assetsUrl( sprintf( 'css/email-editor%s.css', $suffix ) ),
-                'deps'  => ['smliser-styles', 'smliser-modal'],
+                'src'   => assetsUrl( sprintf( 'css/admin/email-editor%s.css', $suffix ) ),
+                'deps'  => ['smliser-styles'],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ],
             'smliser-cache-stats' => [
-                'src'   => assetsUrl( sprintf( 'css/cache-stats%s.css', $suffix ) ),
-                'deps'  => ['smliser-styles', 'smliser-modal'],
+                'src'   => assetsUrl( sprintf( 'css/admin/cache-stats%s.css', $suffix ) ),
+                'deps'  => ['smliser-styles'],
                 'ver'   => SMLISER_VER,
                 'media' => 'all'
             ],
