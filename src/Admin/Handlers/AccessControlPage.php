@@ -72,7 +72,7 @@ class AccessControlPage implements AdminPageInterface {
     public static function dashboard( Request $request ) {
         $account_summaries  = ContextServiceProvider::get_accounts_summary_report();
         $vars               = compact( 'request', 'account_summaries' );
-        smliser_render_template( 'admin.accounts.index', $vars );
+        smliser_render_template( 'admin-content.accounts.index', $vars );
     
     }
 
@@ -94,7 +94,7 @@ class AccessControlPage implements AdminPageInterface {
 
         $vars           = compact( 'request', 'all', 'entity_class', 'type' );
 
-        smliser_render_template( 'admin.accounts.principals', $vars );
+        smliser_render_template( 'admin-content.accounts.principals', $vars );
     }
 
     /**
@@ -250,7 +250,7 @@ class AccessControlPage implements AdminPageInterface {
         $vars           = compact( 'request', 'form_fields', 'avatar_name',
         'avatar_url', 'role', 'title', 'roles_title' );
 
-        smliser_render_template( 'admin.accounts.access-control-form', $vars );
+        smliser_render_template( 'admin-content.accounts.access-control-form', $vars );
     }
 
     /**
@@ -271,7 +271,7 @@ class AccessControlPage implements AdminPageInterface {
 
         $vars           = compact( 'request', 'all', 'entity_class', 'type' );
 
-        smliser_render_template( 'admin.accounts.principals', $vars );
+        smliser_render_template( 'admin-content.accounts.principals', $vars );
     }
 
     /**
@@ -373,7 +373,7 @@ class AccessControlPage implements AdminPageInterface {
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
         'title', 'organization',  );
 
-        smliser_render_template( 'admin.accounts.access-control-form', $vars );
+        smliser_render_template( 'admin-content.accounts.access-control-form', $vars );
     }
 
     /**
@@ -504,7 +504,7 @@ class AccessControlPage implements AdminPageInterface {
         $vars = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
         'title', 'organization', 'role', 'roles_title'  );
 
-        smliser_render_template( 'admin.accounts.access-control-form', $vars );
+        smliser_render_template( 'admin-content.accounts.access-control-form', $vars );
     }
 
     /**
@@ -522,7 +522,7 @@ class AccessControlPage implements AdminPageInterface {
         $owners = Owner::get_all( $page, $limit );
 
         $vars   = compact( 'owners', 'request' );
-        smliser_render_template( 'admin.accounts.owners', $vars );
+        smliser_render_template( 'admin-content.accounts.owners', $vars );
     }
 
     /**
@@ -650,7 +650,7 @@ class AccessControlPage implements AdminPageInterface {
 
         $vars = compact( 'request', 'form_fields', 'title' );
 
-        smliser_render_template( 'admin.accounts.access-control-form', $vars );
+        smliser_render_template( 'admin-content.accounts.access-control-form', $vars );
     }
 
     /**
@@ -670,7 +670,7 @@ class AccessControlPage implements AdminPageInterface {
         $type           = 'Service Account';
         $vars           = compact( 'request', 'all', 'entity_class', 'type' );
 
-        smliser_render_template( 'admin.accounts.principals', $vars );      
+        smliser_render_template( 'admin-content.accounts.principals', $vars );      
     }
 
     /**
@@ -818,7 +818,7 @@ class AccessControlPage implements AdminPageInterface {
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url', 'role',
         'title', 'roles_title' );
 
-        smliser_render_template( 'admin.accounts.access-control-form', $vars );
+        smliser_render_template( 'admin-content.accounts.access-control-form', $vars );
     }
 
     /**

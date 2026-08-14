@@ -35,7 +35,7 @@ interface AdminPageInterface {
      * @return array{
      *     title: string,
      *     slug: string,
-     *     handler: callable(Request $request),
+     *     handler: class-string<static>,
      *     icon: string
      * }
      */

@@ -101,7 +101,15 @@ class Response {
 		$this->error	= new Exception();
 		
 		$this->set_status_code( $status_code );
-		$this->headers = array_map( [$this, 'set_header'], $headers );
+		
+		foreach ( $headers as $name => $value ) {
+            if ( is_array( $value ) && isset( $value[0], $value[1] ) ) {
+                $this->set_header( (string) $value[0], (string) $value[1] );
+            } elseif ( is_string( $name ) ) {
+                $this->set_header( $name, (string) $value );
+            }
+        }
+
 		$this->set_body( $body );
 	}
 

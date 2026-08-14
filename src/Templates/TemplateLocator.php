@@ -11,7 +11,7 @@
  *   2. Fallback path (if registered).
  *
  * Slug convention (dot-notation):
- *   'admin.license.dashboard' → {base}/admin/license/dashboard.php
+ *   'admin-content.license.dashboard' → {base}/admin/license/dashboard.php
  *
  * @package SmartLicenseServer\Templates
  */
@@ -143,7 +143,7 @@ class TemplateLocator {
      * Checks registered paths in descending priority order, then
      * the fallback path. Returns null if nothing resolves.
      *
-     * @param string $slug Dot-notation slug, e.g. 'admin.license.dashboard'.
+     * @param string $slug Dot-notation slug, e.g. 'admin-content.license.dashboard'.
      * @return string|null Absolute path to the template file, or null.
      */
     public function resolve( string $slug ) : ?string {
@@ -327,7 +327,7 @@ class TemplateLocator {
     /**
      * Convert a dot-notation slug to a relative filesystem path.
      *
-     * 'admin.license.dashboard' → 'admin/license/dashboard.php'
+     * 'admin-content.license.dashboard' → 'admin/license/dashboard.php'
      *
      * @param string $slug
      * @return string

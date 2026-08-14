@@ -67,7 +67,7 @@ class RepositoryPage implements AdminPageInterface {
 
         $vars   = compact( 'add_url', 'apps', 'page_title', 'pagination', 'current_url', 'request',
         'type', 'status' );
-        smliser_render_template( 'admin.repository.index', $vars );
+        smliser_render_template( 'admin-content.repository.index', $vars );
 
     }
 
@@ -159,7 +159,7 @@ class RepositoryPage implements AdminPageInterface {
         
         $vars   = compact( 'add_url', 'apps', 'pagination', 'current_url', 'request', 'menu_args',
         'app_types' );
-        smliser_render_template( 'admin.repository.search', $vars );
+        smliser_render_template( 'admin-content.repository.search', $vars );
     }
 
     /**
@@ -182,7 +182,7 @@ class RepositoryPage implements AdminPageInterface {
         );
 
         $vars   = compact( 'type_title', 'app_action', 'title', 'request', 'essential_fields', 'type' );
-        smliser_render_template( "admin.repository.{$slug}", $vars );
+        smliser_render_template( "admin-content.repository.{$slug}", $vars );
     }
 
     /**
@@ -221,7 +221,7 @@ class RepositoryPage implements AdminPageInterface {
         $type_title         = ucfirst( $type );
         
         $vars   = compact( 'type_title', 'app_action', 'request', 'essential_fields', 'type', 'app' );
-        smliser_render_template( "admin.repository.edit-{$type}", $vars );
+        smliser_render_template( "admin-content.repository.edit-{$type}", $vars );
     }
 
     /**
@@ -262,7 +262,7 @@ class RepositoryPage implements AdminPageInterface {
         $app_files  = $repo_class->get_artifacts( $app->get_slug() );
         
         $vars   = compact( 'type_title', 'app_action', 'request', 'type', 'app', 'app_files' );
-        smliser_render_template( "admin.repository.edit-app-files", $vars );
+        smliser_render_template( "admin-content.repository.edit-app-files", $vars );
     }
 
     /**
@@ -388,7 +388,7 @@ class RepositoryPage implements AdminPageInterface {
         ];
 
         $vars   = compact( 'app', 'request', 'template_content', 'template_header', 'template_sidebar' );
-        smliser_render_template( "admin.repository.view-{$type}", $vars );
+        smliser_render_template( "admin-content.repository.view-{$type}", $vars );
     }
 
     /**
@@ -412,7 +412,7 @@ class RepositoryPage implements AdminPageInterface {
 
         $app    = $monetization->get_app();
         $vars   = compact( 'request', 'monetization', 'is_new', 'app', 'url', 'providers', );
-        smliser_render_template( 'admin.repository.monetization', $vars );
+        smliser_render_template( 'admin-content.repository.monetization', $vars );
     }
 
     /**

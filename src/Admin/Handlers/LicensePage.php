@@ -64,7 +64,7 @@ class LicensePage implements AdminPageInterface {
         $add_url        = smliser_license_page()->add_query_param( 'tab', 'add-new' );
 
         $vars   = compact( 'request', 'current_url', 'licenses', 'pagination', 'add_url' );
-        smliser_render_template( 'admin.license.index', $vars );    
+        smliser_render_template( 'admin-content.license.index', $vars );    
     }
 
     /**
@@ -88,7 +88,7 @@ class LicensePage implements AdminPageInterface {
         $add_url        = smliser_license_page()->add_query_param( 'tab', 'add-new' );
     
         $vars   = compact( 'request', 'current_url', 'licenses', 'pagination', 'add_url' );
-        smliser_render_template( 'admin.license.search', $vars );  
+        smliser_render_template( 'admin-content.license.search', $vars );  
     
     }
 
@@ -100,7 +100,7 @@ class LicensePage implements AdminPageInterface {
         $tab            = $request->get( 'tab' );
 
         $vars   = compact( 'request', 'form_fields', 'tab' );
-        smliser_render_template( 'admin.license.form', $vars );
+        smliser_render_template( 'admin-content.license.form', $vars );
     }
 
     /**
@@ -114,7 +114,7 @@ class LicensePage implements AdminPageInterface {
         
         $form_fields    = static::get_form_fields( $license );
         $vars           = compact( 'request', 'form_fields', 'tab', 'license', 'license_id' );
-        smliser_render_template( 'admin.license.form', $vars );
+        smliser_render_template( 'admin-content.license.form', $vars );
     
     }
 
@@ -139,7 +139,7 @@ class LicensePage implements AdminPageInterface {
             $vars['delete_url'] = $delete_url;
         }
         
-        smliser_render_template( 'admin.license.view', $vars );
+        smliser_render_template( 'admin-content.license.view', $vars );
    
     }
 
@@ -156,7 +156,7 @@ class LicensePage implements AdminPageInterface {
             );
         }
         
-        smliser_render_template( 'admin.license.logs', compact( 'logs', 'request' ) );
+        smliser_render_template( 'admin-content.license.logs', compact( 'logs', 'request' ) );
     }
 
     /**

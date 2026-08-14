@@ -1,6 +1,9 @@
 <?php
 /**
- * Admin Dashboard Template
+ * Admin Dashboard Template.
+ * 
+ * @var array $metrics
+ * @var array $totals
  */
 namespace SmartLicenseServer\Admin;
 
@@ -62,7 +65,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                 $chart_data = $domain_data['chart_data'] ?? [];
                 $rankings = $domain_data['rankings'] ?? [];
                 $recent_logs = $domain_data['recent_logs'] ?? [];
-                $domain_id = sanitize_title( $domain_name );
+                $domain_id = Format::slugify( $domain_name );
                 ?>
 
                 <div class="smliser-dashboard-content_item" data-domain="<?php echo escAttr( $domain_id ); ?>">
@@ -144,7 +147,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                                     <span class="rank">#<?php echo escHtml( $index + 1 ); ?></span>
                                                                     <?php if ( $app_obj ) : ?>
                                                                         <span class="name">
-                                                                            <a href="<?php echo \escUrl( \smliser_admin_repo_tab( 'view', array( 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ) ) ); ?>" target="_blank" >
+                                                                            <a href="<?php echo \escUrl( \smliser_admin_repo_tab( 'view', array( 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ) )->url() ); ?>" target="_blank" >
                                                                                 <?php echo escHtml( $app_obj->get_name() ); ?>
                                                                             </a>
                                                                         </span>

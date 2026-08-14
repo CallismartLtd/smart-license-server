@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\Application\Routing;
 
+use SmartLicenseServer\Admin\Page\Shell;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\DefaultPage;
@@ -131,7 +132,7 @@ final class RouteManager {
         $this->router->withMiddleware(
             methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
             pattern: "$admin_url_prefix",
-            handler: '',
+            handler: [Shell::class, 'render'],
             middleware: []
             
         );
@@ -214,12 +215,12 @@ final class RouteManager {
         $request->set_route_param( $result->params );
 
 		$response = match ( $result->status ) {
-			DispatchStatus::Found            => MiddlewarePipeline::run(
+			DispatchStatus::Found       => MiddlewarePipeline::run(
 				$result->middleware,
 				$result->handler,
 				$request,
 			),
-			DispatchStatus::NotFound         => null !== $this->notFoundHandler
+			DispatchStatus::NotFound    => null !== $this->notFoundHandler
 				? ( $this->notFoundHandler )( $request )
 				: null,
 			DispatchStatus::MethodNotAllowed => null !== $this->methodNotAllowedHandler

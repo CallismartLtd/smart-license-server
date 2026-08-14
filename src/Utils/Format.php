@@ -425,6 +425,23 @@ class Format {
     }
 
     /**
+     * Slugify a string
+     * 
+     * @param string $value
+     * @return string
+     */
+    public static function slugify( string $value ) : string {
+        $slugified  = '';
+
+        if ( \is_scalar( $value ) ) {
+            $slugified = strtolower( $value );
+            $slugified = preg_replace( '/[^a-z0-9_\-]/', '', $slugified );
+        }
+
+        return $slugified;
+    }
+
+    /**
      * Recursively implode a multi-dimensional array.
      *
      * This function flattens nested arrays into a string representation with

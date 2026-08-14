@@ -10,8 +10,6 @@
 
 namespace SmartLicenseServer\Contracts;
 
-use ReflectionFunction;
-use ReflectionMethod;
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
@@ -24,19 +22,19 @@ abstract class AbstractDashboardRegistry {
      * @var array<string, array{
      *     title: string,
      *     slug: string,
-     *     handler: AdminPageInterface,
+     *     handler: class-string<AdminPageInterface>,
      *     icon: string
      * }>
      */
     protected array $menu = [];
 
     /**
-     * Get the submenu.
+     * Submenu registry (ordered per parent key).
      * 
      * @var array<string, array<int, array{
-     *  title: string,
-     *  slug: string,
-     *  callback: callable
+     *     title: string,
+     *     slug: string,
+     *     callback: callable
      * }>>
      */
     protected array $submenu = [];
@@ -122,12 +120,13 @@ abstract class AbstractDashboardRegistry {
      * 
      * @param string $parent_key
      * @param array{
-     *  title: string,
-     *  slug: string,
-     *  callback: callable
+     *     title: string,
+     *     slug: string,
+     *     callback: callable
      * } $data
      * 
      * @param int|null $position Optional zero-based index to insert into.
+     * @return static
      */
     public function add_submenu( string $parent_key, array $data, ?int $position = null ) : static {
         $parent_key = $this->canonical_key( $parent_key );
@@ -153,9 +152,9 @@ abstract class AbstractDashboardRegistry {
         $this->assert_request_is_first_arg( $data['callback'], 'submenu', "{$parent_key} -> {$data['slug']}" );
 
         $submenu = [
-            'title'     => (string) $data['title'],
-            'slug'      => trim( (string) $data['slug'], '/' ),
-            'callback'  => $data['callback'],
+            'title'    => (string) $data['title'],
+            'slug'     => trim( (string) $data['slug'], '/' ),
+            'callback' => $data['callback'],
         ];
 
         return $this->insert_submenu( $parent_key, $submenu, $position );
@@ -168,22 +167,20 @@ abstract class AbstractDashboardRegistry {
     */
 
     /**
-     * Insert a menu item into the registry at a given position.
+     * Insert a menu item into the registry at a given zero-based position.
      *
      * @param string   $key
      * @param array    $menu
-     * @param int|null $position
+     * @param int|null $position Zero-based index.
+     * @return static
      */
     protected function insert_menu_item( string $key, array $menu, ?int $position ) : static {
-        if ( $position !== null ) {
-            $position = (int) max( 0, $position - 1 );
-        }
-
         if ( null === $position || $position >= count( $this->menu ) ) {
             $this->menu[ $key ] = $menu;
             return $this;
         }
 
+        $position   = (int) max( 0, $position );
         $before     = array_slice( $this->menu, 0, $position, true );
         $after      = array_slice( $this->menu, $position, null, true );
         $this->menu = $before + [ $key => $menu ] + $after;
@@ -192,32 +189,26 @@ abstract class AbstractDashboardRegistry {
     }
 
     /**
-     * Insert a submenu
+     * Insert a submenu at a given zero-based position.
      * 
      * @param string $parent_key
-     * @param array{title: string, slug: string, handler: callable} $submenu
-     * @param int|null $position
+     * @param array{title: string, slug: string, callback: callable} $submenu
+     * @param int|null $position Zero-based index.
      * @return static
      */
     protected function insert_submenu( string $parent_key, array $submenu, ?int $position ) : static {
-        $all_subm   = $this->submenu[$parent_key] ?? [];
+        $all_subm = $this->submenu[$parent_key] ?? [];
 
-        if ( null !== $position ) {
-            $position   = (int) max( 0, $position -1 );
-        }
-
-        if ( null === $position || empty( $all_subm ) ) {
+        if ( null === $position || empty( $all_subm ) || $position >= count( $all_subm ) ) {
             $this->submenu[$parent_key][] = $submenu;
-
             return $this;
         }
 
-        $before = array_slice( $all_subm, 0, $position );
-        $after  = array_slice( $all_subm, $position, count( $all_subm ) );
+        $position   = (int) max( 0, $position );
+        $before     = array_slice( $all_subm, 0, $position );
+        $after      = array_slice( $all_subm, $position );
 
-        $all_subm   = array_merge( $before, [$submenu], $after );
-        
-        $this->submenu[$parent_key] = $all_subm;
+        $this->submenu[$parent_key] = array_merge( $before, [$submenu], $after );
         
         return $this;
     }
@@ -231,7 +222,7 @@ abstract class AbstractDashboardRegistry {
     /**
      * Get all menu items.
      *
-     * @return array<string, array{title: string, slug: string, handler: AdminPageInterface, icon: string}>
+     * @return array<string, array{title: string, slug: string, handler: class-string<AdminPageInterface>, icon: string}>
      */
     public function all() : array {
         $this->boot();
@@ -242,7 +233,7 @@ abstract class AbstractDashboardRegistry {
      * Get a single menu item.
      *
      * @param string $key
-     * @return array{title: string, slug: string, handler: AdminPageInterface, icon: string}|null
+     * @return array{title: string, slug: string, handler: class-string<AdminPageInterface>, icon: string}|null
      */
     public function get( string $key ) : ?array {
         $this->boot();
@@ -250,13 +241,12 @@ abstract class AbstractDashboardRegistry {
     }
 
     /**
-     * Get all submenu.
+     * Get all submenus.
      * 
      * @return array<string, array<int, array{title: string, slug: string, callback: callable}>>
      */
-    public function all_submenu() : array {
+    public function get_submenus() : array {
         $this->boot();
-
         return $this->submenu;
     }
 
@@ -264,13 +254,60 @@ abstract class AbstractDashboardRegistry {
      * Get the submenu items associated with a given menu key.
      *
      * @param string $parent_key
-     * @return array<int, array{title: string, slug: string, handler: callable}>|null
+     * @return array<int, array{title: string, slug: string, callback: callable}>|null
      */
     public function get_submenu( string $parent_key ) : ?array {
         $this->boot();
-        $key    = $this->canonical_key( $parent_key );
+        $key = $this->canonical_key( $parent_key );
 
         return $this->submenu[$key] ?? null;
+    }
+
+    /**
+     * Get the callback for a menu item.
+     *
+     * @param string $key
+     * @return callable|null
+     */
+    public function get_menu_callback( string $key ) : ?callable {
+        $this->boot();
+
+        $key = $this->canonical_key( $key );
+
+        if ( ! isset( $this->menu[ $key ] ) ) {
+            return null;
+        }
+
+        $handler = $this->menu[ $key ]['handler'];
+
+        return $handler::index_page_handler();
+    }
+
+
+    /**
+     * Get the callback for a submenu item.
+     *
+     * @param string $parent_key
+     * @param string $slug
+     * @return callable|null
+     */
+    public function get_submenu_callback( string $parent_key, string $slug ) : ?callable {
+        $this->boot();
+
+        $parent_key = $this->canonical_key( $parent_key );
+        $slug       = trim( $slug, '/' );
+
+        if ( empty( $this->submenu[ $parent_key ] ) ) {
+            return null;
+        }
+
+        foreach ( $this->submenu[ $parent_key ] as $submenu ) {
+            if ( $submenu['slug'] === $slug ) {
+                return $submenu['callback'];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -315,6 +352,7 @@ abstract class AbstractDashboardRegistry {
         }
 
         unset( $this->menu[ $key ] );
+        unset( $this->submenu[ $key ] );
         return true;
     }
 
@@ -341,19 +379,20 @@ abstract class AbstractDashboardRegistry {
      * 
      * @param string $parent_key
      * @param string $slug
+     * @return bool
      */
-    public function remove_submenu( string $parent_key, $slug ) : bool {
+    public function remove_submenu( string $parent_key, string $slug ) : bool {
         $this->boot();
         $key = $this->canonical_key( $parent_key );
 
-        if ( ! $this->has( $key ) ) {
+        if ( ! $this->has( $key ) || empty( $this->submenu[$key] ) ) {
             return false;
         }
 
-        foreach( $this->submenu[$key] as $index => &$data ) {
+        foreach ( $this->submenu[$key] as $index => $data ) {
             if ( $slug === $data['slug'] ) {
                 unset( $this->submenu[$key][$index] );
-
+                $this->submenu[$key] = array_values( $this->submenu[$key] );
                 return true;
             }
         }
@@ -404,33 +443,61 @@ abstract class AbstractDashboardRegistry {
 
     /**
      * Ensure a callback accepts the request object as first argument.
+     * 
      * @param callable $callback
+     * @param string   $type
+     * @param string   $desc
+     * @throws EnvironmentBootstrapException
      */
     protected function assert_request_is_first_arg( callable $callback, string $type = 'menu', string $desc = '' ) : void {
         if ( is_array( $callback ) ) {
-            $callback = new ReflectionMethod( $callback[0], $callback[1] );
+            $reflection = new \ReflectionMethod( $callback[0], $callback[1] );
+        } elseif ( is_object( $callback ) && ! $callback instanceof \Closure ) {
+            $reflection = new \ReflectionMethod( $callback, '__invoke' );
         } else {
-            $callback = new ReflectionFunction( $callback );
+            // Handles Closures, function name strings, and "Class::method" strings
+            $reflection = new \ReflectionFunction( $callback );
         }
-        
-        $params = $callback->getParameters();
+
+        $params = $reflection->getParameters();
 
         if ( empty( $params ) ) {
             return;
         }
 
-        if ( $params[0]->getType()?->getName() !== Request::class ) {
-            throw new EnvironmentBootstrapException(
-                'invalid_menu_callback',
-                sprintf( '%s callback for "%s" must accept %s as first argument', ucfirst( $type ), $desc, Request::class )
-            );
+        $first_param_type = $params[0]->getType();
+
+        // Handle Named Types (single types)
+        if ( $first_param_type instanceof \ReflectionNamedType ) {
+            if ( $first_param_type->getName() === Request::class ) {
+                return;
+            }
         }
 
+        // Handle Union Types (PHP 8.0+) or Intersection Types (PHP 8.1+)
+        if ( $first_param_type instanceof \ReflectionUnionType || $first_param_type instanceof \ReflectionIntersectionType ) {
+            foreach ( $first_param_type->getTypes() as $named_type ) {
+                if ( $named_type->__toString() === Request::class ) {
+                    return;
+                }
+            }
+        }
+
+        throw new EnvironmentBootstrapException(
+            'invalid_menu_callback',
+            sprintf( '%s callback for "%s" must accept %s as first argument.', ucfirst( $type ), $desc, Request::class )
+        );
     }
 
-    protected function assert_menu_handler_implements_admin_page( string $handler, string $key ) {
-        
-        if ( in_array( AdminPageInterface::class, @\class_implements( $handler ) ?: [], true ) ) {
+    /**
+     * Ensure a handler class implements AdminPageInterface.
+     * 
+     * @param string $handler
+     * @param string $key
+     * @throws EnvironmentBootstrapException
+     */
+    protected function assert_menu_handler_implements_admin_page( string $handler, string $key ) : void {
+        if ( is_subclass_of( $handler, AdminPageInterface::class ) ) {
             return;
         }
 
@@ -496,14 +563,15 @@ abstract class AbstractDashboardRegistry {
     /**
      * Update menu handler.
      *
-     * @param string   $key
-     * @param callable $handler
+     * @param string $key
+     * @param class-string<AdminPageInterface> $handler
      * @return static
      */
-    public function set_handler( string $key, callable $handler ) : static {
+    public function set_handler( string $key, string $handler ) : static {
         $key = $this->canonical_key( $key );
         $this->assert_menu_exists( $key );
 
+        $this->assert_menu_handler_implements_admin_page( $handler, $key );
         $this->menu[ $key ]['handler'] = $handler;
 
         return $this;
@@ -644,6 +712,6 @@ abstract class AbstractDashboardRegistry {
      * @return string
      */
     protected function canonical_key( string $key ) : string {
-        return str_replace( '-', '_', $key );
+        return str_replace( '-', '_', strtolower( $key ) );
     }
 }

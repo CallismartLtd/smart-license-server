@@ -33,14 +33,14 @@ class OptionsPage implements AdminPageInterface {
      */
     public static function general_settings( Request $request ): void {
         
-        smliser_render_template( 'admin.options.index', compact( 'request' ) );
+        smliser_render_template( 'admin-content.options.index', compact( 'request' ) );
     }
 
     /**
      * Permalink/routes settings page.
      */
     public static function routes_setting( Request $request ): void {
-        smliser_render_template( 'admin.options.routing', compact( 'request' ) );
+        smliser_render_template( 'admin-content.options.routing', compact( 'request' ) );
     }
 
     /**
@@ -53,7 +53,7 @@ class OptionsPage implements AdminPageInterface {
         } 
         
         $providers = smliser_monetization_registry()->all();
-        smliser_render_template( 'admin.options.monetization.monetization-providers', compact( 'request', 'providers' ) );   
+        smliser_render_template( 'admin-content.options.monetization.monetization-providers', compact( 'request', 'providers' ) );   
     }
 
     /**
@@ -80,7 +80,7 @@ class OptionsPage implements AdminPageInterface {
         }
 
         $vars   = compact( 'request', 'provider', 'name', 'settings', 'id' );
-        smliser_render_template( 'admin.options.monetization.monetizations', $vars );
+        smliser_render_template( 'admin-content.options.monetization.monetizations', $vars );
     }
 
     /**
@@ -108,7 +108,7 @@ class OptionsPage implements AdminPageInterface {
         $email_fields       = static::email_settings_fields();
 
         $vars   = compact( 'registry', 'request', 'email_fields', 'providers', 'default_provider' );
-        smliser_render_template( 'admin.options.email.index', $vars );
+        smliser_render_template( 'admin-content.options.email.index', $vars );
     }
 
     /**
@@ -126,7 +126,7 @@ class OptionsPage implements AdminPageInterface {
         $templates = EmailTemplateRegistry::all();
 
         $vars       = compact( 'request', 'templates' );
-        smliser_render_template( 'admin.options.email.templates', $vars );
+        smliser_render_template( 'admin-content.options.email.templates', $vars );
     }
 
     /**
@@ -150,7 +150,7 @@ class OptionsPage implements AdminPageInterface {
 
         $vars   = compact( 'entry', 'current_url', 'preview', 'preview_html' );
 
-        smliser_render_template( 'admin.options.email.editor', $vars );
+        smliser_render_template( 'admin-content.options.email.editor', $vars );
     }
 
     /**
@@ -174,7 +174,7 @@ class OptionsPage implements AdminPageInterface {
 
         $vars   = compact( 'request', 'saved_settings', 'provider', 'provider_id', 'provider_key',
         'provider_name', 'schema', 'is_default' );
-        smliser_render_template( 'admin.options.email.form', $vars );
+        smliser_render_template( 'admin-content.options.email.form', $vars );
     }
 
     /**
@@ -201,7 +201,7 @@ class OptionsPage implements AdminPageInterface {
         $default_provider   = CacheAdapterRegistry::get_default_adapter_id();
 
         $vars   = compact( 'request', 'cache_registry', 'providers', 'default_provider' );
-        smliser_render_template( 'admin.options.cache.index', $vars );
+        smliser_render_template( 'admin-content.options.cache.index', $vars );
     }
 
     /**
@@ -219,7 +219,7 @@ class OptionsPage implements AdminPageInterface {
         $is_supported = $cache->is_supported();
 
         $vars   = compact( 'request', 'cache', 'stats', 'adapter_id', 'adapter_name', 'is_supported' );
-        smliser_render_template( 'admin.options.cache.stats', $vars );
+        smliser_render_template( 'admin-content.options.cache.stats', $vars );
     }
 
     /**
@@ -243,7 +243,7 @@ class OptionsPage implements AdminPageInterface {
 
         $vars   = compact( 'request', 'adapter', 'adapter_name', 'adapter_key', 'schema', 
         'is_default', 'adapter_id', 'saved_settings' );
-        smliser_render_template( 'admin.options.cache.form', $vars );
+        smliser_render_template( 'admin-content.options.cache.form', $vars );
     }
 
     /*

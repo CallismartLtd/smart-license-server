@@ -24,7 +24,7 @@ function smliser_template_locator() : TemplateLocator {
  *
  * Returns null if the slug cannot be resolved from any registered path.
  *
- * @param string $slug Dot-notation slug, e.g. 'admin.license.view'.
+ * @param string $slug Dot-notation slug, e.g. 'admin-content.license.view'.
  * @return string|null
  */
 function smliser_resolve_template( string $slug ) : ?string {
@@ -44,7 +44,7 @@ function smliser_template_exists( string $slug ) : bool {
 /**
  * Render a template, extracting $data into the template scope.
  *
- * @param string               $slug Dot-notation slug, e.g. 'admin.license.view'.
+ * @param string               $slug Dot-notation slug, e.g. 'admin-content.license.view'.
  * @param array<string, mixed> $data Variables to extract into the template scope.
  *
  * @throws SmartLicenseServer\Exceptions\EnvironmentBootstrapException If template cannot be resolved.

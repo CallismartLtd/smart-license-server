@@ -93,7 +93,7 @@ class DashboardPage implements AdminPageInterface {
         ];
 
         $vars   = \compact( 'totals', 'metrics' );
-        \smliser_render_template( 'admin.index', $vars );
+        \smliser_render_template( 'admin-content.index', $vars );
     }
 
     /**
