@@ -52,7 +52,7 @@ class BulkMessagePage implements AdminPageInterface{
         $menu_args      = static::get_menu_args( $request );
         
         $vars           = compact( 'messages', 'current_url', 'menu_args', 'pagination' );
-        smliser_render_template( 'admin-content.bulk-messages.index', $vars );
+        smliser_render_template( 'admin.contents.bulk-messages.index', $vars );
     }
 
     /**
@@ -66,7 +66,7 @@ class BulkMessagePage implements AdminPageInterface{
         $message    = BulkMessageService::raw()->get_message( $message_id );
         $vars       = compact( 'menu_args', 'request', 'message' );
         
-        smliser_render_template( 'admin-content.bulk-messages.compose', $vars );
+        smliser_render_template( 'admin.contents.bulk-messages.compose', $vars );
     }
 
     /**
@@ -86,7 +86,7 @@ class BulkMessagePage implements AdminPageInterface{
 
         $vars           = compact( 'current_url', 'menu_args', 'search', 'messages', 'pagination' );
 
-        smliser_render_template( 'admin-content.bulk-messages.search', $vars );
+        smliser_render_template( 'admin.contents.bulk-messages.search', $vars );
        
     }
 
