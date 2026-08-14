@@ -8,19 +8,7 @@
  * @package Dashboard
  */
 
-/**
- * Convert a string into a URL/ID-safe slug.
- *
- * Used to derive a menu item's id from its text when no id is supplied.
- *
- * @param string $string String to slugify.
- * @return string
- */
-function dashboard_slugify( $string ) {
-	$slug = strtolower( trim( (string) $string ) );
-	$slug = preg_replace( '/[^a-z0-9]+/', '-', $slug );
-	return trim( $slug, '-' );
-}
+use SmartLicenseServer\Utils\Format;
 
 /**
  * Render the left (side) menu from an array of menu item definitions.
@@ -45,7 +33,7 @@ function dashboard_render_left_menu( array $menu_items ) {
 				$text        = isset( $menu_item['text'] ) ? $menu_item['text'] : '';
 				$icon        = isset( $menu_item['icon'] ) ? $menu_item['icon'] : '';
 				$link        = isset( $menu_item['link'] ) ? $menu_item['link'] : '#';
-				$id          = isset( $menu_item['id'] ) ? $menu_item['id'] : dashboard_slugify( $text !== '' ? $text : 'menu-item-' . $index );
+				$id          = isset( $menu_item['id'] ) ? $menu_item['id'] : Format::slugify( $text !== '' ? $text : 'menu-item-' . $index );
 				$submenu     = isset( $menu_item['submenu'] ) && is_array( $menu_item['submenu'] ) ? $menu_item['submenu'] : array();
 				$has_submenu = ! empty( $submenu );
 				?>
@@ -74,7 +62,7 @@ function dashboard_render_left_menu( array $menu_items ) {
 								<?php
 								$sub_text = isset( $sub_item['text'] ) ? $sub_item['text'] : '';
 								$sub_link = isset( $sub_item['link'] ) ? $sub_item['link'] : '#';
-								$sub_id   = isset( $sub_item['id'] ) ? $sub_item['id'] : dashboard_slugify( $sub_text !== '' ? $sub_text : $id . '-sub-' . $sub_index );
+								$sub_id   = isset( $sub_item['id'] ) ? $sub_item['id'] : Format::slugify( $sub_text !== '' ? $sub_text : $id . '-sub-' . $sub_index );
 								?>
 								<li class="dashboard-submenu-item" id="submenu-<?php echo htmlspecialchars( $sub_id, ENT_QUOTES, 'UTF-8' ); ?>">
 									<a href="<?php echo htmlspecialchars( $sub_link, ENT_QUOTES, 'UTF-8' ); ?>" class="dashboard-submenu-link">
@@ -97,6 +85,48 @@ function dashboard_render_left_menu( array $menu_items ) {
  * from this array shape.
  */
 $dashboard_menu_items = array(
+	array(
+		'icon' => 'icon-dashboard',
+		'text' => 'Dashboard',
+		'link' => '#',
+		'id'   => 'dashboard',
+		'submenu' => array(
+			array(
+				'text' => 'Overview',
+				'link' => '#',
+				'id'   => 'dashboard-overview',
+			),
+		),
+	),
+
+	array(
+		'icon' => 'icon-dashboard',
+		'text' => 'Dashboard',
+		'link' => '#',
+		'id'   => 'dashboard',
+		'submenu' => array(
+			array(
+				'text' => 'Overview',
+				'link' => '#',
+				'id'   => 'dashboard-overview',
+			),
+			array(
+				'text' => 'Overview',
+				'link' => '#',
+				'id'   => 'dashboard-overview',
+			),
+			array(
+				'text' => 'Overview',
+				'link' => '#',
+				'id'   => 'dashboard-overview',
+			),
+			array(
+				'text' => 'Overview',
+				'link' => '#',
+				'id'   => 'dashboard-overview',
+			),
+		),
+	),
 	array(
 		'icon' => 'icon-dashboard',
 		'text' => 'Dashboard',

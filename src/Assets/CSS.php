@@ -20,106 +20,106 @@ final class CSS {
     public static function all( string $suffix = '' ) : array {
         return [
             'smliser-admin-styles'  => [
-                'src'   => assetsUrl( sprintf( 'css/admin/dashboard%s.css', $suffix ) ),
-                'deps'  => ['smliser-styles'],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/admin/dashboard%s.css', $suffix ) ),
+                'dependencies'  => ['smliser-styles'],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-styles'    => [
-                'src'   => assetsUrl( sprintf( 'css/smliser-styles%s.css', $suffix ) ),
-                'deps'  => [
+                'url'   => assetsUrl( sprintf( 'css/smliser-styles%s.css', $suffix ) ),
+                'dependencies'  => [
                     'smliser-toast',
                     'smliser-modal',
                     'smliser-datetime-picker',
                     'smliser-role-builder',
                     'smliser-apps-uploader'
                 ],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-apps-uploader' => [
-                'src'   => assetsUrl( sprintf( 'css/admin/apps-uploader%s.css', $suffix ) ),
-                'deps'  => [],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/admin/apps-uploader%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-form-styles' => [
-                'src'   => assetsUrl( sprintf( 'css/smliser-forms%s.css', $suffix ) ),
-                'deps'  => [],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/smliser-forms%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'select2' => [
-                'src'   => assetsUrl( sprintf( 'css/select2%s.css', $suffix ) ),
-                'deps'  => [],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/select2%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-tabler-icons' => [
-                'src'   => assetsUrl( sprintf( 'icons/tabler-icons%s.css', $suffix ) ),
-                'deps'  => [],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'icons/tabler-icons%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-role-builder' => [
-                'src'   => assetsUrl( sprintf( 'css/admin/role-builder%s.css', $suffix ) ),
-                'deps'  => [],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/admin/role-builder%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-modal' => [
-                'src'   => assetsUrl( sprintf( 'css/smliser-modal%s.css', $suffix ) ),
-                'deps'  => [],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/smliser-modal%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-json-editor' => [
-                'src'   => assetsUrl( sprintf( 'css/admin/json-editor%s.css', $suffix ) ),
-                'deps'  => ['smliser-styles'],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/admin/json-editor%s.css', $suffix ) ),
+                'dependencies'  => ['smliser-styles'],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-datetime-picker' => [
-                'src'   => assetsUrl( sprintf( 'css/smliser-datetime-picker%s.css', $suffix ) ),
-                'deps'  => [],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/smliser-datetime-picker%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-email-editor' => [
-                'src'   => assetsUrl( sprintf( 'css/admin/email-editor%s.css', $suffix ) ),
-                'deps'  => ['smliser-styles'],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/admin/email-editor%s.css', $suffix ) ),
+                'dependencies'  => ['smliser-styles'],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-cache-stats' => [
-                'src'   => assetsUrl( sprintf( 'css/admin/cache-stats%s.css', $suffix ) ),
-                'deps'  => ['smliser-styles'],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/admin/cache-stats%s.css', $suffix ) ),
+                'dependencies'  => ['smliser-styles'],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-client-dashboard' => [
-                'src'   => assetsUrl( sprintf( 'css/client-dashboard%s.css', $suffix ) ),
-                'deps'  => ['smliser-modal', 'smliser-tabler-icons', 'smliser-utils', 'select2'],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/client-dashboard%s.css', $suffix ) ),
+                'dependencies'  => ['smliser-modal', 'smliser-tabler-icons', 'smliser-utils', 'select2'],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-utils' => [
-                'src'   => assetsUrl( sprintf( 'css/utils%s.css', $suffix ) ),
-                'deps'  => ['smliser-modal', 'smliser-tabler-icons'],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/utils%s.css', $suffix ) ),
+                'dependencies'  => ['smliser-modal', 'smliser-tabler-icons'],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-client-auth' => [
-                'src'   => assetsUrl( sprintf( 'css/smliser-client-auth%s.css', $suffix ) ),
-                'deps'  => ['smliser-client-dashboard', 'smliser-modal'],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/smliser-client-auth%s.css', $suffix ) ),
+                'dependencies'  => ['smliser-client-dashboard', 'smliser-modal'],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ],
             'smliser-toast' => [
-                'src'   => assetsUrl( sprintf( 'css/smliser-toast%s.css', $suffix ) ),
-                'deps'  => [],
-                'ver'   => SMLISER_VER,
-                'media' => 'all'
+                'url'   => assetsUrl( sprintf( 'css/smliser-toast%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'   => SMLISER_VER,
+                'media-type' => 'all'
             ]
         ];
     }

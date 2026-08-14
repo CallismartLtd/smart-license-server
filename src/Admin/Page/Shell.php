@@ -8,7 +8,7 @@
 namespace SmartLicenseServer\Admin\Page;
 
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
-use SmartLicenseServer\Assets\AssetsManager;
+use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Templates\TemplateLocator;
@@ -61,13 +61,14 @@ class Shell {
     public const FOOTER_TEMPLATE            = 'admin.footer';
 
     /**
-     * @param AdminDashboardRegistry	$registry
+     * @param AdminDashboardRegistry|AuthTemplateRegistry	$registry
      * @param TemplateLocator			$locator
+	 * @param Request					$request
      */
     public function __construct(
-        protected AdminDashboardRegistry	$registry,
-        protected TemplateLocator			$locator,
-		protected Request					$request
+        protected AdminDashboardRegistry|AuthTemplateRegistry	$registry,
+        protected TemplateLocator	$locator,
+		protected Request			$request
     ) {}
     /*
     |---------
@@ -81,10 +82,9 @@ class Shell {
      * @return void
      */
     public function render() : void {
-        $menu        = $this->registry->all();
         $this->locator->render( self::SHELL_TEMPLATE, [
-            'menu'          => $menu,
-			'request'		=> $this->request
+            'menu_registry'	=> $this->registry,
+			'request'		=> $this->request,
         ] );
     }
 
@@ -125,8 +125,6 @@ class Shell {
     /**
      * Render only the content partial.
      *
-     * @param string $rest_base
-     * @param string $active_slug
      * @return void
      */
     public function render_content( string $rest_base, string $active_slug = '' ) : void {
@@ -148,13 +146,11 @@ class Shell {
     /**
      * Render the full shell to a string.
      *
-     * @param string $rest_base
-     * @param string $active_slug
      * @return string
      */
-    public function render_to_string( string $rest_base, string $active_slug = '' ) : string {
+    public function render_to_string() : string {
         ob_start();
-        $this->render( $rest_base, $active_slug );
+        $this->render();
         return (string) ob_get_clean();
     }
 
@@ -167,7 +163,7 @@ class Shell {
      */
     public function asResponse( string $rest_base, string $active_slug = '' ) : Response {
         return ( new Response )
-            ->set_body( $this->render_to_string( $rest_base, $active_slug ) )
+            ->set_body( $this->render_to_string() )
             ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
     }
 }

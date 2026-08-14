@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Assets;
 
+use function assetsUrl;
 final class JS {
 
     /**
@@ -19,111 +20,117 @@ final class JS {
     public static function all( string $suffix = '' ) : array {
         return [
             'string-utils' => [
-                'src'    => assetsUrl( sprintf( 'js/string-utils%s.js', $suffix ) ),
-                'deps'   => [],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/string-utils%s.js', $suffix ) ),
+                'dependencies'  => [],
+                'version'       => SMLISER_VER,
+                'footer'        => true
+            ],
+            'smliser-admin-scripts' => [
+                'url'           => assetsUrl( sprintf( 'js/admin/dashboard%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-script', 'smliser-apps-uploader'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-script' => [
-                'src'    => assetsUrl( sprintf( 'js/main-script%s.js', $suffix ) ),
-                'deps'   => [
+                'url'           => assetsUrl( sprintf( 'js/main-script%s.js', $suffix ) ),
+                'dependencies'  => [
                     'string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker',
                     'smliser-modal','smliser-toast'
                 ],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'version'   => SMLISER_VER,
+                'footer'    => true
             ],
             'smliser-apps-uploader' => [
-                'src'    => assetsUrl( sprintf( 'js/admin/apps-uploader%s.js', $suffix ) ),
-                'deps'   => ['smliser-jquery', 'smliser-script'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/admin/apps-uploader%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-jquery', 'smliser-script'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'select2' => [
-                'src'    => assetsUrl( sprintf( 'js/Select2/select2%s.js', $suffix ) ),
-                'deps'   => ['smliser-jquery'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/Select2/select2%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-jquery'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-tinymce' => [
-                'src'    => assetsUrl( 'js/tinymce/tinymce.min.js' ),
-                'deps'   => ['smliser-jquery'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( 'js/tinymce/tinymce.min.js' ),
+                'dependencies'  => ['smliser-jquery'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-admin-repository' => [
-                'src'    => assetsUrl( sprintf( 'js/admin/admin-repository%s.js', $suffix ) ),
-                'deps'   => ['jquery', 'smliser-script'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/admin/admin-repository%s.js', $suffix ) ),
+                'dependencies'  => ['jquery', 'smliser-script'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-role-builder' => [
-                'src'    => assetsUrl( sprintf( 'js/admin/role-builder%s.js', $suffix ) ),
-                'deps'   => ['smliser-jquery'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/admin/role-builder%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-jquery'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-chart' => [
-                'src'    => assetsUrl( 'js/Chartjs/chart.min.js' ),
-                'deps'   => ['smliser-jquery'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( 'js/Chartjs/chart.min.js' ),
+                'dependencies'  => ['smliser-jquery'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-modal' => [
-                'src'    => assetsUrl( sprintf( 'js/smliser-modal%s.js', $suffix ) ),
-                'deps'   => ['smliser-jquery'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/smliser-modal%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-jquery'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-json-editor' => [
-                'src'    => assetsUrl( sprintf( 'js/admin/json-editor%s.js', $suffix ) ),
-                'deps'   => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/admin/json-editor%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-datetime-picker' => [
-                'src'    => assetsUrl( sprintf( 'js/smliser-datetime-picker%s.js', $suffix ) ),
-                'deps'   => [],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/smliser-datetime-picker%s.js', $suffix ) ),
+                'dependencies'  => [],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-email-editor' => [
-                'src'    => assetsUrl( sprintf( 'js/admin/email-editor%s.js', $suffix ) ),
-                'deps'   => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/admin/email-editor%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-cache-stats' => [
-                'src'    => assetsUrl( sprintf( 'js/admin/cache-stats%s.js', $suffix ) ),
-                'deps'   => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/admin/cache-stats%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-jquery' => [
-                'src'    => assetsUrl( sprintf( 'js/jQuery/jQuery%s.js', $suffix ) ),
-                'deps'   => [],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/jQuery/jQuery%s.js', $suffix ) ),
+                'dependencies'  => [],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
 
             'smliser-client-dashboard' => [
-                'src'    => assetsUrl( sprintf( 'js/client-dashboard%s.js', $suffix ) ),
-                'deps'   => ['smliser-script', 'smliser-modal'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/client-dashboard%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-script', 'smliser-modal'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
 
             'smliser-client-auth' => [
-                'src'    => assetsUrl( sprintf( 'js/smliser-client-auth%s.js', $suffix ) ),
-                'deps'   => ['smliser-client-dashboard', 'smliser-modal'],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/smliser-client-auth%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-client-dashboard', 'smliser-modal'],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
             'smliser-toast' => [
-                'src'    => assetsUrl( sprintf( 'js/smliser-toast%s.js', $suffix ) ),
-                'deps'   => [],
-                'ver'    => SMLISER_VER,
-                'footer' => true
+                'url'           => assetsUrl( sprintf( 'js/smliser-toast%s.js', $suffix ) ),
+                'dependencies'  => [],
+                'version'       => SMLISER_VER,
+                'footer'        => true
             ],
         ];
     }

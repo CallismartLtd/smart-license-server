@@ -15,6 +15,7 @@
  * @var array<string, array{title: string, slug: string, handler: callable, icon: string}> $menu
  * @var string $rest_base
  * @var string $active_slug
+ * @var \SmartLicenseServer\Templates\TemplateLocator $this
  */
 
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
@@ -68,7 +69,7 @@ if ( $principal ) {
 |    opens <div class="smlcd-layout" id="smlcd-layout">
 |--------------------------------------------------
 */
-smliser_render_template( ClientDashboardRenderer::HEADER_TEMPLATE, [
+$this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
     'menu'          => $menu,
     'rest_base'     => $rest_base,
     'active_slug'   => $active_slug,
@@ -88,7 +89,7 @@ smliser_render_template( ClientDashboardRenderer::HEADER_TEMPLATE, [
 |--------------------------------------------------
 */
 if ( $principal ) {
-    smliser_render_template( ClientDashboardRenderer::MENU_TEMPLATE, [
+    $this->render( ClientDashboardRenderer::MENU_TEMPLATE, [
         'menu'        => $menu,
         'active_slug' => $active_slug,
         'principal'   => $principal,
@@ -107,7 +108,7 @@ $content_template = $principal
     ? ClientDashboardRenderer::CONTENT_TEMPLATE
     : ClientDashboardRenderer::AUTH_INDEX_TEMPLATE;
 
-smliser_render_template( $content_template, [
+$this->render( $content_template, [
     'principal'   => $principal,
     'rest_base'   => $rest_base,
     'active_slug' => $active_slug,
@@ -120,6 +121,6 @@ smliser_render_template( $content_template, [
 |    Closes layout, prints scripts, closes HTML
 |--------------------------------------------------
 */
-smliser_render_template( ClientDashboardRenderer::FOOTER_TEMPLATE, [
+$this->render( ClientDashboardRenderer::FOOTER_TEMPLATE, [
     'scripts' => $scripts,
 ] );

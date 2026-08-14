@@ -21,6 +21,11 @@ final class AssetsManager {
     const GROUP_CLIENT_DASHBOARD    = 'client_dashboard';
 
     /**
+     * Admin dashboard asset groups
+     */
+    const GROUP_ADMIN_DASHBOARD = 'admin_dashboard';
+
+    /**
      * Get script suffix depending on debug.
      */
     public static function script_suffix() : string {
@@ -151,18 +156,18 @@ final class AssetsManager {
             return null;
         }
 
-        $html = sprintf(
+        $link_tag = sprintf(
             '<link rel="stylesheet" id="%s-css" href="%s" />',
             escAttr( $handle ),
             escUrl( $src )
         );
 
         if ( $echo ) {
-            echo $html . "\n"; // phpcs:ignore
+            echo $link_tag . PHP_EOL; // phpcs:ignore
             return null;
         }
 
-        return $html;
+        return $link_tag;
     }
 
     /**
@@ -329,6 +334,27 @@ final class AssetsManager {
     public static function groups() : array {
         return [
 
+            static::GROUP_ADMIN_DASHBOARD => [
+                'styles' => [
+                    'smliser-admin-styles',
+                    'smliser-tabler-icons',
+                    'smliser-styles',
+                    'smliser-form-styles',
+                    'smliser-modal',
+                    'smliser-client-dashboard',
+                    'smliser-datetime-picker',
+                    'select2',
+                ],
+                'scripts' => [
+                    'smliser-admin-scripts',
+                    'smliser-jquery',
+                    'select2',
+                    'smliser-datetime-picker',
+                    'smliser-script',
+                    'smliser-modal',
+                    'smliser-client-dashboard',
+                ],
+            ],
             static::GROUP_CLIENT_DASHBOARD => [
                 'styles' => [
                     'smliser-tabler-icons',

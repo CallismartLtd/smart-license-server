@@ -40,25 +40,30 @@ class AuthTemplateRegistry extends AbstractDashboardRegistry {
 
         $this->menu = [
             'login' => [
-                'slug'    => 'login',
-                'handler' => [ Login::class, 'handle' ],
+                'title'     => 'Login',
+                'slug'      => 'login',
+                'handler'   => [ Login::class, 'handle' ],
             ],
             'signup' => [
-                'slug'    => 'signup',
-                'handler' => [ Signup::class, 'handle' ],
+                'title'     => 'Signup',
+                'slug'      => 'signup',
+                'handler'   => [ Signup::class, 'handle' ],
             ],
             'forgot_password' => [
-                'slug'    => 'forgot-password',
-                'handler' => [ ForgotPassword::class, 'handle' ],
+                'title'     => 'Forgot Password',
+                'slug'      => 'forgot-password',
+                'handler'   => [ ForgotPassword::class, 'handle' ],
             ],
             '2fa' => [
-                'slug'    => '2fa',
-                'handler' => [ TwoFactorAuth::class, 'handle' ],
+                'title'     => 'Two Factor Authentication',
+                'slug'      => '2fa',
+                'handler'   => [ TwoFactorAuth::class, 'handle' ],
             ],
 
             'reset_password' => [
-                'slug'    => 'reset-password',
-                'handler' => [ PasswordReset::class, 'handle' ],
+                'title'     => 'Reset Password',
+                'slug'      => 'reset-password',
+                'handler'   => [ PasswordReset::class, 'handle' ],
             ],
 
         ];

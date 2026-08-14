@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\Application\Routing;
 
+use SmartLicenseServer\Admin\Page\Dispatcher;
 use SmartLicenseServer\Admin\Page\Shell;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
@@ -132,7 +133,7 @@ final class RouteManager {
         $this->router->withMiddleware(
             methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
             pattern: "$admin_url_prefix",
-            handler: [Shell::class, 'render'],
+            handler: [Dispatcher::class, 'render_admin_dashboard'],
             middleware: []
             
         );

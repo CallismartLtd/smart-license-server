@@ -425,20 +425,15 @@ class Format {
     }
 
     /**
-     * Slugify a string
-     * 
-     * @param string $value
+     * Convert a string into a URL/ID-safe slug.
+     *
+     * @param string $string String to slugify.
      * @return string
      */
-    public static function slugify( string $value ) : string {
-        $slugified  = '';
-
-        if ( \is_scalar( $value ) ) {
-            $slugified = strtolower( $value );
-            $slugified = preg_replace( '/[^a-z0-9_\-]/', '', $slugified );
-        }
-
-        return $slugified;
+    public static function slugify( string $string ) : string {
+        $slug = strtolower( trim( (string) $string ) );
+        $slug = preg_replace( '/[^a-z0-9]+/', '-', $slug );
+        return trim( $slug, '-' );
     }
 
     /**

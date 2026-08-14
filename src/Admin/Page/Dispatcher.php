@@ -23,6 +23,7 @@ final class Dispatcher {
      */
     public static function render_admin_dashboard( Request $request ) : Response {
         $registry       = smliserAdminTemplate();
+        // \dd( $registry );
         $locator        = smliser_template_locator();
 
         $renderer       = new Shell( $registry, $locator, \smliser_request() );

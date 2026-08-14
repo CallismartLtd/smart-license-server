@@ -34,7 +34,7 @@ final class ScriptManager {
      */
     public function register_styles() : void {
         foreach ( CSS::all( $this->script_suffix() ) as $handle => $style ) {
-            wp_register_style( $handle, $style['src'], $style['deps'], $style['ver'], $style['media'] );
+            wp_register_style( $handle, $style['url'], $style['dependencies'], $style['version'], $style['media-type'] );
         }
     }
 
@@ -43,7 +43,7 @@ final class ScriptManager {
      */
     public function register_scripts() : void {
         foreach ( JS::all( $this->script_suffix() ) as $handle => $script ) {
-            wp_register_script( $handle, $script['src'], $script['deps'], $script['ver'], $script['footer'] );
+            wp_register_script( $handle, $script['url'], $script['dependencies'], $script['version'], $script['footer'] );
         }
     }
 
